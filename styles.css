@@ -4561,61 +4561,26 @@ body.admin-mode .main-wrap { padding-top: 26px; }
     50% { transform: translateY(-6px); }
 }
 
-/* ========== 앱 설치 배너 ========== */
-.install-bar {
-    position: fixed;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: var(--tabbar-h);
-    width: 100%;
-    max-width: var(--app-w);
-    display: flex;
+/* ========== 앱 설치 버튼 (푸터 사업자 영역) ========== */
+.footer-install {
+    margin-top: 14px;
+    display: inline-flex;
     align-items: center;
-    gap: 12px;
-    padding: 11px 14px;
-    background: linear-gradient(135deg, #1f5a48, #123a2e);
-    color: #fff;
-    z-index: 950;
-    box-shadow: 0 -6px 22px rgba(0, 0, 0, 0.3);
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    animation: installSlideUp 0.35s ease;
-}
-.install-bar[hidden] { display: none; }
-@keyframes installSlideUp {
-    from { transform: translate(-50%, 100%); opacity: 0; }
-    to { transform: translate(-50%, 0); opacity: 1; }
-}
-.install-bar-icon { font-size: 26px; line-height: 1; }
-.install-bar-text {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    line-height: 1.3;
-    min-width: 0;
-}
-.install-bar-text strong { font-size: 14px; font-weight: 800; }
-.install-bar-text span { font-size: 11.5px; color: rgba(255, 255, 255, 0.72); }
-.install-bar-btn {
-    background: var(--gold);
-    color: #1a1a1a;
-    font-weight: 800;
-    font-size: 13px;
-    padding: 9px 18px;
+    gap: 7px;
+    padding: 9px 16px;
+    border: 1px solid var(--green-bright);
     border-radius: 999px;
-    white-space: nowrap;
+    background: transparent;
+    color: var(--green-light);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    transition: background 0.2s, color 0.2s;
 }
-.install-bar-btn:active { transform: scale(0.95); }
-.install-bar-close {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 20px;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-body.install-open .float-kakao { display: none; }
+.footer-install::before { content: "\1F4F2"; font-size: 14px; }
+.footer-install:hover { background: var(--green-bright); color: #fff; }
+.footer-install:active { transform: scale(0.97); }
+.footer-install[hidden] { display: none; }
 
 /* ========== Reveal Animation ========== */
 .reveal {

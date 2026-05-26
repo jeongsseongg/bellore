@@ -35,64 +35,42 @@
         initInstallPrompt();
     }
 
-    /* ============ 앱 설치 (홈 화면에 추가) ============ */
+    /* ============ 앱 설치 (홈 화면에 추가) ============
+       푸터 사업자 영역의 '모바일 앱 설치' 버튼에서 호출.
+       설치 가능 시 클릭하면 브라우저 네이티브 설치창이 뜬다. */
+    var deferredInstallPrompt = null;
+
     function initInstallPrompt() {
-        var bar = $('#installBar');
         var btn = $('#installBtn');
-        var closeBtn = $('#installClose');
-        if (!bar || !btn) return;
 
-        // 이미 설치되어 전체화면(standalone)으로 실행 중이면 배너 숨김
-        var standalone = window.matchMedia('(display-mode: standalone)').matches ||
-            window.navigator.standalone === true;
-        if (standalone) return;
-
-        var dismissed = localStorage.getItem('nw_install_dismissed') === '1';
-        var deferredPrompt = null;
-
-        function showBar() {
-            bar.hidden = false;
-            document.body.classList.add('install-open');
-        }
-        function hideBar() {
-            bar.hidden = true;
-            document.body.classList.remove('install-open');
-        }
-
-        // 크롬/안드로이드: 설치 가능 시 이벤트 캡처 후 직접 띄울 수 있게 저장
+        // 설치 가능 신호를 잡아 두었다가 버튼 클릭 시 즉시 네이티브 창을 띄움
         window.addEventListener('beforeinstallprompt', function (e) {
             e.preventDefault();
-            deferredPrompt = e;
-            if (!dismissed) showBar();
+            deferredInstallPrompt = e;
         });
+
+        // 이미 설치되어 전체화면으로 실행 중이거나 설치 완료되면 버튼 숨김
+        var standalone = window.matchMedia('(display-mode: standalone)').matches ||
+            window.navigator.standalone === true;
+        if (btn && standalone) btn.hidden = true;
 
         window.addEventListener('appinstalled', function () {
-            deferredPrompt = null;
-            hideBar();
+            deferredInstallPrompt = null;
+            if (btn) btn.hidden = true;
         });
 
-        btn.addEventListener('click', function () {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then(function () {
-                    deferredPrompt = null;
-                    hideBar();
-                });
-            } else {
-                showInstallHelp();
-            }
-        });
-
-        if (closeBtn) {
-            closeBtn.addEventListener('click', function () {
-                localStorage.setItem('nw_install_dismissed', '1');
-                hideBar();
+        if (btn) {
+            btn.addEventListener('click', function () {
+                if (deferredInstallPrompt) {
+                    deferredInstallPrompt.prompt();
+                    deferredInstallPrompt.userChoice.then(function () {
+                        deferredInstallPrompt = null;
+                    });
+                } else {
+                    showInstallHelp();
+                }
             });
         }
-
-        // 설치 배너는 항상 노출한다 (설치 가능 시 클릭하면 네이티브 설치창,
-        // 아니면 수동 추가 안내). 이미 설치되어 전체화면이면 위에서 종료됨.
-        if (!dismissed) showBar();
     }
 
     function showInstallHelp() {

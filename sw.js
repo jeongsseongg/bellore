@@ -1,5 +1,5 @@
 /* 뉴욕워치 PWA 서비스워커 */
-const VERSION = 'nw-v5';
+const VERSION = 'nw-v6';
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
