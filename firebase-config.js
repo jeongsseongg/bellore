@@ -41,43 +41,11 @@ window.NW_ADMIN_EMAILS = [
   "jeongsseongg@gmail.com"
 ];
 
-/* ── 권장 Firestore 보안 규칙 (콘솔 > Firestore > 규칙) ──────
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    function isAdmin() {
-      return request.auth != null &&
-        request.auth.token.email in [
-          "jeongsseongg@gmail.com"
-        ];
-    }
-    match /users/{uid} {
-      allow read: if request.auth != null && (request.auth.uid == uid || isAdmin());
-      allow create, update: if request.auth != null && request.auth.uid == uid;
-    }
-    match /listings/{id} {
-      // 승인된 매물은 누구나 조회, 본인/관리자는 본인 것 조회
-      allow read: if resource.data.status == 'approved'
-                  || (request.auth != null && (request.auth.uid == resource.data.uid || isAdmin()));
-      // 로그인 사용자가 본인 명의로 매물 등록 (항상 pending 으로)
-      allow create: if request.auth != null
-                    && request.resource.data.uid == request.auth.uid
-                    && request.resource.data.status == 'pending';
-      // 승인/거부는 관리자만
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
-    }
-  }
-}
-   ── 권장 Storage 보안 규칙 (콘솔 > Storage > 규칙) ──────────
-rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /listings/{uid}/{file} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == uid
-                   && request.resource.size < 8 * 1024 * 1024;
-    }
-  }
-}
+/* ── 보안 규칙은 별도 파일로 관리합니다 ───────────────────────
+   - Firestore 규칙: firestore.rules
+   - Storage 규칙:   storage.rules
+   배포 방법(둘 중 하나):
+     (a) 콘솔에 복사: 각 파일 내용을 Firestore "규칙" / Storage "규칙"
+         탭에 붙여넣고 "게시"
+     (b) CLI: `firebase deploy --only firestore:rules,storage`
    ────────────────────────────────────────────────────────── */
