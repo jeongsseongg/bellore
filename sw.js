@@ -1,5 +1,5 @@
 /* 뉴욕워치 PWA 서비스워커 */
-const VERSION = 'nw-v1';
+const VERSION = 'nw-v2';
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -9,6 +9,8 @@ const SHELL_ASSETS = [
   './index.html',
   './styles.css',
   './script.js',
+  './firebase-config.js',
+  './firebase.js',
   './manifest.json',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',

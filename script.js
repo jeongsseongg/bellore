@@ -31,6 +31,7 @@
         initInquiryModal();
         initReveal();
         initParallax();
+        initBackendSync();
     }
 
     /* ============ 판매/구입/수리 폼 ============ */
@@ -477,8 +478,16 @@
             if (!item) return;
             var action = btn.dataset.action;
             var name = item.querySelector('.admin-pending-info strong').textContent;
+            var listingId = item.dataset.id; // 백엔드 매물이면 존재
+
             if (action === 'approve') {
                 if (confirm(name + ' 매물을 승인하시겠습니까?\n승인 후 고객 판매 마켓에 게시됩니다.')) {
+                    if (backendOn() && listingId) {
+                        NWBackend.approveListing(listingId)
+                            .then(function () { alert('승인되었습니다.'); })
+                            .catch(function (err) { alert('승인 실패: ' + (err && err.message || err)); });
+                        return; // 목록은 실시간 구독으로 갱신
+                    }
                     item.style.transition = 'opacity 0.4s, height 0.4s';
                     item.style.opacity = '0';
                     setTimeout(function () { item.remove(); }, 400);
@@ -486,6 +495,12 @@
                 }
             } else if (action === 'reject') {
                 if (confirm(name + ' 매물을 거부하시겠습니까?')) {
+                    if (backendOn() && listingId) {
+                        NWBackend.rejectListing(listingId)
+                            .then(function () { alert('거부되었습니다. 고객에게 사유가 전송됩니다.'); })
+                            .catch(function (err) { alert('거부 실패: ' + (err && err.message || err)); });
+                        return;
+                    }
                     item.style.transition = 'opacity 0.4s';
                     item.style.opacity = '0';
                     setTimeout(function () { item.remove(); }, 400);
@@ -535,6 +550,152 @@
     function closeLoginModal() {
         var lm = $('#loginModal');
         if (lm) { lm.hidden = true; document.body.style.overflow = ''; }
+    }
+
+    function openLoginModal() {
+        var lm = $('#loginModal');
+        if (lm) { lm.hidden = false; document.body.style.overflow = 'hidden'; }
+    }
+
+    /* ============ 백엔드(Firebase) 데이터 동기화 ============
+       firebase-config.js 에 키가 채워지면 자동 활성화. 키가 없으면
+       backendOn() === false 라 위의 데모 동작이 그대로 유지된다. */
+    function backendOn() {
+        return !!(window.NWBackend && window.NWBackend.configured);
+    }
+
+    function authErrorMsg(err) {
+        var code = err && err.code ? err.code : '';
+        var map = {
+            'auth/invalid-email': '이메일 형식이 올바르지 않습니다.',
+            'auth/user-not-found': '가입되지 않은 이메일입니다.',
+            'auth/wrong-password': '비밀번호가 일치하지 않습니다.',
+            'auth/invalid-credential': '이메일 또는 비밀번호가 올바르지 않습니다.',
+            'auth/email-already-in-use': '이미 가입된 이메일입니다.',
+            'auth/weak-password': '비밀번호는 6자 이상이어야 합니다.',
+            'auth/too-many-requests': '잠시 후 다시 시도해주세요.'
+        };
+        return map[code] || (err && err.message) || '알 수 없는 오류';
+    }
+
+    function initBackendSync() {
+        if (!backendOn()) return;
+
+        // 로그인/관리자 상태에 따라 UI 갱신
+        NWBackend.onAuthChange(function (user, info) {
+            if (info && info.isAdmin) { enableAdminMode(); }
+            else if (window.disableAdminMode) { disableAdminMode(); }
+            updateAuthUI(user);
+        });
+
+        // SDK 로드 완료 후 실시간 구독 시작
+        NWBackend.ready.then(function () {
+            if (!NWBackend.enabled) return;
+
+            NWBackend.subscribeApproved(renderApprovedMarket);
+
+            // 관리자: 승인 대기 매물
+            NWBackend.subscribePending(function (rows) {
+                if (NWBackend.isAdmin()) renderAdminPending(rows);
+            });
+
+            // 로그인 시 본인 매물 실시간 표시
+            var unsubMine = null;
+            NWBackend.onAuthChange(function (user) {
+                if (unsubMine) { unsubMine(); unsubMine = null; }
+                if (user) {
+                    unsubMine = NWBackend.subscribeMyListings(renderMyItemsBackend);
+                } else {
+                    renderMyItemsBackend([]);
+                }
+            });
+        });
+    }
+
+    function updateAuthUI(user) {
+        var btnMy = $('#btnMy');
+        if (btnMy) btnMy.classList.toggle('logged-in', !!user);
+    }
+
+    function esc(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function listingImg(it) {
+        return (it.photos && it.photos[0]) ? it.photos[0] : 'assets/images.jpg';
+    }
+
+    // 승인된 고객 매물 → 고객 판매 마켓 그리드 상단에 표시
+    function renderApprovedMarket(rows) {
+        var inner = $('#panel-user .col-grid-inner');
+        if (!inner) return;
+        $$('.hcard-dynamic', inner).forEach(function (el) { el.remove(); });
+        var frag = document.createDocumentFragment();
+        rows.forEach(function (it) {
+            var card = document.createElement('article');
+            card.className = 'hcard hcard-dynamic';
+            card.innerHTML =
+                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
+                '<span class="hcard-tag user">개인 판매</span>' +
+                '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
+                '<p class="hcard-model">' + esc(it.model) + '</p>' +
+                '<p class="hcard-price">감정가 산정<em></em></p>';
+            frag.appendChild(card);
+        });
+        inner.insertBefore(frag, inner.firstChild);
+    }
+
+    // 관리자: 승인 대기 매물 목록
+    function renderAdminPending(rows) {
+        var box = $('#adminPending');
+        if (!box) return;
+        if (!rows.length) {
+            box.innerHTML = '<div class="empty-items"><p>승인 대기 중인 매물이 없습니다.</p></div>';
+            return;
+        }
+        box.innerHTML = rows.map(function (it) {
+            return '' +
+                '<div class="admin-pending-item" data-id="' + esc(it.id) + '">' +
+                '<div class="admin-pending-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
+                '<div class="admin-pending-info">' +
+                '<strong>' + esc(it.brand) + '</strong>' +
+                '<p>' + esc(it.model) + ' · ' + esc(it.name || '고객') + '</p>' +
+                '<small>사진 ' + (it.photoCount || (it.photos ? it.photos.length : 0)) + '장</small>' +
+                '</div>' +
+                '<div class="admin-pending-actions">' +
+                '<button class="admin-btn approve" data-action="approve">승인</button>' +
+                '<button class="admin-btn reject" data-action="reject">거부</button>' +
+                '</div>' +
+                '</div>';
+        }).join('');
+    }
+
+    // 로그인 사용자 본인의 매물 (상태 포함)
+    function renderMyItemsBackend(rows) {
+        var el = $('#myItems');
+        if (!el) return;
+        if (!rows.length) {
+            el.innerHTML =
+                '<div class="empty-items">' +
+                '<p>아직 등록한 매물이 없습니다.</p>' +
+                '<p class="sub">위에서 시계 정보를 등록해보세요.</p>' +
+                '</div>';
+            return;
+        }
+        var label = { pending: '승인 중', approved: '판매중', rejected: '거부됨' };
+        el.innerHTML = rows.map(function (it) {
+            return '' +
+                '<div class="my-item">' +
+                '<div class="my-item-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
+                '<div class="my-item-info">' +
+                '<strong>' + esc(it.brand) + ' · ' + esc(it.model) + '</strong>' +
+                '<p>사진 ' + (it.photoCount || (it.photos ? it.photos.length : 0)) + '장</p>' +
+                '</div>' +
+                '<div class="my-item-status">' + (label[it.status] || it.status) + '</div>' +
+                '</div>';
+        }).join('');
     }
 
     /* ============ 제휴처 클릭 → 예약/문의 모달 ============ */
@@ -712,7 +873,24 @@
         if (loginForm) {
             loginForm.addEventListener('submit', function (e) {
                 e.preventDefault();
-                alert('로그인 기능은 준비 중입니다.\n실제 운영 시 백엔드 API와 연동하세요.');
+                if (!backendOn()) {
+                    alert('로그인 기능은 준비 중입니다.\n실제 운영 시 백엔드 API와 연동하세요.');
+                    return;
+                }
+                var fd = new FormData(loginForm);
+                var email = String(fd.get('id') || '').trim();
+                var pw = String(fd.get('pw') || '');
+                if (email.indexOf('@') === -1) {
+                    alert('이메일 주소로 로그인해주세요.');
+                    return;
+                }
+                NWBackend.signIn({ email: email, password: pw }).then(function (user) {
+                    loginForm.reset();
+                    closeLoginModal();
+                    alert((user.displayName || '') + '님, 로그인되었습니다.');
+                }).catch(function (err) {
+                    alert('로그인 실패: ' + authErrorMsg(err));
+                });
             });
         }
 
@@ -734,6 +912,20 @@
                     alert('비밀번호는 8자 이상이어야 합니다.');
                     return;
                 }
+
+                if (backendOn()) {
+                    NWBackend.signUp({ name: name, phone: phone, email: email, password: pw })
+                        .then(function () {
+                            signupForm.reset();
+                            closeLoginModal();
+                            alert(name + '님, 회원가입이 완료되었습니다.\n바로 로그인되었습니다.');
+                        })
+                        .catch(function (err) {
+                            alert('회원가입 실패: ' + authErrorMsg(err));
+                        });
+                    return;
+                }
+
                 alert(name + '님, 회원가입이 완료되었습니다.\n\n등록된 이메일: ' + email + '\n등록된 번호: ' + phone + '\n\n* 데모 환경입니다. 실제 운영 시 백엔드 연동 필요.');
                 signupForm.reset();
 
@@ -1064,6 +1256,31 @@
             }
             if (uploadedPhotos.length === 0) {
                 alert('시계 사진을 1장 이상 등록해주세요.');
+                return;
+            }
+
+            if (backendOn()) {
+                if (!NWBackend.currentUser()) {
+                    alert('매물 등록은 로그인 후 가능합니다.');
+                    openLoginModal();
+                    return;
+                }
+                var submitBtn = form.querySelector('[type="submit"]');
+                if (submitBtn) submitBtn.disabled = true;
+                NWBackend.addListing({
+                    brand: brand, model: model, name: name, phone: phone, memo: memo,
+                    photos: uploadedPhotos.slice(0), photoCount: uploadedPhotos.length
+                }).then(function () {
+                    showSubmitSuccess(form);
+                    form.reset();
+                    uploadedPhotos.length = 0;
+                    renderUploadGrid();
+                    // 내 매물 목록은 실시간 구독으로 자동 갱신됨
+                }).catch(function (err) {
+                    alert('매물 등록 실패: ' + (err && err.message ? err.message : err));
+                }).then(function () {
+                    if (submitBtn) submitBtn.disabled = false;
+                });
                 return;
             }
 
