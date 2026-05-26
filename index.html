@@ -1719,10 +1719,6 @@
                     <span class="login-icon-kakao"></span>
                     카카오톡으로 시작하기
                 </button>
-                <button class="login-btn login-naver" id="loginNaver">
-                    <span class="login-icon-naver">N</span>
-                    네이버로 시작하기
-                </button>
                 <div class="login-divider"><span>또는</span></div>
                 <form class="login-form" id="loginForm">
                     <input type="text" name="id" placeholder="아이디 또는 이메일" required>
@@ -1772,10 +1768,6 @@
 
             <!-- 추가 메뉴 -->
             <div class="login-extra">
-                <button class="extra-link" id="btnAdminLogin">
-                    <span class="extra-icon">🔐</span>
-                    <span>관리자 로그인</span>
-                </button>
                 <button class="extra-link" id="btnPartnership">
                     <span class="extra-icon">🤝</span>
                     <span>업체 제휴 문의</span>
@@ -1791,24 +1783,6 @@
                 <a href="tel:010-6293-6668" class="my-info-tel">010-6293-6668</a>
                 <p>24시간 연중무휴 · 카톡 상담</p>
             </div>
-        </div>
-    </div>
-
-    <!-- 관리자 로그인 모달 -->
-    <div class="login-modal" id="adminModal" hidden>
-        <div class="login-backdrop" data-aclose></div>
-        <div class="login-content" style="max-width:380px">
-            <button class="login-close" data-aclose aria-label="닫기">×</button>
-            <div class="login-head">
-                <p class="login-eyebrow" style="color:#ff6b6b">ADMIN ONLY</p>
-                <h2>관리자 <strong>로그인</strong></h2>
-            </div>
-            <form class="login-form" id="adminForm">
-                <input type="text" name="adminId" placeholder="관리자 아이디" required>
-                <input type="password" name="adminPw" placeholder="비밀번호" required>
-                <button type="submit" class="login-btn login-default">관리자 로그인</button>
-            </form>
-            <p class="admin-hint">데모: <code>admin</code> / <code>admin1234</code></p>
         </div>
     </div>
 
@@ -1908,6 +1882,17 @@
     <a href="https://open.kakao.com/o/sMuCaAFh" target="_blank" class="float-kakao" aria-label="카카오톡 상담">
         <span>💬</span>
     </a>
+
+    <!-- 앱 설치 배너 -->
+    <div class="install-bar" id="installBar" hidden>
+        <span class="install-bar-icon">📲</span>
+        <div class="install-bar-text">
+            <strong>뉴욕워치 앱 설치</strong>
+            <span>홈 화면에 추가하고 앱처럼 쓰세요</span>
+        </div>
+        <button class="install-bar-btn" id="installBtn" type="button">설치</button>
+        <button class="install-bar-close" id="installClose" type="button" aria-label="닫기">×</button>
+    </div>
 
     <!-- 하단 탭바 (홈 / 비교견적 / 컬렉션 / 인사이트 / 브랜드 / 소개) -->
     <nav class="tabbar">

@@ -239,6 +239,28 @@
     });
   };
 
+  /* ---------------- 뉴욕워치 판매 상품 (관리자 등록) ---------------- */
+  Backend.addProduct = async function (data) {
+    await Backend.ready;
+    if (!Backend.isAdmin()) throw new Error('NOT_ADMIN');
+    var ref = await fb.addDoc(fb.collection(fb.db, 'products'), {
+      brand: data.brand,
+      model: data.model,
+      price: data.price || 0,
+      photos: data.photos || [],
+      createdAt: fb.serverTimestamp()
+    });
+    return ref.id;
+  };
+
+  Backend.subscribeProducts = function (cb) {
+    var qy = fb.collection(fb.db, 'products');
+    return snap(qy, function (rows) {
+      rows.sort(function (a, b) { return tsMs(b.createdAt) - tsMs(a.createdAt); });
+      cb(rows);
+    });
+  };
+
   function tsMs(ts) {
     if (!ts) return 0;
     if (typeof ts.toMillis === 'function') return ts.toMillis();

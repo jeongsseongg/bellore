@@ -32,6 +32,76 @@
         initReveal();
         initParallax();
         initBackendSync();
+        initInstallPrompt();
+    }
+
+    /* ============ 앱 설치 (홈 화면에 추가) ============ */
+    function initInstallPrompt() {
+        var bar = $('#installBar');
+        var btn = $('#installBtn');
+        var closeBtn = $('#installClose');
+        if (!bar || !btn) return;
+
+        // 이미 설치되어 전체화면(standalone)으로 실행 중이면 배너 숨김
+        var standalone = window.matchMedia('(display-mode: standalone)').matches ||
+            window.navigator.standalone === true;
+        if (standalone) return;
+
+        var dismissed = localStorage.getItem('nw_install_dismissed') === '1';
+        var deferredPrompt = null;
+
+        function showBar() {
+            bar.hidden = false;
+            document.body.classList.add('install-open');
+        }
+        function hideBar() {
+            bar.hidden = true;
+            document.body.classList.remove('install-open');
+        }
+
+        // 크롬/안드로이드: 설치 가능 시 이벤트 캡처 후 직접 띄울 수 있게 저장
+        window.addEventListener('beforeinstallprompt', function (e) {
+            e.preventDefault();
+            deferredPrompt = e;
+            if (!dismissed) showBar();
+        });
+
+        window.addEventListener('appinstalled', function () {
+            deferredPrompt = null;
+            hideBar();
+        });
+
+        btn.addEventListener('click', function () {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(function () {
+                    deferredPrompt = null;
+                    hideBar();
+                });
+            } else {
+                showInstallHelp();
+            }
+        });
+
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function () {
+                localStorage.setItem('nw_install_dismissed', '1');
+                hideBar();
+            });
+        }
+
+        // iOS 사파리는 beforeinstallprompt 미지원 → 버튼을 노출해 수동 안내
+        var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        if (!dismissed && isIOS) showBar();
+    }
+
+    function showInstallHelp() {
+        var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        if (isIOS) {
+            alert('홈 화면에 추가하기 (아이폰)\n\n1) 사파리 하단의 공유 버튼(□↑)을 누르세요\n2) "홈 화면에 추가"를 선택하세요');
+        } else {
+            alert('홈 화면에 추가하기\n\n브라우저 메뉴(⋮)에서\n"앱 설치" 또는 "홈 화면에 추가"를 선택하세요.');
+        }
     }
 
     /* ============ 판매/구입/수리 폼 ============ */
@@ -390,50 +460,12 @@
         return steps;
     }
 
-    /* ============ 관리자 모드 ============ */
-    var ADMIN_ID = 'admin';
-    var ADMIN_PW = 'admin1234';
-
+    /* ============ 관리자 모드 ============
+       관리자 인증은 Firebase 로그인(관리자 이메일)으로 처리한다.
+       로그인 시 initBackendSync 가 enableAdminMode/disableAdminMode 를 호출. */
     function initAdminMode() {
-        var btnAdmin = $('#btnAdminLogin');
-        var adminModal = $('#adminModal');
-        var adminForm = $('#adminForm');
         var btnPartnership = $('#btnPartnership');
         var btnAd = $('#btnAdInquiry');
-
-        if (btnAdmin && adminModal) {
-            btnAdmin.addEventListener('click', function () {
-                closeLoginModal();
-                adminModal.hidden = false;
-                document.body.style.overflow = 'hidden';
-            });
-
-            adminModal.addEventListener('click', function (e) {
-                if (e.target.closest('[data-aclose]')) {
-                    adminModal.hidden = true;
-                    document.body.style.overflow = '';
-                }
-            });
-        }
-
-        if (adminForm) {
-            adminForm.addEventListener('submit', function (e) {
-                e.preventDefault();
-                var fd = new FormData(adminForm);
-                var id = fd.get('adminId');
-                var pw = fd.get('adminPw');
-                if (id === ADMIN_ID && pw === ADMIN_PW) {
-                    enableAdminMode();
-                    adminModal.hidden = true;
-                    document.body.style.overflow = '';
-                    adminForm.reset();
-                    alert('관리자 모드로 로그인되었습니다.\n판매시계 페이지에서 등록/승인 가능합니다.');
-                    navigate('collection');
-                } else {
-                    alert('아이디 또는 비밀번호가 올바르지 않습니다.\n데모: admin / admin1234');
-                }
-            });
-        }
 
         // 제휴/광고 문의 버튼
         var inquiryModal = $('#inquiryModal');
@@ -519,14 +551,16 @@
                 if (!model) return;
                 var price = prompt('판매가 (숫자만, 예: 15000000)');
                 if (!price) return;
-                alert(brand + ' ' + model + ' (' + fmt(parseInt(price, 10) || 0) + '원) 등록 완료.\n* 데모 환경입니다. 실제 운영시 백엔드 연동.');
+                var priceNum = parseInt(String(price).replace(/[^0-9]/g, ''), 10) || 0;
+                if (backendOn()) {
+                    NWBackend.addProduct({ brand: brand, model: model, price: priceNum })
+                        .then(function () { alert(brand + ' ' + model + ' (' + fmt(priceNum) + '원) 등록 완료.'); })
+                        .catch(function (err) { alert('등록 실패: ' + (err && err.message || err)); });
+                } else {
+                    alert(brand + ' ' + model + ' (' + fmt(priceNum) + '원) 등록 완료.');
+                }
             }
         });
-
-        // 저장된 관리자 모드 복원
-        if (localStorage.getItem('nw_admin') === '1') {
-            enableAdminMode();
-        }
     }
 
     function enableAdminMode() {
@@ -535,7 +569,6 @@
             el.hidden = false;
             el.classList.add('show');
         });
-        localStorage.setItem('nw_admin', '1');
     }
     function disableAdminMode() {
         document.body.classList.remove('admin-mode');
@@ -543,7 +576,6 @@
             el.hidden = true;
             el.classList.remove('show');
         });
-        localStorage.removeItem('nw_admin');
     }
     window.disableAdminMode = disableAdminMode;
 
@@ -594,6 +626,9 @@
 
             // 승인된 매물은 누구나 조회 (공개 마켓)
             NWBackend.subscribeApproved(renderApprovedMarket);
+
+            // 뉴욕워치 판매 상품 (관리자 등록분)
+            NWBackend.subscribeProducts(renderProducts);
 
             // 로그인/권한 상태에 따라 구독을 켜고 끈다
             var unsubMine = null;
@@ -647,6 +682,29 @@
                 '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
                 '<p class="hcard-model">' + esc(it.model) + '</p>' +
                 '<p class="hcard-price">감정가 산정<em></em></p>';
+            frag.appendChild(card);
+        });
+        inner.insertBefore(frag, inner.firstChild);
+    }
+
+    // 뉴욕워치 판매 상품 → 판매시계 그리드 상단에 표시
+    function renderProducts(rows) {
+        var inner = $('#panel-ny .col-grid-inner');
+        if (!inner) return;
+        $$('.hcard-dynamic', inner).forEach(function (el) { el.remove(); });
+        var frag = document.createDocumentFragment();
+        rows.forEach(function (it) {
+            var priceHtml = it.price
+                ? (fmt(it.price) + '<em>원</em>')
+                : '가격 문의<em></em>';
+            var card = document.createElement('article');
+            card.className = 'hcard hcard-dynamic';
+            card.innerHTML =
+                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
+                '<span class="hcard-tag ny">뉴욕워치</span>' +
+                '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
+                '<p class="hcard-model">' + esc(it.model) + '</p>' +
+                '<p class="hcard-price">' + priceHtml + '</p>';
             frag.appendChild(card);
         });
         inner.insertBefore(frag, inner.firstChild);
@@ -878,10 +936,7 @@
         if (loginForm) {
             loginForm.addEventListener('submit', function (e) {
                 e.preventDefault();
-                if (!backendOn()) {
-                    alert('로그인 기능은 준비 중입니다.\n실제 운영 시 백엔드 API와 연동하세요.');
-                    return;
-                }
+                if (!backendOn()) { return; }
                 var fd = new FormData(loginForm);
                 var email = String(fd.get('id') || '').trim();
                 var pw = String(fd.get('pw') || '');
@@ -930,13 +985,6 @@
                         });
                     return;
                 }
-
-                alert(name + '님, 회원가입이 완료되었습니다.\n\n등록된 이메일: ' + email + '\n등록된 번호: ' + phone + '\n\n* 데모 환경입니다. 실제 운영 시 백엔드 연동 필요.');
-                signupForm.reset();
-
-                // 로그인 탭으로 전환
-                var tab = document.querySelector('.login-tab[data-ltab="login"]');
-                if (tab) tab.click();
             });
         }
     }
@@ -1085,6 +1133,7 @@
                 tab.classList.add('active');
                 var panel = $('#panel-' + t);
                 if (panel) panel.classList.add('active');
+                clearSearchFilter(); // 탭 전환 시 검색 필터 해제
             });
         });
     }
@@ -1677,23 +1726,72 @@
                 window.open('https://open.kakao.com/o/sMuCaAFh', '_blank');
             });
         }
-        var naverBtn = $('#loginNaver');
-        if (naverBtn) {
-            naverBtn.addEventListener('click', function () {
-                alert('네이버 로그인 설정이 필요합니다.\n실제 운영 시 네이버 개발자센터에서 발급한 client_id로 연동하세요.');
-            });
-        }
 
-        // 검색 버튼
+        // 검색 버튼 → 판매시계 컬렉션에서 브랜드/모델 검색
         var btnSearch = $('#btnSearch');
         if (btnSearch) {
             btnSearch.addEventListener('click', function () {
-                var q = prompt('검색어를 입력하세요 (예: 롤렉스 데이토나)');
-                if (q && q.trim()) {
-                    alert('"' + q + '" 검색 기능은 준비 중입니다.');
-                }
+                var q = prompt('검색어를 입력하세요 (예: 롤렉스, 데이토나)');
+                if (q && q.trim()) runSearch(q.trim());
             });
         }
+    }
+
+    // 브랜드 한글↔영문 별칭 (카드는 영문 표기라 한글 검색도 매칭)
+    var BRAND_ALIASES = [
+        ['rolex', '롤렉스'],
+        ['patek', '파텍', '파텍필립'],
+        ['audemars', 'ap', '오데마', '오데마피게'],
+        ['vacheron', '바쉐론', '바쉐론콘스탄틴'],
+        ['richard', '리차드밀', '리차드 밀'],
+        ['franck', '프랭크', '프랭크뮬러'],
+        ['cartier', '까르띠에', '카르티에']
+    ];
+
+    function cardMatches(cardText, ql) {
+        if (cardText.indexOf(ql) !== -1) return true;
+        for (var i = 0; i < BRAND_ALIASES.length; i++) {
+            var g = BRAND_ALIASES[i];
+            var qInGroup = g.some(function (t) { return ql.indexOf(t) !== -1 || t.indexOf(ql) !== -1; });
+            if (qInGroup && g.some(function (t) { return cardText.indexOf(t) !== -1; })) return true;
+        }
+        return false;
+    }
+
+    function runSearch(q) {
+        var ql = q.toLowerCase();
+        navigate('collection');
+        setTimeout(function () {
+            var cards = $$('#collection .hcard');
+            var hits = 0;
+            cards.forEach(function (c) {
+                var hit = cardMatches((c.textContent || '').toLowerCase(), ql);
+                c.style.display = hit ? '' : 'none';
+                if (hit) hits++;
+            });
+            if (!hits) {
+                clearSearchFilter();
+                alert('"' + q + '" 검색 결과가 없습니다.');
+                return;
+            }
+            // 검색 결과가 있는 패널로 전환 (탭 click 핸들러를 거치지 않고 직접 전환)
+            var firstHit = cards.filter(function (c) { return c.style.display !== 'none'; })[0];
+            var panel = firstHit && firstHit.closest('.col-panel');
+            if (panel) {
+                var tabKey = panel.id.replace('panel-', '');
+                $$('.col-tab').forEach(function (x) { x.classList.remove('active'); });
+                $$('.col-panel').forEach(function (x) { x.classList.remove('active'); });
+                panel.classList.add('active');
+                var tab = $('.col-tab[data-coltab="' + tabKey + '"]');
+                if (tab) tab.classList.add('active');
+            }
+            var head = $('#collection');
+            if (head) head.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 200);
+    }
+
+    function clearSearchFilter() {
+        $$('#collection .hcard').forEach(function (c) { c.style.display = ''; });
     }
 
     /* ============ 상품 상세 모달 ============ */

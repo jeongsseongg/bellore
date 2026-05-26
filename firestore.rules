@@ -16,6 +16,12 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // 뉴욕워치 판매 상품 (관리자만 등록, 누구나 조회)
+    match /products/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // 매물
     match /listings/{id} {
       // 승인된 매물은 누구나 조회 / 본인·관리자는 본인 것 조회
