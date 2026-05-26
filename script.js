@@ -592,21 +592,26 @@
         NWBackend.ready.then(function () {
             if (!NWBackend.enabled) return;
 
+            // 승인된 매물은 누구나 조회 (공개 마켓)
             NWBackend.subscribeApproved(renderApprovedMarket);
 
-            // 관리자: 승인 대기 매물
-            NWBackend.subscribePending(function (rows) {
-                if (NWBackend.isAdmin()) renderAdminPending(rows);
-            });
-
-            // 로그인 시 본인 매물 실시간 표시
+            // 로그인/권한 상태에 따라 구독을 켜고 끈다
             var unsubMine = null;
-            NWBackend.onAuthChange(function (user) {
+            var unsubPending = null;
+            NWBackend.onAuthChange(function (user, info) {
+                // 본인 매물
                 if (unsubMine) { unsubMine(); unsubMine = null; }
                 if (user) {
                     unsubMine = NWBackend.subscribeMyListings(renderMyItemsBackend);
                 } else {
                     renderMyItemsBackend([]);
+                }
+
+                // 승인 대기 매물 (관리자만 — 규칙상 비관리자는 조회 불가)
+                if (info && info.isAdmin) {
+                    if (!unsubPending) unsubPending = NWBackend.subscribePending(renderAdminPending);
+                } else if (unsubPending) {
+                    unsubPending(); unsubPending = null;
                 }
             });
         });
