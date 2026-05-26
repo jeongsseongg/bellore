@@ -111,7 +111,9 @@ img { display: block; max-width: 100%; height: auto; }
     transform: translateX(-50%);
     width: 100%;
     max-width: var(--app-w);
-    height: var(--header-h);
+    height: calc(var(--header-h) + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
+    box-sizing: border-box;
     background: rgba(10, 10, 10, 0.5);
     backdrop-filter: blur(20px);
     z-index: 1000;
@@ -125,7 +127,7 @@ img { display: block; max-width: 100%; height: auto; }
 }
 .header-inner {
     padding: 0 20px;
-    height: 100%;
+    height: var(--header-h);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -2864,16 +2866,16 @@ body.admin-mode .main-wrap { padding-top: 26px; }
     align-items: center;
     justify-content: center;
 }
-.login-head { margin-bottom: 20px; }
+.login-head { margin-bottom: 16px; }
 .login-eyebrow {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 800;
     letter-spacing: 3px;
     color: var(--green-bright);
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 .login-head h2 {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
     line-height: 1.35;
     color: var(--text);
@@ -4481,14 +4483,17 @@ body.admin-mode .main-wrap { padding-top: 26px; }
     transform: translateX(-50%);
     width: 100%;
     max-width: var(--app-w);
-    height: var(--tabbar-h);
+    height: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+    box-sizing: border-box;
     background: rgba(10, 10, 10, 0.96);
     backdrop-filter: blur(20px);
     border-top: 1px solid var(--border-dark);
     display: flex;
     align-items: center;
     justify-content: space-around;
-    padding: 0 4px;
+    padding-left: 4px;
+    padding-right: 4px;
     z-index: 1000;
 }
 
