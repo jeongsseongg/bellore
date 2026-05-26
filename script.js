@@ -90,9 +90,9 @@
             });
         }
 
-        // iOS 사파리는 beforeinstallprompt 미지원 → 버튼을 노출해 수동 안내
-        var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-        if (!dismissed && isIOS) showBar();
+        // 설치 배너는 항상 노출한다 (설치 가능 시 클릭하면 네이티브 설치창,
+        // 아니면 수동 추가 안내). 이미 설치되어 전체화면이면 위에서 종료됨.
+        if (!dismissed) showBar();
     }
 
     function showInstallHelp() {
