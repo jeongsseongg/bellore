@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://jeongsseongg.github.io/newyork-watch/sitemap.xml
