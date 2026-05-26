@@ -2,11 +2,18 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // 부트스트랩 관리자(이메일) + admins 컬렉션에 등록된 관리자
     function isAdmin() {
-      return request.auth != null &&
-        request.auth.token.email in [
-          "jeongsseongg@gmail.com"
-        ];
+      return request.auth != null && (
+        request.auth.token.email == 'jeongsseongg@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.token.email))
+      );
+    }
+
+    // 관리자 목록: 로그인 사용자는 조회 가능(본인 권한 확인용), 추가/삭제는 관리자만
+    match /admins/{email} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
     }
 
     // 회원 프로필
@@ -16,25 +23,27 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // 뉴욕워치 판매 상품 (관리자만 등록, 누구나 조회)
+    // 뉴욕워치 판매 상품 (관리자만 등록/수정/삭제, 누구나 조회)
     match /products/{id} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // 매물
+    // 매물 (고객 등록 → 관리자 승인/입찰)
     match /listings/{id} {
-      // 승인된 매물은 누구나 조회 / 본인·관리자는 본인 것 조회
       allow read: if resource.data.status == 'approved'
                   || (request.auth != null && (request.auth.uid == resource.data.uid || isAdmin()));
-
-      // 로그인 사용자가 본인 명의로 등록 (항상 pending 으로 시작)
       allow create: if request.auth != null
                     && request.resource.data.uid == request.auth.uid
                     && request.resource.data.status == 'pending';
-
-      // 승인/거부/삭제는 관리자만
       allow update, delete: if isAdmin();
+    }
+
+    // 인앱 알림 (본인 알림 조회/읽음 처리, 생성은 관리자)
+    match /notifications/{id} {
+      allow read, update: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow create: if isAdmin();
+      allow delete: if isAdmin();
     }
   }
 }

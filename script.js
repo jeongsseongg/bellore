@@ -33,6 +33,205 @@
         initParallax();
         initBackendSync();
         initInstallPrompt();
+        initAccountUI();
+    }
+
+    /* ============ 계정 UI: 구글 로그인 · 마이페이지 · 알림 · 관리자 관리 · 상품 수정 ============ */
+    function openMyPage() {
+        var m = $('#myPageModal');
+        if (!m) return;
+        m.hidden = false;
+        document.body.style.overflow = 'hidden';
+        renderMyItemsBackend(myListingsCache); // 현재 캐시로 즉시 렌더
+    }
+    function closeMyPage() {
+        var m = $('#myPageModal');
+        if (m) { m.hidden = true; document.body.style.overflow = ''; }
+    }
+
+    var notiCache = [];
+    function initAccountUI() {
+        if (!backendOn()) return;
+
+        // 구글 로그인
+        var g = $('#loginGoogle');
+        if (g) {
+            g.addEventListener('click', function () {
+                NWBackend.signInWithGoogle()
+                    .then(function (user) {
+                        closeLoginModal();
+                        alert((user.displayName || '') + '님, 구글 계정으로 로그인되었습니다.');
+                    })
+                    .catch(function (err) {
+                        alert('구글 로그인 실패: ' + authErrorMsg(err));
+                    });
+            });
+        }
+
+        // 마이페이지 모달 닫기
+        var myModal = $('#myPageModal');
+        if (myModal) {
+            myModal.addEventListener('click', function (e) {
+                if (e.target.closest('[data-myclose]')) closeMyPage();
+            });
+        }
+        // 로그아웃
+        var logout = $('#btnLogout');
+        if (logout) {
+            logout.addEventListener('click', function () {
+                NWBackend.signOut().then(function () {
+                    closeMyPage();
+                    alert('로그아웃되었습니다.');
+                });
+            });
+        }
+        // 관리자 추가
+        var addAdminBtn = $('#adminAddBtn');
+        if (addAdminBtn) {
+            addAdminBtn.addEventListener('click', function () {
+                var email = prompt('관리자로 추가할 구글/이메일 계정을 입력하세요.');
+                if (!email || email.indexOf('@') === -1) return;
+                NWBackend.addAdmin(email)
+                    .then(function () { alert(email + ' 님을 관리자로 추가했습니다.'); })
+                    .catch(function (err) { alert('추가 실패: ' + (err && err.message || err)); });
+            });
+        }
+        // 관리자 목록에서 삭제
+        document.addEventListener('click', function (e) {
+            var rm = e.target.closest('[data-admindel]');
+            if (!rm) return;
+            var email = rm.dataset.admindel;
+            if (confirm(email + ' 님을 관리자에서 제외할까요?')) {
+                NWBackend.removeAdmin(email).catch(function (err) { alert('제외 실패: ' + (err && err.message || err)); });
+            }
+        });
+
+        // 알림 모달
+        var btnNoti = $('#btnNoti');
+        var notiModal = $('#notiModal');
+        if (btnNoti && notiModal) {
+            btnNoti.addEventListener('click', function () {
+                notiModal.hidden = false;
+                document.body.style.overflow = 'hidden';
+                renderNotiList(notiCache);
+                // 열람 시 읽지 않은 알림 읽음 처리
+                notiCache.forEach(function (n) {
+                    if (!n.read) NWBackend.markNotificationRead(n.id).catch(function () {});
+                });
+            });
+            notiModal.addEventListener('click', function (e) {
+                if (e.target.closest('[data-noticlose]')) {
+                    notiModal.hidden = true;
+                    document.body.style.overflow = '';
+                }
+            });
+        }
+
+        // 상품 수정/삭제 (관리자)
+        document.addEventListener('click', function (e) {
+            var ed = e.target.closest('[data-pedit]');
+            var dl = e.target.closest('[data-pdel]');
+            if (ed) {
+                e.preventDefault(); e.stopPropagation();
+                var card = ed.closest('.hcard-dynamic');
+                var brand = prompt('브랜드', card ? card.dataset.brand : '');
+                if (brand === null) return;
+                var model = prompt('모델명', card ? card.dataset.model : '');
+                if (model === null) return;
+                var price = prompt('판매가 (숫자만)', card ? card.dataset.price : '0');
+                if (price === null) return;
+                var priceNum = parseInt(String(price).replace(/[^0-9]/g, ''), 10) || 0;
+                NWBackend.updateProduct(ed.dataset.pedit, { brand: brand, model: model, price: priceNum })
+                    .then(function () { alert('수정되었습니다.'); })
+                    .catch(function (err) { alert('수정 실패: ' + (err && err.message || err)); });
+            } else if (dl) {
+                e.preventDefault(); e.stopPropagation();
+                if (confirm('이 상품을 삭제할까요?')) {
+                    NWBackend.deleteProduct(dl.dataset.pdel)
+                        .catch(function (err) { alert('삭제 실패: ' + (err && err.message || err)); });
+                }
+            }
+        });
+
+        // 로그인/권한 상태에 따라 벨·관리자 박스·구독 갱신
+        var unsubNoti = null;
+        var unsubAdmins = null;
+        NWBackend.onAuthChange(function (user, info) {
+            // 마이페이지 헤더
+            var nameEl = $('#myPageName');
+            var emailEl = $('#myPageEmail');
+            if (nameEl) nameEl.textContent = user ? ((user.displayName || '회원') + '님') : '마이페이지';
+            if (emailEl) emailEl.textContent = user ? (user.email || '') : '';
+
+            // 알림 벨
+            var bell = $('#btnNoti');
+            if (unsubNoti) { unsubNoti(); unsubNoti = null; }
+            if (user) {
+                if (bell) bell.hidden = false;
+                unsubNoti = NWBackend.subscribeNotifications(function (rows) {
+                    notiCache = rows;
+                    var unread = rows.filter(function (n) { return !n.read; }).length;
+                    updateNotiBadge(unread);
+                    if (notiModal && !notiModal.hidden) renderNotiList(rows);
+                });
+            } else {
+                if (bell) bell.hidden = true;
+                notiCache = [];
+                updateNotiBadge(0);
+                closeMyPage();
+            }
+
+            // 관리자 관리 박스
+            var adminBox = $('#adminManageBox');
+            if (unsubAdmins) { unsubAdmins(); unsubAdmins = null; }
+            if (info && info.isAdmin) {
+                if (adminBox) { adminBox.hidden = false; adminBox.classList.add('show'); }
+                unsubAdmins = NWBackend.subscribeAdmins(renderAdminList);
+            } else if (adminBox) {
+                adminBox.hidden = true;
+            }
+        });
+    }
+
+    function updateNotiBadge(n) {
+        var badge = $('#notiBadge');
+        if (!badge) return;
+        if (n > 0) { badge.textContent = n > 99 ? '99+' : n; badge.hidden = false; }
+        else badge.hidden = true;
+    }
+
+    function renderNotiList(rows) {
+        var el = $('#notiList');
+        if (!el) return;
+        if (!rows.length) { el.innerHTML = '<div class="noti-empty">알림이 없습니다.</div>'; return; }
+        el.innerHTML = rows.map(function (n) {
+            return '<div class="noti-item' + (n.read ? '' : ' unread') + '">' + esc(n.text) +
+                '<time>' + relTime(n.createdAt) + '</time></div>';
+        }).join('');
+    }
+
+    function renderAdminList(emails) {
+        var el = $('#adminList');
+        if (!el) return;
+        var all = ['jeongsseongg@gmail.com'].concat(emails.filter(function (e) { return e !== 'jeongsseongg@gmail.com'; }));
+        el.innerHTML = all.map(function (em) {
+            var isBootstrap = em === 'jeongsseongg@gmail.com';
+            return '<div class="admin-list-item"><span>' + esc(em) + (isBootstrap ? ' (대표)' : '') + '</span>' +
+                (isBootstrap ? '' : '<button type="button" data-admindel="' + esc(em) + '">제외</button>') +
+                '</div>';
+        }).join('');
+    }
+
+    function relTime(ts) {
+        var ms = 0;
+        if (ts && typeof ts.toMillis === 'function') ms = ts.toMillis();
+        else if (ts && ts.seconds) ms = ts.seconds * 1000;
+        if (!ms) return '방금';
+        var diff = Math.floor((Date.now() - ms) / 60000);
+        if (diff < 1) return '방금';
+        if (diff < 60) return diff + '분 전';
+        if (diff < 1440) return Math.floor(diff / 60) + '시간 전';
+        return Math.floor(diff / 1440) + '일 전';
     }
 
     /* ============ 앱 설치 (홈 화면에 추가) ============
@@ -478,9 +677,9 @@
             });
         }
 
-        // 관리자 매물 승인/거부
+        // 관리자 매물 승인/거부/입찰
         document.addEventListener('click', function (e) {
-            var btn = e.target.closest('.admin-btn[data-action]');
+            var btn = e.target.closest('[data-action]');
             if (!btn) return;
             e.preventDefault();
             e.stopPropagation();
@@ -489,12 +688,20 @@
             var action = btn.dataset.action;
             var name = item.querySelector('.admin-pending-info strong').textContent;
             var listingId = item.dataset.id; // 백엔드 매물이면 존재
+            var uid = item.dataset.uid || '';
+            var label = (item.dataset.brand || '') + ' ' + (item.dataset.model || '');
+
+            function notify(text) {
+                if (backendOn() && uid) {
+                    NWBackend.createNotification({ uid: uid, type: 'listing', text: text }).catch(function () {});
+                }
+            }
 
             if (action === 'approve') {
                 if (confirm(name + ' 매물을 승인하시겠습니까?\n승인 후 고객 판매 마켓에 게시됩니다.')) {
                     if (backendOn() && listingId) {
                         NWBackend.approveListing(listingId)
-                            .then(function () { alert('승인되었습니다.'); })
+                            .then(function () { notify(label + ' 매물이 승인되어 마켓에 게시됐어요.'); alert('승인되었습니다.'); })
                             .catch(function (err) { alert('승인 실패: ' + (err && err.message || err)); });
                         return; // 목록은 실시간 구독으로 갱신
                     }
@@ -507,7 +714,7 @@
                 if (confirm(name + ' 매물을 거부하시겠습니까?')) {
                     if (backendOn() && listingId) {
                         NWBackend.rejectListing(listingId)
-                            .then(function () { alert('거부되었습니다. 고객에게 사유가 전송됩니다.'); })
+                            .then(function () { notify(label + ' 매물 등록이 거부되었어요. 자세한 사유는 상담을 통해 안내드려요.'); alert('거부되었습니다. 고객에게 사유가 전송됩니다.'); })
                             .catch(function (err) { alert('거부 실패: ' + (err && err.message || err)); });
                         return;
                     }
@@ -516,6 +723,15 @@
                     setTimeout(function () { item.remove(); }, 400);
                     alert('거부되었습니다. 고객에게 사유가 전송됩니다.');
                 }
+            } else if (action === 'bid') {
+                if (!backendOn() || !listingId) { alert('백엔드 연결이 필요합니다.'); return; }
+                var amt = prompt(label + ' 매물 입찰가 (숫자만, 예: 15000000)');
+                if (!amt) return;
+                var amount = parseInt(String(amt).replace(/[^0-9]/g, ''), 10) || 0;
+                if (!amount) { alert('금액을 숫자로 입력해주세요.'); return; }
+                NWBackend.placeBid({ id: listingId, uid: uid, brand: item.dataset.brand, model: item.dataset.model }, amount)
+                    .then(function () { alert(fmt(amount) + '원으로 입찰했습니다. 고객에게 알림이 전송됩니다.'); })
+                    .catch(function (err) { alert('입찰 실패: ' + (err && err.message || err)); });
             }
         });
 
@@ -677,12 +893,20 @@
                 : '가격 문의<em></em>';
             var card = document.createElement('article');
             card.className = 'hcard hcard-dynamic';
+            card.dataset.pid = it.id;
+            card.dataset.brand = it.brand;
+            card.dataset.model = it.model;
+            card.dataset.price = it.price || 0;
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
                 '<span class="hcard-tag ny">뉴욕워치</span>' +
                 '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
                 '<p class="hcard-model">' + esc(it.model) + '</p>' +
-                '<p class="hcard-price">' + priceHtml + '</p>';
+                '<p class="hcard-price">' + priceHtml + '</p>' +
+                '<div class="hcard-admin">' +
+                '<button type="button" class="hcard-edit" data-pedit="' + esc(it.id) + '">수정</button>' +
+                '<button type="button" class="hcard-del" data-pdel="' + esc(it.id) + '">삭제</button>' +
+                '</div>';
             frag.appendChild(card);
         });
         inner.insertBefore(frag, inner.firstChild);
@@ -697,46 +921,54 @@
             return;
         }
         box.innerHTML = rows.map(function (it) {
+            var bidLine = it.bidAmount ? '<small class="my-item-bid">입찰가 ' + fmt(it.bidAmount) + '원</small>' : '';
             return '' +
-                '<div class="admin-pending-item" data-id="' + esc(it.id) + '">' +
+                '<div class="admin-pending-item" data-id="' + esc(it.id) + '" data-uid="' + esc(it.uid || '') + '" data-brand="' + esc(it.brand) + '" data-model="' + esc(it.model) + '">' +
                 '<div class="admin-pending-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
                 '<div class="admin-pending-info">' +
                 '<strong>' + esc(it.brand) + '</strong>' +
                 '<p>' + esc(it.model) + ' · ' + esc(it.name || '고객') + '</p>' +
                 '<small>사진 ' + (it.photoCount || (it.photos ? it.photos.length : 0)) + '장</small>' +
+                bidLine +
                 '</div>' +
                 '<div class="admin-pending-actions">' +
                 '<button class="admin-btn approve" data-action="approve">승인</button>' +
                 '<button class="admin-btn reject" data-action="reject">거부</button>' +
+                '<button class="admin-bid-btn" data-action="bid">입찰가 입력</button>' +
                 '</div>' +
                 '</div>';
         }).join('');
     }
 
-    // 로그인 사용자 본인의 매물 (상태 포함)
+    // 로그인 사용자 본인의 매물 (상태 + 입찰 포함). 비교견적 페이지와 마이페이지 양쪽에 렌더.
+    var myListingsCache = [];
     function renderMyItemsBackend(rows) {
-        var el = $('#myItems');
-        if (!el) return;
-        if (!rows.length) {
-            el.innerHTML =
-                '<div class="empty-items">' +
-                '<p>아직 등록한 매물이 없습니다.</p>' +
-                '<p class="sub">위에서 시계 정보를 등록해보세요.</p>' +
-                '</div>';
-            return;
-        }
+        myListingsCache = rows || [];
         var label = { pending: '승인 중', approved: '판매중', rejected: '거부됨' };
-        el.innerHTML = rows.map(function (it) {
+
+        function itemHtml(it, withBid) {
+            var bid = (withBid && it.bidAmount)
+                ? '<p class="my-item-bid">입찰 ' + fmt(it.bidAmount) + '원</p>' : '';
             return '' +
                 '<div class="my-item">' +
                 '<div class="my-item-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
                 '<div class="my-item-info">' +
                 '<strong>' + esc(it.brand) + ' · ' + esc(it.model) + '</strong>' +
                 '<p>사진 ' + (it.photoCount || (it.photos ? it.photos.length : 0)) + '장</p>' +
+                bid +
                 '</div>' +
                 '<div class="my-item-status">' + (label[it.status] || it.status) + '</div>' +
                 '</div>';
-        }).join('');
+        }
+
+        var emptyHtml = '<div class="empty-items"><p>아직 등록한 매물이 없습니다.</p>' +
+            '<p class="sub">비교견적 페이지에서 시계를 등록해보세요.</p></div>';
+
+        var el = $('#myItems');
+        if (el) el.innerHTML = rows.length ? rows.map(function (it) { return itemHtml(it, false); }).join('') : emptyHtml;
+
+        var mp = $('#myPageListings');
+        if (mp) mp.innerHTML = rows.length ? rows.map(function (it) { return itemHtml(it, true); }).join('') : emptyHtml;
     }
 
     /* ============ 제휴처 클릭 → 예약/문의 모달 ============ */
@@ -1680,6 +1912,11 @@
         if (!modal || !btnMy) return;
 
         btnMy.addEventListener('click', function () {
+            // 로그인 상태면 마이페이지, 아니면 로그인 모달
+            if (backendOn() && NWBackend.currentUser()) {
+                openMyPage();
+                return;
+            }
             modal.hidden = false;
             document.body.style.overflow = 'hidden';
         });
@@ -1778,6 +2015,8 @@
         if (!modal) return;
 
         document.addEventListener('click', function (e) {
+            // 관리자 수정/삭제 버튼 클릭은 상세 모달을 열지 않음
+            if (e.target.closest('.hcard-admin')) return;
             // hcard 클릭 시 모달 오픈 (단, 드래그 중이면 cancel됨)
             var card = e.target.closest('.hcard');
             if (card && !e.defaultPrevented) {

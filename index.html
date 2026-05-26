@@ -33,6 +33,10 @@
                 <button class="header-icon" aria-label="검색" id="btnSearch">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                 </button>
+                <button class="header-icon" aria-label="알림" id="btnNoti" hidden>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                    <span class="noti-badge" id="notiBadge" hidden>0</span>
+                </button>
                 <button class="header-icon" aria-label="마이페이지" id="btnMy">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
                 </button>
@@ -1716,9 +1720,13 @@
                     <p class="login-eyebrow">NEWYORK WATCH</p>
                     <h2>지금 가입하고<br>당신이 기다리던 <strong>가격</strong>을 만나보세요</h2>
                 </div>
-                <button class="login-btn login-kakao" id="loginKakao">
+                <button class="login-btn login-google" id="loginGoogle" type="button">
+                    <span class="login-icon-google">G</span>
+                    구글로 시작하기
+                </button>
+                <button class="login-btn login-kakao" id="loginKakao" type="button">
                     <span class="login-icon-kakao"></span>
-                    카카오톡으로 시작하기
+                    카카오톡 상담
                 </button>
                 <div class="login-divider"><span>또는</span></div>
                 <form class="login-form" id="loginForm">
@@ -1784,6 +1792,46 @@
                 <a href="tel:010-6293-6668" class="my-info-tel">010-6293-6668</a>
                 <p>24시간 연중무휴 · 카톡 상담</p>
             </div>
+        </div>
+    </div>
+
+    <!-- 마이페이지 모달 -->
+    <div class="login-modal" id="myPageModal" hidden>
+        <div class="login-backdrop" data-myclose></div>
+        <div class="login-content">
+            <button class="login-close" data-myclose aria-label="닫기">×</button>
+            <div class="login-head">
+                <p class="login-eyebrow">MY PAGE</p>
+                <h2 id="myPageName">마이페이지</h2>
+                <p class="mypage-email" id="myPageEmail"></p>
+            </div>
+
+            <!-- 관리자 전용: 관리자 관리 -->
+            <div class="mypage-section admin-only" hidden id="adminManageBox">
+                <h4>관리자 관리</h4>
+                <div id="adminList" class="admin-list"></div>
+                <button type="button" class="mypage-btn" id="adminAddBtn">+ 관리자 추가</button>
+            </div>
+
+            <div class="mypage-section">
+                <h4>내 매물</h4>
+                <div id="myPageListings"></div>
+            </div>
+
+            <button type="button" class="login-btn login-default" id="btnLogout">로그아웃</button>
+        </div>
+    </div>
+
+    <!-- 알림 모달 -->
+    <div class="login-modal" id="notiModal" hidden>
+        <div class="login-backdrop" data-noticlose></div>
+        <div class="login-content">
+            <button class="login-close" data-noticlose aria-label="닫기">×</button>
+            <div class="login-head">
+                <p class="login-eyebrow">알림</p>
+                <h2>알림</h2>
+            </div>
+            <div id="notiList" class="noti-list"></div>
         </div>
     </div>
 

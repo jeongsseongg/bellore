@@ -42,6 +42,8 @@
   var fb = {};            // 로드된 SDK 함수 모음
   var authUser = null;    // 현재 로그인 사용자
   var authCbs = [];       // onAuthChange 구독자
+  var dynamicAdmins = []; // Firestore admins 컬렉션에서 로드한 관리자 이메일
+  var unsubAdmins = null; // admins 구독 해제 함수
 
   function notifyAuth() {
     var admin = Backend.isAdmin();
@@ -70,9 +72,12 @@
         signOut: authMod.signOut,
         onAuthStateChanged: authMod.onAuthStateChanged,
         updateProfile: authMod.updateProfile,
+        GoogleProvider: authMod.GoogleAuthProvider,
+        signInWithPopup: authMod.signInWithPopup,
         // firestore
         doc: fsMod.doc, setDoc: fsMod.setDoc, addDoc: fsMod.addDoc,
-        updateDoc: fsMod.updateDoc, collection: fsMod.collection,
+        updateDoc: fsMod.updateDoc, deleteDoc: fsMod.deleteDoc,
+        collection: fsMod.collection,
         query: fsMod.query, where: fsMod.where, orderBy: fsMod.orderBy,
         onSnapshot: fsMod.onSnapshot, serverTimestamp: fsMod.serverTimestamp,
         // storage
@@ -84,6 +89,17 @@
 
       fb.onAuthStateChanged(auth, function (user) {
         authUser = user;
+        // 로그인 사용자가 있으면 관리자 목록을 실시간 로드 (동적 관리자 반영)
+        if (unsubAdmins) { unsubAdmins(); unsubAdmins = null; }
+        if (user) {
+          unsubAdmins = fb.onSnapshot(fb.collection(fb.db, 'admins'), function (qs) {
+            dynamicAdmins = [];
+            qs.forEach(function (d) { dynamicAdmins.push(String(d.id).toLowerCase()); });
+            notifyAuth();
+          }, function () { /* 권한/네트워크 오류 무시 */ });
+        } else {
+          dynamicAdmins = [];
+        }
         notifyAuth();
       });
     } catch (err) {
@@ -97,7 +113,23 @@
 
   Backend.isAdmin = function () {
     if (!authUser || !authUser.email) return false;
-    return adminEmails.indexOf(authUser.email.toLowerCase()) !== -1;
+    var email = authUser.email.toLowerCase();
+    return adminEmails.indexOf(email) !== -1 || dynamicAdmins.indexOf(email) !== -1;
+  };
+
+  Backend.signInWithGoogle = async function () {
+    await Backend.ready;
+    var provider = new fb.GoogleProvider();
+    var cred = await fb.signInWithPopup(fb.auth, provider);
+    // 프로필 문서가 없으면 생성
+    try {
+      await fb.setDoc(fb.doc(fb.db, 'users', cred.user.uid), {
+        name: cred.user.displayName || '',
+        email: cred.user.email || '',
+        createdAt: fb.serverTimestamp()
+      }, { merge: true });
+    } catch (e) { /* noop */ }
+    return cred.user;
   };
 
   Backend.onAuthChange = function (cb) {
@@ -259,6 +291,91 @@
       rows.sort(function (a, b) { return tsMs(b.createdAt) - tsMs(a.createdAt); });
       cb(rows);
     });
+  };
+
+  Backend.updateProduct = async function (id, data) {
+    await Backend.ready;
+    if (!Backend.isAdmin()) throw new Error('NOT_ADMIN');
+    return fb.updateDoc(fb.doc(fb.db, 'products', id), {
+      brand: data.brand, model: data.model, price: data.price || 0
+    });
+  };
+
+  Backend.deleteProduct = async function (id) {
+    await Backend.ready;
+    if (!Backend.isAdmin()) throw new Error('NOT_ADMIN');
+    return fb.deleteDoc(fb.doc(fb.db, 'products', id));
+  };
+
+  /* ---------------- 입찰 (관리자가 고객 매물에 입찰가 제시) ---------------- */
+  Backend.placeBid = async function (listing, amount) {
+    await Backend.ready;
+    if (!Backend.isAdmin()) throw new Error('NOT_ADMIN');
+    await fb.updateDoc(fb.doc(fb.db, 'listings', listing.id), {
+      bidAmount: amount,
+      bidAt: fb.serverTimestamp()
+    });
+    // 매물 주인에게 알림
+    if (listing.uid) {
+      await Backend.createNotification({
+        uid: listing.uid,
+        type: 'bid',
+        text: (listing.brand || '') + ' ' + (listing.model || '') + ' 매물에 ' +
+              amount.toLocaleString('ko-KR') + '원 입찰이 도착했어요.'
+      });
+    }
+  };
+
+  /* ---------------- 관리자 관리 ---------------- */
+  Backend.addAdmin = async function (email) {
+    await Backend.ready;
+    if (!Backend.isAdmin()) throw new Error('NOT_ADMIN');
+    var key = String(email).trim().toLowerCase();
+    return fb.setDoc(fb.doc(fb.db, 'admins', key), {
+      email: key, addedAt: fb.serverTimestamp()
+    });
+  };
+
+  Backend.removeAdmin = async function (email) {
+    await Backend.ready;
+    if (!Backend.isAdmin()) throw new Error('NOT_ADMIN');
+    return fb.deleteDoc(fb.doc(fb.db, 'admins', String(email).trim().toLowerCase()));
+  };
+
+  Backend.subscribeAdmins = function (cb) {
+    if (!authUser) { cb([]); return function () {}; }
+    return snap(fb.collection(fb.db, 'admins'), function (rows) {
+      cb(rows.map(function (r) { return r.email || r.id; }));
+    });
+  };
+
+  /* ---------------- 인앱 알림 ---------------- */
+  Backend.createNotification = async function (data) {
+    await Backend.ready;
+    return fb.addDoc(fb.collection(fb.db, 'notifications'), {
+      uid: data.uid,
+      type: data.type || 'info',
+      text: data.text || '',
+      read: false,
+      createdAt: fb.serverTimestamp()
+    });
+  };
+
+  Backend.subscribeNotifications = function (cb) {
+    if (!authUser) { cb([]); return function () {}; }
+    var qy = fb.query(
+      fb.collection(fb.db, 'notifications'),
+      fb.where('uid', '==', authUser.uid)
+    );
+    return snap(qy, function (rows) {
+      rows.sort(function (a, b) { return tsMs(b.createdAt) - tsMs(a.createdAt); });
+      cb(rows);
+    });
+  };
+
+  Backend.markNotificationRead = async function (id) {
+    await Backend.ready;
+    return fb.updateDoc(fb.doc(fb.db, 'notifications', id), { read: true });
   };
 
   function tsMs(ts) {
