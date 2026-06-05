@@ -19,6 +19,7 @@ window.BELLORE_SUPABASE = {
        where id = (select id from auth.users where email='jeongsseongg@gmail.com');
      를 실행하면 RLS상으로도 관리자 권한이 부여됩니다. */
 window.NW_ADMIN_EMAILS = [
+  "brpartners@gmail.com",
   "jeongsseongg@gmail.com"
 ];
 
