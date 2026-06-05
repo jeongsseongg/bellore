@@ -822,6 +822,7 @@
 
     function authErrorMsg(err) {
         var code = err && err.code ? err.code : '';
+        var msg = (err && err.message) ? String(err.message) : '';
         var map = {
             'auth/invalid-email': '이메일 형식이 올바르지 않습니다.',
             'auth/user-not-found': '가입되지 않은 이메일입니다.',
@@ -829,9 +830,25 @@
             'auth/invalid-credential': '이메일 또는 비밀번호가 올바르지 않습니다.',
             'auth/email-already-in-use': '이미 가입된 이메일입니다.',
             'auth/weak-password': '비밀번호는 6자 이상이어야 합니다.',
-            'auth/too-many-requests': '잠시 후 다시 시도해주세요.'
+            'auth/too-many-requests': '잠시 후 다시 시도해주세요.',
+            'invalid_credentials': '이메일 또는 비밀번호가 올바르지 않습니다.',
+            'email_not_confirmed': '이메일 인증이 필요합니다. 메일함의 인증 링크를 확인하거나 관리자에게 문의해주세요.',
+            'user_already_exists': '이미 가입된 이메일입니다.',
+            'email_exists': '이미 가입된 이메일입니다.',
+            'weak_password': '비밀번호는 6자 이상이어야 합니다.',
+            'over_email_send_rate_limit': '요청이 많습니다. 잠시 후 다시 시도해주세요.',
+            'signup_disabled': '현재 회원가입이 비활성화되어 있습니다.',
+            'validation_failed': '입력값을 확인해주세요.'
         };
-        return map[code] || (err && err.message) || '알 수 없는 오류';
+        if (map[code]) return map[code];
+        var m = msg.toLowerCase();
+        if (m.indexOf('invalid login') !== -1) return '이메일 또는 비밀번호가 올바르지 않습니다.';
+        if (m.indexOf('email not confirmed') !== -1) return '이메일 인증이 필요합니다. 메일함의 인증 링크를 확인하거나 관리자에게 문의해주세요.';
+        if (m.indexOf('already registered') !== -1 || m.indexOf('already been registered') !== -1) return '이미 가입된 이메일입니다.';
+        if (m.indexOf('password should be at least') !== -1) return '비밀번호는 6자 이상이어야 합니다.';
+        if (m.indexOf('rate limit') !== -1) return '요청이 많습니다. 잠시 후 다시 시도해주세요.';
+        if (m.indexOf('failed to fetch') !== -1 || m.indexOf('networkerror') !== -1) return '네트워크 연결을 확인해주세요.';
+        return msg || '알 수 없는 오류';
     }
 
     function initBackendSync() {
