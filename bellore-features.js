@@ -380,11 +380,62 @@
           '<p class="muted small">비교견적 페이지에서 승인 대기 견적을, 인사이트에서 글/후기를 관리하세요.</p>';
       });
     }
+    function roleLabel(info) {
+      if (!info) return '';
+      if (info.isAdmin) return '관리자';
+      if (info.role === 'vendor') return '업체회원 · ' + (info.approved ? '승인됨' : '승인 대기');
+      return '일반회원';
+    }
     function applyMyPageRole(info) {
       var admin = !!(info && info.isAdmin);
       if (myItemsSection) myItemsSection.hidden = admin;       // 관리자는 '내 비교견적' 숨김
-      if (admin) renderAdminSummary();
+      var roleEl = $('#myPageRole');
+      var user = B.currentUser();
+      if (roleEl) {
+        if (user) { roleEl.hidden = false; roleEl.textContent = '계정 유형: ' + roleLabel(info); }
+        else { roleEl.hidden = true; }
+      }
+      if (admin) { renderAdminSummary(); renderAccounts(); }
     }
+
+    // 관리자: 회원 계정 목록 (이메일/역할/가입일 + 비밀번호 재설정)
+    var accountsBound = false;
+    function renderAccounts() {
+      var box = $('#adminAccounts'); if (!box) return;
+      if (!accountsBound) {
+        accountsBound = true;
+        B.subscribeAccounts(function (rows) {
+          if (!rows.length) { box.innerHTML = '<div class="admin-list-item"><span>회원이 없습니다.</span></div>'; return; }
+          box.innerHTML = rows.map(function (p) {
+            var name = esc(p.company_name || p.display_name || '(이름 없음)');
+            var role = p.role === 'admin' ? '관리자' : (p.role === 'vendor' ? ('업체' + (p.approved ? '·승인' : '·대기')) : '일반');
+            var email = p.email ? esc(p.email) : '(이메일 표시하려면 account_admin.sql 실행)';
+            var reset = p.email ? '<button type="button" data-resetpw="' + esc(p.email) + '">재설정 메일</button>' : '';
+            return '<div class="admin-list-item"><span><b>' + name + '</b> · ' + role + '<br><small>' + email + '</small></span>' + reset + '</div>';
+          }).join('');
+        });
+      }
+    }
+    // 비밀번호 재설정 메일 (관리자 목록 / 로그인 화면 공용)
+    document.addEventListener('click', function (e) {
+      var rb = e.target.closest('[data-resetpw]');
+      if (!rb) return;
+      var email = rb.dataset.resetpw;
+      if (!confirm(email + ' 주소로 비밀번호 재설정 메일을 보낼까요?')) return;
+      B.resetPassword(email)
+        .then(function () { alert('재설정 메일을 보냈습니다. 받은편지함을 확인하도록 안내하세요.'); })
+        .catch(function (err) { alert('발송 실패: ' + (err && err.message || err)); });
+    });
+    // 로그인 화면: 아이디/비밀번호 찾기
+    var findPw = $('#findPw');
+    if (findPw) findPw.addEventListener('click', function () {
+      alert('아이디는 가입 시 사용한 이메일 주소입니다.\n비밀번호는 재설정 메일로 변경할 수 있어요.');
+      var email = prompt('가입한 이메일을 입력하면 비밀번호 재설정 메일을 보내드립니다.');
+      if (!email || email.indexOf('@') === -1) return;
+      B.resetPassword(email)
+        .then(function () { alert('재설정 메일을 보냈습니다. 받은편지함을 확인해주세요.'); })
+        .catch(function (err) { alert('발송 실패: ' + (err && err.message || err)); });
+    });
     // 마이페이지 모달이 열릴 때 현황 새로고침
     var myModal = $('#myPageModal');
     if (myModal) {

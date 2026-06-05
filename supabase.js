@@ -209,6 +209,13 @@
 
   Backend.signOut = function () { return sb.auth.signOut(); };
 
+  // 비밀번호 재설정 메일 발송 (아이디=이메일)
+  Backend.resetPassword = function (email) {
+    return sb.auth.resetPasswordForEmail(email, {
+      redirectTo: location.origin + location.pathname
+    }).then(function (res) { if (res.error) throw res.error; });
+  };
+
   /* ---------------- 비교견적 (quote_requests + bids) ---------------- */
   function mapQuote(q, bidsByQuote) {
     var bs = (bidsByQuote && bidsByQuote[q.id]) ? bidsByQuote[q.id].slice() : [];
@@ -447,13 +454,26 @@
   };
   function refreshVendors() { vendorRefreshers.slice().forEach(function (fn) { try { fn(); } catch (e) {} }); }
 
+  // 전체 회원 목록 (관리자) — email 컬럼은 account migration 후 채워짐
+  var accountRefreshers = [];
+  Backend.subscribeAccounts = function (cb) {
+    function load() {
+      sb.from('profiles').select('*').order('created_at', { ascending: false })
+        .then(function (res) { cb(res.data || []); });
+    }
+    load();
+    accountRefreshers.push(load);
+    return function () { removeFrom(accountRefreshers, load); };
+  };
+  function refreshAccounts() { accountRefreshers.slice().forEach(function (fn) { try { fn(); } catch (e) {} }); }
+
   Backend.setVendorApproved = function (id, approved) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
     return sb.from('profiles').update({ approved: approved }).eq('id', id)
       .then(function (res) {
         if (res.error) throw res.error;
         if (approved) Backend.createNotification({ uid: id, type: 'approved', text: '업체 승인이 완료되었습니다. 이제 비교견적 입찰에 참여할 수 있어요.' });
-        refreshVendors();
+        refreshVendors(); refreshAccounts();
       });
   };
 

@@ -4168,6 +4168,13 @@ body.admin-mode .main-wrap { padding-top: 26px; }
 .page-hero-compare {
     background-image: url('assets/2026-03-18_이미지자료_193412.jpg');
 }
+/* 비교견적 히어로: 배경 위 글씨가 흐릿하지 않도록 대비 강화 */
+.page-hero-compare::before {
+    background: linear-gradient(135deg, rgba(28, 22, 14, 0.82), rgba(16, 12, 8, 0.92));
+}
+.page-hero-compare .eyebrow.light { color: #f3d9a6; opacity: 1; letter-spacing: 2px; }
+.page-hero-compare .page-hero-title { color: #fff; text-shadow: 0 2px 12px rgba(0,0,0,0.45); }
+.page-hero-compare .page-hero-desc { color: rgba(255,255,255,0.92); text-shadow: 0 1px 8px rgba(0,0,0,0.4); }
 .compare-form {
     background: var(--white);
     padding: 28px 24px;
@@ -4505,16 +4512,19 @@ body.admin-mode .main-wrap { padding-top: 26px; }
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    padding: 8px 4px;
+    gap: 3px;
+    padding: 8px 2px;
     color: rgba(255, 255, 255, 0.45);
     transition: color 0.2s, transform 0.15s;
 }
+/* 탭이 7개라 아이콘/글자를 약간 줄여 한 줄에 맞춤 */
+.tab-item svg { width: 20px; height: 20px; }
 
 .tab-item span {
-    font-size: 10.5px;
+    font-size: 9.5px;
     font-weight: 500;
-    letter-spacing: 0.2px;
+    letter-spacing: 0;
+    white-space: nowrap;
 }
 
 .tab-item.active {
@@ -4750,3 +4760,12 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .modal-body .signup-form .upload-grid { margin-top: 6px; }
 .modal-body .muted, .mypage-section .muted { color: #8a857c; }
 .modal-body .small, .mypage-section .small { font-size: 12px; }
+
+/* 마이페이지 역할/보안 표시 */
+.mypage-role {
+    display: inline-block; margin-top: 8px; padding: 4px 12px;
+    border: 1px solid var(--line, #e7e3da); border-radius: 20px;
+    font-size: 12.5px; color: var(--ink, #2b2620); background: var(--soft, #f7f5f0);
+}
+.mypage-security { margin-top: 10px; font-size: 11.5px; color: #8a857c; line-height: 1.6; }
+.admin-list-item small { color: #8a857c; font-size: 11.5px; }

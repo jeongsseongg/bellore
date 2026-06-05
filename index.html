@@ -722,38 +722,6 @@
                 </div>
             </section>
 
-            <!-- 시계 수리 안내 -->
-            <section class="section section-soft">
-                <div class="container">
-                    <p class="eyebrow center">WATCH REPAIR</p>
-                    <h2 class="section-title center">명품시계 <span class="g">수리도</span> 가능합니다</h2>
-                    <p class="lead center">40년 경력 시계 장인이 직접 수리합니다</p>
-                    <div class="repair-grid">
-                        <div class="repair-card">
-                            <div class="repair-icon">⚙️</div>
-                            <h4>오버홀</h4>
-                            <p>무브먼트 완전 분해 세척 + 부품 교체 + 정밀 조정</p>
-                        </div>
-                        <div class="repair-card">
-                            <div class="repair-icon">💎</div>
-                            <h4>외장 수리</h4>
-                            <p>케이스 폴리싱, 베젤 교체, 유리 교체, 줄 수리</p>
-                        </div>
-                        <div class="repair-card">
-                            <div class="repair-icon">🔋</div>
-                            <h4>배터리/방수</h4>
-                            <p>쿼츠 배터리 교체, 방수 패킹 교체, 방수 테스트</p>
-                        </div>
-                        <div class="repair-card">
-                            <div class="repair-icon">🛠</div>
-                            <h4>긴급 수리</h4>
-                            <p>시간 오차, 멈춤, 용두 손상 등 긴급 수리</p>
-                        </div>
-                    </div>
-                    <a href="#contact" class="btn btn-primary btn-full" data-nav="contact" style="margin-top:24px">수리 상담 받기</a>
-                </div>
-            </section>
-
             <!-- 인증 제휴처 소개 -->
             <section class="section">
                 <div class="container">
@@ -1107,8 +1075,8 @@
         <section class="page page-insight" id="insight">
             <div class="page-hero page-hero-insight">
                 <div class="container">
-                    <p class="eyebrow center light">BELLORE INSIGHT</p>
-                    <h1 class="page-hero-title">명품시계 매입 <span class="g">전문 가이드</span></h1>
+                    <p class="eyebrow center light">BELLORE COMMUNITY</p>
+                    <h1 class="page-hero-title">벨로르 <span class="g">커뮤니티</span></h1>
                     <p class="page-hero-desc">시세 분석 · 매입 가이드 · 브랜드 스토리 · 매입 후기</p>
                 </div>
             </div>
@@ -1813,6 +1781,9 @@
                     아직 회원이 아니세요?
                     <button type="button" class="link-switch" data-ltab="signup">회원가입</button>
                 </p>
+                <p class="login-switch">
+                    <button type="button" class="link-switch" id="findPw">아이디 / 비밀번호 찾기</button>
+                </p>
             </div>
 
             <!-- 회원가입 패널 -->
@@ -1884,12 +1855,20 @@
                 <p class="login-eyebrow">MY PAGE</p>
                 <h2 id="myPageName">마이페이지</h2>
                 <p class="mypage-email" id="myPageEmail"></p>
+                <p class="mypage-role" id="myPageRole" hidden></p>
             </div>
 
             <!-- 관리자 전용: 관리 현황 요약 -->
             <div class="mypage-section admin-only" hidden id="adminSummaryBox">
                 <h4>관리 현황</h4>
                 <div id="adminSummary"></div>
+            </div>
+
+            <!-- 관리자 전용: 회원 계정 관리 -->
+            <div class="mypage-section admin-only" hidden id="adminAccountsBox">
+                <h4>회원 계정</h4>
+                <div id="adminAccounts" class="admin-list"></div>
+                <p class="mypage-security">🔒 보안상 비밀번호는 어디에서도 조회할 수 없습니다(암호화 저장). 필요 시 "재설정 메일"로 변경하세요.</p>
             </div>
 
             <!-- 관리자 전용: 업체 승인 관리 -->
@@ -2034,7 +2013,11 @@
         </button>
         <button class="tab-item" data-nav="insight">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h7v16H4z"/><path d="M13 4h7v16h-7z"/></svg>
-            <span>인사이트</span>
+            <span>커뮤니티</span>
+        </button>
+        <button class="tab-item" data-nav="repair">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-6 6 2 2 6-6a4 4 0 0 0 5.4-5.4l-2.3 2.3-2-2 2.3-2.3z"/></svg>
+            <span>수리</span>
         </button>
         <button class="tab-item" data-nav="brand">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
@@ -2042,7 +2025,7 @@
         </button>
         <button class="tab-item" data-nav="about">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
-            <span>소개</span>
+            <span>벨로르</span>
         </button>
     </nav>
 
