@@ -393,22 +393,38 @@
         description: data.model || null,
         price: data.price || null,
         category: data.category || CATS.listing.brand,
-        status: 'on_sale',
+        status: data.status || 'on_sale',
         image_urls: urls,
         image_url: urls[0] || null
       }).then(function (res) { if (res.error) throw res.error; refreshListingFeeds(); });
     });
   };
 
+  // 단건 조회 (수정 폼용)
+  Backend.getListing = function (id) {
+    return sb.from('listings').select('*').eq('id', id).single()
+      .then(function (res) { if (res.error) throw res.error; return mapListing(res.data); });
+  };
+
   Backend.updateProduct = function (id, data) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
-    var patch = { updated_at: new Date().toISOString() };
-    if (data.brand != null) patch.title = data.brand;
-    if (data.model != null) patch.description = data.model;
-    if (data.price != null) patch.price = data.price;
-    if (data.status != null) patch.status = data.status;
-    return sb.from('listings').update(patch).eq('id', id)
-      .then(function (res) { if (res.error) throw res.error; refreshListingFeeds(); });
+    // 새로 추가한 사진이 있으면 업로드 후 기존 사진 뒤에 이어붙임
+    return uploadPhotos(data.photos || [], 10).then(function (newUrls) {
+      var patch = { updated_at: new Date().toISOString() };
+      if (data.brand != null) patch.title = data.brand;
+      if (data.model != null) patch.description = data.model;
+      if (data.price != null) patch.price = data.price;
+      if (data.status != null) patch.status = data.status;
+      if (data.category != null) patch.category = data.category;
+      var existing = data.existingPhotos || [];
+      if (newUrls.length || data.existingPhotos) {
+        var all = existing.concat(newUrls).slice(0, 10);
+        patch.image_urls = all;
+        patch.image_url = all[0] || null;
+      }
+      return sb.from('listings').update(patch).eq('id', id)
+        .then(function (res) { if (res.error) throw res.error; refreshListingFeeds(); });
+    });
   };
 
   Backend.deleteProduct = function (id) {
@@ -461,14 +477,33 @@
   };
   function refreshPosts() { postRefreshers.slice().forEach(function (fn) { try { fn(); } catch (e) {} }); }
 
+  // image_url 컬럼이 없는 환경(마이그레이션 전)에서도 안전하게 동작하도록
+  // 컬럼 미존재 오류면 image_url 없이 재시도한다.
+  function postWrite(run, payloadFull, payloadLite) {
+    return run(payloadFull).then(function (res) {
+      if (res.error && /image_url|column/.test(res.error.message || '')) return run(payloadLite);
+      return res;
+    }).then(function (res) { if (res.error) throw res.error; refreshPosts(); });
+  }
+
   Backend.addPost = function (data) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
-    return sb.from('community_posts').insert({
-      author_id: rawUser.id,
-      title: data.title,
-      body: data.body || null,
-      category: data.category || '자유게시판'
-    }).then(function (res) { if (res.error) throw res.error; refreshPosts(); });
+    return uploadPhotos(data.photos || [], 1).then(function (urls) {
+      var lite = { author_id: rawUser.id, title: data.title, body: data.body || null, category: data.category || '자유게시판' };
+      var full = Object.assign({}, lite, { image_url: urls[0] || null });
+      return postWrite(function (p) { return sb.from('community_posts').insert(p); }, full, lite);
+    });
+  };
+
+  Backend.updatePost = function (id, data) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    return uploadPhotos(data.photos || [], 1).then(function (urls) {
+      var lite = { title: data.title, body: data.body || null, category: data.category || '자유게시판', updated_at: new Date().toISOString() };
+      var full = Object.assign({}, lite);
+      if (urls.length) full.image_url = urls[0];
+      else if (data.existingImage != null) full.image_url = data.existingImage || null;
+      return postWrite(function (p) { return sb.from('community_posts').update(p).eq('id', id); }, full, lite);
+    });
   };
 
   Backend.deletePost = function (id) {
@@ -502,6 +537,22 @@
       }).then(function (res) { if (res.error) throw res.error; refreshReviews(); });
     });
   };
+  Backend.updateReview = function (id, data) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    var patch = {
+      author_name: data.author_name || '익명',
+      rating: data.rating || 5,
+      title: data.title, body: data.body || null
+    };
+    return uploadPhotos(data.photos || [], 10).then(function (urls) {
+      if (urls.length || data.existingPhotos) {
+        patch.image_urls = (data.existingPhotos || []).concat(urls).slice(0, 10);
+      }
+      return sb.from('reviews').update(patch).eq('id', id)
+        .then(function (res) { if (res.error) throw res.error; refreshReviews(); });
+    });
+  };
+
   Backend.deleteReview = function (id) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
     return sb.from('reviews').delete().eq('id', id)
@@ -546,6 +597,21 @@
       body: data.text || data.body || '',
       is_read: false
     }).then(function (res) { if (res.error) console.warn('[BELLORE] 알림 생성 보류:', res.error.message); });
+  };
+
+  // 관리자 마이페이지 현황 요약
+  Backend.adminSummary = function () {
+    function c(q) { return q.then(function (r) { return r.count || 0; }, function () { return 0; }); }
+    return Promise.all([
+      c(sb.from('quote_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')),
+      c(sb.from('quote_requests').select('*', { count: 'exact', head: true }).eq('status', 'open')),
+      c(sb.from('listings').select('*', { count: 'exact', head: true })),
+      c(sb.from('community_posts').select('*', { count: 'exact', head: true })),
+      c(sb.from('reviews').select('*', { count: 'exact', head: true })),
+      c(sb.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'vendor').eq('approved', false))
+    ]).then(function (r) {
+      return { pending: r[0], open: r[1], listings: r[2], posts: r[3], reviews: r[4], vendorsPending: r[5] };
+    });
   };
 
   /* ---------------- 부트스트랩 ---------------- */

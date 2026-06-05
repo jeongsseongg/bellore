@@ -152,23 +152,13 @@
             });
         }
 
-        // 상품 수정/삭제 (관리자)
+        // 상품 수정/삭제 (관리자) — 수정은 등록 폼(모달)을 연다
         document.addEventListener('click', function (e) {
             var ed = e.target.closest('[data-pedit]');
             var dl = e.target.closest('[data-pdel]');
             if (ed) {
                 e.preventDefault(); e.stopPropagation();
-                var card = ed.closest('.hcard-dynamic');
-                var brand = prompt('브랜드', card ? card.dataset.brand : '');
-                if (brand === null) return;
-                var model = prompt('모델명', card ? card.dataset.model : '');
-                if (model === null) return;
-                var price = prompt('판매가 (숫자만)', card ? card.dataset.price : '0');
-                if (price === null) return;
-                var priceNum = parseInt(String(price).replace(/[^0-9]/g, ''), 10) || 0;
-                NWBackend.updateProduct(ed.dataset.pedit, { brand: brand, model: model, price: priceNum })
-                    .then(function () { alert('수정되었습니다.'); })
-                    .catch(function (err) { alert('수정 실패: ' + (err && err.message || err)); });
+                if (window.belloreEditListing) window.belloreEditListing(ed.dataset.pedit);
             } else if (dl) {
                 e.preventDefault(); e.stopPropagation();
                 if (confirm('이 상품을 삭제할까요?')) {
@@ -765,26 +755,7 @@
             }
         });
 
-        // 관리자 시계 등록 버튼
-        document.addEventListener('click', function (e) {
-            if (e.target.closest('#adminAddProduct')) {
-                e.preventDefault();
-                var brand = prompt('브랜드 (예: ROLEX)');
-                if (!brand) return;
-                var model = prompt('모델명 (예: 데이트저스트 36)');
-                if (!model) return;
-                var price = prompt('판매가 (숫자만, 예: 15000000)');
-                if (!price) return;
-                var priceNum = parseInt(String(price).replace(/[^0-9]/g, ''), 10) || 0;
-                if (backendOn()) {
-                    NWBackend.addProduct({ brand: brand, model: model, price: priceNum })
-                        .then(function () { alert(brand + ' ' + model + ' (' + fmt(priceNum) + '원) 등록 완료.'); })
-                        .catch(function (err) { alert('등록 실패: ' + (err && err.message || err)); });
-                } else {
-                    alert(brand + ' ' + model + ' (' + fmt(priceNum) + '원) 등록 완료.');
-                }
-            }
-        });
+        // 관리자 시계 등록 버튼은 bellore-features.js의 등록 폼(모달)이 처리합니다.
     }
 
     function enableAdminMode() {

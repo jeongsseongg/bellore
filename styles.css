@@ -4703,7 +4703,7 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 }
 
 /* ============================================================
-   Supabase 기능 연동 추가 스타일 (디자인 톤 유지)
+   Supabase 기능 연동 추가 스타일 (디자인 톤 유지 · 심플)
    ============================================================ */
 .my-item-bids { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
 .my-item-bids .bid-row {
@@ -4723,11 +4723,30 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 }
 .vendor-bid-form .admin-bid-btn { white-space: nowrap; }
 
-/* 인사이트 동적 글 삭제 버튼 (관리자) */
+/* 인사이트 행: 관리자 수정/삭제 (심플·중립색, 관리자에게만 노출) */
 .insight-row { position: relative; }
-.bellore-del {
-    position: absolute; top: 8px; right: 8px; z-index: 2;
-    border: 1px solid var(--line, #e7e3da); background: #fff; color: #b3261e;
-    border-radius: 8px; padding: 4px 10px; font-size: 12px; cursor: pointer;
+.insight-row .row-actions {
+    display: flex; gap: 6px; margin-top: 10px;
 }
-.bellore-del:hover { background: #fbeae9; }
+.row-act {
+    border: 1px solid var(--line, #e7e3da); background: #fff; color: var(--ink, #2b2620);
+    border-radius: 8px; padding: 4px 12px; font-size: 12px; cursor: pointer; line-height: 1.6;
+}
+.row-act:hover { background: var(--soft, #f7f5f0); }
+.row-act.danger { color: #9a8e7e; }
+.row-act.danger:hover { color: #2b2620; }
+
+/* 마이페이지 관리 현황 요약 */
+.summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 4px 0 10px; }
+.summary-cell {
+    border: 1px solid var(--line, #e7e3da); border-radius: 12px;
+    padding: 14px 10px; text-align: center; background: #fff;
+}
+.summary-cell b { display: block; font-size: 22px; font-weight: 800; color: var(--ink, #2b2620); }
+.summary-cell span { font-size: 11.5px; color: #8a857c; }
+
+/* 모달 본문 (등록/수정 폼) */
+#listingModal .modal-body, #insightEditModal .modal-body { margin-top: 6px; }
+.modal-body .signup-form .upload-grid { margin-top: 6px; }
+.modal-body .muted, .mypage-section .muted { color: #8a857c; }
+.modal-body .small, .mypage-section .small { font-size: 12px; }
