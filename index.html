@@ -712,6 +712,16 @@
                 </div>
             </section>
 
+            <!-- 업체 입찰 (승인된 업체에게만 표시) -->
+            <section class="section section-soft" id="vendorQuotesSection" hidden>
+                <div class="container">
+                    <p class="eyebrow">VENDOR · 입찰</p>
+                    <h2 class="section-title">들어온 <span class="g">비교견적</span> 입찰</h2>
+                    <p class="lead">승인된 업체만 보이는 화면입니다. 진행중인 견적에 입찰가를 제시하세요.</p>
+                    <div class="admin-pending" id="vendorQuotes"></div>
+                </div>
+            </section>
+
             <!-- 시계 수리 안내 -->
             <section class="section section-soft">
                 <div class="container">
@@ -1813,6 +1823,17 @@
                 </div>
                 <form class="signup-form" id="signupForm">
                     <label>
+                        <span>가입 유형 *</span>
+                        <select name="role" id="signupRole">
+                            <option value="customer">일반 회원 (비교견적 신청)</option>
+                            <option value="vendor">업체 회원 (승인 후 입찰 참여)</option>
+                        </select>
+                    </label>
+                    <label class="signup-vendor-only" id="signupCompanyField" style="display:none">
+                        <span>업체 상호 *</span>
+                        <input type="text" name="company" placeholder="예: 강남워치">
+                    </label>
+                    <label>
                         <span>이름 *</span>
                         <input type="text" name="name" placeholder="홍길동" required>
                     </label>
@@ -1867,9 +1888,8 @@
 
             <!-- 관리자 전용: 관리자 관리 -->
             <div class="mypage-section admin-only" hidden id="adminManageBox">
-                <h4>관리자 관리</h4>
+                <h4>업체 승인 관리</h4>
                 <div id="adminList" class="admin-list"></div>
-                <button type="button" class="mypage-btn" id="adminAddBtn">+ 관리자 추가</button>
             </div>
 
             <div class="mypage-section">
@@ -2019,8 +2039,10 @@
         </button>
     </nav>
 
-    <script src="firebase-config.js"></script>
-    <script src="firebase.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="supabase.js"></script>
+    <script src="bellore-features.js"></script>
     <script src="script.js"></script>
     <script>
         if ('serviceWorker' in navigator) {

@@ -28,9 +28,37 @@ GitHub Pages 배포 후 URL 업데이트 예정
 ## 🏗 기술 스택
 
 - HTML5
-- CSS3 (Pretendard 폰트, 다크그린 테마)
-- Vanilla JavaScript (외부 라이브러리 없음)
+- CSS3 (Pretendard 폰트, 다크베이지+화이트 테마)
+- Vanilla JavaScript
+- **Supabase** 백엔드 (인증/DB/실시간/Storage)
 - 모바일 앱 비율 (660px) + 하단 탭바
+
+## 🔌 Supabase 백엔드 연동
+
+디자인은 그대로 두고 기능만 Supabase로 연결되어 있습니다.
+
+- `supabase-config.js` — 프로젝트 URL / anon 키 / 부트스트랩 관리자 이메일
+- `supabase.js` — 인증·비교견적·판매시계·커뮤니티·후기·알림 백엔드 레이어 (`window.NWBackend`)
+- `bellore-features.js` — 업체 입찰 화면 / 인사이트·후기 작성(관리자) / 고객판매 등록(관리자)
+
+### 구현 기능
+
+1. **회원가입/로그인** — 이메일 + 구글 + 카카오 (OAuth)
+2. **비교견적** — 고객 요청 → 관리자 승인 → 승인업체 입찰 → 고객 채택
+3. **업체 승인제** — 업체 가입 시 대기 → 관리자(마이페이지) 승인
+4. **판매시계** — 벨로르판매 / 고객판매 카테고리
+5. **인사이트·커뮤니티** — 카테고리별, 관리자만 작성
+6. **후기** — 관리자 등록, 인사이트 "매입 후기" 탭에 노출
+7. **실시간 알림** — 새 견적/입찰/승인 알림 (Supabase Realtime)
+
+### 설정 메모
+
+- 테이블·RLS·트리거·실시간·Storage(`photos`)는 Supabase에 이미 생성되어 있습니다.
+- 최초 관리자 지정: 해당 계정 가입 후 SQL Editor에서
+  `update public.profiles set role='admin' where id=(select id from auth.users where email='관리자메일');`
+- 구글/카카오 로그인: Supabase **Authentication → Providers** 에서 각 Provider를
+  Enable 하고, **URL Configuration → Site URL** 에 배포 주소를 등록하세요.
+  (Redirect URI: `https://<프로젝트>.supabase.co/auth/v1/callback`)
 
 ## 📞 연락처
 

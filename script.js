@@ -68,6 +68,27 @@
             });
         }
 
+        // 카카오 로그인
+        var k = $('#loginKakao');
+        if (k && NWBackend.signInWithKakao) {
+            k.addEventListener('click', function () {
+                NWBackend.signInWithKakao()
+                    .then(function () { closeLoginModal(); })
+                    .catch(function (err) { alert('카카오 로그인 실패: ' + authErrorMsg(err)); });
+            });
+        }
+
+        // 비교견적 입찰 채택 (고객)
+        document.addEventListener('click', function (e) {
+            var aw = e.target.closest('[data-award]');
+            if (!aw) return;
+            e.preventDefault();
+            if (!confirm('이 입찰을 채택하시겠어요? 채택하면 견적이 마감됩니다.')) return;
+            NWBackend.awardBid(aw.dataset.quote, aw.dataset.award, aw.dataset.vendor)
+                .then(function () { alert('입찰을 채택했습니다.'); })
+                .catch(function (err) { alert('채택 실패: ' + (err && err.message || err)); });
+        });
+
         // 마이페이지 모달 닫기
         var myModal = $('#myPageModal');
         if (myModal) {
@@ -85,26 +106,30 @@
                 });
             });
         }
-        // 관리자 추가
-        var addAdminBtn = $('#adminAddBtn');
-        if (addAdminBtn) {
-            addAdminBtn.addEventListener('click', function () {
-                var email = prompt('관리자로 추가할 구글/이메일 계정을 입력하세요.');
-                if (!email || email.indexOf('@') === -1) return;
-                NWBackend.addAdmin(email)
-                    .then(function () { alert(email + ' 님을 관리자로 추가했습니다.'); })
-                    .catch(function (err) { alert('추가 실패: ' + (err && err.message || err)); });
-            });
-        }
-        // 관리자 목록에서 삭제
+        // 업체 승인/취소 (관리자)
         document.addEventListener('click', function (e) {
-            var rm = e.target.closest('[data-admindel]');
-            if (!rm) return;
-            var email = rm.dataset.admindel;
-            if (confirm(email + ' 님을 관리자에서 제외할까요?')) {
-                NWBackend.removeAdmin(email).catch(function (err) { alert('제외 실패: ' + (err && err.message || err)); });
+            var ap = e.target.closest('[data-vapprove]');
+            var cn = e.target.closest('[data-vcancel]');
+            if (ap) {
+                NWBackend.setVendorApproved(ap.dataset.vapprove, true)
+                    .then(function () { alert('업체를 승인했습니다.'); })
+                    .catch(function (err) { alert('승인 실패: ' + (err && err.message || err)); });
+            } else if (cn) {
+                if (confirm('이 업체의 승인을 취소할까요?')) {
+                    NWBackend.setVendorApproved(cn.dataset.vcancel, false)
+                        .catch(function (err) { alert('취소 실패: ' + (err && err.message || err)); });
+                }
             }
         });
+
+        // 회원가입: 업체 선택 시 상호 입력칸 표시
+        var roleSel = $('#signupRole');
+        var companyField = $('#signupCompanyField');
+        if (roleSel && companyField) {
+            roleSel.addEventListener('change', function () {
+                companyField.style.display = roleSel.value === 'vendor' ? '' : 'none';
+            });
+        }
 
         // 알림 모달
         var btnNoti = $('#btnNoti');
@@ -186,7 +211,7 @@
             if (unsubAdmins) { unsubAdmins(); unsubAdmins = null; }
             if (info && info.isAdmin) {
                 if (adminBox) { adminBox.hidden = false; adminBox.classList.add('show'); }
-                unsubAdmins = NWBackend.subscribeAdmins(renderAdminList);
+                unsubAdmins = NWBackend.subscribeVendors(renderVendorList);
             } else if (adminBox) {
                 adminBox.hidden = true;
             }
@@ -210,14 +235,19 @@
         }).join('');
     }
 
-    function renderAdminList(emails) {
+    function renderVendorList(vendors) {
         var el = $('#adminList');
         if (!el) return;
-        var all = ['jeongsseongg@gmail.com'].concat(emails.filter(function (e) { return e !== 'jeongsseongg@gmail.com'; }));
-        el.innerHTML = all.map(function (em) {
-            var isBootstrap = em === 'jeongsseongg@gmail.com';
-            return '<div class="admin-list-item"><span>' + esc(em) + (isBootstrap ? ' (대표)' : '') + '</span>' +
-                (isBootstrap ? '' : '<button type="button" data-admindel="' + esc(em) + '">제외</button>') +
+        if (!vendors || !vendors.length) {
+            el.innerHTML = '<div class="admin-list-item"><span>가입한 업체가 없습니다.</span></div>';
+            return;
+        }
+        el.innerHTML = vendors.map(function (v) {
+            var nm = esc(v.company_name || v.display_name || '(이름 없음)');
+            return '<div class="admin-list-item"><span>' + nm + (v.approved ? ' · 승인됨' : ' · 대기') + '</span>' +
+                (v.approved
+                    ? '<button type="button" data-vcancel="' + esc(v.id) + '">승인취소</button>'
+                    : '<button type="button" data-vapprove="' + esc(v.id) + '">승인</button>') +
                 '</div>';
         }).join('');
     }
@@ -944,18 +974,39 @@
     var myListingsCache = [];
     function renderMyItemsBackend(rows) {
         myListingsCache = rows || [];
-        var label = { pending: '승인 중', approved: '판매중', rejected: '거부됨' };
+        // 비교견적 상태(quote_requests) 한글 표기
+        var label = {
+            pending: '승인 대기', open: '입찰 진행중', awarded: '채택 완료', closed: '종료',
+            approved: '판매중', rejected: '거부됨'
+        };
 
-        function itemHtml(it, withBid) {
-            var bid = (withBid && it.bidAmount)
-                ? '<p class="my-item-bid">입찰 ' + fmt(it.bidAmount) + '원</p>' : '';
+        function bidsHtml(it) {
+            var bids = it.bids || [];
+            if (!bids.length) {
+                return '<p class="my-item-sub">' +
+                    (it.status === 'pending'
+                        ? '관리자 승인 후 업체 입찰이 시작됩니다.'
+                        : '아직 들어온 입찰이 없습니다.') + '</p>';
+            }
+            return '<div class="my-item-bids">' + bids.map(function (b) {
+                var awarded = it.awarded_bid === b.id;
+                var action = (it.status === 'open')
+                    ? '<button type="button" class="admin-bid-btn" data-award="' + esc(b.id) +
+                      '" data-quote="' + esc(it.id) + '" data-vendor="' + esc(b.vendor_id) + '">채택</button>'
+                    : (awarded ? '<span class="my-item-bid">채택됨</span>' : '');
+                return '<div class="bid-row"><strong>' + fmt(b.amount) + '원</strong>' +
+                    (b.message ? ' <span>' + esc(b.message) + '</span>' : '') + ' ' + action + '</div>';
+            }).join('') + '</div>';
+        }
+
+        function itemHtml(it) {
             return '' +
                 '<div class="my-item">' +
                 '<div class="my-item-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
                 '<div class="my-item-info">' +
                 '<strong>' + esc(it.brand) + ' · ' + esc(it.model) + '</strong>' +
                 '<p>사진 ' + (it.photoCount || (it.photos ? it.photos.length : 0)) + '장</p>' +
-                bid +
+                bidsHtml(it) +
                 '</div>' +
                 '<div class="my-item-status">' + (label[it.status] || it.status) + '</div>' +
                 '</div>';
@@ -965,10 +1016,10 @@
             '<p class="sub">비교견적 페이지에서 시계를 등록해보세요.</p></div>';
 
         var el = $('#myItems');
-        if (el) el.innerHTML = rows.length ? rows.map(function (it) { return itemHtml(it, false); }).join('') : emptyHtml;
+        if (el) el.innerHTML = rows.length ? rows.map(itemHtml).join('') : emptyHtml;
 
         var mp = $('#myPageListings');
-        if (mp) mp.innerHTML = rows.length ? rows.map(function (it) { return itemHtml(it, true); }).join('') : emptyHtml;
+        if (mp) mp.innerHTML = rows.length ? rows.map(itemHtml).join('') : emptyHtml;
     }
 
     /* ============ 제휴처 클릭 → 예약/문의 모달 ============ */
@@ -1174,8 +1225,14 @@
                 var phone = fd.get('phone');
                 var email = fd.get('email');
                 var pw = fd.get('pw');
+                var role = fd.get('role') || 'customer';
+                var company = fd.get('company') || '';
                 if (!name || !phone || !email || !pw) {
                     alert('필수 항목을 모두 입력해주세요.');
+                    return;
+                }
+                if (role === 'vendor' && !company) {
+                    alert('업체 회원은 업체 상호를 입력해주세요.');
                     return;
                 }
                 if (pw.length < 8) {
@@ -1184,11 +1241,16 @@
                 }
 
                 if (backendOn()) {
-                    NWBackend.signUp({ name: name, phone: phone, email: email, password: pw })
+                    NWBackend.signUp({ name: name, phone: phone, email: email, password: pw, role: role, company: company })
                         .then(function () {
                             signupForm.reset();
+                            var cf = $('#signupCompanyField'); if (cf) cf.style.display = 'none';
                             closeLoginModal();
-                            alert(name + '님, 회원가입이 완료되었습니다.\n바로 로그인되었습니다.');
+                            if (role === 'vendor') {
+                                alert(name + '님, 업체 회원가입이 접수되었습니다.\n관리자 승인 후 입찰 기능을 이용하실 수 있습니다.');
+                            } else {
+                                alert(name + '님, 회원가입이 완료되었습니다.\n이메일 인증이 필요한 경우 메일을 확인해주세요.');
+                            }
                         })
                         .catch(function (err) {
                             alert('회원가입 실패: ' + authErrorMsg(err));
@@ -1363,12 +1425,13 @@
     /* ============ 5. 인사이트 카테고리 필터 ============ */
     function initInsightFilter() {
         var tabs = $$('.insight-tab');
-        var rows = $$('.insight-row[data-cat]');
         var partnerGrid = $('#partnerGrid');
 
         tabs.forEach(function (tab) {
             tab.addEventListener('click', function () {
                 var cat = tab.dataset.cat;
+                // 동적으로 추가된 글/후기도 포함하도록 매 클릭 시 재조회
+                var rows = $$('.insight-row[data-cat]');
                 tabs.forEach(function (t) { t.classList.remove('active'); });
                 tab.classList.add('active');
 
@@ -1429,7 +1492,7 @@
             $('#postModalTag').textContent = tagEl ? tagEl.textContent : '';
             $('#postModalMeta').innerHTML = metaEl ? metaEl.innerHTML : '';
 
-            var body = DUMMY_BODIES[cat] || '본문 내용 준비 중입니다.';
+            var body = row.dataset.body ? row.dataset.body : (DUMMY_BODIES[cat] || '본문 내용 준비 중입니다.');
             var lead = pEl ? '<p><strong>' + pEl.textContent + '</strong></p>' : '';
             var paragraphs = body.split('\n\n').map(function (t) { return '<p>' + t + '</p>'; }).join('');
             $('#postModalText').innerHTML = lead + paragraphs;

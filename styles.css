@@ -4701,3 +4701,33 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
     .brand-name { font-size: 36px; }
     .tab-item span { font-size: 10px; }
 }
+
+/* ============================================================
+   Supabase 기능 연동 추가 스타일 (디자인 톤 유지)
+   ============================================================ */
+.my-item-bids { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.my-item-bids .bid-row {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    font-size: 13px; padding: 8px 10px; border: 1px solid var(--line, #e7e3da);
+    border-radius: 10px; background: var(--soft, #f7f5f0);
+}
+.my-item-bids .bid-row strong { font-weight: 700; }
+.my-item-bids .bid-row span { color: #8a857c; }
+.my-item-sub { font-size: 12.5px; color: #8a857c; margin-top: 6px; }
+
+/* 업체 입찰 폼 */
+.vendor-bid-form { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.vendor-bid-form input {
+    flex: 1; min-width: 130px; padding: 10px 12px;
+    border: 1px solid var(--line, #e7e3da); border-radius: 10px; font-size: 14px;
+}
+.vendor-bid-form .admin-bid-btn { white-space: nowrap; }
+
+/* 인사이트 동적 글 삭제 버튼 (관리자) */
+.insight-row { position: relative; }
+.bellore-del {
+    position: absolute; top: 8px; right: 8px; z-index: 2;
+    border: 1px solid var(--line, #e7e3da); background: #fff; color: #b3261e;
+    border-radius: 8px; padding: 4px 10px; font-size: 12px; cursor: pointer;
+}
+.bellore-del:hover { background: #fbeae9; }

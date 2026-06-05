@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "nw-v13";
+const VERSION = "nw-v14";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -9,8 +9,9 @@ const SHELL_ASSETS = [
   './index.html',
   './styles.css',
   './script.js',
-  './firebase-config.js',
-  './firebase.js',
+  './supabase-config.js',
+  './supabase.js',
+  './bellore-features.js',
   './manifest.json',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
