@@ -401,6 +401,9 @@
     function applyMyPageRole(info) {
       var admin = !!(info && info.isAdmin);
       if (myItemsSection) myItemsSection.hidden = admin;       // 관리자는 '내 비교견적' 숨김
+      // 관리자는 마이포켓(고객 전용) 숨김
+      var doc = (typeof document !== 'undefined') ? document : null;
+      if (doc) doc.querySelectorAll('.customer-only').forEach(function (el) { el.hidden = admin; });
       var roleEl = $('#myPageRole');
       var user = B.currentUser();
       if (roleEl) {

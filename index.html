@@ -1822,6 +1822,74 @@
                 <p class="mypage-role" id="myPageRole" hidden></p>
             </div>
 
+            <!-- 일반 고객: 마이포켓 -->
+            <div class="pocket customer-only" id="pocketBox">
+                <!-- 헤더 카드 -->
+                <div class="pocket-card">
+                    <div class="pocket-card-top">
+                        <span class="pocket-title">마이포켓</span>
+                        <span class="pocket-grade" id="pocketGrade">
+                            <span class="pocket-grade-ic">F</span> Family
+                        </span>
+                    </div>
+                    <p class="pocket-name" id="pocketName">고객님</p>
+                    <div class="pocket-line">
+                        <span class="pocket-line-label">보유 포인트</span>
+                        <span class="pocket-line-val" id="pocketPoint">0P</span>
+                    </div>
+                    <div class="pocket-line">
+                        <span class="pocket-line-label">보유 쿠폰</span>
+                        <span class="pocket-line-val" id="pocketCoupon">0장</span>
+                    </div>
+                </div>
+
+                <!-- 정회원 혜택 안내 -->
+                <div class="pocket-promo">
+                    <h4>벨로르 정회원이 되시면</h4>
+                    <ul class="pocket-benefits">
+                        <li><span class="pb-ic">◎</span>적립 포인트 사용 가능</li>
+                        <li><span class="pb-ic">◷</span>최신 업데이트 상품 소식을 빠르게</li>
+                        <li><span class="pb-ic">♺</span>거래진행중 취소상품 알림가능</li>
+                        <li><span class="pb-ic">⛨</span>사기전에 보고사자! 보고구매 서비스 가능</li>
+                    </ul>
+                    <button type="button" class="pocket-promo-btn" id="pocketUpgrade">정회원 전환</button>
+                </div>
+
+                <!-- 빠른 메뉴 -->
+                <div class="pocket-quick">
+                    <div class="pocket-quick-item">
+                        <span class="pq-ic">🛍️</span>
+                        <span class="pq-label">입금되지 않은 주문</span>
+                        <strong id="pqUnpaid">0건</strong>
+                    </div>
+                    <div class="pocket-quick-item">
+                        <span class="pq-ic">🔔</span>
+                        <span class="pq-label">구매 가능한 상품</span>
+                        <strong id="pqAvailable">0건</strong>
+                    </div>
+                    <div class="pocket-quick-item">
+                        <span class="pq-ic">📋</span>
+                        <span class="pq-label">보고구매 예약상품</span>
+                        <strong id="pqReserved">0건</strong>
+                    </div>
+                </div>
+
+                <!-- 나의쇼핑 -->
+                <div class="pocket-shop">
+                    <div class="pocket-shop-head">
+                        <h4>나의쇼핑</h4>
+                        <button type="button" class="pocket-shop-all" id="pocketOrders">주문전체보기 ›</button>
+                    </div>
+                    <div class="pocket-status">
+                        <div class="ps-cell"><b id="psWait">0</b><span>결제대기</span></div>
+                        <div class="ps-cell"><b id="psPaid">0</b><span>결제완료</span></div>
+                        <div class="ps-cell"><b id="psPrep">0</b><span>상품준비중</span></div>
+                        <div class="ps-cell"><b id="psShip">0</b><span>배송중</span></div>
+                        <div class="ps-cell"><b id="psDone">0</b><span>배송완료</span></div>
+                    </div>
+                </div>
+            </div>
+
             <!-- 관리자 전용: 관리 현황 요약 -->
             <div class="mypage-section admin-only" hidden id="adminSummaryBox">
                 <h4>관리 현황</h4>
@@ -1920,31 +1988,115 @@
         </div>
     </div>
 
-    <!-- 시계 상세 모달 -->
-    <div class="product-modal" id="productModal" hidden>
-        <div class="product-backdrop" data-pclose></div>
-        <article class="product-modal-content">
-            <button class="product-modal-close" data-pclose aria-label="닫기">×</button>
-            <div class="product-modal-img"><img id="pmImg" src="" alt=""></div>
-            <div class="product-modal-body">
-                <p class="pm-brand" id="pmBrand"></p>
-                <h2 id="pmModel"></h2>
-                <p class="pm-price" id="pmPrice"></p>
-                <div class="pm-spec">
-                    <div class="pm-spec-row"><span>레퍼런스</span><strong id="pmRef">-</strong></div>
-                    <div class="pm-spec-row"><span>구성품</span><strong>풀세트 (보증서+박스)</strong></div>
-                    <div class="pm-spec-row"><span>상태</span><strong>S급 · 검수 완료</strong></div>
-                    <div class="pm-spec-row"><span>A/S</span><strong>가능 · 정품 보증</strong></div>
+    <!-- 시계 상세 (전체 페이지) -->
+    <div class="product-page" id="productModal" hidden>
+        <header class="pp-topbar">
+            <button class="pp-back" data-pclose aria-label="뒤로">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <span class="pp-topbar-title">상품상세</span>
+            <button class="pp-top-wish" id="pmWishTop" aria-label="찜">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+            </button>
+        </header>
+
+        <div class="pp-scroll">
+            <!-- 이미지 갤러리 -->
+            <div class="pp-gallery">
+                <div class="pp-main">
+                    <img id="pmImg" src="" alt="">
+                    <span class="pp-count"><b id="pmIdx">1</b>/<span id="pmTotal">1</span></span>
                 </div>
-                <p class="pm-desc">
-                    벨로르가 직접 매입하여 40년 경력 감정사의 정밀 검수를 거친 정품입니다. 모든 시계는 풀세트(보증서, 박스 포함)로 판매되며, 구매 후 30일 무상 A/S가 제공됩니다.
-                </p>
-                <div class="pm-actions">
-                    <button class="btn btn-primary pm-buy" id="pmBuy">구입 문의</button>
-                    <button class="btn btn-outline-dark pm-ask" id="pmAsk">상담 문의</button>
-                </div>
+                <div class="pp-thumbs" id="pmThumbs"></div>
             </div>
-        </article>
+
+            <!-- 핵심 정보 -->
+            <section class="pp-info">
+                <div class="pp-brand-row">
+                    <p class="pp-brand" id="pmBrand"></p>
+                    <span class="pp-used" id="pmCond">USED</span>
+                </div>
+                <h1 class="pp-title" id="pmModel"></h1>
+                <p class="pp-price" id="pmPrice"></p>
+
+                <div class="pp-meta">
+                    <div class="pp-meta-row"><span>상품번호</span><strong id="pmNo">-</strong></div>
+                    <div class="pp-meta-row"><span>판매 매장</span><strong>대치점 이동중</strong></div>
+                </div>
+                <div class="pp-meta">
+                    <div class="pp-meta-row"><span>포인트</span><strong id="pmPoint">-</strong></div>
+                    <div class="pp-meta-row pp-meta-benefit"><span>결제혜택</span>
+                        <strong>
+                            퀵계좌이체 시 0.5% 즉시할인<br>
+                            가상계좌 결제 시 포인트 2배 적립<br>
+                            페이코 결제 시 1% 즉시할인
+                        </strong>
+                    </div>
+                    <div class="pp-meta-row"><span>무이자 할부</span><strong>2~6개월</strong></div>
+                </div>
+                <div class="pp-meta">
+                    <div class="pp-meta-row"><span>배송 정보</span><strong>프리미엄 배송 · 35,000원</strong></div>
+                </div>
+            </section>
+
+            <!-- 탭 -->
+            <nav class="pp-tabs">
+                <button class="pp-tab active" data-pptab="info">상품정보</button>
+                <button class="pp-tab" data-pptab="ask">문의하기</button>
+                <button class="pp-tab" data-pptab="notice">유의사항</button>
+            </nav>
+
+            <!-- 상품정보 탭 -->
+            <section class="pp-panel" data-pppanel="info">
+                <h3 class="pp-sec-title">주요 부속품</h3>
+                <div class="pp-acc">
+                    <div class="pp-acc-item on"><span class="pp-acc-ic">📦</span>박스</div>
+                    <div class="pp-acc-item on"><span class="pp-acc-ic">🧰</span>케이스</div>
+                    <div class="pp-acc-item on"><span class="pp-acc-ic">🪪</span>개런티카드</div>
+                    <div class="pp-acc-item off"><span class="pp-acc-ic">📄</span>보증서</div>
+                </div>
+
+                <h3 class="pp-sec-title">상품 기본정보</h3>
+                <div class="pp-spec">
+                    <div class="pp-spec-row"><span>상품번호</span><strong id="pmNo2">-</strong></div>
+                    <div class="pp-spec-row"><span>브랜드</span><strong id="pmBrand2">-</strong></div>
+                    <div class="pp-spec-row"><span>모델</span><strong id="pmModel2">-</strong></div>
+                </div>
+
+                <div class="pp-desc" id="pmDesc">
+                    <h4>상태</h4>
+                    <ul>
+                        <li>벨로르가 직접 매입하여 40년 경력 감정사의 정밀 검수를 거친 정품입니다.</li>
+                        <li>모든 시계는 풀세트(보증서·박스 포함)로 판매되며, 구매 후 30일 무상 A/S가 제공됩니다.</li>
+                    </ul>
+                </div>
+
+                <div class="pp-detail-imgs" id="pmDetailImgs"></div>
+            </section>
+
+            <!-- 문의하기 탭 -->
+            <section class="pp-panel" data-pppanel="ask" hidden>
+                <p class="pp-ask-desc">구매 전 궁금한 점은 카카오톡 상담 또는 문의 페이지를 이용해 주세요.</p>
+                <button class="btn btn-outline-dark pm-ask" id="pmAsk">상담 문의 바로가기</button>
+            </section>
+
+            <!-- 유의사항 탭 -->
+            <section class="pp-panel" data-pppanel="notice" hidden>
+                <ul class="pp-notice">
+                    <li>모든 상품은 중고(USED) 제품으로 사용감이 있을 수 있습니다.</li>
+                    <li>실제 상품의 색상은 모니터 환경에 따라 다소 차이가 있을 수 있습니다.</li>
+                    <li>단순 변심에 의한 교환·반품은 제한될 수 있습니다.</li>
+                </ul>
+            </section>
+        </div>
+
+        <!-- 하단 고정 구매바 -->
+        <div class="pp-bottom">
+            <button class="pp-wish" id="pmWish" aria-label="찜하기">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+            </button>
+            <button class="pp-buy" id="pmBuy">바로구매</button>
+        </div>
     </div>
 
     <!-- 인사이트 게시글 모달 -->

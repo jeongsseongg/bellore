@@ -37,12 +37,37 @@
     }
 
     /* ============ 계정 UI: 구글 로그인 · 마이페이지 · 알림 · 관리자 관리 · 상품 수정 ============ */
+    var pocketBound = false;
     function openMyPage() {
         var m = $('#myPageModal');
         if (!m) return;
         m.hidden = false;
         document.body.style.overflow = 'hidden';
         renderMyItemsBackend(myListingsCache); // 현재 캐시로 즉시 렌더
+
+        // 마이포켓: 구매 가능한 상품 수(현재 판매중 매물 그리드 기준)
+        var pqAvail = $('#pqAvailable');
+        if (pqAvail) {
+            var n = $$('#collection .hcard').filter(function (c) {
+                return c.style.display !== 'none';
+            }).length;
+            pqAvail.textContent = n + '건';
+        }
+
+        if (!pocketBound) {
+            pocketBound = true;
+            // 정회원 전환 / 주문전체보기: 백엔드 미구현 → 상담 안내
+            var up = $('#pocketUpgrade');
+            if (up) up.addEventListener('click', function () {
+                alert('정회원 전환은 준비 중입니다. 카카오톡 상담으로 안내해 드릴게요.');
+                window.open('https://open.kakao.com/o/sMuCaAFh', '_blank');
+            });
+            var ord = $('#pocketOrders');
+            if (ord) ord.addEventListener('click', function () {
+                closeMyPage();
+                navigate('compare'); // 현재 거래(비교견적) 페이지로 이동
+            });
+        }
     }
     function closeMyPage() {
         var m = $('#myPageModal');
@@ -177,6 +202,10 @@
             var emailEl = $('#myPageEmail');
             if (nameEl) nameEl.textContent = user ? ((user.displayName || '회원') + '님') : '마이페이지';
             if (emailEl) emailEl.textContent = user ? (user.email || '') : '';
+
+            // 마이포켓 헤더(고객명)
+            var pname = $('#pocketName');
+            if (pname) pname.textContent = user ? ((user.displayName || '회원') + '님') : '고객님';
 
             // 알림 벨
             var bell = $('#btnNoti');
@@ -2101,6 +2130,24 @@
             if (e.key === 'Escape' && !modal.hidden) closeProduct();
         });
 
+        // 탭 전환
+        modal.addEventListener('click', function (e) {
+            var tab = e.target.closest('[data-pptab]');
+            if (tab) {
+                var t = tab.dataset.pptab;
+                $$('.pp-tab', modal).forEach(function (x) { x.classList.toggle('active', x.dataset.pptab === t); });
+                $$('.pp-panel', modal).forEach(function (p) { p.hidden = p.dataset.pppanel !== t; });
+                modal.querySelector('.pp-scroll').scrollTop = 0;
+                return;
+            }
+            // 찜 토글
+            var w = e.target.closest('#pmWish, #pmWishTop');
+            if (w) { w.classList.toggle('on'); return; }
+            // 썸네일 선택
+            var th = e.target.closest('.pp-thumb');
+            if (th) selectPhoto(parseInt(th.dataset.i, 10));
+        });
+
         var buyBtn = $('#pmBuy');
         var askBtn = $('#pmAsk');
         if (buyBtn) buyBtn.addEventListener('click', function () {
@@ -2111,19 +2158,81 @@
             navigate('contact');
         });
 
+        var curPhotos = [];
+        function selectPhoto(i) {
+            if (!curPhotos.length) return;
+            i = Math.max(0, Math.min(i, curPhotos.length - 1));
+            $('#pmImg').src = curPhotos[i];
+            $('#pmIdx').textContent = (i + 1);
+            $$('.pp-thumb', modal).forEach(function (t) {
+                t.classList.toggle('on', parseInt(t.dataset.i, 10) === i);
+            });
+        }
+
+        function paint(d) {
+            var photos = (d.photos && d.photos.length) ? d.photos : (d.img ? [d.img] : []);
+            if (!photos.length) photos = ['assets/images.jpg'];
+            curPhotos = photos;
+
+            $('#pmBrand').textContent = d.brand || '';
+            $('#pmBrand2').textContent = d.brand || '-';
+            $('#pmModel').textContent = d.model || '';
+            $('#pmModel2').textContent = d.model || '-';
+            $('#pmPrice').innerHTML = d.priceHtml || (d.price ? (fmt(d.price) + '<span class="won">원</span>') : '가격 문의');
+            $('#pmNo').textContent = d.no || '-';
+            $('#pmNo2').textContent = d.no || '-';
+            $('#pmPoint').textContent = d.price ? ('최대 ' + fmt(Math.round(d.price * 0.003)) + 'P 적립') : '-';
+            $('#pmCond').textContent = (d.category === '고객판매') ? 'USED' : 'USED';
+
+            // 썸네일
+            var thumbs = $('#pmThumbs');
+            thumbs.innerHTML = photos.map(function (p, i) {
+                return '<button type="button" class="pp-thumb' + (i === 0 ? ' on' : '') + '" data-i="' + i + '"><img src="' + esc(p) + '" alt=""></button>';
+            }).join('');
+            $('#pmTotal').textContent = photos.length;
+            $('#pmIdx').textContent = '1';
+            $('#pmImg').src = photos[0];
+
+            // 하단 상세 큰 이미지
+            $('#pmDetailImgs').innerHTML = photos.map(function (p) {
+                return '<img src="' + esc(p) + '" alt="" loading="lazy">';
+            }).join('');
+        }
+
         function openProduct(card) {
+            // 정적/동적 카드 공통: DOM 값으로 우선 렌더
             var img = card.querySelector('.hcard-img img');
             var brand = card.querySelector('.hcard-brand');
             var model = card.querySelector('.hcard-model');
             var price = card.querySelector('.hcard-price');
+            var pid = card.dataset.pid || '';
 
-            $('#pmImg').src = img ? img.src : '';
-            $('#pmBrand').textContent = brand ? brand.textContent : '';
-            $('#pmModel').textContent = model ? model.textContent : '';
-            $('#pmPrice').innerHTML = price ? price.innerHTML : '';
+            paint({
+                brand: brand ? brand.textContent : (card.dataset.brand || ''),
+                model: model ? model.textContent : (card.dataset.model || ''),
+                priceHtml: price ? price.innerHTML.replace(/<em>/g, '<span class="won">').replace(/<\/em>/g, '</span>') : '',
+                price: parseInt(card.dataset.price, 10) || 0,
+                img: img ? img.src : '',
+                no: pid ? pid.slice(0, 8).toUpperCase() : '-'
+            });
 
             modal.hidden = false;
+            modal.querySelector('.pp-scroll').scrollTop = 0;
+            $$('.pp-tab', modal).forEach(function (x, i) { x.classList.toggle('active', i === 0); });
+            $$('.pp-panel', modal).forEach(function (p) { p.hidden = p.dataset.pppanel !== 'info'; });
             document.body.style.overflow = 'hidden';
+
+            // DB 매물이면 전체 사진/상세 보강
+            if (pid && backendOn() && NWBackend.getListing) {
+                NWBackend.getListing(pid).then(function (it) {
+                    if (modal.hidden) return;
+                    paint({
+                        brand: it.brand, model: it.model, price: it.price,
+                        photos: it.photos, category: it.category,
+                        no: String(it.id).slice(0, 8).toUpperCase()
+                    });
+                }).catch(function () {});
+            }
         }
 
         function closeProduct() {
