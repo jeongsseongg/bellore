@@ -1036,7 +1036,7 @@
             if (card) {
                 e.preventDefault();
                 $('#partnerName').innerHTML = '<strong>' + card.dataset.partner + '</strong> 예약 / 문의';
-                $('#partnerArea').textContent = '📍 ' + card.dataset.area + ' 지역';
+                $('#partnerArea').textContent = card.dataset.area + ' 지역';
                 modal.hidden = false;
                 document.body.style.overflow = 'hidden';
                 return;
