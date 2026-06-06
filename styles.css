@@ -1933,9 +1933,9 @@ img { display: block; max-width: 100%; height: auto; }
     color: rgba(255, 255, 255, 0.85);
 }
 .badge-pending {
-    background: rgba(255, 165, 0, 0.18);
-    color: #ffa840;
-    border: 1px solid rgba(255, 165, 0, 0.35);
+    background: rgba(0, 0, 0, 0.06);
+    color: #666666;
+    border: 1px solid rgba(0, 0, 0, 0.16);
 }
 .badge-end {
     background: rgba(255, 255, 255, 0.05);
@@ -2298,8 +2298,8 @@ img { display: block; max-width: 100%; height: auto; }
 .admin-add-btn:active { transform: scale(0.98); }
 
 .admin-panel {
-    background: linear-gradient(135deg, #fff5f5, #fff0e6);
-    border: 1.5px dashed #ff8a65;
+    background: #f6f6f6;
+    border: 1.5px dashed #cfcfcf;
     border-radius: 14px;
     padding: 16px;
     margin-bottom: 16px;
@@ -2467,8 +2467,8 @@ body.admin-mode .main-wrap { padding-top: 0; }
     justify-content: flex-end;
 }
 .exclusive-badge {
-    background: #ff9d40;
-    color: #1a1a1a;
+    background: #ffffff;
+    color: #111111;
     padding: 4px 10px;
     border-radius: 30px;
     font-size: 12px;
@@ -2723,8 +2723,8 @@ body.admin-mode .main-wrap { padding-top: 0; }
     color: var(--green-bright);
 }
 .status-progress {
-    background: #fff5e6;
-    color: #d97706;
+    background: #f0f0f0;
+    color: #555555;
 }
 .status-pending {
     background: #f0f0f0;
@@ -3048,7 +3048,7 @@ body.admin-mode .main-wrap { padding-top: 0; }
 }
 .pp-back:active, .pp-top-wish:active { background: var(--bg-soft); }
 .pp-topbar-title { flex: 1; font-size: 16px; font-weight: 700; }
-.pp-top-wish.on { color: #e0506a; }
+.pp-top-wish.on { color: #111111; }
 
 .pp-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
@@ -3213,7 +3213,7 @@ body.admin-mode .main-wrap { padding-top: 0; }
     border-radius: 10px;
     color: var(--text-2);
 }
-.pp-wish.on { color: #e0506a; border-color: #f0c2cc; }
+.pp-wish.on { color: #111111; border-color: var(--border); }
 .pp-buy {
     flex: 1;
     background: var(--dark-green);
@@ -4227,9 +4227,9 @@ body.admin-mode .main-wrap { padding-top: 0; }
 }
 .live-header .live-dot {
     width: 8px; height: 8px;
-    background: #ff3838;
+    background: #ffffff;
     border-radius: 50%;
-    box-shadow: 0 0 12px #ff3838;
+    box-shadow: 0 0 12px rgba(255,255,255,0.7);
     animation: pulseRed 1.2s infinite;
 }
 @keyframes pulseRed {
@@ -4325,7 +4325,7 @@ body.admin-mode .main-wrap { padding-top: 0; }
 .page-hero-compare::before {
     background: linear-gradient(135deg, rgba(28, 22, 14, 0.82), rgba(16, 12, 8, 0.92));
 }
-.page-hero-compare .eyebrow.light { color: #f3d9a6; opacity: 1; letter-spacing: 2px; }
+.page-hero-compare .eyebrow.light { color: #f4f4f4; opacity: 1; letter-spacing: 2px; }
 .page-hero-compare .page-hero-title { color: #fff; text-shadow: 0 2px 12px rgba(0,0,0,0.45); }
 .page-hero-compare .page-hero-desc { color: rgba(255,255,255,0.92); text-shadow: 0 1px 8px rgba(0,0,0,0.4); }
 .compare-form {
@@ -4513,8 +4513,8 @@ body.admin-mode .main-wrap { padding-top: 0; }
 .my-item-info p { font-size: 12px; color: var(--text-3); }
 .my-item-status {
     padding: 6px 12px;
-    background: #fff5e6;
-    color: #d97706;
+    background: #f0f0f0;
+    color: #555555;
     border-radius: 30px;
     font-size: 11px;
     font-weight: 700;
@@ -4793,7 +4793,7 @@ body.admin-mode .main-wrap { padding-top: 0; }
 .pocket { margin: 4px 0 20px; }
 
 .pocket-card {
-    background: linear-gradient(135deg, #8a8a8a 0%, #6f5b48 60%, #5c4a3a 100%);
+    background: linear-gradient(135deg, #3a3a3a 0%, #1a1a1a 60%, #0a0a0a 100%);
     border-radius: 16px;
     padding: 20px 18px;
     color: #fff;
@@ -5029,9 +5029,9 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .admin-list-item small { color: #8a8a8a; font-size: 11.5px; }
 
 /* ── 이모지 → SVG 아이콘 교체분 사이징/색상 (기업형 톤) ───────── */
-.qt-icon svg, .cq-icon svg { width: 26px; height: 26px; color: #3a8a6f; }
-.cert-icon svg { width: 30px; height: 30px; color: #3a8a6f; }
-.extra-icon svg { width: 18px; height: 18px; display: block; color: #6b6256; }
+.qt-icon svg, .cq-icon svg { width: 26px; height: 26px; color: #1a1a1a; }
+.cert-icon svg { width: 30px; height: 30px; color: #1a1a1a; }
+.extra-icon svg { width: 18px; height: 18px; display: block; color: #777777; }
 .float-kakao svg { width: 26px; height: 26px; color: #3a1d1d; }
 .btn-outline svg { vertical-align: -3px; width: 18px; height: 18px; }
 
