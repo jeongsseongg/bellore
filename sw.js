@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "nw-v17";
+const VERSION = "nw-v18";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -42,13 +42,16 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // 외부 폰트/CDN은 브라우저 기본 처리
 
-  // 페이지 이동: 네트워크 우선(최신 반영) → 실패 시 캐시 → 그래도 없으면 index
-  if (req.mode === 'navigate') {
+  // 앱 코드(HTML/JS/CSS): 항상 네트워크 우선 → 최신 즉시 반영, 실패 시 캐시
+  const isAppCode = req.mode === 'navigate' ||
+    /\.(?:js|css|html)(?:\?|$)/.test(url.pathname) ||
+    url.pathname === '/' || url.pathname.endsWith('/');
+  if (isAppCode) {
     event.respondWith(
       fetch(req)
         .then((res) => {
           const copy = res.clone();
-          caches.open(SHELL_CACHE).then((c) => c.put('./index.html', copy));
+          caches.open(SHELL_CACHE).then((c) => c.put(req.mode === 'navigate' ? './index.html' : req, copy));
           return res;
         })
         .catch(() => caches.match(req).then((r) => r || caches.match('./index.html')))
@@ -56,7 +59,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 정적 리소스: 캐시 우선 + 백그라운드 갱신(stale-while-revalidate)
+  // 그 외 정적 리소스(이미지 등): 캐시 우선 + 백그라운드 갱신(stale-while-revalidate)
   event.respondWith(
     caches.match(req).then((cached) => {
       const network = fetch(req)

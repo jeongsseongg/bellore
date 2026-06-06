@@ -508,20 +508,21 @@
 
   Backend.addPost = function (data) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
-    return uploadPhotos(data.photos || [], 1).then(function (urls) {
+    return uploadPhotos(data.photos || [], 5).then(function (urls) {
       var lite = { author_id: rawUser.id, title: data.title, body: data.body || null, category: data.category || '자유게시판' };
-      var full = Object.assign({}, lite, { image_url: urls[0] || null });
+      var full = Object.assign({}, lite, { image_url: urls[0] || null, image_urls: urls });
       return postWrite(function (p) { return sb.from('community_posts').insert(p); }, full, lite);
     });
   };
 
   Backend.updatePost = function (id, data) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
-    return uploadPhotos(data.photos || [], 1).then(function (urls) {
+    return uploadPhotos(data.photos || [], 5).then(function (urls) {
       var lite = { title: data.title, body: data.body || null, category: data.category || '자유게시판', updated_at: new Date().toISOString() };
       var full = Object.assign({}, lite);
-      if (urls.length) full.image_url = urls[0];
-      else if (data.existingImage != null) full.image_url = data.existingImage || null;
+      var all = (data.existingPhotos || []).concat(urls).slice(0, 5);
+      full.image_urls = all;
+      full.image_url = all[0] || null;
       return postWrite(function (p) { return sb.from('community_posts').update(p).eq('id', id); }, full, lite);
     });
   };

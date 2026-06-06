@@ -8,8 +8,9 @@
 -- 주의: 관리자(profiles.role='admin') 계정이 먼저 존재해야 글이 들어갑니다.
 -- ============================================================
 
--- 1) 인사이트 글 대표 이미지 컬럼
+-- 1) 인사이트 글 이미지 컬럼 (대표 1장 + 다중 최대 5장)
 alter table public.community_posts add column if not exists image_url text;
+alter table public.community_posts add column if not exists image_urls text[] not null default '{}';
 
 -- 2) 인사이트 글 이관 (community_posts 가 비어 있을 때만)
 insert into public.community_posts (author_id, title, body, category, image_url)

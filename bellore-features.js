@@ -119,11 +119,11 @@
         '<label><span>모델 / 레퍼런스 *</span><input name="model" placeholder="예: 데이트저스트 36" value="' + esc(item ? item.model : '') + '" required></label>' +
         '<label><span>판매가 (숫자, 비우면 가격문의)</span><input name="price" type="number" value="' + (item && item.price ? item.price : '') + '"></label>' +
         '<label><span>상태</span><select name="status">' + statusOptions(item ? item.status : 'on_sale') + '</select></label>' +
-        '<label><span>사진</span></label><div id="listingPhotos"></div>' +
+        '<label><span>사진 (최대 5장)</span></label><div id="listingPhotos"></div>' +
         (lExisting.length ? '<p class="muted small">기존 사진 ' + lExisting.length + '장 유지 · 새 사진은 뒤에 추가됩니다.</p>' : '') +
         '<button type="submit" class="login-btn login-default">' + (item ? '수정 저장' : '등록') + '</button>' +
         '</form>';
-      lPicker = photoPicker($('#listingPhotos', listingModal), 10);
+      lPicker = photoPicker($('#listingPhotos', listingModal), 5);
       openModal(listingModal);
       $('#listingForm', listingModal).addEventListener('submit', function (e) {
         e.preventDefault();
@@ -187,12 +187,14 @@
           [5, 4, 3, 2, 1].map(function (n) { return '<option value="' + n + '"' + (item && item.rating === n ? ' selected' : '') + '>' + n + '점</option>'; }).join('') +
           '</select></label>';
       }
+      var existImgs = item ? ((item.image_urls && item.image_urls.length) ? item.image_urls : (item.image_url ? [item.image_url] : [])) : [];
       html += '<label><span>제목 *</span><input name="title" value="' + esc(item ? item.title : '') + '" required></label>' +
         '<label><span>내용</span><textarea name="body" rows="6">' + esc(item ? (item.body || '') : '') + '</textarea></label>' +
-        '<label><span>대표 사진 (선택)</span></label><div id="insightPhotos"></div>' +
+        '<label><span>사진 (선택 · 최대 5장)</span></label><div id="insightPhotos"></div>' +
+        (existImgs.length ? '<p class="muted small">기존 사진 ' + existImgs.length + '장 유지 · 새 사진은 뒤에 추가됩니다.</p>' : '') +
         '<button type="submit" class="login-btn login-default">' + (item ? '수정 저장' : '등록') + '</button></form>';
       pBody.innerHTML = html;
-      pPicker = photoPicker($('#insightPhotos', postModalEl), 1);
+      pPicker = photoPicker($('#insightPhotos', postModalEl), 5);
       openModal(postModalEl);
       $('#insightForm', postModalEl).addEventListener('submit', function (e) {
         e.preventDefault();
@@ -204,7 +206,7 @@
         var p;
         if (kind === 'post') {
           var data = { title: title, body: body, category: fd.get('category'), photos: pPicker.files };
-          if (item) data.existingImage = item.image_url || null;
+          if (item) data.existingPhotos = existImgs;
           p = item ? B.updatePost(item.id, data) : B.addPost(data);
         } else {
           var rd = { title: title, body: body, author_name: fd.get('author') || '익명', rating: parseInt(fd.get('rating'), 10) || 5, photos: pPicker.files };
@@ -259,8 +261,8 @@
       holder.innerHTML = '';
       postsCache.forEach(function (p) {
         holder.appendChild(buildRow({
-          key: catToKey[p.category] || 'guide', label: p.category || '인사이트',
-          title: p.title, body: p.body || '', img: p.image_url,
+          key: catToKey[p.category] || 'guide', label: p.category || '커뮤니티',
+          title: p.title, body: p.body || '', img: (p.image_urls && p.image_urls[0]) || p.image_url,
           meta: '<span>' + ymd(p.created_at) + '</span>',
           editKey: 'post:' + p.id, delKey: 'post:' + p.id
         }));
