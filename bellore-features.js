@@ -158,13 +158,7 @@
         .catch(function (err) { alert('불러오기 실패: ' + (err && err.message || err)); });
     };
 
-    // 관리자 등록 버튼: 벨로르(#adminAddProduct) / 고객판매(주입 버튼)
-    var addBtn = $('#adminAddProduct');
-    if (addBtn) addBtn.addEventListener('click', function (e) { e.preventDefault(); openListing(null, listingCats.brand); }, true);
-    function injectUserMarketBtn() {
-      var b = $('#adminAddUserProduct');
-      if (b) b.addEventListener('click', function () { openListing(null, listingCats.user); });
-    }
+    // (구) 흩어진 등록 버튼은 제거하고, 우측 상단 "+" 하나로 통합 (하단 adminFab)
 
     /* ========== 인사이트/후기 작성·수정 모달 ========== */
     var postModalEl = makeModal('insightEditModal', 'EDITOR', '글 작성');
@@ -292,19 +286,31 @@
       }
     }
 
-    // 인사이트 섹션 상단 관리자 작성 버튼
-    function injectInsightToolbar() {
-      if (!insightList || $('#belloreInsightAdmin')) return;
-      var bar = document.createElement('div');
-      bar.id = 'belloreInsightAdmin'; bar.className = 'admin-only'; bar.hidden = true;
-      bar.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px';
-      bar.innerHTML =
-        '<button type="button" class="admin-add-btn" id="bWritePost">+ 인사이트 글 작성</button>' +
-        '<button type="button" class="admin-add-btn" id="bWriteReview">+ 매입후기 작성</button>';
-      insightList.parentNode.insertBefore(bar, insightList);
-      $('#bWritePost').addEventListener('click', function () { openEditor('post', null); });
-      $('#bWriteReview').addEventListener('click', function () { openEditor('review', null); });
-    }
+    /* ========== 관리자 통합 추가 버튼 (우측 상단 "+") ========== */
+    var adminFab = document.createElement('button');
+    adminFab.id = 'adminFab'; adminFab.type = 'button'; adminFab.hidden = true;
+    adminFab.setAttribute('aria-label', '추가');
+    adminFab.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+    document.body.appendChild(adminFab);
+
+    var addMenu = makeModal('adminAddMenu', 'ADMIN', '무엇을 추가할까요?');
+    $('.modal-body', addMenu).innerHTML =
+      '<div class="add-menu">' +
+      '<button type="button" class="add-menu-item" data-add="brand"><b>벨로르 판매 시계</b><span>정품 보증 · 판매시계 등록</span></button>' +
+      '<button type="button" class="add-menu-item" data-add="user"><b>고객 판매 시계</b><span>검수 완료 매물 등록</span></button>' +
+      '<button type="button" class="add-menu-item" data-add="post"><b>커뮤니티 글</b><span>시세·가이드·브랜드 등 카테고리</span></button>' +
+      '<button type="button" class="add-menu-item" data-add="review"><b>매입 후기</b><span>별점·사진 포함</span></button>' +
+      '</div>';
+    adminFab.addEventListener('click', function () { openModal(addMenu); });
+    $('.modal-body', addMenu).addEventListener('click', function (e) {
+      var it = e.target.closest('[data-add]'); if (!it) return;
+      closeModal(addMenu);
+      var t = it.dataset.add;
+      if (t === 'brand') openListing(null, listingCats.brand);
+      else if (t === 'user') openListing(null, listingCats.user);
+      else if (t === 'post') openEditor('post', null);
+      else if (t === 'review') openEditor('review', null);
+    });
 
     // 수정/삭제 (관리자) — 인사이트 행
     document.addEventListener('click', function (e) {
@@ -451,14 +457,13 @@
     }
 
     /* ========== 시작 ========== */
-    injectInsightToolbar();
-    injectUserMarketBtn();
     if (insightList) {
       B.subscribePosts(function (rows) { postsCache = rows; renderInsight(); });
       B.subscribeReviews(function (rows) { reviewsCache = rows; renderInsight(); });
     }
     B.onAuthChange(function (user, info) {
       lastInfo = info || { isAdmin: false, isApprovedVendor: false };
+      adminFab.hidden = !lastInfo.isAdmin;     // 우측 상단 + 는 관리자만
       updateVendorView(info);
       applyMyPageRole(info);
       renderInsight();

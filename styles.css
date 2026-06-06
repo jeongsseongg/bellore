@@ -4763,3 +4763,28 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .extra-icon svg { width: 18px; height: 18px; display: block; color: #6b6256; }
 .float-kakao svg { width: 26px; height: 26px; color: #3a1d1d; }
 .btn-outline svg { vertical-align: -3px; width: 18px; height: 18px; }
+
+/* ── 관리자 통합 추가 버튼(우측 상단 +) + 추가 메뉴 ───────────── */
+#adminFab {
+    position: fixed;
+    top: calc(var(--header-h) + env(safe-area-inset-top) + 12px);
+    left: 50%;
+    transform: translateX(min(calc(50vw - 44px), calc(var(--app-w) / 2 - 44px)));
+    width: 46px; height: 46px; border-radius: 50%;
+    background: #2b2620; color: #fff; border: 0;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.28); cursor: pointer;
+    z-index: 995; transition: transform 0.15s, opacity 0.15s;
+}
+#adminFab svg { width: 22px; height: 22px; }
+#adminFab:active { opacity: 0.85; }
+
+.add-menu { display: flex; flex-direction: column; gap: 10px; }
+.add-menu-item {
+    text-align: left; width: 100%; cursor: pointer;
+    background: #fff; border: 1px solid #e7e3da; border-radius: 14px;
+    padding: 16px 18px; transition: background 0.15s, border-color 0.15s;
+}
+.add-menu-item:hover { background: #f7f5f0; border-color: #cfc8bb; }
+.add-menu-item b { display: block; font-size: 15px; font-weight: 700; color: #2b2620; }
+.add-menu-item span { display: block; margin-top: 3px; font-size: 12.5px; color: #8a857c; }
