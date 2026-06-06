@@ -1,8 +1,8 @@
 {
-  "name": "BELLORE 벨로르 | 명품시계 매입·비교견적",
+  "name": "BELLORE | Luxury Watches",
   "short_name": "BELLORE",
-  "description": "BELLORE(벨로르) · 명품시계 구입·판매·수리 전문 공식 직영점. 실시간 비교견적과 24시간 상담.",
-  "lang": "ko",
+  "description": "BELLORE — Luxury watch buying, selling and repair. Real-time comparison quotes, 24h consultation.",
+  "lang": "en",
   "dir": "ltr",
   "start_url": ".",
   "scope": ".",
@@ -11,7 +11,7 @@
   "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#ffffff",
-  "theme_color": "#241d14",
+  "theme_color": "#000000",
   "categories": ["shopping", "lifestyle", "business"],
   "icons": [
     {
