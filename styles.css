@@ -162,6 +162,18 @@ img { display: block; max-width: 100%; height: auto; }
 .header.scrolled .logo,
 .header.light-page .logo { color: var(--text); }
 
+.logo-img {
+    height: 42px;
+    width: auto;
+    display: block;
+    background: #fff;
+    border-radius: 8px;
+    padding: 5px 10px;
+}
+/* 스크롤/라이트 페이지(흰 헤더)에선 배경 칩 제거 → 로고만 */
+.header.scrolled .logo-img,
+.header.light-page .logo-img { background: transparent; padding: 5px 0; }
+
 .logo-mark {
     width: 44px;
     height: 44px;
@@ -1429,6 +1441,24 @@ img { display: block; max-width: 100%; height: auto; }
     font-size: 13px;
     line-height: 1.6;
     margin-bottom: 20px;
+}
+.footer-social {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 22px;
+}
+.footer-social a {
+    width: 36px; height: 36px;
+    display: block;
+    border-radius: 9px;
+    overflow: hidden;
+    transition: transform 0.2s, opacity 0.2s;
+}
+.footer-social a:hover { transform: translateY(-2px); opacity: 0.85; }
+.footer-social img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
 }
 .footer-sns {
     display: flex;
@@ -4722,6 +4752,12 @@ body.admin-mode .main-wrap { padding-top: 0; }
     font-weight: 900;
     font-size: 15px;
     display: flex; align-items: center; justify-content: center;
+}
+.login-icon-img {
+    width: 20px; height: 20px;
+    border-radius: 5px;
+    object-fit: cover;
+    flex-shrink: 0;
 }
 
 /* ========== 마이포켓 ========== */
