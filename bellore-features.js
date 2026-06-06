@@ -18,6 +18,12 @@
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
   var FALLBACK_IMG = 'assets/og-image.png';
+  function errMsg(err) {
+    var m = (err && err.message) ? String(err.message) : String(err || '');
+    if (/row-level security|permission denied|not_admin/i.test(m))
+      return '관리자 권한이 없습니다. 이 계정이 admin으로 지정됐는지(아래 SQL) 확인하세요.';
+    return m || '알 수 없는 오류';
+  }
   function ready(fn) {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
     else fn();
@@ -142,7 +148,7 @@
           ? B.updateProduct(lEditId, Object.assign({ existingPhotos: lExisting }, payload))
           : B.addProduct(payload);
         p.then(function () { closeModal(listingModal); alert('저장되었습니다.'); })
-          .catch(function (err) { alert('저장 실패: ' + (err && err.message || err)); })
+          .catch(function (err) { alert('저장 실패: ' + errMsg(err)); })
           .then(function () { btn.disabled = false; btn.textContent = lEditId ? '수정 저장' : '등록'; });
       });
     }
@@ -209,7 +215,7 @@
           p = item ? B.updateReview(item.id, rd) : B.addReview(rd);
         }
         p.then(function () { closeModal(postModalEl); alert('저장되었습니다.'); })
-          .catch(function (err) { alert('저장 실패: ' + (err && err.message || err)); })
+          .catch(function (err) { alert('저장 실패: ' + errMsg(err)); })
           .then(function () { btn.disabled = false; });
       });
     }
@@ -235,9 +241,12 @@
       art.className = 'insight-row';
       art.setAttribute('data-cat', opt.key);
       art.dataset.body = opt.body || '';
+      var pencil = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+      var trash = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>';
       var actions = lastInfo.isAdmin
-        ? '<div class="row-actions"><button type="button" class="row-act" data-edit="' + opt.editKey + '">수정</button>' +
-          '<button type="button" class="row-act danger" data-del="' + opt.delKey + '">삭제</button></div>'
+        ? '<div class="row-actions">' +
+          '<button type="button" class="row-act" data-edit="' + opt.editKey + '" aria-label="수정" title="수정">' + pencil + '</button>' +
+          '<button type="button" class="row-act" data-del="' + opt.delKey + '" aria-label="삭제" title="삭제">' + trash + '</button></div>'
         : '';
       art.innerHTML =
         '<div class="insight-row-img"><img src="' + esc(opt.img || FALLBACK_IMG) + '" alt="" loading="lazy"></div>' +

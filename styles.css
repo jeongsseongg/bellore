@@ -2224,17 +2224,18 @@ img { display: block; max-width: 100%; height: auto; }
 
 .admin-add-btn {
     width: 100%;
-    background: linear-gradient(135deg, #ff6b6b, #ff5252);
-    color: white;
-    padding: 14px;
+    background: #fff;
+    color: #2b2620;
+    padding: 13px;
     border-radius: 12px;
-    font-size: 14px;
-    font-weight: 800;
+    font-size: 13.5px;
+    font-weight: 600;
     margin-bottom: 16px;
-    border: 0;
+    border: 1.5px dashed #cfc8bb;
     cursor: pointer;
-    transition: transform 0.15s;
+    transition: background 0.15s, border-color 0.15s;
 }
+.admin-add-btn:hover { background: #f7f5f0; border-color: #b8af9e; }
 .admin-add-btn:active { transform: scale(0.98); }
 
 .admin-panel {
@@ -4718,18 +4719,19 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 }
 .vendor-bid-form .admin-bid-btn { white-space: nowrap; }
 
-/* 인사이트 행: 관리자 수정/삭제 (심플·중립색, 관리자에게만 노출) */
+/* 인사이트 행: 관리자 수정/삭제 — 작은 아이콘 버튼(관리자만 노출) */
 .insight-row { position: relative; }
 .insight-row .row-actions {
-    display: flex; gap: 6px; margin-top: 10px;
+    position: absolute; top: 10px; right: 10px; display: flex; gap: 6px; margin: 0;
 }
 .row-act {
-    border: 1px solid var(--line, #e7e3da); background: #fff; color: var(--ink, #2b2620);
-    border-radius: 8px; padding: 4px 12px; font-size: 12px; cursor: pointer; line-height: 1.6;
+    width: 30px; height: 30px; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid #e7e3da; background: rgba(255,255,255,0.94); color: #6b6256;
+    border-radius: 8px; cursor: pointer; transition: background 0.15s, color 0.15s;
 }
-.row-act:hover { background: var(--soft, #f7f5f0); }
-.row-act.danger { color: #9a8e7e; }
-.row-act.danger:hover { color: #2b2620; }
+.row-act svg { width: 15px; height: 15px; }
+.row-act:hover { background: #fff; color: #2b2620; }
 
 /* 마이페이지 관리 현황 요약 */
 .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 4px 0 10px; }

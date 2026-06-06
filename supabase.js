@@ -125,10 +125,8 @@
 
   Backend.currentUser = function () { return authUser; };
   Backend.role = function () { return (profile && profile.role) || (rawUser ? 'customer' : 'guest'); };
-  Backend.isAdmin = function () {
-    if (profile && profile.role === 'admin') return true;
-    return !!(authUser && authUser.email && adminEmails.indexOf(authUser.email.toLowerCase()) !== -1);
-  };
+  // 관리자 판정은 DB 역할(profiles.role='admin')만 기준 — 화면과 권한(RLS)을 일치시킴
+  Backend.isAdmin = function () { return !!(profile && profile.role === 'admin'); };
   Backend.isVendor = function () { return Backend.role() === 'vendor'; };
   Backend.isApprovedVendor = function () { return Backend.isVendor() && !!(profile && profile.approved); };
 
