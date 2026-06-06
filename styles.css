@@ -25,6 +25,8 @@
     --tabbar-h: 68px;
     --app-w: 660px;
     --container: 660px;
+    /* 로고 톤(블랙&화이트 세리프)에 맞춘 디스플레이 세리프 */
+    --serif: 'Playfair Display', 'Noto Serif KR', 'Pretendard', serif;
 }
 
 html {
@@ -84,8 +86,8 @@ img { display: block; max-width: 100%; height: auto; }
 .eyebrow {
     display: inline-block;
     font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 3px;
+    font-weight: 600;
+    letter-spacing: 4px;
     color: var(--green-bright);
     margin-bottom: 14px;
     text-transform: uppercase;
@@ -94,16 +96,17 @@ img { display: block; max-width: 100%; height: auto; }
 .eyebrow.light { color: var(--green-light); }
 
 .section-title {
-    font-size: 28px;
-    font-weight: 800;
-    line-height: 1.25;
-    letter-spacing: -0.6px;
+    font-family: var(--serif);
+    font-size: 31px;
+    font-weight: 600;
+    line-height: 1.28;
+    letter-spacing: -0.3px;
     margin-bottom: 20px;
 }
 .section-title.center { text-align: center; }
 .g { color: var(--green-bright); }
 .hl { color: var(--gold); font-weight: 900; }
-.hl-green { color: var(--green-bright); font-weight: 900; }
+.hl-green { color: var(--green-bright); font-weight: 700; }
 
 /* ========== Header (앱 스타일) ========== */
 .header {
@@ -116,8 +119,8 @@ img { display: block; max-width: 100%; height: auto; }
     height: calc(var(--header-h) + env(safe-area-inset-top));
     padding-top: env(safe-area-inset-top);
     box-sizing: border-box;
-    background: rgba(28, 23, 16, 0.5);
-    backdrop-filter: blur(20px);
+    background: rgba(16, 13, 10, 0.32);
+    backdrop-filter: blur(22px);
     z-index: 1000;
     transition: background 0.3s, border-color 0.3s;
     border-bottom: 1px solid transparent;
@@ -298,31 +301,33 @@ img { display: block; max-width: 100%; height: auto; }
     background-image: url('assets/2026-02-27_이미지자료_131744.jpeg');
     background-size: cover;
     background-position: center;
-    filter: brightness(0.45) saturate(1.1);
+    filter: brightness(0.5) saturate(0.92) contrast(1.02);
     z-index: 0;
 }
 .hero-gradient {
     position: absolute;
     inset: 0;
     background:
-        linear-gradient(135deg, rgba(45, 37, 26, 0.55) 0%, rgba(22, 18, 12, 0.85) 60%, rgba(22, 18, 12, 0.95) 100%),
-        radial-gradient(circle at 70% 30%, rgba(58, 138, 111, 0.25), transparent 50%);
+        linear-gradient(180deg, rgba(18, 15, 11, 0.35) 0%, rgba(18, 15, 11, 0.7) 55%, rgba(14, 11, 8, 0.94) 100%),
+        radial-gradient(circle at 72% 26%, rgba(177, 153, 106, 0.16), transparent 55%);
     z-index: 1;
 }
 .hero-content { position: relative; z-index: 2; }
 .hero-eyebrow {
     font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 5px;
+    font-weight: 600;
+    letter-spacing: 6px;
+    text-transform: uppercase;
     color: var(--green-light);
-    margin-bottom: 24px;
+    margin-bottom: 26px;
 }
 .hero-title {
-    font-size: 44px;
-    font-weight: 800;
-    line-height: 1.2;
-    letter-spacing: -1.2px;
-    margin-bottom: 32px;
+    font-family: var(--serif);
+    font-size: 50px;
+    font-weight: 600;
+    line-height: 1.18;
+    letter-spacing: -0.5px;
+    margin-bottom: 34px;
 }
 .hero-desc {
     font-size: 16px;
@@ -352,12 +357,12 @@ img { display: block; max-width: 100%; height: auto; }
 .btn-primary {
     background: var(--green-bright);
     color: var(--white);
-    box-shadow: 0 10px 30px rgba(58, 138, 111, 0.35);
+    box-shadow: 0 10px 26px rgba(122, 103, 72, 0.32);
 }
 .btn-primary:hover {
     background: var(--green-mid);
     transform: translateY(-2px);
-    box-shadow: 0 14px 40px rgba(58, 138, 111, 0.5);
+    box-shadow: 0 14px 36px rgba(122, 103, 72, 0.45);
 }
 .btn-ghost {
     background: rgba(255, 255, 255, 0.08);
