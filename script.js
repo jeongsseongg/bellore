@@ -884,16 +884,29 @@
         var inner = $('#panel-user .col-grid-inner');
         if (!inner) return;
         $$('.hcard-dynamic', inner).forEach(function (el) { el.remove(); });
+        // DB 콘텐츠가 있으면 정적 샘플 카드는 숨김(중복 방지)
+        $$('.hcard', inner).forEach(function (c) {
+            if (!c.classList.contains('hcard-dynamic')) c.style.display = rows.length ? 'none' : '';
+        });
         var frag = document.createDocumentFragment();
         rows.forEach(function (it) {
+            var priceHtml = it.price ? (fmt(it.price) + '<em>원</em>') : '감정가 산정<em></em>';
             var card = document.createElement('article');
             card.className = 'hcard hcard-dynamic';
+            card.dataset.pid = it.id;
+            card.dataset.brand = it.brand;
+            card.dataset.model = it.model;
+            card.dataset.price = it.price || 0;
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
                 '<span class="hcard-tag user">개인 판매</span>' +
                 '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
                 '<p class="hcard-model">' + esc(it.model) + '</p>' +
-                '<p class="hcard-price">감정가 산정<em></em></p>';
+                '<p class="hcard-price">' + priceHtml + '</p>' +
+                '<div class="hcard-admin">' +
+                '<button type="button" class="hcard-edit" data-pedit="' + esc(it.id) + '">수정</button>' +
+                '<button type="button" class="hcard-del" data-pdel="' + esc(it.id) + '">삭제</button>' +
+                '</div>';
             frag.appendChild(card);
         });
         inner.insertBefore(frag, inner.firstChild);
@@ -904,6 +917,9 @@
         var inner = $('#panel-ny .col-grid-inner');
         if (!inner) return;
         $$('.hcard-dynamic', inner).forEach(function (el) { el.remove(); });
+        $$('.hcard', inner).forEach(function (c) {
+            if (!c.classList.contains('hcard-dynamic')) c.style.display = rows.length ? 'none' : '';
+        });
         var frag = document.createDocumentFragment();
         rows.forEach(function (it) {
             var priceHtml = it.price

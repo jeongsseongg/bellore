@@ -2308,25 +2308,10 @@ img { display: block; max-width: 100%; height: auto; }
     color: var(--text-2);
 }
 
-/* 관리자 모드 표시 (상단에 빨간 띠) */
-body.admin-mode::after {
-    content: '🔐 관리자 모드 (로그아웃하려면 마이페이지 → 관리자 로그아웃)';
-    position: fixed;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    max-width: var(--app-w);
-    background: linear-gradient(135deg, #ff6b6b, #ff5252);
-    color: white;
-    text-align: center;
-    padding: 6px 12px;
-    font-size: 11px;
-    font-weight: 700;
-    z-index: 1100;
-}
-body.admin-mode .header { top: 26px; }
-body.admin-mode .main-wrap { padding-top: 26px; }
+/* 관리자 모드: 상단 배너 제거 — 확인은 마이페이지에서만 */
+body.admin-mode::after { content: none; display: none; }
+body.admin-mode .header { top: 0; }
+body.admin-mode .main-wrap { padding-top: 0; }
 
 /* ========== EXCLUSIVE PRICING 카드 슬라이드 (사용 안함 - 보존만) ========== */
 .exclusive-section {

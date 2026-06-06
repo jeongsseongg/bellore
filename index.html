@@ -974,37 +974,9 @@
                             <strong>고객 판매 마켓 안내</strong>
                             <p>일반 고객이 직접 판매하는 시계입니다. 모든 매물은 벨로르 감정사가 검수 후 등록됩니다.</p>
                         </div>
-                        <!-- 관리자 전용: 승인 대기 매물 -->
+                        <!-- 관리자 전용: 고객 판매 시계 등록 (승인 관리는 마이페이지) -->
                         <div class="admin-only" hidden>
-                            <div class="admin-panel">
-                                <p class="admin-panel-title">⏳ 승인 대기 매물 (관리자)</p>
-                                <div class="admin-pending" id="adminPending">
-                                    <div class="admin-pending-item">
-                                        <div class="admin-pending-img"><img src="assets/KakaoTalk_20250502_221302124_02.jpg" alt=""></div>
-                                        <div class="admin-pending-info">
-                                            <strong>PATEK PHILIPPE</strong>
-                                            <p>노틸러스 5711/1A · 박OO 고객</p>
-                                            <small>2시간 전 등록 · 사진 5장</small>
-                                        </div>
-                                        <div class="admin-pending-actions">
-                                            <button class="admin-btn approve" data-action="approve">승인</button>
-                                            <button class="admin-btn reject" data-action="reject">거부</button>
-                                        </div>
-                                    </div>
-                                    <div class="admin-pending-item">
-                                        <div class="admin-pending-img"><img src="assets/KakaoTalk_20250428_224216035.jpg" alt=""></div>
-                                        <div class="admin-pending-info">
-                                            <strong>VACHERON CONSTANTIN</strong>
-                                            <p>오버시즈 퍼페추얼 · 김OO 고객</p>
-                                            <small>30분 전 등록 · 사진 7장</small>
-                                        </div>
-                                        <div class="admin-pending-actions">
-                                            <button class="admin-btn approve" data-action="approve">승인</button>
-                                            <button class="admin-btn reject" data-action="reject">거부</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <button type="button" class="admin-add-btn" id="adminAddUserProduct">+ 고객 판매 시계 등록</button>
                         </div>
                         <div class="col-grid">
                             <div class="col-grid-inner">
@@ -1864,6 +1836,12 @@
                 <div id="adminSummary"></div>
             </div>
 
+            <!-- 관리자 전용: 비교견적 승인 대기 -->
+            <div class="mypage-section admin-only" hidden id="adminQuoteBox">
+                <h4>비교견적 승인 대기</h4>
+                <div class="admin-pending" id="adminPending"></div>
+            </div>
+
             <!-- 관리자 전용: 회원 계정 관리 -->
             <div class="mypage-section admin-only" hidden id="adminAccountsBox">
                 <h4>회원 계정</h4>
@@ -2016,7 +1994,7 @@
             <span>커뮤니티</span>
         </button>
         <button class="tab-item" data-nav="repair">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-6 6 2 2 6-6a4 4 0 0 0 5.4-5.4l-2.3 2.3-2-2 2.3-2.3z"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 1 5.3 5.3L12 19.6l-3.6.4.4-3.6 8.3-8.3a4 4 0 0 0-2.4-1.8z"/><path d="M3 21l4-4"/></svg>
             <span>수리</span>
         </button>
         <button class="tab-item" data-nav="brand">

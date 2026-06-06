@@ -156,13 +156,8 @@
     var addBtn = $('#adminAddProduct');
     if (addBtn) addBtn.addEventListener('click', function (e) { e.preventDefault(); openListing(null, listingCats.brand); }, true);
     function injectUserMarketBtn() {
-      var panel = $('#panel-user .admin-panel');
-      if (!panel || $('#adminAddUserProduct')) return;
-      var b = document.createElement('button');
-      b.type = 'button'; b.className = 'admin-add-btn'; b.id = 'adminAddUserProduct';
-      b.style.marginTop = '12px'; b.textContent = '+ 고객 판매 시계 등록';
-      b.addEventListener('click', function () { openListing(null, listingCats.user); });
-      panel.appendChild(b);
+      var b = $('#adminAddUserProduct');
+      if (b) b.addEventListener('click', function () { openListing(null, listingCats.user); });
     }
 
     /* ========== 인사이트/후기 작성·수정 모달 ========== */
