@@ -5102,3 +5102,39 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .add-menu-item:hover { background: #f7f5f0; border-color: #cfc8bb; }
 .add-menu-item b { display: block; font-size: 15px; font-weight: 700; color: #2b2620; }
 .add-menu-item span { display: block; margin-top: 3px; font-size: 12.5px; color: #8a8a8a; }
+
+/* ============ PWA 설치 모달 ============ */
+#pwaInstallModal { position: fixed; inset: 0; z-index: 9000; display: flex; align-items: flex-end; }
+#pwaInstallModal[hidden] { display: none; }
+.pwa-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.55); }
+.pwa-sheet {
+  position: relative; width: 100%; background: #fff;
+  border-radius: 24px 24px 0 0;
+  padding: 32px 28px 48px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  animation: pwaUp .32s cubic-bezier(.2,.8,.2,1);
+}
+@keyframes pwaUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.pwa-close {
+  position: absolute; top: 16px; right: 16px;
+  background: #f3f3f3; border: none; border-radius: 50%;
+  width: 30px; height: 30px; font-size: 14px; cursor: pointer; color: #555;
+  display: flex; align-items: center; justify-content: center;
+}
+.pwa-app-icon { width: 80px; height: 80px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,.12); margin-bottom: 4px; }
+.pwa-app-name { font-size: 22px; font-weight: 800; letter-spacing: .08em; color: #111; margin: 0; }
+.pwa-app-sub { font-size: 13px; color: #888; margin: 0 0 10px; }
+.pwa-desc { font-size: 14px; color: #444; text-align: center; line-height: 1.65; margin: 6px 0 16px; }
+.pwa-btn-primary {
+  width: 100%; padding: 15px;
+  background: #111; color: #fff; border: none; border-radius: 12px;
+  font-size: 16px; font-weight: 700; cursor: pointer; letter-spacing: .03em;
+  margin-bottom: 10px;
+}
+.pwa-btn-secondary {
+  width: 100%; padding: 13px;
+  background: #f3f3f3; color: #555; border: none; border-radius: 12px;
+  font-size: 15px; cursor: pointer;
+}
+.pwa-steps { text-align: left; width: 100%; padding-left: 20px; margin: 0 0 20px; }
+.pwa-steps li { font-size: 14px; color: #333; line-height: 2; }

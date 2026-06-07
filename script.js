@@ -59,6 +59,7 @@
         initParallax();
         initBackendSync();
         initInstallPrompt();
+        initPwaModal();
         initAccountUI();
     }
 
@@ -336,10 +337,13 @@
         if (btn) {
             btn.addEventListener('click', function () {
                 if (deferredInstallPrompt) {
-                    deferredInstallPrompt.prompt();
-                    deferredInstallPrompt.userChoice.then(function () {
-                        deferredInstallPrompt = null;
-                    });
+                    // 네이티브 설치 가능 → 모달에서 확인 버튼으로 처리
+                    var modal = $('#pwaInstallModal');
+                    var native = $('#pwaInstallNative');
+                    var manual = $('#pwaInstallManual');
+                    if (native) native.hidden = false;
+                    if (manual) manual.hidden = true;
+                    if (modal) { modal.hidden = false; document.body.style.overflow = 'hidden'; }
                 } else {
                     showInstallHelp();
                 }
@@ -348,11 +352,56 @@
     }
 
     function showInstallHelp() {
+        var modal = $('#pwaInstallModal');
+        if (!modal) return;
         var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        var native = $('#pwaInstallNative');
+        var manual = $('#pwaInstallManual');
         if (isIOS) {
-            alert('홈 화면에 추가하기 (아이폰)\n\n1) 사파리 하단의 공유 버튼(□↑)을 누르세요\n2) "홈 화면에 추가"를 선택하세요\n\n(아이폰은 사파리에서만 설치할 수 있어요)');
+            if (native) native.hidden = true;
+            if (manual) {
+                manual.hidden = false;
+                var iosHint = manual.querySelector('.pwa-ios');
+                var androidHint = manual.querySelector('.pwa-android');
+                if (iosHint) iosHint.hidden = false;
+                if (androidHint) androidHint.hidden = true;
+            }
         } else {
-            alert('홈 화면에 추가하기\n\n• 크롬 오른쪽 위 ⋮ 메뉴 → "앱 설치" 또는 "홈 화면에 추가"\n   → 확인하면 홈에 아이콘이 생겨요.\n\n• 홈 화면에 이미 "BELLORE" 아이콘이 있다면 이미 설치된 거예요.');
+            if (native) native.hidden = true;
+            if (manual) {
+                manual.hidden = false;
+                var iosHint2 = manual.querySelector('.pwa-ios');
+                var androidHint2 = manual.querySelector('.pwa-android');
+                if (iosHint2) iosHint2.hidden = true;
+                if (androidHint2) androidHint2.hidden = false;
+            }
+        }
+        modal.hidden = false;
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closePwaModal() {
+        var modal = $('#pwaInstallModal');
+        if (modal) { modal.hidden = true; document.body.style.overflow = ''; }
+    }
+
+    function initPwaModal() {
+        var modal = $('#pwaInstallModal');
+        if (!modal) return;
+        modal.addEventListener('click', function (e) {
+            if (e.target.closest('[data-pwa-close]')) closePwaModal();
+        });
+        var confirmBtn = $('#pwaInstallConfirm');
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', function () {
+                if (deferredInstallPrompt) {
+                    deferredInstallPrompt.prompt();
+                    deferredInstallPrompt.userChoice.then(function () {
+                        deferredInstallPrompt = null;
+                        closePwaModal();
+                    });
+                }
+            });
         }
     }
 

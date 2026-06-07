@@ -1777,6 +1777,32 @@
         </div>
     </footer>
 
+    <!-- PWA 설치 모달 -->
+    <div id="pwaInstallModal" hidden aria-modal="true" role="dialog">
+      <div class="pwa-backdrop" data-pwa-close></div>
+      <div class="pwa-sheet">
+        <button class="pwa-close" data-pwa-close aria-label="닫기">✕</button>
+        <img src="assets/icons/icon-192.png" alt="BELLORE" class="pwa-app-icon">
+        <p class="pwa-app-name">BELLORE</p>
+        <p class="pwa-app-sub">벨로르 · 명품시계 매입/판매/수리</p>
+        <div id="pwaInstallNative">
+          <p class="pwa-desc">홈 화면에 앱처럼 설치하면<br>더 빠르게 접속할 수 있어요.</p>
+          <button class="pwa-btn-primary" id="pwaInstallConfirm">홈 화면에 추가</button>
+          <button class="pwa-btn-secondary" data-pwa-close>나중에</button>
+        </div>
+        <div id="pwaInstallManual" hidden>
+          <p class="pwa-desc pwa-ios">아이폰은 아래 순서로 설치하세요</p>
+          <ol class="pwa-steps">
+            <li>하단 <strong>공유 버튼(□↑)</strong> 탭</li>
+            <li><strong>"홈 화면에 추가"</strong> 선택</li>
+            <li>우측 상단 <strong>"추가"</strong> 탭</li>
+          </ol>
+          <p class="pwa-desc pwa-android" hidden>크롬 우측 상단 <strong>⋮ → "앱 설치"</strong> 를 탭하세요.</p>
+          <button class="pwa-btn-secondary" data-pwa-close>확인</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 로그인 / 회원가입 모달 -->
     <div class="login-modal" id="loginModal" hidden>
         <div class="login-backdrop" data-mclose></div>
