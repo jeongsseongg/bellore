@@ -4768,26 +4768,58 @@ body.admin-mode .main-wrap { padding-top: 0; }
     50% { transform: translateY(-6px); }
 }
 
-/* ========== 앱 설치 버튼 (푸터 사업자 영역) ========== */
-.footer-install {
-    margin-top: 14px;
-    display: inline-flex;
+/* ========== 앱 설치 배너 (푸터) ========== */
+.install-banner {
+    display: flex;
     align-items: center;
-    gap: 7px;
-    padding: 9px 16px;
-    border: 1px solid var(--green-bright);
-    border-radius: 999px;
-    background: transparent;
-    color: var(--green-light);
-    font-size: 12.5px;
-    font-weight: 600;
-    letter-spacing: 0.2px;
-    transition: background 0.2s, color 0.2s;
+    gap: 14px;
+    width: 100%;
+    margin: 24px 0 0;
+    padding: 16px 20px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, transform 0.15s;
+    text-align: left;
 }
-.footer-install::before { content: "\1F4F2"; font-size: 14px; }
-.footer-install:hover { background: var(--green-bright); color: #fff; }
-.footer-install:active { transform: scale(0.97); }
-.footer-install[hidden] { display: none; }
+.install-banner:hover  { background: rgba(255,255,255,0.11); border-color: rgba(255,255,255,0.24); }
+.install-banner:active { transform: scale(0.985); }
+.install-banner[hidden] { display: none; }
+.install-banner-icon {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,.35);
+}
+.install-banner-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.install-banner-logo {
+    height: 18px;
+    width: auto;
+    filter: brightness(0) invert(1);
+    object-fit: contain;
+}
+.install-banner-sub {
+    font-size: 12px;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.1px;
+}
+.install-banner-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    color: rgba(255,255,255,0.7);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+}
 
 /* ========== 알림 벨 + 뱃지 ========== */
 #btnNoti { position: relative; }

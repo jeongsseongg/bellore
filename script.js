@@ -318,13 +318,12 @@
     function initInstallPrompt() {
         var btn = $('#installBtn');
 
-        // 설치 가능 신호를 잡아 두었다가 버튼 클릭 시 즉시 네이티브 창을 띄움
         window.addEventListener('beforeinstallprompt', function (e) {
             e.preventDefault();
             deferredInstallPrompt = e;
         });
 
-        // 이미 설치되어 전체화면으로 실행 중이거나 설치 완료되면 버튼 숨김
+        // 이미 설치된 경우 배너 숨김
         var standalone = window.matchMedia('(display-mode: standalone)').matches ||
             window.navigator.standalone === true;
         if (btn && standalone) btn.hidden = true;
@@ -337,14 +336,13 @@
         if (btn) {
             btn.addEventListener('click', function () {
                 if (deferredInstallPrompt) {
-                    // 네이티브 설치 가능 → 모달에서 확인 버튼으로 처리
-                    var modal = $('#pwaInstallModal');
-                    var native = $('#pwaInstallNative');
-                    var manual = $('#pwaInstallManual');
-                    if (native) native.hidden = false;
-                    if (manual) manual.hidden = true;
-                    if (modal) { modal.hidden = false; document.body.style.overflow = 'hidden'; }
+                    // 네이티브 설치 가능 → 모달 없이 바로 설치 다이얼로그
+                    deferredInstallPrompt.prompt();
+                    deferredInstallPrompt.userChoice.then(function () {
+                        deferredInstallPrompt = null;
+                    });
                 } else {
+                    // 이벤트 미수신(iOS/크롬 정책) → 안내 모달
                     showInstallHelp();
                 }
             });
