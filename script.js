@@ -9,6 +9,32 @@
     function $$(s, ctx) { return Array.from((ctx || document).querySelectorAll(s)); }
     function fmt(n) { return n.toLocaleString('ko-KR'); }
 
+    /* ============ 폼 제출 → 이메일 발송 (FormSubmit.co) ============ */
+    var LEAD_EMAIL = 'jeongsseongg@gmail.com';
+    function fdToObj(fd) {
+        var o = {};
+        fd.forEach(function (v, k) {
+            if (v instanceof File) { return; } // 파일은 본문에서 제외
+            o[k] = v;
+        });
+        return o;
+    }
+    // subject: 메일 제목, data: 보낼 항목 객체. 화면 흐름을 막지 않도록 fire-and-forget.
+    function sendLead(subject, data) {
+        try {
+            var payload = {};
+            Object.keys(data).forEach(function (k) { payload[k] = data[k]; });
+            payload._subject = '[벨로르 문의] ' + subject;
+            payload._template = 'table';
+            payload._captcha = 'false';
+            return fetch('https://formsubmit.co/ajax/' + LEAD_EMAIL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify(payload)
+            }).catch(function (err) { console.warn('메일 발송 실패:', err); });
+        } catch (e) { console.warn('메일 발송 오류:', e); }
+    }
+
     function init() {
         initRouter();
         initHeaderScroll();
@@ -394,6 +420,9 @@
                     alert('시계 사진을 1장 이상 등록해주세요.');
                     return;
                 }
+                var sellData = fdToObj(fd);
+                sellData['사진수'] = sellPhotos.length + '장';
+                sendLead('시계 판매 견적 신청', sellData);
                 alert(fd.get('name') + '님, 판매 견적 신청이 접수되었습니다.\n사진 ' + sellPhotos.length + '장이 함께 전송되었습니다.\n빠른 시간 안에 ' + fd.get('phone') + '으로 연락드립니다.');
                 sellForm.reset();
                 sellPhotos = [];
@@ -412,6 +441,7 @@
                     alert('필수 항목(*)을 모두 입력해주세요.');
                     return;
                 }
+                sendLead('시계 구입 문의', fdToObj(fd));
                 alert(fd.get('name') + '님, 구입 문의가 접수되었습니다.\n매물 확보 시 즉시 ' + fd.get('phone') + '으로 안내드립니다.');
                 buyForm.reset();
                 navigate('home');
@@ -428,6 +458,7 @@
                     alert('필수 항목(*)을 모두 입력해주세요.');
                     return;
                 }
+                sendLead('시계 수리 문의', fdToObj(fd));
                 alert(fd.get('name') + '님, 수리 문의가 접수되었습니다.\n1시간 이내 ' + fd.get('phone') + '으로 견적 회신드립니다.');
                 repairForm.reset();
                 navigate('home');
@@ -719,6 +750,7 @@
         if (inquiryForm) {
             inquiryForm.addEventListener('submit', function (e) {
                 e.preventDefault();
+                sendLead('제휴/광고 문의', fdToObj(new FormData(inquiryForm)));
                 alert('문의가 접수되었습니다.\n빠른 시간 안에 연락드리겠습니다.');
                 inquiryForm.reset();
                 inquiryModal.hidden = true;
@@ -1080,6 +1112,7 @@
         if (form) {
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
+                sendLead('제휴처 예약/문의', fdToObj(new FormData(form)));
                 alert('예약/문의가 접수되었습니다.\n해당 제휴처에서 직접 연락드립니다.');
                 form.reset();
                 modal.hidden = true;
@@ -1618,6 +1651,11 @@
                 alert('시계 사진을 1장 이상 등록해주세요.');
                 return;
             }
+
+            sendLead('비교견적 신청', {
+                브랜드: brand, 모델: model, 이름: name, 연락처: phone,
+                메모: memo, 사진수: uploadedPhotos.length + '장'
+            });
 
             if (backendOn()) {
                 if (!NWBackend.currentUser()) {
