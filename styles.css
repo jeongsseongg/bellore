@@ -5218,24 +5218,40 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .hero-manage-btn[hidden] { display: none; }
 
 /* ============ 브랜드 원형 바로가기 ============ */
-.brand-quicklinks { padding: 26px 0 8px; background: #fff; }
+.brand-quicklinks { padding: 22px 0 16px; background: #fff; }
+.brand-circle-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px 10px;
+    padding: 4px 0 4px;
+}
+/* 기존 flex row는 미사용이지만 유지 */
 .brand-circle-row {
     display: flex; gap: 18px; overflow-x: auto; padding: 4px 4px 10px;
     -webkit-overflow-scrolling: touch; scrollbar-width: none;
 }
 .brand-circle-row::-webkit-scrollbar { display: none; }
-.brand-circle { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 70px; }
+.brand-circle { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .brand-circle-img {
-    width: 64px; height: 64px; border-radius: 50%;
+    width: 72px; height: 72px; border-radius: 50%;
     background: #f4f2ee; border: 1px solid #e7e3da;
     display: flex; align-items: center; justify-content: center;
-    font-family: var(--serif, serif); font-weight: 700; font-size: 12px; letter-spacing: .3px;
+    font-family: var(--serif, serif); font-weight: 700; font-size: 11px; letter-spacing: .3px;
     color: #2b2620; text-align: center; line-height: 1.1; padding: 4px;
     transition: transform .15s, box-shadow .2s, background .2s;
 }
 .brand-circle:active .brand-circle-img { transform: scale(.94); }
 .brand-circle:hover .brand-circle-img { background: #111; color: #fff; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
-.brand-circle-name { font-size: 12px; color: #444; white-space: nowrap; }
+.brand-circle-name { font-size: 11px; color: #444; white-space: nowrap; text-align: center; }
+/* 더 보러가기 */
+.brand-circle-more .brand-circle-more-img {
+    background: #111 !important;
+    color: #c9a96e !important;
+    font-size: 22px !important;
+    font-family: sans-serif !important;
+    border: 2px dashed #c9a96e !important;
+}
+.brand-circle-more .brand-circle-name { color: #111; font-weight: 600; }
 
 /* ============ 배너 관리(관리자) 목록 ============ */
 .banner-row { display: flex; align-items: center; gap: 12px; }
@@ -5254,9 +5270,9 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .banner-active-row { display: flex !important; flex-direction: row !important; align-items: center; gap: 8px; }
 .banner-active-row input { width: auto; }
 
-/* ============ 브랜드 원형 강조 (롤렉스, 파텍필립) ============ */
+/* ============ 브랜드 원형 강조 (롤렉스, 파텍필립 등) ============ */
 .brand-circle-featured .brand-circle-img {
-    width: 74px; height: 74px;
+    width: 72px; height: 72px;
     background: #111;
     color: #c9a96e;
     border: 2px solid #c9a96e;
