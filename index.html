@@ -2167,6 +2167,85 @@
         </div>
     </div>
 
+    <!-- 결제(체크아웃) 모달 -->
+    <div class="checkout" id="checkoutModal" hidden>
+        <header class="co-topbar">
+            <button class="co-back" id="coClose" aria-label="닫기">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <span class="co-title">결제하기</span>
+            <span style="width:22px"></span>
+        </header>
+
+        <div class="co-scroll">
+            <!-- 상품 요약 -->
+            <section class="co-product">
+                <img id="coImg" src="" alt="">
+                <div class="co-product-info">
+                    <p class="co-brand" id="coBrand"></p>
+                    <p class="co-model" id="coModel"></p>
+                    <p class="co-listprice" id="coListPrice"></p>
+                </div>
+            </section>
+
+            <!-- 결제 방식 -->
+            <section class="co-sec">
+                <h3 class="co-sec-title">결제 방식</h3>
+                <div class="co-paytype" id="coPayType">
+                    <button type="button" class="co-pt active" data-pt="deposit">
+                        <strong>예약금 결제</strong>
+                        <span id="coPtDeposit">-</span>
+                        <em>잔금은 매장 방문 시 결제</em>
+                    </button>
+                    <button type="button" class="co-pt" data-pt="full">
+                        <strong>전액 결제</strong>
+                        <span id="coPtFull">-</span>
+                        <em>배송비 포함 · 바로 배송</em>
+                    </button>
+                </div>
+            </section>
+
+            <!-- 구매자 정보 -->
+            <section class="co-sec">
+                <h3 class="co-sec-title">구매자 정보</h3>
+                <div class="co-field">
+                    <label>이름</label>
+                    <input type="text" id="coName" placeholder="홍길동">
+                </div>
+                <div class="co-field">
+                    <label>연락처</label>
+                    <input type="tel" id="coPhone" placeholder="010-0000-0000">
+                </div>
+            </section>
+
+            <!-- 토스 결제수단 위젯 -->
+            <section class="co-sec">
+                <h3 class="co-sec-title">결제 수단</h3>
+                <div id="payment-method"></div>
+                <div id="agreement"></div>
+            </section>
+        </div>
+
+        <!-- 하단 결제 버튼 -->
+        <div class="co-bottom">
+            <div class="co-total">
+                <span>최종 결제금액</span>
+                <strong id="coTotal">0원</strong>
+            </div>
+            <button class="co-pay-btn" id="coPayBtn">결제하기</button>
+        </div>
+    </div>
+
+    <!-- 결제 결과 모달 -->
+    <div class="pay-result" id="payResult" hidden>
+        <div class="pay-result-box">
+            <div class="pay-result-icon" id="prIcon">✓</div>
+            <h2 id="prTitle">결제 완료</h2>
+            <p id="prDesc"></p>
+            <button class="btn btn-primary" id="prHome">확인</button>
+        </div>
+    </div>
+
     <!-- 인사이트 게시글 모달 -->
     <div class="post-modal" id="postModal" hidden>
         <div class="post-modal-backdrop" data-close></div>
@@ -2212,10 +2291,12 @@
     </nav>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://js.tosspayments.com/v2/standard"></script>
     <script src="supabase-config.js"></script>
     <script src="supabase.js"></script>
     <script src="bellore-features.js"></script>
     <script src="script.js"></script>
+    <script src="payments.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {

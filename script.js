@@ -173,6 +173,7 @@
 
     /* ============ 계정 UI: 구글 로그인 · 마이페이지 · 알림 · 관리자 관리 · 상품 수정 ============ */
     var pocketBound = false;
+    var myOrdersUnsub = null;
     function openMyPage() {
         var m = $('#myPageModal');
         if (!m) return;
@@ -187,6 +188,19 @@
                 return c.style.display !== 'none';
             }).length;
             pqAvail.textContent = n + '건';
+        }
+
+        // 주문 현황(결제대기/결제완료) 실제 데이터 연동
+        if (backendOn() && NWBackend.subscribeMyOrders) {
+            if (myOrdersUnsub) { try { myOrdersUnsub(); } catch (e) {} }
+            myOrdersUnsub = NWBackend.subscribeMyOrders(function (orders) {
+                var wait = orders.filter(function (o) { return o.status === 'pending'; }).length;
+                var paid = orders.filter(function (o) { return o.status === 'paid'; }).length;
+                var w = $('#psWait'), p = $('#psPaid'), pq = $('#pqUnpaid');
+                if (w) w.textContent = wait;
+                if (p) p.textContent = paid;
+                if (pq) pq.textContent = wait + '건';
+            });
         }
 
         if (!pocketBound) {
@@ -2370,7 +2384,11 @@
         var buyBtn = $('#pmBuy');
         var askBtn = $('#pmAsk');
         if (buyBtn) buyBtn.addEventListener('click', function () {
-            window.open('https://open.kakao.com/o/sMuCaAFh', '_blank');
+            if (window.BELLORE_openCheckout) {
+                window.BELLORE_openCheckout(window.BELLORE_currentProduct);
+            } else {
+                window.open('https://open.kakao.com/o/sMuCaAFh', '_blank');
+            }
         });
         if (askBtn) askBtn.addEventListener('click', function () {
             closeProduct();
@@ -2435,6 +2453,15 @@
                 no: pid ? pid.slice(0, 8).toUpperCase() : '-'
             });
 
+            // 결제용 현재 상품 정보 노출
+            window.BELLORE_currentProduct = {
+                listingId: pid || null,
+                brand: brand ? brand.textContent : (card.dataset.brand || ''),
+                model: model ? model.textContent : (card.dataset.model || ''),
+                price: parseInt(card.dataset.price, 10) || 0,
+                image: img ? img.src : ''
+            };
+
             modal.hidden = false;
             modal.querySelector('.pp-scroll').scrollTop = 0;
             $$('.pp-tab', modal).forEach(function (x, i) { x.classList.toggle('active', i === 0); });
@@ -2450,6 +2477,13 @@
                         photos: it.photos, category: it.category,
                         no: String(it.id).slice(0, 8).toUpperCase()
                     });
+                    window.BELLORE_currentProduct = {
+                        listingId: it.id,
+                        brand: it.brand,
+                        model: it.model,
+                        price: it.price || 0,
+                        image: (it.photos && it.photos[0]) || ''
+                    };
                 }).catch(function () {});
             }
         }
