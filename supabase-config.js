@@ -23,6 +23,32 @@ window.NW_ADMIN_EMAILS = [
   "jeongsseongg@gmail.com"
 ];
 
+/* ============================================================
+   토스페이먼츠 결제 설정
+   ------------------------------------------------------------
+   - clientKey 는 공개되어도 안전합니다(프런트 전용).
+   - secretKey 는 절대 여기에 넣지 마세요! → Supabase Edge Function
+     환경변수(TOSS_SECRET_KEY)로만 보관합니다.
+   - 아래는 토스 공개 "테스트 키" 입니다. 실제 정산을 받으려면
+     토스페이먼츠 가입·심사 후 발급받은 라이브 clientKey 로 교체하세요.
+   - confirmUrl: 서버 결제 승인(검증)용 Edge Function 주소.
+     supabase/functions/confirm-payment 를 배포하면 자동 동작합니다.
+   ============================================================ */
+window.BELLORE_PAYMENTS = {
+  provider: "toss",
+  // 토스 공개 테스트 clientKey (그대로 두면 테스트 결제가 동작)
+  clientKey: "test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm",
+  // 결제 승인 검증 Edge Function (배포 후 활성화). 비워두면 데모 승인.
+  confirmUrl: "https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/confirm-payment",
+  // 예약금(계약금) 비율 — 상품가의 몇 %를 선결제로 받을지
+  depositRate: 0.10,
+  // 예약금 최소/최대 한도(원)
+  depositMin: 500000,
+  depositMax: 5000000,
+  // 배송비(전액 결제 시 가산)
+  shippingFee: 35000
+};
+
 /* 카테고리 정의 (디자인의 탭/필터와 매핑) */
 window.BELLORE_CATEGORIES = {
   // 판매시계 마켓

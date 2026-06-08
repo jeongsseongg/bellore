@@ -618,6 +618,87 @@
     }).then(function (res) { if (res.error) console.warn('[BELLORE] 알림 생성 보류:', res.error.message); });
   };
 
+  /* ---------------- 주문/결제 (orders) ---------------- */
+  function mapOrder(o) {
+    return {
+      id: o.id,
+      orderNo: o.order_no,
+      listingId: o.listing_id,
+      productName: o.product_name || '',
+      productBrand: o.product_brand || '',
+      productImage: o.product_image || '',
+      productPrice: o.product_price || 0,
+      payType: o.pay_type || 'deposit',
+      amount: o.amount || 0,
+      method: o.method || '',
+      status: o.status || 'pending',
+      receiptUrl: o.receipt_url || '',
+      buyerName: o.buyer_name || '',
+      buyerPhone: o.buyer_phone || '',
+      createdAt: tsObj(o.created_at),
+      paidAt: o.paid_at ? tsObj(o.paid_at) : null
+    };
+  }
+
+  // 체크아웃: pending 주문 생성 → 토스에 넘길 order_no 반환
+  Backend.createOrder = function (data) {
+    if (!rawUser) return Promise.reject(new Error('NOT_LOGGED_IN'));
+    var orderNo = 'BLR' + Date.now().toString(36).toUpperCase() +
+      Math.random().toString(36).slice(2, 6).toUpperCase();
+    return sb.from('orders').insert({
+      order_no: orderNo,
+      customer_id: rawUser.id,
+      listing_id: data.listingId || null,
+      product_name: data.productName || '상품',
+      product_brand: data.productBrand || null,
+      product_image: data.productImage || null,
+      product_price: data.productPrice || null,
+      pay_type: data.payType || 'deposit',
+      amount: data.amount,
+      buyer_name: data.buyerName || (profile && profile.name) || null,
+      buyer_phone: data.buyerPhone || (profile && profile.phone) || null,
+      memo: data.memo || null,
+      status: 'pending'
+    }).select().single().then(function (res) {
+      if (res.error) throw res.error;
+      return mapOrder(res.data);
+    });
+  };
+
+  // 결제 승인(검증) — Edge Function 호출. 미배포 시 데모 승인.
+  Backend.confirmOrder = function (params) {
+    var PAY = window.BELLORE_PAYMENTS || {};
+    if (!PAY.confirmUrl) {
+      return Promise.resolve({ ok: true, demo: true });
+    }
+    return fetch(PAY.confirmUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + CFG.anonKey,
+        'apikey': CFG.anonKey
+      },
+      body: JSON.stringify({
+        paymentKey: params.paymentKey,
+        orderId: params.orderId,
+        amount: params.amount
+      })
+    }).then(function (r) { return r.json(); });
+  };
+
+  Backend.subscribeMyOrders = function (cb) {
+    if (!rawUser) { cb([]); return function () {}; }
+    var uid = rawUser.id;
+    function load() {
+      sb.from('orders').select('*').eq('customer_id', uid)
+        .order('created_at', { ascending: false })
+        .then(function (res) { cb((res.data || []).map(mapOrder)); });
+    }
+    load();
+    var unsub = channelRefetch('orders', ['orders'], load);
+    return unsub;
+  };
+
   // 관리자 마이페이지 현황 요약
   Backend.adminSummary = function () {
     function c(q) { return q.then(function (r) { return r.count || 0; }, function () { return 0; }); }
