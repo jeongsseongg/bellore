@@ -5273,18 +5273,16 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .hero-slide { position: relative; flex: 0 0 100%; min-width: 100%; }
 .hero-slide.hero { min-height: 88vh; }
 /* DB 배너 슬라이드 */
-.hero-slide-db { min-height: 88vh; display: flex; align-items: flex-end; color: #fff; overflow: hidden; }
+/* 기본 히어로와 동일한 중앙 정렬 레이아웃 (문구 입력 시 '지금처럼' 보이게) */
+.hero-slide-db { min-height: 88vh; display: flex; align-items: center; color: #fff; overflow: hidden; padding: 100px 0 90px; }
 .hero-slide-db .hero-slide-bg {
     position: absolute; inset: 0; background-size: cover; background-position: center;
-    filter: grayscale(.15) brightness(.78); z-index: 0;
+    filter: grayscale(.15) brightness(.7); z-index: 0;
 }
-.hero-slide-db .hero-slide-overlay {
-    position: absolute; inset: 0; z-index: 1;
-    background: linear-gradient(180deg, rgba(0,0,0,.18) 0%, rgba(0,0,0,.45) 60%, rgba(0,0,0,.82) 100%);
-}
-.hero-slide-db .hero-slide-text { position: relative; z-index: 2; padding: 0 24px 120px; width: 100%; max-width: 660px; margin: 0 auto; }
-.hero-slide-db .hero-slide-title { font-size: 40px; font-weight: 800; line-height: 1.22; letter-spacing: -1px; margin-bottom: 14px; }
+.hero-slide-db .hero-slide-text { padding: 0; }
+.hero-slide-db .hero-slide-title { font-size: 44px; font-weight: 700; line-height: 1.22; letter-spacing: -1px; margin-bottom: 18px; }
 .hero-slide-db .hero-slide-sub { font-size: 16px; color: rgba(255,255,255,.82); line-height: 1.6; }
+.hero-slide-db .hero-slide-cta { margin-top: 28px; margin-bottom: 0; }
 
 /* 화살표 */
 .hero-nav {
@@ -5306,7 +5304,7 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 
 /* 관리자 배너 관리 버튼 */
 .hero-manage-btn {
-    position: absolute; top: 80px; right: 16px; z-index: 6;
+    position: absolute; top: calc(var(--header-h) + 48px + env(safe-area-inset-top)); right: 16px; z-index: 6;
     background: rgba(255,255,255,.92); color: #111; border: none;
     padding: 8px 14px; border-radius: 999px; font-size: 12.5px; font-weight: 700;
     cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,.25);
@@ -5870,3 +5868,18 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .cat-count b { color: var(--text); font-weight: 800; }
 .cat-sort { font-size: 13px; color: var(--text-2); display: inline-flex; align-items: center; gap: 4px; }
 .cat-sort i { font-style: normal; font-size: 10px; }
+
+/* 마이페이지 알림 버튼 (헤더에서 이동) */
+.mypage-noti {
+    width: 100%; display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; margin: 0 0 16px; border: 1px solid var(--border);
+    border-radius: 12px; background: var(--white); font-size: 14.5px; font-weight: 600; color: var(--text);
+}
+.mypage-noti .mypage-noti-left { display: inline-flex; align-items: center; gap: 8px; }
+.mypage-noti .mypage-noti-ic { font-size: 16px; }
+.mypage-noti .noti-badge {
+    position: static; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
+    background: #e53935; color: #fff; font-size: 11px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+}
+.mypage-noti .noti-badge[hidden] { display: none; }

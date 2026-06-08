@@ -148,12 +148,14 @@
                     var slide = document.createElement(b.link ? 'a' : 'div');
                     slide.className = 'hero-slide hero-slide-db';
                     if (b.link) { slide.href = b.link; }
+                    // 문구(제목/부제목)를 넣으면 기본 히어로와 동일한 중앙 정렬 스타일로 노출
                     slide.innerHTML =
                         '<div class="hero-slide-bg" style="background-image:url(\'' + (b.image || '').replace(/'/g, '%27') + '\')"></div>' +
-                        '<div class="hero-slide-overlay"></div>' +
-                        '<div class="hero-slide-text">' +
+                        '<div class="hero-gradient"></div>' +
+                        '<div class="container hero-content hero-slide-text">' +
                         (b.title ? '<h2 class="hero-slide-title">' + escapeHtml(b.title) + '</h2>' : '') +
                         (b.subtitle ? '<p class="hero-slide-sub">' + escapeHtml(b.subtitle) + '</p>' : '') +
+                        (b.link ? '<div class="hero-cta hero-slide-cta"><span class="btn btn-primary">자세히 보기</span></div>' : '') +
                         '</div>';
                     track.appendChild(slide);
                 });
@@ -1226,8 +1228,11 @@
             // 승인된 매물은 누구나 조회 (공개 마켓)
             NWBackend.subscribeApproved(renderApprovedMarket);
 
-            // 벨로르 판매 상품 (관리자 등록분)
-            NWBackend.subscribeProducts(renderProducts);
+            // 벨로르 판매 상품 (관리자 등록분) — 판매시계 그리드 + 홈 '판매 중인 시계'에 최신순 반영
+            NWBackend.subscribeProducts(function (rows) {
+                renderProducts(rows);
+                renderHomeProducts(rows);
+            });
 
             // 로그인/권한 상태에 따라 구독을 켜고 끈다
             var unsubMine = null;
@@ -1329,6 +1334,34 @@
             frag.appendChild(card);
         });
         inner.insertBefore(frag, inner.firstChild);
+    }
+
+    // 홈 '판매 중인 시계' 그리드 — DB 상품을 최신 등록순으로 최대 12개 노출.
+    // 카드 클릭 시 해당 상품 상세가 열리도록 data-pid 부여(홈 정적 데모는 fallback).
+    function renderHomeProducts(rows) {
+        var grid = $('#homeOnSale .home-sale-grid');
+        if (!grid) return;
+        $$('.hcard-dynamic', grid).forEach(function (el) { el.remove(); });
+        var statics = $$('.hcard', grid).filter(function (c) { return !c.classList.contains('hcard-dynamic'); });
+        if (!rows || !rows.length) { statics.forEach(function (c) { c.style.display = ''; }); return; }
+        statics.forEach(function (c) { c.style.display = 'none'; });
+        var frag = document.createDocumentFragment();
+        rows.slice(0, 12).forEach(function (it) {
+            var priceHtml = it.price ? (fmt(it.price) + '<em>원</em>') : '가격 문의<em></em>';
+            var card = document.createElement('article');
+            card.className = 'hcard hcard-dynamic';
+            card.dataset.pid = it.id;
+            card.dataset.brand = it.brand;
+            card.dataset.model = it.model;
+            card.dataset.price = it.price || 0;
+            card.innerHTML =
+                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
+                '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
+                '<p class="hcard-model">' + esc(it.model) + '</p>' +
+                '<p class="hcard-price">' + priceHtml + '</p>';
+            frag.appendChild(card);
+        });
+        grid.appendChild(frag);
     }
 
     // 관리자: 승인 대기 매물 목록
@@ -2447,11 +2480,20 @@
         var headerSearch = $('#headerSearch');
         var searchInput = $('#searchInput');
         if (headerSearch && searchInput) {
-            headerSearch.addEventListener('submit', function (e) {
-                e.preventDefault();
+            var doSearch = function (e) {
+                if (e) e.preventDefault();
                 var q = (searchInput.value || '').trim();
                 if (q) { runSearch(q); searchInput.blur(); }
+            };
+            headerSearch.addEventListener('submit', doSearch);
+            // 모바일 키보드 '검색/Enter' 대응 (type=search 의 search 이벤트 + Enter 키)
+            searchInput.addEventListener('search', doSearch);
+            searchInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') doSearch(e);
             });
+            // 돋보기 아이콘 탭으로도 검색 실행
+            var searchIc = headerSearch.querySelector('.header-search-ic');
+            if (searchIc) searchIc.addEventListener('click', doSearch);
         }
     }
 

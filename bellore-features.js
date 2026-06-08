@@ -178,6 +178,7 @@
       bnEditId = null;
       $('h2', bannerModal).textContent = '배너 관리';
       bnBody.innerHTML = '<div id="bannerList" class="admin-list"><p class="muted small">불러오는 중…</p></div>' +
+        '<p class="muted small" style="margin:6px 0 10px">홈 상단에 최대 10개까지 슬라이드로 노출됩니다. 문구(제목·부제목)를 넣으면 메인 배너처럼 보입니다.</p>' +
         '<button type="button" class="login-btn login-default" id="bannerAddNew">＋ 새 배너 추가</button>';
       $('#bannerAddNew', bannerModal).addEventListener('click', function () { bannerEditView(null); });
       B.listAllBanners().then(function (rows) {

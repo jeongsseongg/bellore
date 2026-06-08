@@ -756,6 +756,7 @@
       sb.from('banners').select('*').eq('active', true)
         .order('sort_order', { ascending: true })
         .order('created_at', { ascending: true })
+        .limit(10)
         .then(function (res) {
           if (res.error) { console.warn('[BELLORE] banners 로드 실패:', res.error.message); cb([]); return; }
           cb((res.data || []).map(mapBanner));
