@@ -440,12 +440,23 @@
        설치 가능 시 클릭하면 브라우저 네이티브 설치창이 뜬다. */
     var deferredInstallPrompt = null;
 
+    // 설치 프롬프트는 <head> 초기 스크립트에서 window.__bipEvent 로 먼저 캡처해 둔다.
+    function getInstallPrompt() { return window.__bipEvent || deferredInstallPrompt; }
+
+    // 카카오톡/네이버/인스타 등 인앱 브라우저는 PWA 설치 자체가 불가능하다.
+    function isInAppBrowser() {
+        var ua = navigator.userAgent || '';
+        return /KAKAOTALK|NAVER\(inapp|NAVER |Instagram|FBAN|FBAV|FB_IAB|Line\/|DaumApps|everytimeApp|wadiz|Snapchat|Twitter|kakaostory|Whale/i.test(ua);
+    }
+
     function initInstallPrompt() {
         var btn = $('#installBtn');
 
+        // 늦게 들어온 이벤트도 잡아 둠 (초기 스크립트와 이중 안전망)
         window.addEventListener('beforeinstallprompt', function (e) {
             e.preventDefault();
             deferredInstallPrompt = e;
+            window.__bipEvent = e;
         });
 
         // 이미 설치된 경우 배너 숨김
@@ -456,32 +467,39 @@
 
         window.addEventListener('appinstalled', function () {
             deferredInstallPrompt = null;
+            window.__bipEvent = null;
             if (btn) btn.hidden = true;
         });
 
         if (btn) {
             btn.addEventListener('click', function () {
-                if (deferredInstallPrompt) {
-                    deferredInstallPrompt.prompt();
-                    deferredInstallPrompt.userChoice.then(function () {
+                var promptEvent = getInstallPrompt();
+                if (promptEvent) {
+                    // 네이티브 설치창 바로 띄우기
+                    promptEvent.prompt();
+                    promptEvent.userChoice.then(function () {
                         deferredInstallPrompt = null;
+                        window.__bipEvent = null;
                     });
+                    return;
+                }
+                if (isInAppBrowser()) {
+                    showInstallToast('인앱 브라우저에서는 설치가 안 돼요.\n우측 상단 메뉴(⋮ 또는 ⋯) → "다른 브라우저로 열기"\n(Chrome/Safari)로 접속한 뒤 설치하세요.');
                 } else if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
-                    // iOS: 공유 버튼 → 홈 화면에 추가 안내 (toast)
-                    showInstallToast();
+                    showInstallToast('하단 공유 버튼(□↑)을 누른 후\n"홈 화면에 추가"를 선택하세요.');
                 } else {
-                    // Android/크롬: 수동 안내
-                    showInstallToast();
+                    showInstallToast('브라우저 메뉴(⋮) → "앱 설치" 또는\n"홈 화면에 추가"를 선택하세요.');
                 }
             });
         }
     }
 
-    function showInstallToast() {
-        var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-        var msg = isIOS
-            ? '하단 공유 버튼(□↑)을 누른 후\n"홈 화면에 추가"를 선택하세요.'
-            : '브라우저 메뉴 → "홈 화면에 추가"를 선택하세요.';
+    function showInstallToast(msg) {
+        if (!msg) {
+            msg = /iphone|ipad|ipod/i.test(navigator.userAgent)
+                ? '하단 공유 버튼(□↑)을 누른 후\n"홈 화면에 추가"를 선택하세요.'
+                : '브라우저 메뉴 → "홈 화면에 추가"를 선택하세요.';
+        }
         var toast = document.createElement('div');
         toast.className = 'install-toast';
         toast.textContent = msg;
@@ -533,10 +551,12 @@
         var confirmBtn = $('#pwaInstallConfirm');
         if (confirmBtn) {
             confirmBtn.addEventListener('click', function () {
-                if (deferredInstallPrompt) {
-                    deferredInstallPrompt.prompt();
-                    deferredInstallPrompt.userChoice.then(function () {
+                var promptEvent = getInstallPrompt();
+                if (promptEvent) {
+                    promptEvent.prompt();
+                    promptEvent.userChoice.then(function () {
                         deferredInstallPrompt = null;
+                        window.__bipEvent = null;
                         closePwaModal();
                     });
                 }

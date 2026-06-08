@@ -26,7 +26,7 @@
     --tabbar-h: 68px;
     --app-w: 390px;
     --container: 390px;
-    --app-bg: #e8e8e8;        /* 앱 컨테이너 바깥(좌우 여백) 배경 — 다크모드에서 함께 어두워짐 */
+    --app-bg: #e8e8e8;        /* 앱 컨테이너 바깥(좌우 여백) 배경 */
     /* 로고(하이컨트라스트 세리프) 톤의 영문/브랜드 디스플레이용 — 한글엔 적용하지 않음 */
     --serif: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
 }
@@ -5787,72 +5787,9 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .ai-result-note { font-size: 11px; color: rgba(255,255,255,.4); margin-top: 14px; line-height: 1.5; }
 
 /* ============================================================
-   화면 설정 : 다크 모드(data-theme) · 와이드 모드(data-width)
-   <html> 의 data-theme="dark" / data-width="full" 로 토글.
-   값은 localStorage 에 저장되어 기기별로 유지됩니다.
+   화면 설정 : 와이드(꽉찬) 모드 (data-width="full")
+   <html> 의 data-width="full" 로 토글. localStorage 에 저장되어 기기별 유지.
    ============================================================ */
-
-/* ---------- 다크 모드 ---------- */
-html[data-theme="dark"] {
-    color-scheme: dark;
-    --app-bg: #000000;
-    --white: #161616;        /* 앱/카드 표면 */
-    --bg-soft: #1f1f1f;
-    --black: #000000;
-    --black-soft: #0d0d0d;
-    --black-card: #1d1d1d;
-    --text: #ededed;
-    --text-2: #b3b3b3;
-    --text-3: #8a8a8a;
-    --border: #2c2c2c;
-    --border-dark: #3a3a3a;
-    /* 니어블랙 accent → 밝게 반전 */
-    --green-bright: #f0f0f0;
-    --green: #dcdcdc;
-    --green-mid: #a6a6a6;
-    --green-light: #ffffff;
-    --gold: #ededed;
-    /* var(--ink/--line) fallback 을 쓰는 컴포넌트 보정 */
-    --ink: #ededed;
-    --line: #2c2c2c;
-}
-
-/* 하드코딩된 흰색 "큰 표면"들을 다크 표면으로 (작은 배지/점/아이콘은 그대로 둠) */
-html[data-theme="dark"] .brand-quicklinks,
-html[data-theme="dark"] .add-menu-item,
-html[data-theme="dark"] .summary-cell,
-html[data-theme="dark"] .pay-result-box,
-html[data-theme="dark"] .pwa-sheet {
-    background: var(--white);
-    color: var(--text);
-    border-color: var(--border);
-}
-html[data-theme="dark"] .admin-add-btn {
-    background: var(--bg-soft);
-    color: var(--text);
-    border-color: var(--border);
-}
-html[data-theme="dark"] .add-menu-item:hover { background: var(--bg-soft); border-color: var(--border); }
-html[data-theme="dark"] .add-menu-item b { color: var(--text); }
-html[data-theme="dark"] .row-act { background: var(--bg-soft); color: var(--text-2); border-color: var(--border); }
-html[data-theme="dark"] .row-act:hover { background: var(--white); color: var(--text); }
-html[data-theme="dark"] .pwa-app-name { color: var(--text); }
-html[data-theme="dark"] .pwa-desc,
-html[data-theme="dark"] .pwa-steps li { color: var(--text-2); }
-html[data-theme="dark"] .pwa-close,
-html[data-theme="dark"] .pwa-btn-secondary { background: var(--bg-soft); color: var(--text-2); }
-html[data-theme="dark"] .pwa-btn-primary { background: var(--green-bright); color: var(--black); }
-
-/* 입력 폼 다크 표면 */
-html[data-theme="dark"] input,
-html[data-theme="dark"] select,
-html[data-theme="dark"] textarea {
-    background: var(--bg-soft);
-    color: var(--text);
-    border-color: var(--border);
-}
-html[data-theme="dark"] input::placeholder,
-html[data-theme="dark"] textarea::placeholder { color: var(--text-3); }
 
 /* ---------- 와이드(꽉찬) 모드 : PC(>=700px)에서만 1200px ---------- */
 @media (min-width: 700px) {
@@ -5881,5 +5818,5 @@ html[data-theme="dark"] textarea::placeholder { color: var(--text-3); }
     box-shadow: 0 1px 3px rgba(0,0,0,.3);
 }
 .switch[aria-checked="true"] .switch-knob { transform: translateX(22px); }
-/* 와이드 모드는 PC 전용 — 모바일에선 숨김 */
-@media (max-width: 699px) { .pc-only-setting { display: none; } }
+/* 와이드 모드는 PC 전용 — 모바일에선 설정 섹션 자체를 숨김 */
+@media (max-width: 699px) { #displaySettingsBox, .pc-only-setting { display: none; } }

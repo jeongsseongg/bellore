@@ -4,15 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#000000">
-    <!-- 화면 설정(다크/와이드)을 첫 페인트 전에 적용해 깜빡임(FOUC) 방지 -->
+    <!-- 화면 설정(와이드 모드)을 첫 페인트 전에 적용해 깜빡임 방지 +
+         PWA 설치 이벤트(beforeinstallprompt)를 가장 먼저 잡아두기 -->
     <script>
         (function () {
             try {
-                if (localStorage.getItem('bellore_theme') === 'dark')
-                    document.documentElement.setAttribute('data-theme', 'dark');
                 if (localStorage.getItem('bellore_width') === 'full')
                     document.documentElement.setAttribute('data-width', 'full');
             } catch (e) {}
+            // 설치 프롬프트 이벤트는 페이지 로드 직후 일찍 발생할 수 있어,
+            // 여기서 먼저 캡처해 둬야 버튼 클릭 때 네이티브 설치창을 띄울 수 있다.
+            window.addEventListener('beforeinstallprompt', function (e) {
+                e.preventDefault();
+                window.__bipEvent = e;
+                window.dispatchEvent(new Event('bip-ready'));
+            });
+            window.addEventListener('appinstalled', function () {
+                window.__bipEvent = null;
+            });
         })();
     </script>
     <title>벨로르 | 신뢰있는 명품거래의 시작</title>
@@ -2263,15 +2272,6 @@
             <!-- 화면 설정 (모든 사용자 공통) -->
             <div class="mypage-section" id="displaySettingsBox">
                 <h4>화면 설정</h4>
-                <div class="setting-row">
-                    <div class="setting-label">
-                        <b>다크 모드</b>
-                        <span>어두운 테마로 표시합니다</span>
-                    </div>
-                    <button type="button" class="switch" id="toggleDark" role="switch" aria-checked="false" aria-label="다크 모드 전환">
-                        <span class="switch-knob"></span>
-                    </button>
-                </div>
                 <div class="setting-row pc-only-setting">
                     <div class="setting-label">
                         <b>와이드 모드</b>
@@ -2600,24 +2600,15 @@
             });
         }
 
-        /* ===== 화면 설정: 다크 모드 / 와이드 모드 토글 ===== */
+        /* ===== 화면 설정: 와이드(꽉찬) 모드 토글 ===== */
         (function () {
             var root = document.documentElement;
-            var dark = document.getElementById('toggleDark');
             var wide = document.getElementById('toggleWide');
-            function sync() {
-                if (dark) dark.setAttribute('aria-checked', root.getAttribute('data-theme') === 'dark' ? 'true' : 'false');
-                if (wide) wide.setAttribute('aria-checked', root.getAttribute('data-width') === 'full' ? 'true' : 'false');
-            }
-            function save(key, val) { try { localStorage.setItem(key, val); } catch (e) {} }
-            if (dark) dark.addEventListener('click', function () {
-                if (root.getAttribute('data-theme') === 'dark') { root.removeAttribute('data-theme'); save('bellore_theme', 'light'); }
-                else { root.setAttribute('data-theme', 'dark'); save('bellore_theme', 'dark'); }
-                sync();
-            });
-            if (wide) wide.addEventListener('click', function () {
-                if (root.getAttribute('data-width') === 'full') { root.removeAttribute('data-width'); save('bellore_width', 'app'); }
-                else { root.setAttribute('data-width', 'full'); save('bellore_width', 'full'); }
+            if (!wide) return;
+            function sync() { wide.setAttribute('aria-checked', root.getAttribute('data-width') === 'full' ? 'true' : 'false'); }
+            wide.addEventListener('click', function () {
+                if (root.getAttribute('data-width') === 'full') { root.removeAttribute('data-width'); try { localStorage.setItem('bellore_width', 'app'); } catch (e) {} }
+                else { root.setAttribute('data-width', 'full'); try { localStorage.setItem('bellore_width', 'full'); } catch (e) {} }
                 sync();
             });
             sync();
