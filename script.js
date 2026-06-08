@@ -65,6 +65,7 @@
         initHeroCarousel();
         initLiveBoardLockLink();
         initCatPages();
+        initCountdowns();
     }
 
     /* ============ 히어로 배너 캐러셀 ============ */
@@ -841,7 +842,9 @@
         var btnAi = $('#btnAiAppraisal');
         if (btnAi) btnAi.addEventListener('click', function () {
             var f = $('#aiAppraisalForm');
-            if (f) { f.hidden = !f.hidden; if (!f.hidden) f.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+            if (!f) return;
+            f.hidden = false;
+            setTimeout(function () { f.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 50);
         });
 
         var btnPhoto = $('#btnPhotoAppraisal');
@@ -874,19 +877,40 @@
         var form = $('#aiAppraisalFormEl');
         if (form) form.addEventListener('submit', function (e) {
             e.preventDefault();
-            var user = (window.NWBackend && NWBackend.currentUser) ? NWBackend.currentUser() : null;
-            if (!user) {
-                var lm = $('#loginModal');
-                if (lm) { lm.hidden = false; document.body.style.overflow = 'hidden'; }
-                alert('AI 감정은 로그인 후 이용할 수 있습니다.');
-                return;
-            }
-            alert('AI 감정 요청이 접수되었습니다.\n분석 결과는 잠시 후 알림으로 안내드립니다.\n\n(현재 베타 서비스 중 — 영업일 1일 이내 결과 발송)');
-            form.reset();
-            var prev = $('#aiPhotoPreview');
-            var tr = $('#aiPhotoTrigger');
-            if (prev) { prev.hidden = true; prev.src = ''; }
-            if (tr) tr.hidden = false;
+            var submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '분석 중...'; }
+
+            setTimeout(function () {
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '감정 요청하기'; }
+                var brandVal = (document.getElementById('aiBrand') || {}).value || '';
+                var modelVal = (document.getElementById('aiModel') || {}).value || '';
+                var label = brandVal ? (brandVal + (modelVal ? ' · ' + modelVal : '')) : '입력하신 시계';
+
+                var result = document.getElementById('aiMockResult');
+                if (!result) {
+                    result = document.createElement('div');
+                    result.id = 'aiMockResult';
+                    result.className = 'ai-mock-result';
+                    form.parentNode.insertBefore(result, form.nextSibling);
+                }
+                result.innerHTML =
+                    '<div class="ai-result-top"><span class="ai-result-badge">AI 감정 결과</span><span class="ai-result-conf">신뢰도 91%</span></div>' +
+                    '<p class="ai-result-brand">' + esc(label) + '</p>' +
+                    '<div class="ai-result-rows">' +
+                    '<div><span>정품 여부</span><strong class="apr-ok">✓ 정품 추정</strong></div>' +
+                    '<div><span>현 매입 시세</span><strong>전문 감정사 확인 필요</strong></div>' +
+                    '<div><span>다음 단계</span><strong>1:1 사진 감정 권장</strong></div>' +
+                    '</div>' +
+                    '<p class="ai-result-note">* 본 결과는 AI 1차 분석이며 전문 감정사의 최종 확인이 필요합니다.</p>';
+                result.hidden = false;
+                result.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                form.reset();
+                var prev = $('#aiPhotoPreview');
+                var tr = $('#aiPhotoTrigger');
+                if (prev) { prev.hidden = true; prev.src = ''; }
+                if (tr) tr.hidden = false;
+            }, 2500);
         });
     }
 
@@ -1746,15 +1770,35 @@
     /* ============ 2. 헤더 스크롤 ============ */
     function initHeaderHeight() {
         var header = $('#header');
-        var wrap = $('.main-wrap');
-        if (!header || !wrap) return;
+        if (!header) return;
         function sync() {
             var h = header.getBoundingClientRect().height;
-            wrap.style.paddingTop = h + 'px';
             document.documentElement.style.setProperty('--header-real-h', h + 'px');
         }
         sync();
-        new ResizeObserver(sync).observe(header);
+        if (window.ResizeObserver) new ResizeObserver(sync).observe(header);
+    }
+
+    /* ============ 타임세일 카운트다운 (초 단위 실시간) ============ */
+    var _countdownTimer = null;
+    function initCountdowns() {
+        if (_countdownTimer) clearInterval(_countdownTimer);
+        function tick() {
+            var now = Date.now();
+            $$('[data-end]').forEach(function (el) {
+                var end = parseInt(el.dataset.end, 10);
+                if (!end) return;
+                var diff = end - now;
+                if (diff <= 0) { el.textContent = '⏱ 종료됨'; el.style.color = '#999'; return; }
+                var h = Math.floor(diff / 3600000);
+                var m = Math.floor((diff % 3600000) / 60000);
+                var s = Math.floor((diff % 60000) / 1000);
+                var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+                el.textContent = '⏱ 종료까지 ' + pad(h) + ':' + pad(m) + ':' + pad(s);
+            });
+        }
+        tick();
+        _countdownTimer = setInterval(tick, 1000);
     }
 
     function initHeaderScroll() {

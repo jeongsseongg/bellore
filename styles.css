@@ -5756,6 +5756,23 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .hcard-new-badge { background: #111; color: #fff; }
 .hcard-today-label { background: #c9a96e; color: #000; font-size: 11px; }
 .hcard-orig { font-size: 11px; color: var(--text-3); text-decoration: line-through; margin-right: 2px; }
-.hcard-countdown { font-size: 11px; color: #e02020; margin-top: 2px; font-weight: 600; }
+.hcard-countdown { font-size: 11px; color: #e02020; margin-top: 2px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .hcard-today-desc { font-size: 11px; color: var(--text-3); margin-top: 2px; }
 .hcard--today .hcard-img, .hcard-img--wide { aspect-ratio: 16/9; }
+
+/* ============ AI 감정 결과 카드 ============ */
+.ai-mock-result {
+    background: linear-gradient(135deg, #111 0%, #1c1c1c 100%);
+    border: 1.5px solid #c9a96e; border-radius: 16px;
+    padding: 20px; margin-top: 20px; color: #fff;
+}
+.ai-result-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.ai-result-badge { background: #c9a96e; color: #000; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 20px; letter-spacing: .5px; }
+.ai-result-conf { font-size: 13px; color: #c9a96e; font-weight: 700; }
+.ai-result-brand { font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+.ai-result-rows { display: flex; flex-direction: column; gap: 10px; }
+.ai-result-rows > div { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+.ai-result-rows > div span { color: rgba(255,255,255,.6); }
+.ai-result-rows > div strong { color: #fff; }
+.apr-ok { color: #4caf50 !important; }
+.ai-result-note { font-size: 11px; color: rgba(255,255,255,.4); margin-top: 14px; line-height: 1.5; }
