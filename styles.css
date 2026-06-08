@@ -5574,7 +5574,7 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 
 /* ============ 카테고리 전용 페이지 공통 ============ */
 .cat-page-header {
-    padding: 60px 24px 24px;
+    padding: calc(var(--header-real-h, 104px) + 14px) 24px 20px;
     background: var(--white);
     border-bottom: 1px solid var(--border);
     text-align: left;
@@ -5596,41 +5596,119 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .header.light-page .cat-chip-ai { color: #b8893a !important; }
 
 /* ============ AI 감정 페이지 ============ */
-.appraisal-tiers {
-    display: flex; flex-direction: column; gap: 14px;
-    padding: 20px 0;
-}
-.appraisal-tier {
-    border: 1.5px solid var(--border); border-radius: 16px;
-    padding: 20px; background: var(--white); position: relative;
-}
-.appraisal-tier--ai { border-color: #c9a96e; background: #faf8f4; }
-.at-badge {
-    position: absolute; top: -12px; left: 16px;
-    background: #c9a96e; color: #fff; font-size: 11px; font-weight: 700;
-    padding: 3px 10px; border-radius: 20px; letter-spacing: .3px;
-}
-.at-icon { font-size: 32px; margin-bottom: 8px; }
-.at-name { font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
-.at-acc { font-size: 13px; color: var(--text-2); margin-bottom: 12px; }
-.at-acc strong { color: #c9a96e; font-size: 15px; }
-.at-features { list-style: none; margin-bottom: 14px; display: flex; flex-direction: column; gap: 5px; }
-.at-features li { font-size: 13px; color: var(--text-2); padding-left: 14px; position: relative; }
-.at-features li::before { content: '•'; position: absolute; left: 0; color: #c9a96e; }
-.at-price { font-size: 14px; color: var(--text-2); margin-bottom: 14px; line-height: 1.6; }
-.at-price strong { font-size: 18px; color: var(--text); }
-.at-price-sub { font-size: 12px; color: var(--text-3); }
-.at-btn {
-    width: 100%; height: 46px; border-radius: 11px;
-    background: var(--text); color: #fff; font-size: 15px; font-weight: 700;
-    transition: opacity .15s;
-}
-.at-btn:hover { opacity: .85; }
-.at-btn--outline { background: var(--white); color: var(--text); border: 1.5px solid var(--text); }
 
-/* AI 감정 폼 */
-.appraisal-form-wrap { margin-top: 24px; padding: 20px; border: 1.5px solid var(--border); border-radius: 16px; }
-.appraisal-form-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+/* 히어로 */
+.apr-hero {
+    background: #0a0a0a;
+    padding: calc(var(--header-real-h, 104px) + 20px) 24px 32px;
+    color: #fff;
+}
+.apr-hero-eyebrow {
+    font-family: var(--serif); font-size: 11px; letter-spacing: 2.5px;
+    color: #c9a96e; margin-bottom: 12px;
+}
+.apr-hero-title {
+    font-size: 38px; font-weight: 900; line-height: 1.15;
+    letter-spacing: -1px; margin-bottom: 10px;
+}
+.apr-hero-sub { font-size: 16px; color: rgba(255,255,255,.6); margin-bottom: 22px; }
+.apr-hero-stats { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.apr-hero-stats li {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 14px; color: rgba(255,255,255,.85);
+}
+
+/* 콜라주 + 미니결과 */
+.apr-collage-section {
+    background: #0a0a0a; padding: 0 0 28px;
+}
+.apr-collage-label {
+    font-size: 17px; font-weight: 700; color: #fff;
+    padding: 0 24px 14px; letter-spacing: -.3px;
+}
+.apr-collage { position: relative; padding: 0 18px; }
+.apr-collage-imgs {
+    display: grid; grid-template-columns: 1.2fr 1fr; grid-template-rows: 100px 100px;
+    gap: 6px; border-radius: 14px; overflow: hidden;
+}
+.apr-ci { border-radius: 0; }
+.apr-ci--1 { grid-row: 1/3; border-radius: 12px 0 0 12px; }
+.apr-ci--2 { border-radius: 0 12px 0 0; }
+.apr-ci--3 { border-radius: 0 0 12px 0; }
+.apr-mini-result {
+    position: absolute; bottom: 10px; right: 28px;
+    background: rgba(10,10,10,.92); backdrop-filter: blur(10px);
+    border: 1px solid rgba(201,169,110,.3); border-radius: 12px;
+    padding: 10px 12px; width: 160px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.5);
+}
+.apr-mini-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.apr-mini-badge { font-size: 9px; background: #c9a96e; color: #000; padding: 2px 6px; border-radius: 4px; font-weight: 700; }
+.apr-mini-conf { font-size: 10px; color: #c9a96e; }
+.apr-mini-brand { font-size: 11px; font-weight: 800; color: #fff; margin-bottom: 1px; }
+.apr-mini-ref { font-size: 10px; color: rgba(255,255,255,.5); margin-bottom: 8px; }
+.apr-mini-rows { display: flex; flex-direction: column; gap: 4px; }
+.apr-mini-rows > div { display: flex; justify-content: space-between; font-size: 10px; }
+.apr-mini-rows span { color: rgba(255,255,255,.5); }
+.apr-mini-rows strong { color: #fff; font-size: 10px; }
+.apr-ok { color: #4cd97b !important; }
+
+/* 프로모 카드 */
+.apr-promo-card {
+    margin: 20px 0; padding: 22px 20px 20px;
+    background: linear-gradient(135deg, #1a1106 0%, #2c1e07 50%, #1a1106 100%);
+    border: 1px solid rgba(201,169,110,.4); border-radius: 18px;
+    text-align: center; position: relative; overflow: hidden;
+}
+.apr-promo-card::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(201,169,110,.15) 0%, transparent 65%);
+    pointer-events: none;
+}
+.apr-promo-badge {
+    display: inline-block; background: rgba(201,169,110,.2); color: #c9a96e;
+    font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px;
+    margin-bottom: 10px; border: 1px solid rgba(201,169,110,.3);
+}
+.apr-promo-eyebrow { font-size: 13px; color: rgba(255,255,255,.65); margin-bottom: 10px; }
+.apr-promo-price { display: flex; align-items: flex-end; justify-content: center; gap: 10px; margin-bottom: 8px; }
+.apr-promo-orig { font-size: 18px; color: rgba(255,255,255,.35); text-decoration: line-through; }
+.apr-promo-free { font-size: 48px; font-weight: 900; color: #c9a96e; line-height: 1; }
+.apr-promo-desc { font-size: 14px; color: rgba(255,255,255,.7); margin-bottom: 18px; }
+.apr-promo-desc strong { color: #fff; }
+.apr-cta {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; height: 54px; border-radius: 14px;
+    background: #c9a96e; color: #000;
+    font-size: 16px; font-weight: 800; letter-spacing: -.3px;
+    transition: filter .15s, transform .1s;
+    text-decoration: none;
+}
+.apr-cta:active { transform: scale(.97); filter: brightness(.92); }
+.apr-promo-note { font-size: 11px; color: rgba(255,255,255,.35); margin-top: 10px; }
+
+/* 감정 등급 리스트 */
+.apr-grades { margin: 24px 0; }
+.apr-grades-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 12px; }
+.apr-grade {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; border: 1.5px solid var(--border);
+    border-radius: 12px; margin-bottom: 8px; background: var(--white);
+}
+.apr-grade--ai { border-color: #c9a96e; background: #faf8f4; }
+.apr-grade-left { display: flex; align-items: center; gap: 12px; }
+.apr-grade-icon { font-size: 22px; flex: 0 0 auto; }
+.apr-grade-left > div { display: flex; flex-direction: column; gap: 2px; }
+.apr-grade-left strong { font-size: 14px; font-weight: 700; color: var(--text); }
+.apr-grade-left span { font-size: 12px; color: var(--text-3); }
+.apr-grade-right { text-align: right; }
+.apr-grade-right strong { font-size: 15px; font-weight: 800; color: var(--text); display: block; }
+.apr-grade-right s { font-size: 12px; color: var(--text-3); }
+.apr-grade-free { color: #c9a96e !important; }
+
+/* 감정 폼 */
+.appraisal-form-wrap { margin-top: 8px; padding: 20px; border: 1.5px solid var(--border); border-radius: 16px; margin-bottom: 12px; }
+.appraisal-form-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; color: var(--text); }
 .appraisal-upload {
     width: 100%; border-radius: 12px; border: 2px dashed var(--border);
     overflow: hidden; margin-bottom: 14px; aspect-ratio: 4/3;
@@ -5639,25 +5717,45 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 }
 .upload-trigger {
     display: flex; flex-direction: column; align-items: center; gap: 8px;
-    padding: 20px; color: var(--text-2);
+    padding: 20px; color: var(--text-2); width: 100%;
 }
 .upload-trigger svg { color: var(--text-3); }
 .upload-trigger span { font-size: 14px; font-weight: 600; }
 .upload-trigger em { font-size: 12px; font-style: normal; color: var(--text-3); }
 #aiPhotoPreview { width: 100%; height: 100%; object-fit: cover; }
 
-/* 감정 결과 예시 */
-.appraisal-result-sample { margin-top: 24px; padding-bottom: 20px; }
-.apr-sample { border: 1.5px solid var(--border); border-radius: 14px; overflow: hidden; }
-.apr-sample-head {
-    background: #111; color: #fff; padding: 14px 16px;
-    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+/* 기타 감정 버튼 */
+.apr-other-btns { display: flex; flex-direction: column; gap: 10px; padding-bottom: 28px; }
+.apr-other-btn {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 18px; border: 1.5px solid var(--border);
+    border-radius: 12px; background: var(--white); font-size: 14px;
+    font-weight: 600; color: var(--text); transition: border-color .15s;
 }
-.apr-brand { font-family: var(--serif); font-size: 13px; color: #c9a96e; font-weight: 700; }
-.apr-model { font-size: 13px; flex: 1; min-width: 0; }
-.apr-conf { font-size: 12px; background: rgba(201,169,110,.2); color: #c9a96e; padding: 2px 8px; border-radius: 10px; }
-.apr-sample-body { padding: 4px 0; }
-.apr-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 16px; border-bottom: 1px solid var(--border); font-size: 13px; }
-.apr-row:last-child { border-bottom: none; }
-.apr-row span { color: var(--text-2); }
-.apr-row strong { color: var(--text); font-weight: 600; }
+.apr-other-btn:active { border-color: var(--text); }
+
+/* ============ 앱 설치 토스트 ============ */
+.install-toast {
+    position: fixed; bottom: calc(var(--tabbar-h) + 16px); left: 50%; transform: translateX(-50%) translateY(10px);
+    background: rgba(20,20,20,.95); color: #fff; font-size: 13px; line-height: 1.6;
+    padding: 12px 18px; border-radius: 12px; z-index: 9999; text-align: center;
+    white-space: pre-line; max-width: calc(var(--app-w) - 40px);
+    opacity: 0; transition: opacity .25s, transform .25s; pointer-events: none;
+    box-shadow: 0 4px 20px rgba(0,0,0,.4);
+}
+.install-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ============ 카테고리 hcard 뱃지 ============ */
+.hcard { position: relative; }
+.hcard-sale-badge, .hcard-new-badge, .hcard-today-label {
+    position: absolute; top: 10px; left: 10px; z-index: 2;
+    font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px;
+    letter-spacing: .5px;
+}
+.hcard-sale-badge { background: #e02020; color: #fff; }
+.hcard-new-badge { background: #111; color: #fff; }
+.hcard-today-label { background: #c9a96e; color: #000; font-size: 11px; }
+.hcard-orig { font-size: 11px; color: var(--text-3); text-decoration: line-through; margin-right: 2px; }
+.hcard-countdown { font-size: 11px; color: #e02020; margin-top: 2px; font-weight: 600; }
+.hcard-today-desc { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+.hcard--today .hcard-img, .hcard-img--wide { aspect-ratio: 16/9; }

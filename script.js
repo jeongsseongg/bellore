@@ -38,6 +38,7 @@
     function init() {
         initRouter();
         initHeaderScroll();
+        initHeaderHeight(); // 헤더 높이 → main-wrap padding-top 동기화
         initCollectionTabs();
         initFilterChips();
         initInsightFilter();
@@ -460,17 +461,32 @@
         if (btn) {
             btn.addEventListener('click', function () {
                 if (deferredInstallPrompt) {
-                    // 네이티브 설치 가능 → 모달 없이 바로 설치 다이얼로그
                     deferredInstallPrompt.prompt();
                     deferredInstallPrompt.userChoice.then(function () {
                         deferredInstallPrompt = null;
                     });
+                } else if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
+                    // iOS: 공유 버튼 → 홈 화면에 추가 안내 (toast)
+                    showInstallToast();
                 } else {
-                    // 이벤트 미수신(iOS/크롬 정책) → 안내 모달
-                    showInstallHelp();
+                    // Android/크롬: 수동 안내
+                    showInstallToast();
                 }
             });
         }
+    }
+
+    function showInstallToast() {
+        var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        var msg = isIOS
+            ? '하단 공유 버튼(□↑)을 누른 후\n"홈 화면에 추가"를 선택하세요.'
+            : '브라우저 메뉴 → "홈 화면에 추가"를 선택하세요.';
+        var toast = document.createElement('div');
+        toast.className = 'install-toast';
+        toast.textContent = msg;
+        document.body.appendChild(toast);
+        setTimeout(function () { toast.classList.add('show'); }, 10);
+        setTimeout(function () { toast.classList.remove('show'); setTimeout(function () { toast.remove(); }, 300); }, 3500);
     }
 
     function showInstallHelp() {
@@ -1728,6 +1744,19 @@
     }
 
     /* ============ 2. 헤더 스크롤 ============ */
+    function initHeaderHeight() {
+        var header = $('#header');
+        var wrap = $('.main-wrap');
+        if (!header || !wrap) return;
+        function sync() {
+            var h = header.getBoundingClientRect().height;
+            wrap.style.paddingTop = h + 'px';
+            document.documentElement.style.setProperty('--header-real-h', h + 'px');
+        }
+        sync();
+        new ResizeObserver(sync).observe(header);
+    }
+
     function initHeaderScroll() {
         var header = $('#header');
         if (!header) return;
