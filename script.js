@@ -63,6 +63,7 @@
         initAccountUI();
         initHeroCarousel();
         initLiveBoardLockLink();
+        initCatPages();
     }
 
     /* ============ 히어로 배너 캐러셀 ============ */
@@ -446,8 +447,9 @@
         });
 
         // 이미 설치된 경우 배너 숨김
-        var standalone = window.matchMedia('(display-mode: standalone)').matches ||
+        var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
             window.navigator.standalone === true;
+        if (btn && !standalone) btn.hidden = false;
         if (btn && standalone) btn.hidden = true;
 
         window.addEventListener('appinstalled', function () {
@@ -805,6 +807,73 @@
         }
     }
 
+    function updateLiveLockNotice() {
+        var notice = $('#liveBoardLockNotice');
+        if (!notice) return;
+        var user = (window.NWBackend && NWBackend.currentUser) ? NWBackend.currentUser() : null;
+        if (!user) {
+            notice.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> 금액 · 업체명은 <a href="#" id="liveBoardLoginLink" style="color:var(--green-bright);text-decoration:underline">로그인</a> 후 확인할 수 있습니다';
+            var lnk = $('#liveBoardLoginLink');
+            if (lnk) lnk.addEventListener('click', function (e) { e.preventDefault(); var lm = $('#loginModal'); if (lm) { lm.hidden = false; document.body.style.overflow = 'hidden'; } });
+        } else if (!_liveBoardLoggedIn) {
+            notice.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> 금액 · 업체명은 <strong>제휴처(업체) 회원</strong>에게만 공개됩니다';
+        }
+        notice.hidden = _liveBoardLoggedIn;
+    }
+
+    function initCatPages() {
+        var btnAi = $('#btnAiAppraisal');
+        if (btnAi) btnAi.addEventListener('click', function () {
+            var f = $('#aiAppraisalForm');
+            if (f) { f.hidden = !f.hidden; if (!f.hidden) f.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+        });
+
+        var btnPhoto = $('#btnPhotoAppraisal');
+        if (btnPhoto) btnPhoto.addEventListener('click', function () {
+            navigate('compare');
+            setTimeout(function () { window.scrollTo({ top: 0, behavior: 'smooth' }); }, 100);
+        });
+
+        var btnOffline = $('#btnOfflineAppraisal');
+        if (btnOffline) btnOffline.addEventListener('click', function () {
+            navigate('contact');
+            setTimeout(function () { window.scrollTo({ top: 0, behavior: 'smooth' }); }, 100);
+        });
+
+        var trigger = $('#aiPhotoTrigger');
+        var input = $('#aiPhotoInput');
+        var preview = $('#aiPhotoPreview');
+        if (trigger && input) {
+            trigger.addEventListener('click', function () { input.click(); });
+            input.addEventListener('change', function () {
+                var file = input.files && input.files[0];
+                if (!file) return;
+                var url = URL.createObjectURL(file);
+                preview.src = url;
+                preview.hidden = false;
+                trigger.hidden = true;
+            });
+        }
+
+        var form = $('#aiAppraisalFormEl');
+        if (form) form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            var user = (window.NWBackend && NWBackend.currentUser) ? NWBackend.currentUser() : null;
+            if (!user) {
+                var lm = $('#loginModal');
+                if (lm) { lm.hidden = false; document.body.style.overflow = 'hidden'; }
+                alert('AI 감정은 로그인 후 이용할 수 있습니다.');
+                return;
+            }
+            alert('AI 감정 요청이 접수되었습니다.\n분석 결과는 잠시 후 알림으로 안내드립니다.\n\n(현재 베타 서비스 중 — 영업일 1일 이내 결과 발송)');
+            form.reset();
+            var prev = $('#aiPhotoPreview');
+            var tr = $('#aiPhotoTrigger');
+            if (prev) { prev.hidden = true; prev.src = ''; }
+            if (tr) tr.hidden = false;
+        });
+    }
+
     /* ============ 비교견적 페이지: 한 시계 입찰 진행 (자연스러운 카운트업) ============ */
     function initAuctionDetail() {
         var priceEl = $('#auctionPrice');
@@ -1080,12 +1149,14 @@
 
         // 로그인/관리자 상태에 따라 UI 갱신
         NWBackend.onAuthChange(function (user, info) {
-            if (info && info.isAdmin) { enableAdminMode(); }
+            var authInfo = info || arguments[1] || {};
+            if (authInfo && authInfo.isAdmin) { enableAdminMode(); }
             else if (window.disableAdminMode) { disableAdminMode(); }
             updateAuthUI(user);
             // 비교견적 라이브보드 모자이크 갱신
-            _liveBoardLoggedIn = !!user;
+            _liveBoardLoggedIn = !!(user && (authInfo.role === 'vendor' || authInfo.role === 'admin' || authInfo.isAdmin));
             if (_liveBoardRender) _liveBoardRender();
+            updateLiveLockNotice();
         });
 
         // SDK 로드 완료 후 실시간 구독 시작
@@ -1608,7 +1679,7 @@
     }
 
     /* ============ 1. 라우팅 ============ */
-    var VALID = ['home', 'compare', 'collection', 'insight', 'brand', 'about', 'contact', 'sell', 'buy', 'repair'];
+    var VALID = ['home', 'compare', 'collection', 'insight', 'brand', 'about', 'contact', 'sell', 'buy', 'repair', 'cat-update', 'cat-sale', 'cat-new', 'cat-today', 'appraisal'];
 
     function applyPage(target) {
         if (VALID.indexOf(target) === -1) target = 'home';

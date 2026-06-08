@@ -5571,3 +5571,93 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .pay-result-box h2 { font-size: 19px; font-weight: 800; color: var(--text); margin-bottom: 10px; }
 .pay-result-box p { font-size: 14px; color: var(--text-2); line-height: 1.6; white-space: pre-line; margin-bottom: 20px; }
 .pay-result-box .btn { width: 100%; }
+
+/* ============ 카테고리 전용 페이지 공통 ============ */
+.cat-page-header {
+    padding: 60px 24px 24px;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+}
+.cat-page-header--sale { background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); color: #fff; }
+.cat-page-header--ai { background: linear-gradient(135deg, #0d0d0d 0%, #1c1c1c 100%); color: #fff; }
+.cat-page-eyebrow { font-family: var(--serif); font-size: 13px; letter-spacing: 2px; color: #c9a96e; margin-bottom: 8px; }
+.cat-page-title { font-size: 26px; font-weight: 800; margin-bottom: 6px; }
+.cat-page-sub { font-size: 14px; opacity: .7; }
+.cat-page-header--sale .cat-page-sub,
+.cat-page-header--ai .cat-page-sub { color: rgba(255,255,255,.65); }
+
+.hcard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 18px 0; }
+.cat-empty { grid-column: 1/-1; text-align: center; padding: 40px 0; color: var(--text-3); font-size: 14px; }
+
+/* AI 감정 cat-chip 강조 */
+.cat-chip-ai { color: #c9a96e !important; font-weight: 700; }
+.header.scrolled .cat-chip-ai,
+.header.light-page .cat-chip-ai { color: #b8893a !important; }
+
+/* ============ AI 감정 페이지 ============ */
+.appraisal-tiers {
+    display: flex; flex-direction: column; gap: 14px;
+    padding: 20px 0;
+}
+.appraisal-tier {
+    border: 1.5px solid var(--border); border-radius: 16px;
+    padding: 20px; background: var(--white); position: relative;
+}
+.appraisal-tier--ai { border-color: #c9a96e; background: #faf8f4; }
+.at-badge {
+    position: absolute; top: -12px; left: 16px;
+    background: #c9a96e; color: #fff; font-size: 11px; font-weight: 700;
+    padding: 3px 10px; border-radius: 20px; letter-spacing: .3px;
+}
+.at-icon { font-size: 32px; margin-bottom: 8px; }
+.at-name { font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+.at-acc { font-size: 13px; color: var(--text-2); margin-bottom: 12px; }
+.at-acc strong { color: #c9a96e; font-size: 15px; }
+.at-features { list-style: none; margin-bottom: 14px; display: flex; flex-direction: column; gap: 5px; }
+.at-features li { font-size: 13px; color: var(--text-2); padding-left: 14px; position: relative; }
+.at-features li::before { content: '•'; position: absolute; left: 0; color: #c9a96e; }
+.at-price { font-size: 14px; color: var(--text-2); margin-bottom: 14px; line-height: 1.6; }
+.at-price strong { font-size: 18px; color: var(--text); }
+.at-price-sub { font-size: 12px; color: var(--text-3); }
+.at-btn {
+    width: 100%; height: 46px; border-radius: 11px;
+    background: var(--text); color: #fff; font-size: 15px; font-weight: 700;
+    transition: opacity .15s;
+}
+.at-btn:hover { opacity: .85; }
+.at-btn--outline { background: var(--white); color: var(--text); border: 1.5px solid var(--text); }
+
+/* AI 감정 폼 */
+.appraisal-form-wrap { margin-top: 24px; padding: 20px; border: 1.5px solid var(--border); border-radius: 16px; }
+.appraisal-form-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+.appraisal-upload {
+    width: 100%; border-radius: 12px; border: 2px dashed var(--border);
+    overflow: hidden; margin-bottom: 14px; aspect-ratio: 4/3;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg-soft);
+}
+.upload-trigger {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 20px; color: var(--text-2);
+}
+.upload-trigger svg { color: var(--text-3); }
+.upload-trigger span { font-size: 14px; font-weight: 600; }
+.upload-trigger em { font-size: 12px; font-style: normal; color: var(--text-3); }
+#aiPhotoPreview { width: 100%; height: 100%; object-fit: cover; }
+
+/* 감정 결과 예시 */
+.appraisal-result-sample { margin-top: 24px; padding-bottom: 20px; }
+.apr-sample { border: 1.5px solid var(--border); border-radius: 14px; overflow: hidden; }
+.apr-sample-head {
+    background: #111; color: #fff; padding: 14px 16px;
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+}
+.apr-brand { font-family: var(--serif); font-size: 13px; color: #c9a96e; font-weight: 700; }
+.apr-model { font-size: 13px; flex: 1; min-width: 0; }
+.apr-conf { font-size: 12px; background: rgba(201,169,110,.2); color: #c9a96e; padding: 2px 8px; border-radius: 10px; }
+.apr-sample-body { padding: 4px 0; }
+.apr-row { display: flex; align-items: center; justify-content: space-between; padding: 11px 16px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.apr-row:last-child { border-bottom: none; }
+.apr-row span { color: var(--text-2); }
+.apr-row strong { color: var(--text); font-weight: 600; }
