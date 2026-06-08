@@ -170,11 +170,12 @@
             </div>
         </div>
         <nav class="cat-bar" id="catBar" aria-label="카테고리">
-            <a href="#collection" class="cat-chip" data-nav="collection" data-cat="update">업데이트</a>
-            <a href="#collection" class="cat-chip" data-nav="collection" data-cat="sale">오늘만 할인</a>
-            <a href="#collection" class="cat-chip" data-nav="collection" data-cat="new">미사용신품</a>
-            <a href="#collection" class="cat-chip" data-nav="collection" data-cat="today">오늘의시계</a>
+            <a href="#cat-update" class="cat-chip" data-nav="cat-update">업데이트</a>
+            <a href="#cat-sale" class="cat-chip" data-nav="cat-sale">할인시작</a>
+            <a href="#cat-new" class="cat-chip" data-nav="cat-new">미사용신품</a>
+            <a href="#cat-today" class="cat-chip" data-nav="cat-today">오늘의시계</a>
             <a href="#compare" class="cat-chip" data-nav="compare">내시계팔기</a>
+            <a href="#appraisal" class="cat-chip cat-chip-ai" data-nav="appraisal">AI 감정</a>
         </nav>
     </header>
 
@@ -739,6 +740,163 @@
             </section>
 
         </section>
+
+        <!-- ========== 카테고리: 업데이트 ========== -->
+        <div class="page" id="cat-update" data-page="cat-update">
+            <div class="cat-page-header">
+                <h2 class="cat-page-title">업데이트</h2>
+                <p class="cat-page-sub">최근 새로 등록된 시계</p>
+            </div>
+            <div class="container">
+                <div class="hcard-grid" id="catUpdateGrid">
+                    <p class="cat-empty">등록된 상품이 없습니다.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 카테고리: 할인시작 (타임세일) ========== -->
+        <div class="page" id="cat-sale" data-page="cat-sale">
+            <div class="cat-page-header cat-page-header--sale">
+                <h2 class="cat-page-title">🔥 할인시작</h2>
+                <p class="cat-page-sub">등록 후 48시간 타임세일 · 할인 종료 전 서두르세요</p>
+            </div>
+            <div class="container">
+                <div class="hcard-grid" id="catSaleGrid">
+                    <p class="cat-empty">진행 중인 타임세일이 없습니다.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 카테고리: 미사용신품 ========== -->
+        <div class="page" id="cat-new" data-page="cat-new">
+            <div class="cat-page-header">
+                <h2 class="cat-page-title">미사용신품</h2>
+                <p class="cat-page-sub">착용하지 않은 신품 컨디션</p>
+            </div>
+            <div class="container">
+                <div class="hcard-grid" id="catNewGrid">
+                    <p class="cat-empty">등록된 상품이 없습니다.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== 카테고리: 오늘의시계 ========== -->
+        <div class="page" id="cat-today" data-page="cat-today">
+            <div class="cat-page-header">
+                <h2 class="cat-page-title">오늘의시계</h2>
+                <p class="cat-page-sub">오늘 벨로르가 추천하는 한 점</p>
+            </div>
+            <div class="container">
+                <div class="hcard-grid" id="catTodayGrid">
+                    <p class="cat-empty">오늘의 시계를 준비 중입니다.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== AI 감정 ========== -->
+        <div class="page" id="appraisal" data-page="appraisal">
+            <div class="cat-page-header cat-page-header--ai">
+                <p class="cat-page-eyebrow">BELLORE AI</p>
+                <h2 class="cat-page-title">AI 감정 서비스</h2>
+                <p class="cat-page-sub">벨로르 빅데이터 기반 · 전문 감정사 연계</p>
+            </div>
+
+            <div class="container">
+                <!-- 감정 티어 카드 3종 -->
+                <div class="appraisal-tiers">
+                    <div class="appraisal-tier appraisal-tier--ai">
+                        <div class="at-badge">무료 1회 · 회원가입 시 지급</div>
+                        <div class="at-icon">🤖</div>
+                        <h3 class="at-name">AI 자동 감정</h3>
+                        <p class="at-acc">정확도 <strong>90%+</strong></p>
+                        <ul class="at-features">
+                            <li>벨로르 빅데이터 기반 즉시 분석</li>
+                            <li>현 시세 · 시장 흐름 안내</li>
+                            <li>브랜드 · 모델 · 레퍼런스 정보</li>
+                            <li>사진 1장으로 30초 이내 결과</li>
+                        </ul>
+                        <p class="at-price">회원가입 시 <strong>1회 무료</strong><br><span class="at-price-sub">이후 1회 3,000원</span></p>
+                        <button class="at-btn" id="btnAiAppraisal">AI 감정 시작하기</button>
+                    </div>
+
+                    <div class="appraisal-tier appraisal-tier--photo">
+                        <div class="at-icon">📸</div>
+                        <h3 class="at-name">1:1 사진 감정</h3>
+                        <p class="at-acc">정확도 <strong>95%</strong></p>
+                        <ul class="at-features">
+                            <li>전문 감정사가 사진 직접 확인</li>
+                            <li>추가 사진 요청 및 질문 가능</li>
+                            <li>보증서 · 박스 진위 여부 판별</li>
+                            <li>영업일 기준 1~2일 이내 회신</li>
+                        </ul>
+                        <p class="at-price"><strong>30,000원</strong></p>
+                        <button class="at-btn at-btn--outline" id="btnPhotoAppraisal">사진 감정 신청</button>
+                    </div>
+
+                    <div class="appraisal-tier appraisal-tier--offline">
+                        <div class="at-icon">🏪</div>
+                        <h3 class="at-name">1:1 오프라인 정밀감정</h3>
+                        <p class="at-acc">정확도 <strong>99%</strong></p>
+                        <ul class="at-features">
+                            <li>40년 경력 전문 감정사 대면 감정</li>
+                            <li>무브먼트 · 케이스 · 다이얼 정밀 검사</li>
+                            <li>공식 감정서 발급</li>
+                            <li>방문 예약제 운영</li>
+                        </ul>
+                        <p class="at-price"><strong>100,000원</strong><br><span class="at-price-sub">공식 감정서 포함</span></p>
+                        <button class="at-btn at-btn--outline" id="btnOfflineAppraisal">오프라인 예약</button>
+                    </div>
+                </div>
+
+                <!-- AI 감정 폼 (btnAiAppraisal 클릭 시 노출) -->
+                <div class="appraisal-form-wrap" id="aiAppraisalForm" hidden>
+                    <h3 class="appraisal-form-title">AI 감정 신청</h3>
+                    <form id="aiAppraisalFormEl">
+                        <div class="appraisal-upload" id="aiPhotoUpload">
+                            <input type="file" id="aiPhotoInput" accept="image/*" hidden>
+                            <button type="button" class="upload-trigger" id="aiPhotoTrigger">
+                                <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                <span>시계 사진 업로드</span>
+                                <em>정면 · 측면 · 뒷면 각도 권장</em>
+                            </button>
+                            <img id="aiPhotoPreview" src="" alt="" hidden>
+                        </div>
+                        <div class="co-field">
+                            <label>브랜드</label>
+                            <input type="text" id="aiBrand" placeholder="예: 롤렉스, 파텍필립, AP">
+                        </div>
+                        <div class="co-field">
+                            <label>모델명 (알고 있다면)</label>
+                            <input type="text" id="aiModel" placeholder="예: 서브마리너, 노틸러스">
+                        </div>
+                        <div class="co-field">
+                            <label>레퍼런스 (시리얼·레프 번호)</label>
+                            <input type="text" id="aiRef" placeholder="예: 126610LN">
+                        </div>
+                        <button type="submit" class="co-pay-btn" style="margin-top:8px">감정 요청하기</button>
+                    </form>
+                </div>
+
+                <!-- 감정 결과 예시 -->
+                <div class="appraisal-result-sample">
+                    <h3 class="appraisal-form-title">AI 감정 결과 예시</h3>
+                    <div class="apr-sample">
+                        <div class="apr-sample-head">
+                            <span class="apr-brand">ROLEX</span>
+                            <span class="apr-model">서브마리너 데이트 126610LN</span>
+                            <span class="apr-conf">신뢰도 93%</span>
+                        </div>
+                        <div class="apr-sample-body">
+                            <div class="apr-row"><span>현 시세</span><strong>약 1,850~2,050만원</strong></div>
+                            <div class="apr-row"><span>케이스 소재</span><strong>904L 스틸 (오이스터스틸)</strong></div>
+                            <div class="apr-row"><span>무브먼트</span><strong>Cal.3235 자동</strong></div>
+                            <div class="apr-row"><span>방수</span><strong>300m</strong></div>
+                            <div class="apr-row"><span>시장 흐름</span><strong>🔼 강보합 (최근 3개월 +3.2%)</strong></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- ========== 판매시계 ========== -->
         <section class="page page-collection" id="collection">

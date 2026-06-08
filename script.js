@@ -1084,8 +1084,10 @@
             else if (window.disableAdminMode) { disableAdminMode(); }
             updateAuthUI(user);
             // 비교견적 라이브보드 모자이크 갱신
-            _liveBoardLoggedIn = !!user;
+            var info = arguments[1] || {};
+            _liveBoardLoggedIn = !!(user && (info.role === 'vendor' || info.role === 'admin' || info.isAdmin));
             if (_liveBoardRender) _liveBoardRender();
+            updateLiveLockNotice();
         });
 
         // SDK 로드 완료 후 실시간 구독 시작
@@ -1608,7 +1610,7 @@
     }
 
     /* ============ 1. 라우팅 ============ */
-    var VALID = ['home', 'compare', 'collection', 'insight', 'brand', 'about', 'contact', 'sell', 'buy', 'repair'];
+    var VALID = ['home', 'compare', 'collection', 'insight', 'brand', 'about', 'contact', 'sell', 'buy', 'repair', 'cat-update', 'cat-sale', 'cat-new', 'cat-today', 'appraisal'];
 
     function applyPage(target) {
         if (VALID.indexOf(target) === -1) target = 'home';
