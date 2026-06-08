@@ -98,9 +98,7 @@
     var lastInfo = { isAdmin: false, isApprovedVendor: false };
     var postsCache = [], reviewsCache = [];
 
-    /* ========== 시계 등록/수정 모달 ========== */
-    var listingModal = makeModal('listingModal', 'LISTING', '시계 등록');
-    var lBody = $('.modal-body', listingModal);
+    /* ========== 시계 등록/수정 (전체 페이지 · 상세페이지 스타일) ========== */
     var lPicker = null, lEditId = null, lExisting = [];
 
     function statusOptions(cur) {
@@ -108,51 +106,64 @@
         return '<option value="' + s[0] + '"' + (cur === s[0] ? ' selected' : '') + '>' + s[1] + '</option>';
       }).join('');
     }
-    function catOptions(cur) {
-      // 고객판매 마켓 제거 — 벨로르 판매 카테고리만 등록 가능
-      return [listingCats.brand].map(function (c) {
-        return '<option' + (cur === c ? ' selected' : '') + '>' + esc(c) + '</option>';
-      }).join('');
-    }
+
+    // 상세페이지(.product-page) 셸을 재사용한 전체화면 등록/수정 페이지
+    var listingPage = document.createElement('div');
+    listingPage.className = 'product-page lp-page';
+    listingPage.id = 'listingPage';
+    listingPage.hidden = true;
+    listingPage.innerHTML =
+      '<header class="pp-topbar">' +
+        '<button class="pp-back" data-lpclose aria-label="뒤로"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>' +
+        '<span class="pp-topbar-title" id="lpTitle">시계 등록</span>' +
+        '<span class="pp-topbar-spacer"></span>' +
+      '</header>' +
+      '<div class="pp-scroll"><div class="lp-body"></div></div>' +
+      '<div class="pp-bottom"><button type="submit" form="listingForm" class="pp-buy" id="lpSubmit">등록</button></div>';
+    document.body.appendChild(listingPage);
+    listingPage.addEventListener('click', function (e) { if (e.target.closest('[data-lpclose]')) closeListingPage(); });
+    function closeListingPage() { listingPage.hidden = true; document.body.style.overflow = ''; }
 
     function openListing(item, presetCat) {
       lEditId = item ? item.id : null;
       lExisting = (item && item.photos) ? item.photos.slice() : [];
-      $('h2', listingModal).textContent = item ? '시계 수정' : '새 시계 등록';
-      lBody.innerHTML =
-        '<form class="signup-form" id="listingForm">' +
-        '<label><span>카테고리</span><select name="category">' + catOptions(item ? item.category : presetCat) + '</select></label>' +
-        '<label><span>브랜드 *</span><input name="brand" placeholder="예: ROLEX" value="' + esc(item ? item.brand : '') + '" required></label>' +
-        '<label><span>모델 / 레퍼런스 *</span><input name="model" placeholder="예: 데이트저스트 36" value="' + esc(item ? item.model : '') + '" required></label>' +
-        '<label><span>판매가 (숫자, 비우면 가격문의)</span><input name="price" type="number" value="' + (item && item.price ? item.price : '') + '"></label>' +
-        '<label><span>상태</span><select name="status">' + statusOptions(item ? item.status : 'on_sale') + '</select></label>' +
-        '<label><span>사진 (최대 5장)</span></label><div id="listingPhotos"></div>' +
-        (lExisting.length ? '<p class="muted small">기존 사진 ' + lExisting.length + '장 유지 · 새 사진은 뒤에 추가됩니다.</p>' : '') +
-        '<button type="submit" class="login-btn login-default">' + (item ? '수정 저장' : '등록') + '</button>' +
+      $('#lpTitle', listingPage).textContent = item ? '시계 수정' : '시계 등록';
+      $('#lpSubmit', listingPage).textContent = item ? '수정 저장' : '등록';
+      $('.lp-body', listingPage).innerHTML =
+        '<div class="lp-photohead">' +
+          '<h3 class="lp-sec-title">대표 사진</h3>' +
+          '<div id="listingPhotos"></div>' +
+          '<p class="lp-hint">' + (lExisting.length ? '기존 사진 ' + lExisting.length + '장 유지 · 새 사진은 뒤에 추가됩니다. ' : '') + '첫 번째 사진이 대표 이미지로 노출됩니다. (최대 5장)</p>' +
+        '</div>' +
+        '<form class="signup-form lp-form" id="listingForm">' +
+          '<input type="hidden" name="category" value="' + esc((item && item.category) || presetCat || listingCats.brand) + '">' +
+          '<label><span>브랜드 *</span><input name="brand" placeholder="예: ROLEX" value="' + esc(item ? item.brand : '') + '" required></label>' +
+          '<label><span>모델 / 레퍼런스 *</span><input name="model" placeholder="예: 데이트저스트 36" value="' + esc(item ? item.model : '') + '" required></label>' +
+          '<label><span>판매가 (숫자, 비우면 가격문의)</span><input name="price" type="number" inputmode="numeric" placeholder="예: 22800000" value="' + (item && item.price ? item.price : '') + '"></label>' +
+          '<label><span>판매 상태</span><select name="status">' + statusOptions(item ? item.status : 'on_sale') + '</select></label>' +
         '</form>';
-      lPicker = photoPicker($('#listingPhotos', listingModal), 5);
-      openModal(listingModal);
-      $('#listingForm', listingModal).addEventListener('submit', function (e) {
+      lPicker = photoPicker($('#listingPhotos', listingPage), 5);
+      $('#listingForm', listingPage).addEventListener('submit', function (e) {
         e.preventDefault();
         var fd = new FormData(e.target);
         var brand = String(fd.get('brand') || '').trim();
         var model = String(fd.get('model') || '').trim();
         if (!brand || !model) { alert('브랜드와 모델을 입력하세요.'); return; }
         var price = parseInt(String(fd.get('price') || '').replace(/[^0-9]/g, ''), 10) || null;
-        var payload = {
-          brand: brand, model: model, price: price,
-          category: fd.get('category'), status: fd.get('status'),
-          photos: lPicker.files
-        };
-        var btn = $('button[type="submit"]', e.target); btn.disabled = true; btn.textContent = '저장 중…';
+        var payload = { brand: brand, model: model, price: price, category: fd.get('category'), status: fd.get('status'), photos: lPicker.files };
+        var btn = $('#lpSubmit', listingPage); btn.disabled = true; btn.textContent = '저장 중…';
         var p = lEditId
           ? B.updateProduct(lEditId, Object.assign({ existingPhotos: lExisting }, payload))
           : B.addProduct(payload);
-        p.then(function () { closeModal(listingModal); alert('저장되었습니다.'); })
+        p.then(function () { closeListingPage(); alert('저장되었습니다.'); })
           .catch(function (err) { alert('저장 실패: ' + errMsg(err)); })
           .then(function () { btn.disabled = false; btn.textContent = lEditId ? '수정 저장' : '등록'; });
       });
+      listingPage.hidden = false;
+      document.body.style.overflow = 'hidden';
+      var sc = $('.pp-scroll', listingPage); if (sc) sc.scrollTop = 0;
     }
+
     // script.js 의 수정 버튼이 호출
     window.belloreEditListing = function (id) {
       B.getListing(id).then(function (item) { openListing(item); })

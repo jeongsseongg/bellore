@@ -5883,3 +5883,16 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
     display: inline-flex; align-items: center; justify-content: center;
 }
 .mypage-noti .noti-badge[hidden] { display: none; }
+
+/* ============================================================
+   시계 등록/수정 — 전체화면 페이지(.product-page 셸 재사용)
+   ============================================================ */
+.pp-topbar-spacer { width: 40px; flex-shrink: 0; }
+.lp-page .pp-scroll { padding-bottom: 20px; }
+.lp-photohead { padding: 18px 18px 4px; border-bottom: 1px solid var(--border); }
+.lp-sec-title { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 12px; }
+.lp-hint { font-size: 12px; color: var(--text-3); margin-top: 12px; line-height: 1.55; }
+.lp-form { padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+.lp-form label { display: flex; flex-direction: column; gap: 7px; }
+.lp-form label > span { font-size: 13px; font-weight: 600; color: var(--text-2); }
+.lp-photohead .upload-grid { margin-top: 4px; }
