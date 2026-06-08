@@ -2255,12 +2255,14 @@
             });
         }
 
-        // 검색 버튼 → 판매시계 컬렉션에서 브랜드/모델 검색
-        var btnSearch = $('#btnSearch');
-        if (btnSearch) {
-            btnSearch.addEventListener('click', function () {
-                var q = prompt('검색어를 입력하세요 (예: 롤렉스, 데이토나)');
-                if (q && q.trim()) runSearch(q.trim());
+        // 헤더 검색바 → 판매시계 컬렉션에서 브랜드/모델 검색
+        var headerSearch = $('#headerSearch');
+        var searchInput = $('#searchInput');
+        if (headerSearch && searchInput) {
+            headerSearch.addEventListener('submit', function (e) {
+                e.preventDefault();
+                var q = (searchInput.value || '').trim();
+                if (q) { runSearch(q); searchInput.blur(); }
             });
         }
     }

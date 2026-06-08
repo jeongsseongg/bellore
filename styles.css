@@ -152,7 +152,7 @@ img { display: block; max-width: 100%; height: auto; }
     transform: translateX(-50%);
     width: 100%;
     max-width: var(--app-w);
-    height: calc(var(--header-h) + env(safe-area-inset-top));
+    height: auto;
     padding-top: env(safe-area-inset-top);
     box-sizing: border-box;
     background: rgba(16, 13, 10, 0.32);
@@ -190,6 +190,71 @@ img { display: block; max-width: 100%; height: auto; }
 .header-icon:hover { background: rgba(255,255,255,0.1); }
 .header.scrolled .header-icon:hover,
 .header.light-page .header-icon:hover { background: rgba(0,0,0,0.05); }
+
+/* ===== 헤더 검색바 ===== */
+.header-search {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 38px;
+    padding: 0 14px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.25);
+    transition: background 0.3s, border-color 0.3s;
+    min-width: 0;
+}
+.header.scrolled .header-search,
+.header.light-page .header-search {
+    background: #f3f1ec;
+    border-color: #e7e3da;
+}
+.header-search-ic { color: rgba(255,255,255,0.85); flex: 0 0 auto; }
+.header.scrolled .header-search-ic,
+.header.light-page .header-search-ic { color: #888; }
+.header-search input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 14px;
+    color: #fff;
+    -webkit-appearance: none;
+}
+.header-search input::placeholder { color: rgba(255,255,255,0.7); }
+.header.scrolled .header-search input,
+.header.light-page .header-search input { color: var(--text); }
+.header.scrolled .header-search input::placeholder,
+.header.light-page .header-search input::placeholder { color: #999; }
+.header-search input::-webkit-search-cancel-button { -webkit-appearance: none; }
+
+/* ===== 헤더 카테고리 바 (스와이프) ===== */
+.cat-bar {
+    display: flex;
+    gap: 18px;
+    padding: 0 20px 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+.cat-bar::-webkit-scrollbar { display: none; }
+.cat-chip {
+    flex: 0 0 auto;
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.78);
+    white-space: nowrap;
+    padding: 4px 0;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.cat-chip:hover { color: #fff; }
+.header.scrolled .cat-chip,
+.header.light-page .cat-chip { color: var(--text-2); }
+.header.scrolled .cat-chip:hover,
+.header.light-page .cat-chip:hover { color: var(--text); }
 
 .logo {
     display: flex;
