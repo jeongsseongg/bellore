@@ -1062,6 +1062,8 @@
             'signup_disabled': '현재 회원가입이 비활성화되어 있습니다.',
             'validation_failed': '입력값을 확인해주세요.'
         };
+        if (msg === 'USERNAME_TAKEN') return '이미 사용 중인 아이디입니다.';
+        if (msg === 'USER_NOT_FOUND') return '존재하지 않는 아이디입니다.';
         if (map[code]) return map[code];
         var m = msg.toLowerCase();
         if (m.indexOf('invalid login') !== -1) return '이메일 또는 비밀번호가 올바르지 않습니다.';
@@ -1458,13 +1460,13 @@
                 e.preventDefault();
                 if (!backendOn()) { return; }
                 var fd = new FormData(loginForm);
-                var email = String(fd.get('id') || '').trim();
+                var idOrEmail = String(fd.get('id') || '').trim();
                 var pw = String(fd.get('pw') || '');
-                if (email.indexOf('@') === -1) {
-                    alert('이메일 주소로 로그인해주세요.');
+                if (!idOrEmail || !pw) {
+                    alert('아이디(또는 이메일)와 비밀번호를 입력해주세요.');
                     return;
                 }
-                NWBackend.signIn({ email: email, password: pw }).then(function (user) {
+                NWBackend.signIn({ idOrEmail: idOrEmail, password: pw }).then(function (user) {
                     loginForm.reset();
                     closeLoginModal();
                     alert((user.displayName || '') + '님, 로그인되었습니다.');
@@ -1481,12 +1483,14 @@
                 e.preventDefault();
                 var fd = new FormData(signupForm);
                 var name = fd.get('name');
+                var username = String(fd.get('username') || '').trim();
                 var phone = fd.get('phone');
                 var email = fd.get('email');
                 var pw = fd.get('pw');
+                var pw2 = fd.get('pw2');
                 var role = fd.get('role') || 'customer';
                 var company = fd.get('company') || '';
-                if (!name || !phone || !email || !pw) {
+                if (!name || !username || !phone || !email || !pw) {
                     alert('필수 항목을 모두 입력해주세요.');
                     return;
                 }
@@ -1494,13 +1498,21 @@
                     alert('업체 회원은 업체 상호를 입력해주세요.');
                     return;
                 }
+                if (!/^[A-Za-z0-9_]{4,}$/.test(username)) {
+                    alert('아이디는 영문·숫자·밑줄(_) 4자 이상으로 입력해주세요.');
+                    return;
+                }
                 if (pw.length < 8) {
                     alert('비밀번호는 8자 이상이어야 합니다.');
                     return;
                 }
+                if (pw !== pw2) {
+                    alert('비밀번호가 일치하지 않습니다.');
+                    return;
+                }
 
                 if (backendOn()) {
-                    NWBackend.signUp({ name: name, phone: phone, email: email, password: pw, role: role, company: company })
+                    NWBackend.signUp({ name: name, username: username, phone: phone, email: email, password: pw, role: role, company: company })
                         .then(function () {
                             signupForm.reset();
                             var cf = $('#signupCompanyField'); if (cf) cf.style.display = 'none';

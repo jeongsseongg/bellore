@@ -2666,29 +2666,48 @@ body.admin-mode .main-wrap { padding-top: 0; }
 .signup-form {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
 }
 .login-form input,
-.signup-form input {
+.signup-form input,
+.signup-form select {
     width: 100%;
-    padding: 13px 16px;
+    height: 48px;
+    padding: 0 15px;
     border: 1.5px solid var(--border);
-    border-radius: 10px;
-    font-size: 14px;
+    border-radius: 11px;
+    font-size: 15px;
     background: var(--white);
+    color: var(--text);
+    transition: border-color .15s, box-shadow .15s;
+}
+.signup-form select {
+    -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    padding-right: 38px;
 }
 .login-form input:focus,
-.signup-form input:focus { border-color: var(--green-bright); outline: none; }
+.signup-form input:focus,
+.signup-form select:focus {
+    border-color: var(--text);
+    box-shadow: 0 0 0 3px rgba(0,0,0,.06);
+    outline: none;
+}
+.login-form input::placeholder,
+.signup-form input::placeholder { color: #b5b0a7; }
 
 .signup-form label {
     display: block;
 }
 .signup-form label > span {
     display: block;
-    font-size: 12px;
+    font-size: 12.5px;
     color: var(--text-2);
-    margin-bottom: 6px;
+    margin-bottom: 7px;
     font-weight: 600;
+    letter-spacing: -.2px;
 }
 .signup-check {
     display: flex !important;
@@ -5457,7 +5476,7 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 
 /* ============ 결제(체크아웃) 모달 ============ */
 .checkout {
-    position: fixed; inset: 0; z-index: 2000;
+    position: fixed; inset: 0; z-index: 3000;
     left: 50%; transform: translateX(-50%);
     width: 100%; max-width: var(--app-w);
     background: var(--white);
@@ -5534,7 +5553,7 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 
 /* 결제 결과 */
 .pay-result {
-    position: fixed; inset: 0; z-index: 2100;
+    position: fixed; inset: 0; z-index: 3100;
     background: rgba(0,0,0,.55);
     display: flex; align-items: center; justify-content: center; padding: 24px;
 }

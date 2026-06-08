@@ -125,6 +125,9 @@
     }
     modal = getModal();
     if (!modal) return;
+    // 상품상세 모달이 떠 있으면 닫기(겹침 방지)
+    var pm = $('#productModal');
+    if (pm) pm.hidden = true;
     payType = 'deposit';
     setPayType('deposit');
     renderProduct();

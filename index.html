@@ -1826,31 +1826,39 @@
                 </div>
                 <form class="signup-form" id="signupForm">
                     <label>
-                        <span>가입 유형 *</span>
+                        <span>가입 유형</span>
                         <select name="role" id="signupRole">
                             <option value="customer">일반 회원 (비교견적 신청)</option>
                             <option value="vendor">업체 회원 (승인 후 입찰 참여)</option>
                         </select>
                     </label>
                     <label class="signup-vendor-only" id="signupCompanyField" style="display:none">
-                        <span>업체 상호 *</span>
+                        <span>업체 상호</span>
                         <input type="text" name="company" placeholder="예: 강남워치">
                     </label>
                     <label>
-                        <span>이름 *</span>
+                        <span>이름</span>
                         <input type="text" name="name" placeholder="홍길동" required>
                     </label>
                     <label>
-                        <span>휴대폰 번호 *</span>
+                        <span>아이디</span>
+                        <input type="text" name="username" placeholder="영문·숫자 4자 이상" autocomplete="username" minlength="4" required>
+                    </label>
+                    <label>
+                        <span>휴대폰 번호</span>
                         <input type="tel" name="phone" placeholder="010-0000-0000" required>
                     </label>
                     <label>
-                        <span>이메일 *</span>
+                        <span>이메일</span>
                         <input type="email" name="email" placeholder="email@example.com" required>
                     </label>
                     <label>
-                        <span>비밀번호 *</span>
-                        <input type="password" name="pw" placeholder="8자 이상" minlength="8" required>
+                        <span>비밀번호</span>
+                        <input type="password" name="pw" placeholder="8자 이상" autocomplete="new-password" minlength="8" required>
+                    </label>
+                    <label>
+                        <span>비밀번호 확인</span>
+                        <input type="password" name="pw2" placeholder="비밀번호를 다시 입력" autocomplete="new-password" minlength="8" required>
                     </label>
                     <label class="signup-check">
                         <input type="checkbox" required>

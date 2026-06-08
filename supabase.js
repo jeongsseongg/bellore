@@ -155,34 +155,58 @@
 
   Backend.signUp = function (data) {
     var role = data.role === 'vendor' ? 'vendor' : 'customer';
-    return sb.auth.signUp({
-      email: data.email,
-      password: data.password,
-      options: {
-        data: {
-          display_name: data.name || '',
-          role: role,
-          company_name: data.company || null,
-          phone: data.phone || null
+    var uname = (data.username || '').trim();
+    // 아이디 중복 사전 검사
+    var pre = uname
+      ? sb.rpc('email_for_username', { uname: uname }).then(function (r) {
+          if (r.data) throw new Error('USERNAME_TAKEN');
+        })
+      : Promise.resolve();
+    return pre.then(function () {
+      return sb.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            display_name: data.name || '',
+            username: uname || null,
+            role: role,
+            company_name: data.company || null,
+            phone: data.phone || null
+          }
         }
-      }
+      });
     }).then(function (res) {
       if (res.error) throw res.error;
-      // 휴대폰 번호는 트리거가 채우지 않으므로 세션이 있으면 보강
-      if (res.data && res.data.session && data.phone) {
-        sb.from('profiles').update({ phone: data.phone })
-          .eq('id', res.data.user.id).then(function () {}, function () {});
+      // 트리거가 채우지 않는 항목은 세션이 있으면 보강
+      if (res.data && res.data.session) {
+        var patch = {};
+        if (data.phone) patch.phone = data.phone;
+        if (uname) patch.username = uname;
+        if (Object.keys(patch).length) {
+          sb.from('profiles').update(patch)
+            .eq('id', res.data.user.id).then(function () {}, function () {});
+        }
       }
       return res.data.user;
     });
   };
 
+  // 아이디(username) 또는 이메일로 로그인
   Backend.signIn = function (data) {
-    return sb.auth.signInWithPassword({ email: data.email, password: data.password })
-      .then(function (res) {
-        if (res.error) throw res.error;
-        return { displayName: (res.data.user.user_metadata || {}).display_name || '', email: res.data.user.email };
-      });
+    var input = (data.idOrEmail || data.email || '').trim();
+    var resolveEmail = (input.indexOf('@') !== -1)
+      ? Promise.resolve(input)
+      : sb.rpc('email_for_username', { uname: input }).then(function (r) {
+          if (r.error || !r.data) throw new Error('USER_NOT_FOUND');
+          return r.data;
+        });
+    return resolveEmail.then(function (email) {
+      return sb.auth.signInWithPassword({ email: email, password: data.password });
+    }).then(function (res) {
+      if (res.error) throw res.error;
+      return { displayName: (res.data.user.user_metadata || {}).display_name || '', email: res.data.user.email };
+    });
   };
 
   Backend.signInWithGoogle = function () {
