@@ -633,6 +633,78 @@
     });
   };
 
+  /* ---------------- 히어로 배너 (banners) ---------------- */
+  function mapBanner(b) {
+    return {
+      id: b.id,
+      title: b.title || '',
+      subtitle: b.subtitle || '',
+      image: b.image_url || '',
+      link: b.link || '',
+      sort_order: b.sort_order || 0,
+      active: b.active !== false
+    };
+  }
+  var bannerRefreshers = [];
+  Backend.subscribeBanners = function (cb) {
+    function load() {
+      sb.from('banners').select('*').eq('active', true)
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: true })
+        .then(function (res) {
+          if (res.error) { console.warn('[BELLORE] banners 로드 실패:', res.error.message); cb([]); return; }
+          cb((res.data || []).map(mapBanner));
+        });
+    }
+    load();
+    bannerRefreshers.push(load);
+    return function () { removeFrom(bannerRefreshers, load); };
+  };
+  function refreshBanners() { bannerRefreshers.slice().forEach(function (fn) { try { fn(); } catch (e) {} }); }
+
+  // 관리자: 전체 배너(비활성 포함) 조회 — 관리 목록용
+  Backend.listAllBanners = function () {
+    return sb.from('banners').select('*')
+      .order('sort_order', { ascending: true }).order('created_at', { ascending: true })
+      .then(function (res) { if (res.error) throw res.error; return (res.data || []).map(mapBanner); });
+  };
+
+  Backend.addBanner = function (data) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    return uploadPhotos(data.photos || [], 1).then(function (urls) {
+      return sb.from('banners').insert({
+        title: data.title || null,
+        subtitle: data.subtitle || null,
+        image_url: urls[0] || data.image || null,
+        link: data.link || null,
+        sort_order: data.sort_order || 0,
+        active: data.active !== false
+      }).then(function (res) { if (res.error) throw res.error; refreshBanners(); });
+    });
+  };
+
+  Backend.updateBanner = function (id, data) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    return uploadPhotos(data.photos || [], 1).then(function (urls) {
+      var patch = {};
+      if (data.title != null) patch.title = data.title;
+      if (data.subtitle != null) patch.subtitle = data.subtitle;
+      if (data.link != null) patch.link = data.link;
+      if (data.sort_order != null) patch.sort_order = data.sort_order;
+      if (data.active != null) patch.active = data.active;
+      if (urls[0]) patch.image_url = urls[0];
+      else if (data.image != null) patch.image_url = data.image;
+      return sb.from('banners').update(patch).eq('id', id)
+        .then(function (res) { if (res.error) throw res.error; refreshBanners(); });
+    });
+  };
+
+  Backend.deleteBanner = function (id) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    return sb.from('banners').delete().eq('id', id)
+      .then(function (res) { if (res.error) throw res.error; refreshBanners(); });
+  };
+
   /* ---------------- 부트스트랩 ---------------- */
   Backend.enabled = true;
 

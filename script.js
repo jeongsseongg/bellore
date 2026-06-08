@@ -61,6 +61,113 @@
         initInstallPrompt();
         initPwaModal();
         initAccountUI();
+        initHeroCarousel();
+    }
+
+    /* ============ 히어로 배너 캐러셀 ============ */
+    function initHeroCarousel() {
+        var carousel = $('#heroCarousel');
+        var track = $('#heroTrack');
+        if (!carousel || !track) return;
+        var prevBtn = $('#heroPrev'), nextBtn = $('#heroNext'), dotsBox = $('#heroDots');
+        var index = 0, slides = [], autoTimer = null;
+
+        function slideEls() { return $$('.hero-slide', track).filter(function (s) { return s.style.display !== 'none'; }); }
+
+        function update() {
+            slides = slideEls();
+            var n = slides.length;
+            track.style.transform = 'translateX(' + (-index * 100) + '%)';
+            var multi = n > 1;
+            if (prevBtn) prevBtn.hidden = !multi;
+            if (nextBtn) nextBtn.hidden = !multi;
+            if (dotsBox) {
+                dotsBox.innerHTML = '';
+                if (multi) {
+                    for (var i = 0; i < n; i++) {
+                        var d = document.createElement('button');
+                        d.type = 'button'; d.className = 'hero-dot' + (i === index ? ' active' : '');
+                        d.setAttribute('aria-label', (i + 1) + '번 배너');
+                        (function (idx) { d.addEventListener('click', function () { go(idx); }); })(i);
+                        dotsBox.appendChild(d);
+                    }
+                }
+            }
+        }
+        function go(i) {
+            var n = slideEls().length;
+            if (n === 0) return;
+            index = (i + n) % n;
+            update();
+            restartAuto();
+        }
+        function next() { go(index + 1); }
+        function prev() { go(index - 1); }
+        function restartAuto() {
+            if (autoTimer) clearInterval(autoTimer);
+            if (slideEls().length > 1) autoTimer = setInterval(next, 6000);
+        }
+
+        if (prevBtn) prevBtn.addEventListener('click', prev);
+        if (nextBtn) nextBtn.addEventListener('click', next);
+
+        // 스와이프(터치/포인터)
+        var startX = 0, dx = 0, dragging = false;
+        track.addEventListener('pointerdown', function (e) {
+            if (e.target.closest('a,button')) return;
+            dragging = true; startX = e.clientX; dx = 0;
+            track.style.transition = 'none';
+        });
+        track.addEventListener('pointermove', function (e) {
+            if (!dragging) return;
+            dx = e.clientX - startX;
+            track.style.transform = 'translateX(calc(' + (-index * 100) + '% + ' + dx + 'px))';
+        });
+        function endDrag() {
+            if (!dragging) return;
+            dragging = false;
+            track.style.transition = '';
+            if (Math.abs(dx) > 60) { dx < 0 ? next() : prev(); }
+            else update();
+        }
+        track.addEventListener('pointerup', endDrag);
+        track.addEventListener('pointercancel', endDrag);
+        track.addEventListener('pointerleave', endDrag);
+
+        // DB 배너 주입 (bellore-features.js 가 호출)
+        window.belloreSetBanners = function (list) {
+            $$('.hero-slide-db', track).forEach(function (n) { n.remove(); });
+            var def = $('.hero-default', track);
+            if (list && list.length) {
+                if (def) def.style.display = 'none';
+                list.forEach(function (b) {
+                    var slide = document.createElement(b.link ? 'a' : 'div');
+                    slide.className = 'hero-slide hero-slide-db';
+                    if (b.link) { slide.href = b.link; }
+                    slide.innerHTML =
+                        '<div class="hero-slide-bg" style="background-image:url(\'' + (b.image || '').replace(/'/g, '%27') + '\')"></div>' +
+                        '<div class="hero-slide-overlay"></div>' +
+                        '<div class="hero-slide-text">' +
+                        (b.title ? '<h2 class="hero-slide-title">' + escapeHtml(b.title) + '</h2>' : '') +
+                        (b.subtitle ? '<p class="hero-slide-sub">' + escapeHtml(b.subtitle) + '</p>' : '') +
+                        '</div>';
+                    track.appendChild(slide);
+                });
+            } else if (def) {
+                def.style.display = '';
+            }
+            index = 0;
+            update();
+            restartAuto();
+        };
+
+        function escapeHtml(s) {
+            return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        update();
+        restartAuto();
     }
 
     /* ============ 계정 UI: 구글 로그인 · 마이페이지 · 알림 · 관리자 관리 · 상품 수정 ============ */

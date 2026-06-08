@@ -202,7 +202,7 @@ img { display: block; max-width: 100%; height: auto; }
 .header.light-page .logo { color: var(--text); }
 
 .logo-img {
-    height: 30px;
+    height: 40px;
     width: auto;
     display: block;
     /* 히어로(어두운 투명 헤더)에선 로고를 흰색으로 */
@@ -5170,3 +5170,86 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 }
 .pwa-steps { text-align: left; width: 100%; padding-left: 20px; margin: 0 0 20px; }
 .pwa-steps li { font-size: 14px; color: #333; line-height: 2; }
+
+/* ============ 히어로 배너 캐러셀 ============ */
+.hero-carousel { position: relative; overflow: hidden; }
+.hero-track { display: flex; transition: transform .45s cubic-bezier(.2,.8,.2,1); will-change: transform; }
+.hero-slide { position: relative; flex: 0 0 100%; min-width: 100%; }
+.hero-slide.hero { min-height: 88vh; }
+/* DB 배너 슬라이드 */
+.hero-slide-db { min-height: 88vh; display: flex; align-items: flex-end; color: #fff; overflow: hidden; }
+.hero-slide-db .hero-slide-bg {
+    position: absolute; inset: 0; background-size: cover; background-position: center;
+    filter: grayscale(.15) brightness(.78); z-index: 0;
+}
+.hero-slide-db .hero-slide-overlay {
+    position: absolute; inset: 0; z-index: 1;
+    background: linear-gradient(180deg, rgba(0,0,0,.18) 0%, rgba(0,0,0,.45) 60%, rgba(0,0,0,.82) 100%);
+}
+.hero-slide-db .hero-slide-text { position: relative; z-index: 2; padding: 0 24px 120px; width: 100%; max-width: 660px; margin: 0 auto; }
+.hero-slide-db .hero-slide-title { font-size: 40px; font-weight: 800; line-height: 1.22; letter-spacing: -1px; margin-bottom: 14px; }
+.hero-slide-db .hero-slide-sub { font-size: 16px; color: rgba(255,255,255,.82); line-height: 1.6; }
+
+/* 화살표 */
+.hero-nav {
+    position: absolute; top: 50%; transform: translateY(-50%); z-index: 5;
+    width: 42px; height: 42px; border-radius: 50%;
+    background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.25);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: background .2s;
+}
+.hero-nav:hover { background: rgba(0,0,0,.6); }
+.hero-nav-prev { left: 14px; }
+.hero-nav-next { right: 14px; }
+.hero-nav[hidden] { display: none; }
+
+/* 점 인디케이터 */
+.hero-dots { position: absolute; bottom: 86px; left: 0; right: 0; z-index: 5; display: flex; justify-content: center; gap: 7px; }
+.hero-dots .hero-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.4); border: none; padding: 0; cursor: pointer; transition: all .2s; }
+.hero-dots .hero-dot.active { background: #fff; width: 20px; border-radius: 4px; }
+
+/* 관리자 배너 관리 버튼 */
+.hero-manage-btn {
+    position: absolute; top: 80px; right: 16px; z-index: 6;
+    background: rgba(255,255,255,.92); color: #111; border: none;
+    padding: 8px 14px; border-radius: 999px; font-size: 12.5px; font-weight: 700;
+    cursor: pointer; box-shadow: 0 2px 10px rgba(0,0,0,.25);
+}
+.hero-manage-btn[hidden] { display: none; }
+
+/* ============ 브랜드 원형 바로가기 ============ */
+.brand-quicklinks { padding: 26px 0 8px; background: #fff; }
+.brand-circle-row {
+    display: flex; gap: 18px; overflow-x: auto; padding: 4px 4px 10px;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.brand-circle-row::-webkit-scrollbar { display: none; }
+.brand-circle { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 8px; width: 70px; }
+.brand-circle-img {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: #f4f2ee; border: 1px solid #e7e3da;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--serif, serif); font-weight: 700; font-size: 12px; letter-spacing: .3px;
+    color: #2b2620; text-align: center; line-height: 1.1; padding: 4px;
+    transition: transform .15s, box-shadow .2s, background .2s;
+}
+.brand-circle:active .brand-circle-img { transform: scale(.94); }
+.brand-circle:hover .brand-circle-img { background: #111; color: #fff; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
+.brand-circle-name { font-size: 12px; color: #444; white-space: nowrap; }
+
+/* ============ 배너 관리(관리자) 목록 ============ */
+.banner-row { display: flex; align-items: center; gap: 12px; }
+.banner-thumb {
+    width: 54px; height: 36px; border-radius: 6px; flex: 0 0 auto;
+    background: #eee center/cover no-repeat; border: 1px solid #e0ddd5;
+}
+.banner-meta { flex: 1; display: flex; flex-direction: column; }
+.banner-meta small { color: #999; }
+.banner-acts { display: flex; gap: 6px; }
+.banner-acts button {
+    font-size: 12px; padding: 6px 10px; border-radius: 7px;
+    border: 1px solid #ddd; background: #fff; cursor: pointer;
+}
+.banner-acts button:hover { background: #f3f3f3; }
+.banner-active-row { display: flex !important; flex-direction: row !important; align-items: center; gap: 8px; }
+.banner-active-row input { width: auto; }

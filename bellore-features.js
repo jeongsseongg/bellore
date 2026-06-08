@@ -160,6 +160,100 @@
 
     // (구) 흩어진 등록 버튼은 제거하고, 우측 상단 "+" 하나로 통합 (하단 adminFab)
 
+    /* ========== 히어로 배너 ========== */
+    // 방문자: 활성 배너를 캐러셀에 주입
+    if (typeof B.subscribeBanners === 'function') {
+      B.subscribeBanners(function (list) {
+        if (window.belloreSetBanners) window.belloreSetBanners(list);
+      });
+    }
+
+    // 관리자: 배너 관리 모달
+    var bannerModal = makeModal('bannerModal', 'BANNER', '배너 관리');
+    var bnBody = $('.modal-body', bannerModal);
+    var bnPicker = null, bnEditId = null, bnExistingImg = '';
+
+    function bannerListView() {
+      bnEditId = null;
+      $('h2', bannerModal).textContent = '배너 관리';
+      bnBody.innerHTML = '<div id="bannerList" class="admin-list"><p class="muted small">불러오는 중…</p></div>' +
+        '<button type="button" class="login-btn login-default" id="bannerAddNew">＋ 새 배너 추가</button>';
+      $('#bannerAddNew', bannerModal).addEventListener('click', function () { bannerEditView(null); });
+      B.listAllBanners().then(function (rows) {
+        var box = $('#bannerList', bannerModal);
+        if (!rows.length) { box.innerHTML = '<p class="muted small">등록된 배너가 없습니다. 아래에서 추가하세요.</p>'; return; }
+        box.innerHTML = rows.map(function (b) {
+          return '<div class="admin-list-item banner-row">' +
+            '<span class="banner-thumb"' + (b.image ? ' style="background-image:url(\'' + esc(b.image) + '\')"' : '') + '></span>' +
+            '<span class="banner-meta"><b>' + (esc(b.title) || '(제목 없음)') + '</b>' +
+            '<small>' + (b.active ? '노출중' : '숨김') + ' · 순서 ' + b.sort_order + '</small></span>' +
+            '<span class="banner-acts"><button type="button" data-bnedit="' + esc(b.id) + '">수정</button>' +
+            '<button type="button" data-bndel="' + esc(b.id) + '">삭제</button></span></div>';
+        }).join('');
+      }).catch(function (err) {
+        $('#bannerList', bannerModal).innerHTML = '<p class="muted small">불러오기 실패: ' + esc(errMsg(err)) + '<br>(banners 테이블이 생성됐는지 확인하세요)</p>';
+      });
+    }
+
+    function bannerEditView(item) {
+      bnEditId = item ? item.id : null;
+      bnExistingImg = item ? (item.image || '') : '';
+      $('h2', bannerModal).textContent = item ? '배너 수정' : '새 배너 추가';
+      bnBody.innerHTML =
+        '<form class="signup-form" id="bannerForm">' +
+        '<label><span>제목</span><input name="title" value="' + esc(item ? item.title : '') + '" placeholder="예: 여름 한정 특별전"></label>' +
+        '<label><span>부제목</span><input name="subtitle" value="' + esc(item ? item.subtitle : '') + '" placeholder="예: 소장가치 100% 라인업"></label>' +
+        '<label><span>클릭 시 이동(선택)</span><input name="link" value="' + esc(item ? item.link : '') + '" placeholder="예: #compare 또는 https://..."></label>' +
+        '<label><span>노출 순서(숫자, 작을수록 먼저)</span><input name="sort_order" type="number" value="' + (item ? item.sort_order : 0) + '"></label>' +
+        '<label class="banner-active-row"><input type="checkbox" name="active"' + (!item || item.active ? ' checked' : '') + '> <span>홈에 노출</span></label>' +
+        '<label><span>배너 이미지 ' + (item ? '(바꿀 때만 새로 선택)' : '*') + '</span></label><div id="bannerPhoto"></div>' +
+        (bnExistingImg ? '<p class="muted small">기존 이미지 유지 · 새로 선택하면 교체됩니다.</p>' : '') +
+        '<button type="submit" class="login-btn login-default">' + (item ? '수정 저장' : '등록') + '</button>' +
+        '<button type="button" class="login-btn" id="bannerBack" style="background:#eee;color:#444;margin-top:8px">목록으로</button>' +
+        '</form>';
+      bnPicker = photoPicker($('#bannerPhoto', bannerModal), 1);
+      $('#bannerBack', bannerModal).addEventListener('click', bannerListView);
+      $('#bannerForm', bannerModal).addEventListener('submit', function (e) {
+        e.preventDefault();
+        var fd = new FormData(e.target);
+        var payload = {
+          title: String(fd.get('title') || '').trim(),
+          subtitle: String(fd.get('subtitle') || '').trim(),
+          link: String(fd.get('link') || '').trim(),
+          sort_order: parseInt(fd.get('sort_order'), 10) || 0,
+          active: !!fd.get('active'),
+          photos: bnPicker.files
+        };
+        if (!bnEditId && !bnPicker.files.length) { alert('배너 이미지를 선택하세요.'); return; }
+        var btn = $('button[type="submit"]', e.target); btn.disabled = true; btn.textContent = '저장 중…';
+        var p = bnEditId
+          ? B.updateBanner(bnEditId, Object.assign({ image: bnExistingImg }, payload))
+          : B.addBanner(payload);
+        p.then(function () { alert('저장되었습니다.'); bannerListView(); })
+          .catch(function (err) { alert('저장 실패: ' + errMsg(err)); btn.disabled = false; btn.textContent = bnEditId ? '수정 저장' : '등록'; });
+      });
+    }
+
+    bannerModal.addEventListener('click', function (e) {
+      var ed = e.target.closest('[data-bnedit]');
+      var dl = e.target.closest('[data-bndel]');
+      if (ed) {
+        B.listAllBanners().then(function (rows) {
+          var it = rows.filter(function (x) { return String(x.id) === ed.dataset.bnedit; })[0];
+          if (it) bannerEditView(it);
+        });
+      } else if (dl) {
+        if (!confirm('이 배너를 삭제할까요?')) return;
+        B.deleteBanner(dl.dataset.bndel).then(bannerListView)
+          .catch(function (err) { alert('삭제 실패: ' + errMsg(err)); });
+      }
+    });
+
+    var heroManageBtn = $('#heroManageBtn');
+    if (heroManageBtn) {
+      heroManageBtn.addEventListener('click', function () { bannerListView(); openModal(bannerModal); });
+    }
+
     /* ========== 인사이트/후기 작성·수정 모달 ========== */
     var postModalEl = makeModal('insightEditModal', 'EDITOR', '글 작성');
     var pBody = $('.modal-body', postModalEl);
@@ -475,6 +569,8 @@
       var showAdd = !!lastInfo.isAdmin;        // 등록 버튼은 관리자만
       if (colAddBtn) colAddBtn.hidden = !showAdd;
       if (postAddBtn) postAddBtn.hidden = !showAdd;
+      var hmBtn = $('#heroManageBtn');
+      if (hmBtn) hmBtn.hidden = !showAdd;
       updateVendorView(info);
       applyMyPageRole(info);
       renderInsight();

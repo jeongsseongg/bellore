@@ -173,28 +173,57 @@
     <main class="main-wrap">
         <!-- ========== 홈 ========== -->
         <section class="page page-home active" id="home">
-            <section class="hero hero-new">
-                <div class="hero-image"></div>
-                <div class="hero-gradient"></div>
-                <div class="container hero-content">
-                    <p class="hero-eyebrow anim-line">BELLORE · 공식 직영점</p>
-                    <h1 class="hero-title">
-                        <span class="anim-line">명품시계</span>
-                        <span class="anim-line"><span class="hl-green">구입 · 판매 · 수리</span>까지</span>
-                        <span class="anim-line">한번에 진행하세요</span>
-                    </h1>
-                    <div class="hero-cta hero-cta-3 anim-line">
-                        <a href="#sell" class="btn btn-primary" data-nav="sell">시계 판매</a>
-                        <a href="#buy" class="btn btn-primary" data-nav="buy">시계 구입</a>
-                        <a href="#repair" class="btn btn-primary" data-nav="repair">시계 수리</a>
+            <section class="hero-carousel" id="heroCarousel">
+                <div class="hero-track" id="heroTrack">
+                    <!-- 기본 슬라이드 (배너가 없을 때 노출). DB 배너가 있으면 JS가 슬라이드를 추가/교체 -->
+                    <div class="hero-slide hero hero-new hero-default">
+                        <div class="hero-image"></div>
+                        <div class="hero-gradient"></div>
+                        <div class="container hero-content">
+                            <p class="hero-eyebrow anim-line">BELLORE · 공식 직영점</p>
+                            <h1 class="hero-title">
+                                <span class="anim-line">명품시계</span>
+                                <span class="anim-line"><span class="hl-green">구입 · 판매 · 수리</span>까지</span>
+                                <span class="anim-line">한번에 진행하세요</span>
+                            </h1>
+                            <div class="hero-cta hero-cta-3 anim-line">
+                                <a href="#sell" class="btn btn-primary" data-nav="sell">시계 판매</a>
+                                <a href="#buy" class="btn btn-primary" data-nav="buy">시계 구입</a>
+                                <a href="#repair" class="btn btn-primary" data-nav="repair">시계 수리</a>
+                            </div>
+                        </div>
                     </div>
                 </div>
+                <button class="hero-nav hero-nav-prev" id="heroPrev" type="button" aria-label="이전 배너" hidden>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                <button class="hero-nav hero-nav-next" id="heroNext" type="button" aria-label="다음 배너" hidden>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+                <div class="hero-dots" id="heroDots"></div>
+                <button class="hero-manage-btn" id="heroManageBtn" type="button" hidden>＋ 배너 관리</button>
                 <a href="#liveBidHome" class="scroll-hint scroll-arrow-link" aria-label="아래로 스크롤">
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="12" y1="5" x2="12" y2="19"></line>
                         <polyline points="19 12 12 19 5 12"></polyline>
                     </svg>
                 </a>
+            </section>
+
+            <!-- 브랜드 바로가기 (원형) -->
+            <section class="brand-quicklinks">
+                <div class="container">
+                    <div class="brand-circle-row" id="brandCircleRow">
+                        <a href="#brand" class="brand-circle" data-nav="brand"><span class="brand-circle-img">ROLEX</span><span class="brand-circle-name">롤렉스</span></a>
+                        <a href="#brand" class="brand-circle" data-nav="brand"><span class="brand-circle-img">PATEK</span><span class="brand-circle-name">파텍필립</span></a>
+                        <a href="#brand" class="brand-circle" data-nav="brand"><span class="brand-circle-img">AP</span><span class="brand-circle-name">오데마피게</span></a>
+                        <a href="#brand" class="brand-circle" data-nav="brand"><span class="brand-circle-img">VC</span><span class="brand-circle-name">바쉐론</span></a>
+                        <a href="#brand" class="brand-circle" data-nav="brand"><span class="brand-circle-img">Cartier</span><span class="brand-circle-name">까르띠에</span></a>
+                        <a href="#brand" class="brand-circle" data-nav="brand"><span class="brand-circle-img">OMEGA</span><span class="brand-circle-name">오메가</span></a>
+                        <a href="#brand" class="brand-circle" data-nav="brand"><span class="brand-circle-img">H</span><span class="brand-circle-name">위블로</span></a>
+                        <a href="#brand" class="brand-circle" data-nav="brand"><span class="brand-circle-img">TAG</span><span class="brand-circle-name">태그호이어</span></a>
+                    </div>
+                </div>
             </section>
 
             <!-- LIVE 현재 진행중인 비교견적 -->
@@ -1757,7 +1786,8 @@
                     <a href="#compare" data-nav="compare">비교견적</a>
                     <a href="#collection" data-nav="collection">컬렉션</a>
                     <a href="#brand" data-nav="brand">취급 브랜드</a>
-                    <a href="#insight" data-nav="insight">매입 후기</a>
+                    <a href="#repair" data-nav="repair">시계 수리</a>
+                    <a href="#insight" data-nav="insight">커뮤니티 · 후기</a>
                 </div>
                 <div class="footer-col">
                     <h5>고객센터</h5>
@@ -2233,20 +2263,12 @@
             <span>홈</span>
         </button>
         <button class="tab-item" data-nav="compare">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/></svg>
-            <span>비교견적</span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <span>내시계팔기</span>
         </button>
         <button class="tab-item" data-nav="collection">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
             <span>판매시계</span>
-        </button>
-        <button class="tab-item" data-nav="insight">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h7v16H4z"/><path d="M13 4h7v16h-7z"/></svg>
-            <span>커뮤니티</span>
-        </button>
-        <button class="tab-item" data-nav="repair">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 1 5.3 5.3L12 19.6l-3.6.4.4-3.6 8.3-8.3a4 4 0 0 0-2.4-1.8z"/><path d="M3 21l4-4"/></svg>
-            <span>수리</span>
         </button>
         <button class="tab-item" data-nav="brand">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
