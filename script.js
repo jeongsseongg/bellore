@@ -1275,11 +1275,13 @@
     // 매물 카드에 한눈에 보이는 정보 배지(보증서·컨디션·구성품) + TIME SALE 카운트다운
     var SALE_HOURS = 72;
     function cardBadgesHTML(it) {
-        var b = [];
-        if (it.has_warranty) b.push('<span class="hcard-badge hcard-badge-warranty">정품보증</span>');
-        if (it.condition) b.push('<span class="hcard-badge">' + esc(it.condition) + '</span>');
-        if (it.accessories) b.push('<span class="hcard-badge hcard-badge-acc">' + esc(it.accessories) + '</span>');
-        var html = b.length ? '<div class="hcard-badges">' + b.join('') + '</div>' : '';
+        // 고객이 궁금해하는 핵심 정보(정품보증 · 구성품 · 컨디션)를 깔끔하게 정리
+        var html = '';
+        if (it.has_warranty) html += '<span class="hcard-warranty">✓ 정품보증</span>';
+        var parts = [];
+        if (it.accessories) parts.push(esc(it.accessories));
+        if (it.condition) parts.push(esc(it.condition));
+        if (parts.length) html += '<p class="hcard-summary">' + parts.join(' · ') + '</p>';
         if (it.tags && it.tags.indexOf('sale') !== -1 && it.created_at) {
             var end = Date.parse(it.created_at) + SALE_HOURS * 3600 * 1000;
             html += '<div class="hcard-timesale" data-end="' + end + '"><b>TIME SALE</b><span class="hcard-timer">--:--:--</span></div>';
