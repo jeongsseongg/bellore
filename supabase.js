@@ -391,6 +391,10 @@
       category: l.category || CATS.listing.brand,
       status: l.status,
       tags: l.tags || [],
+      condition: l.condition || '',
+      has_warranty: !!l.has_warranty,
+      accessories: l.accessories || '',
+      created_at: l.created_at || null,
       photos: (l.image_urls && l.image_urls.length) ? l.image_urls : (l.image_url ? [l.image_url] : [])
     };
   }
@@ -426,6 +430,9 @@
         category: data.category || CATS.listing.brand,
         status: data.status || 'on_sale',
         tags: data.tags || [],
+        condition: data.condition || null,
+        has_warranty: !!data.has_warranty,
+        accessories: data.accessories || null,
         image_urls: urls,
         image_url: urls[0] || null
       }).then(function (res) { if (res.error) throw res.error; refreshListingFeeds(); });
@@ -449,6 +456,9 @@
       if (data.status != null) patch.status = data.status;
       if (data.category != null) patch.category = data.category;
       if (data.tags != null) patch.tags = data.tags;
+      if (data.condition != null) patch.condition = data.condition;
+      if (data.has_warranty != null) patch.has_warranty = data.has_warranty;
+      if (data.accessories != null) patch.accessories = data.accessories;
       var existing = data.existingPhotos || [];
       if (newUrls.length || data.existingPhotos) {
         var all = existing.concat(newUrls).slice(0, 10);

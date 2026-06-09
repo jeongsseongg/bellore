@@ -1272,6 +1272,39 @@
         return (it.photos && it.photos[0]) ? it.photos[0] : 'assets/images.jpg';
     }
 
+    // 매물 카드에 한눈에 보이는 정보 배지(보증서·컨디션·구성품) + TIME SALE 카운트다운
+    var SALE_HOURS = 72;
+    function cardBadgesHTML(it) {
+        var b = [];
+        if (it.has_warranty) b.push('<span class="hcard-badge hcard-badge-warranty">정품보증</span>');
+        if (it.condition) b.push('<span class="hcard-badge">' + esc(it.condition) + '</span>');
+        if (it.accessories) b.push('<span class="hcard-badge hcard-badge-acc">' + esc(it.accessories) + '</span>');
+        var html = b.length ? '<div class="hcard-badges">' + b.join('') + '</div>' : '';
+        if (it.tags && it.tags.indexOf('sale') !== -1 && it.created_at) {
+            var end = Date.parse(it.created_at) + SALE_HOURS * 3600 * 1000;
+            html += '<div class="hcard-timesale" data-end="' + end + '"><b>TIME SALE</b><span class="hcard-timer">--:--:--</span></div>';
+        }
+        return html;
+    }
+    function fmtCountdown(ms) {
+        if (ms <= 0) return '마감';
+        var s = Math.floor(ms / 1000);
+        var d = Math.floor(s / 86400); s %= 86400;
+        var h = Math.floor(s / 3600); s %= 3600;
+        var m = Math.floor(s / 60); s %= 60;
+        function p(n) { return (n < 10 ? '0' : '') + n; }
+        return (d > 0 ? d + '일 ' : '') + p(h) + ':' + p(m) + ':' + p(s);
+    }
+    setInterval(function () {
+        var els = document.querySelectorAll('.hcard-timesale[data-end]');
+        for (var i = 0; i < els.length; i++) {
+            var el = els[i], end = parseInt(el.getAttribute('data-end'), 10);
+            var t = el.querySelector('.hcard-timer'), ms = end - Date.now();
+            if (t) t.textContent = fmtCountdown(ms);
+            if (ms <= 0) el.classList.add('ended');
+        }
+    }, 1000);
+
     // 승인된 고객 매물 → 고객 판매 마켓 그리드 상단에 표시
     function renderApprovedMarket(rows) {
         var inner = $('#panel-user .col-grid-inner');
@@ -1294,7 +1327,7 @@
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
                 '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
                 '<p class="hcard-model">' + esc(it.model) + '</p>' +
-                '<p class="hcard-price">' + priceHtml + '</p>' +
+                '<p class="hcard-price">' + priceHtml + '</p>' + cardBadgesHTML(it) +
                 '<div class="hcard-admin">' +
                 '<button type="button" class="hcard-edit" data-pedit="' + esc(it.id) + '">수정</button>' +
                 '<button type="button" class="hcard-del" data-pdel="' + esc(it.id) + '">삭제</button>' +
@@ -1327,7 +1360,7 @@
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
                 '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
                 '<p class="hcard-model">' + esc(it.model) + '</p>' +
-                '<p class="hcard-price">' + priceHtml + '</p>' +
+                '<p class="hcard-price">' + priceHtml + '</p>' + cardBadgesHTML(it) +
                 '<div class="hcard-admin">' +
                 '<button type="button" class="hcard-edit" data-pedit="' + esc(it.id) + '">수정</button>' +
                 '<button type="button" class="hcard-del" data-pdel="' + esc(it.id) + '">삭제</button>' +
@@ -1359,7 +1392,7 @@
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
                 '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
                 '<p class="hcard-model">' + esc(it.model) + '</p>' +
-                '<p class="hcard-price">' + priceHtml + '</p>';
+                '<p class="hcard-price">' + priceHtml + '</p>' + cardBadgesHTML(it);
             frag.appendChild(card);
         });
         grid.appendChild(frag);
@@ -1385,7 +1418,7 @@
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
                 '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
                 '<p class="hcard-model">' + esc(it.model) + '</p>' +
-                '<p class="hcard-price">' + priceHtml + '</p>';
+                '<p class="hcard-price">' + priceHtml + '</p>' + cardBadgesHTML(it);
             frag.appendChild(card);
         });
         grid.appendChild(frag);
