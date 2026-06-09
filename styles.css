@@ -400,12 +400,12 @@ img { display: block; max-width: 100%; height: auto; }
 /* ========== Hero (홈) ========== */
 .hero {
     position: relative;
-    min-height: 88vh;
+    min-height: 62vh;
     display: flex;
     align-items: center;
     overflow: hidden;
     color: var(--white);
-    padding: 100px 0 90px;
+    padding: 96px 0 40px;
 }
 .hero-image {
     position: absolute;
@@ -5271,14 +5271,19 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .hero-carousel { position: relative; overflow: hidden; }
 .hero-track { display: flex; transition: transform .45s cubic-bezier(.2,.8,.2,1); will-change: transform; }
 .hero-slide { position: relative; flex: 0 0 100%; min-width: 100%; }
-.hero-slide.hero { min-height: 88vh; }
+.hero-slide.hero { min-height: 62vh; }
 /* DB 배너 슬라이드 */
 /* 기본 히어로와 동일한 중앙 정렬 레이아웃 (문구 입력 시 '지금처럼' 보이게) */
-.hero-slide-db { min-height: 88vh; display: flex; align-items: center; color: #fff; overflow: hidden; padding: 100px 0 90px; }
+.hero-slide-db { min-height: 62vh; display: flex; align-items: center; color: #fff; overflow: hidden; padding: 96px 0 40px; }
 .hero-slide-db .hero-slide-bg {
-    position: absolute; inset: 0; background-size: cover; background-position: center;
-    filter: grayscale(.15) brightness(.7); z-index: 0;
+    position: absolute; inset: 0; background-size: contain; background-repeat: no-repeat;
+    background-position: center; background-color: #000; z-index: 0;
 }
+/* DB 배너는 디자인된 이미지라 어둡게 덮지 않고, 문구 가독성용 옅은 상·하단 그라데만 */
+.hero-slide-db .hero-gradient {
+    background: linear-gradient(180deg, rgba(0,0,0,.28) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 68%, rgba(0,0,0,.42) 100%);
+}
+.hero-slide-db .hero-slide-title, .hero-slide-db .hero-slide-sub { text-shadow: 0 2px 14px rgba(0,0,0,.55); }
 .hero-slide-db .hero-slide-text { padding: 0; }
 .hero-slide-db .hero-slide-title { font-size: 44px; font-weight: 700; line-height: 1.22; letter-spacing: -1px; margin-bottom: 18px; }
 .hero-slide-db .hero-slide-sub { font-size: 16px; color: rgba(255,255,255,.82); line-height: 1.6; }
@@ -5296,11 +5301,12 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .hero-nav-prev { left: 14px; }
 .hero-nav-next { right: 14px; }
 .hero-nav[hidden] { display: none; }
+.hero-nav { display: none !important; }  /* 화살표 숨김 — 스와이프로 이동 */
 
 /* 점 인디케이터 */
-.hero-dots { position: absolute; bottom: 86px; left: 0; right: 0; z-index: 5; display: flex; justify-content: center; gap: 7px; }
+.hero-dots { position: absolute; bottom: 70px; left: 0; right: 0; z-index: 5; display: flex; justify-content: center; gap: 6px; opacity: .45; }
 .hero-dots .hero-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.4); border: none; padding: 0; cursor: pointer; transition: all .2s; }
-.hero-dots .hero-dot.active { background: #fff; width: 20px; border-radius: 4px; }
+.hero-dots .hero-dot.active { background: rgba(255,255,255,.85); width: 16px; border-radius: 4px; }
 
 /* 관리자 배너 관리 버튼 */
 .hero-manage-btn {
