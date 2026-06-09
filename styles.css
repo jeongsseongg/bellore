@@ -400,7 +400,7 @@ img { display: block; max-width: 100%; height: auto; }
 /* ========== Hero (홈) ========== */
 .hero {
     position: relative;
-    min-height: 62vh;
+    min-height: 70vh;
     display: flex;
     align-items: center;
     overflow: hidden;
@@ -5271,10 +5271,10 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .hero-carousel { position: relative; overflow: hidden; }
 .hero-track { display: flex; transition: transform .45s cubic-bezier(.2,.8,.2,1); will-change: transform; }
 .hero-slide { position: relative; flex: 0 0 100%; min-width: 100%; }
-.hero-slide.hero { min-height: 62vh; }
+.hero-slide.hero { min-height: 70vh; }
 /* DB 배너 슬라이드 */
 /* 기본 히어로와 동일한 중앙 정렬 레이아웃 (문구 입력 시 '지금처럼' 보이게) */
-.hero-slide-db { min-height: 62vh; display: flex; align-items: center; color: #fff; overflow: hidden; padding: 96px 0 40px; }
+.hero-slide-db { min-height: 70vh; display: flex; align-items: center; color: #fff; overflow: hidden; padding: 96px 0 40px; }
 .hero-slide-db .hero-slide-bg {
     position: absolute; inset: 0; background-size: contain; background-repeat: no-repeat;
     background-position: center; background-color: #000; z-index: 0;
