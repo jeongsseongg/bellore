@@ -133,7 +133,7 @@
   // 찜페이지의 담기/삭제
   document.addEventListener('click', function (e) {
     var rm = e.target.closest('.wish-remove'), ac = e.target.closest('.wish-addcart');
-    if (rm) { e.preventDefault(); removeFromStore(rm.dataset.kind === 'cart' ? 'cart' : 'wish', rm.dataset.id); return; }
+    if (rm) { e.preventDefault(); if (!window.confirm('이 항목을 삭제할까요?')) return; removeFromStore(rm.dataset.kind === 'cart' ? 'cart' : 'wish', rm.dataset.id); return; }
     if (ac) {
       e.preventDefault();
       var it = findById(getWish(), ac.dataset.id);
@@ -196,14 +196,13 @@
   /* ---------- 렌더 ---------- */
   function cardHTML(it, kind) {
     return '<article class="hcard wish-card" data-pid="' + esc(idOf(it)) + '" data-brand="' + esc(it.brand) + '" data-model="' + esc(it.model) + '" data-price="' + (it.price || 0) + '">' +
+      '<button type="button" class="wish-remove" data-kind="' + kind + '" data-id="' + esc(idOf(it)) + '" aria-label="삭제"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>' +
       '<div class="hcard-img"><img src="' + esc(it.img || 'assets/images.jpg') + '" alt=""></div>' +
       '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
       '<p class="hcard-model">' + esc(it.model) + '</p>' +
       '<p class="hcard-price">' + (it.price ? fmt(it.price) + '<em>원</em>' : '가격 문의') + '</p>' +
-      '<div class="wish-card-acts">' +
-      (kind === 'wish' ? '<button type="button" class="wish-addcart" data-id="' + esc(idOf(it)) + '">장바구니 담기</button>' : '') +
-      '<button type="button" class="wish-remove" data-kind="' + kind + '" data-id="' + esc(idOf(it)) + '">삭제</button>' +
-      '</div></article>';
+      (kind === 'wish' ? '<div class="wish-card-acts"><button type="button" class="wish-addcart" data-id="' + esc(idOf(it)) + '">장바구니 담기</button></div>' : '') +
+      '</article>';
   }
   function renderPage() {
     var wish = getWish(), cart = getCart();
