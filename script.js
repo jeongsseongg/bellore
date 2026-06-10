@@ -115,7 +115,7 @@
         if (prevBtn) prevBtn.addEventListener('click', prev);
         if (nextBtn) nextBtn.addEventListener('click', next);
 
-        // 스와이프(터치/포인터)
+        // 스와이프(터치/포인터) + 좌/우 가장자리 탭으로 이동 (화살표 없이)
         var startX = 0, dx = 0, dragging = false;
         track.addEventListener('pointerdown', function (e) {
             if (e.target.closest('a,button')) return;
@@ -127,12 +127,18 @@
             dx = e.clientX - startX;
             track.style.transform = 'translateX(calc(' + (-index * 100) + '% + ' + dx + 'px))';
         });
-        function endDrag() {
+        function endDrag(e) {
             if (!dragging) return;
             dragging = false;
             track.style.transition = '';
-            if (Math.abs(dx) > 60) { dx < 0 ? next() : prev(); }
-            else update();
+            if (Math.abs(dx) > 45) { dx < 0 ? next() : prev(); return; }
+            update();
+            if (e && Math.abs(dx) < 8 && !(e.target.closest && e.target.closest('a,button'))) {
+                var r = carousel.getBoundingClientRect();
+                var x = e.clientX - r.left;
+                if (x < r.width * 0.22) prev();
+                else if (x > r.width * 0.78) next();
+            }
         }
         track.addEventListener('pointerup', endDrag);
         track.addEventListener('pointercancel', endDrag);
@@ -166,6 +172,12 @@
             update();
             restartAuto();
         };
+
+        // 캐시된 배너를 먼저 즉시 렌더 → 기본배너 깜빡임 방지(DB 응답 시 갱신)
+        try {
+            var _cb = JSON.parse(localStorage.getItem('bellore_banners') || 'null');
+            if (_cb && _cb.length) window.belloreSetBanners(_cb);
+        } catch (e) {}
 
         function escapeHtml(s) {
             return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')

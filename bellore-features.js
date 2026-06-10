@@ -202,6 +202,7 @@
     // 방문자: 활성 배너를 캐러셀에 주입
     if (typeof B.subscribeBanners === 'function') {
       B.subscribeBanners(function (list) {
+        try { localStorage.setItem('bellore_banners', JSON.stringify(list || [])); } catch (e) {}
         if (window.belloreSetBanners) window.belloreSetBanners(list);
       });
     }
