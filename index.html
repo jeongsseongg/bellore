@@ -1040,6 +1040,17 @@
                         <button type="button" class="brand-circle cat-brand" data-brand="AUDEMARS"><span class="brand-circle-img">AP</span><span class="brand-circle-name">오데마피게</span></button>
                         <button type="button" class="brand-circle cat-brand" data-brand="VACHERON"><span class="brand-circle-img">VC</span><span class="brand-circle-name">바쉐론</span></button>
                         <button type="button" class="brand-circle cat-brand" data-brand="FRANCK"><span class="brand-circle-img">FRANCK</span><span class="brand-circle-name">프랭크뮬러</span></button>
+                        <button type="button" class="brand-circle cat-brand brand-more" data-brand="OMEGA"><span class="brand-circle-img">OMEGA</span><span class="brand-circle-name">오메가</span></button>
+                        <button type="button" class="brand-circle cat-brand brand-more" data-brand="CARTIER"><span class="brand-circle-img">Cartier</span><span class="brand-circle-name">까르띠에</span></button>
+                        <button type="button" class="brand-circle cat-brand brand-more" data-brand="HUBLOT"><span class="brand-circle-img">HUBLOT</span><span class="brand-circle-name">위블로</span></button>
+                        <button type="button" class="brand-circle cat-brand brand-more" data-brand="TAG"><span class="brand-circle-img">TAG</span><span class="brand-circle-name">태그호이어</span></button>
+                        <button type="button" class="brand-circle cat-brand brand-more" data-brand="IWC"><span class="brand-circle-img">IWC</span><span class="brand-circle-name">IWC</span></button>
+                        <button type="button" class="brand-circle cat-brand brand-more" data-brand="BREITLING"><span class="brand-circle-img">BRT</span><span class="brand-circle-name">브라이틀링</span></button>
+                        <button type="button" class="brand-circle cat-brand brand-more" data-brand="PANERAI"><span class="brand-circle-img">PAM</span><span class="brand-circle-name">파네라이</span></button>
+                        <button type="button" class="brand-circle cat-brand brand-more" data-brand="TUDOR"><span class="brand-circle-img">TUDOR</span><span class="brand-circle-name">튜더</span></button>
+                        <button type="button" class="brand-circle cat-brand brand-more" data-brand="GUCCI"><span class="brand-circle-img">GUCCI</span><span class="brand-circle-name">구찌</span></button>
+                        <button type="button" class="brand-circle cat-brand brand-more" data-brand="CHANEL"><span class="brand-circle-img">CHANEL</span><span class="brand-circle-name">샤넬</span></button>
+                        <button type="button" class="brand-circle brand-more-toggle"><span class="brand-circle-img brand-circle-more-img">+</span><span class="brand-circle-name">모든 브랜드</span></button>
                     </div>
 
                     <!-- 필터 드롭다운 -->
@@ -2581,6 +2592,22 @@
             setTimeout(applyFilters, 1500);
             setTimeout(applyFilters, 4000);
         })();
+
+        /* 관리자 카드 톱니바퀴 메뉴 토글 */
+        document.addEventListener('click', function (e) {
+            var g = e.target.closest('.hcard-gear');
+            document.querySelectorAll('.hcard-admin-menu').forEach(function (m) {
+                if (!g || m.parentElement !== g.parentElement) m.hidden = true;
+            });
+            if (g) { e.preventDefault(); e.stopPropagation(); var mn = g.parentElement.querySelector('.hcard-admin-menu'); if (mn) mn.hidden = !mn.hidden; }
+        });
+        /* 판매시계: 모든 브랜드 보기 토글 */
+        document.addEventListener('click', function (e) {
+            var t = e.target.closest('.brand-more-toggle'); if (!t) return;
+            var wrap = t.closest('.cat-brands'); if (!wrap) return;
+            var on = wrap.classList.toggle('show-all');
+            var nm = t.querySelector('.brand-circle-name'); if (nm) nm.textContent = on ? '접기' : '모든 브랜드';
+        });
     </script>
 </body>
 </html>

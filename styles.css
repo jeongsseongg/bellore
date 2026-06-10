@@ -6079,3 +6079,17 @@ html[data-width="full"] .hcard-grid {
 
 /* 판매시계 필터 셀렉트(등급·사이즈) */
 .cat-filter-sel { flex: 0 0 auto; padding: 8px 14px; border: 1px solid var(--border); border-radius: 999px; background: var(--white); color: var(--text-2); font-size: 13px; font-family: inherit; cursor: pointer; }
+
+
+/* 더 많은 브랜드(모든 브랜드 보기 토글) */
+.cat-brands .brand-more { display: none; }
+.cat-brands.show-all .brand-more { display: flex; }
+/* 관리자 카드 우상단 톱니바퀴 메뉴 */
+.hcard-admin { position: absolute; top: 8px; right: 8px; z-index: 5; display: none; margin: 0; }
+body.admin-mode .hcard-dynamic .hcard-admin { display: block; }
+body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
+.hcard-gear { width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,.94); border: 1px solid var(--border); color: #555; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,.12); padding: 0; }
+.hcard-admin-menu { position: absolute; top: 36px; right: 0; background: #fff; border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 20px rgba(0,0,0,.16); overflow: hidden; min-width: 84px; }
+.hcard-admin-menu[hidden] { display: none; }
+.hcard-admin-menu button { display: block; width: 100%; padding: 10px 16px; text-align: left; font-size: 13px; background: #fff; border: none; color: var(--text); margin: 0; }
+.hcard-admin-menu .hcard-del { color: #b42318; }

@@ -1364,9 +1364,11 @@
                 '<p class="hcard-model">' + esc(it.model) + '</p>' +
                 '<p class="hcard-price">' + priceHtml + '</p>' + cardBadgesHTML(it) +
                 '<div class="hcard-admin">' +
+                '<button type="button" class="hcard-gear" aria-label="설정"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1l2.1-2.1M17 7l2.1-2.1\"/></svg></button>' +
+                '<div class="hcard-admin-menu" hidden>' +
                 '<button type="button" class="hcard-edit" data-pedit="' + esc(it.id) + '">수정</button>' +
                 '<button type="button" class="hcard-del" data-pdel="' + esc(it.id) + '">삭제</button>' +
-                '</div>';
+                '</div></div>';
             frag.appendChild(card);
         });
         inner.insertBefore(frag, inner.firstChild);
@@ -1399,9 +1401,11 @@
                 '<p class="hcard-model">' + esc(it.model) + '</p>' +
                 '<p class="hcard-price">' + priceHtml + '</p>' + cardBadgesHTML(it) +
                 '<div class="hcard-admin">' +
+                '<button type="button" class="hcard-gear" aria-label="설정"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1l2.1-2.1M17 7l2.1-2.1\"/></svg></button>' +
+                '<div class="hcard-admin-menu" hidden>' +
                 '<button type="button" class="hcard-edit" data-pedit="' + esc(it.id) + '">수정</button>' +
                 '<button type="button" class="hcard-del" data-pdel="' + esc(it.id) + '">삭제</button>' +
-                '</div>';
+                '</div></div>';
             frag.appendChild(card);
         });
         inner.insertBefore(frag, inner.firstChild);
@@ -2661,7 +2665,7 @@
 
         document.addEventListener('click', function (e) {
             // 관리자 수정/삭제 버튼 클릭은 상세 모달을 열지 않음
-            if (e.target.closest('.hcard-admin, .hcard-wish, .hcard-cart, .wish-card-acts')) return;
+            if (e.target.closest('.hcard-admin, .hcard-gear, .hcard-admin-menu, .hcard-wish, .hcard-cart, .wish-card-acts')) return;
             // hcard 클릭 시 모달 오픈 (단, 드래그 중이면 cancel됨)
             var card = e.target.closest('.hcard');
             if (card && !e.defaultPrevented) {
