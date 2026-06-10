@@ -6082,7 +6082,7 @@ html[data-width="full"] .hcard-grid {
 
 
 /* 더 많은 브랜드(모든 브랜드 보기 토글) */
-.cat-brands .brand-more { display: none; }
+.cat-brands .brand-more { display: flex; }
 .cat-brands.show-all .brand-more { display: flex; }
 /* 관리자 카드 우상단 톱니바퀴 메뉴 */
 .hcard-admin { position: absolute; top: 8px; right: 8px; z-index: 5; display: none; margin: 0; }
@@ -6099,3 +6099,9 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 .header-back { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; color: var(--white); border-radius: 50%; flex: 0 0 auto; margin-right: 2px; }
 .header.scrolled .header-back, .header.light-page .header-back { color: var(--text); }
 .header-back[hidden] { display: none; }
+
+
+/* 홈 '전체보기' 검정 원형 (참고 디자인) */
+.brand-circle-all .brand-circle-img { background: #111; color: #fff; border-color: #111; font-family: var(--serif); font-size: 13px; letter-spacing: 1px; }
+.brand-circle-all .brand-circle-name { color: #111; font-weight: 700; }
+.brand-circle-all:hover .brand-circle-img { background: #000; }
