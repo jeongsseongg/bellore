@@ -6046,3 +6046,13 @@ html[data-width="full"] .hcard-grid {
     transition: opacity .22s, transform .22s; white-space: nowrap; max-width: 80vw;
 }
 .wish-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* [버그수정] 카테고리 그리드 카드가 200px 고정이라 오른쪽이 짤리던 문제
+   → 판매시계/홈처럼 1fr 트랙에 맞춰 폭 자동(넘침 방지 min-width:0) */
+.home-sale-grid .hcard,
+.col-grid-inner .hcard,
+.hcard-grid .hcard {
+    width: auto;
+    flex: none;
+    min-width: 0;
+}
