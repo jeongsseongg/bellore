@@ -5971,3 +5971,70 @@ html[data-width="full"] .hcard-grid {
     font-family: var(--serif); letter-spacing: 3px; font-size: 13px;
     color: #c4c4c4; font-weight: 600;
 }
+
+/* ============================================================
+   찜(Wishlist) / 장바구니(Cart)
+   ============================================================ */
+/* 하단 찜 탭 배지 */
+.tab-wish-ic { position: relative; display: inline-flex; }
+.tab-wish-badge {
+    position: absolute; top: -6px; right: -9px; min-width: 16px; height: 16px;
+    padding: 0 4px; border-radius: 999px; background: #e53935; color: #fff;
+    font-size: 10px; font-weight: 800; line-height: 16px; text-align: center;
+}
+.tab-wish-badge[hidden] { display: none; }
+
+/* 카드 위 찜/장바구니 버튼 */
+.hcard-actions { position: absolute; top: 8px; right: 8px; z-index: 4; display: flex; flex-direction: column; gap: 6px; }
+.hcard-actions button {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(255,255,255,0.92); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center; color: #555;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12); transition: transform .12s, color .15s, background .15s;
+}
+.hcard-actions button:active { transform: scale(0.9); }
+.hcard-wish.on { background: #111; color: #fff; border-color: #111; }
+.hcard-wish.on svg { fill: #fff; }
+.hcard-cart:hover { color: #111; }
+
+/* 상세 하단 장바구니 버튼 */
+.pp-cart {
+    flex: 0 0 auto; padding: 0 18px; min-width: 96px;
+    border: 1px solid #111; border-radius: 10px; background: #fff; color: #111;
+    font-size: 15px; font-weight: 700;
+}
+.pp-cart:active { opacity: .85; }
+
+/* 마이페이지 장바구니 링크 */
+.mypage-cart-link {
+    width: 100%; display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; margin: 0 0 12px; border: 1px solid var(--border);
+    border-radius: 12px; background: var(--white); font-size: 14.5px; font-weight: 700; color: var(--text);
+}
+
+/* 찜 페이지 */
+.wish-tabs { display: flex; gap: 8px; padding: 14px 0 4px; }
+.wish-tab {
+    flex: 1; padding: 12px 0; border-radius: 12px; border: 1px solid var(--border);
+    background: var(--white); font-size: 14px; font-weight: 700; color: var(--text-2);
+}
+.wish-tab.active { background: #111; color: #fff; border-color: #111; }
+.wish-tab b { font-weight: 800; }
+.wish-empty { text-align: center; color: var(--text-3); font-size: 13.5px; padding: 48px 16px; line-height: 1.6; }
+.wish-card-acts { display: flex; gap: 6px; padding: 10px 10px 12px; }
+.wish-card-acts button {
+    flex: 1; padding: 9px 0; border-radius: 8px; font-size: 12.5px; font-weight: 700;
+    border: 1px solid var(--border); background: var(--bg-soft); color: var(--text);
+}
+.wish-card-acts .wish-addcart { background: #111; color: #fff; border-color: #111; }
+.wish-card .hcard-brand { padding-left: 10px; }
+.wish-card .hcard-model, .wish-card .hcard-price { padding-left: 10px; }
+
+/* 찜/장바구니 토스트 */
+.wish-toast {
+    position: fixed; left: 50%; bottom: calc(var(--tabbar-h) + 18px); transform: translateX(-50%) translateY(10px);
+    background: rgba(20,20,20,.96); color: #fff; font-size: 13px; font-weight: 600;
+    padding: 11px 18px; border-radius: 999px; z-index: 9999; opacity: 0; pointer-events: none;
+    transition: opacity .22s, transform .22s; white-space: nowrap; max-width: 80vw;
+}
+.wish-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }

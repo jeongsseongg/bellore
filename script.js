@@ -1859,7 +1859,7 @@
     }
 
     /* ============ 1. 라우팅 ============ */
-    var VALID = ['home', 'compare', 'collection', 'insight', 'brand', 'about', 'contact', 'sell', 'buy', 'repair', 'cat-update', 'cat-sale', 'cat-new', 'cat-today', 'appraisal'];
+    var VALID = ['home', 'compare', 'collection', 'insight', 'brand', 'about', 'contact', 'sell', 'buy', 'repair', 'cat-update', 'cat-sale', 'cat-new', 'cat-today', 'appraisal', 'wishlist'];
 
     function applyPage(target) {
         if (VALID.indexOf(target) === -1) target = 'home';
@@ -2645,7 +2645,7 @@
 
         document.addEventListener('click', function (e) {
             // 관리자 수정/삭제 버튼 클릭은 상세 모달을 열지 않음
-            if (e.target.closest('.hcard-admin')) return;
+            if (e.target.closest('.hcard-admin, .hcard-wish, .hcard-cart, .wish-card-acts')) return;
             // hcard 클릭 시 모달 오픈 (단, 드래그 중이면 cancel됨)
             var card = e.target.closest('.hcard');
             if (card && !e.defaultPrevented) {
@@ -2673,9 +2673,7 @@
                 modal.querySelector('.pp-scroll').scrollTop = 0;
                 return;
             }
-            // 찜 토글
-            var w = e.target.closest('#pmWish, #pmWishTop');
-            if (w) { w.classList.toggle('on'); return; }
+            // 찜 토글은 wishlist.js 가 처리(localStorage 연동)
             // 썸네일 선택
             var th = e.target.closest('.pp-thumb');
             if (th) selectPhoto(parseInt(th.dataset.i, 10));

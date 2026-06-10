@@ -1892,6 +1892,27 @@
                 </div>
             </section>
         </section>
+        <!-- ========== 찜 / 장바구니 (My Pick) ========== -->
+        <section class="page" id="wishlist" data-page="wishlist">
+            <div class="cat-page-header">
+                <h2 class="cat-page-title">MY PICK</h2>
+                <p class="cat-page-sub">찜한 시계와 장바구니를 한눈에</p>
+            </div>
+            <div class="container">
+                <div class="wish-tabs">
+                    <button type="button" class="wish-tab active" data-wishtab="wish">찜 목록 <b id="wishCount">0</b></button>
+                    <button type="button" class="wish-tab" data-wishtab="cart">장바구니 <b id="cartCount">0</b></button>
+                </div>
+                <div class="wish-panel" id="wishPanelWish">
+                    <div class="hcard-grid" id="wishGrid"></div>
+                    <div class="wish-empty" id="wishEmpty" hidden>찜한 시계가 없습니다. 상품의 하트를 눌러 담아보세요.</div>
+                </div>
+                <div class="wish-panel" id="wishPanelCart" hidden>
+                    <div class="hcard-grid" id="cartGrid"></div>
+                    <div class="wish-empty" id="cartEmpty" hidden>장바구니가 비어 있습니다.</div>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- 푸터 -->
@@ -2173,6 +2194,11 @@
                 <button type="button" class="mypage-btn" id="adminAddListingBtn">+ 판매시계 등록</button>
             </div>
 
+            <button type="button" class="mypage-cart-link" data-nav="wishlist" id="myCartLink">
+                <span>장바구니 / 찜 목록 (My Pick)</span>
+                <span aria-hidden="true">›</span>
+            </button>
+
             <button type="button" class="login-btn login-default" id="btnLogout">로그아웃</button>
         </div>
     </div>
@@ -2347,6 +2373,7 @@
             <button class="pp-wish" id="pmWish" aria-label="찜하기">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
             </button>
+            <button class="pp-cart" id="pmCart">장바구니</button>
             <button class="pp-buy" id="pmBuy">바로구매</button>
         </div>
     </div>
@@ -2451,17 +2478,20 @@
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12L12 3l9 9"/><path d="M5 10v10h14V10"/></svg>
             <span>홈</span>
         </button>
-        <button class="tab-item" data-nav="compare">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-            <span>내시계팔기</span>
-        </button>
         <button class="tab-item" data-nav="collection">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
             <span>판매시계</span>
         </button>
-        <button class="tab-item" data-nav="brand">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-            <span>브랜드</span>
+        <button class="tab-item tab-wish" data-nav="wishlist">
+            <span class="tab-wish-ic">
+                <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+                <b class="tab-wish-badge" id="tabWishBadge" hidden>0</b>
+            </span>
+            <span>찜</span>
+        </button>
+        <button class="tab-item" data-nav="compare">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <span>내시계팔기</span>
         </button>
         <button class="tab-item" data-nav="about">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
@@ -2475,6 +2505,7 @@
     <script src="supabase.js"></script>
     <script src="bellore-features.js"></script>
     <script src="script.js"></script>
+    <script src="wishlist.js"></script>
     <script src="payments.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
