@@ -199,12 +199,15 @@
         if (backendOn() && NWBackend.subscribeMyOrders) {
             if (myOrdersUnsub) { try { myOrdersUnsub(); } catch (e) {} }
             myOrdersUnsub = NWBackend.subscribeMyOrders(function (orders) {
-                var wait = orders.filter(function (o) { return o.status === 'pending'; }).length;
-                var paid = orders.filter(function (o) { return o.status === 'paid'; }).length;
-                var w = $('#psWait'), p = $('#psPaid'), pq = $('#pqUnpaid');
-                if (w) w.textContent = wait;
-                if (p) p.textContent = paid;
-                if (pq) pq.textContent = wait + '건';
+                function cnt(st) { return orders.filter(function (o) { return o.status === st; }).length; }
+                var wait = cnt('pending');
+                var set = function (id, n) { var el = $(id); if (el) el.textContent = n; };
+                set('#psWait', wait);
+                set('#psPaid', cnt('paid'));
+                set('#psPrep', cnt('preparing'));
+                set('#psShip', cnt('shipping'));
+                set('#psDone', cnt('delivered'));
+                var pq = $('#pqUnpaid'); if (pq) pq.textContent = wait + '건';
             });
         }
 
@@ -357,9 +360,14 @@
             if (nameEl) nameEl.textContent = user ? ((user.displayName || '회원') + '님') : '마이페이지';
             if (emailEl) emailEl.textContent = user ? (user.email || '') : '';
 
-            // 마이포켓 헤더(고객명)
+            // 마이포켓 헤더(고객명 · 등급 · 포인트) — 실제 프로필 데이터
             var pname = $('#pocketName');
             if (pname) pname.textContent = user ? ((user.displayName || '회원') + '님') : '고객님';
+            var GRADE_LABEL = { family: 'Family', silver: 'Silver', gold: 'Gold', vip: 'VIP' };
+            var gradeEl = $('#pocketGrade');
+            if (gradeEl) gradeEl.textContent = (info && GRADE_LABEL[info.grade]) || 'Family';
+            var pointEl = $('#pocketPoint');
+            if (pointEl) pointEl.textContent = ((info && info.points) || 0).toLocaleString('ko-KR') + 'P';
 
             // 알림 벨
             var bell = $('#btnNoti');

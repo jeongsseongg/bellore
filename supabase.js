@@ -135,7 +135,9 @@
       isAdmin: Backend.isAdmin(),
       role: Backend.role(),
       approved: !!(profile && profile.approved),
-      isApprovedVendor: Backend.isApprovedVendor()
+      isApprovedVendor: Backend.isApprovedVendor(),
+      points: (profile && profile.points) || 0,
+      grade: (profile && profile.grade) || 'family'
     };
   }
   function notifyAuth() {
