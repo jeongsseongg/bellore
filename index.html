@@ -172,6 +172,9 @@
     <!-- 상단 헤더 -->
     <header class="header" id="header">
         <div class="header-inner">
+            <button type="button" class="header-back" id="headerBack" aria-label="뒤로가기" hidden>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
             <a href="#home" class="logo" data-nav="home" aria-label="BELLORE 홈">
                 <img class="logo-img" src="assets/logo-bellore.png" alt="BELLORE KOREA">
             </a>
@@ -2608,6 +2611,45 @@
             var on = wrap.classList.toggle('show-all');
             var nm = t.querySelector('.brand-circle-name'); if (nm) nm.textContent = on ? '접기' : '모든 브랜드';
         });
+
+        /* 좌상단 뒤로가기 + 기기/브라우저 back 연동 (오버레이는 back으로 닫힘) */
+        (function () {
+            var OV = '#productModal, #listingPage, #checkoutModal, #myPageModal, #loginModal, #notiModal, #pwaInstallModal, #postModal, #partnerModal, #inquiryModal';
+            var back = document.getElementById('headerBack');
+            function visibleOverlay() {
+                var els = document.querySelectorAll(OV);
+                for (var i = 0; i < els.length; i++) { if (!els[i].hidden) return els[i]; }
+                return null;
+            }
+            function closeOverlay(ov) {
+                var c = ov.querySelector('.pp-back, [data-pclose], [data-lpclose], .co-back, [data-myclose], [data-mclose], [data-noticlose], [data-pwa-close], [data-close], .login-close');
+                if (c) c.click(); else { ov.hidden = true; document.body.style.overflow = ''; }
+            }
+            function onHome() { return (!location.hash || location.hash === '#home'); }
+            function update() { if (back) back.hidden = (onHome() && !visibleOverlay()); }
+            if (back) back.addEventListener('click', function () {
+                var ov = visibleOverlay();
+                if (ov) { closeOverlay(ov); setTimeout(update, 30); return; }
+                history.back();
+            });
+            var pushed = false;
+            try {
+                var obs = new MutationObserver(function () {
+                    var ov = visibleOverlay();
+                    if (ov && !pushed) { pushed = true; history.pushState({ ov: 1 }, ''); }
+                    if (!ov) pushed = false;
+                    update();
+                });
+                document.querySelectorAll(OV).forEach(function (el) { obs.observe(el, { attributes: true, attributeFilter: ['hidden'] }); });
+            } catch (e) {}
+            window.addEventListener('popstate', function () {
+                var ov = visibleOverlay();
+                if (ov) { pushed = false; closeOverlay(ov); }
+                setTimeout(update, 30);
+            });
+            window.addEventListener('hashchange', update);
+            update();
+        })();
     </script>
 </body>
 </html>

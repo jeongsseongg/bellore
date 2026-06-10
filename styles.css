@@ -6093,3 +6093,9 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 .hcard-admin-menu[hidden] { display: none; }
 .hcard-admin-menu button { display: block; width: 100%; padding: 10px 16px; text-align: left; font-size: 13px; background: #fff; border: none; color: var(--text); margin: 0; }
 .hcard-admin-menu .hcard-del { color: #b42318; }
+
+
+/* 좌상단 뒤로가기 버튼 */
+.header-back { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; color: var(--white); border-radius: 50%; flex: 0 0 auto; margin-right: 2px; }
+.header.scrolled .header-back, .header.light-page .header-back { color: var(--text); }
+.header-back[hidden] { display: none; }
