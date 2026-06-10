@@ -827,6 +827,33 @@
       .then(function (res) { if (res.error) throw res.error; refreshBanners(); });
   };
 
+  /* ---------------- 찜 / 장바구니 (user_picks) — 계정별 ---------------- */
+  function mapPick(p) {
+    return { id: p.item_key, brand: p.brand || '', model: p.model || '', price: p.price || 0, img: p.image || '' };
+  }
+  Backend.listPicks = function (kind) {
+    if (!rawUser) return Promise.resolve([]);
+    return sb.from('user_picks').select('*')
+      .eq('user_id', rawUser.id).eq('kind', kind)
+      .order('created_at', { ascending: false })
+      .then(function (res) { if (res.error) throw res.error; return (res.data || []).map(mapPick); });
+  };
+  Backend.addPick = function (kind, it) {
+    if (!rawUser) return Promise.reject(new Error('NOT_LOGGED_IN'));
+    return sb.from('user_picks').upsert({
+      user_id: rawUser.id, kind: kind, item_key: String(it.id),
+      brand: it.brand || null, model: it.model || null,
+      price: it.price || null, image: it.img || null
+    }, { onConflict: 'user_id,kind,item_key' })
+      .then(function (res) { if (res.error) throw res.error; });
+  };
+  Backend.removePick = function (kind, key) {
+    if (!rawUser) return Promise.resolve();
+    return sb.from('user_picks').delete()
+      .eq('user_id', rawUser.id).eq('kind', kind).eq('item_key', String(key))
+      .then(function (res) { if (res.error) throw res.error; });
+  };
+
   /* ---------------- 부트스트랩 ---------------- */
   Backend.enabled = true;
 
