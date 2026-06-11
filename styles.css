@@ -3617,40 +3617,48 @@ body.admin-mode .main-wrap { padding-top: 0; }
 }
 .hcard-tag.ny { background: var(--green); color: var(--white); }
 .hcard-tag.user { background: rgba(255,255,255,0.9); color: var(--text); border: 1px solid var(--border); }
+/* 카드 텍스트: 궁서(serif) 제거 · 모델명을 가장 크게 · 간격 균일하게 간결 정리 */
 .hcard-brand {
-    font-family: var(--serif);
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 1.5px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
     text-transform: uppercase;
     color: var(--green-bright);
-    padding: 12px 14px 0;
+    padding: 11px 13px 0;
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 .hcard-model {
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 16px;          /* 모델명을 가장 크게 (브랜드보다 2단계 ↑) */
+    font-weight: 800;
     color: var(--text);
-    padding: 4px 14px 8px;
+    padding: 3px 13px 0;
     margin: 0;
-    line-height: 1.3;
-    /* 모델명 길이와 무관하게 정확히 2줄 높이 고정 → 모든 카드 박스 동일 */
-    height: calc(1.3em * 2 + 12px);
+    line-height: 1.25;
+    letter-spacing: -0.2px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
-.hcard-price {
-    font-family: var(--serif);
-    font-size: 19px;
+.hcard-pack {
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.2px;
+    color: var(--text-3);
+    padding: 3px 13px 0;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.hcard-price {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.1px;
     color: var(--text);
-    padding: 0 14px 14px;
+    padding: 3px 13px 12px;
     margin: 0;
 }
 .hcard-price em {
@@ -6318,13 +6326,16 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 }
 .lp-brand-btn.on { color: #111; font-weight: 700; }
 .lp-brand-sheet {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 8px;
-    margin-top: 10px; padding: 14px 10px; border: 1px solid var(--border);
-    border-radius: 12px; background: #faf9f7; max-height: 340px; overflow-y: auto;
+    margin-top: 10px; padding: 12px 10px; border: 1px solid var(--border);
+    border-radius: 12px; background: #faf9f7; max-height: 380px; overflow-y: auto;
 }
 .lp-brand-sheet[hidden] { display: none; }
+.lp-brand-search { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #e3ded4; border-radius: 10px; padding: 9px 12px; margin-bottom: 12px; position: sticky; top: 0; }
+.lp-brand-search input { flex: 1; border: none; outline: none; background: none; font-size: 14px; font-family: inherit; }
+.lp-brand-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px 8px; }
+.lp-brand-none { grid-column: 1 / -1; text-align: center; color: #aaa; font-size: 13px; padding: 18px 0; }
 .lp-brand-opt { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px 2px; border-radius: 10px; }
-.lp-brand-opt img { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; border: 1px solid #e7e3da; }
+.lp-brand-opt img { width: 46px; height: 46px; border-radius: 50%; object-fit: contain; background: #fff; border: 1px solid #e7e3da; }
 .lp-brand-opt span { font-size: 11px; color: #444; text-align: center; line-height: 1.2; }
 .lp-brand-opt.on { background: #eef5f0; }
 .lp-brand-opt.on img { outline: 2px solid var(--dark-green); outline-offset: 1px; }
@@ -6424,6 +6435,8 @@ body.is-searching .tab-search span { font-weight: 700; }
     opacity: 0; transition: opacity .2s;
 }
 .bl-modal-mask.show { opacity: 1; }
+.bl-modal-mask[hidden] { display: none !important; }
+.bl-modal-mask:not(.show) { pointer-events: none; }
 .bl-modal {
     width: 100%; max-width: 340px; background: #fff; border-radius: 20px; overflow: hidden;
     box-shadow: 0 24px 60px rgba(0,0,0,.35); transform: translateY(12px) scale(.98); transition: transform .22s;

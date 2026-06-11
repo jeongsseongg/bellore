@@ -1374,6 +1374,7 @@
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
                 '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
                 '<p class="hcard-model">' + esc(it.model) + '</p>' +
+                (it.pack ? '<p class="hcard-pack">' + esc(it.pack) + '</p>' : '') +
                 '<p class="hcard-price">' + priceHtml + '</p>' + cardBadgesHTML(it) +
                 '<div class="hcard-admin">' +
                 '<button type="button" class="hcard-gear" aria-label="설정"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1l2.1-2.1M17 7l2.1-2.1\"/></svg></button>' +
@@ -1410,6 +1411,7 @@
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
                 '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
                 '<p class="hcard-model">' + esc(it.model) + '</p>' +
+                (it.pack ? '<p class="hcard-pack">' + esc(it.pack) + '</p>' : '') +
                 '<p class="hcard-price">' + priceHtml + '</p>' + cardBadgesHTML(it) +
                 '<div class="hcard-admin">' +
                 '<button type="button" class="hcard-gear" aria-label="설정"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1l2.1-2.1M17 7l2.1-2.1\"/></svg></button>' +
@@ -1445,6 +1447,7 @@
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
                 '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
                 '<p class="hcard-model">' + esc(it.model) + '</p>' +
+                (it.pack ? '<p class="hcard-pack">' + esc(it.pack) + '</p>' : '') +
                 '<p class="hcard-price">' + priceHtml + '</p>' + cardBadgesHTML(it);
             frag.appendChild(card);
         });
@@ -1472,6 +1475,7 @@
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
                 '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
                 '<p class="hcard-model">' + esc(it.model) + '</p>' +
+                (it.pack ? '<p class="hcard-pack">' + esc(it.pack) + '</p>' : '') +
                 '<p class="hcard-price">' + priceHtml + '</p>' + cardBadgesHTML(it);
             frag.appendChild(card);
         });

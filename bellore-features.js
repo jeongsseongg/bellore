@@ -177,17 +177,33 @@
       var btn = $('#lpBrandBtn', listingPage), sheet = $('#lpBrandSheet', listingPage), hidden = $('#lpBrandInput', listingPage);
       if (!btn || !sheet) return;
       var brands = window.BELLORE_BRANDS || [];
-      sheet.innerHTML = brands.map(function (b) {
+      function optHTML(b) {
         return '<button type="button" class="lp-brand-opt' + (b.name === cur ? ' on' : '') + '" data-bn="' + esc(b.name) + '">' +
           '<img src="' + window.BELLORE_BRAND_LOGO(b.slug) + '" alt="" loading="lazy"><span>' + esc(b.name) + '</span></button>';
-      }).join('');
+      }
+      sheet.innerHTML =
+        '<div class="lp-brand-search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>' +
+          '<input type="text" id="lpBrandQ" placeholder="브랜드 검색 (예: 롤렉스, rolex)" autocomplete="off"></div>' +
+        '<div class="lp-brand-list">' + brands.map(optHTML).join('') + '</div>';
+      var listEl = $('.lp-brand-list', sheet), qEl = $('#lpBrandQ', sheet);
+      function filter() {
+        var q = (qEl.value || '').trim().toLowerCase();
+        var hit = brands.filter(function (b) {
+          return !q || b.name.toLowerCase().indexOf(q) > -1 || (b.slug || '').toLowerCase().indexOf(q) > -1;
+        });
+        listEl.innerHTML = hit.length ? hit.map(optHTML).join('') : '<p class="lp-brand-none">검색 결과가 없습니다.</p>';
+      }
       fillModelList(cur);
-      btn.addEventListener('click', function () { sheet.hidden = !sheet.hidden; });
+      btn.addEventListener('click', function () {
+        sheet.hidden = !sheet.hidden;
+        if (!sheet.hidden) { qEl.value = ''; filter(); setTimeout(function () { qEl.focus(); }, 30); }
+      });
+      qEl.addEventListener('input', filter);
       sheet.addEventListener('click', function (e) {
         var o = e.target.closest('[data-bn]'); if (!o) return;
         var name = o.dataset.bn;
         hidden.value = name; btn.textContent = name; btn.classList.add('on');
-        $$('.lp-brand-opt', sheet).forEach(function (x) { x.classList.toggle('on', x === o); });
+        cur = name;
         fillModelList(name); sheet.hidden = true;
       });
     }
