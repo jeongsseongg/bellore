@@ -133,6 +133,42 @@
       var b = e.target.closest('.remove-btn'); if (!b) return;
       e.preventDefault(); files.splice(+b.dataset.i, 1); draw();
     });
+    /* 드래그로 순서 변경(터치·마우스 공용) — 셀을 끌어 다른 셀 위에 놓으면 이동 */
+    var dragFrom = -1, dragEl = null, sx = 0, sy = 0, dragging = false;
+    function cellIndex(cell) { return Array.prototype.indexOf.call(grid.children, cell); }
+    function clearTargets() { grid.querySelectorAll('.drop-target').forEach(function (c) { c.classList.remove('drop-target'); }); }
+    grid.addEventListener('pointerdown', function (e) {
+      if (e.target.closest('.ord-btn') || e.target.closest('.remove-btn') || e.target.closest('.upload-add')) return;
+      var cell = e.target.closest('.upload-cell.has-img'); if (!cell) return;
+      dragFrom = cellIndex(cell); dragEl = cell; sx = e.clientX; sy = e.clientY; dragging = false;
+    });
+    window.addEventListener('pointermove', function (e) {
+      if (dragFrom < 0) return;
+      if (!dragging) {
+        if (Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy) < 6) return;
+        dragging = true; dragEl.classList.add('dragging');
+      }
+      e.preventDefault();
+      var over = document.elementFromPoint(e.clientX, e.clientY);
+      var oc = over && over.closest('.upload-cell.has-img');
+      clearTargets();
+      if (oc && oc !== dragEl) oc.classList.add('drop-target');
+    });
+    window.addEventListener('pointerup', function (e) {
+      if (dragFrom < 0) return;
+      if (dragging) {
+        var over = document.elementFromPoint(e.clientX, e.clientY);
+        var oc = over && over.closest('.upload-cell.has-img');
+        if (oc && oc !== dragEl) {
+          var to = cellIndex(oc);
+          var item = files.splice(dragFrom, 1)[0];
+          files.splice(to, 0, item); draw();
+        }
+      }
+      clearTargets();
+      if (dragEl) dragEl.classList.remove('dragging');
+      dragFrom = -1; dragEl = null; dragging = false;
+    });
     input.addEventListener('change', function () {
       Array.prototype.forEach.call(input.files, function (f) {
         if (files.length >= max) return;
@@ -265,6 +301,8 @@
           '<label><span>구성 등급</span><select name="pack">' + packOptions(item ? item.pack : '') + '</select></label>' +
           '<label><span>사이즈 (mm)</span><input name="size_mm" type="number" inputmode="numeric" placeholder="예: 41" value="' + (item && item.size_mm ? item.size_mm : '') + '"></label>' +
           '<label><span>구성품</span><input name="accessories" placeholder="예: 풀세트(보증서·박스·정품택)" value="' + esc(item ? item.accessories : '') + '"></label>' +
+          '<label><span>스탬핑 (선택 — 비우면 카드에 “미표기”)</span><input name="stamping" placeholder="예: 2023년 스탬핑 / 스탬핑 있음" value="' + esc(item ? item.stamping : '') + '"></label>' +
+          '<label><span>미리수 (선택 — 비우면 카드에 “미표기”)</span><input name="misu" placeholder="예: 미리수 / 정식수입(내수)" value="' + esc(item ? item.misu : '') + '"></label>' +
           '<label class="lp-tag lp-tag-solo"><input type="checkbox" name="has_warranty"' + (item && item.has_warranty ? ' checked' : '') + '><span>정품 보증서 포함</span></label>' +
           '<div class="lp-tags"><span class="lp-tags-label">카테고리 노출 (상단 탭에 함께 표시)</span>' +
             '<label class="lp-tag"><input type="checkbox" name="tag_sale"' + (tagOn(item, 'sale') ? ' checked' : '') + '><span>TIME SALE (할인 시작)</span></label>' +
@@ -296,7 +334,7 @@
         if (fd.get('tag_today')) tags.push('today');
         var saleOn = tags.indexOf('sale') !== -1;
         var saleStart = saleOn ? ((item && item.tags && item.tags.indexOf('sale') !== -1 && item.sale_started_at) ? item.sale_started_at : new Date().toISOString()) : null;
-        var payload = { brand: brand, model: model, price: price, sale_price: salePrice, category: fd.get('category'), status: fd.get('status'), tags: tags, condition: String(fd.get('condition') || ''), has_warranty: !!fd.get('has_warranty'), accessories: String(fd.get('accessories') || '').trim(), pack: String(fd.get('pack') || ''), size_mm: parseInt(fd.get('size_mm'), 10) || null, sale_started_at: saleStart, photos: lPicker.files };
+        var payload = { brand: brand, model: model, price: price, sale_price: salePrice, category: fd.get('category'), status: fd.get('status'), tags: tags, condition: String(fd.get('condition') || ''), has_warranty: !!fd.get('has_warranty'), accessories: String(fd.get('accessories') || '').trim(), stamping: String(fd.get('stamping') || '').trim(), misu: String(fd.get('misu') || '').trim(), pack: String(fd.get('pack') || ''), size_mm: parseInt(fd.get('size_mm'), 10) || null, sale_started_at: saleStart, photos: lPicker.files };
         var btn = $('#lpSubmit', listingPage); btn.disabled = true; btn.textContent = '저장 중…';
         // 사진 picker가 기존 URL+새 사진을 모두 보유 → existingPhotos는 비우고 picker 결과로 통째 교체(삭제 반영)
         var p = lEditId

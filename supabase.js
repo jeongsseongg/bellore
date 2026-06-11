@@ -399,6 +399,8 @@
       size_mm: l.size_mm || null,
       has_warranty: !!l.has_warranty,
       accessories: l.accessories || '',
+      stamping: l.stamping || '',
+      misu: l.misu || '',
       created_at: l.created_at || null,
       sale_started_at: l.sale_started_at || null,
       photos: (l.image_urls && l.image_urls.length) ? l.image_urls : (l.image_url ? [l.image_url] : [])
@@ -425,10 +427,15 @@
   // 고객 판매 마켓 (검수 완료되어 게시된 매물)
   Backend.subscribeApproved = function (cb) { return subscribeListings(CATS.listing.user, cb); };
 
+  // 신규 컬럼(stamping·misu)이 아직 DB에 없을 때 발생하는 오류 감지
+  function isMissingCol(err) {
+    var m = (err && (err.message || err.hint || '')) + ' ' + (err && err.code || '');
+    return /stamping|misu|schema cache|PGRST204|find the .* column/i.test(m);
+  }
   Backend.addProduct = function (data) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
     return uploadPhotos(data.photos || [], 10).then(function (urls) {
-      return sb.from('listings').insert({
+      var row = {
         owner_id: rawUser.id,
         title: data.brand,
         description: data.model || null,
@@ -443,8 +450,18 @@
         size_mm: data.size_mm || null,
         has_warranty: !!data.has_warranty,
         accessories: data.accessories || null,
+        stamping: data.stamping || null,
+        misu: data.misu || null,
         image_urls: urls,
         image_url: urls[0] || null
+      };
+      function ins() { return sb.from('listings').insert(row); }
+      return ins().then(function (res) {
+        if (res.error && isMissingCol(res.error)) {
+          delete row.stamping; delete row.misu;   // 컬럼 미생성 시 제외하고 재시도
+          return ins();
+        }
+        return res;
       }).then(function (res) { if (res.error) throw res.error; refreshListingFeeds(); });
     });
   };
@@ -473,14 +490,22 @@
       if (data.size_mm != null) patch.size_mm = data.size_mm;
       if (data.has_warranty != null) patch.has_warranty = data.has_warranty;
       if (data.accessories != null) patch.accessories = data.accessories;
+      if (data.stamping != null) patch.stamping = data.stamping;
+      if (data.misu != null) patch.misu = data.misu;
       var existing = data.existingPhotos || [];
       if (newUrls.length || data.existingPhotos) {
         var all = existing.concat(newUrls).slice(0, 10);
         patch.image_urls = all;
         patch.image_url = all[0] || null;
       }
-      return sb.from('listings').update(patch).eq('id', id)
-        .then(function (res) { if (res.error) throw res.error; refreshListingFeeds(); });
+      function upd() { return sb.from('listings').update(patch).eq('id', id); }
+      return upd().then(function (res) {
+        if (res.error && isMissingCol(res.error)) {
+          delete patch.stamping; delete patch.misu;   // 컬럼 미생성 시 제외하고 재시도
+          return upd();
+        }
+        return res;
+      }).then(function (res) { if (res.error) throw res.error; refreshListingFeeds(); });
     });
   };
 

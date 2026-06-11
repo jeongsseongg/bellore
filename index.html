@@ -1054,16 +1054,16 @@
         <section class="page page-collection" id="collection">
             <section class="section section-soft" style="padding-top: calc(var(--header-h) + 64px + env(safe-area-inset-top));">
                 <div class="container">
-                    <!-- 대표 브랜드 (홈 화면과 동일한 원형 로고 스타일) -->
-                    <div class="cat-brandbar">
-                        <span class="cat-brandbar-count"><b id="catBrandCount">0</b>개의 브랜드</span>
-                        <button type="button" class="cat-brandbar-more" id="catBrandMore">더 보기<span class="cat-brandbar-arrow">›</span></button>
-                    </div>
-                    <div class="cat-brand-search" id="catBrandSearch" hidden>
+                    <!-- 대표 브랜드 — 브랜드 검색은 상시 노출, 원형 카테고리는 '브랜드 보기'로 펼침 -->
+                    <div class="cat-brand-search" id="catBrandSearch">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>
                         <input type="text" id="catBrandQ" placeholder="브랜드 검색" autocomplete="off">
                     </div>
-                    <div class="cat-brands brand-circle-scroll">
+                    <div class="cat-brandbar">
+                        <span class="cat-brandbar-count"><b id="catBrandCount">0</b>개의 브랜드</span>
+                        <button type="button" class="cat-brandbar-more" id="catBrandMore">브랜드 보기<span class="cat-brandbar-arrow">›</span></button>
+                    </div>
+                    <div class="cat-brands brand-circle-scroll is-collapsed">
                         <button type="button" class="brand-circle cat-brand active" data-brand="all"><span class="brand-circle-img">ALL</span><span class="brand-circle-name">전체</span></button>
                         <button type="button" class="brand-circle cat-brand" data-brand="롤렉스"><span class="brand-circle-img"><img src="assets/brands/rolex.png" alt="롤렉스" loading="lazy"></span><span class="brand-circle-name">롤렉스</span></button>
                         <button type="button" class="brand-circle cat-brand" data-brand="파텍필립"><span class="brand-circle-img"><img src="assets/brands/patek.png" alt="파텍필립" loading="lazy"></span><span class="brand-circle-name">파텍필립</span></button>
@@ -2216,11 +2216,11 @@
                         <button type="button" class="pocket-shop-all" id="pocketOrders">주문전체보기 ›</button>
                     </div>
                     <div class="pocket-status">
-                        <div class="ps-cell"><b id="psWait">0</b><span>결제대기</span></div>
-                        <div class="ps-cell"><b id="psPaid">0</b><span>결제완료</span></div>
-                        <div class="ps-cell"><b id="psPrep">0</b><span>상품준비중</span></div>
-                        <div class="ps-cell"><b id="psShip">0</b><span>배송중</span></div>
-                        <div class="ps-cell"><b id="psDone">0</b><span>배송완료</span></div>
+                        <button type="button" class="ps-cell" data-ostatus="pending"><b id="psWait">0</b><span>결제대기</span></button>
+                        <button type="button" class="ps-cell" data-ostatus="paid"><b id="psPaid">0</b><span>결제완료</span></button>
+                        <button type="button" class="ps-cell" data-ostatus="preparing"><b id="psPrep">0</b><span>상품준비중</span></button>
+                        <button type="button" class="ps-cell" data-ostatus="shipping"><b id="psShip">0</b><span>배송중</span></button>
+                        <button type="button" class="ps-cell" data-ostatus="delivered"><b id="psDone">0</b><span>배송완료</span></button>
                     </div>
                 </div>
             </div>
@@ -2268,6 +2268,27 @@
             </button>
 
             <button type="button" class="login-btn login-default" id="btnLogout">로그아웃</button>
+        </div>
+    </div>
+
+    <!-- 주문 전체보기 모달 -->
+    <div class="login-modal" id="ordersModal" hidden>
+        <div class="login-backdrop" data-ordclose></div>
+        <div class="login-content orders-content">
+            <button class="login-close" data-ordclose aria-label="닫기">×</button>
+            <div class="login-head">
+                <p class="login-eyebrow">MY ORDERS</p>
+                <h2>나의 주문</h2>
+            </div>
+            <div class="orders-tabs" id="ordersTabs">
+                <button type="button" class="orders-tab active" data-ofilter="">전체</button>
+                <button type="button" class="orders-tab" data-ofilter="pending">결제대기</button>
+                <button type="button" class="orders-tab" data-ofilter="paid">결제완료</button>
+                <button type="button" class="orders-tab" data-ofilter="preparing">준비중</button>
+                <button type="button" class="orders-tab" data-ofilter="shipping">배송중</button>
+                <button type="button" class="orders-tab" data-ofilter="delivered">배송완료</button>
+            </div>
+            <div class="orders-list" id="ordersList"></div>
         </div>
     </div>
 
@@ -2664,7 +2685,7 @@
                     applyFilters();
                 });
             });
-            /* 브랜드 바: 개수 표시 + 더 보기(전체 펼침) + 브랜드 검색 */
+            /* 브랜드 영역: 검색 상시 노출 + '브랜드 보기'로 원형 카테고리 펼침(기본 접힘) */
             (function () {
                 var wrap = document.querySelector('#collection .cat-brands');
                 if (!wrap) return;
@@ -2672,8 +2693,15 @@
                 var cnt = document.getElementById('catBrandCount');
                 if (cnt) cnt.textContent = circles.length;
                 var more = document.getElementById('catBrandMore');
-                var search = document.getElementById('catBrandSearch');
                 var bq = document.getElementById('catBrandQ');
+                function setOpen(on) {
+                    wrap.classList.toggle('is-collapsed', !on);
+                    wrap.classList.toggle('show-all', on);
+                    if (more) {
+                        more.classList.toggle('on', on);
+                        more.childNodes[0].nodeValue = on ? '접기' : '브랜드 보기';
+                    }
+                }
                 function filterBrands(v) {
                     v = (v || '').trim().toLowerCase();
                     wrap.querySelectorAll('.cat-brand').forEach(function (b) {
@@ -2683,13 +2711,12 @@
                     });
                 }
                 if (more) more.addEventListener('click', function () {
-                    var on = wrap.classList.toggle('show-all');
-                    more.classList.toggle('on', on);
-                    more.childNodes[0].nodeValue = on ? '접기' : '더 보기';
-                    if (search) search.hidden = !on;
-                    if (!on && bq) { bq.value = ''; filterBrands(''); }
+                    setOpen(wrap.classList.contains('is-collapsed'));
                 });
-                if (bq) bq.addEventListener('input', function () { filterBrands(bq.value); });
+                if (bq) bq.addEventListener('input', function () {
+                    if (bq.value.trim()) setOpen(true);   // 검색 시 자동 펼침
+                    filterBrands(bq.value);
+                });
             })();
             if (catModels) catModels.addEventListener('click', function (e) {
                 var cm = e.target.closest('.cat-model'); if (!cm) return;
@@ -2742,7 +2769,7 @@
 
         /* 좌상단 뒤로가기 + 기기/브라우저 back 연동 (오버레이는 back으로 닫힘) */
         (function () {
-            var OV = '#productModal, #listingPage, #checkoutModal, #myPageModal, #loginModal, #notiModal, #pwaInstallModal, #postModal, #partnerModal, #inquiryModal';
+            var OV = '#productModal, #listingPage, #checkoutModal, #ordersModal, #myPageModal, #loginModal, #notiModal, #pwaInstallModal, #postModal, #partnerModal, #inquiryModal';
             var back = document.getElementById('headerBack');
             function visibleOverlay() {
                 var els = document.querySelectorAll(OV);

@@ -191,6 +191,51 @@
     /* ============ 계정 UI: 구글 로그인 · 마이페이지 · 알림 · 관리자 관리 · 상품 수정 ============ */
     var pocketBound = false;
     var myOrdersUnsub = null;
+    var myOrdersCache = [];
+    var ordersFilter = '';
+    var O_LABEL = { pending: '결제대기', paid: '결제완료', preparing: '상품준비중', shipping: '배송중', delivered: '배송완료', cancelled: '주문취소', refunded: '환불완료' };
+    function openOrdersList(status) {
+        ordersFilter = status || '';
+        var m = $('#ordersModal'); if (!m) return;
+        $$('#ordersTabs .orders-tab').forEach(function (t) {
+            t.classList.toggle('active', (t.dataset.ofilter || '') === ordersFilter);
+        });
+        m.hidden = false; document.body.style.overflow = 'hidden';
+        renderOrdersList();
+    }
+    function closeOrdersList() {
+        var m = $('#ordersModal'); if (m) { m.hidden = true; document.body.style.overflow = 'hidden'; }
+    }
+    function renderOrdersList() {
+        var box = $('#ordersList'); if (!box) return;
+        var rows = ordersFilter ? myOrdersCache.filter(function (o) { return o.status === ordersFilter; }) : myOrdersCache;
+        if (!rows.length) {
+            box.innerHTML = '<div class="orders-empty"><p>' +
+                (ordersFilter ? (O_LABEL[ordersFilter] || '해당') + ' 상태의 주문이 없습니다.' : '아직 주문 내역이 없습니다.') +
+                '</p></div>';
+            return;
+        }
+        box.innerHTML = rows.map(function (o) {
+            var img = o.productImage || 'assets/images.jpg';
+            var date = o.createdAt ? relTime(o.createdAt) : '';
+            var st = o.status || 'pending';
+            var unpaid = st === 'pending'
+                ? '<button type="button" class="order-pay" data-opay="' + esc(o.orderNo) + '">입금 안내</button>' : '';
+            return '<div class="order-row">' +
+                '<div class="order-thumb"><img src="' + esc(img) + '" alt=""></div>' +
+                '<div class="order-main">' +
+                    (o.productBrand ? '<p class="order-brand">' + esc(o.productBrand) + '</p>' : '') +
+                    '<p class="order-name">' + esc(o.productName || '상품') + '</p>' +
+                    '<p class="order-meta">' + esc(o.orderNo || '') + (date ? ' · ' + date : '') + '</p>' +
+                '</div>' +
+                '<div class="order-side">' +
+                    '<span class="order-badge order-badge--' + st + '">' + (O_LABEL[st] || st) + '</span>' +
+                    '<span class="order-amt">' + (o.amount ? fmt(o.amount) + '원' : '-') + '</span>' +
+                    unpaid +
+                '</div>' +
+            '</div>';
+        }).join('');
+    }
     function openMyPage() {
         var m = $('#myPageModal');
         if (!m) return;
@@ -211,7 +256,8 @@
         if (backendOn() && NWBackend.subscribeMyOrders) {
             if (myOrdersUnsub) { try { myOrdersUnsub(); } catch (e) {} }
             myOrdersUnsub = NWBackend.subscribeMyOrders(function (orders) {
-                function cnt(st) { return orders.filter(function (o) { return o.status === st; }).length; }
+                myOrdersCache = orders || [];
+                function cnt(st) { return myOrdersCache.filter(function (o) { return o.status === st; }).length; }
                 var wait = cnt('pending');
                 var set = function (id, n) { var el = $(id); if (el) el.textContent = n; };
                 set('#psWait', wait);
@@ -220,6 +266,8 @@
                 set('#psShip', cnt('shipping'));
                 set('#psDone', cnt('delivered'));
                 var pq = $('#pqUnpaid'); if (pq) pq.textContent = wait + '건';
+                var om = $('#ordersModal');
+                if (om && !om.hidden) renderOrdersList();   // 열려 있으면 실시간 갱신
             });
         }
 
@@ -232,9 +280,24 @@
                 window.open('https://open.kakao.com/o/sMuCaAFh', '_blank');
             });
             var ord = $('#pocketOrders');
-            if (ord) ord.addEventListener('click', function () {
-                closeMyPage();
-                navigate('compare'); // 현재 거래(비교견적) 페이지로 이동
+            if (ord) ord.addEventListener('click', function () { openOrdersList(''); });
+            // 주문현황 칸(결제대기/완료/준비중/배송중/배송완료) 탭하면 해당 상태로 필터
+            var ps = document.querySelector('#pocketBox .pocket-status');
+            if (ps) ps.addEventListener('click', function (e) {
+                var c = e.target.closest('[data-ostatus]'); if (!c) return;
+                openOrdersList(c.dataset.ostatus);
+            });
+            // 주문 모달: 탭 전환 · 닫기 · 입금안내
+            var om = $('#ordersModal');
+            if (om) om.addEventListener('click', function (e) {
+                if (e.target.closest('[data-ordclose]')) { closeOrdersList(); return; }
+                var tab = e.target.closest('.orders-tab');
+                if (tab) { openOrdersList(tab.dataset.ofilter || ''); return; }
+                var pay = e.target.closest('[data-opay]');
+                if (pay) {
+                    alert('입금 안내\n\n주문번호 ' + pay.dataset.opay + '\n결제/입금은 카카오톡 상담으로 도와드립니다.');
+                    window.open('https://open.kakao.com/o/sMuCaAFh', '_blank');
+                }
             });
         }
     }
@@ -1316,29 +1379,43 @@
         }
         return fmt(it.price) + '<em>원</em>';
     }
+    // 카드 하단 정보: 2줄 고정(구성품·등급 / 스탬핑·미리수). 값 없으면 '미표기'.
     function cardBadgesHTML(it) {
-        // 핵심 정보를 한 줄로 고정(카드 높이 통일). 비어도 자리 유지.
-        var parts = [];
-        if (it.has_warranty) parts.push('정품보증');
-        if (it.accessories) parts.push(it.accessories);
-        if (it.condition) parts.push(it.condition);
-        var html = '<p class="hcard-summary">' + esc(parts.join(' · ')) + '</p>';
-        // 타임세일: 체크한 시점(sale_started_at) 기준 72시간
+        function v(x) {
+            x = (x == null ? '' : String(x)).trim();
+            return x ? '<span class="hcard-av">' + esc(x) + '</span>'
+                     : '<span class="hcard-av hcard-na">미표기</span>';
+        }
+        var acc = it.accessories || (it.has_warranty ? '정품보증' : '');
+        var grade = it.condition || it.pack || '';
+        return '<div class="hcard-info">' +
+            '<div class="hcard-info-row">' +
+                '<span class="hcard-attr"><b>구성품</b>' + v(acc) + '</span>' +
+                '<span class="hcard-attr"><b>등급</b>' + v(grade) + '</span>' +
+            '</div>' +
+            '<div class="hcard-info-row">' +
+                '<span class="hcard-attr"><b>스탬핑</b>' + v(it.stamping) + '</span>' +
+                '<span class="hcard-attr"><b>미리수</b>' + v(it.misu) + '</span>' +
+            '</div>' +
+        '</div>';
+    }
+    // 타임세일 카운트다운: 이미지 위(좌하단) 오버레이. 체크 시점(sale_started_at) 기준 72시간.
+    function saleOverlayHTML(it) {
         var base = it.sale_started_at || it.created_at;
         if (it.tags && it.tags.indexOf('sale') !== -1 && base) {
             var end = Date.parse(base) + SALE_HOURS * 3600 * 1000;
-            html += '<div class="hcard-timesale" data-end="' + end + '"><span class="hcard-timer">--:--:--</span></div>';
+            return '<div class="hcard-timesale" data-end="' + end + '"><b>TIME SALE</b><span class="hcard-timer">--:--:--</span></div>';
         }
-        return html;
+        return '';
     }
+    // 며칠 표기 없이 오로지 시간으로만(예: 68:10:23)
     function fmtCountdown(ms) {
         if (ms <= 0) return '마감';
         var s = Math.floor(ms / 1000);
-        var d = Math.floor(s / 86400); s %= 86400;
         var h = Math.floor(s / 3600); s %= 3600;
         var m = Math.floor(s / 60); s %= 60;
         function p(n) { return (n < 10 ? '0' : '') + n; }
-        return (d > 0 ? d + '일 ' : '') + p(h) + ':' + p(m) + ':' + p(s);
+        return p(h) + ':' + p(m) + ':' + p(s);
     }
     setInterval(function () {
         var els = document.querySelectorAll('.hcard-timesale[data-end]');
@@ -1371,7 +1448,7 @@
             card.dataset.pack = it.pack || '';
             card.dataset.size = it.size_mm || '';
             card.innerHTML =
-                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
+                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
                 '<p class="hcard-model">' + esc(it.model) + '</p>' +
                 (it.pack ? '<p class="hcard-pack">' + esc(it.pack) + '</p>' : '') +
@@ -1408,7 +1485,7 @@
             card.dataset.pack = it.pack || '';
             card.dataset.size = it.size_mm || '';
             card.innerHTML =
-                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
+                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
                 '<p class="hcard-model">' + esc(it.model) + '</p>' +
                 (it.pack ? '<p class="hcard-pack">' + esc(it.pack) + '</p>' : '') +
@@ -1444,7 +1521,7 @@
             card.dataset.price = it.price || 0;
             card.dataset.sprice = it.sale_price || '';
             card.innerHTML =
-                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
+                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
                 '<p class="hcard-model">' + esc(it.model) + '</p>' +
                 (it.pack ? '<p class="hcard-pack">' + esc(it.pack) + '</p>' : '') +
@@ -1472,7 +1549,7 @@
             card.dataset.price = it.price || 0;
             card.dataset.sprice = it.sale_price || '';
             card.innerHTML =
-                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
+                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
                 '<p class="hcard-model">' + esc(it.model) + '</p>' +
                 (it.pack ? '<p class="hcard-pack">' + esc(it.pack) + '</p>' : '') +

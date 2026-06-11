@@ -6551,3 +6551,81 @@ body.is-searching .tabbar { display: none !important; }
 .col-empty-q { font-size: 13px; font-weight: 700; color: var(--green-bright, #1b8f5a); margin: 0; }
 .col-empty-title { font-size: 16px; font-weight: 800; color: var(--text, #1a1a1a); margin: 0; }
 .col-empty-desc { font-size: 13.5px; line-height: 1.7; color: var(--text-2, #777); margin: 0; max-width: 340px; }
+
+/* ============================================================
+   Batch 8 — 카드 타임세일 오버레이 · 하단 2줄 정보 · 판매시계 브랜드 재배치
+   (이후 정의가 위 중복 정의를 덮어씀)
+   ============================================================ */
+/* 항목1 — TIME SALE: 이미지 좌하단 오버레이, 일 단위 없이 시간(예: 68:10:23) 강조 */
+.hcard-img { position: relative; }
+.hcard-timesale {
+    position: absolute; left: 11px; bottom: 9px; right: auto; top: auto; z-index: 3;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+    background: none; border: none; padding: 0;
+    backdrop-filter: none; -webkit-backdrop-filter: none; text-shadow: none;
+}
+.hcard-timesale b {
+    font-size: 8.5px; font-weight: 800; letter-spacing: 1.6px; line-height: 1;
+    color: #b08968; opacity: .95;
+}
+.hcard-timesale .hcard-timer {
+    font-size: 22px; font-weight: 900; line-height: 1; letter-spacing: .6px;
+    color: #161616; font-variant-numeric: tabular-nums;
+    text-shadow: 0 1px 3px rgba(255,255,255,.92), 0 0 2px rgba(255,255,255,.92);
+}
+.hcard-timesale.ended b, .hcard-timesale.ended .hcard-timer { color: #9a9a9a; }
+
+/* 항목4 — 카드 하단 정보 2줄(구성품·등급 / 스탬핑·미리수), 값 없으면 '미표기' */
+.hcard-info { margin: 7px 0 0; padding: 0 14px 12px; display: flex; flex-direction: column; gap: 4px; }
+.hcard-info-row { display: flex; gap: 9px; }
+.hcard-attr {
+    flex: 1 1 0; min-width: 0; display: flex; align-items: baseline; gap: 5px;
+    font-size: 11.5px; line-height: 1.3; color: var(--text, #222);
+}
+.hcard-attr > b { flex: 0 0 auto; font-size: 9.5px; font-weight: 700; color: var(--text-3, #aaa); letter-spacing: .2px; }
+.hcard-av { min-width: 0; flex: 1 1 auto; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hcard-na { font-weight: 500; color: #c2c2c2; }
+
+/* 항목2 — 판매시계: 브랜드 검색 상시 노출, 원형 카테고리는 '더 보기'로 펼침 */
+.cat-brand-search { display: flex !important; margin: 2px 0 8px; }
+.cat-brands.is-collapsed { display: none !important; }
+
+/* 항목3 — 등록폼 사진 드래그 정렬 상태 */
+.upload-cell.has-img { touch-action: none; }
+.upload-cell.dragging { opacity: .45; transform: scale(.96); }
+.upload-cell.drop-target { outline: 2px dashed #b08968; outline-offset: -2px; }
+
+/* 항목5 — 주문 전체보기 모달 */
+.orders-content { max-width: 460px; }
+.orders-tabs { display: flex; gap: 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 0 12px; margin: 4px 0 4px; scrollbar-width: none; }
+.orders-tabs::-webkit-scrollbar { display: none; }
+.orders-tab {
+    flex: 0 0 auto; background: var(--bg-soft, #f5f3ee); border: 1px solid var(--border, #e6e1d8);
+    border-radius: 999px; padding: 7px 14px; font-size: 12.5px; font-weight: 700;
+    color: var(--text-2, #666); cursor: pointer; font-family: inherit; white-space: nowrap;
+}
+.orders-tab.active { background: #161616; border-color: #161616; color: #fff; }
+.orders-list { display: flex; flex-direction: column; gap: 10px; max-height: 56vh; overflow-y: auto; padding: 2px; }
+.orders-empty { text-align: center; color: var(--text-3, #999); font-size: 13.5px; padding: 48px 12px; }
+.order-row {
+    display: flex; gap: 12px; align-items: center;
+    background: #fff; border: 1px solid var(--border, #ece8df); border-radius: 14px; padding: 11px 12px;
+}
+.order-thumb { flex: 0 0 56px; width: 56px; height: 56px; border-radius: 10px; overflow: hidden; background: #f5f3ee; }
+.order-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.order-main { flex: 1 1 auto; min-width: 0; }
+.order-brand { font-size: 11px; font-weight: 800; color: var(--text-3, #999); margin: 0 0 1px; letter-spacing: .3px; }
+.order-name { font-size: 14px; font-weight: 700; color: var(--text, #1a1a1a); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.order-meta { font-size: 11.5px; color: var(--text-3, #aaa); margin: 3px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.order-side { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.order-badge { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; background: var(--bg-soft, #f1efe9); color: var(--text-2, #555); white-space: nowrap; }
+.order-badge--pending { background: #fdeccf; color: #9a6b00; }
+.order-badge--paid { background: #e7f0ff; color: #1b5fc4; }
+.order-badge--preparing { background: #efeaff; color: #6a45c8; }
+.order-badge--shipping { background: #e6f6ee; color: #1b8f5a; }
+.order-badge--delivered { background: #eaeaea; color: #555; }
+.order-badge--cancelled, .order-badge--refunded { background: #fdecec; color: #c0392b; }
+.order-amt { font-size: 13.5px; font-weight: 900; color: var(--text, #161616); }
+.order-pay { margin-top: 2px; background: #161616; color: #fff; border: none; border-radius: 999px; padding: 5px 11px; font-size: 11px; font-weight: 800; cursor: pointer; font-family: inherit; }
+.pocket-status .ps-cell { background: none; border: none; cursor: pointer; font-family: inherit; padding: 4px 2px; text-align: center; border-radius: 10px; transition: background .15s; }
+.pocket-status .ps-cell:active { background: var(--bg-soft, #f1efe9); }
