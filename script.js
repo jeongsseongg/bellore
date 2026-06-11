@@ -693,6 +693,7 @@
             sellPhotos.forEach(function (src, idx) {
                 var cell = document.createElement('div');
                 cell.className = 'upload-cell has-img';
+                cell.dataset.idx = idx;
                 cell.innerHTML =
                     '<img src="' + src + '" alt="">' +
                     '<button type="button" class="remove-btn" data-idx="' + idx + '" aria-label="삭제">×</button>';
@@ -2226,6 +2227,7 @@
         uploadedPhotos.forEach(function (src, idx) {
             var cell = document.createElement('div');
             cell.className = 'upload-cell has-img';
+            cell.dataset.idx = idx;
             cell.innerHTML =
                 '<img src="' + src + '" alt="">' +
                 '<button type="button" class="remove-btn" data-idx="' + idx + '" aria-label="삭제">×</button>';
