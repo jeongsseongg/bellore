@@ -2708,6 +2708,7 @@
     }
 
     // 검색 결과 없음: 팝업 대신 벨로르 로고 + 안내 문구를 그리드 안에 노출
+    var BELL_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>';
     function searchEmptyEl() {
         var el = document.getElementById('searchEmpty');
         if (!el) {
@@ -2719,24 +2720,43 @@
                 '<img class="col-empty-logo" src="assets/logo-bellore.png" alt="BELLORE">' +
                 '<p class="col-empty-q"></p>' +
                 '<p class="col-empty-title">곧 만나보실 수 있도록 준비하고 있습니다</p>' +
-                '<p class="col-empty-desc">현재 해당 모델은 정성껏 상품을 준비하는 중입니다.<br>' +
-                '조금만 기다려 주시면 원하시는 제품을 가장 좋은 컨디션으로 소개해 드리겠습니다.</p>';
+                '<p class="col-empty-desc">현재 <b class="col-empty-watch">찾으시는 시계</b> 상품을 업로드 중입니다.<br>' +
+                '조금만 기다려 주시면 원하시는 제품을 가장 좋은 컨디션으로 소개해 드리겠습니다.</p>' +
+                '<button type="button" class="col-empty-alert js-alert-add" data-brand="" data-model="" data-q="">' + BELL_SVG + '<span>소식받기 — 입고되면 알려드릴게요</span></button>';
             var col = document.getElementById('collection');
             if (col) col.appendChild(el);
         }
         return el;
     }
-    function showSearchEmpty(q) {
+    // 0건 안내: 해당 브랜드·모델(또는 검색어)을 기본값으로 노출 + 소식받기
+    function showCollectionEmpty(brand, model, q) {
         var el = searchEmptyEl();
+        brand = (brand && brand !== 'all') ? brand : '';
+        model = model || '';
+        var name = [brand, model].filter(Boolean).join(' ').trim();
+        if (!name && q) name = q;
         var qn = el.querySelector('.col-empty-q');
-        if (qn) qn.textContent = q ? '‘' + q + '’ 검색 결과' : '';
+        if (qn) qn.textContent = q ? '‘' + q + '’ 검색 결과' : (name ? '‘' + name + '’' : '');
+        var wn = el.querySelector('.col-empty-watch');
+        if (wn) wn.textContent = name || '찾으시는 시계';
+        var btn = el.querySelector('.col-empty-alert');
+        if (btn) {
+            btn.dataset.brand = brand; btn.dataset.model = model; btn.dataset.q = q || name;
+            var A = window.BELLOREAlerts;
+            var done = !!(A && A.has(A.idOf({ brand: brand, model: model, q: q || name })));
+            btn.classList.toggle('done', done);
+            btn.disabled = done;
+            btn.innerHTML = done ? '✓ 소식받기 신청 완료' : (BELL_SVG + '<span>소식받기 — 입고되면 알려드릴게요</span>');
+        }
         el.hidden = false;
     }
+    function showSearchEmpty(q) { showCollectionEmpty('', '', q); }
     function hideSearchEmpty() {
         var el = document.getElementById('searchEmpty');
         if (el) el.hidden = true;
     }
     window.BELLORE_hideSearchEmpty = hideSearchEmpty;
+    window.BELLORE_showCollectionEmpty = showCollectionEmpty;
 
     function runSearch(q) {
         var ql = q.toLowerCase();

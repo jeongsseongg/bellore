@@ -1061,7 +1061,7 @@
                     </div>
                     <div class="cat-brandbar">
                         <span class="cat-brandbar-count"><b id="catBrandCount">0</b>개의 브랜드</span>
-                        <button type="button" class="cat-brandbar-more" id="catBrandMore">브랜드 보기<span class="cat-brandbar-arrow">›</span></button>
+                        <button type="button" class="cat-brandbar-more" id="catBrandMore">브랜드 더보기<span class="cat-brandbar-arrow">›</span></button>
                     </div>
                     <div class="cat-brands brand-circle-scroll is-collapsed">
                         <button type="button" class="brand-circle cat-brand active" data-brand="all"><span class="brand-circle-img">ALL</span><span class="brand-circle-name">전체</span></button>
@@ -1979,6 +1979,10 @@
                     <div class="hcard-grid" id="cartGrid"></div>
                     <div class="wish-empty" id="cartEmpty" hidden>장바구니가 비어 있습니다.</div>
                 </div>
+                <div class="alerts-sec">
+                    <h4 class="alerts-title">소식 기다리는 시계 <b id="wishAlertCount">0</b></h4>
+                    <div id="wishAlerts"></div>
+                </div>
             </div>
         </section>
     </main>
@@ -2248,6 +2252,12 @@
             <div class="mypage-section admin-only" hidden id="adminManageBox">
                 <h4>업체 승인 관리</h4>
                 <div id="adminList" class="admin-list"></div>
+            </div>
+
+            <!-- 일반 고객: 소식 기다리는 시계 -->
+            <div class="mypage-section customer-only" id="myAlertsSection">
+                <h4>소식 기다리는 시계 <b id="myAlertCount">0</b></h4>
+                <div id="myAlerts"></div>
             </div>
 
             <!-- 일반 고객: 내 비교견적 -->
@@ -2589,6 +2599,7 @@
     <script src="bellore-features.js"></script>
     <script src="script.js"></script>
     <script src="wishlist.js"></script>
+    <script src="alerts.js"></script>
     <script src="search.js"></script>
     <script src="payments.js"></script>
     <script>
@@ -2674,6 +2685,12 @@
                     c.style.display = ok ? '' : 'none';
                 });
                 updateCount();
+                // 브랜드/모델을 선택했는데 결과가 0건이면 안내 + 소식받기
+                var shown = 0;
+                grid.querySelectorAll('.hcard').forEach(function (c) { if (c.style.display !== 'none') shown++; });
+                if (shown === 0 && ((fBrand && fBrand !== 'all') || fModel) && window.BELLORE_showCollectionEmpty) {
+                    window.BELLORE_showCollectionEmpty(fBrand, fModel, '');
+                }
             }
             brands.forEach(function (btn) {
                 btn.addEventListener('click', function () {
@@ -2699,7 +2716,7 @@
                     wrap.classList.toggle('show-all', on);
                     if (more) {
                         more.classList.toggle('on', on);
-                        more.childNodes[0].nodeValue = on ? '접기' : '브랜드 보기';
+                        more.childNodes[0].nodeValue = on ? '접기' : '브랜드 더보기';
                     }
                 }
                 function filterBrands(v) {
