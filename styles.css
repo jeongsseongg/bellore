@@ -3326,6 +3326,32 @@ body.admin-mode .main-wrap { padding-top: 0; }
 .pp-desc ul { padding-left: 18px; }
 .pp-desc li { margin-bottom: 4px; }
 
+/* 핵심 스펙 칩 (바이버 스타일) — 보증서/스탬핑/정품박스/특이사항 2×2 */
+.pp-chips {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px;
+    margin: 0 0 6px; padding: 16px 14px;
+    border: 1px solid var(--border); border-radius: 14px; background: var(--bg-soft, #f7f6f1);
+}
+.pp-chip { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; }
+.pp-chip-l { font-size: 12.5px; color: var(--text-3, #9a958c); font-weight: 600; flex-shrink: 0; }
+.pp-chip-v {
+    font-size: 13px; font-weight: 800; color: var(--text, #1a1a1a);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pp-chip-v.off { color: var(--text-3, #b6b1a8); font-weight: 600; }
+
+/* 제품 상태 */
+.pp-state { font-size: 13.5px; color: var(--text-2); line-height: 1.7; }
+.pp-state-badge {
+    display: block; padding: 12px 14px; border-radius: 10px;
+    background: #1f2a44; color: #fff; font-weight: 800; font-size: 13.5px; margin-bottom: 14px;
+}
+.pp-state-badge.is-new { background: #0a7d3c; }
+.pp-state-desc p { margin: 0 0 10px; }
+.pp-state-desc p:last-child { margin-bottom: 0; }
+.pp-state-desc b { font-weight: 800; color: var(--text); }
+.pp-state-note { display: block; margin-top: 6px; font-size: 12px; color: var(--text-3, #9a958c); }
+
 .pp-detail-imgs { margin-top: 24px; display: flex; flex-direction: column; gap: 10px; }
 .pp-detail-imgs img { width: 100%; border-radius: 10px; }
 

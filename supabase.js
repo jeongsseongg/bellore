@@ -401,6 +401,9 @@
       accessories: l.accessories || '',
       stamping: l.stamping || '',
       misu: l.misu || '',
+      purchase_year: l.purchase_year || '',
+      special_note: l.special_note || '',
+      detail_desc: l.detail_desc || '',
       created_at: l.created_at || null,
       sale_started_at: l.sale_started_at || null,
       photos: (l.image_urls && l.image_urls.length) ? l.image_urls : (l.image_url ? [l.image_url] : [])
@@ -430,7 +433,12 @@
   // 신규 컬럼(stamping·misu)이 아직 DB에 없을 때 발생하는 오류 감지
   function isMissingCol(err) {
     var m = (err && (err.message || err.hint || '')) + ' ' + (err && err.code || '');
-    return /stamping|misu|schema cache|PGRST204|find the .* column/i.test(m);
+    return /stamping|misu|purchase_year|special_note|detail_desc|schema cache|PGRST204|find the .* column/i.test(m);
+  }
+  // 신규 속성 컬럼이 DB에 없을 때 제외하고 재시도하기 위한 목록
+  function dropNewCols(o) {
+    delete o.stamping; delete o.misu;
+    delete o.purchase_year; delete o.special_note; delete o.detail_desc;
   }
   Backend.addProduct = function (data) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
@@ -452,13 +460,16 @@
         accessories: data.accessories || null,
         stamping: data.stamping || null,
         misu: data.misu || null,
+        purchase_year: data.purchase_year || null,
+        special_note: data.special_note || null,
+        detail_desc: data.detail_desc || null,
         image_urls: urls,
         image_url: urls[0] || null
       };
       function ins() { return sb.from('listings').insert(row); }
       return ins().then(function (res) {
         if (res.error && isMissingCol(res.error)) {
-          delete row.stamping; delete row.misu;   // 컬럼 미생성 시 제외하고 재시도
+          dropNewCols(row);   // 컬럼 미생성 시 제외하고 재시도
           return ins();
         }
         return res;
@@ -492,6 +503,9 @@
       if (data.accessories != null) patch.accessories = data.accessories;
       if (data.stamping != null) patch.stamping = data.stamping;
       if (data.misu != null) patch.misu = data.misu;
+      if (data.purchase_year != null) patch.purchase_year = data.purchase_year;
+      if (data.special_note != null) patch.special_note = data.special_note;
+      if (data.detail_desc != null) patch.detail_desc = data.detail_desc;
       var existing = data.existingPhotos || [];
       if (newUrls.length || data.existingPhotos) {
         var all = existing.concat(newUrls).slice(0, 10);
@@ -501,7 +515,7 @@
       function upd() { return sb.from('listings').update(patch).eq('id', id); }
       return upd().then(function (res) {
         if (res.error && isMissingCol(res.error)) {
-          delete patch.stamping; delete patch.misu;   // 컬럼 미생성 시 제외하고 재시도
+          dropNewCols(patch);   // 컬럼 미생성 시 제외하고 재시도
           return upd();
         }
         return res;

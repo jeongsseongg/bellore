@@ -2417,6 +2417,9 @@
 
             <!-- 상품정보 -->
             <section class="pp-panel" data-pppanel="info">
+                <!-- 핵심 스펙 칩 (보증서 / 스탬핑 / 정품박스 / 특이사항) -->
+                <div class="pp-chips" id="pmChips"></div>
+
                 <h3 class="pp-sec-title" id="ppSecInfo">구성품</h3>
                 <div class="pp-acc" id="pmAcc">
                     <div class="pp-acc-item off" data-acc="box"><span class="pp-acc-ic">📦</span>박스</div>
@@ -2425,19 +2428,20 @@
                     <div class="pp-acc-item off" data-acc="warranty"><span class="pp-acc-ic">📄</span>보증서</div>
                 </div>
 
-                <h3 class="pp-sec-title">상품 기본정보</h3>
+                <h3 class="pp-sec-title">배송 · 판매 정보</h3>
                 <div class="pp-spec">
-                    <div class="pp-spec-row"><span>모델번호</span><strong id="pmNo2">-</strong></div>
-                    <div class="pp-spec-row"><span>브랜드</span><strong id="pmBrand2">-</strong></div>
-                    <div class="pp-spec-row"><span>모델</span><strong id="pmModel2">-</strong></div>
+                    <div class="pp-spec-row"><span>배송 방식</span><strong>진단 후 배송 · 7~9일 후 배송/쇼룸 픽업</strong></div>
+                    <div class="pp-spec-row"><span>판매 방식</span><strong>벨로르 직접 검수 판매</strong></div>
+                    <div class="pp-spec-row"><span>상품번호</span><strong id="pmNo2">-</strong></div>
                 </div>
 
-                <div class="pp-desc" id="pmDesc">
-                    <h4>상태</h4>
-                    <ul>
-                        <li>벨로르가 직접 매입하여 40년 경력 감정사의 정밀 검수를 거친 정품입니다.</li>
-                        <li>모든 시계는 구매 후 30일 무상 A/S가 제공됩니다.</li>
-                    </ul>
+                <h3 class="pp-sec-title">상품 기본정보</h3>
+                <div class="pp-spec" id="pmSpec"></div>
+
+                <h3 class="pp-sec-title">제품 상태</h3>
+                <div class="pp-state" id="pmState">
+                    <div class="pp-state-badge" id="pmStateBadge">제품 상태 정보 안내</div>
+                    <div class="pp-state-desc" id="pmStateDesc"></div>
                 </div>
 
                 <div class="pp-detail-imgs" id="pmDetailImgs"></div>

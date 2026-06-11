@@ -3031,20 +3031,76 @@
                 el.classList.toggle('off', !on);
             });
         }
+        // 핵심 스펙 칩 (보증서 / 스탬핑 / 정품박스 / 특이사항)
+        function paintChips(d) {
+            var box = $('#pmChips');
+            if (!box) return;
+            var pack = String(d.pack || '');
+            var hasBox = pack.indexOf('풀세트') !== -1 ||
+                (String(d.accessories || '').indexOf('박스') !== -1);
+            var rows = [
+                ['보증서', d.has_warranty ? '있음' : '미표기', !!d.has_warranty],
+                ['스탬핑', String(d.stamping || '').trim() || '미표기', !!String(d.stamping || '').trim()],
+                ['정품 박스', hasBox ? '있음' : '미표기', hasBox],
+                ['특이사항', String(d.special_note || '').trim() ? '있음' : '없음', !!String(d.special_note || '').trim()]
+            ];
+            box.innerHTML = rows.map(function (r) {
+                return '<div class="pp-chip">' +
+                    '<span class="pp-chip-l">' + r[0] + '</span>' +
+                    '<span class="pp-chip-v' + (r[2] ? '' : ' off') + '">' + esc(r[1]) + '</span>' +
+                    '</div>';
+            }).join('');
+        }
+        // 상품 기본정보 표 (값 있는 항목만 노출)
+        function paintSpec(d) {
+            var box = $('#pmSpec');
+            if (!box) return;
+            function row(label, val) {
+                val = (val == null ? '' : String(val)).trim();
+                if (!val) return '';
+                return '<div class="pp-spec-row"><span>' + label + '</span><strong>' + esc(val) + '</strong></div>';
+            }
+            var html = row('브랜드', d.brand) +
+                row('모델', d.model) +
+                row('사이즈', d.size_mm ? (d.size_mm + 'mm') : '') +
+                row('컨디션', d.condition) +
+                row('구성', d.pack || d.accessories) +
+                row('스탬핑', d.stamping) +
+                row('미리수', d.misu) +
+                row('구매년도', d.purchase_year);
+            box.innerHTML = html || '<div class="pp-spec-row"><span>정보</span><strong>등록된 상세 정보가 없습니다.</strong></div>';
+        }
+        // 제품 상태 (신품/중고 배지 + 설명글)
+        function paintState(d) {
+            var badge = $('#pmStateBadge'), desc = $('#pmStateDesc');
+            if (!badge || !desc) return;
+            var cond = String(d.condition || '');
+            var isNew = cond.indexOf('미착용') !== -1 || cond.indexOf('신품') !== -1;
+            badge.textContent = isNew ? '미착용 (신품급) 상품입니다.' : '착용 이력이 있는 중고 상품입니다.';
+            badge.classList.toggle('is-new', isNew);
+            var lines = [];
+            if (d.purchase_year) lines.push('구매년도 : ' + esc(String(d.purchase_year)));
+            if (d.pack) lines.push('상품구성 : ' + esc(String(d.pack)));
+            if (String(d.detail_desc || '').trim()) lines.push(esc(String(d.detail_desc).trim()).replace(/\n/g, '<br>'));
+            if (String(d.special_note || '').trim()) lines.push('<b>특이사항</b> : ' + esc(String(d.special_note).trim()));
+            lines.push('<span class="pp-state-note">본 상품은 판매자가 입력한 정보이며, 구매 완료 시 벨로르 정밀 검수 후 출고됩니다. 중고 상품 특성상 스크래치·찍힘 및 사용감이 있을 수 있는 점 참고 부탁드립니다.</span>');
+            desc.innerHTML = lines.map(function (l) { return '<p>' + l + '</p>'; }).join('');
+        }
         function paint(d) {
             var photos = (d.photos && d.photos.length) ? d.photos : (d.img ? [d.img] : []);
             if (!photos.length) photos = ['assets/images.jpg'];
             curPhotos = photos;
 
             $('#pmBrand').textContent = d.brand || '';
-            $('#pmBrand2').textContent = d.brand || '-';
             $('#pmModel').textContent = d.model || '';
-            $('#pmModel2').textContent = d.model || '-';
             $('#pmPrice').innerHTML = ppPriceHTML(d);
             $('#pmNo').textContent = d.no || '-';
-            $('#pmNo2').textContent = d.no || '-';
+            var no2 = $('#pmNo2'); if (no2) no2.textContent = d.no || '-';
             $('#pmPoint').textContent = d.price ? (fmt(Math.round(d.price * 0.01)) + 'P 적립 (1%)') : '-';
             paintAcc(d);
+            paintChips(d);
+            paintSpec(d);
+            paintState(d);
 
             // 썸네일
             var thumbs = $('#pmThumbs');
@@ -3114,6 +3170,11 @@
                         photos: it.photos, category: it.category,
                         pack: it.pack || '', has_warranty: !!it.has_warranty,
                         accessories: it.accessories || '',
+                        condition: it.condition || '', size_mm: it.size_mm || 0,
+                        stamping: it.stamping || '', misu: it.misu || '',
+                        purchase_year: it.purchase_year || '',
+                        special_note: it.special_note || '',
+                        detail_desc: it.detail_desc || '',
                         no: String(it.id).slice(0, 8).toUpperCase()
                     });
                     window.BELLORE_currentProduct = {

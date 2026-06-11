@@ -299,6 +299,9 @@
           '<label><span>구성품</span><input name="accessories" placeholder="예: 풀세트(보증서·박스·정품택)" value="' + esc(item ? item.accessories : '') + '"></label>' +
           '<label><span>스탬핑 (선택 — 비우면 카드에 “미표기”)</span><input name="stamping" placeholder="예: 2023년 스탬핑 / 스탬핑 있음" value="' + esc(item ? item.stamping : '') + '"></label>' +
           '<label><span>미리수 (선택 — 비우면 카드에 “미표기”)</span><input name="misu" placeholder="예: 미리수 / 정식수입(내수)" value="' + esc(item ? item.misu : '') + '"></label>' +
+          '<label><span>구매년도 (선택)</span><input name="purchase_year" inputmode="numeric" placeholder="예: 2019" value="' + esc(item ? item.purchase_year : '') + '"></label>' +
+          '<label><span>특이사항 (선택 — 상세페이지 “제품 상태”에 표시)</span><input name="special_note" placeholder="예: 베젤 미세 스크래치 있음" value="' + esc(item ? item.special_note : '') + '"></label>' +
+          '<label><span>상세 설명 (선택 — 상세페이지 “제품 상태”에 표시)</span><textarea name="detail_desc" rows="4" placeholder="제품 상태·구성·착용감 등 자세한 설명을 적어주세요.">' + esc(item ? item.detail_desc : '') + '</textarea></label>' +
           '<label class="lp-tag lp-tag-solo"><input type="checkbox" name="has_warranty"' + (item && item.has_warranty ? ' checked' : '') + '><span>정품 보증서 포함</span></label>' +
           '<div class="lp-tags"><span class="lp-tags-label">카테고리 노출 (상단 탭에 함께 표시)</span>' +
             '<label class="lp-tag"><input type="checkbox" name="tag_sale"' + (tagOn(item, 'sale') ? ' checked' : '') + '><span>TIME SALE (할인 시작)</span></label>' +
@@ -330,7 +333,7 @@
         if (fd.get('tag_today')) tags.push('today');
         var saleOn = tags.indexOf('sale') !== -1;
         var saleStart = saleOn ? ((item && item.tags && item.tags.indexOf('sale') !== -1 && item.sale_started_at) ? item.sale_started_at : new Date().toISOString()) : null;
-        var payload = { brand: brand, model: model, price: price, sale_price: salePrice, category: fd.get('category'), status: fd.get('status'), tags: tags, condition: String(fd.get('condition') || ''), has_warranty: !!fd.get('has_warranty'), accessories: String(fd.get('accessories') || '').trim(), stamping: String(fd.get('stamping') || '').trim(), misu: String(fd.get('misu') || '').trim(), pack: String(fd.get('pack') || ''), size_mm: parseInt(fd.get('size_mm'), 10) || null, sale_started_at: saleStart, photos: lPicker.files };
+        var payload = { brand: brand, model: model, price: price, sale_price: salePrice, category: fd.get('category'), status: fd.get('status'), tags: tags, condition: String(fd.get('condition') || ''), has_warranty: !!fd.get('has_warranty'), accessories: String(fd.get('accessories') || '').trim(), stamping: String(fd.get('stamping') || '').trim(), misu: String(fd.get('misu') || '').trim(), pack: String(fd.get('pack') || ''), size_mm: parseInt(fd.get('size_mm'), 10) || null, purchase_year: String(fd.get('purchase_year') || '').trim(), special_note: String(fd.get('special_note') || '').trim(), detail_desc: String(fd.get('detail_desc') || '').trim(), sale_started_at: saleStart, photos: lPicker.files };
         var btn = $('#lpSubmit', listingPage); btn.disabled = true; btn.textContent = '저장 중…';
         // 사진 picker가 기존 URL+새 사진을 모두 보유 → existingPhotos는 비우고 picker 결과로 통째 교체(삭제 반영)
         var p = lEditId
