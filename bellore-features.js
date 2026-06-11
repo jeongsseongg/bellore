@@ -7,6 +7,52 @@
    - 마이페이지 : 관리자=관리현황 / 고객=내 비교견적
    디자인 톤(로그인 모달/업로드 그리드 클래스)을 재사용합니다.
    ============================================================ */
+
+/* ============================================================
+   벨로르 스타일 팝업 — 네이티브 alert/confirm 대체(브라우저 느낌 제거)
+   ============================================================ */
+(function () {
+  'use strict';
+  var mask;
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function ensure() {
+    if (mask) return mask;
+    mask = document.createElement('div');
+    mask.className = 'bl-modal-mask'; mask.hidden = true;
+    mask.innerHTML =
+      '<div class="bl-modal" role="dialog" aria-modal="true">' +
+        '<div class="bl-modal-top">' +
+          '<img class="bl-modal-logo" src="assets/logo-bellore.png" alt="BELLORE">' +
+          '<p class="bl-modal-msg"></p>' +
+        '</div>' +
+        '<div class="bl-modal-acts"></div>' +
+      '</div>';
+    document.body.appendChild(mask);
+    mask.addEventListener('click', function (e) { if (e.target === mask) hide(); });
+    return mask;
+  }
+  function hide() { if (!mask) return; mask.classList.remove('show'); setTimeout(function () { if (mask) mask.hidden = true; }, 200); }
+  function show(msg, buttons) {
+    ensure();
+    mask.querySelector('.bl-modal-msg').innerHTML = esc(msg).replace(/\n/g, '<br>');
+    var acts = mask.querySelector('.bl-modal-acts'); acts.innerHTML = '';
+    buttons.forEach(function (b) {
+      var btn = document.createElement('button');
+      btn.className = b.cls || 'bl-ok'; btn.textContent = b.label;
+      btn.addEventListener('click', function () { hide(); if (b.cb) setTimeout(b.cb, 60); });
+      acts.appendChild(btn);
+    });
+    mask.hidden = false;
+    requestAnimationFrame(function () { mask.classList.add('show'); });
+  }
+  window.belloreAlert = function (msg, cb) { show(msg, [{ label: '확인', cls: 'bl-ok', cb: cb }]); };
+  window.belloreConfirm = function (msg, onOk, onCancel) {
+    show(msg, [{ label: '취소', cls: 'bl-cancel', cb: onCancel }, { label: '확인', cls: 'bl-ok', cb: onOk }]);
+  };
+  // 네이티브 alert를 벨로르 팝업으로 교체(반환값 없는 알림은 안전)
+  try { window.alert = function (m) { window.belloreAlert(m); }; } catch (e) {}
+})();
+
 (function () {
   'use strict';
 

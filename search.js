@@ -112,13 +112,62 @@
 
   var input = $('#spInput', page);
 
+  /* ---------- 자동완성(연관 검색어) ---------- */
+  // 후보: 브랜드명 + "브랜드 모델" 조합 + 모델 단독
+  var AUTO = (function () {
+    var arr = [];
+    BRANDS.forEach(function (b) {
+      arr.push({ label: b.name, q: b.name, sub: '브랜드' });
+      (b.models || []).forEach(function (m) {
+        arr.push({ label: b.name + ' ' + m, q: b.name + ' ' + m, sub: m });
+      });
+    });
+    return arr;
+  })();
+  var autoBox = document.createElement('div');
+  autoBox.className = 'sp-auto'; autoBox.hidden = true;
+  $('.sp-top', page).appendChild(autoBox);
+
+  function matchAuto(qRaw) {
+    var q = String(qRaw || '').trim().toLowerCase();
+    if (!q) return [];
+    var out = [];
+    for (var i = 0; i < AUTO.length && out.length < 10; i++) {
+      var it = AUTO[i];
+      if (it.label.toLowerCase().indexOf(q) > -1 || it.sub.toLowerCase().indexOf(q) > -1) out.push(it);
+    }
+    return out;
+  }
+  function hl(label, q) {
+    var i = label.toLowerCase().indexOf(q.toLowerCase());
+    if (i < 0) return esc(label);
+    return esc(label.slice(0, i)) + '<b>' + esc(label.slice(i, i + q.length)) + '</b>' + esc(label.slice(i + q.length));
+  }
+  function renderAuto(q) {
+    var list = matchAuto(q);
+    if (!list.length) { hideAuto(); return; }
+    autoBox.innerHTML = list.map(function (it) {
+      return '<button type="button" class="sp-auto-item" data-q="' + esc(it.q) + '">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>' +
+        '<span>' + hl(it.label, q) + '</span></button>';
+    }).join('');
+    autoBox.hidden = false;
+  }
+  function hideAuto() { autoBox.hidden = true; autoBox.innerHTML = ''; }
+
   function openPage(tab) {
     page.hidden = false;
     document.body.style.overflow = 'hidden';
+    document.body.classList.add('is-searching');
     switchTab(tab || 'word');
     setTimeout(function () { if ((tab || 'word') === 'word') input.focus(); }, 50);
   }
-  function closePage() { page.hidden = true; document.body.style.overflow = ''; if (input) input.value = ''; }
+  function closePage() {
+    page.hidden = true; document.body.style.overflow = '';
+    document.body.classList.remove('is-searching');
+    if (input) input.value = '';
+    hideAuto();
+  }
   window.BELLORE_openSearch = openPage;
 
   function switchTab(t) {
@@ -208,17 +257,63 @@
       }).join('');
   }
 
-  /* ---------- 오늘시세 탭 (준비중) ---------- */
+  /* ---------- 오늘시세 탭 (브랜드별 간단 그래프) ---------- */
+  // 브랜드명 기반 시드 → 12개월 시세 추이(참고용 예시 데이터)
+  function seedOf(str) { var h = 0; for (var i = 0; i < str.length; i++) { h = (h * 31 + str.charCodeAt(i)) >>> 0; } return h; }
+  function trendFor(name) {
+    var s = seedOf(name);
+    function rnd() { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; }
+    var base = 800 + Math.floor(rnd() * 9200); // 800만 ~ 1억(만원 단위)
+    var pts = [], v = base;
+    for (var i = 0; i < 12; i++) { v = Math.max(120, v * (1 + (rnd() - 0.46) * 0.08)); pts.push(Math.round(v)); }
+    return pts;
+  }
+  function won(man) { // 만원 단위 → 보기 좋은 한글 금액
+    if (man >= 10000) return (man / 10000).toFixed(man % 10000 === 0 ? 0 : 1) + '억';
+    return fmt(man) + '만';
+  }
+  function sparkline(pts) {
+    var W = 300, H = 84, P = 6;
+    var min = Math.min.apply(null, pts), max = Math.max.apply(null, pts), rng = (max - min) || 1;
+    var step = (W - P * 2) / (pts.length - 1);
+    var coords = pts.map(function (v, i) {
+      var x = P + i * step, y = P + (H - P * 2) * (1 - (v - min) / rng);
+      return [x.toFixed(1), y.toFixed(1)];
+    });
+    var line = coords.map(function (c) { return c[0] + ',' + c[1]; }).join(' ');
+    var area = 'M' + coords[0][0] + ',' + (H - P) + ' L' + line.replace(/ /g, ' L') + ' L' + coords[coords.length - 1][0] + ',' + (H - P) + ' Z';
+    var up = pts[pts.length - 1] >= pts[0];
+    var col = up ? '#1b8f5a' : '#d23b3b';
+    return '<svg class="sp-spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' +
+      '<path d="' + area + '" fill="' + (up ? 'rgba(27,143,90,.10)' : 'rgba(210,59,59,.10)') + '"/>' +
+      '<polyline points="' + line + '" fill="none" stroke="' + col + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<circle cx="' + coords[coords.length - 1][0] + '" cy="' + coords[coords.length - 1][1] + '" r="3.5" fill="' + col + '"/></svg>';
+  }
+  var priceOpen = '';
+  function priceGraphHTML(name) {
+    var pts = trendFor(name), cur = pts[pts.length - 1], first = pts[0];
+    var diff = cur - first, pct = (diff / first * 100);
+    var up = diff >= 0;
+    return '<div class="sp-price-graph">' +
+      '<div class="sp-price-now"><span>현재 평균 시세</span><b>' + won(cur) + '원</b>' +
+        '<em class="' + (up ? 'up' : 'down') + '">' + (up ? '▲' : '▼') + ' ' + Math.abs(pct).toFixed(1) + '% (12개월)</em></div>' +
+      sparkline(pts) +
+      '<div class="sp-price-axis"><span>' + won(Math.min.apply(null, pts)) + '</span><span>' + won(Math.max.apply(null, pts)) + '</span></div>' +
+      '<p class="sp-price-foot">※ 거래·검색 데이터 기반 참고용 추정치입니다. 실거래가와 다를 수 있습니다.</p>' +
+    '</div>';
+  }
   function renderPrice() {
     var el = $('.sp-panel[data-sppanel="price"]', page);
     el.innerHTML =
-      '<div class="sp-price-head"><h3>오늘의 시세</h3><span class="sp-price-test">TEST · 데이터 적립중</span></div>' +
-      '<p class="sp-price-desc">모든 시계의 시세를 그래프로 확인하는 기능을 준비하고 있습니다. 거래·검색 데이터가 쌓이면 브랜드·모델별 시세 추이를 제공합니다.</p>' +
+      '<div class="sp-price-head"><h3>오늘의 시세</h3><span class="sp-price-test">참고용 · 데이터 적립중</span></div>' +
+      '<p class="sp-price-desc">브랜드를 누르면 최근 12개월 시세 추이를 그래프로 보여드립니다.</p>' +
       '<div class="sp-price-list">' +
         BRANDS.map(function (b) {
-          return '<button type="button" class="sp-price-row" data-bi-price="' + esc(b.name) + '">' +
+          var open = priceOpen === b.name;
+          return '<button type="button" class="sp-price-row' + (open ? ' on' : '') + '" data-bi-price="' + esc(b.name) + '">' +
             '<img src="' + window.BELLORE_BRAND_LOGO(b.slug) + '" alt=""><span>' + esc(b.name) + '</span>' +
-            '<em class="sp-price-soon">준비중</em></button>';
+            '<em class="sp-price-arrow">' + (open ? '−' : '＋') + '</em></button>' +
+            (open ? priceGraphHTML(b.name) : '');
         }).join('') +
       '</div>';
   }
@@ -228,7 +323,9 @@
     if (e.target.id === 'spForm') { e.preventDefault(); runQuery(input.value); }
   });
   input.addEventListener('search', function () { runQuery(input.value); });
+  input.addEventListener('input', function () { renderAuto(input.value); });
   page.addEventListener('click', function (e) {
+    var ai = e.target.closest('.sp-auto-item'); if (ai) { runQuery(ai.dataset.q); return; }
     if (e.target.closest('[data-spclose]')) { closePage(); return; }
     var tab = e.target.closest('[data-sptab]'); if (tab) { switchTab(tab.dataset.sptab); return; }
 
@@ -251,8 +348,9 @@
       runQuery(model ? (brand + ' ' + model) : brand);
       return;
     }
-    // 오늘시세 행(준비중)
-    if (e.target.closest('[data-bi-price]')) { /* 준비중 — 동작 없음 */ return; }
+    // 오늘시세 행 → 그래프 토글
+    var pr = e.target.closest('[data-bi-price]');
+    if (pr) { var nm = pr.getAttribute('data-bi-price'); priceOpen = (priceOpen === nm) ? '' : nm; renderPrice(); return; }
   });
 
   function openViewed(v) {
@@ -275,6 +373,8 @@
     if (hs) hs.addEventListener('submit', open);
     if (si) { si.addEventListener('focus', open); si.addEventListener('click', open); }
     if (hs) { var ic = hs.querySelector('.header-search-ic'); if (ic) ic.addEventListener('click', open); }
+    var ts = $('#tabSearch');
+    if (ts) ts.addEventListener('click', function (e) { e.preventDefault(); openPage('word'); });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireHeader);
   else wireHeader();

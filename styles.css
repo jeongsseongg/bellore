@@ -6135,8 +6135,8 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 .hcard-timesale .hcard-timer { font-size: 16px; font-weight: 900; color: #111; line-height: 1.05; letter-spacing: .3px; }
 .hcard-timesale.ended b, .hcard-timesale.ended .hcard-timer { color: #888; }
 
-/* 모바일에선 좌상단 뒤로가기 숨김(제스처로 충분) */
-@media (max-width: 699px) { .header-back { display: none !important; } }
+/* 좌상단 뒤로가기 버튼 제거(모바일은 제스처, PC도 미노출) */
+.header-back { display: none !important; }
 
 /* ===== 할인가 표시(카드) ===== */
 .hcard-old { display: block; font-size: 11.5px; color: var(--text-3); text-decoration: line-through; font-weight: 600; margin-bottom: 1px; }
@@ -6357,3 +6357,84 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: none; }
 }
+
+/* ============================================================
+   배치4 보강: 판매시계 ALL/스와이프 · 검색탭 · 자동완성 · 시세그래프 · 벨로르 팝업
+   ============================================================ */
+
+/* (3) 판매시계 '전체(ALL)' 선택 상태에서도 글자 보이게 (흰 배경 강제 회피) */
+.cat-brand[data-brand="all"] .brand-circle-img { font-family: var(--serif, serif); font-size: 13px; letter-spacing: 1px; color: #2b2620; }
+.cat-brand[data-brand="all"].active .brand-circle-img { background: #111 !important; color: #fff !important; border-color: #111; outline: none; }
+
+/* (4) 판매시계 브랜드 원형: PC에선 줄바꿈으로 전부 노출, 모바일은 스와이프 + 드래그 스크롤 */
+.cat-brands { cursor: grab; touch-action: pan-x; }
+.cat-brands.dragging { cursor: grabbing; scroll-snap-type: none; }
+@media (min-width: 700px) {
+    .cat-brands.brand-circle-scroll { flex-wrap: wrap !important; overflow-x: visible; justify-content: flex-start; gap: 16px 12px; }
+}
+
+/* (7) 검색 페이지가 하단 탭바를 덮지 않도록(브라우저 전체화면 느낌 완화) */
+.tabbar { z-index: 1300; }
+.search-page { bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); }
+.search-page[hidden] { display: none; }
+body.is-searching .tab-search { color: var(--green-bright); }
+body.is-searching .tab-search span { font-weight: 700; }
+
+/* (10) 자동완성(연관 검색어) 드롭다운 */
+.sp-auto {
+    position: absolute; left: 14px; right: 14px; top: calc(100% - 6px); z-index: 20;
+    background: #fff; border: 1px solid #ececec; border-radius: 0 0 14px 14px;
+    box-shadow: 0 14px 30px rgba(0,0,0,.10); overflow: hidden; max-height: 52vh; overflow-y: auto;
+}
+.sp-auto[hidden] { display: none; }
+.sp-auto-item { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 13px 16px; font-size: 15px; color: #333; border-bottom: 1px solid #f4f3f0; }
+.sp-auto-item:last-child { border-bottom: none; }
+.sp-auto-item:hover, .sp-auto-item:active { background: #f7f6f3; }
+.sp-auto-item b { color: var(--dark-green); font-weight: 800; }
+.sp-top { position: relative; }
+
+/* (8) 오늘시세 그래프 */
+.sp-price-head { display: flex; align-items: baseline; gap: 10px; padding: 4px 2px 8px; }
+.sp-price-head h3 { font-size: 18px; font-weight: 800; }
+.sp-price-test { font-size: 11px; color: #b08d4e; font-weight: 700; }
+.sp-price-desc { font-size: 13.5px; color: #888; padding: 0 2px 14px; }
+.sp-price-list { display: flex; flex-direction: column; }
+.sp-price-row { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 14px 6px; border-bottom: 1px solid #f1efeb; }
+.sp-price-row img { width: 34px; height: 34px; object-fit: contain; border-radius: 50%; background: #fff; border: 1px solid #f0eee9; flex-shrink: 0; }
+.sp-price-row span { flex: 1; font-size: 15px; font-weight: 600; color: #2b2620; }
+.sp-price-arrow { font-size: 18px; color: #b9b2a4; font-weight: 400; width: 18px; text-align: center; }
+.sp-price-row.on { border-bottom: none; }
+.sp-price-row.on .sp-price-arrow { color: var(--dark-green); }
+.sp-price-graph { padding: 6px 6px 20px; border-bottom: 1px solid #f1efeb; animation: spGraphIn .25s ease; }
+@keyframes spGraphIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.sp-price-now { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.sp-price-now span { font-size: 12.5px; color: #999; }
+.sp-price-now b { font-size: 22px; font-weight: 900; color: #111; letter-spacing: -.5px; }
+.sp-price-now em { font-size: 13px; font-weight: 800; font-style: normal; }
+.sp-price-now em.up { color: #1b8f5a; }
+.sp-price-now em.down { color: #d23b3b; }
+.sp-spark { width: 100%; height: 88px; display: block; }
+.sp-price-axis { display: flex; justify-content: space-between; font-size: 11px; color: #bbb; margin-top: 2px; }
+.sp-price-foot { font-size: 11.5px; color: #bbb; margin-top: 10px; line-height: 1.5; }
+
+/* (9) 벨로르 스타일 팝업(네이티브 alert 대체) */
+.bl-modal-mask {
+    position: fixed; inset: 0; z-index: 5000; display: flex; align-items: center; justify-content: center;
+    background: rgba(15,14,12,.55); backdrop-filter: blur(3px); padding: 24px;
+    opacity: 0; transition: opacity .2s;
+}
+.bl-modal-mask.show { opacity: 1; }
+.bl-modal {
+    width: 100%; max-width: 340px; background: #fff; border-radius: 20px; overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0,0,0,.35); transform: translateY(12px) scale(.98); transition: transform .22s;
+    text-align: center;
+}
+.bl-modal-mask.show .bl-modal { transform: none; }
+.bl-modal-top { padding: 26px 24px 6px; }
+.bl-modal-logo { width: 108px; height: auto; margin: 0 auto 14px; display: block; }
+.bl-modal-msg { font-size: 15.5px; line-height: 1.6; color: #2b2620; white-space: pre-line; word-break: keep-all; padding: 0 4px; }
+.bl-modal-acts { display: flex; border-top: 1px solid #efece6; margin-top: 22px; }
+.bl-modal-acts button { flex: 1; padding: 16px 8px; font-size: 15px; font-weight: 700; background: #fff; border: none; color: #111; }
+.bl-modal-acts button + button { border-left: 1px solid #efece6; }
+.bl-modal-acts .bl-cancel { color: #999; font-weight: 600; }
+.bl-modal-acts .bl-ok { color: var(--dark-green); }

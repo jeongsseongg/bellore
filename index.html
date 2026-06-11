@@ -259,7 +259,7 @@
             <!-- 브랜드 바로가기 (그리드 2줄) -->
             <section class="brand-quicklinks">
                 <div class="container">
-                    <div class="brand-circle-grid brand-circle-scroll" id="brandCircleRow">
+                    <div class="brand-circle-grid" id="brandCircleRow">
                         <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="롤렉스"><span class="brand-circle-img"><img src="assets/brands/rolex.png" alt="롤렉스" loading="lazy"></span><span class="brand-circle-name">롤렉스</span></a>
                         <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="까르띠에"><span class="brand-circle-img"><img src="assets/brands/cartier.png" alt="까르띠에" loading="lazy"></span><span class="brand-circle-name">까르띠에</span></a>
                         <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="오메가"><span class="brand-circle-img"><img src="assets/brands/omega.png" alt="오메가" loading="lazy"></span><span class="brand-circle-name">오메가</span></a>
@@ -2535,6 +2535,10 @@
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
             <span>판매시계</span>
         </button>
+        <button class="tab-item tab-search" id="tabSearch" type="button">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>
+            <span>검색</span>
+        </button>
         <button class="tab-item tab-wish" data-nav="wishlist">
             <span class="tab-wish-ic">
                 <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
@@ -2597,7 +2601,23 @@
                 grid.querySelectorAll('.hcard').forEach(function (c) { if (c.style.display !== 'none') n++; });
                 countEl.textContent = n;
             }
-            var fBrand = 'all', fPack = '', fSize = '';
+            var fBrand = 'all', fPack = '', fSize = '', fModel = '';
+            var catModels = document.getElementById('catModels');
+            function esc2(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+            function modelsForBrand(name) {
+                var list = window.BELLORE_BRANDS || [];
+                for (var i = 0; i < list.length; i++) { if (list[i].name === name) return list[i].models || []; }
+                return [];
+            }
+            function renderModelChips(brand) {
+                if (!catModels) return;
+                if (!brand || brand === 'all') { catModels.hidden = true; catModels.innerHTML = ''; return; }
+                var ms = modelsForBrand(brand);
+                if (!ms.length) { catModels.hidden = true; catModels.innerHTML = ''; return; }
+                var html = '<button type="button" class="cat-model active" data-model="">전체</button>';
+                ms.forEach(function (m) { html += '<button type="button" class="cat-model" data-model="' + esc2(m) + '">' + esc2(m) + '</button>'; });
+                catModels.innerHTML = html; catModels.hidden = false;
+            }
             function applyFilters() {
                 var b = (fBrand || 'all').toUpperCase();
                 grid.querySelectorAll('.hcard').forEach(function (c) {
@@ -2606,6 +2626,11 @@
                     var pk = c.dataset.pack || '';
                     var sz = parseInt(c.dataset.size, 10) || 0;
                     var ok = (b === 'ALL' || bd.indexOf(b) > -1);
+                    if (ok && fModel) {
+                        var mel = c.querySelector('.hcard-model');
+                        var md = ((c.dataset.model || (mel ? mel.textContent : '')) + '').toLowerCase();
+                        ok = md.indexOf(fModel.toLowerCase()) > -1;
+                    }
                     if (ok && fPack) ok = (pk === fPack);
                     if (ok && fSize === '-36') ok = (sz > 0 && sz <= 36);
                     else if (ok && fSize === '37-40') ok = (sz >= 37 && sz <= 40);
@@ -2618,8 +2643,16 @@
                 btn.addEventListener('click', function () {
                     brands.forEach(function (x) { x.classList.remove('active'); });
                     btn.classList.add('active');
-                    fBrand = btn.dataset.brand; applyFilters();
+                    fBrand = btn.dataset.brand; fModel = '';
+                    renderModelChips(fBrand);
+                    applyFilters();
                 });
+            });
+            if (catModels) catModels.addEventListener('click', function (e) {
+                var cm = e.target.closest('.cat-model'); if (!cm) return;
+                catModels.querySelectorAll('.cat-model').forEach(function (x) { x.classList.toggle('active', x === cm); });
+                fModel = cm.dataset.model || '';
+                applyFilters();
             });
             var fp = document.getElementById('filterPack'), fz = document.getElementById('filterSize');
             if (fp) fp.addEventListener('change', function () { fPack = fp.value; applyFilters(); });
@@ -2644,6 +2677,22 @@
             var on = wrap.classList.toggle('show-all');
             var nm = t.querySelector('.brand-circle-name'); if (nm) nm.textContent = on ? '접기' : '모든 브랜드';
         });
+
+        /* 가로 원형 카테고리: 마우스 드래그로도 스크롤(PC 좁은 화면 대응) */
+        (function () {
+            document.querySelectorAll('.cat-brands.brand-circle-scroll').forEach(function (row) {
+                var down = false, sx = 0, sl = 0, moved = false;
+                row.addEventListener('pointerdown', function (e) {
+                    if (e.pointerType === 'touch') return; // 터치는 네이티브 스와이프
+                    down = true; moved = false; sx = e.clientX; sl = row.scrollLeft; row.classList.add('dragging');
+                });
+                window.addEventListener('pointermove', function (e) {
+                    if (!down) return; var dx = e.clientX - sx; if (Math.abs(dx) > 4) moved = true; row.scrollLeft = sl - dx;
+                });
+                window.addEventListener('pointerup', function () { down = false; row.classList.remove('dragging'); });
+                row.addEventListener('click', function (e) { if (moved) { e.preventDefault(); e.stopPropagation(); } }, true);
+            });
+        })();
 
         /* 좌상단 뒤로가기 + 기기/브라우저 back 연동 (오버레이는 back으로 닫힘) */
         (function () {
