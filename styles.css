@@ -6208,7 +6208,7 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 .brand-circle-scroll .brand-circle { flex: 0 0 auto; width: 70px; scroll-snap-align: start; }
 /* 로고 누끼(투명 배경) → 잘리지 않게 contain + 흰 배경, 크게 */
 .brand-circle-img { background: #fff !important; }
-.brand-circle-img img { width: 100%; height: 100%; object-fit: contain; border-radius: 50%; padding: 7px; box-sizing: border-box; }
+.brand-circle-img img { width: 100%; height: 100%; object-fit: contain; border-radius: 50%; padding: 3px; box-sizing: border-box; }
 /* 로고 이미지가 있는 원형은 hover 시 반전하지 않음 */
 .brand-circle:hover .brand-circle-img { background: #fff; color: #2b2620; box-shadow: 0 4px 14px rgba(0,0,0,.16); }
 .brand-circle-all:hover .brand-circle-img { background: #000; color: #fff; }
@@ -6451,3 +6451,57 @@ body.is-searching .tab-search span { font-weight: 700; }
 .bl-modal-acts button + button { border-left: 1px solid #efece6; }
 .bl-modal-acts .bl-cancel { color: #999; font-weight: 600; }
 .bl-modal-acts .bl-ok { color: var(--dark-green); }
+
+/* ============================================================
+   배치6 보강
+   ============================================================ */
+
+/* (1) 홈 '전체보기(ALL)' 글자 보이게 — 흰 배경 강제 회피 */
+.brand-circle-all .brand-circle-img { background: #111 !important; color: #fff !important; border-color: #111; }
+.brand-circle-all:hover .brand-circle-img { background: #000 !important; color: #fff !important; }
+
+/* (2) 검색 페이지를 앱 폭(660/와이드 1200) 안에서만 표시 (전체화면 금지) */
+.search-page {
+    left: 50%; right: auto; transform: translateX(-50%);
+    width: 100%; max-width: var(--app-w);
+    border-left: 1px solid #eee; border-right: 1px solid #eee;
+    bottom: 0; /* 탭바는 숨기므로 하단까지 사용 */
+}
+
+/* (3)(10) 검색 중에는 하단 탭바 숨김 (검색탭도 제거됨) */
+body.is-searching .tabbar { display: none !important; }
+
+/* (4) 판매시계 모델 칩: 한 줄 가로 스와이프 + 검색 */
+#catModels { display: block; }
+.cat-model-search {
+    display: flex; align-items: center; gap: 7px; max-width: 240px;
+    background: #fff; border: 1px solid #e3ded4; border-radius: 999px;
+    padding: 7px 13px; margin: 10px 0 10px;
+}
+.cat-model-search input { flex: 1; border: none; outline: none; background: none; font-size: 13.5px; font-family: inherit; }
+.cat-model-row {
+    display: flex; flex-wrap: nowrap; gap: 8px; overflow-x: auto;
+    -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 4px;
+}
+.cat-model-row::-webkit-scrollbar { display: none; }
+.cat-model-row .cat-model { flex: 0 0 auto; }
+
+/* (8) 타임세일: 라벨 없이 숫자만 크게·검정 강조 */
+.hcard-timesale { text-shadow: none; }
+.hcard-timesale .hcard-timer { font-size: 20px; font-weight: 900; color: #111; letter-spacing: .5px; }
+.hcard-timesale.ended .hcard-timer { color: #888; }
+
+/* (6) 등록/수정 사진 순서 변경 버튼 + 대표 배지 */
+.upload-cell.has-img { position: relative; }
+.cell-order { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; padding: 4px; }
+.ord-btn {
+    width: 26px; height: 26px; border-radius: 50%; border: none;
+    background: rgba(0,0,0,.6); color: #fff; font-size: 17px; line-height: 1;
+    display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
+}
+.ord-btn[disabled] { opacity: .25; cursor: default; }
+.cell-cover {
+    position: absolute; top: 6px; left: 6px; z-index: 2;
+    background: var(--dark-green, #111); color: #fff; font-size: 10px; font-weight: 800;
+    padding: 3px 8px; border-radius: 999px; letter-spacing: .5px;
+}

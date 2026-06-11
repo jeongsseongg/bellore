@@ -2535,10 +2535,6 @@
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
             <span>판매시계</span>
         </button>
-        <button class="tab-item tab-search" id="tabSearch" type="button">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>
-            <span>검색</span>
-        </button>
         <button class="tab-item tab-wish" data-nav="wishlist">
             <span class="tab-wish-ic">
                 <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
@@ -2614,9 +2610,22 @@
                 if (!brand || brand === 'all') { catModels.hidden = true; catModels.innerHTML = ''; return; }
                 var ms = modelsForBrand(brand);
                 if (!ms.length) { catModels.hidden = true; catModels.innerHTML = ''; return; }
-                var html = '<button type="button" class="cat-model active" data-model="">전체</button>';
-                ms.forEach(function (m) { html += '<button type="button" class="cat-model" data-model="' + esc2(m) + '">' + esc2(m) + '</button>'; });
-                catModels.innerHTML = html; catModels.hidden = false;
+                catModels._models = ms;
+                var chips = '<button type="button" class="cat-model active" data-model="">전체</button>' +
+                    ms.map(function (m) { return '<button type="button" class="cat-model" data-model="' + esc2(m) + '">' + esc2(m) + '</button>'; }).join('');
+                catModels.innerHTML =
+                    '<div class="cat-model-search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>' +
+                        '<input type="text" class="cat-model-q" placeholder="모델 검색" autocomplete="off"></div>' +
+                    '<div class="cat-model-row">' + chips + '</div>';
+                catModels.hidden = false;
+            }
+            function filterModelChips(q) {
+                if (!catModels) return;
+                q = (q || '').trim().toLowerCase();
+                catModels.querySelectorAll('.cat-model-row .cat-model').forEach(function (c) {
+                    if (!c.dataset.model) { c.style.display = ''; return; } // '전체'는 항상
+                    c.style.display = (!q || c.textContent.toLowerCase().indexOf(q) > -1) ? '' : 'none';
+                });
             }
             function applyFilters() {
                 var b = (fBrand || 'all').toUpperCase();
@@ -2653,6 +2662,9 @@
                 catModels.querySelectorAll('.cat-model').forEach(function (x) { x.classList.toggle('active', x === cm); });
                 fModel = cm.dataset.model || '';
                 applyFilters();
+            });
+            if (catModels) catModels.addEventListener('input', function (e) {
+                if (e.target.classList.contains('cat-model-q')) filterModelChips(e.target.value);
             });
             var fp = document.getElementById('filterPack'), fz = document.getElementById('filterSize');
             if (fp) fp.addEventListener('change', function () { fPack = fp.value; applyFilters(); });

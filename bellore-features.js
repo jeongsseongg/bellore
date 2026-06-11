@@ -105,7 +105,13 @@
       grid.innerHTML = '';
       files.forEach(function (src, i) {
         var cell = document.createElement('div'); cell.className = 'upload-cell has-img';
-        cell.innerHTML = '<img src="' + src + '" alt=""><button type="button" class="remove-btn" data-i="' + i + '">×</button>';
+        var nav = '<div class="cell-order">' +
+          '<button type="button" class="ord-btn ord-left" data-mv="' + i + '" data-dir="-1" aria-label="앞으로"' + (i === 0 ? ' disabled' : '') + '>‹</button>' +
+          '<button type="button" class="ord-btn ord-right" data-mv="' + i + '" data-dir="1" aria-label="뒤로"' + (i === files.length - 1 ? ' disabled' : '') + '>›</button>' +
+          '</div>';
+        cell.innerHTML = '<img src="' + src + '" alt="">' +
+          (i === 0 ? '<span class="cell-cover">대표</span>' : '') +
+          '<button type="button" class="remove-btn" data-i="' + i + '">×</button>' + nav;
         grid.appendChild(cell);
       });
       if (files.length < max) {
@@ -116,6 +122,14 @@
       }
     }
     grid.addEventListener('click', function (e) {
+      var mv = e.target.closest('.ord-btn');
+      if (mv) {
+        e.preventDefault();
+        var from = +mv.dataset.mv, to = from + (+mv.dataset.dir);
+        if (to < 0 || to >= files.length) return;
+        var t = files[from]; files[from] = files[to]; files[to] = t; draw();
+        return;
+      }
       var b = e.target.closest('.remove-btn'); if (!b) return;
       e.preventDefault(); files.splice(+b.dataset.i, 1); draw();
     });

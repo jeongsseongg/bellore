@@ -1327,7 +1327,7 @@
         var base = it.sale_started_at || it.created_at;
         if (it.tags && it.tags.indexOf('sale') !== -1 && base) {
             var end = Date.parse(base) + SALE_HOURS * 3600 * 1000;
-            html += '<div class="hcard-timesale" data-end="' + end + '"><b>TIME SALE</b><span class="hcard-timer">--:--:--</span></div>';
+            html += '<div class="hcard-timesale" data-end="' + end + '"><span class="hcard-timer">--:--:--</span></div>';
         }
         return html;
     }
@@ -2611,14 +2611,23 @@
         ['cartier', '까르띠에', '카르티에']
     ];
 
-    function cardMatches(cardText, ql) {
-        if (cardText.indexOf(ql) !== -1) return true;
+    // 한 토큰이 카드와 매칭되는지 (브랜드 별칭 또는 부분일치)
+    function tokenMatches(cardText, token) {
+        if (!token) return true;
+        if (cardText.indexOf(token) !== -1) return true;
         for (var i = 0; i < BRAND_ALIASES.length; i++) {
             var g = BRAND_ALIASES[i];
-            var qInGroup = g.some(function (t) { return ql.indexOf(t) !== -1 || t.indexOf(ql) !== -1; });
-            if (qInGroup && g.some(function (t) { return cardText.indexOf(t) !== -1; })) return true;
+            var isBrandTok = g.some(function (t) { return t === token || token.indexOf(t) !== -1 || t.indexOf(token) !== -1; });
+            if (isBrandTok && g.some(function (t) { return cardText.indexOf(t) !== -1; })) return true;
         }
         return false;
+    }
+    // "롤렉스 데이트저스트"처럼 여러 토큰이면 모두 만족해야 매칭(브랜드 AND 모델)
+    function cardMatches(cardText, ql) {
+        var tokens = ql.split(/\s+/).filter(Boolean);
+        if (!tokens.length) return false;
+        for (var i = 0; i < tokens.length; i++) { if (!tokenMatches(cardText, tokens[i])) return false; }
+        return true;
     }
 
     function runSearch(q) {
@@ -2648,6 +2657,18 @@
                 var tab = $('.col-tab[data-coltab="' + tabKey + '"]');
                 if (tab) tab.classList.add('active');
             }
+            // 브랜드 원형 활성 표시를 검색어에 맞춰 동기화(모델 칩은 닫음)
+            try {
+                var matchBrandBtn = null;
+                $$('#collection .cat-brand').forEach(function (b) {
+                    var bn = (b.dataset.brand || '').toLowerCase();
+                    if (bn && bn !== 'all' && tokenMatches(ql, bn)) matchBrandBtn = b;
+                });
+                $$('#collection .cat-brand').forEach(function (b) { b.classList.remove('active'); });
+                var actBtn = matchBrandBtn || $('#collection .cat-brand[data-brand="all"]');
+                if (actBtn) actBtn.classList.add('active');
+                var cm = $('#catModels'); if (cm) { cm.hidden = true; cm.innerHTML = ''; }
+            } catch (e) {}
             var head = $('#collection');
             if (head) head.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 200);

@@ -294,12 +294,12 @@
     var pts = trendFor(name), cur = pts[pts.length - 1], first = pts[0];
     var diff = cur - first, pct = (diff / first * 100);
     var up = diff >= 0;
+    // 가격(금액)은 표시하지 않고 추이/등락률만 노출
     return '<div class="sp-price-graph">' +
-      '<div class="sp-price-now"><span>현재 평균 시세</span><b>' + won(cur) + '원</b>' +
-        '<em class="' + (up ? 'up' : 'down') + '">' + (up ? '▲' : '▼') + ' ' + Math.abs(pct).toFixed(1) + '% (12개월)</em></div>' +
+      '<div class="sp-price-now"><span>최근 12개월 시세 추이</span>' +
+        '<em class="' + (up ? 'up' : 'down') + '">' + (up ? '▲ 상승' : '▼ 하락') + ' ' + Math.abs(pct).toFixed(1) + '%</em></div>' +
       sparkline(pts) +
-      '<div class="sp-price-axis"><span>' + won(Math.min.apply(null, pts)) + '</span><span>' + won(Math.max.apply(null, pts)) + '</span></div>' +
-      '<p class="sp-price-foot">※ 거래·검색 데이터 기반 참고용 추정치입니다. 실거래가와 다를 수 있습니다.</p>' +
+      '<p class="sp-price-foot">※ 추이는 참고용입니다. 정확한 시세는 문의해 주세요.</p>' +
     '</div>';
   }
   function renderPrice() {
