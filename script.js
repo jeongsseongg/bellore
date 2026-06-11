@@ -1962,7 +1962,7 @@
         if (_countdownTimer) clearInterval(_countdownTimer);
         function tick() {
             var now = Date.now();
-            $$('[data-end]').forEach(function (el) {
+            $$('.hcard-countdown[data-end]').forEach(function (el) {
                 var end = parseInt(el.dataset.end, 10);
                 if (!end) return;
                 var diff = end - now;
@@ -2630,10 +2630,42 @@
         return true;
     }
 
+    // 검색 결과 없음: 팝업 대신 벨로르 로고 + 안내 문구를 그리드 안에 노출
+    function searchEmptyEl() {
+        var el = document.getElementById('searchEmpty');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'searchEmpty';
+            el.className = 'col-empty';
+            el.hidden = true;
+            el.innerHTML =
+                '<img class="col-empty-logo" src="assets/logo-bellore.png" alt="BELLORE">' +
+                '<p class="col-empty-q"></p>' +
+                '<p class="col-empty-title">곧 만나보실 수 있도록 준비하고 있습니다</p>' +
+                '<p class="col-empty-desc">현재 해당 모델은 정성껏 상품을 준비하는 중입니다.<br>' +
+                '조금만 기다려 주시면 원하시는 제품을 가장 좋은 컨디션으로 소개해 드리겠습니다.</p>';
+            var col = document.getElementById('collection');
+            if (col) col.appendChild(el);
+        }
+        return el;
+    }
+    function showSearchEmpty(q) {
+        var el = searchEmptyEl();
+        var qn = el.querySelector('.col-empty-q');
+        if (qn) qn.textContent = q ? '‘' + q + '’ 검색 결과' : '';
+        el.hidden = false;
+    }
+    function hideSearchEmpty() {
+        var el = document.getElementById('searchEmpty');
+        if (el) el.hidden = true;
+    }
+    window.BELLORE_hideSearchEmpty = hideSearchEmpty;
+
     function runSearch(q) {
         var ql = q.toLowerCase();
         navigate('collection');
         setTimeout(function () {
+            hideSearchEmpty();
             var cards = $$('#collection .hcard');
             var hits = 0;
             cards.forEach(function (c) {
@@ -2641,9 +2673,23 @@
                 c.style.display = hit ? '' : 'none';
                 if (hit) hits++;
             });
+            // 브랜드 원형 활성 표시를 검색어에 맞춰 동기화(모델 칩은 닫음)
+            try {
+                var matchBrandBtn = null;
+                $$('#collection .cat-brand').forEach(function (b) {
+                    var bn = (b.dataset.brand || '').toLowerCase();
+                    if (bn && bn !== 'all' && tokenMatches(ql, bn)) matchBrandBtn = b;
+                });
+                $$('#collection .cat-brand').forEach(function (b) { b.classList.remove('active'); });
+                var actBtn = matchBrandBtn || $('#collection .cat-brand[data-brand="all"]');
+                if (actBtn) actBtn.classList.add('active');
+                var cm = $('#catModels'); if (cm) { cm.hidden = true; cm.innerHTML = ''; }
+            } catch (e) {}
             if (!hits) {
-                clearSearchFilter();
-                alert('"' + q + '" 검색 결과가 없습니다.');
+                // 없는 모델: 결과 0건 → 안내 문구 노출(엉뚱한 브랜드로 보내지 않음)
+                showSearchEmpty(q);
+                var head0 = $('#collection');
+                if (head0) head0.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 return;
             }
             // 검색 결과가 있는 패널로 전환 (탭 click 핸들러를 거치지 않고 직접 전환)
@@ -2657,24 +2703,13 @@
                 var tab = $('.col-tab[data-coltab="' + tabKey + '"]');
                 if (tab) tab.classList.add('active');
             }
-            // 브랜드 원형 활성 표시를 검색어에 맞춰 동기화(모델 칩은 닫음)
-            try {
-                var matchBrandBtn = null;
-                $$('#collection .cat-brand').forEach(function (b) {
-                    var bn = (b.dataset.brand || '').toLowerCase();
-                    if (bn && bn !== 'all' && tokenMatches(ql, bn)) matchBrandBtn = b;
-                });
-                $$('#collection .cat-brand').forEach(function (b) { b.classList.remove('active'); });
-                var actBtn = matchBrandBtn || $('#collection .cat-brand[data-brand="all"]');
-                if (actBtn) actBtn.classList.add('active');
-                var cm = $('#catModels'); if (cm) { cm.hidden = true; cm.innerHTML = ''; }
-            } catch (e) {}
             var head = $('#collection');
             if (head) head.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 200);
     }
 
     function clearSearchFilter() {
+        hideSearchEmpty();
         $$('#collection .hcard').forEach(function (c) { c.style.display = ''; });
     }
     // 검색 페이지(search.js)에서 호출

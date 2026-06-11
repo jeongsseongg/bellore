@@ -1055,6 +1055,14 @@
             <section class="section section-soft" style="padding-top: calc(var(--header-h) + 64px + env(safe-area-inset-top));">
                 <div class="container">
                     <!-- 대표 브랜드 (홈 화면과 동일한 원형 로고 스타일) -->
+                    <div class="cat-brandbar">
+                        <span class="cat-brandbar-count"><b id="catBrandCount">0</b>개의 브랜드</span>
+                        <button type="button" class="cat-brandbar-more" id="catBrandMore">더 보기<span class="cat-brandbar-arrow">›</span></button>
+                    </div>
+                    <div class="cat-brand-search" id="catBrandSearch" hidden>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>
+                        <input type="text" id="catBrandQ" placeholder="브랜드 검색" autocomplete="off">
+                    </div>
                     <div class="cat-brands brand-circle-scroll">
                         <button type="button" class="brand-circle cat-brand active" data-brand="all"><span class="brand-circle-img">ALL</span><span class="brand-circle-name">전체</span></button>
                         <button type="button" class="brand-circle cat-brand" data-brand="롤렉스"><span class="brand-circle-img"><img src="assets/brands/rolex.png" alt="롤렉스" loading="lazy"></span><span class="brand-circle-name">롤렉스</span></button>
@@ -2613,10 +2621,7 @@
                 catModels._models = ms;
                 var chips = '<button type="button" class="cat-model active" data-model="">전체</button>' +
                     ms.map(function (m) { return '<button type="button" class="cat-model" data-model="' + esc2(m) + '">' + esc2(m) + '</button>'; }).join('');
-                catModels.innerHTML =
-                    '<div class="cat-model-search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>' +
-                        '<input type="text" class="cat-model-q" placeholder="모델 검색" autocomplete="off"></div>' +
-                    '<div class="cat-model-row">' + chips + '</div>';
+                catModels.innerHTML = '<div class="cat-model-row">' + chips + '</div>';
                 catModels.hidden = false;
             }
             function filterModelChips(q) {
@@ -2628,6 +2633,7 @@
                 });
             }
             function applyFilters() {
+                if (window.BELLORE_hideSearchEmpty) window.BELLORE_hideSearchEmpty();
                 var b = (fBrand || 'all').toUpperCase();
                 grid.querySelectorAll('.hcard').forEach(function (c) {
                     var el = c.querySelector('.hcard-brand');
@@ -2650,6 +2656,7 @@
             }
             brands.forEach(function (btn) {
                 btn.addEventListener('click', function () {
+                    if (window.BELLORE_hideSearchEmpty) window.BELLORE_hideSearchEmpty();
                     brands.forEach(function (x) { x.classList.remove('active'); });
                     btn.classList.add('active');
                     fBrand = btn.dataset.brand; fModel = '';
@@ -2657,6 +2664,33 @@
                     applyFilters();
                 });
             });
+            /* 브랜드 바: 개수 표시 + 더 보기(전체 펼침) + 브랜드 검색 */
+            (function () {
+                var wrap = document.querySelector('#collection .cat-brands');
+                if (!wrap) return;
+                var circles = wrap.querySelectorAll('.cat-brand:not([data-brand="all"])');
+                var cnt = document.getElementById('catBrandCount');
+                if (cnt) cnt.textContent = circles.length;
+                var more = document.getElementById('catBrandMore');
+                var search = document.getElementById('catBrandSearch');
+                var bq = document.getElementById('catBrandQ');
+                function filterBrands(v) {
+                    v = (v || '').trim().toLowerCase();
+                    wrap.querySelectorAll('.cat-brand').forEach(function (b) {
+                        if ((b.dataset.brand || '') === 'all') { b.style.display = ''; return; }
+                        var nm = (b.dataset.brand || '').toLowerCase();
+                        b.style.display = (!v || nm.indexOf(v) > -1) ? '' : 'none';
+                    });
+                }
+                if (more) more.addEventListener('click', function () {
+                    var on = wrap.classList.toggle('show-all');
+                    more.classList.toggle('on', on);
+                    more.childNodes[0].nodeValue = on ? '접기' : '더 보기';
+                    if (search) search.hidden = !on;
+                    if (!on && bq) { bq.value = ''; filterBrands(''); }
+                });
+                if (bq) bq.addEventListener('input', function () { filterBrands(bq.value); });
+            })();
             if (catModels) catModels.addEventListener('click', function (e) {
                 var cm = e.target.closest('.cat-model'); if (!cm) return;
                 catModels.querySelectorAll('.cat-model').forEach(function (x) { x.classList.toggle('active', x === cm); });
