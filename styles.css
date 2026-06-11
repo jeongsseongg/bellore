@@ -3319,7 +3319,12 @@ body.admin-mode .main-wrap { padding-top: 0; }
     color: var(--text-3);
     padding: 12px 14px;
 }
-.pp-spec-row > strong { padding: 12px 14px; font-weight: 600; }
+.pp-spec-row > strong {
+    padding: 12px 14px; font-weight: 600;
+    flex: 1; min-width: 0;
+    word-break: keep-all; overflow-wrap: anywhere;
+    line-height: 1.5;
+}
 
 .pp-desc { margin-top: 22px; font-size: 13.5px; color: var(--text-2); line-height: 1.7; }
 .pp-desc h4 { font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
@@ -6677,6 +6682,11 @@ body.is-searching .tabbar { display: none !important; }
     will-change: transform;
 }
 .upload-cell.reorder-ghost .remove-btn { display: none; }
+/* 놓을 자리 강조 */
+.upload-cell.has-img.drop-target {
+    outline: 2px dashed var(--gold, #b89968);
+    outline-offset: -2px;
+}
 
 /* 항목5 — 주문 전체보기 모달 */
 .orders-content { max-width: 460px; }

@@ -129,41 +129,56 @@
       var b = e.target.closest('.remove-btn'); if (!b) return;
       e.preventDefault(); files.splice(+b.dataset.i, 1); draw();
     });
-    /* 드래그로 순서 변경(터치·마우스 공용) — 셀을 끌어 다른 셀 위에 놓으면 이동 */
-    var dragFrom = -1, dragEl = null, sx = 0, sy = 0, dragging = false;
+    /* 드래그로 순서 변경(터치·마우스 공용) — 끌면 사진이 손가락/커서를 그대로 따라오고, 놓는 자리로 이동 */
+    var dragFrom = -1, srcCell = null, ghost = null, gx = 0, gy = 0, sx = 0, sy = 0, dragging = false;
     function cellIndex(cell) { return Array.prototype.indexOf.call(grid.children, cell); }
     function clearTargets() { grid.querySelectorAll('.drop-target').forEach(function (c) { c.classList.remove('drop-target'); }); }
+    function moveGhost(x, y) { if (ghost) { ghost.style.left = (x - gx) + 'px'; ghost.style.top = (y - gy) + 'px'; } }
+    function endDrag() {
+      clearTargets();
+      if (ghost && ghost.parentNode) ghost.parentNode.removeChild(ghost);
+      ghost = null;
+      if (srcCell) srcCell.classList.remove('reorder-src');
+      dragFrom = -1; srcCell = null; dragging = false;
+    }
     grid.addEventListener('pointerdown', function (e) {
-      if (e.target.closest('.ord-btn') || e.target.closest('.remove-btn') || e.target.closest('.upload-add')) return;
+      if (e.target.closest('.remove-btn') || e.target.closest('.upload-add')) return;
       var cell = e.target.closest('.upload-cell.has-img'); if (!cell) return;
-      dragFrom = cellIndex(cell); dragEl = cell; sx = e.clientX; sy = e.clientY; dragging = false;
+      dragFrom = cellIndex(cell); srcCell = cell; sx = e.clientX; sy = e.clientY; dragging = false;
     });
     window.addEventListener('pointermove', function (e) {
       if (dragFrom < 0) return;
       if (!dragging) {
         if (Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy) < 6) return;
-        dragging = true; dragEl.classList.add('dragging');
+        dragging = true;
+        var r = srcCell.getBoundingClientRect();
+        gx = sx - r.left; gy = sy - r.top;
+        ghost = srcCell.cloneNode(true);
+        ghost.classList.add('reorder-ghost');
+        ghost.style.width = r.width + 'px';
+        ghost.style.height = r.height + 'px';
+        document.body.appendChild(ghost);
+        srcCell.classList.add('reorder-src');
       }
       e.preventDefault();
+      moveGhost(e.clientX, e.clientY);
       var over = document.elementFromPoint(e.clientX, e.clientY);
       var oc = over && over.closest('.upload-cell.has-img');
       clearTargets();
-      if (oc && oc !== dragEl) oc.classList.add('drop-target');
+      if (oc && oc !== srcCell) oc.classList.add('drop-target');
     });
     window.addEventListener('pointerup', function (e) {
       if (dragFrom < 0) return;
       if (dragging) {
         var over = document.elementFromPoint(e.clientX, e.clientY);
         var oc = over && over.closest('.upload-cell.has-img');
-        if (oc && oc !== dragEl) {
+        if (oc && oc !== srcCell) {
           var to = cellIndex(oc);
           var item = files.splice(dragFrom, 1)[0];
           files.splice(to, 0, item); draw();
         }
       }
-      clearTargets();
-      if (dragEl) dragEl.classList.remove('dragging');
-      dragFrom = -1; dragEl = null; dragging = false;
+      endDrag();
     });
     input.addEventListener('change', function () {
       Array.prototype.forEach.call(input.files, function (f) {
