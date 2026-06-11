@@ -2314,51 +2314,43 @@
             <section class="pp-info">
                 <div class="pp-brand-row">
                     <p class="pp-brand" id="pmBrand"></p>
-                    <span class="pp-used" id="pmCond">USED</span>
                 </div>
                 <h1 class="pp-title" id="pmModel"></h1>
                 <p class="pp-price" id="pmPrice"></p>
 
                 <div class="pp-meta">
-                    <div class="pp-meta-row"><span>상품번호</span><strong id="pmNo">-</strong></div>
-                    <div class="pp-meta-row"><span>판매 매장</span><strong>대치점 이동중</strong></div>
+                    <div class="pp-meta-row"><span>모델번호</span><strong id="pmNo">-</strong></div>
                 </div>
                 <div class="pp-meta">
-                    <div class="pp-meta-row"><span>포인트</span><strong id="pmPoint">-</strong></div>
-                    <div class="pp-meta-row pp-meta-benefit"><span>결제혜택</span>
-                        <strong>
-                            퀵계좌이체 시 0.5% 즉시할인<br>
-                            가상계좌 결제 시 포인트 2배 적립<br>
-                            페이코 결제 시 1% 즉시할인
-                        </strong>
-                    </div>
+                    <div class="pp-meta-row"><span>포인트</span><strong id="pmPoint">-</strong> <span class="pp-event">EVENT</span></div>
                     <div class="pp-meta-row"><span>무이자 할부</span><strong>2~6개월</strong></div>
-                </div>
-                <div class="pp-meta">
-                    <div class="pp-meta-row"><span>배송 정보</span><strong>프리미엄 배송 · 35,000원</strong></div>
+                    <div class="pp-meta-row"><span>배송 정보</span><strong>30,000원
+                        <span class="pp-tip" tabindex="0">?
+                            <span class="pp-tip-box">5,000,000원 이상 제품에 필수로 체크되어야 하는 보험 서비스가 적용된 배송입니다.</span>
+                        </span></strong></div>
                 </div>
             </section>
 
-            <!-- 탭 -->
+            <!-- 탭 (클릭 시 해당 섹션으로 스크롤) -->
             <nav class="pp-tabs">
-                <button class="pp-tab active" data-pptab="info">상품정보</button>
-                <button class="pp-tab" data-pptab="ask">문의하기</button>
-                <button class="pp-tab" data-pptab="notice">유의사항</button>
+                <button class="pp-tab active" data-ppscroll="info">상품정보</button>
+                <button class="pp-tab" data-ppscroll="ask">문의하기</button>
+                <button class="pp-tab" data-ppscroll="notice">유의사항</button>
             </nav>
 
-            <!-- 상품정보 탭 -->
+            <!-- 상품정보 -->
             <section class="pp-panel" data-pppanel="info">
-                <h3 class="pp-sec-title">주요 부속품</h3>
-                <div class="pp-acc">
-                    <div class="pp-acc-item on"><span class="pp-acc-ic">📦</span>박스</div>
-                    <div class="pp-acc-item on"><span class="pp-acc-ic">🧰</span>케이스</div>
-                    <div class="pp-acc-item on"><span class="pp-acc-ic">🪪</span>개런티카드</div>
-                    <div class="pp-acc-item off"><span class="pp-acc-ic">📄</span>보증서</div>
+                <h3 class="pp-sec-title" id="ppSecInfo">구성품</h3>
+                <div class="pp-acc" id="pmAcc">
+                    <div class="pp-acc-item off" data-acc="box"><span class="pp-acc-ic">📦</span>박스</div>
+                    <div class="pp-acc-item off" data-acc="case"><span class="pp-acc-ic">🧰</span>케이스</div>
+                    <div class="pp-acc-item off" data-acc="card"><span class="pp-acc-ic">🪪</span>개런티카드</div>
+                    <div class="pp-acc-item off" data-acc="warranty"><span class="pp-acc-ic">📄</span>보증서</div>
                 </div>
 
                 <h3 class="pp-sec-title">상품 기본정보</h3>
                 <div class="pp-spec">
-                    <div class="pp-spec-row"><span>상품번호</span><strong id="pmNo2">-</strong></div>
+                    <div class="pp-spec-row"><span>모델번호</span><strong id="pmNo2">-</strong></div>
                     <div class="pp-spec-row"><span>브랜드</span><strong id="pmBrand2">-</strong></div>
                     <div class="pp-spec-row"><span>모델</span><strong id="pmModel2">-</strong></div>
                 </div>
@@ -2367,26 +2359,27 @@
                     <h4>상태</h4>
                     <ul>
                         <li>벨로르가 직접 매입하여 40년 경력 감정사의 정밀 검수를 거친 정품입니다.</li>
-                        <li>모든 시계는 풀세트(보증서·박스 포함)로 판매되며, 구매 후 30일 무상 A/S가 제공됩니다.</li>
+                        <li>모든 시계는 구매 후 30일 무상 A/S가 제공됩니다.</li>
                     </ul>
                 </div>
 
                 <div class="pp-detail-imgs" id="pmDetailImgs"></div>
-            </section>
 
-            <!-- 문의하기 탭 -->
-            <section class="pp-panel" data-pppanel="ask" hidden>
-                <p class="pp-ask-desc">구매 전 궁금한 점은 카카오톡 상담 또는 문의 페이지를 이용해 주세요.</p>
-                <button class="btn btn-outline-dark pm-ask" id="pmAsk">상담 문의 바로가기</button>
-            </section>
+                <!-- 문의하기 -->
+                <div class="pp-anchor" id="ppAsk">
+                    <h3 class="pp-sec-title">문의하기</h3>
+                    <p class="pp-ask-desc">구매 전 궁금한 점은 카카오톡 상담 또는 문의 페이지를 이용해 주세요.</p>
+                    <button class="btn btn-outline-dark pm-ask" id="pmAsk">상담 문의 바로가기</button>
+                </div>
 
-            <!-- 유의사항 탭 -->
-            <section class="pp-panel" data-pppanel="notice" hidden>
-                <ul class="pp-notice">
-                    <li>모든 상품은 중고(USED) 제품으로 사용감이 있을 수 있습니다.</li>
-                    <li>실제 상품의 색상은 모니터 환경에 따라 다소 차이가 있을 수 있습니다.</li>
-                    <li>단순 변심에 의한 교환·반품은 제한될 수 있습니다.</li>
-                </ul>
+                <!-- 유의사항 -->
+                <div class="pp-anchor" id="ppNotice">
+                    <h3 class="pp-sec-title">유의사항</h3>
+                    <ul class="pp-notice">
+                        <li>실제 상품의 색상은 모니터 환경에 따라 다소 차이가 있을 수 있습니다.</li>
+                        <li>단순 변심에 의한 교환·반품은 제한될 수 있습니다.</li>
+                    </ul>
+                </div>
             </section>
         </div>
 

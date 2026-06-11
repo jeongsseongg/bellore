@@ -1305,6 +1305,17 @@
 
     // 매물 카드에 한눈에 보이는 정보 배지(보증서·컨디션·구성품) + TIME SALE 카운트다운
     var SALE_HOURS = 72;
+    // 가격 표시(할인 적용 시 정가 취소선 + 할인가 + 할인율)
+    function priceHTML(it) {
+        if (!it.price) return '가격 문의<em></em>';
+        var sp = parseInt(it.sale_price, 10) || 0;
+        if (sp > 0 && sp < it.price) {
+            var rate = Math.round((1 - sp / it.price) * 100);
+            return '<span class="hcard-old">' + fmt(it.price) + '원</span>' +
+                '<span class="hcard-now"><b class="hcard-rate">' + rate + '%</b>' + fmt(sp) + '<em>원</em></span>';
+        }
+        return fmt(it.price) + '<em>원</em>';
+    }
     function cardBadgesHTML(it) {
         // 핵심 정보를 한 줄로 고정(카드 높이 통일). 비어도 자리 유지.
         var parts = [];
@@ -1385,15 +1396,14 @@
         });
         var frag = document.createDocumentFragment();
         rows.forEach(function (it) {
-            var priceHtml = it.price
-                ? (fmt(it.price) + '<em>원</em>')
-                : '가격 문의<em></em>';
+            var priceHtml = priceHTML(it);
             var card = document.createElement('article');
             card.className = 'hcard hcard-dynamic';
             card.dataset.pid = it.id;
             card.dataset.brand = it.brand;
             card.dataset.model = it.model;
             card.dataset.price = it.price || 0;
+            card.dataset.sprice = it.sale_price || '';
             card.dataset.pack = it.pack || '';
             card.dataset.size = it.size_mm || '';
             card.innerHTML =
@@ -1423,13 +1433,14 @@
         statics.forEach(function (c) { c.style.display = 'none'; });
         var frag = document.createDocumentFragment();
         rows.slice(0, 12).forEach(function (it) {
-            var priceHtml = it.price ? (fmt(it.price) + '<em>원</em>') : '가격 문의<em></em>';
+            var priceHtml = priceHTML(it);
             var card = document.createElement('article');
             card.className = 'hcard hcard-dynamic';
             card.dataset.pid = it.id;
             card.dataset.brand = it.brand;
             card.dataset.model = it.model;
             card.dataset.price = it.price || 0;
+            card.dataset.sprice = it.sale_price || '';
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
                 '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
@@ -1449,13 +1460,14 @@
         statics.forEach(function (c) { c.style.display = 'none'; });
         var frag = document.createDocumentFragment();
         rows.forEach(function (it) {
-            var priceHtml = it.price ? (fmt(it.price) + '<em>원</em>') : '가격 문의<em></em>';
+            var priceHtml = priceHTML(it);
             var card = document.createElement('article');
             card.className = 'hcard hcard-dynamic';
             card.dataset.pid = it.id;
             card.dataset.brand = it.brand;
             card.dataset.model = it.model;
             card.dataset.price = it.price || 0;
+            card.dataset.sprice = it.sale_price || '';
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
                 '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
@@ -2684,14 +2696,19 @@
             if (e.key === 'Escape' && !modal.hidden) closeProduct();
         });
 
-        // 탭 전환
+        // 탭 클릭 → 해당 섹션으로 부드럽게 스크롤
         modal.addEventListener('click', function (e) {
-            var tab = e.target.closest('[data-pptab]');
+            var tab = e.target.closest('[data-ppscroll]');
             if (tab) {
-                var t = tab.dataset.pptab;
-                $$('.pp-tab', modal).forEach(function (x) { x.classList.toggle('active', x.dataset.pptab === t); });
-                $$('.pp-panel', modal).forEach(function (p) { p.hidden = p.dataset.pppanel !== t; });
-                modal.querySelector('.pp-scroll').scrollTop = 0;
+                var t = tab.dataset.ppscroll;
+                $$('.pp-tab', modal).forEach(function (x) { x.classList.toggle('active', x.dataset.ppscroll === t); });
+                var sc = modal.querySelector('.pp-scroll');
+                var target = (t === 'ask') ? $('#ppAsk') : (t === 'notice') ? $('#ppNotice') : $('.pp-panel', modal);
+                if (target && sc) {
+                    var tabsH = (modal.querySelector('.pp-tabs') || {}).offsetHeight || 0;
+                    var delta = target.getBoundingClientRect().top - sc.getBoundingClientRect().top;
+                    sc.scrollTo({ top: sc.scrollTop + delta - tabsH - 4, behavior: 'smooth' });
+                }
                 return;
             }
             // 찜 토글은 wishlist.js 가 처리(localStorage 연동)
@@ -2725,6 +2742,33 @@
             });
         }
 
+        function ppPriceHTML(d) {
+            if (!d.price) return d.priceHtml || '가격 문의';
+            var sp = parseInt(d.sale_price, 10) || 0;
+            if (sp > 0 && sp < d.price) {
+                var rate = Math.round((1 - sp / d.price) * 100);
+                return '<span class="pp-price-old">' + fmt(d.price) + '원</span>' +
+                    '<span class="pp-price-now"><b class="pp-rate">' + rate + '%</b>' + fmt(sp) + '<span class="won">원</span></span>';
+            }
+            return fmt(d.price) + '<span class="won">원</span>';
+        }
+        function paintAcc(d) {
+            // 구성품: 수정페이지의 구성 등급(pack)·보증서(has_warranty)와 연동해 체크 표시
+            var pack = String(d.pack || '');
+            var full = (pack.indexOf('풀세트') !== -1);
+            var solo = (pack.indexOf('단품') !== -1);
+            var state = {
+                box: full || (!solo),
+                case: true,
+                card: !!d.has_warranty || full,
+                warranty: !!d.has_warranty
+            };
+            $$('#pmAcc .pp-acc-item').forEach(function (el) {
+                var on = !!state[el.dataset.acc];
+                el.classList.toggle('on', on);
+                el.classList.toggle('off', !on);
+            });
+        }
         function paint(d) {
             var photos = (d.photos && d.photos.length) ? d.photos : (d.img ? [d.img] : []);
             if (!photos.length) photos = ['assets/images.jpg'];
@@ -2734,11 +2778,11 @@
             $('#pmBrand2').textContent = d.brand || '-';
             $('#pmModel').textContent = d.model || '';
             $('#pmModel2').textContent = d.model || '-';
-            $('#pmPrice').innerHTML = d.priceHtml || (d.price ? (fmt(d.price) + '<span class="won">원</span>') : '가격 문의');
+            $('#pmPrice').innerHTML = ppPriceHTML(d);
             $('#pmNo').textContent = d.no || '-';
             $('#pmNo2').textContent = d.no || '-';
-            $('#pmPoint').textContent = d.price ? ('최대 ' + fmt(Math.round(d.price * 0.003)) + 'P 적립') : '-';
-            $('#pmCond').textContent = (d.category === '고객판매') ? 'USED' : 'USED';
+            $('#pmPoint').textContent = d.price ? (fmt(Math.round(d.price * 0.01)) + 'P 적립 (1%)') : '-';
+            paintAcc(d);
 
             // 썸네일
             var thumbs = $('#pmThumbs');
@@ -2768,6 +2812,7 @@
                 model: model ? model.textContent : (card.dataset.model || ''),
                 priceHtml: price ? price.innerHTML.replace(/<em>/g, '<span class="won">').replace(/<\/em>/g, '</span>') : '',
                 price: parseInt(card.dataset.price, 10) || 0,
+                sale_price: parseInt(card.dataset.sprice, 10) || 0,
                 img: img ? img.src : '',
                 no: pid ? pid.slice(0, 8).toUpperCase() : '-'
             });
@@ -2793,7 +2838,10 @@
                     if (modal.hidden) return;
                     paint({
                         brand: it.brand, model: it.model, price: it.price,
+                        sale_price: it.sale_price || 0,
                         photos: it.photos, category: it.category,
+                        pack: it.pack || '', has_warranty: !!it.has_warranty,
+                        accessories: it.accessories || '',
                         no: String(it.id).slice(0, 8).toUpperCase()
                     });
                     window.BELLORE_currentProduct = {

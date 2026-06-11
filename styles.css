@@ -3292,7 +3292,18 @@ body.admin-mode .main-wrap { padding-top: 0; }
     padding: 14px 4px;
 }
 .pp-acc-ic { display: block; font-size: 20px; margin-bottom: 6px; filter: grayscale(0.2); }
-.pp-acc-item.off { opacity: 0.38; }
+.pp-acc-item.off { opacity: 0.34; filter: grayscale(1); }
+.pp-acc-item.on {
+    background: #eef5f0;
+    color: var(--dark-green);
+    border: 1px solid var(--dark-green);
+    position: relative;
+}
+.pp-acc-item.on::after {
+    content: "✓";
+    position: absolute; top: 4px; right: 6px;
+    font-size: 11px; font-weight: 900; color: var(--dark-green);
+}
 
 /* 기본 정보 */
 .pp-spec { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
@@ -3333,22 +3344,28 @@ body.admin-mode .main-wrap { padding-top: 0; }
     background: var(--white);
 }
 .pp-wish {
-    width: 52px; flex-shrink: 0;
+    width: 60px; flex-shrink: 0;
+    min-height: 60px;
     display: flex; align-items: center; justify-content: center;
     border: 1px solid var(--border);
     border-radius: 10px;
     color: var(--text-2);
 }
-.pp-wish.on { color: #111111; border-color: var(--border); }
+.pp-wish.on { color: #e0282e; border-color: #e0282e; }
+.pp-wish.on svg { fill: #e0282e; }
 .pp-buy {
     flex: 1;
+    min-height: 60px;
     background: var(--dark-green);
     color: #fff;
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 800;
     border-radius: 10px;
 }
 .pp-buy:active { opacity: 0.9; }
+/* 우상단 찜 하트 채움 */
+.pp-top-wish.on { color: #e0282e; }
+.pp-top-wish.on svg { fill: #e0282e; }
 
 /* ========== 소개 강화 ========== */
 .about-vision {
@@ -6013,7 +6030,7 @@ html[data-width="full"] .hcard-grid {
 
 /* 상세 하단 장바구니 버튼 */
 .pp-cart {
-    flex: 0 0 auto; padding: 0 18px; min-width: 96px;
+    flex: 0 0 auto; padding: 0 18px; min-width: 96px; min-height: 60px;
     border: 1px solid #111; border-radius: 10px; background: #fff; color: #111;
     font-size: 15px; font-weight: 700;
 }
@@ -6107,11 +6124,60 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 .brand-circle-all:hover .brand-circle-img { background: #000; }
 
 
-/* TIME SALE: 테두리 없이, 시간 강조(스택형) */
-.hcard-timesale { flex-direction: column; align-items: flex-start; gap: 1px; background: rgba(0,0,0,.58); border: none; padding: 5px 9px; backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
-.hcard-timesale b { font-size: 8px; letter-spacing: 1px; color: #fff; opacity: .85; }
-.hcard-timesale .hcard-timer { font-size: 14px; font-weight: 800; color: #fff; line-height: 1; letter-spacing: .3px; }
-.hcard-timesale.ended { background: rgba(90,90,90,.7); }
+/* TIME SALE: 테두리·배경 없이 검정 글씨, 시간 크게 강조 */
+.hcard-timesale {
+    flex-direction: column; align-items: flex-start; gap: 0;
+    background: none; border: none; padding: 0;
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+    text-shadow: 0 1px 2px rgba(255,255,255,.85);
+}
+.hcard-timesale b { font-size: 8px; letter-spacing: 1px; color: #111; opacity: .75; font-weight: 800; }
+.hcard-timesale .hcard-timer { font-size: 16px; font-weight: 900; color: #111; line-height: 1.05; letter-spacing: .3px; }
+.hcard-timesale.ended b, .hcard-timesale.ended .hcard-timer { color: #888; }
 
 /* 모바일에선 좌상단 뒤로가기 숨김(제스처로 충분) */
 @media (max-width: 699px) { .header-back { display: none !important; } }
+
+/* ===== 할인가 표시(카드) ===== */
+.hcard-old { display: block; font-size: 11.5px; color: var(--text-3); text-decoration: line-through; font-weight: 600; margin-bottom: 1px; }
+.hcard-now { display: flex; align-items: baseline; gap: 5px; }
+.hcard-rate { color: #e0282e; font-weight: 900; font-size: 14px; }
+
+/* ===== 할인가 표시(상세) ===== */
+.pp-price-old { display: block; font-size: 15px; color: var(--text-3); text-decoration: line-through; font-weight: 600; margin-bottom: 2px; }
+.pp-price-now { display: flex; align-items: baseline; gap: 8px; }
+.pp-rate { color: #e0282e; font-weight: 900; font-size: 24px; }
+
+/* ===== 포인트 EVENT 배지 ===== */
+.pp-event {
+    display: inline-block; margin-left: 6px;
+    font-size: 10px; font-weight: 800; letter-spacing: .5px;
+    color: #e0282e; background: #fdecec; border-radius: 4px; padding: 1px 6px;
+    vertical-align: middle;
+}
+
+/* ===== 배송 정보 물음표 툴팁 ===== */
+.pp-tip {
+    position: relative; display: inline-flex; align-items: center; justify-content: center;
+    width: 15px; height: 15px; margin-left: 5px;
+    border: 1px solid var(--text-3); border-radius: 50%;
+    font-size: 10px; font-weight: 800; color: var(--text-3);
+    cursor: pointer; vertical-align: middle;
+}
+.pp-tip-box {
+    position: absolute; bottom: calc(100% + 8px); right: -8px;
+    width: 230px; padding: 10px 12px;
+    background: #222; color: #fff; font-size: 11.5px; font-weight: 500; line-height: 1.5;
+    border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.25);
+    opacity: 0; visibility: hidden; transition: opacity .15s; z-index: 5;
+    text-shadow: none; white-space: normal;
+}
+.pp-tip-box::after {
+    content: ""; position: absolute; top: 100%; right: 12px;
+    border: 6px solid transparent; border-top-color: #222;
+}
+.pp-tip:hover .pp-tip-box, .pp-tip:focus .pp-tip-box { opacity: 1; visibility: visible; }
+
+/* 문의/유의 앵커 섹션 여백 */
+.pp-anchor { border-top: 8px solid var(--bg-soft); margin: 28px -18px 0; padding: 22px 18px 0; }
+.pp-anchor:last-child { padding-bottom: 10px; }

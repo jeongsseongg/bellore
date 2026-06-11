@@ -390,6 +390,7 @@
       brand: l.title || '',
       model: l.description || '',
       price: l.price || 0,
+      sale_price: l.sale_price || null,
       category: l.category || CATS.listing.brand,
       status: l.status,
       tags: l.tags || [],
@@ -432,6 +433,7 @@
         title: data.brand,
         description: data.model || null,
         price: data.price || null,
+        sale_price: data.sale_price || null,
         category: data.category || CATS.listing.brand,
         status: data.status || 'on_sale',
         tags: data.tags || [],
@@ -461,6 +463,7 @@
       if (data.brand != null) patch.title = data.brand;
       if (data.model != null) patch.description = data.model;
       if (data.price != null) patch.price = data.price;
+      if (data.sale_price !== undefined) patch.sale_price = data.sale_price;
       if (data.status != null) patch.status = data.status;
       if (data.category != null) patch.category = data.category;
       if (data.tags != null) patch.tags = data.tags;

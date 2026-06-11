@@ -47,9 +47,9 @@
   }
 
   // 간단 사진 선택기 (업로드 그리드 클래스 재사용). files=DataURL 배열 반환
-  function photoPicker(container, max) {
+  function photoPicker(container, max, initial) {
     max = max || 10;
-    var files = [];
+    var files = (initial && initial.length) ? initial.slice(0, max) : [];
     var input = document.createElement('input');
     input.type = 'file'; input.accept = 'image/*'; input.multiple = max > 1; input.hidden = true;
     container.appendChild(input);
@@ -145,13 +145,14 @@
         '<div class="lp-photohead">' +
           '<h3 class="lp-sec-title">대표 사진</h3>' +
           '<div id="listingPhotos"></div>' +
-          '<p class="lp-hint">' + (lExisting.length ? '기존 사진 ' + lExisting.length + '장 유지 · 새 사진은 뒤에 추가됩니다. ' : '') + '첫 번째 사진이 대표 이미지로 노출됩니다. (최대 5장)</p>' +
+          '<p class="lp-hint">사진은 첫 번째가 대표 이미지로 노출됩니다. ×를 눌러 삭제할 수 있어요. (최대 5장)</p>' +
         '</div>' +
         '<form class="signup-form lp-form" id="listingForm">' +
           '<input type="hidden" name="category" value="' + esc((item && item.category) || presetCat || listingCats.brand) + '">' +
           '<label><span>브랜드 *</span><input name="brand" placeholder="예: ROLEX" value="' + esc(item ? item.brand : '') + '" required></label>' +
           '<label><span>모델 / 레퍼런스 *</span><input name="model" placeholder="예: 데이트저스트 36" value="' + esc(item ? item.model : '') + '" required></label>' +
           '<label><span>판매가 (숫자, 비우면 가격문의)</span><input name="price" type="number" inputmode="numeric" placeholder="예: 22800000" value="' + (item && item.price ? item.price : '') + '"></label>' +
+          '<label><span>할인 판매가 (선택) — 입력 시 정가에 취소선·할인율 표시</span><input name="sale_price" type="number" inputmode="numeric" placeholder="예: 19900000" value="' + (item && item.sale_price ? item.sale_price : '') + '"></label>' +
           '<label><span>판매 상태</span><select name="status">' + statusOptions(item ? item.status : 'on_sale') + '</select></label>' +
           '<label><span>컨디션</span><select name="condition">' + condOptions(item ? item.condition : '') + '</select></label>' +
           '<label><span>구성 등급</span><select name="pack">' + packOptions(item ? item.pack : '') + '</select></label>' +
@@ -164,7 +165,7 @@
             '<label class="lp-tag"><input type="checkbox" name="tag_today"' + (tagOn(item, 'today') ? ' checked' : '') + '><span>오늘의시계</span></label>' +
           '</div>' +
         '</form>';
-      lPicker = photoPicker($('#listingPhotos', listingPage), 5);
+      lPicker = photoPicker($('#listingPhotos', listingPage), 5, lExisting);
       $('#listingForm', listingPage).addEventListener('submit', function (e) {
         e.preventDefault();
         var fd = new FormData(e.target);
@@ -172,16 +173,19 @@
         var model = String(fd.get('model') || '').trim();
         if (!brand || !model) { alert('브랜드와 모델을 입력하세요.'); return; }
         var price = parseInt(String(fd.get('price') || '').replace(/[^0-9]/g, ''), 10) || null;
+        var salePrice = parseInt(String(fd.get('sale_price') || '').replace(/[^0-9]/g, ''), 10) || null;
+        if (salePrice && price && salePrice >= price) { alert('할인 판매가는 판매가보다 낮아야 합니다.'); return; }
         var tags = [];
         if (fd.get('tag_sale')) tags.push('sale');
         if (fd.get('tag_new')) tags.push('new');
         if (fd.get('tag_today')) tags.push('today');
         var saleOn = tags.indexOf('sale') !== -1;
         var saleStart = saleOn ? ((item && item.tags && item.tags.indexOf('sale') !== -1 && item.sale_started_at) ? item.sale_started_at : new Date().toISOString()) : null;
-        var payload = { brand: brand, model: model, price: price, category: fd.get('category'), status: fd.get('status'), tags: tags, condition: String(fd.get('condition') || ''), has_warranty: !!fd.get('has_warranty'), accessories: String(fd.get('accessories') || '').trim(), pack: String(fd.get('pack') || ''), size_mm: parseInt(fd.get('size_mm'), 10) || null, sale_started_at: saleStart, photos: lPicker.files };
+        var payload = { brand: brand, model: model, price: price, sale_price: salePrice, category: fd.get('category'), status: fd.get('status'), tags: tags, condition: String(fd.get('condition') || ''), has_warranty: !!fd.get('has_warranty'), accessories: String(fd.get('accessories') || '').trim(), pack: String(fd.get('pack') || ''), size_mm: parseInt(fd.get('size_mm'), 10) || null, sale_started_at: saleStart, photos: lPicker.files };
         var btn = $('#lpSubmit', listingPage); btn.disabled = true; btn.textContent = '저장 중…';
+        // 사진 picker가 기존 URL+새 사진을 모두 보유 → existingPhotos는 비우고 picker 결과로 통째 교체(삭제 반영)
         var p = lEditId
-          ? B.updateProduct(lEditId, Object.assign({ existingPhotos: lExisting }, payload))
+          ? B.updateProduct(lEditId, Object.assign({ existingPhotos: [] }, payload))
           : B.addProduct(payload);
         p.then(function () { closeListingPage(); alert('저장되었습니다.'); })
           .catch(function (err) { alert('저장 실패: ' + errMsg(err)); })
