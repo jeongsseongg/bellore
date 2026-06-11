@@ -695,7 +695,7 @@
                 cell.className = 'upload-cell has-img';
                 cell.dataset.idx = idx;
                 cell.innerHTML =
-                    '<img src="' + src + '" alt="">' +
+                    '<img src="' + src + '" alt="" draggable="false">' +
                     '<button type="button" class="remove-btn" data-idx="' + idx + '" aria-label="삭제">×</button>';
                 if (addCell) sellGrid.insertBefore(cell, addCell);
             });
@@ -2229,7 +2229,7 @@
             cell.className = 'upload-cell has-img';
             cell.dataset.idx = idx;
             cell.innerHTML =
-                '<img src="' + src + '" alt="">' +
+                '<img src="' + src + '" alt="" draggable="false">' +
                 '<button type="button" class="remove-btn" data-idx="' + idx + '" aria-label="삭제">×</button>';
             if (addCell) grid.insertBefore(cell, addCell);
             else grid.appendChild(cell);

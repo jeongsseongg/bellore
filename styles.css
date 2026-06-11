@@ -5997,6 +5997,21 @@ html[data-width="full"] .hcard-grid {
 .col-grid-inner .hcard-img img,
 .hcard-grid .hcard-img img { object-fit: contain; }
 
+/* 모든 매물 카드 이미지를 예외 없이 동일한 흰 정사각 박스로 강제
+   (정적/today/wide/세로형 사진 포함 — 박스 크기 제각각·검은배경 방지) */
+.hcard .hcard-img {
+    aspect-ratio: 1 / 1 !important;
+    height: auto !important;
+    background: #ffffff !important;
+    padding: 10px;
+    overflow: hidden;
+}
+.hcard .hcard-img img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+}
+
 /* 카드 핵심정보 요약(정품보증 · 구성품 · 컨디션) */
 .hcard-warranty {
     display: inline-block; margin-top: 7px; font-size: 11px; font-weight: 800;
@@ -6616,6 +6631,12 @@ body.is-searching .tabbar { display: none !important; }
 /* 항목3 — 등록폼 사진 드래그 정렬 상태 */
 .upload-cell.has-img { touch-action: none; cursor: grab; }
 .upload-cell.has-img:active { cursor: grabbing; }
+/* 네이티브 이미지 드래그(=금지🚫 커서) 차단 → 우리 포인터 드래그만 동작 */
+.upload-cell.has-img img {
+    -webkit-user-drag: none; user-drag: none;
+    -webkit-user-select: none; user-select: none;
+    pointer-events: none;
+}
 /* 원본 자리: 드래그 중 빈 자리로 표시 */
 .upload-cell.reorder-src { opacity: 0; }
 /* 손가락/커서를 따라다니는 떠다니는 복제본 */
@@ -6669,12 +6690,19 @@ body.is-searching .tabbar { display: none !important; }
 /* ============================================================
    Batch 9 — 카드 박스 높이 통일 · 소식받기(기다리는 시계)
    ============================================================ */
-/* (4) 모델명 2줄 높이만 예약 — 가격은 일반 블록(세로 flex 제거: '원' 줄바꿈 원인) */
-.hcard-model { min-height: 40px; }                 /* 모델명 2줄 높이 예약 */
+/* (4) 카드 텍스트 간격 타이트하게 — 한 줄 모델명일 때 생기던 빈 줄 예약 제거.
+   모델명은 line-clamp:2 로 길면 2줄까지만, 짧으면 딱 그 높이(여백 없음) */
+.hcard-model { min-height: 0; }
+.hcard-brand { padding-top: 9px; }
+.hcard-model { padding-top: 2px; }
+.hcard-pack { padding-top: 2px; }
 .hcard-price {
     display: block;
+    padding-top: 2px;
 }
 .hcard-old { margin-bottom: 1px; }
+/* 하단 스펙(구성품/등급/스탬핑/미리수) 위 간격도 축소 */
+.hcard-info { margin-top: 4px !important; gap: 2px !important; }
 
 /* 0건 안내의 '소식받기' 버튼 */
 .col-empty-alert {

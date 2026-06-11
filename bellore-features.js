@@ -105,13 +105,9 @@
       grid.innerHTML = '';
       files.forEach(function (src, i) {
         var cell = document.createElement('div'); cell.className = 'upload-cell has-img';
-        var nav = '<div class="cell-order">' +
-          '<button type="button" class="ord-btn ord-left" data-mv="' + i + '" data-dir="-1" aria-label="앞으로"' + (i === 0 ? ' disabled' : '') + '>‹</button>' +
-          '<button type="button" class="ord-btn ord-right" data-mv="' + i + '" data-dir="1" aria-label="뒤로"' + (i === files.length - 1 ? ' disabled' : '') + '>›</button>' +
-          '</div>';
-        cell.innerHTML = '<img src="' + src + '" alt="">' +
+        cell.innerHTML = '<img src="' + src + '" alt="" draggable="false">' +
           (i === 0 ? '<span class="cell-cover">대표</span>' : '') +
-          '<button type="button" class="remove-btn" data-i="' + i + '">×</button>' + nav;
+          '<button type="button" class="remove-btn" data-i="' + i + '">×</button>';
         grid.appendChild(cell);
       });
       if (files.length < max) {
@@ -310,7 +306,7 @@
             '<label class="lp-tag"><input type="checkbox" name="tag_today"' + (tagOn(item, 'today') ? ' checked' : '') + '><span>오늘의시계</span></label>' +
           '</div>' +
         '</form>';
-      lPicker = photoPicker($('#listingPhotos', listingPage), 5, lExisting);
+      lPicker = photoPicker($('#listingPhotos', listingPage), 10, lExisting);
       wireBrandPicker(item ? item.brand : '');
       // 금액 입력: 천 단위 콤마 실시간 표시 (2000000 → 2,000,000)
       Array.prototype.forEach.call(listingPage.querySelectorAll('.lp-money'), function (inp) {
