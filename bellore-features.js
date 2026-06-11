@@ -280,7 +280,7 @@
         '<div class="lp-photohead">' +
           '<h3 class="lp-sec-title">대표 사진</h3>' +
           '<div id="listingPhotos"></div>' +
-          '<p class="lp-hint">사진은 첫 번째가 대표 이미지로 노출됩니다. ×를 눌러 삭제할 수 있어요. (최대 5장)</p>' +
+          '<p class="lp-hint">사진은 첫 번째가 대표 이미지로 노출됩니다. 끌어서 순서를 바꿀 수 있고, ×를 눌러 삭제할 수 있어요. (최대 10장)</p>' +
         '</div>' +
         '<form class="signup-form lp-form" id="listingForm">' +
           '<input type="hidden" name="category" value="' + esc((item && item.category) || presetCat || listingCats.brand) + '">' +
