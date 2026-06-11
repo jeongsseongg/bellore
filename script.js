@@ -2593,25 +2593,7 @@
 
         // (카카오 버튼은 initAccountUI 에서 실제 카카오 로그인으로 연결됨 — 상담 오픈채팅 핸들러 제거)
 
-        // 헤더 검색바 → 판매시계 컬렉션에서 브랜드/모델 검색
-        var headerSearch = $('#headerSearch');
-        var searchInput = $('#searchInput');
-        if (headerSearch && searchInput) {
-            var doSearch = function (e) {
-                if (e) e.preventDefault();
-                var q = (searchInput.value || '').trim();
-                if (q) { runSearch(q); searchInput.blur(); }
-            };
-            headerSearch.addEventListener('submit', doSearch);
-            // 모바일 키보드 '검색/Enter' 대응 (type=search 의 search 이벤트 + Enter 키)
-            searchInput.addEventListener('search', doSearch);
-            searchInput.addEventListener('keydown', function (e) {
-                if (e.key === 'Enter') doSearch(e);
-            });
-            // 돋보기 아이콘 탭으로도 검색 실행
-            var searchIc = headerSearch.querySelector('.header-search-ic');
-            if (searchIc) searchIc.addEventListener('click', doSearch);
-        }
+        // 헤더 검색 → search.js가 전용 검색 페이지를 엽니다(여기서는 처리하지 않음).
     }
 
     // 브랜드 한글↔영문 별칭 (카드는 영문 표기라 한글 검색도 매칭)
@@ -2672,6 +2654,61 @@
     }
     // 검색 페이지(search.js)에서 호출
     window.BELLORE_runSearch = runSearch;
+
+    /* ===== 판매시계 브랜드 원형 클릭 → 카드 필터 + 모델 카테고리 노출 ===== */
+    function brandModelsFor(name) {
+        var list = window.BELLORE_BRANDS || [];
+        for (var i = 0; i < list.length; i++) { if (list[i].name === name) return list[i].models || []; }
+        return [];
+    }
+    function applyCatFilter(brand, model) {
+        var q = (brand === 'all' || !brand) ? '' : (brand + (model ? (' ' + model) : ''));
+        var cards = $$('#collection .hcard'), firstHit = null;
+        cards.forEach(function (c) {
+            var hit = !q || cardMatches((c.textContent || '').toLowerCase(), q.toLowerCase());
+            c.style.display = hit ? '' : 'none';
+            if (hit && q && !firstHit) firstHit = c;
+        });
+        if (q && firstHit) {
+            var panel = firstHit.closest('.col-panel');
+            if (panel) {
+                var key = panel.id.replace('panel-', '');
+                $$('.col-tab').forEach(function (x) { x.classList.remove('active'); });
+                $$('.col-panel').forEach(function (x) { x.classList.remove('active'); });
+                panel.classList.add('active');
+                var tab = $('.col-tab[data-coltab="' + key + '"]');
+                if (tab) tab.classList.add('active');
+            }
+        }
+    }
+    document.addEventListener('click', function (e) {
+        var cb = e.target.closest('#collection .cat-brand');
+        if (cb) {
+            var brand = cb.dataset.brand || 'all';
+            $$('#collection .cat-brand').forEach(function (x) { x.classList.toggle('active', x === cb); });
+            var box = $('#catModels');
+            if (brand === 'all') {
+                if (box) { box.hidden = true; box.innerHTML = ''; box.removeAttribute('data-brand'); }
+                applyCatFilter('all');
+            } else {
+                if (box) {
+                    var html = '<button type="button" class="cat-model active" data-model="">전체</button>';
+                    brandModelsFor(brand).forEach(function (m) {
+                        html += '<button type="button" class="cat-model" data-model="' + esc(m) + '">' + esc(m) + '</button>';
+                    });
+                    box.innerHTML = html; box.setAttribute('data-brand', brand); box.hidden = false;
+                }
+                applyCatFilter(brand, '');
+            }
+            return;
+        }
+        var cm = e.target.closest('#catModels .cat-model');
+        if (cm) {
+            $$('#catModels .cat-model').forEach(function (x) { x.classList.toggle('active', x === cm); });
+            var box2 = $('#catModels');
+            applyCatFilter(box2 ? box2.getAttribute('data-brand') : 'all', cm.dataset.model || '');
+        }
+    });
 
     /* ============ 상품 상세 모달 ============ */
     function initProductModal() {

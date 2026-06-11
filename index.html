@@ -24,7 +24,7 @@
             });
         })();
     </script>
-    <title>벨로르 | 신뢰있는 명품시계의 시작</title>
+    <title>벨로르 | 대한민국 No.1 신뢰있는 명품시계 거래의 시작</title>
     <meta name="description" content="BELLORE(벨로르) · 2008년부터 운영, 40년 감정 전문가. 롤렉스, 파텍필립, AP 등 명품시계 최고가 매입. 국내외 120곳 제휴처 · 24시간 연중무휴">
     <meta name="keywords" content="BELLORE, 벨로르, 벨로르코리아, BELLORE KOREA, 명품시계매입, 롤렉스매입, 파텍필립매입, 오데마피게매입, 명품시계판매, 중고명품시계, 시계수리, 비교견적, 시계매입시세">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -36,7 +36,7 @@
     <!-- Open Graph (카카오톡/페이스북 공유) -->
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="BELLORE">
-    <meta property="og:title" content="벨로르 | 신뢰있는 명품시계의 시작">
+    <meta property="og:title" content="벨로르 | 대한민국 No.1 신뢰있는 명품시계 거래의 시작">
     <meta property="og:description" content="롤렉스·파텍필립·AP 명품시계 최고가 매입. 실시간 비교견적, 24시간 연중무휴 상담. SINCE 2008.">
     <meta property="og:url" content="https://bellore.co.kr/">
     <meta property="og:image" content="https://bellore.co.kr/assets/icons/icon-512.png">
@@ -46,7 +46,7 @@
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="벨로르 | 신뢰있는 명품시계의 시작">
+    <meta name="twitter:title" content="벨로르 | 대한민국 No.1 신뢰있는 명품시계 거래의 시작">
     <meta name="twitter:description" content="롤렉스·파텍필립·AP 명품시계 최고가 매입. 실시간 비교견적, 24시간 연중무휴 상담.">
     <meta name="twitter:image" content="https://bellore.co.kr/assets/icons/icon-512.png">
 
@@ -169,6 +169,24 @@
     </script>
 </head>
 <body>
+    <!-- 앱 시작 스플래시 -->
+    <div id="appSplash" class="app-splash" aria-hidden="true">
+        <div class="app-splash-inner">
+            <img class="app-splash-logo" src="assets/logo-bellore.png" alt="BELLORE">
+            <p class="app-splash-no1">대한민국 No.1</p>
+            <p class="app-splash-tagline">신뢰있는 명품시계 거래의 시작</p>
+        </div>
+    </div>
+    <script>
+        (function () {
+            var s = document.getElementById('appSplash');
+            if (!s) return;
+            function hide() { s.classList.add('hide'); setTimeout(function () { if (s && s.parentNode) s.parentNode.removeChild(s); }, 600); }
+            window.addEventListener('load', function () { setTimeout(hide, 900); });
+            setTimeout(hide, 2600); // 안전장치
+        })();
+    </script>
+
     <!-- 상단 헤더 -->
     <header class="header" id="header">
         <div class="header-inner">
@@ -243,37 +261,14 @@
                 <div class="container">
                     <div class="brand-circle-grid brand-circle-scroll" id="brandCircleRow">
                         <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="롤렉스"><span class="brand-circle-img"><img src="assets/brands/rolex.png" alt="롤렉스" loading="lazy"></span><span class="brand-circle-name">롤렉스</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="파텍필립"><span class="brand-circle-img"><img src="assets/brands/patek.png" alt="파텍필립" loading="lazy"></span><span class="brand-circle-name">파텍필립</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="오데마피게"><span class="brand-circle-img"><img src="assets/brands/ap.png" alt="오데마피게" loading="lazy"></span><span class="brand-circle-name">오데마피게</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="바쉐론 콘스탄틴"><span class="brand-circle-img"><img src="assets/brands/vacheron.png" alt="바쉐론 콘스탄틴" loading="lazy"></span><span class="brand-circle-name">바쉐론 콘스탄틴</span></a>
                         <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="까르띠에"><span class="brand-circle-img"><img src="assets/brands/cartier.png" alt="까르띠에" loading="lazy"></span><span class="brand-circle-name">까르띠에</span></a>
                         <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="오메가"><span class="brand-circle-img"><img src="assets/brands/omega.png" alt="오메가" loading="lazy"></span><span class="brand-circle-name">오메가</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="위블로"><span class="brand-circle-img"><img src="assets/brands/hublot.png" alt="위블로" loading="lazy"></span><span class="brand-circle-name">위블로</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="태그호이어"><span class="brand-circle-img"><img src="assets/brands/tagheuer.png" alt="태그호이어" loading="lazy"></span><span class="brand-circle-name">태그호이어</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="IWC"><span class="brand-circle-img"><img src="assets/brands/iwc.png" alt="IWC" loading="lazy"></span><span class="brand-circle-name">IWC</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="브라이틀링"><span class="brand-circle-img"><img src="assets/brands/breitling.png" alt="브라이틀링" loading="lazy"></span><span class="brand-circle-name">브라이틀링</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="파네라이"><span class="brand-circle-img"><img src="assets/brands/panerai.png" alt="파네라이" loading="lazy"></span><span class="brand-circle-name">파네라이</span></a>
                         <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="튜더"><span class="brand-circle-img"><img src="assets/brands/tudor.png" alt="튜더" loading="lazy"></span><span class="brand-circle-name">튜더</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="구찌"><span class="brand-circle-img"><img src="assets/brands/gucci.png" alt="구찌" loading="lazy"></span><span class="brand-circle-name">구찌</span></a>
+                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="태그호이어"><span class="brand-circle-img"><img src="assets/brands/tagheuer.png" alt="태그호이어" loading="lazy"></span><span class="brand-circle-name">태그호이어</span></a>
                         <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="샤넬"><span class="brand-circle-img"><img src="assets/brands/chanel.png" alt="샤넬" loading="lazy"></span><span class="brand-circle-name">샤넬</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="프랭크 뮬러"><span class="brand-circle-img"><img src="assets/brands/franckmuller.png" alt="프랭크 뮬러" loading="lazy"></span><span class="brand-circle-name">프랭크 뮬러</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="리차드밀"><span class="brand-circle-img"><img src="assets/brands/richardmille.png" alt="리차드밀" loading="lazy"></span><span class="brand-circle-name">리차드밀</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="예거 르쿨트르"><span class="brand-circle-img"><img src="assets/brands/jaegerlecoultre.png" alt="예거 르쿨트르" loading="lazy"></span><span class="brand-circle-name">예거 르쿨트르</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="로저 드뷔"><span class="brand-circle-img"><img src="assets/brands/rogerdubuis.png" alt="로저 드뷔" loading="lazy"></span><span class="brand-circle-name">로저 드뷔</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="브레게"><span class="brand-circle-img"><img src="assets/brands/breguet.png" alt="브레게" loading="lazy"></span><span class="brand-circle-name">브레게</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="블랑팡"><span class="brand-circle-img"><img src="assets/brands/blancpain.png" alt="블랑팡" loading="lazy"></span><span class="brand-circle-name">블랑팡</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="A. 랑에 운트 죄네"><span class="brand-circle-img"><img src="assets/brands/alange.png" alt="A. 랑에 운트 죄네" loading="lazy"></span><span class="brand-circle-name">A. 랑에 운트 죄네</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="피아제"><span class="brand-circle-img"><img src="assets/brands/piaget.png" alt="피아제" loading="lazy"></span><span class="brand-circle-name">피아제</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="에르메스"><span class="brand-circle-img"><img src="assets/brands/hermes.png" alt="에르메스" loading="lazy"></span><span class="brand-circle-name">에르메스</span></a>
                         <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="불가리"><span class="brand-circle-img"><img src="assets/brands/bulgari.png" alt="불가리" loading="lazy"></span><span class="brand-circle-name">불가리</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="론진"><span class="brand-circle-img"><img src="assets/brands/longines.png" alt="론진" loading="lazy"></span><span class="brand-circle-name">론진</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="라도"><span class="brand-circle-img"><img src="assets/brands/rado.png" alt="라도" loading="lazy"></span><span class="brand-circle-name">라도</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="미도"><span class="brand-circle-img"><img src="assets/brands/mido.png" alt="미도" loading="lazy"></span><span class="brand-circle-name">미도</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="오리스"><span class="brand-circle-img"><img src="assets/brands/oris.png" alt="오리스" loading="lazy"></span><span class="brand-circle-name">오리스</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="세이코"><span class="brand-circle-img"><img src="assets/brands/seiko.png" alt="세이코" loading="lazy"></span><span class="brand-circle-name">세이코</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="티쏘"><span class="brand-circle-img"><img src="assets/brands/tissot.png" alt="티쏘" loading="lazy"></span><span class="brand-circle-name">티쏘</span></a>
                         <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="해밀턴"><span class="brand-circle-img"><img src="assets/brands/hamilton.png" alt="해밀턴" loading="lazy"></span><span class="brand-circle-name">해밀턴</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="프레드릭 콘스탄트"><span class="brand-circle-img"><img src="assets/brands/frederique.png" alt="프레드릭 콘스탄트" loading="lazy"></span><span class="brand-circle-name">프레드릭 콘스탄트</span></a>
+                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="파텍필립"><span class="brand-circle-img"><img src="assets/brands/patek.png" alt="파텍필립" loading="lazy"></span><span class="brand-circle-name">파텍필립</span></a>
                         <a href="#collection" class="brand-circle brand-circle-all" data-nav="collection" data-brandfilter="all"><span class="brand-circle-img">ALL</span><span class="brand-circle-name">전체보기</span></a>
                     </div>
                 </div>
@@ -1095,6 +1090,9 @@
                         <button type="button" class="brand-circle cat-brand" data-brand="해밀턴"><span class="brand-circle-img"><img src="assets/brands/hamilton.png" alt="해밀턴" loading="lazy"></span><span class="brand-circle-name">해밀턴</span></button>
                         <button type="button" class="brand-circle cat-brand" data-brand="프레드릭 콘스탄트"><span class="brand-circle-img"><img src="assets/brands/frederique.png" alt="프레드릭 콘스탄트" loading="lazy"></span><span class="brand-circle-name">프레드릭 콘스탄트</span></button>
                     </div>
+
+                    <!-- 선택 브랜드의 모델 카테고리(브랜드 클릭 시 표시) -->
+                    <div class="cat-models" id="catModels" hidden></div>
 
                     <!-- 필터 드롭다운 -->
                     <div class="cat-filters">
@@ -1982,7 +1980,7 @@
         <div class="container">
             <div class="footer-brand-row">
                 <a href="#home" class="footer-logo footer-logo-large" data-nav="home"><img src="assets/logo-bellore.png" alt="BELLORE KOREA"></a>
-                <p class="footer-tagline">신뢰있는 명품시계의 시작</p>
+                <p class="footer-tagline">대한민국 No.1 신뢰있는 명품시계 거래의 시작</p>
                 <p class="footer-since"><strong>SINCE 2008</strong></p>
             </div>
 

@@ -5358,8 +5358,8 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .brand-circle-row::-webkit-scrollbar { display: none; }
 .brand-circle { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .brand-circle-img {
-    width: 56px; height: 56px; border-radius: 50%;
-    background: #f4f2ee; border: 1px solid #e7e3da;
+    width: 62px; height: 62px; border-radius: 50%;
+    background: #fff; border: 1px solid #ececec;
     display: flex; align-items: center; justify-content: center;
     font-family: var(--serif, serif); font-weight: 700; font-size: 10px; letter-spacing: .3px;
     color: #2b2620; text-align: center; line-height: 1.1; padding: 4px;
@@ -6197,12 +6197,29 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
     scroll-snap-type: x proximity;
 }
 .brand-circle-scroll::-webkit-scrollbar { display: none; }
-.brand-circle-scroll .brand-circle { flex: 0 0 auto; width: 64px; scroll-snap-align: start; }
-.brand-circle-img img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.brand-circle-scroll .brand-circle { flex: 0 0 auto; width: 70px; scroll-snap-align: start; }
+/* 로고 누끼(투명 배경) → 잘리지 않게 contain + 흰 배경, 크게 */
+.brand-circle-img { background: #fff !important; }
+.brand-circle-img img { width: 100%; height: 100%; object-fit: contain; border-radius: 50%; padding: 7px; box-sizing: border-box; }
 /* 로고 이미지가 있는 원형은 hover 시 반전하지 않음 */
-.brand-circle:hover .brand-circle-img { background: #f4f2ee; color: #2b2620; box-shadow: 0 4px 14px rgba(0,0,0,.16); }
+.brand-circle:hover .brand-circle-img { background: #fff; color: #2b2620; box-shadow: 0 4px 14px rgba(0,0,0,.16); }
 .brand-circle-all:hover .brand-circle-img { background: #000; color: #fff; }
 .cat-brand.active .brand-circle-img { outline: 2px solid #111; outline-offset: 2px; }
+
+/* 브랜드 선택 시 나오는 모델 카테고리 칩 */
+.cat-models {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    padding: 12px 2px 4px; margin-bottom: 4px;
+    border-top: 1px solid #efece6;
+}
+.cat-models[hidden] { display: none; }
+.cat-model {
+    border: 1px solid #ddd6c8; background: #fff; color: #2b2620;
+    font-size: 13px; padding: 7px 14px; border-radius: 999px;
+    cursor: pointer; white-space: nowrap; transition: all .15s;
+}
+.cat-model:hover { border-color: #111; }
+.cat-model.active { background: #111; color: #fff; border-color: #111; }
 
 /* ============================================================
    검색 페이지 (GUGUS 스타일)
@@ -6312,3 +6329,31 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 .lp-brand-opt.on { background: #eef5f0; }
 .lp-brand-opt.on img { outline: 2px solid var(--dark-green); outline-offset: 1px; }
 .lp-brand-opt.on span { color: var(--dark-green); font-weight: 700; }
+
+/* ============================================================
+   앱 시작 스플래시 (대한민국 No.1 · 슬로건)
+   ============================================================ */
+.app-splash {
+    position: fixed; inset: 0; z-index: 4000;
+    background: #111; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 1; transition: opacity .55s ease;
+}
+.app-splash.hide { opacity: 0; pointer-events: none; }
+.app-splash-inner { text-align: center; animation: splashFade .8s ease both; padding: 0 24px; }
+.app-splash-logo {
+    width: 168px; max-width: 56vw; height: auto;
+    filter: brightness(0) invert(1); margin-bottom: 22px;
+}
+.app-splash-no1 {
+    font-size: 13px; letter-spacing: 3px; font-weight: 700;
+    color: #c9a96e; margin: 0 0 8px;
+}
+.app-splash-tagline {
+    font-size: 16px; font-weight: 600; letter-spacing: .5px;
+    color: #f2efe9; margin: 0;
+}
+@keyframes splashFade {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+}

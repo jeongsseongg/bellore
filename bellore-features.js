@@ -182,8 +182,8 @@
             '<div class="lp-brand-sheet" id="lpBrandSheet" hidden></div>' +
           '</label>' +
           '<label><span>모델 / 레퍼런스 *</span><input name="model" id="lpModelInput" list="lpModelList" placeholder="브랜드 선택 시 대표 모델 추천" value="' + esc(item ? item.model : '') + '" required autocomplete="off"><datalist id="lpModelList"></datalist></label>' +
-          '<label><span>판매가 (숫자, 비우면 가격문의)</span><input name="price" type="number" inputmode="numeric" placeholder="예: 22800000" value="' + (item && item.price ? item.price : '') + '"></label>' +
-          '<label><span>할인 판매가 (선택) — 입력 시 정가에 취소선·할인율 표시</span><input name="sale_price" type="number" inputmode="numeric" placeholder="예: 19900000" value="' + (item && item.sale_price ? item.sale_price : '') + '"></label>' +
+          '<label><span>판매가 (숫자, 비우면 가격문의)</span><input name="price" class="lp-money" type="text" inputmode="numeric" placeholder="예: 22,800,000" value="' + (item && item.price ? fmt(item.price) : '') + '"></label>' +
+          '<label><span>할인 판매가 (선택) — 입력 시 정가에 취소선·할인율 표시</span><input name="sale_price" class="lp-money" type="text" inputmode="numeric" placeholder="예: 19,900,000" value="' + (item && item.sale_price ? fmt(item.sale_price) : '') + '"></label>' +
           '<label><span>판매 상태</span><select name="status">' + statusOptions(item ? item.status : 'on_sale') + '</select></label>' +
           '<label><span>컨디션</span><select name="condition">' + condOptions(item ? item.condition : '') + '</select></label>' +
           '<label><span>구성 등급</span><select name="pack">' + packOptions(item ? item.pack : '') + '</select></label>' +
@@ -198,6 +198,13 @@
         '</form>';
       lPicker = photoPicker($('#listingPhotos', listingPage), 5, lExisting);
       wireBrandPicker(item ? item.brand : '');
+      // 금액 입력: 천 단위 콤마 실시간 표시 (2000000 → 2,000,000)
+      Array.prototype.forEach.call(listingPage.querySelectorAll('.lp-money'), function (inp) {
+        inp.addEventListener('input', function () {
+          var digits = inp.value.replace(/[^0-9]/g, '');
+          inp.value = digits ? Number(digits).toLocaleString('ko-KR') : '';
+        });
+      });
       $('#listingForm', listingPage).addEventListener('submit', function (e) {
         e.preventDefault();
         var fd = new FormData(e.target);
