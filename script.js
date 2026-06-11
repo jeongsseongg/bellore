@@ -682,6 +682,8 @@
                     renderSellGrid();
                 }
             });
+
+            enablePhotoReorder(sellGrid, function () { return sellPhotos; }, renderSellGrid);
         }
 
         function renderSellGrid() {
@@ -2211,6 +2213,8 @@
                 renderUploadGrid();
             }
         });
+
+        enablePhotoReorder(grid, function () { return uploadedPhotos; }, renderUploadGrid);
     }
 
     function renderUploadGrid() {
@@ -2228,6 +2232,64 @@
             if (addCell) grid.insertBefore(cell, addCell);
             else grid.appendChild(cell);
         });
+    }
+
+    /* 사진 셀 드래그 순서변경 (마우스 + 터치 공용 / 첫 사진이 대표 이미지)
+       grid: 업로드 그리드 · getPhotos: 현재 사진 배열 반환 · render: 다시 그리기 */
+    function enablePhotoReorder(grid, getPhotos, render) {
+        if (!grid || grid._reorderOn) return;
+        grid._reorderOn = true;
+        var pid = null, sx = 0, sy = 0, from = -1, src = null, moving = false;
+
+        function cellUnder(x, y) {
+            var el = document.elementFromPoint(x, y);
+            return el ? el.closest('.upload-cell.has-img') : null;
+        }
+        function clearOver() {
+            $$('.upload-cell.drop-target', grid).forEach(function (c) { c.classList.remove('drop-target'); });
+        }
+        grid.addEventListener('pointerdown', function (e) {
+            var cell = e.target.closest('.upload-cell.has-img');
+            if (!cell || e.target.closest('.remove-btn')) return;
+            pid = e.pointerId; src = cell;
+            from = parseInt(cell.dataset.idx, 10);
+            sx = e.clientX; sy = e.clientY; moving = false;
+        });
+        grid.addEventListener('pointermove', function (e) {
+            if (pid === null || e.pointerId !== pid) return;
+            var dx = e.clientX - sx, dy = e.clientY - sy;
+            if (!moving) {
+                if (dx * dx + dy * dy < 64) return;   // 8px 이상 움직여야 드래그 시작
+                moving = true;
+                try { grid.setPointerCapture(pid); } catch (err) {}
+                if (src) src.classList.add('dragging');
+            }
+            e.preventDefault();
+            var over = cellUnder(e.clientX, e.clientY);
+            clearOver();
+            if (over && over !== src) over.classList.add('drop-target');
+        });
+        function end(e) {
+            if (pid === null) return;
+            if (moving) {
+                var over = cellUnder(e.clientX, e.clientY);
+                if (over && over !== src) {
+                    var to = parseInt(over.dataset.idx, 10);
+                    var photos = getPhotos();
+                    if (!isNaN(to) && !isNaN(from) && to !== from && photos) {
+                        var moved = photos.splice(from, 1)[0];
+                        photos.splice(to, 0, moved);
+                        render();
+                    }
+                }
+            }
+            if (src) src.classList.remove('dragging');
+            clearOver();
+            try { grid.releasePointerCapture(pid); } catch (err) {}
+            pid = null; from = -1; src = null; moving = false;
+        }
+        grid.addEventListener('pointerup', end);
+        grid.addEventListener('pointercancel', end);
     }
 
     /* ============ 8. 비교견적 폼 ============ */

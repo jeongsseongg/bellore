@@ -5505,10 +5505,10 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
     text-decoration: none;
 }
 
-/* 홈 판매시계 그리드 — 이미지 규격 고정(약 160~200px 정사각) */
+/* 홈 판매시계 그리드 — 항상 2열 고정(모바일·PC 동일) */
 .home-sale-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    grid-template-columns: 1fr 1fr;
     gap: 14px;
     margin-top: 20px;
 }
@@ -5971,22 +5971,29 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .col-grid-inner,
 .hcard-grid {
     display: grid;
-    /* 이미지 규격 고정: 한 칸 약 160~200px → 이미지(정사각)도 그 폭으로 고정
-       모바일 2열 · PC 일반 3열 · 와이드 6열로 자동 정렬되어 사이즈가 커지지 않음 */
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    /* 항상 2열 고정 — 모바일·PC 동일하게 한 줄에 2개 (참조 스크린샷 규격) */
+    grid-template-columns: 1fr 1fr;
     gap: 14px;
-    align-items: start;          /* 카드 높이 제각각이어도 윗줄 정렬 */
+    align-items: stretch;        /* 같은 줄 카드 동일 높이 → 글씨/가격 줄맞춤 */
 }
 html[data-width="full"] .home-sale-grid,
 html[data-width="full"] .col-grid-inner,
 html[data-width="full"] .hcard-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    grid-template-columns: repeat(4, 1fr);   /* 와이드만 4열 */
     gap: 16px;
 }
-/* 카드 이미지 여백 살짝 줄여 더 큼지막하게 */
+/* 이미지 규격 통일: 정사각 박스에 cover로 꽉 채워 모든 카드가 동일 크기로 보이게
+   (contain은 가로형·세로형 시계가 제각각 크기로 보여서 cover로 고정) */
 .home-sale-grid .hcard-img,
 .col-grid-inner .hcard-img,
-.hcard-grid .hcard-img { padding: 10px; }
+.hcard-grid .hcard-img { padding: 0; }
+.home-sale-grid .hcard-img img,
+.col-grid-inner .hcard-img img,
+.hcard-grid .hcard-img img { object-fit: cover; }
+/* 가격을 카드 하단에 고정 → 같은 줄 카드끼리 가격 줄이 정확히 맞음 */
+.home-sale-grid .hcard-price,
+.col-grid-inner .hcard-price,
+.hcard-grid .hcard-price { margin-top: auto; }
 
 /* 카드 핵심정보 요약(정품보증 · 구성품 · 컨디션) */
 .hcard-warranty {
@@ -6604,8 +6611,9 @@ body.is-searching .tabbar { display: none !important; }
 }
 
 /* 항목3 — 등록폼 사진 드래그 정렬 상태 */
-.upload-cell.has-img { touch-action: none; }
-.upload-cell.dragging { opacity: .45; transform: scale(.96); }
+.upload-cell.has-img { touch-action: none; cursor: grab; }
+.upload-cell.has-img:active { cursor: grabbing; }
+.upload-cell.dragging { opacity: .45; transform: scale(.96); cursor: grabbing; z-index: 2; }
 .upload-cell.drop-target { outline: 2px dashed #b08968; outline-offset: -2px; }
 
 /* 항목5 — 주문 전체보기 모달 */
