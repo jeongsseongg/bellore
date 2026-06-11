@@ -2235,58 +2235,114 @@
     }
 
     /* 사진 셀 드래그 순서변경 (마우스 + 터치 공용 / 첫 사진이 대표 이미지)
+       · 손가락/커서를 그대로 따라오는 떠다니는 클론(ghost)
+       · 지나가는 칸은 부드럽게 밀려남(FLIP 애니메이션)
        grid: 업로드 그리드 · getPhotos: 현재 사진 배열 반환 · render: 다시 그리기 */
     function enablePhotoReorder(grid, getPhotos, render) {
         if (!grid || grid._reorderOn) return;
         grid._reorderOn = true;
-        var pid = null, sx = 0, sy = 0, from = -1, src = null, moving = false;
+        var pid = null, sx = 0, sy = 0, ox = 0, oy = 0;
+        var src = null, ghost = null, gw = 0, gh = 0, moving = false;
 
-        function cellUnder(x, y) {
-            var el = document.elementFromPoint(x, y);
-            return el ? el.closest('.upload-cell.has-img') : null;
+        function cells() {
+            return $$('.upload-cell.has-img', grid).filter(function (c) { return c !== src; });
         }
-        function clearOver() {
-            $$('.upload-cell.drop-target', grid).forEach(function (c) { c.classList.remove('drop-target'); });
+        // 커서 위치에 가장 가까운 칸 앞/뒤를 찾아 src 를 그 자리로 이동(FLIP)
+        function reflow(x, y) {
+            var list = cells();
+            var target = null, after = false;
+            for (var i = 0; i < list.length; i++) {
+                var r = list[i].getBoundingClientRect();
+                var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+                // 같은 줄(세로 근접)에서 좌우, 아니면 위/아래로 판정
+                if (y < r.top - 4) continue;
+                if (y > r.bottom + 4) { target = list[i]; after = true; continue; }
+                target = list[i];
+                after = x > cx;
+                break;
+            }
+            if (!target) return;
+            // FLIP: 이동 전 위치 기록
+            var all = $$('.upload-cell.has-img', grid);
+            var first = all.map(function (c) { return c.getBoundingClientRect(); });
+            if (after) {
+                if (target.nextSibling !== src) grid.insertBefore(src, target.nextSibling);
+            } else {
+                if (target.previousSibling !== src) grid.insertBefore(src, target);
+            }
+            // 이동 후 위치 → 역변환 후 0으로 트랜지션
+            all.forEach(function (c, i) {
+                if (c === src) return;
+                var last = c.getBoundingClientRect();
+                var fx = first[i].left - last.left, fy = first[i].top - last.top;
+                if (!fx && !fy) return;
+                c.style.transition = 'none';
+                c.style.transform = 'translate(' + fx + 'px,' + fy + 'px)';
+                requestAnimationFrame(function () {
+                    c.style.transition = 'transform .18s ease';
+                    c.style.transform = '';
+                });
+            });
+        }
+        function moveGhost(x, y) {
+            if (ghost) ghost.style.transform = 'translate(' + (x - ox) + 'px,' + (y - oy) + 'px) scale(1.03)';
         }
         grid.addEventListener('pointerdown', function (e) {
             var cell = e.target.closest('.upload-cell.has-img');
             if (!cell || e.target.closest('.remove-btn')) return;
             pid = e.pointerId; src = cell;
-            from = parseInt(cell.dataset.idx, 10);
             sx = e.clientX; sy = e.clientY; moving = false;
         });
         grid.addEventListener('pointermove', function (e) {
             if (pid === null || e.pointerId !== pid) return;
             var dx = e.clientX - sx, dy = e.clientY - sy;
             if (!moving) {
-                if (dx * dx + dy * dy < 64) return;   // 8px 이상 움직여야 드래그 시작
+                if (dx * dx + dy * dy < 36) return;   // 6px 이상 움직이면 드래그 시작
                 moving = true;
                 try { grid.setPointerCapture(pid); } catch (err) {}
-                if (src) src.classList.add('dragging');
+                var r = src.getBoundingClientRect();
+                gw = r.width; gh = r.height;
+                ox = e.clientX - r.left; oy = e.clientY - r.top;   // 잡은 지점 유지
+                ghost = src.cloneNode(true);
+                ghost.className = 'upload-cell has-img reorder-ghost';
+                ghost.style.width = gw + 'px';
+                ghost.style.height = gh + 'px';
+                ghost.style.left = '0';
+                ghost.style.top = '0';
+                document.body.appendChild(ghost);
+                moveGhost(e.clientX, e.clientY);
+                src.classList.add('reorder-src');
             }
             e.preventDefault();
-            var over = cellUnder(e.clientX, e.clientY);
-            clearOver();
-            if (over && over !== src) over.classList.add('drop-target');
+            moveGhost(e.clientX, e.clientY);
+            reflow(e.clientX, e.clientY);
         });
-        function end(e) {
+        function end() {
             if (pid === null) return;
             if (moving) {
-                var over = cellUnder(e.clientX, e.clientY);
-                if (over && over !== src) {
-                    var to = parseInt(over.dataset.idx, 10);
-                    var photos = getPhotos();
-                    if (!isNaN(to) && !isNaN(from) && to !== from && photos) {
-                        var moved = photos.splice(from, 1)[0];
-                        photos.splice(to, 0, moved);
-                        render();
+                // 현재 DOM 순서대로 사진 배열 재구성
+                var photos = getPhotos();
+                if (photos) {
+                    var order = $$('.upload-cell.has-img', grid).map(function (c) {
+                        return parseInt(c.dataset.idx, 10);
+                    });
+                    var next = order.map(function (i) { return photos[i]; })
+                                    .filter(function (v) { return v != null; });
+                    if (next.length === photos.length) {
+                        photos.length = 0;
+                        Array.prototype.push.apply(photos, next);
                     }
                 }
+                if (ghost && ghost.parentNode) ghost.parentNode.removeChild(ghost);
+                ghost = null;
+                if (src) src.classList.remove('reorder-src');
+                $$('.upload-cell.has-img', grid).forEach(function (c) {
+                    c.style.transition = ''; c.style.transform = '';
+                });
+                render();
             }
-            if (src) src.classList.remove('dragging');
-            clearOver();
             try { grid.releasePointerCapture(pid); } catch (err) {}
-            pid = null; from = -1; src = null; moving = false;
+            pid = null; src = null; moving = false;
         }
         grid.addEventListener('pointerup', end);
         grid.addEventListener('pointercancel', end);

@@ -3663,10 +3663,10 @@ body.admin-mode .main-wrap { padding-top: 0; }
 }
 .hcard-price em {
     font-style: normal;
-    font-size: 11px;
-    color: var(--text-3);
-    margin-left: 2px;
-    font-weight: 600;
+    font-size: inherit;       /* '원'을 가격 숫자와 같은 크기로 (작게 X) */
+    color: inherit;
+    margin-left: 1px;
+    font-weight: inherit;
 }
 
 /* ========== 매입방식 사진 ========== */
@@ -5974,7 +5974,7 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
     /* 항상 2열 고정 — 모바일·PC 동일하게 한 줄에 2개 (참조 스크린샷 규격) */
     grid-template-columns: 1fr 1fr;
     gap: 14px;
-    align-items: stretch;        /* 같은 줄 카드 동일 높이 → 글씨/가격 줄맞춤 */
+    align-items: start;          /* 카드는 내용 높이대로 → 중간 여백 없음 */
 }
 html[data-width="full"] .home-sale-grid,
 html[data-width="full"] .col-grid-inner,
@@ -5982,18 +5982,20 @@ html[data-width="full"] .hcard-grid {
     grid-template-columns: repeat(4, 1fr);   /* 와이드만 4열 */
     gap: 16px;
 }
-/* 이미지 규격 통일: 정사각 박스에 cover로 꽉 채워 모든 카드가 동일 크기로 보이게
-   (contain은 가로형·세로형 시계가 제각각 크기로 보여서 cover로 고정) */
+/* 이미지 규격 고정: 모든 카드 이미지를 동일한 정사각 박스로 강제(세로/가로형 무관)
+   · 흰 배경 + contain → 누끼(투명 PNG)는 깔끔한 흰 바탕, 시계 전체가 다 보임
+   · aspect-ratio:1 을 !important 로 강제해 카드 높이가 제각각이 되는 것 방지 */
 .home-sale-grid .hcard-img,
 .col-grid-inner .hcard-img,
-.hcard-grid .hcard-img { padding: 0; }
+.hcard-grid .hcard-img {
+    aspect-ratio: 1 / 1 !important;
+    height: auto !important;
+    background: #ffffff;
+    padding: 10px;
+}
 .home-sale-grid .hcard-img img,
 .col-grid-inner .hcard-img img,
-.hcard-grid .hcard-img img { object-fit: cover; }
-/* 가격을 카드 하단에 고정 → 같은 줄 카드끼리 가격 줄이 정확히 맞음 */
-.home-sale-grid .hcard-price,
-.col-grid-inner .hcard-price,
-.hcard-grid .hcard-price { margin-top: auto; }
+.hcard-grid .hcard-img img { object-fit: contain; }
 
 /* 카드 핵심정보 요약(정품보증 · 구성품 · 컨디션) */
 .hcard-warranty {
@@ -6157,8 +6159,9 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 
 /* ===== 할인가 표시(카드) ===== */
 .hcard-old { display: block; font-size: 11.5px; color: var(--text-3); text-decoration: line-through; font-weight: 600; margin-bottom: 1px; }
-.hcard-now { display: flex; align-items: baseline; gap: 5px; }
-.hcard-rate { color: #e0282e; font-weight: 900; font-size: 14px; }
+/* 숫자와 '원'이 쪼개지지 않게 한 줄 유지(줄바꿈 X) */
+.hcard-now { display: block; white-space: nowrap; }
+.hcard-rate { color: #e0282e; font-weight: 900; font-size: inherit; margin-right: 5px; }
 
 /* ===== 할인가 표시(상세) ===== */
 .pp-price-old { display: block; font-size: 15px; color: var(--text-3); text-decoration: line-through; font-weight: 600; margin-bottom: 2px; }
@@ -6613,8 +6616,20 @@ body.is-searching .tabbar { display: none !important; }
 /* 항목3 — 등록폼 사진 드래그 정렬 상태 */
 .upload-cell.has-img { touch-action: none; cursor: grab; }
 .upload-cell.has-img:active { cursor: grabbing; }
-.upload-cell.dragging { opacity: .45; transform: scale(.96); cursor: grabbing; z-index: 2; }
-.upload-cell.drop-target { outline: 2px dashed #b08968; outline-offset: -2px; }
+/* 원본 자리: 드래그 중 빈 자리로 표시 */
+.upload-cell.reorder-src { opacity: 0; }
+/* 손가락/커서를 따라다니는 떠다니는 복제본 */
+.upload-cell.reorder-ghost {
+    position: fixed;
+    margin: 0;
+    z-index: 9999;
+    pointer-events: none;
+    cursor: grabbing;
+    box-shadow: 0 12px 30px rgba(0,0,0,.28);
+    opacity: .96;
+    will-change: transform;
+}
+.upload-cell.reorder-ghost .remove-btn { display: none; }
 
 /* 항목5 — 주문 전체보기 모달 */
 .orders-content { max-width: 460px; }
@@ -6654,11 +6669,10 @@ body.is-searching .tabbar { display: none !important; }
 /* ============================================================
    Batch 9 — 카드 박스 높이 통일 · 소식받기(기다리는 시계)
    ============================================================ */
-/* (4) 세일/비세일 카드 높이를 동일하게: 모델명 2줄·가격 영역 높이 고정 */
+/* (4) 모델명 2줄 높이만 예약 — 가격은 일반 블록(세로 flex 제거: '원' 줄바꿈 원인) */
 .hcard-model { min-height: 40px; }                 /* 모델명 2줄 높이 예약 */
 .hcard-price {
-    min-height: 36px;
-    display: flex; flex-direction: column; justify-content: flex-end;
+    display: block;
 }
 .hcard-old { margin-bottom: 1px; }
 
@@ -6759,14 +6773,14 @@ body.is-searching .tabbar { display: none !important; }
     .cat-brands .brand-circle-img { width: 62px; height: 62px; }
 }
 
-/* (6) 카드 박스 높이 통일: 같은 줄 카드를 동일 높이로(하단 여백 허용) */
+/* (6) 카드는 내용 높이대로(중간 여백 제거) — 같은 줄은 윗줄 정렬 */
 .home-sale-grid,
 .col-grid-inner,
-.hcard-grid { align-items: stretch; }
+.hcard-grid { align-items: start; }
 .home-sale-grid .hcard,
 .col-grid-inner .hcard,
 .hcard-grid .hcard {
-    display: flex; flex-direction: column; height: 100%;
+    display: flex; flex-direction: column;
 }
 .home-sale-grid .hcard-img,
 .col-grid-inner .hcard-img,
