@@ -115,34 +115,46 @@
         if (prevBtn) prevBtn.addEventListener('click', prev);
         if (nextBtn) nextBtn.addEventListener('click', next);
 
-        // 스와이프(터치/포인터) + 좌/우 가장자리 탭으로 이동 (화살표 없이)
-        var startX = 0, dx = 0, dragging = false;
+        // 스와이프(터치/포인터) — 짧은 스와이프·빠른 플릭 모두 인식, 손가락을 그대로 따라옴
+        var startX = 0, startT = 0, dx = 0, dragging = false, swiped = false;
         track.addEventListener('pointerdown', function (e) {
             if (e.target.closest('a,button')) return;
-            dragging = true; startX = e.clientX; dx = 0;
+            dragging = true; swiped = false; startX = e.clientX; startT = Date.now(); dx = 0;
             track.style.transition = 'none';
+            try { track.setPointerCapture(e.pointerId); } catch (err) {}
+            if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
         });
         track.addEventListener('pointermove', function (e) {
             if (!dragging) return;
             dx = e.clientX - startX;
+            if (Math.abs(dx) > 4) swiped = true;
             track.style.transform = 'translateX(calc(' + (-index * 100) + '% + ' + dx + 'px))';
         });
         function endDrag(e) {
             if (!dragging) return;
             dragging = false;
+            try { if (e) track.releasePointerCapture(e.pointerId); } catch (err) {}
             track.style.transition = '';
-            if (Math.abs(dx) > 45) { dx < 0 ? next() : prev(); return; }
-            update();
-            if (e && Math.abs(dx) < 8 && !(e.target.closest && e.target.closest('a,button'))) {
-                var r = carousel.getBoundingClientRect();
-                var x = e.clientX - r.left;
-                if (x < r.width * 0.22) prev();
-                else if (x > r.width * 0.78) next();
+            var w = carousel.getBoundingClientRect().width || 1;
+            var dt = Date.now() - startT;
+            var vel = dx / (dt || 1);              // px/ms
+            // 30px 이상 끌었거나, 빠른 플릭(속도 0.35px/ms↑)이면 페이지 이동
+            if (Math.abs(dx) > Math.min(60, w * 0.18) || Math.abs(vel) > 0.35) {
+                dx < 0 ? next() : prev();
+            } else {
+                update();
+                // 거의 안 움직였으면(=탭) 좌/우 가장자리 탭으로 이동
+                if (!swiped && e && !(e.target.closest && e.target.closest('a,button'))) {
+                    var r = carousel.getBoundingClientRect();
+                    var x = e.clientX - r.left;
+                    if (x < r.width * 0.30) prev();
+                    else if (x > r.width * 0.70) next();
+                }
             }
+            restartAuto();
         }
         track.addEventListener('pointerup', endDrag);
         track.addEventListener('pointercancel', endDrag);
-        track.addEventListener('pointerleave', endDrag);
 
         // DB 배너 주입 (bellore-features.js 가 호출)
         window.belloreSetBanners = function (list) {
@@ -2353,6 +2365,9 @@
     /* ============ 8. 비교견적 폼 ============ */
     var submittedItems = [];
 
+    // 회원가입 후 이어서 신청할 견적 데이터(세션 메모리에 보관)
+    var pendingCompare = null;
+
     function initCompareForm() {
         var form = $('#compareForm');
         if (!form) return;
@@ -2375,58 +2390,105 @@
                 return;
             }
 
-            sendLead('비교견적 신청', {
-                브랜드: brand, 모델: model, 이름: name, 연락처: phone,
-                메모: memo, 사진수: uploadedPhotos.length + '장'
-            });
+            var payload = {
+                brand: brand, model: model, name: name, phone: phone, memo: memo,
+                year: fd.get('year') || '',
+                parts: (fd.getAll ? fd.getAll('parts') : []),
+                photos: uploadedPhotos.slice(0), photoCount: uploadedPhotos.length
+            };
 
-            if (backendOn()) {
-                if (!NWBackend.currentUser()) {
-                    alert('매물 등록은 로그인 후 가능합니다.');
-                    openLoginModal();
-                    return;
-                }
-                var submitBtn = form.querySelector('[type="submit"]');
-                if (submitBtn) submitBtn.disabled = true;
-                NWBackend.addListing({
-                    brand: brand, model: model, name: name, phone: phone, memo: memo,
-                    photos: uploadedPhotos.slice(0), photoCount: uploadedPhotos.length
-                }).then(function () {
-                    showSubmitSuccess(form);
-                    form.reset();
-                    uploadedPhotos.length = 0;
-                    renderUploadGrid();
-                    // 내 매물 목록은 실시간 구독으로 자동 갱신됨
-                }).catch(function (err) {
-                    alert('매물 등록 실패: ' + (err && err.message ? err.message : err));
-                }).then(function () {
-                    if (submitBtn) submitBtn.disabled = false;
-                });
+            // 이미 로그인한 회원 → 바로 신청
+            if (backendOn() && NWBackend.currentUser()) {
+                doCompareSubmit(payload, 'member');
                 return;
             }
 
+            // 비회원 → 안내 팝업 (비회원 신청 / 회원가입 후 신청)
+            if (window.belloreModal) {
+                window.belloreModal(
+                    '비회원도 비교견적을 신청할 수 있어요.\n\n회원으로 신청하시면 입찰 현황을 실시간으로 확인하고, 최고가가 들어올 때 금액 알림을 받을 수 있습니다.',
+                    [
+                        { label: '비회원으로 신청', cls: 'bl-cancel', cb: function () { doCompareSubmit(payload, 'guest'); } },
+                        { label: '회원가입하고 신청', cls: 'bl-ok', cb: function () { startSignupThenSubmit(payload); } }
+                    ]
+                );
+            } else {
+                doCompareSubmit(payload, 'guest');
+            }
+        });
+
+        // 회원가입/로그인이 완료되면, 대기 중인 견적을 자동으로 이어서 신청 + 메일 발송
+        if (backendOn() && NWBackend.onAuthChange) {
+            NWBackend.onAuthChange(function (user) {
+                if (user && pendingCompare) {
+                    var p = pendingCompare; pendingCompare = null;
+                    closeLoginModal();
+                    setTimeout(function () { doCompareSubmit(p, 'member'); }, 400);
+                }
+            });
+        }
+    }
+
+    // 실제 신청 처리 — 메일은 폼서밋으로 벨로르(관리자)에게만 발송
+    function doCompareSubmit(p, mode) {
+        var form = $('#compareForm');
+        sendLead('비교견적 신청' + (mode === 'guest' ? ' (비회원)' : ''), {
+            브랜드: p.brand, 모델: p.model, 구입시기: p.year || '-',
+            구성품: (p.parts && p.parts.length ? p.parts.join(', ') : '-'),
+            이름: p.name, 연락처: p.phone, 메모: p.memo || '-',
+            사진수: p.photoCount + '장', 회원여부: (mode === 'member' ? '회원' : '비회원')
+        });
+
+        function finishLocal() {
             var item = {
-                id: Date.now(),
-                brand: brand,
-                model: model,
-                photo: uploadedPhotos[0],
-                photoCount: uploadedPhotos.length,
-                memo: memo,
+                id: Date.now(), brand: p.brand, model: p.model,
+                photo: p.photos[0], photoCount: p.photoCount, memo: p.memo,
                 submittedAt: new Date().toLocaleString('ko-KR', { hour12: false })
             };
             submittedItems.unshift(item);
             renderMyItems();
-            showSubmitSuccess(form);
-
-            form.reset();
+            if (form) {
+                showSubmitSuccess(form);
+                form.reset();
+            }
             uploadedPhotos.length = 0;
             renderUploadGrid();
-
             setTimeout(function () {
                 var myItems = $('#myItems');
                 if (myItems) myItems.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 600);
-        });
+        }
+
+        // 회원이면 DB에 매물 등록(실시간 입찰 대상), 비회원이면 로컬 목록만
+        if (mode === 'member' && backendOn() && NWBackend.currentUser()) {
+            var btn = form && form.querySelector('[type="submit"]');
+            if (btn) btn.disabled = true;
+            NWBackend.addListing({
+                brand: p.brand, model: p.model, name: p.name, phone: p.phone, memo: p.memo,
+                photos: p.photos, photoCount: p.photoCount
+            }).then(function () {
+                if (form) { showSubmitSuccess(form); form.reset(); }
+                uploadedPhotos.length = 0;
+                renderUploadGrid();
+            }).catch(function (err) {
+                alert('매물 등록 실패: ' + (err && err.message ? err.message : err));
+            }).then(function () {
+                if (btn) btn.disabled = false;
+            });
+        } else {
+            finishLocal();
+        }
+    }
+
+    // 회원가입하고 신청 — 입력값/사진을 보관한 뒤 회원가입 탭을 연다
+    function startSignupThenSubmit(p) {
+        pendingCompare = p;
+        try {
+            localStorage.setItem('bellore_compare_pending', JSON.stringify({ brand: p.brand, model: p.model, at: Date.now() }));
+        } catch (e) {}
+        openLoginModal();
+        var sTab = document.querySelector('#loginModal .login-tab[data-ltab="signup"]');
+        if (sTab) sTab.click();
     }
 
     function renderMyItems() {

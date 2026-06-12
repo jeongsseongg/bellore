@@ -101,7 +101,7 @@
     '<nav class="sp-tabs">' +
       '<button type="button" class="sp-tab active" data-sptab="word">검색어</button>' +
       '<button type="button" class="sp-tab" data-sptab="cat">카테고리</button>' +
-      '<button type="button" class="sp-tab" data-sptab="price">오늘시세</button>' +
+      '<button type="button" class="sp-tab" data-sptab="price">내 시세</button>' +
     '</nav>' +
     '<div class="sp-scroll">' +
       '<section class="sp-panel" data-sppanel="word"></section>' +
@@ -257,70 +257,91 @@
       }).join('');
   }
 
-  /* ---------- 오늘시세 탭 (브랜드별 간단 그래프) ---------- */
-  // 브랜드명 기반 시드 → 12개월 시세 추이(참고용 예시 데이터)
-  function seedOf(str) { var h = 0; for (var i = 0; i < str.length; i++) { h = (h * 31 + str.charCodeAt(i)) >>> 0; } return h; }
-  function trendFor(name) {
-    var s = seedOf(name);
-    function rnd() { s = (s * 1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; }
-    var base = 800 + Math.floor(rnd() * 9200); // 800만 ~ 1억(만원 단위)
-    var pts = [], v = base;
-    for (var i = 0; i < 12; i++) { v = Math.max(120, v * (1 + (rnd() - 0.46) * 0.08)); pts.push(Math.round(v)); }
-    return pts;
-  }
-  function won(man) { // 만원 단위 → 보기 좋은 한글 금액
-    if (man >= 10000) return (man / 10000).toFixed(man % 10000 === 0 ? 0 : 1) + '억';
-    return fmt(man) + '만';
-  }
-  function sparkline(pts) {
-    var W = 300, H = 84, P = 6;
-    var min = Math.min.apply(null, pts), max = Math.max.apply(null, pts), rng = (max - min) || 1;
-    var step = (W - P * 2) / (pts.length - 1);
-    var coords = pts.map(function (v, i) {
-      var x = P + i * step, y = P + (H - P * 2) * (1 - (v - min) / rng);
-      return [x.toFixed(1), y.toFixed(1)];
-    });
-    var line = coords.map(function (c) { return c[0] + ',' + c[1]; }).join(' ');
-    var area = 'M' + coords[0][0] + ',' + (H - P) + ' L' + line.replace(/ /g, ' L') + ' L' + coords[coords.length - 1][0] + ',' + (H - P) + ' Z';
-    var up = pts[pts.length - 1] >= pts[0];
-    var col = up ? '#1b8f5a' : '#d23b3b';
-    return '<svg class="sp-spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' +
-      '<path d="' + area + '" fill="' + (up ? 'rgba(27,143,90,.10)' : 'rgba(210,59,59,.10)') + '"/>' +
-      '<polyline points="' + line + '" fill="none" stroke="' + col + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
-      '<circle cx="' + coords[coords.length - 1][0] + '" cy="' + coords[coords.length - 1][1] + '" r="3.5" fill="' + col + '"/></svg>';
-  }
-  var priceOpen = '';
-  function priceGraphHTML(name) {
-    var pts = trendFor(name), cur = pts[pts.length - 1], first = pts[0];
-    var diff = cur - first, pct = (diff / first * 100);
-    var up = diff >= 0;
-    // 가격(금액)은 표시하지 않고 추이/등락률만 노출
-    return '<div class="sp-price-graph">' +
-      '<div class="sp-price-now"><span>최근 12개월 시세 추이</span>' +
-        '<em class="' + (up ? 'up' : 'down') + '">' + (up ? '▲ 상승' : '▼ 하락') + ' ' + Math.abs(pct).toFixed(1) + '%</em></div>' +
-      sparkline(pts) +
-      '<p class="sp-price-foot">※ 추이는 참고용입니다. 정확한 시세는 문의해 주세요.</p>' +
-    '</div>';
+  /* ---------- '내 시계 지금 얼마일까?' 시세 조회 (가격 데이터 준비중 · 입력값 적립) ---------- */
+  var priceBrandIdx = -1;
+  function priceModelOptions() {
+    if (priceBrandIdx < 0 || !BRANDS[priceBrandIdx]) return '<option value="">브랜드를 먼저 선택</option>';
+    return '<option value="">모델 선택</option>' +
+      BRANDS[priceBrandIdx].models.map(function (m) { return '<option value="' + esc(m) + '">' + esc(m) + '</option>'; }).join('') +
+      '<option value="__etc">기타 / 직접 입력</option>';
   }
   function renderPrice() {
     var el = $('.sp-panel[data-sppanel="price"]', page);
     el.innerHTML =
-      '<div class="sp-price-head"><h3>오늘의 시세</h3><span class="sp-price-test">참고용 · 데이터 적립중</span></div>' +
-      '<p class="sp-price-desc">브랜드를 누르면 최근 12개월 시세 추이를 그래프로 보여드립니다.</p>' +
-      '<div class="sp-price-list">' +
-        BRANDS.map(function (b) {
-          var open = priceOpen === b.name;
-          return '<button type="button" class="sp-price-row' + (open ? ' on' : '') + '" data-bi-price="' + esc(b.name) + '">' +
-            '<img src="' + window.BELLORE_BRAND_LOGO(b.slug) + '" alt=""><span>' + esc(b.name) + '</span>' +
-            '<em class="sp-price-arrow">' + (open ? '−' : '＋') + '</em></button>' +
-            (open ? priceGraphHTML(b.name) : '');
-        }).join('') +
-      '</div>';
+      '<div class="sp-price-head"><h3>내 시계 지금 얼마일까?</h3><span class="sp-price-test">시세 데이터 준비중</span></div>' +
+      '<p class="sp-price-desc">브랜드 · 모델 · 스탬핑 날짜 · 구성품을 입력하면 예상 시세를 확인할 수 있어요. (가격 데이터는 준비 중입니다)</p>' +
+      '<form id="spPriceForm" class="sp-price-form">' +
+        '<label class="sp-price-field"><span>브랜드</span>' +
+          '<select id="spPriceBrand" required><option value="">브랜드 선택</option>' +
+            BRANDS.map(function (b, i) { return '<option value="' + i + '">' + esc(b.name) + '</option>'; }).join('') +
+          '</select></label>' +
+        '<label class="sp-price-field"><span>모델</span>' +
+          '<select id="spPriceModel" required>' + priceModelOptions() + '</select></label>' +
+        '<input type="text" id="spPriceModelEtc" class="sp-price-input" placeholder="모델명 직접 입력" hidden>' +
+        '<label class="sp-price-field"><span>스탬핑(개런티) 날짜</span>' +
+          '<input type="text" id="spPriceStamp" class="sp-price-input" placeholder="예: 2023-05 또는 2023년 5월"></label>' +
+        '<div class="sp-price-field"><span>구성품</span>' +
+          '<div class="sp-price-comps">' +
+            ['박스', '케이스', '개런티카드', '보증서', '풀세트'].map(function (c) {
+              return '<label class="sp-price-chk"><input type="checkbox" name="spcomp" value="' + esc(c) + '"><span>' + esc(c) + '</span></label>';
+            }).join('') +
+          '</div></div>' +
+        '<button type="submit" class="sp-price-submit">시세 조회</button>' +
+      '</form>' +
+      '<div id="spPriceResult" class="sp-price-result"></div>';
+  }
+  function logPriceQuery(q) {
+    try {
+      var key = 'bellore_price_queries';
+      var arr = JSON.parse(localStorage.getItem(key) || '[]');
+      arr.unshift(q); if (arr.length > 200) arr.length = 200;
+      localStorage.setItem(key, JSON.stringify(arr));
+    } catch (e) {}
+    try { if (window.NWBackend && NWBackend.logSearch) NWBackend.logSearch('[시세조회] ' + q.brand + ' ' + q.model); } catch (e) {}
+  }
+  function submitPriceQuery() {
+    var bsel = $('#spPriceBrand', page), msel = $('#spPriceModel', page);
+    var etc = $('#spPriceModelEtc', page), stamp = $('#spPriceStamp', page);
+    var brand = (bsel && bsel.value !== '') ? BRANDS[parseInt(bsel.value, 10)].name : '';
+    var model = msel ? msel.value : '';
+    if (model === '__etc') model = etc ? etc.value.trim() : '';
+    if (!brand) { alert('브랜드를 선택해 주세요.'); return; }
+    if (!model) { alert('모델을 선택하거나 직접 입력해 주세요.'); return; }
+    var comps = [];
+    $$('input[name="spcomp"]', page).forEach(function (c) { if (c.checked) comps.push(c.value); });
+    var q = { brand: brand, model: model, stamping: stamp ? stamp.value.trim() : '', components: comps, at: new Date().toISOString() };
+    logPriceQuery(q);
+    var rEl = $('#spPriceResult', page);
+    if (rEl) {
+      rEl.innerHTML =
+        '<div class="sp-price-card">' +
+          '<div class="sp-price-card-top"><span class="sp-price-badge">시세 데이터 준비중</span></div>' +
+          '<p class="sp-price-card-brand">' + esc(brand) + '</p>' +
+          '<p class="sp-price-card-model">' + esc(model) + '</p>' +
+          '<ul class="sp-price-card-spec">' +
+            (q.stamping ? '<li><span>스탬핑</span><strong>' + esc(q.stamping) + '</strong></li>' : '') +
+            '<li><span>구성품</span><strong>' + (comps.length ? esc(comps.join(' · ')) : '미선택') + '</strong></li>' +
+          '</ul>' +
+          '<p class="sp-price-card-note">아직 시세 데이터가 준비 중입니다. 입력하신 정보는 저장되었으며, 데이터가 모이면 예상 시세를 제공해 드립니다.</p>' +
+          '<button type="button" class="sp-price-cta">지금 비교견적으로 정확한 가격 받기</button>' +
+        '</div>';
+      rEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   }
 
   /* ---------- 이벤트 ---------- */
   page.addEventListener('submit', function (e) {
-    if (e.target.id === 'spForm') { e.preventDefault(); runQuery(input.value); }
+    if (e.target.id === 'spForm') { e.preventDefault(); runQuery(input.value); return; }
+    if (e.target.id === 'spPriceForm') { e.preventDefault(); submitPriceQuery(); return; }
+  });
+  page.addEventListener('change', function (e) {
+    if (e.target.id === 'spPriceBrand') {
+      priceBrandIdx = (e.target.value === '') ? -1 : parseInt(e.target.value, 10);
+      var ms = $('#spPriceModel', page); if (ms) ms.innerHTML = priceModelOptions();
+      var etc = $('#spPriceModelEtc', page); if (etc) etc.hidden = true;
+    } else if (e.target.id === 'spPriceModel') {
+      var etc2 = $('#spPriceModelEtc', page); if (etc2) etc2.hidden = (e.target.value !== '__etc');
+    }
   });
   input.addEventListener('search', function () { runQuery(input.value); });
   input.addEventListener('input', function () { renderAuto(input.value); });
@@ -348,9 +369,13 @@
       runQuery(model ? (brand + ' ' + model) : brand);
       return;
     }
-    // 오늘시세 행 → 그래프 토글
-    var pr = e.target.closest('[data-bi-price]');
-    if (pr) { var nm = pr.getAttribute('data-bi-price'); priceOpen = (priceOpen === nm) ? '' : nm; renderPrice(); return; }
+    // 시세 조회 결과 → 비교견적으로 이동
+    if (e.target.closest('.sp-price-cta')) {
+      closePage();
+      var ct = document.querySelector('.tab-item[data-nav="compare"]');
+      if (ct) ct.click(); else location.hash = '#compare';
+      return;
+    }
   });
 
   function openViewed(v) {

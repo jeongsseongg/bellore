@@ -577,123 +577,7 @@
                 </div>
             </div>
 
-            <!-- LIVE 현재 진행중인 비교견적 -->
-            <section class="section live-board-section" id="liveBidHome">
-                <div class="container">
-                    <div class="live-board-header">
-                        <span class="live-dot"></span>
-                        <strong>LIVE</strong>
-                        <span class="live-title">현재 진행중인 비교견적</span>
-                        <span class="live-count" id="liveCount">진행 12 · 종료 8</span>
-                    </div>
-
-                    <ul class="live-board" id="liveBoard">
-                        <!-- JS가 새 입찰을 위에서 슬라이드 인으로 추가 -->
-                    </ul>
-
-                    <div id="liveBoardLockNotice" class="live-lock-notice" hidden>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                        금액 · 업체명은 <a href="#" id="liveBoardLoginLink" style="color:var(--green-bright);text-decoration:underline">로그인</a> 후 확인할 수 있습니다
-                    </div>
-                </div>
-            </section>
-
-            <!-- 매입 방법 (한 칸 통합) -->
-            <section class="section section-dark">
-                <div class="container">
-                    <p class="eyebrow center">HOW IT WORKS</p>
-                    <h2 class="section-title center">전국 어디서나 <span class="g">편리하게</span></h2>
-                    <p class="lead center" style="color: rgba(255,255,255,0.65)">방문 · 퀵 · 출장 · 택배 모두 가능합니다</p>
-
-                    <div class="method-card">
-                        <div class="method-row">
-                            <div class="method-thumb"><img src="assets/2026-02-27_이미지자료_131815.jpg" alt=""></div>
-                            <div class="method-info">
-                                <strong>방문 매입</strong>
-                                <p>종로 · 강남 · 청담 3개 매장 직접 방문</p>
-                            </div>
-                        </div>
-                        <div class="method-row">
-                            <div class="method-thumb"><img src="assets/2026-03-18_이미지자료_193209.jpg" alt=""></div>
-                            <div class="method-info">
-                                <strong>퀵 매입</strong>
-                                <p>시계만 보내주시면 1시간 내 견적 + 입금</p>
-                            </div>
-                        </div>
-                        <div class="method-row">
-                            <div class="method-thumb"><img src="assets/2026-04-22_이미지자료_141830.jpeg" alt=""></div>
-                            <div class="method-info">
-                                <strong>출장 매입</strong>
-                                <p>전문 감정사가 원하시는 장소로 방문</p>
-                            </div>
-                        </div>
-                        <div class="method-row">
-                            <div class="method-thumb"><img src="assets/2026-03-20_이미지자료_033813.jpg" alt=""></div>
-                            <div class="method-info">
-                                <strong>택배 매입</strong>
-                                <p>전국 어디서나 안심 택배, 24시간 내 입금</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- 등록된 한 시계의 입찰 진행 시뮬레이션 -->
-            <section class="section auction-detail-section">
-                <div class="container">
-                    <!-- 등록된 시계 - 이미지 + 내용 가로 배치 -->
-                    <div class="registered-watch registered-row">
-                        <div class="registered-img-side">
-                            <img src="assets/m126284rbr0011.png" alt="ROLEX">
-                        </div>
-                        <div class="registered-info">
-                            <span class="registered-status">감정 완료 · 입찰 진행중</span>
-                            <p class="registered-brand">ROLEX</p>
-                            <h3 class="registered-model">서브마리너 데이트 풀세트</h3>
-                            <ul class="registered-spec">
-                                <li><span>레퍼런스</span><strong>126610LN</strong></li>
-                                <li><span>구성품</span><strong>풀세트</strong></li>
-                                <li><span>구입시기</span><strong>2023년</strong></li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <!-- 입찰 진행 상태 -->
-                    <div class="auction-status">
-                        <div class="auction-top">
-                            <div>
-                                <p class="auction-label" id="auctionLabel">현재 최고 입찰가</p>
-                                <p class="auction-price"><strong id="auctionPrice">15,000,000</strong><em>원</em></p>
-                            </div>
-                            <div class="auction-count">
-                                <p><strong id="auctionBidCount">1</strong>건</p>
-                                <span>입찰</span>
-                            </div>
-                        </div>
-                        <div class="auction-progress">
-                            <div class="auction-progress-bar" id="auctionBar"></div>
-                        </div>
-                        <p class="auction-range">
-                            <span>예상가 <span id="auctionMin">1,500만</span></span>
-                            <span>최대 <span id="auctionMax">1,900만</span></span>
-                        </p>
-
-                        <!-- 입찰 들어오는 단일 카드 (2~3초마다 갱신) -->
-                        <div class="auction-recent" id="auctionRecent">
-                            <span class="recent-dot"></span>
-                            <span class="recent-by" id="recentBy">대기 중...</span>
-                            <span class="recent-time" id="recentTime">-</span>
-                        </div>
-
-                        <!-- 매입완료 오버레이 (1900만 도달 시) -->
-                        <div class="auction-done" id="auctionDone" hidden>
-                            <span class="done-badge">매입완료</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- 비교견적 등록 폼 -->
+            <!-- 1) 비교견적 등록 폼 (입력폼) -->
             <section class="section section-soft">
                 <div class="container">
                     <p class="eyebrow center">REQUEST QUOTE</p>
@@ -773,7 +657,37 @@
                 </div>
             </section>
 
-            <!-- 내 매물 목록 -->
+            <!-- 2) LIVE 현재 진행중인 비교견적 (라이브) -->
+            <section class="section live-board-section" id="liveBidHome">
+                <div class="container">
+                    <div class="live-board-header">
+                        <span class="live-dot"></span>
+                        <strong>LIVE</strong>
+                        <span class="live-title">현재 진행중인 비교견적</span>
+                        <span class="live-count" id="liveCount">진행 12 · 종료 8</span>
+                    </div>
+
+                    <ul class="live-board" id="liveBoard">
+                        <!-- JS가 새 입찰을 위에서 슬라이드 인으로 추가 -->
+                    </ul>
+
+                    <div id="liveBoardLockNotice" class="live-lock-notice" hidden>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        금액 · 업체명은 <a href="#" id="liveBoardLoginLink" style="color:var(--green-bright);text-decoration:underline">로그인</a> 후 확인할 수 있습니다
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3) 랜딩페이지 (추후 업데이트) -->
+            <section class="section compare-landing-soon">
+                <div class="container">
+                    <p class="eyebrow center">LANDING</p>
+                    <h2 class="section-title center">매입 안내 페이지 <span class="g">준비중</span></h2>
+                    <p class="lead center">매입 절차 · 실제 후기 · 제휴처 안내를 담은 상세 페이지를 곧 선보일 예정입니다.</p>
+                </div>
+            </section>
+
+            <!-- 4) 내 등록 매물 -->
             <section class="section">
                 <div class="container">
                     <p class="eyebrow">MY ITEMS</p>
@@ -2013,7 +1927,6 @@
                 <div class="footer-company-info">
                     <strong>(주) 벨로르</strong>
                     <span>사업자등록번호 332-33-01622</span>
-                    <span>명품시계 매입 · 판매 · 수리 전문</span>
                 </div>
                 <div class="footer-cs-info">
                     <strong>고객센터</strong>
@@ -2586,11 +2499,11 @@
             <span>찜</span>
         </button>
         <button class="tab-item" data-nav="compare">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.83 0l-7.17-7.17A2 2 0 0 1 2.8 12V4.8A2 2 0 0 1 4.8 2.8H12a2 2 0 0 1 1.43.6l7.17 7.17a2 2 0 0 1 0 2.83z"/><circle cx="7.6" cy="7.6" r="1.3"/></svg>
             <span>내시계팔기</span>
         </button>
         <button class="tab-item" data-nav="about">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+            <span class="tab-logo-ic" aria-hidden="true"></span>
             <span>벨로르</span>
         </button>
     </nav>

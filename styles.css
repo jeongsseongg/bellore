@@ -22,10 +22,10 @@
     --border: #e6e6e6;
     --border-dark: #2a2a2a;
     --kakao: #FEE500;
-    --header-h: 60px;
+    --header-h: 68px;
     --tabbar-h: 68px;
-    --app-w: 390px;
-    --container: 390px;
+    --app-w: 100vw;
+    --container: 100vw;
     --app-bg: #e8e8e8;        /* 앱 컨테이너 바깥(좌우 여백) 배경 */
     /* 로고(하이컨트라스트 세리프) 톤의 영문/브랜드 디스플레이용 — 한글엔 적용하지 않음 */
     --serif: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
@@ -3673,6 +3673,8 @@ body.admin-mode .main-wrap { padding-top: 0; }
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    /* 1줄·2줄 카드 높이를 항상 동일하게(2줄분 고정) → 줄바꿈으로 규격 깨지는 문제 방지 */
+    min-height: calc(16px * 1.25 * 2);
 }
 .hcard-pack {
     font-size: 12px;
@@ -4867,6 +4869,13 @@ body.admin-mode .main-wrap { padding-top: 0; }
 }
 /* 탭이 7개라 아이콘/글자를 약간 줄여 한 줄에 맞춤 */
 .tab-item svg { width: 20px; height: 20px; }
+/* 벨로르 탭 — 파비콘 B 마크를 마스크로 채워 하단탭 색(currentColor)과 일치 */
+.tab-logo-ic {
+    width: 19px; height: 19px; display: block;
+    background-color: currentColor;
+    -webkit-mask: url('assets/icons/bellore-mark.png') center / contain no-repeat;
+    mask: url('assets/icons/bellore-mark.png') center / contain no-repeat;
+}
 
 .tab-item span {
     font-size: 9.5px;
@@ -6486,6 +6495,35 @@ body.is-searching .tab-search span { font-weight: 700; }
 .sp-price-axis { display: flex; justify-content: space-between; font-size: 11px; color: #bbb; margin-top: 2px; }
 .sp-price-foot { font-size: 11.5px; color: #bbb; margin-top: 10px; line-height: 1.5; }
 
+/* '내 시계 지금 얼마일까?' 시세 조회 폼 */
+.sp-price-form { display: flex; flex-direction: column; gap: 14px; padding: 4px 2px 8px; }
+.sp-price-field { display: flex; flex-direction: column; gap: 7px; }
+.sp-price-field > span { font-size: 13px; font-weight: 700; color: #2b2620; }
+.sp-price-form select, .sp-price-input {
+    width: 100%; padding: 13px 14px; font-size: 15px; color: #1a1a1a;
+    border: 1px solid #e3e0da; border-radius: 11px; background: #fafafa; outline: none;
+    -webkit-appearance: none; appearance: none;
+}
+.sp-price-form select:focus, .sp-price-input:focus { border-color: #141414; background: #fff; }
+.sp-price-comps { display: flex; flex-wrap: wrap; gap: 8px; }
+.sp-price-chk { display: inline-flex; align-items: center; gap: 6px; padding: 9px 13px; border: 1px solid #e3e0da; border-radius: 30px; font-size: 13.5px; font-weight: 600; color: #555; cursor: pointer; transition: .15s; }
+.sp-price-chk input { accent-color: #141414; }
+.sp-price-chk:has(input:checked) { border-color: #141414; background: #141414; color: #fff; }
+.sp-price-submit { margin-top: 4px; width: 100%; padding: 15px; font-size: 15.5px; font-weight: 800; color: #fff; background: #141414; border: none; border-radius: 12px; cursor: pointer; }
+.sp-price-submit:active { transform: scale(.99); }
+.sp-price-result { padding: 8px 2px 24px; }
+.sp-price-card { border: 1px solid #ece9e3; border-radius: 16px; padding: 20px 18px; background: #fff; box-shadow: 0 10px 28px rgba(0,0,0,.06); animation: spGraphIn .25s ease; }
+.sp-price-card-top { margin-bottom: 12px; }
+.sp-price-badge { font-size: 11px; font-weight: 800; color: #c98a00; background: #fff6e3; border-radius: 6px; padding: 4px 9px; }
+.sp-price-card-brand { font-size: 12px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; color: #8a8378; }
+.sp-price-card-model { font-size: 19px; font-weight: 800; color: #161616; margin: 2px 0 14px; line-height: 1.3; }
+.sp-price-card-spec { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.sp-price-card-spec li { display: flex; justify-content: space-between; gap: 12px; font-size: 13.5px; }
+.sp-price-card-spec span { color: #999; }
+.sp-price-card-spec strong { color: #2b2620; font-weight: 700; text-align: right; }
+.sp-price-card-note { font-size: 12.5px; color: #888; line-height: 1.6; padding: 12px 0 16px; border-top: 1px solid #f2f0ec; }
+.sp-price-cta { width: 100%; padding: 14px; font-size: 14.5px; font-weight: 800; color: #fff; background: linear-gradient(135deg,#2b2b2b,#000); border: none; border-radius: 11px; cursor: pointer; }
+
 /* (9) 벨로르 스타일 팝업(네이티브 alert 대체) */
 .bl-modal-mask {
     position: fixed; inset: 0; z-index: 5000; display: flex; align-items: center; justify-content: center;
@@ -6660,7 +6698,7 @@ body.is-searching .tabbar { display: none !important; }
 }
 
 /* 항목3 — 등록폼 사진 드래그 정렬 상태 */
-.upload-cell.has-img { touch-action: none; cursor: grab; }
+.upload-cell.has-img { touch-action: none; cursor: grab; transition: outline-color .15s ease, transform .15s ease; }
 .upload-cell.has-img:active { cursor: grabbing; }
 /* 네이티브 이미지 드래그(=금지🚫 커서) 차단 → 우리 포인터 드래그만 동작 */
 .upload-cell.has-img img {
@@ -6686,6 +6724,7 @@ body.is-searching .tabbar { display: none !important; }
 .upload-cell.has-img.drop-target {
     outline: 2px dashed var(--gold, #b89968);
     outline-offset: -2px;
+    transform: scale(.94);
 }
 
 /* 항목5 — 주문 전체보기 모달 */

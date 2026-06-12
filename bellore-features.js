@@ -49,6 +49,8 @@
   window.belloreConfirm = function (msg, onOk, onCancel) {
     show(msg, [{ label: '취소', cls: 'bl-cancel', cb: onCancel }, { label: '확인', cls: 'bl-ok', cb: onOk }]);
   };
+  // 커스텀 버튼 팝업 — buttons: [{label, cls, cb}]
+  window.belloreModal = function (msg, buttons) { show(msg, buttons || [{ label: '확인', cls: 'bl-ok' }]); };
   // 네이티브 alert를 벨로르 팝업으로 교체(반환값 없는 알림은 안전)
   try { window.alert = function (m) { window.belloreAlert(m); }; } catch (e) {}
 })();
@@ -133,9 +135,12 @@
     var dragFrom = -1, srcCell = null, ghost = null, gx = 0, gy = 0, sx = 0, sy = 0, dragging = false;
     function cellIndex(cell) { return Array.prototype.indexOf.call(grid.children, cell); }
     function clearTargets() { grid.querySelectorAll('.drop-target').forEach(function (c) { c.classList.remove('drop-target'); }); }
-    function moveGhost(x, y) { if (ghost) { ghost.style.left = (x - gx) + 'px'; ghost.style.top = (y - gy) + 'px'; } }
+    var gpx = 0, gpy = 0, gRaf = 0;
+    function paintGhost() { gRaf = 0; if (ghost) ghost.style.transform = 'translate3d(' + (gpx - gx) + 'px,' + (gpy - gy) + 'px,0) scale(1.06) rotate(2deg)'; }
+    function moveGhost(x, y) { gpx = x; gpy = y; if (!gRaf) gRaf = requestAnimationFrame(paintGhost); }
     function endDrag() {
       clearTargets();
+      if (gRaf) { cancelAnimationFrame(gRaf); gRaf = 0; }
       if (ghost && ghost.parentNode) ghost.parentNode.removeChild(ghost);
       ghost = null;
       if (srcCell) srcCell.classList.remove('reorder-src');
@@ -155,6 +160,8 @@
         gx = sx - r.left; gy = sy - r.top;
         ghost = srcCell.cloneNode(true);
         ghost.classList.add('reorder-ghost');
+        ghost.style.left = '0px';
+        ghost.style.top = '0px';
         ghost.style.width = r.width + 'px';
         ghost.style.height = r.height + 'px';
         document.body.appendChild(ghost);
