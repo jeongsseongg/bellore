@@ -277,7 +277,7 @@ img { display: block; max-width: 100%; height: auto; }
 .header.light-page .logo { color: var(--text); }
 
 .logo-img {
-    height: 60px;
+    height: 34px;
     width: auto;
     display: block;
     /* 히어로(어두운 투명 헤더)에선 로고를 흰색으로 */
