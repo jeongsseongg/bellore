@@ -277,7 +277,7 @@ img { display: block; max-width: 100%; height: auto; }
 .header.light-page .logo { color: var(--text); }
 
 .logo-img {
-    height: 34px;
+    height: 44px;
     width: auto;
     display: block;
     /* 히어로(어두운 투명 헤더)에선 로고를 흰색으로 */
@@ -6356,15 +6356,23 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 .sp-viewed-brand { display: block; font-size: 12px; font-weight: 700; margin-top: 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sp-viewed-price { display: block; font-size: 12.5px; color: #111; font-weight: 700; }
 
-/* 카테고리 탭: 브랜드 → 모델 */
-.sp-cat { display: flex; min-height: 60vh; }
-.sp-cat-left { width: 38%; flex-shrink: 0; background: #f7f6f3; border-radius: 0; }
+/* 카테고리 탭: 브랜드 → 모델 (각 칼럼 독립 스크롤) */
+.sp-panel[data-sppanel="cat"] { padding: 0; }
+.sp-cat { display: flex; height: calc(100dvh - 138px); min-height: 320px; }
+.sp-cat-left {
+    width: 38%; flex-shrink: 0; background: #f7f6f3; border-radius: 0;
+    overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+}
+.sp-cat-left::-webkit-scrollbar, .sp-cat-right::-webkit-scrollbar { width: 0; }
 .sp-brand {
     display: block; width: 100%; text-align: left; padding: 15px 16px;
     font-size: 14.5px; font-weight: 600; color: #555; border-left: 3px solid transparent;
 }
 .sp-brand.on { background: #fff; color: var(--dark-green); font-weight: 800; border-left-color: var(--dark-green); }
-.sp-cat-right { flex: 1; padding: 6px 4px 6px 8px; }
+.sp-cat-right {
+    flex: 1; padding: 6px 4px 40px 8px;
+    overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+}
 .sp-model {
     display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
     padding: 15px 12px; font-size: 14.5px; color: #333; border-bottom: 1px solid #f2f1ee;

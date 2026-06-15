@@ -1388,11 +1388,19 @@
 
     // 매물 카드에 한눈에 보이는 정보 배지(보증서·컨디션·구성품) + TIME SALE 카운트다운
     var SALE_HOURS = 72;
+    // 세일 활성 여부: 'sale' 태그가 있고, 시작 시점 기준 72시간이 아직 안 지났을 때만 true.
+    // 만료되면 자동으로 정가로 복귀하고 배지/할인 표시를 끈다(관리자 체크도 해제된 것으로 취급).
+    window.belloreSaleActive = function (it) {
+        if (!it || !it.tags || it.tags.indexOf('sale') === -1) return false;
+        var base = it.sale_started_at || it.created_at;
+        if (!base) return false;
+        return (Date.parse(base) + SALE_HOURS * 3600 * 1000) > Date.now();
+    };
     // 가격 표시(할인 적용 시 정가 취소선 + 할인가 + 할인율)
     function priceHTML(it) {
         if (!it.price) return '가격 문의<em></em>';
         var sp = parseInt(it.sale_price, 10) || 0;
-        if (sp > 0 && sp < it.price) {
+        if (sp > 0 && sp < it.price && window.belloreSaleActive(it)) {
             var rate = Math.round((1 - sp / it.price) * 100);
             return '<span class="hcard-old">' + fmt(it.price) + '원</span>' +
                 '<span class="hcard-now"><b class="hcard-rate">' + rate + '%</b>' + fmt(sp) + '<em>원</em></span>';
@@ -1421,8 +1429,8 @@
     }
     // 타임세일 카운트다운: 이미지 위(좌하단) 오버레이. 체크 시점(sale_started_at) 기준 72시간.
     function saleOverlayHTML(it) {
-        var base = it.sale_started_at || it.created_at;
-        if (it.tags && it.tags.indexOf('sale') !== -1 && base) {
+        if (window.belloreSaleActive(it)) {
+            var base = it.sale_started_at || it.created_at;
             var end = Date.parse(base) + SALE_HOURS * 3600 * 1000;
             return '<div class="hcard-timesale" data-end="' + end + '"><b>TIME SALE</b><span class="hcard-timer">--:--:--</span></div>';
         }

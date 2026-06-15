@@ -360,8 +360,15 @@
     // 최근 확인한 상품 → 상세
     var v = e.target.closest('.sp-viewed'); if (v) { openViewed(v); return; }
 
-    // 카테고리 브랜드 선택
-    var bi = e.target.closest('[data-bi]'); if (bi) { catBrandIdx = parseInt(bi.dataset.bi, 10) || 0; renderCat(); return; }
+    // 카테고리 브랜드 선택 — 왼쪽 목록을 다시 그리지 않고(스크롤 위치 유지) 활성표시 + 모델만 갱신
+    var bi = e.target.closest('[data-bi]'); if (bi) {
+      catBrandIdx = parseInt(bi.dataset.bi, 10) || 0;
+      var brs = page.querySelectorAll('.sp-brand');
+      for (var k = 0; k < brs.length; k++) brs[k].classList.toggle('on', k === catBrandIdx);
+      renderModels();
+      var mr = page.querySelector('#spModels'); if (mr) mr.scrollTop = 0;
+      return;
+    }
 
     // 모델 클릭 → 판매시계 이동
     var md = e.target.closest('.sp-model'); if (md) {
