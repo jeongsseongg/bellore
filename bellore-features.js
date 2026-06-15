@@ -793,23 +793,28 @@
     }
     function cmsRenderBlock(el) {
       var key = el.getAttribute('data-cms');
-      var data = cmsCache[key];
+      var data = cmsCache[key] || null;
       var fbTitle = el.getAttribute('data-cms-fallback-title') || '';
       var fbBody = el.getAttribute('data-cms-fallback-body') || '';
-      var hasData = !!(data && (data.title || data.subtitle || data.body || (data.images && data.images.length)));
-      var title = (data && data.title) || fbTitle;
-      var subtitle = (data && data.subtitle) || '';
-      var body = (data && data.body) || fbBody;
+      var fbMode = el.getAttribute('data-cms-fallback-mode'); // 'images' → 이미지 있을 때만 폴백 숨김
       var images = (data && data.images) || [];
+      var hasData = !!(data && (data.title || data.subtitle || data.body || images.length));
+      // 폴백(준비중) 노출 기준: images 모드면 '이미지 없을 때만', 아니면 '데이터 전혀 없을 때'
+      var showFallback = (fbMode === 'images') ? (images.length === 0) : !hasData;
       var html = '';
-      if (subtitle) html += '<p class="eyebrow center">' + esc(subtitle) + '</p>';
-      if (title) html += '<h2 class="section-title center">' + esc(title) + '</h2>';
-      if (body) html += '<div class="cms-body">' + body.split(/\n{2,}/).map(function (p) {
-        return '<p>' + esc(p).replace(/\n/g, '<br>') + '</p>';
-      }).join('') + '</div>';
-      if (images.length) html += '<div class="cms-imgs">' + images.map(function (u) {
-        return '<img src="' + esc(u) + '" alt="" loading="lazy">';
-      }).join('') + '</div>';
+      if (showFallback) {
+        if (fbTitle) html += '<h2 class="section-title center">' + esc(fbTitle) + '</h2>';
+        if (fbBody) html += '<p class="lead center">' + esc(fbBody) + '</p>';
+      } else {
+        if (data.subtitle) html += '<p class="eyebrow center">' + esc(data.subtitle) + '</p>';
+        if (data.title) html += '<h2 class="section-title center">' + esc(data.title) + '</h2>';
+        if (data.body) html += '<div class="cms-body">' + data.body.split(/\n{2,}/).map(function (p) {
+          return '<p>' + esc(p).replace(/\n/g, '<br>') + '</p>';
+        }).join('') + '</div>';
+        if (images.length) html += '<div class="cms-imgs">' + images.map(function (u) {
+          return '<img src="' + esc(u) + '" alt="" loading="lazy">';
+        }).join('') + '</div>';
+      }
       if (lastInfo.isAdmin) {
         html += '<div class="cms-admin"><button type="button" class="cms-edit-btn" data-cms-edit="' + esc(key) + '">' +
           (hasData ? '✎ 내용 수정' : '＋ 내용 추가') + '</button></div>';

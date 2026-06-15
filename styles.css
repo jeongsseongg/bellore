@@ -1957,22 +1957,28 @@ img { display: block; max-width: 100%; height: auto; }
     grid-template-columns: 60px 1fr auto;
     gap: 14px;
     align-items: center;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #ffffff;
+    border: 1px solid #ececec;
     border-radius: 14px;
-    padding: 14px 16px;
-    transition: all 0.3s;
+    padding: 12px 16px;
+    height: 84px;                 /* 박스 고정값 — 행 높이가 변하지 않아 스크롤이 튀지 않음 */
+    box-sizing: border-box;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    /* 색상만 트랜지션(레이아웃 영향 없음) */
+    transition: border-color 0.3s, box-shadow 0.3s;
 }
 .live-row.new-in {
-    animation: boardSlideIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+    /* 높이를 건드리지 않고 투명도/이동만 → 리스트 높이 고정, 페이지 스크롤 안 흔들림 */
+    animation: boardSlideIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 .live-row.highlight {
-    border-color: var(--green-bright);
-    background: rgba(150,150,150,0.08);
+    border-color: var(--dark-green);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
 }
 @keyframes boardSlideIn {
-    from { opacity: 0; transform: translateY(-20px); max-height: 0; }
-    to { opacity: 1; transform: translateY(0); max-height: 120px; }
+    from { opacity: 0; transform: translateY(-12px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .live-row-thumb {
@@ -1992,7 +1998,7 @@ img { display: block; max-width: 100%; height: auto; }
 .live-row-model {
     font-size: 13px;
     font-weight: 700;
-    color: var(--white);
+    color: #141414;
     margin-bottom: 4px;
     line-height: 1.3;
     overflow: hidden;
@@ -2001,21 +2007,24 @@ img { display: block; max-width: 100%; height: auto; }
 }
 .live-row-by {
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.65);
+    color: #666;
     line-height: 1.4;
     margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 .live-row-by b {
-    color: var(--green-bright);
+    color: var(--dark-green);
     font-weight: 700;
 }
 .live-row-by .amount {
-    color: var(--white);
+    color: #141414;
     font-weight: 800;
 }
 .live-row-meta {
     font-size: 10px;
-    color: rgba(255, 255, 255, 0.4);
+    color: #aaa;
     display: flex;
     gap: 8px;
 }
@@ -2030,13 +2039,13 @@ img { display: block; max-width: 100%; height: auto; }
     align-self: flex-start;
 }
 .badge-progress {
-    background: rgba(150,150,150,0.2);
-    color: var(--green-bright);
-    border: 1px solid rgba(150,150,150,0.4);
+    background: rgba(31,107,79,0.10);
+    color: var(--dark-green);
+    border: 1px solid rgba(31,107,79,0.30);
 }
 .badge-done {
-    background: rgba(255, 255, 255, 0.12);
-    color: rgba(255, 255, 255, 0.85);
+    background: #f0f0f0;
+    color: #555;
 }
 .badge-pending {
     background: rgba(0, 0, 0, 0.06);
@@ -2044,8 +2053,8 @@ img { display: block; max-width: 100%; height: auto; }
     border: 1px solid rgba(0, 0, 0, 0.16);
 }
 .badge-end {
-    background: rgba(255, 255, 255, 0.05);
-    color: rgba(255, 255, 255, 0.4);
+    background: #f5f5f5;
+    color: #aaa;
 }
 
 /* ========== 비교견적 페이지: 등록된 시계 상세 ========== */
@@ -4515,6 +4524,8 @@ body.admin-mode .main-wrap { padding-top: 0; }
 }
 
 /* ========== 비교견적 폼 ========== */
+/* 비교견적 폼을 최상단으로 옮긴 뒤 고정 헤더(로고바+카테고리바) 높이만큼 여백 확보 */
+.compare-form-top { padding-top: calc(var(--header-h) + 64px); }
 .page-hero-compare {
     background-image: url('assets/2026-03-18_이미지자료_193412.jpg');
 }
@@ -6356,23 +6367,24 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 .sp-viewed-brand { display: block; font-size: 12px; font-weight: 700; margin-top: 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sp-viewed-price { display: block; font-size: 12.5px; color: #111; font-weight: 700; }
 
-/* 카테고리 탭: 브랜드 → 모델 (각 칼럼 독립 스크롤) */
+/* 카테고리 탭: 브랜드 → 모델
+   - 전체가 한 번에 스크롤되어 "어디를 끌어도 브랜드 목록이 스크롤"됨(시니어 친화)
+   - 모델 칼럼은 상단에 고정(sticky)되어 브랜드를 눌러도 다시 올릴 필요 없이 바로 보임 */
 .sp-panel[data-sppanel="cat"] { padding: 0; }
-.sp-cat { display: flex; height: calc(100dvh - 138px); min-height: 320px; }
-.sp-cat-left {
-    width: 38%; flex-shrink: 0; background: #f7f6f3; border-radius: 0;
-    overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
-}
-.sp-cat-left::-webkit-scrollbar, .sp-cat-right::-webkit-scrollbar { width: 0; }
+.sp-cat { display: flex; align-items: flex-start; }
+.sp-cat-left { width: 38%; flex-shrink: 0; background: #f7f6f3; border-radius: 0; }
 .sp-brand {
-    display: block; width: 100%; text-align: left; padding: 15px 16px;
+    display: block; width: 100%; text-align: left; padding: 16px;
     font-size: 14.5px; font-weight: 600; color: #555; border-left: 3px solid transparent;
 }
 .sp-brand.on { background: #fff; color: var(--dark-green); font-weight: 800; border-left-color: var(--dark-green); }
 .sp-cat-right {
     flex: 1; padding: 6px 4px 40px 8px;
-    overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+    position: sticky; top: 0; align-self: flex-start;
+    max-height: calc(100dvh - 138px); overflow-y: auto;
+    -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
 }
+.sp-cat-right::-webkit-scrollbar { width: 0; }
 .sp-model {
     display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
     padding: 15px 12px; font-size: 14.5px; color: #333; border-bottom: 1px solid #f2f1ee;
