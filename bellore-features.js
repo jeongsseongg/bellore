@@ -782,11 +782,120 @@
       }).observe(myModal, { attributes: true, attributeFilter: ['hidden'] });
     }
 
+    /* ===== 사이트 콘텐츠 인앱 편집 (관리자: 매입 랜딩 · 벨로르 소개) ===== */
+    var cmsCache = {};
+    var cmsModal = null;
+    function cmsAfterPaint(key) {
+      if (key === 'about_intro') {
+        var sec = $('#aboutIntroSection');
+        if (sec) sec.hidden = !(cmsCache[key] || lastInfo.isAdmin);
+      }
+    }
+    function cmsRenderBlock(el) {
+      var key = el.getAttribute('data-cms');
+      var data = cmsCache[key];
+      var fbTitle = el.getAttribute('data-cms-fallback-title') || '';
+      var fbBody = el.getAttribute('data-cms-fallback-body') || '';
+      var hasData = !!(data && (data.title || data.subtitle || data.body || (data.images && data.images.length)));
+      var title = (data && data.title) || fbTitle;
+      var subtitle = (data && data.subtitle) || '';
+      var body = (data && data.body) || fbBody;
+      var images = (data && data.images) || [];
+      var html = '';
+      if (subtitle) html += '<p class="eyebrow center">' + esc(subtitle) + '</p>';
+      if (title) html += '<h2 class="section-title center">' + esc(title) + '</h2>';
+      if (body) html += '<div class="cms-body">' + body.split(/\n{2,}/).map(function (p) {
+        return '<p>' + esc(p).replace(/\n/g, '<br>') + '</p>';
+      }).join('') + '</div>';
+      if (images.length) html += '<div class="cms-imgs">' + images.map(function (u) {
+        return '<img src="' + esc(u) + '" alt="" loading="lazy">';
+      }).join('') + '</div>';
+      if (lastInfo.isAdmin) {
+        html += '<div class="cms-admin"><button type="button" class="cms-edit-btn" data-cms-edit="' + esc(key) + '">' +
+          (hasData ? '✎ 내용 수정' : '＋ 내용 추가') + '</button></div>';
+      }
+      el.innerHTML = html;
+      cmsAfterPaint(key);
+    }
+    function renderCmsBlocks() {
+      var blocks = document.querySelectorAll('[data-cms]');
+      Array.prototype.forEach.call(blocks, function (el) {
+        var key = el.getAttribute('data-cms');
+        if (cmsCache[key] !== undefined) { cmsRenderBlock(el); return; }
+        B.getSiteContent(key)
+          .then(function (d) { cmsCache[key] = d; cmsRenderBlock(el); })
+          .catch(function () { cmsCache[key] = null; cmsRenderBlock(el); });
+      });
+    }
+    function openCmsEditor(key) {
+      var el = $('[data-cms="' + key + '"]');
+      var label = (el && el.getAttribute('data-cms-label')) || '콘텐츠';
+      var d = cmsCache[key] || {};
+      if (!cmsModal) cmsModal = makeModal('cmsEditorModal', 'CONTENT', '콘텐츠 편집');
+      cmsModal.querySelector('.login-head h2').textContent = label + ' 편집';
+      var box = cmsModal.querySelector('.modal-body');
+      var imgs = ((d.images || []).slice());
+      box.innerHTML =
+        '<form class="cms-form" id="cmsForm">' +
+          '<label class="cms-field"><span>제목</span><input name="title" value="' + esc(d.title || '') + '" placeholder="예: 벨로르 매입 절차 안내"></label>' +
+          '<label class="cms-field"><span>소제목 (선택)</span><input name="subtitle" value="' + esc(d.subtitle || '') + '" placeholder="예: HOW IT WORKS"></label>' +
+          '<label class="cms-field"><span>본문 (빈 줄로 문단 구분)</span><textarea name="body" rows="9" placeholder="내용을 입력하세요">' + esc(d.body || '') + '</textarea></label>' +
+          '<div class="cms-field"><span>이미지</span><div class="cms-img-list" id="cmsImgList"></div>' +
+            '<label class="cms-img-add">＋ 이미지 추가<input type="file" accept="image/*" multiple hidden id="cmsImgInput"></label></div>' +
+          '<button type="submit" class="cms-save">저장</button>' +
+        '</form>';
+      function renderImgs() {
+        var list = box.querySelector('#cmsImgList');
+        list.innerHTML = imgs.map(function (u, i) {
+          return '<span class="cms-img-thumb"><img src="' + esc(u) + '" alt=""><button type="button" data-rm="' + i + '" aria-label="삭제">×</button></span>';
+        }).join('');
+      }
+      renderImgs();
+      box.querySelector('#cmsImgInput').addEventListener('change', function (e) {
+        var files = Array.prototype.slice.call(e.target.files || []);
+        if (!files.length) return;
+        var done = 0;
+        files.forEach(function (f) {
+          var r = new FileReader();
+          r.onload = function () { imgs.push(r.result); done++; if (done === files.length) renderImgs(); };
+          r.readAsDataURL(f);
+        });
+        e.target.value = '';
+      });
+      box.querySelector('#cmsImgList').addEventListener('click', function (e) {
+        var b = e.target.closest('[data-rm]');
+        if (b) { imgs.splice(parseInt(b.getAttribute('data-rm'), 10), 1); renderImgs(); }
+      });
+      box.querySelector('#cmsForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var fd = new FormData(e.target);
+        var btn = e.target.querySelector('.cms-save');
+        btn.disabled = true; btn.textContent = '저장 중…';
+        B.saveSiteContent(key, { title: fd.get('title'), subtitle: fd.get('subtitle'), body: fd.get('body'), images: imgs })
+          .then(function (row) {
+            cmsCache[key] = row;
+            var el2 = $('[data-cms="' + key + '"]'); if (el2) cmsRenderBlock(el2);
+            closeModal(cmsModal);
+            belloreAlert('저장되었습니다.');
+          })
+          .catch(function (err) {
+            btn.disabled = false; btn.textContent = '저장';
+            belloreAlert('저장 실패: ' + (err && err.message || err));
+          });
+      });
+      openModal(cmsModal);
+    }
+    document.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-cms-edit]');
+      if (b) { e.preventDefault(); openCmsEditor(b.getAttribute('data-cms-edit')); }
+    });
+
     /* ========== 시작 ========== */
     if (insightList) {
       B.subscribePosts(function (rows) { postsCache = rows; renderInsight(); });
       B.subscribeReviews(function (rows) { reviewsCache = rows; renderInsight(); });
     }
+    renderCmsBlocks();
     B.onAuthChange(function (user, info) {
       lastInfo = info || { isAdmin: false, isApprovedVendor: false };
       var showAdd = !!lastInfo.isAdmin;        // 등록 버튼은 관리자만
@@ -797,6 +906,7 @@
       updateVendorView(info);
       applyMyPageRole(info);
       renderInsight();
+      renderCmsBlocks();
     });
   });
 })();

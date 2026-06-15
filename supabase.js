@@ -40,7 +40,9 @@
     isAdmin: function () { return false; },
     isVendor: function () { return false; },
     isApprovedVendor: function () { return false; },
-    onAuthChange: function () { return function () {}; }
+    onAuthChange: function () { return function () {}; },
+    getSiteContent: function () { return Promise.resolve(null); },
+    saveSiteContent: function () { return Promise.reject(new Error('NOT_CONFIGURED')); }
   };
   window.NWBackend = Backend;
 
@@ -550,6 +552,27 @@
       var list = (res.data || []).map(function (r) { return { q: r.q, cnt: r.cnt }; });
       var total = list.reduce(function (s, r) { return s + (Number(r.cnt) || 0); }, 0);
       return { total: total, list: list };
+    });
+  };
+
+  /* ---------------- 사이트 콘텐츠(관리자 인앱 편집: 매입 랜딩 · 벨로르 소개) ---------------- */
+  Backend.getSiteContent = function (key) {
+    return sb.from('site_content').select('*').eq('key', key).maybeSingle()
+      .then(function (r) { if (r.error) throw r.error; return r.data || null; });
+  };
+  Backend.saveSiteContent = function (key, data) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    return uploadPhotos(data.images || [], 12).then(function (urls) {
+      var row = {
+        key: key,
+        title: (data.title || '').trim(),
+        subtitle: (data.subtitle || '').trim(),
+        body: (data.body || '').trim(),
+        images: urls,
+        updated_at: new Date().toISOString()
+      };
+      return sb.from('site_content').upsert(row, { onConflict: 'key' })
+        .then(function (r) { if (r.error) throw r.error; return row; });
     });
   };
 

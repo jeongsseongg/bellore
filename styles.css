@@ -6380,6 +6380,46 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 .sp-model-all { font-weight: 800; color: var(--dark-green); }
 .sp-model-logo { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; }
 
+/* ===== 사이트 콘텐츠 인앱 편집 (관리자) ===== */
+.cms-body { font-size: 15px; line-height: 1.75; color: var(--text-2); max-width: 640px; margin: 0 auto; }
+.cms-body p { margin: 0 0 14px; }
+.cms-body p:last-child { margin-bottom: 0; }
+.cms-imgs { display: grid; gap: 14px; margin-top: 22px; }
+.cms-imgs img { width: 100%; border-radius: 14px; display: block; }
+.cms-admin { text-align: center; margin-top: 22px; }
+.cms-edit-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 20px; border-radius: 22px; border: 1px dashed var(--dark-green);
+    background: #fff; color: var(--dark-green); font-size: 13.5px; font-weight: 700;
+}
+.cms-form { display: flex; flex-direction: column; gap: 16px; }
+.cms-field { display: flex; flex-direction: column; gap: 7px; }
+.cms-field > span { font-size: 13px; font-weight: 700; color: var(--text-2); }
+.cms-field input, .cms-field textarea {
+    border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
+    font-size: 15px; background: #fafafa; width: 100%; box-sizing: border-box; resize: vertical;
+}
+.cms-field input:focus, .cms-field textarea:focus { border-color: var(--dark-green); background: #fff; }
+.cms-img-list { display: flex; flex-wrap: wrap; gap: 10px; }
+.cms-img-list:empty { display: none; }
+.cms-img-thumb { position: relative; width: 76px; height: 76px; border-radius: 10px; overflow: hidden; }
+.cms-img-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.cms-img-thumb button {
+    position: absolute; top: 3px; right: 3px; width: 22px; height: 22px; border-radius: 50%;
+    background: rgba(0,0,0,.6); color: #fff; font-size: 15px; line-height: 1; display: flex;
+    align-items: center; justify-content: center;
+}
+.cms-img-add {
+    display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
+    padding: 10px 16px; border-radius: 12px; border: 1px dashed var(--border);
+    font-size: 13.5px; font-weight: 600; color: var(--text-2); cursor: pointer; width: fit-content;
+}
+.cms-save {
+    padding: 14px; border-radius: 12px; background: var(--dark-green); color: #fff;
+    font-size: 15px; font-weight: 800; margin-top: 4px;
+}
+.cms-save:disabled { opacity: .6; }
+
 /* 오늘시세 탭 */
 .sp-price-head { display: flex; align-items: center; gap: 10px; padding: 18px 2px 8px; }
 .sp-price-head h3 { font-size: 18px; font-weight: 800; }
