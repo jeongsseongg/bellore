@@ -42,7 +42,15 @@
     isApprovedVendor: function () { return false; },
     onAuthChange: function () { return function () {}; },
     getSiteContent: function () { return Promise.resolve(null); },
-    saveSiteContent: function () { return Promise.reject(new Error('NOT_CONFIGURED')); }
+    saveSiteContent: function () { return Promise.reject(new Error('NOT_CONFIGURED')); },
+    phoneVerified: function () { return false; },
+    accountVerified: function () { return false; },
+    accountSubmitted: function () { return false; },
+    sendPhoneOtp: function () { return Promise.reject(new Error('NOT_CONFIGURED')); },
+    verifyPhoneOtp: function () { return Promise.reject(new Error('NOT_CONFIGURED')); },
+    submitVendorAccount: function () { return Promise.reject(new Error('NOT_CONFIGURED')); },
+    verifyAccountAuto: function () { return Promise.reject(new Error('AUTO_VERIFY_NOT_CONFIGURED')); },
+    setAccountVerified: function () { return Promise.reject(new Error('NOT_CONFIGURED')); }
   };
   window.NWBackend = Backend;
 
@@ -131,6 +139,13 @@
   Backend.isAdmin = function () { return !!(profile && profile.role === 'admin'); };
   Backend.isVendor = function () { return Backend.role() === 'vendor'; };
   Backend.isApprovedVendor = function () { return Backend.isVendor() && !!(profile && profile.approved); };
+  // 휴대폰 인증 여부: auth의 phone_confirmed_at 또는 profiles.phone_verified
+  Backend.phoneVerified = function () {
+    return !!(rawUser && rawUser.phone_confirmed_at) || !!(profile && profile.phone_verified);
+  };
+  // 업체 계좌 인증 여부(관리자 승인 또는 자동 실명조회 완료)
+  Backend.accountVerified = function () { return !!(profile && profile.account_verified); };
+  Backend.accountSubmitted = function () { return !!(profile && (profile.account_submitted_at || profile.bank_account)); };
 
   function authInfo() {
     return {
@@ -139,7 +154,11 @@
       approved: !!(profile && profile.approved),
       isApprovedVendor: Backend.isApprovedVendor(),
       points: (profile && profile.points) || 0,
-      grade: (profile && profile.grade) || 'family'
+      grade: (profile && profile.grade) || 'family',
+      phoneVerified: Backend.phoneVerified(),
+      accountVerified: Backend.accountVerified(),
+      accountSubmitted: Backend.accountSubmitted(),
+      phone: (profile && profile.phone) || (rawUser && rawUser.phone) || ''
     };
   }
   function notifyAuth() {
@@ -241,6 +260,74 @@
     return sb.auth.resetPasswordForEmail(email, {
       redirectTo: location.origin + location.pathname
     }).then(function (res) { if (res.error) throw res.error; });
+  };
+
+  /* ---------------- 휴대폰(SMS OTP) 인증 ----------------
+     ※ 실제 발송하려면 Supabase 대시보드 > Authentication > Providers > Phone 활성화 +
+        SMS 제공자(Twilio/MessageBird/Vonage 등) 키 등록이 필요합니다. */
+  function toE164(phone) {
+    var d = String(phone || '').replace(/[^0-9+]/g, '');
+    if (d.indexOf('+') === 0) return d;
+    if (d.indexOf('0') === 0) return '+82' + d.slice(1); // 010… → +8210…
+    if (d.indexOf('82') === 0) return '+' + d;
+    return '+' + d;
+  }
+  Backend.normalizePhone = toE164;
+  // 인증번호 발송: 로그인된 사용자의 전화번호를 추가/변경 → SMS OTP 전송
+  Backend.sendPhoneOtp = function (phone) {
+    if (!rawUser) return Promise.reject(new Error('NOT_LOGGED_IN'));
+    return sb.auth.updateUser({ phone: toE164(phone) })
+      .then(function (res) { if (res.error) throw res.error; return true; });
+  };
+  // 인증번호 확인 → 성공 시 profiles.phone + phone_verified 갱신
+  Backend.verifyPhoneOtp = function (phone, token) {
+    var e164 = toE164(phone);
+    return sb.auth.verifyOtp({ phone: e164, token: String(token || '').trim(), type: 'phone_change' })
+      .then(function (res) {
+        if (res.error) throw res.error;
+        if (rawUser) {
+          sb.from('profiles').update({ phone: e164, phone_verified: true })
+            .eq('id', rawUser.id).then(function () {}, function () {});
+          if (profile) { profile.phone = e164; profile.phone_verified = true; }
+        }
+        return loadProfile().then(notifyAuth, notifyAuth);
+      });
+  };
+
+  /* ---------------- 업체 계좌 인증 ---------------- */
+  // 통장사본 업로드 + 계좌정보 저장(관리자 승인 대기 상태)
+  Backend.submitVendorAccount = function (data) {
+    if (!rawUser) return Promise.reject(new Error('NOT_LOGGED_IN'));
+    return uploadPhotos(data.bankbook ? [data.bankbook] : [], 1).then(function (urls) {
+      var patch = {
+        bank_holder: (data.holder || '').trim(),
+        bank_name: (data.bank || '').trim(),
+        bank_account: (data.account || '').replace(/[^0-9-]/g, ''),
+        account_submitted_at: new Date().toISOString()
+      };
+      if (urls[0]) patch.bankbook_url = urls[0];
+      return sb.from('profiles').update(patch).eq('id', rawUser.id)
+        .then(function (r) {
+          if (r.error) throw r.error;
+          return loadProfile().then(notifyAuth, notifyAuth);
+        });
+    });
+  };
+  // 자동 계좌 실명조회(1원 인증 등) — 외부 핀테크 API 연동 자리.
+  // 키/계약 준비되면 아래에 실제 호출(Edge Function 권장)을 연결하세요.
+  Backend.verifyAccountAuto = function (/* data */) {
+    return Promise.reject(new Error('AUTO_VERIFY_NOT_CONFIGURED'));
+  };
+  // 관리자 수동 계좌 승인/취소
+  Backend.setAccountVerified = function (id, ok) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    var patch = { account_verified: !!ok, account_verified_at: ok ? new Date().toISOString() : null };
+    return sb.from('profiles').update(patch).eq('id', id)
+      .then(function (r) {
+        if (r.error) throw r.error;
+        if (ok) Backend.createNotification({ uid: id, type: 'account', text: '계좌 인증이 완료되었습니다.' });
+        refreshVendors();
+      });
   };
 
   /* ---------------- 비교견적 (quote_requests + bids) ---------------- */

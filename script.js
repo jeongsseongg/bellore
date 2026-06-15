@@ -394,6 +394,19 @@
                         .catch(function (err) { alert('취소 실패: ' + (err && err.message || err)); });
                 }
             }
+            // 계좌 인증 승인/취소 (관리자)
+            var an = e.target.closest('[data-accton]');
+            var ao = e.target.closest('[data-acctoff]');
+            if (an) {
+                NWBackend.setAccountVerified(an.dataset.accton, true)
+                    .then(function () { alert('계좌 인증을 승인했습니다.'); })
+                    .catch(function (err) { alert('승인 실패: ' + (err && err.message || err)); });
+            } else if (ao) {
+                if (confirm('계좌 인증을 취소할까요?')) {
+                    NWBackend.setAccountVerified(ao.dataset.acctoff, false)
+                        .catch(function (err) { alert('취소 실패: ' + (err && err.message || err)); });
+                }
+            }
         });
 
         // 회원가입: 업체 선택 시 상호 입력칸 표시
@@ -517,11 +530,25 @@
         }
         el.innerHTML = vendors.map(function (v) {
             var nm = esc(v.company_name || v.display_name || '(이름 없음)');
-            return '<div class="admin-list-item"><span>' + nm + (v.approved ? ' · 승인됨' : ' · 대기') + '</span>' +
-                (v.approved
-                    ? '<button type="button" data-vcancel="' + esc(v.id) + '">승인취소</button>'
-                    : '<button type="button" data-vapprove="' + esc(v.id) + '">승인</button>') +
-                '</div>';
+            var phoneTag = v.phone_verified ? '📱인증' : '📱미인증';
+            var acct = (v.bank_name || v.bank_account)
+                ? esc((v.bank_name || '') + ' ' + (v.bank_account || '') + ' (' + (v.bank_holder || '') + ')')
+                : '계좌 미제출';
+            var bankbook = v.bankbook_url ? ' · <a href="' + esc(v.bankbook_url) + '" target="_blank" rel="noopener">통장사본</a>' : '';
+            var acctBtn = v.account_verified
+                ? '<button type="button" data-acctoff="' + esc(v.id) + '">계좌인증취소</button>'
+                : '<button type="button" data-accton="' + esc(v.id) + '">계좌승인</button>';
+            return '<div class="admin-list-item admin-vendor-item">' +
+                '<span class="av-main">' + nm + (v.approved ? ' · 승인됨' : ' · 대기') + ' · ' + phoneTag +
+                    (v.account_verified ? ' · 💳인증' : '') + '</span>' +
+                '<span class="av-acct">' + acct + bankbook + '</span>' +
+                '<span class="av-btns">' +
+                    (v.approved
+                        ? '<button type="button" data-vcancel="' + esc(v.id) + '">승인취소</button>'
+                        : '<button type="button" data-vapprove="' + esc(v.id) + '">승인</button>') +
+                    acctBtn +
+                '</span>' +
+            '</div>';
         }).join('');
     }
 
@@ -1230,6 +1257,19 @@
                 }
             } else if (action === 'bid') {
                 if (!backendOn() || !listingId) { alert('백엔드 연결이 필요합니다.'); return; }
+                // 입찰 전 인증 확인: 휴대폰 인증 + (업체) 계좌 인증 필수. 관리자는 통과.
+                if (!NWBackend.isAdmin || !NWBackend.isAdmin()) {
+                    if (NWBackend.phoneVerified && !NWBackend.phoneVerified()) {
+                        alert('입찰하려면 먼저 휴대폰 인증이 필요합니다.');
+                        if (window.belloreVerifyPhone) window.belloreVerifyPhone({});
+                        return;
+                    }
+                    if (NWBackend.accountVerified && !NWBackend.accountVerified()) {
+                        alert('입찰하려면 업체 계좌 인증(관리자 승인)이 필요합니다.');
+                        if (window.belloreVendorAccount && (!NWBackend.accountSubmitted || !NWBackend.accountSubmitted())) window.belloreVendorAccount({});
+                        return;
+                    }
+                }
                 var amt = prompt(label + ' 매물 입찰가 (숫자만, 예: 15000000)');
                 if (!amt) return;
                 var amount = parseInt(String(amt).replace(/[^0-9]/g, ''), 10) || 0;

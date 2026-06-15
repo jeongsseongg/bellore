@@ -890,6 +890,112 @@
       if (b) { e.preventDefault(); openCmsEditor(b.getAttribute('data-cms-edit')); }
     });
 
+    /* ===== 휴대폰 인증 (SMS OTP) ===== */
+    var phoneModal = null;
+    function notConfiguredMsg(err) {
+      var m = (err && err.message) || String(err || '');
+      if (/NOT_CONFIGURED|provider|disabled|not enabled|SMS|phone_provider/i.test(m)) {
+        return '문자 인증이 아직 활성화되지 않았습니다.\n(관리자: Supabase에서 전화 인증 + SMS 제공자 설정 필요)';
+      }
+      return m;
+    }
+    window.belloreVerifyPhone = function (opts) {
+      opts = opts || {};
+      if (!phoneModal) phoneModal = makeModal('phoneVerifyModal', 'VERIFY', '휴대폰 인증');
+      var box = phoneModal.querySelector('.modal-body');
+      var prefill = opts.phone || (lastInfo && lastInfo.phone) || '';
+      box.innerHTML =
+        '<p class="vf-desc">본인 확인을 위해 휴대폰 인증이 필요합니다.</p>' +
+        '<div class="vf-field"><span>휴대폰 번호</span>' +
+          '<div class="vf-row"><input type="tel" id="vfPhone" placeholder="010-0000-0000" value="' + esc(prefill) + '">' +
+          '<button type="button" class="vf-send" id="vfSend">인증번호 받기</button></div></div>' +
+        '<div class="vf-field" id="vfCodeWrap" hidden><span>인증번호</span>' +
+          '<div class="vf-row"><input type="tel" id="vfCode" inputmode="numeric" placeholder="6자리 숫자">' +
+          '<button type="button" class="vf-confirm" id="vfConfirm">확인</button></div></div>' +
+        '<p class="vf-msg" id="vfMsg"></p>';
+      var msg = box.querySelector('#vfMsg');
+      function setMsg(t, ok) { msg.textContent = t || ''; msg.className = 'vf-msg' + (ok ? ' ok' : t ? ' err' : ''); }
+      box.querySelector('#vfSend').addEventListener('click', function () {
+        var ph = box.querySelector('#vfPhone').value.trim();
+        if (!ph) { setMsg('휴대폰 번호를 입력하세요.'); return; }
+        var btn = this; btn.disabled = true; btn.textContent = '발송 중…';
+        B.sendPhoneOtp(ph)
+          .then(function () { box.querySelector('#vfCodeWrap').hidden = false; setMsg('인증번호를 발송했습니다. 문자를 확인하세요.', true); btn.disabled = false; btn.textContent = '재발송'; })
+          .catch(function (err) { btn.disabled = false; btn.textContent = '인증번호 받기'; setMsg(notConfiguredMsg(err)); });
+      });
+      box.querySelector('#vfConfirm').addEventListener('click', function () {
+        var ph = box.querySelector('#vfPhone').value.trim();
+        var code = box.querySelector('#vfCode').value.trim();
+        if (!code) { setMsg('인증번호를 입력하세요.'); return; }
+        var btn = this; btn.disabled = true; btn.textContent = '확인 중…';
+        B.verifyPhoneOtp(ph, code)
+          .then(function () {
+            setMsg('인증이 완료되었습니다.', true);
+            setTimeout(function () { closeModal(phoneModal); if (opts.onDone) opts.onDone(); }, 700);
+          })
+          .catch(function (err) { btn.disabled = false; btn.textContent = '확인'; setMsg(notConfiguredMsg(err) || '인증번호가 올바르지 않습니다.'); });
+      });
+      openModal(phoneModal);
+    };
+
+    /* ===== 업체 계좌 인증 ===== */
+    var acctModal = null;
+    window.belloreVendorAccount = function (opts) {
+      opts = opts || {};
+      if (!acctModal) acctModal = makeModal('vendorAccountModal', 'VERIFY', '업체 계좌 인증');
+      var box = acctModal.querySelector('.modal-body');
+      var bankbook = null;
+      box.innerHTML =
+        '<p class="vf-desc">정산을 위한 사업자 계좌 인증입니다. 통장 사본을 올리면 관리자 확인 후 승인됩니다.</p>' +
+        '<form id="acctForm" class="cms-form">' +
+          '<label class="cms-field"><span>예금주</span><input name="holder" required placeholder="예금주명"></label>' +
+          '<label class="cms-field"><span>은행</span><input name="bank" required placeholder="예: 국민은행"></label>' +
+          '<label class="cms-field"><span>계좌번호</span><input name="account" required inputmode="numeric" placeholder="- 없이 숫자만"></label>' +
+          '<div class="cms-field"><span>통장 사본</span><div class="cms-img-list" id="acctImg"></div>' +
+            '<label class="cms-img-add">＋ 통장사본 업로드<input type="file" accept="image/*" hidden id="acctImgInput"></label></div>' +
+          '<p class="vf-msg" id="acctMsg"></p>' +
+          '<button type="submit" class="cms-save">인증 제출</button>' +
+        '</form>';
+      function renderBB() {
+        var l = box.querySelector('#acctImg');
+        l.innerHTML = bankbook ? '<span class="cms-img-thumb"><img src="' + esc(bankbook) + '" alt=""><button type="button" id="acctRm" aria-label="삭제">×</button></span>' : '';
+      }
+      box.querySelector('#acctImgInput').addEventListener('change', function (e) {
+        var f = (e.target.files || [])[0]; if (!f) return;
+        var r = new FileReader(); r.onload = function () { bankbook = r.result; renderBB(); }; r.readAsDataURL(f);
+      });
+      box.querySelector('#acctImg').addEventListener('click', function (e) { if (e.target.closest('#acctRm')) { bankbook = null; renderBB(); } });
+      box.querySelector('#acctForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var fd = new FormData(e.target);
+        var am = box.querySelector('#acctMsg');
+        var btn = e.target.querySelector('.cms-save'); btn.disabled = true; btn.textContent = '제출 중…';
+        B.submitVendorAccount({ holder: fd.get('holder'), bank: fd.get('bank'), account: fd.get('account'), bankbook: bankbook })
+          .then(function () { closeModal(acctModal); belloreAlert('계좌 인증을 제출했습니다.\n관리자 승인 후 입찰 기능을 이용할 수 있습니다.'); if (opts.onDone) opts.onDone(); })
+          .catch(function (err) { btn.disabled = false; btn.textContent = '인증 제출'; am.textContent = '제출 실패: ' + ((err && err.message) || err); am.className = 'vf-msg err'; });
+      });
+      openModal(acctModal);
+    };
+
+    // 로그인/가입 후 인증 안내 (소셜 포함). 세션당 한 번만 띄움.
+    var _verifyPrompted = false;
+    window.belloreMaybePromptVerify = function (info) {
+      info = info || lastInfo || {};
+      if (!B || !B.configured) return;            // 데모 모드면 생략
+      if (!B.currentUser || !B.currentUser()) return;
+      if (info.isAdmin) return;
+      if (_verifyPrompted) return;
+      if (!info.phoneVerified) {
+        _verifyPrompted = true;
+        window.belloreVerifyPhone({ onDone: function () {
+          if (info.role === 'vendor' && !info.accountSubmitted) window.belloreVendorAccount({});
+        } });
+      } else if (info.role === 'vendor' && !info.accountSubmitted) {
+        _verifyPrompted = true;
+        window.belloreVendorAccount({});
+      }
+    };
+
     /* ========== 시작 ========== */
     if (insightList) {
       B.subscribePosts(function (rows) { postsCache = rows; renderInsight(); });
@@ -907,6 +1013,7 @@
       applyMyPageRole(info);
       renderInsight();
       renderCmsBlocks();
+      if (user) window.belloreMaybePromptVerify(lastInfo);
     });
   });
 })();
