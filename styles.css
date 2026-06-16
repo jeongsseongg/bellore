@@ -5406,19 +5406,13 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
     background: #0e0c0a;
 }
 /* DB 배너 슬라이드 */
-/* 세로 프레임 + 이미지 전체노출(contain) + 뒤에 같은 이미지를 블러로 깔아
-   업로드 비율이 제각각이어도 잘리지 않고 일관된 규격으로 크게 보이게 한다 */
-/* 모바일: 배너 + 원형 카테고리 2줄이 한 화면에 들어오도록 높이를 화면에 맞춰 계산
-   (100svh − 헤더 − 카테고리탭 52 − 브랜드퀵링크 약 226 − 노치) */
-/* 모바일: 배너가 화면을 다 먹지 않게 높이를 제한 → 배너 + 원형 카테고리 2줄이 첫 화면에 같이 보이게.
-   (남는 공간만큼 쓰되 최대 40svh로 캡, 최소 170px) */
+/* 틀(프레임)을 '고정 비율'로 박아둔다 → 그 규격에 맞춰 올린 이미지는 잘리지 않는다.
+   모바일은 1:1(정사각), 데스크톱(태블릿/PC)은 8:5(가로형). 높이는 비율에서 자동 산출. */
 .hero-slide-db {
-    min-height: 0; max-height: none;
-    height: clamp(170px, calc(100vh - var(--header-h) - 52px - 250px - env(safe-area-inset-top)), 40vh);
+    width: 100%;
+    aspect-ratio: 1 / 1;          /* 모바일: 1080×1080 정사각에 딱 맞음 */
+    height: auto; min-height: 0; max-height: 66vh;
     display: flex; align-items: flex-end; color: #fff; overflow: hidden; padding: 0;
-}
-@supports (height: 100svh) {
-    .hero-slide-db { height: clamp(170px, calc(100svh - var(--header-h) - 52px - 250px - env(safe-area-inset-top)), 38svh); }
 }
 .hero-slide-db .hero-slide-blur {
     position: absolute; inset: 0; z-index: 0;
@@ -5471,16 +5465,14 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .hero-slide-db .hero-slide-title { font-size: 26px; font-weight: 700; line-height: 1.25; letter-spacing: -.6px; margin-bottom: 10px; word-break: keep-all; }
 .hero-slide-db .hero-slide-sub { font-size: 14px; color: rgba(255,255,255,.85); line-height: 1.55; word-break: keep-all; }
 .hero-slide-db .hero-slide-cta { margin-top: 18px; margin-bottom: 0; }
-/* 태블릿/와이드: 배너가 첫 화면을 다 먹지 않게 높이 제한 → 배너 + 원형 카테고리 2줄이 함께 보이게 */
+/* 태블릿/와이드/PC: 데스크톱은 가로형 8:5 고정 비율(1600×1000에 딱 맞음) */
 @media (min-width: 700px) {
-    .hero-slide-db { height: min(44vh, 380px); max-height: none; }
+    .hero-slide-db { aspect-ratio: 8 / 5; height: auto; max-height: 64vh; }
     .hero-slide-db .hero-slide-text { padding-bottom: 56px; }
     .hero-slide-db .hero-slide-title { font-size: 36px; letter-spacing: -.9px; margin-bottom: 14px; }
     .hero-slide-db .hero-slide-sub { font-size: 16px; }
 }
-/* PC: 동일하게 첫 화면에 카테고리 2줄까지 보이도록 높이 제한 */
 @media (min-width: 1024px) {
-    .hero-slide-db { height: min(50vh, 460px); max-height: none; }
     .hero-slide-db .hero-slide-text { padding-bottom: 84px; }
     .hero-slide-db .hero-slide-title { font-size: 44px; letter-spacing: -1px; margin-bottom: 18px; }
 }
