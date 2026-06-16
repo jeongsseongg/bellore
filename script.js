@@ -164,19 +164,32 @@
         track.addEventListener('pointerup', endDrag);
         track.addEventListener('pointercancel', endDrag);
 
-        // 뷰포트에 맞는 배너 이미지 선택 (모바일/와이드/PC 3종, 없으면 단계적 폴백)
+        // 뷰포트별 전용 이미지만 사용 (폴백으로 다른 규격을 끌어와 잘리게 하지 않는다)
+        // 해당 뷰포트 이미지가 없으면 url:'' → 플레이스홀더(로고+안내) 표시
         function pickBannerImg(b) {
             var w = window.innerWidth || document.documentElement.clientWidth || 0;
-            if (w >= 1024) return b.imagePc || b.imageWide || b.image || '';
-            if (w >= 700) return b.imageWide || b.image || b.imagePc || '';
-            return b.image || b.imageWide || b.imagePc || '';
+            if (w >= 1024) return b.imagePc || '';
+            if (w >= 700) return b.imageWide || '';
+            return b.image || '';
         }
         function applySlideBg(slide) {
             var b = slide._banner; if (!b) return;
-            var url = pickBannerImg(b).replace(/'/g, '%27');
+            var raw = pickBannerImg(b);
             var blur = $('.hero-slide-blur', slide), bg = $('.hero-slide-bg', slide);
-            if (blur) blur.style.backgroundImage = 'url(\'' + url + '\')';
+            var ph = $('.hero-slide-ph', slide);
+            if (!raw) {
+                // 전용 이미지 미등록 → 잘리는 폴백 대신 안내 플레이스홀더
+                if (bg) bg.style.backgroundImage = 'none';
+                if (blur) blur.style.backgroundImage = 'none';
+                if (ph) ph.hidden = false;
+                slide.classList.add('is-ph');
+                return;
+            }
+            var url = raw.replace(/'/g, '%27');
             if (bg) bg.style.backgroundImage = 'url(\'' + url + '\')';
+            if (blur) blur.style.backgroundImage = 'url(\'' + url + '\')';
+            if (ph) ph.hidden = true;
+            slide.classList.remove('is-ph');
         }
 
         // DB 배너 주입 (bellore-features.js 가 호출)
@@ -195,6 +208,11 @@
                     slide.innerHTML =
                         '<div class="hero-slide-blur"></div>' +
                         '<div class="hero-slide-bg"></div>' +
+                        '<div class="hero-slide-ph" hidden>' +
+                            '<span class="hero-slide-ph-logo">BELLORE</span>' +
+                            '<span class="hero-slide-ph-text">이미지 업로드 중입니다</span>' +
+                            '<span class="hero-slide-ph-sub">이 화면 규격 이미지가 아직 등록되지 않았어요</span>' +
+                        '</div>' +
                         '<div class="hero-gradient"></div>' +
                         '<div class="container hero-content hero-slide-text">' +
                         (b.title ? '<h2 class="hero-slide-title">' + escapeHtml(b.title) + '</h2>' : '') +
