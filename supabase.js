@@ -97,7 +97,9 @@
         var path = (rawUser ? rawUser.id : 'anon') + '/' + uuid() + '.' + ext;
         return sb.storage.from('photos').upload(path, blob, { cacheControl: '3600', upsert: false })
           .then(function (res) {
-            if (res.error) { console.warn('[BELLORE] 사진 업로드 실패:', res.error.message); return; }
+            // 업로드 실패를 조용히 삼키면 '저장 성공'인데 이미지가 빈 채로 저장된다.
+            // → 실제 원인(스토리지 버킷/권한)이 그대로 노출되도록 에러를 던진다.
+            if (res.error) { throw new Error('이미지 업로드 실패: ' + (res.error.message || '스토리지 권한/버킷을 확인하세요') + ' (Storage 버킷 photos 가 public 인지, 업로드 정책이 있는지 확인)'); }
             out.push(sb.storage.from('photos').getPublicUrl(path).data.publicUrl);
           });
       });
