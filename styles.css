@@ -4532,7 +4532,10 @@ body.admin-mode .main-wrap { padding-top: 0; }
     padding-bottom: 0;
 }
 /* 폼은 랜딩 이미지 바로 아래에 붙되, 글씨가 이미지에 닿지 않게 최소 여백만 */
-.compare-form-top { padding-top: 26px; }
+.compare-form-top { padding-top: 26px; padding-bottom: 28px; }
+/* 비교견적 ↔ 라이브 ↔ 등록매물 사이 빈 공간도 최소화 */
+.page-compare .live-board-section { padding: 26px 0; }
+.page-compare .live-board-section + .section { padding-top: 26px; }
 .page-hero-compare {
     background-image: url('assets/2026-03-18_이미지자료_193412.jpg');
 }
@@ -5424,8 +5427,10 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 }
 /* 이미지 전체노출(contain) — 업로드 비율이 프레임과 달라도 절대 잘리지 않게.
    빈 공간은 뒤의 블러 배경이 자연스럽게 채운다 */
+/* 업로드 비율이 프레임과 달라도 빈 공간(레터박스) 없이 프레임을 꽉 채운다(강제 맞춤).
+   넘치는 가장자리는 잘리되, 중앙 기준이라 핵심 피사체는 유지된다. */
 .hero-slide-db .hero-slide-bg {
-    position: absolute; inset: 0; background-size: contain; background-repeat: no-repeat;
+    position: absolute; inset: 0; background-size: cover; background-repeat: no-repeat;
     background-position: center; background-color: transparent; z-index: 1;
     transform-origin: center center;
 }
