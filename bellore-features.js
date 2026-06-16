@@ -397,7 +397,7 @@
     // 관리자: 배너 관리 모달
     var bannerModal = makeModal('bannerModal', 'BANNER', '배너 관리');
     var bnBody = $('.modal-body', bannerModal);
-    var bnPicker = null, bnEditId = null, bnExistingImg = '';
+    var bnPicker = null, bnPickerWide = null, bnPickerPc = null, bnEditId = null;
 
     function bannerListView() {
       bnEditId = null;
@@ -430,7 +430,6 @@
 
     function bannerEditView(item) {
       bnEditId = item ? item.id : null;
-      bnExistingImg = item ? (item.image || '') : '';
       $('h2', bannerModal).textContent = item ? '배너 수정' : '새 배너 추가';
       bnBody.innerHTML =
         '<form class="signup-form" id="bannerForm">' +
@@ -439,12 +438,18 @@
         '<label><span>클릭 시 이동(선택)</span><input name="link" value="' + esc(item ? item.link : '') + '" placeholder="예: #compare 또는 https://..."></label>' +
         '<label><span>노출 순서(숫자, 작을수록 먼저)</span><input name="sort_order" type="number" value="' + (item ? item.sort_order : 0) + '"></label>' +
         '<label class="banner-active-row"><input type="checkbox" name="active"' + (!item || item.active ? ' checked' : '') + '> <span>홈에 노출</span></label>' +
-        '<label><span>배너 이미지 ' + (item ? '(바꿀 때만 새로 선택)' : '*') + '</span></label><div id="bannerPhoto"></div>' +
-        (bnExistingImg ? '<p class="muted small">기존 이미지 유지 · 새로 선택하면 교체됩니다.</p>' : '') +
+        '<div class="banner-img-slot"><label><span>① 모바일 이미지 *</span></label>' +
+        '<p class="muted small">세로형 · 권장 <b>1080 × 1080px</b> (정사각)</p><div id="bannerPhoto"></div></div>' +
+        '<div class="banner-img-slot"><label><span>② 와이드(태블릿) 이미지</span></label>' +
+        '<p class="muted small">가로형 · 권장 <b>1600 × 900px</b> (16:9) · 없으면 모바일 이미지 사용</p><div id="bannerPhotoWide"></div></div>' +
+        '<div class="banner-img-slot"><label><span>③ PC 이미지</span></label>' +
+        '<p class="muted small">가로형 · 권장 <b>2400 × 1000px</b> (와이드) · 없으면 와이드/모바일 사용</p><div id="bannerPhotoPc"></div></div>' +
         '<button type="submit" class="login-btn login-default">' + (item ? '수정 저장' : '등록') + '</button>' +
         '<button type="button" class="login-btn" id="bannerBack" style="background:#eee;color:#444;margin-top:8px">목록으로</button>' +
         '</form>';
-      bnPicker = photoPicker($('#bannerPhoto', bannerModal), 1);
+      bnPicker = photoPicker($('#bannerPhoto', bannerModal), 1, item && item.image ? [item.image] : []);
+      bnPickerWide = photoPicker($('#bannerPhotoWide', bannerModal), 1, item && item.imageWide ? [item.imageWide] : []);
+      bnPickerPc = photoPicker($('#bannerPhotoPc', bannerModal), 1, item && item.imagePc ? [item.imagePc] : []);
       $('#bannerBack', bannerModal).addEventListener('click', bannerListView);
       $('#bannerForm', bannerModal).addEventListener('submit', function (e) {
         e.preventDefault();
@@ -455,13 +460,13 @@
           link: String(fd.get('link') || '').trim(),
           sort_order: parseInt(fd.get('sort_order'), 10) || 0,
           active: !!fd.get('active'),
-          photos: bnPicker.files
+          photos: bnPicker.files,
+          photosWide: bnPickerWide.files,
+          photosPc: bnPickerPc.files
         };
-        if (!bnEditId && !bnPicker.files.length) { alert('배너 이미지를 선택하세요.'); return; }
+        if (!bnPicker.files.length) { alert('모바일 이미지는 필수입니다.'); return; }
         var btn = $('button[type="submit"]', e.target); btn.disabled = true; btn.textContent = '저장 중…';
-        var p = bnEditId
-          ? B.updateBanner(bnEditId, Object.assign({ image: bnExistingImg }, payload))
-          : B.addBanner(payload);
+        var p = bnEditId ? B.updateBanner(bnEditId, payload) : B.addBanner(payload);
         p.then(function () { alert('저장되었습니다.'); bannerListView(); })
           .catch(function (err) { alert('저장 실패: ' + errMsg(err)); btn.disabled = false; btn.textContent = bnEditId ? '수정 저장' : '등록'; });
       });

@@ -2412,19 +2412,6 @@ img { display: block; max-width: 100%; height: auto; }
 .admin-add-btn:hover { background: #f7f5f0; border-color: #b8af9e; }
 .admin-add-btn:active { transform: scale(0.98); }
 
-.admin-panel {
-    background: #f6f6f6;
-    border: 1.5px dashed #cfcfcf;
-    border-radius: 14px;
-    padding: 16px;
-    margin-bottom: 16px;
-}
-.admin-panel-title {
-    font-size: 13px;
-    font-weight: 800;
-    color: #d33;
-    margin-bottom: 12px;
-}
 .admin-pending-item {
     display: grid;
     grid-template-columns: 56px 1fr auto;
@@ -5364,17 +5351,25 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 /* DB 배너 슬라이드 */
 /* 세로 프레임 + 이미지 전체노출(contain) + 뒤에 같은 이미지를 블러로 깔아
    업로드 비율이 제각각이어도 잘리지 않고 일관된 규격으로 크게 보이게 한다 */
+/* 모바일: 배너 + 원형 카테고리 2줄이 한 화면에 들어오도록 높이를 화면에 맞춰 계산
+   (100svh − 헤더 − 카테고리탭 52 − 브랜드퀵링크 약 226 − 노치) */
 .hero-slide-db {
-    min-height: 0; aspect-ratio: 3 / 4; max-height: none;
+    min-height: 0; max-height: none;
+    height: max(220px, calc(100svh - var(--header-h) - 52px - 226px - env(safe-area-inset-top)));
+    height: max(220px, calc(100vh - var(--header-h) - 52px - 226px - env(safe-area-inset-top)));
     display: flex; align-items: flex-end; color: #fff; overflow: hidden; padding: 0;
+}
+@supports (height: 100svh) {
+    .hero-slide-db { height: max(220px, calc(100svh - var(--header-h) - 52px - 226px - env(safe-area-inset-top))); }
 }
 .hero-slide-db .hero-slide-blur {
     position: absolute; inset: 0; z-index: 0;
     background-size: cover; background-position: center;
     filter: blur(34px) brightness(.5); transform: scale(1.18);
 }
+/* 뷰포트별 전용 이미지를 넣으므로 프레임을 가득 채운다(cover) — 레터박스 없이 규격 일치 */
 .hero-slide-db .hero-slide-bg {
-    position: absolute; inset: 0; background-size: contain; background-repeat: no-repeat;
+    position: absolute; inset: 0; background-size: cover; background-repeat: no-repeat;
     background-position: center; background-color: transparent; z-index: 1;
     transform-origin: center center;
 }
@@ -5398,9 +5393,13 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .hero-slide-db .hero-slide-title { font-size: 44px; font-weight: 700; line-height: 1.22; letter-spacing: -1px; margin-bottom: 18px; }
 .hero-slide-db .hero-slide-sub { font-size: 16px; color: rgba(255,255,255,.82); line-height: 1.6; }
 .hero-slide-db .hero-slide-cta { margin-top: 28px; margin-bottom: 0; }
-/* 데스크톱: 세로 배너가 작아지지 않게 높이를 충분히 주고 가운데 크게(블러 사이드) */
+/* 태블릿/와이드: 가로형 와이드 이미지 규격 */
 @media (min-width: 700px) {
-    .hero-slide-db { aspect-ratio: auto; height: min(72vh, 700px); max-height: none; }
+    .hero-slide-db { height: min(58vh, 520px); max-height: none; }
+}
+/* PC: 가로 와이드 이미지 규격 */
+@media (min-width: 1024px) {
+    .hero-slide-db { height: min(72vh, 660px); max-height: none; }
 }
 
 /* 화살표 */
@@ -5468,6 +5467,9 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .brand-circle-more .brand-circle-name { color: #111; font-weight: 600; }
 
 /* ============ 배너 관리(관리자) 목록 ============ */
+.banner-img-slot { margin: 6px 0 4px; padding: 10px; border: 1px solid var(--border); border-radius: 10px; background: #fafafa; }
+.banner-img-slot > label span { font-weight: 700; }
+.banner-img-slot .muted.small { margin: 2px 0 8px; }
 .banner-row { display: flex; align-items: center; gap: 12px; }
 .banner-row[draggable="true"] { cursor: grab; }
 .banner-row.drag-active { opacity: .45; background: #f6f4ee; border-radius: 8px; }

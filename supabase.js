@@ -1097,6 +1097,8 @@
       title: b.title || '',
       subtitle: b.subtitle || '',
       image: b.image_url || '',
+      imageWide: b.image_wide || '',
+      imagePc: b.image_pc || '',
       link: b.link || '',
       sort_order: b.sort_order || 0,
       active: b.active !== false
@@ -1127,33 +1129,53 @@
       .then(function (res) { if (res.error) throw res.error; return (res.data || []).map(mapBanner); });
   };
 
+  // 모바일/와이드/PC 3종 이미지를 각각 업로드(없으면 null). 기존 http URL은 그대로 통과.
+  function firstUrl(arr) { return uploadPhotos(arr || [], 1).then(function (u) { return u[0] || null; }); }
+  function uploadBannerImages(data) {
+    return Promise.all([firstUrl(data.photos), firstUrl(data.photosWide), firstUrl(data.photosPc)])
+      .then(function (r) { return { mobile: r[0], wide: r[1], pc: r[2] }; });
+  }
+  // image_wide/image_pc 컬럼이 아직 없는 환경에서도 안전하게(컬럼 미존재면 빼고 재시도)
+  function isMissingColErr(err) { return err && /image_wide|image_pc|column/.test(err.message || ''); }
+  function stripBannerCols(row) { var c = {}; for (var k in row) { if (k !== 'image_wide' && k !== 'image_pc') c[k] = row[k]; } return c; }
+  function bannerWrite(builder, row) {
+    return builder(row).then(function (res) {
+      if (res.error && isMissingColErr(res.error)) return builder(stripBannerCols(row)).then(function (r2) { if (r2.error) throw r2.error; });
+      if (res.error) throw res.error;
+    }).then(function () { refreshBanners(); });
+  }
+
   Backend.addBanner = function (data) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
-    return uploadPhotos(data.photos || [], 1).then(function (urls) {
-      return sb.from('banners').insert({
+    return uploadBannerImages(data).then(function (img) {
+      var row = {
         title: data.title || null,
         subtitle: data.subtitle || null,
-        image_url: urls[0] || data.image || null,
+        image_url: img.mobile || data.image || null,
+        image_wide: img.wide || null,
+        image_pc: img.pc || null,
         link: data.link || null,
         sort_order: data.sort_order || 0,
         active: data.active !== false
-      }).then(function (res) { if (res.error) throw res.error; refreshBanners(); });
+      };
+      return bannerWrite(function (r) { return sb.from('banners').insert(r); }, row);
     });
   };
 
   Backend.updateBanner = function (id, data) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
-    return uploadPhotos(data.photos || [], 1).then(function (urls) {
+    return uploadBannerImages(data).then(function (img) {
       var patch = {};
       if (data.title != null) patch.title = data.title;
       if (data.subtitle != null) patch.subtitle = data.subtitle;
       if (data.link != null) patch.link = data.link;
       if (data.sort_order != null) patch.sort_order = data.sort_order;
       if (data.active != null) patch.active = data.active;
-      if (urls[0]) patch.image_url = urls[0];
-      else if (data.image != null) patch.image_url = data.image;
-      return sb.from('banners').update(patch).eq('id', id)
-        .then(function (res) { if (res.error) throw res.error; refreshBanners(); });
+      // 픽커에 기존 URL을 다시 채워 보내므로 항상 명시적으로 갱신(비우면 null=해제)
+      patch.image_url = img.mobile || data.image || null;
+      patch.image_wide = img.wide || null;
+      patch.image_pc = img.pc || null;
+      return bannerWrite(function (r) { return sb.from('banners').update(r).eq('id', id); }, patch);
     });
   };
 

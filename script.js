@@ -164,6 +164,21 @@
         track.addEventListener('pointerup', endDrag);
         track.addEventListener('pointercancel', endDrag);
 
+        // 뷰포트에 맞는 배너 이미지 선택 (모바일/와이드/PC 3종, 없으면 단계적 폴백)
+        function pickBannerImg(b) {
+            var w = window.innerWidth || document.documentElement.clientWidth || 0;
+            if (w >= 1024) return b.imagePc || b.imageWide || b.image || '';
+            if (w >= 700) return b.imageWide || b.image || b.imagePc || '';
+            return b.image || b.imageWide || b.imagePc || '';
+        }
+        function applySlideBg(slide) {
+            var b = slide._banner; if (!b) return;
+            var url = pickBannerImg(b).replace(/'/g, '%27');
+            var blur = $('.hero-slide-blur', slide), bg = $('.hero-slide-bg', slide);
+            if (blur) blur.style.backgroundImage = 'url(\'' + url + '\')';
+            if (bg) bg.style.backgroundImage = 'url(\'' + url + '\')';
+        }
+
         // DB 배너 주입 (bellore-features.js 가 호출)
         window.belloreSetBanners = function (list) {
             $$('.hero-slide-db', track).forEach(function (n) { n.remove(); });
@@ -175,17 +190,18 @@
                     var slide = document.createElement(b.link ? 'a' : 'div');
                     slide.className = 'hero-slide hero-slide-db';
                     if (b.link) { slide.href = b.link; }
+                    slide._banner = b;
                     // 문구(제목/부제목)를 넣으면 기본 히어로와 동일한 중앙 정렬 스타일로 노출
-                    var bgUrl = (b.image || '').replace(/'/g, '%27');
                     slide.innerHTML =
-                        '<div class="hero-slide-blur" style="background-image:url(\'' + bgUrl + '\')"></div>' +
-                        '<div class="hero-slide-bg" style="background-image:url(\'' + bgUrl + '\')"></div>' +
+                        '<div class="hero-slide-blur"></div>' +
+                        '<div class="hero-slide-bg"></div>' +
                         '<div class="hero-gradient"></div>' +
                         '<div class="container hero-content hero-slide-text">' +
                         (b.title ? '<h2 class="hero-slide-title">' + escapeHtml(b.title) + '</h2>' : '') +
                         (b.subtitle ? '<p class="hero-slide-sub">' + escapeHtml(b.subtitle) + '</p>' : '') +
                         (b.link ? '<div class="hero-cta hero-slide-cta"><span class="btn btn-primary">자세히 보기</span></div>' : '') +
                         '</div>';
+                    applySlideBg(slide);
                     track.appendChild(slide);
                 });
             } else if (def) {
@@ -195,6 +211,15 @@
             update();
             restartAuto();
         };
+
+        // 화면 폭이 바뀌면(회전/리사이즈) 각 슬라이드 이미지를 뷰포트에 맞게 다시 선택
+        var _bnResizeT = null;
+        window.addEventListener('resize', function () {
+            clearTimeout(_bnResizeT);
+            _bnResizeT = setTimeout(function () {
+                $$('.hero-slide-db', track).forEach(applySlideBg);
+            }, 200);
+        });
 
         // 캐시된 배너를 먼저 즉시 렌더 → 기본배너 깜빡임 방지(DB 응답 시 갱신)
         try {
@@ -823,15 +848,14 @@
     }
 
     function initAdminDashboard() {
-        if (!backendOn() || !NWBackend.onAuthChange) return;
-
-        var menu = $('#adminMenuBox');
-        if (menu) menu.addEventListener('click', function (e) {
-            var row = e.target.closest('[data-apv]');
-            if (row) openAdminPanel(row.dataset.apv);
+        // 클릭 바인딩은 백엔드 설정과 무관하게 항상 연결(메뉴 → 패널 열기)
+        document.addEventListener('click', function (e) {
+            var row = e.target.closest('#adminMenuBox [data-apv]');
+            if (row) { openAdminPanel(row.dataset.apv); return; }
+            if (e.target.closest('#adminPanelBack')) closeAdminPanel();
         });
-        var back = $('#adminPanelBack');
-        if (back) back.addEventListener('click', closeAdminPanel);
+
+        if (!backendOn() || !NWBackend.onAuthChange) return;
 
         NWBackend.onAuthChange(function (user, info) {
             var isAdmin = !!(info && info.isAdmin);
