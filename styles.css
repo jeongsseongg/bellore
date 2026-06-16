@@ -7079,3 +7079,56 @@ body.is-searching .tabbar { display: none !important; }
 .cp-form .cp-check { flex-direction: row; align-items: center; gap: 8px; }
 .cp-form .cp-check input { width: auto; }
 .cp-form .co-pay-btn { margin-top: 6px; }
+
+/* ============ 관리자 대시보드 / 관리 메뉴 / 패널 ============ */
+.admin-dash {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+    background: var(--border); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+}
+.admin-dash-cell {
+    background: #fff; padding: 16px 10px; text-align: center;
+    display: flex; flex-direction: column; gap: 5px;
+}
+.admin-dash-cell b { font-size: 19px; font-weight: 700; color: var(--text); letter-spacing: -.5px; }
+.admin-dash-cell span { font-size: 11.5px; color: var(--text-2); }
+
+.admin-menu { display: flex; flex-direction: column; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.admin-menu-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 16px; background: #fff; border: none; border-bottom: 1px solid var(--border);
+    font-size: 15px; color: var(--text); cursor: pointer; font-family: inherit; text-align: left;
+}
+.admin-menu-row:last-child { border-bottom: none; }
+.admin-menu-row:active { background: var(--bg-soft); }
+.admin-menu-row .amr-right { display: inline-flex; align-items: center; gap: 8px; }
+.admin-menu-row .amr-arrow { color: var(--text-2); font-size: 20px; }
+.amr-badge {
+    min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+    background: #c0392b; color: #fff; font-size: 11px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+}
+
+.admin-panel { z-index: 3200; }
+.admin-panel-scroll { padding: 16px; }
+.admin-panel-view .mypage-btn { margin-bottom: 14px; }
+
+/* ============ 마이페이지 · 벨로르 스타일(흑백 미니멀 · 세리프) ============ */
+.mypage-section h4 {
+    font-family: var(--serif);
+    font-size: 20px; font-weight: 600; letter-spacing: .2px;
+    color: var(--text); margin-bottom: 12px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+.mypage-section h4 b { font-family: var(--sans, inherit); font-size: 13px; font-weight: 600; color: var(--text-2); }
+/* 마이포켓: 무광 블랙 카드 + 세리프 (구구스풍 그라데 제거) */
+.pocket-card {
+    background: #111; border-radius: 14px; padding: 22px 20px;
+}
+.pocket-title { font-family: var(--serif); font-size: 15px; font-weight: 600; letter-spacing: 2px; opacity: .85; }
+.pocket-grade { font-size: 13px; font-weight: 600; }
+.pocket-grade-ic { background: rgba(255,255,255,.16); }
+.pocket-name { font-family: var(--serif); font-size: 26px; font-weight: 600; margin: 16px 0 16px; }
+.pocket-line-val { font-weight: 600; }
+.pocket-quick-item strong { font-weight: 700; }
+.pocket-shop-head h4 { font-family: var(--serif); font-size: 18px; font-weight: 600; }
+.ps-cell b { font-weight: 600; }

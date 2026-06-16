@@ -59,6 +59,7 @@
         initReveal();
         initParallax();
         initCoupons();
+        initAdminDashboard();
         initBackendSync();
         initInstallPrompt();
         initPwaModal();
@@ -776,6 +777,80 @@
                 var dl = $('#downloadableCoupons'); if (dl) dl.innerHTML = '';
             }
         });
+    }
+
+    /* ============ 관리자 대시보드 / 관리 패널 ============ */
+    function renderAdminDash() {
+        var box = $('#adminDash');
+        if (!box || !backendOn() || !NWBackend.adminOrderStats) return;
+        function cell(val, label) {
+            return '<div class="admin-dash-cell"><b>' + val + '</b><span>' + label + '</span></div>';
+        }
+        NWBackend.adminOrderStats().then(function (s) {
+            box.innerHTML =
+                cell(s.todayOrders + '건', '오늘 주문') +
+                cell(fmt(s.paidTodayAmount) + '원', '오늘 입금확인') +
+                cell(s.shipping + '건', '배송중') +
+                cell(s.pendingPay + '건', '결제대기') +
+                cell(s.preparing + '건', '상품준비중') +
+                cell(s.paid + '건', '결제완료');
+        }).catch(function () {});
+    }
+    function refreshAdminBadges() {
+        if (!backendOn() || !NWBackend.adminSummary) return;
+        NWBackend.adminSummary().then(function (s) {
+            setBadge('#amrQuotes', s.pending);
+            setBadge('#amrVendors', s.vendorsPending);
+        }).catch(function () {});
+    }
+    function setBadge(sel, n) {
+        var el = $(sel);
+        if (!el) return;
+        if (n > 0) { el.textContent = n > 99 ? '99+' : n; el.hidden = false; }
+        else el.hidden = true;
+    }
+    function openAdminPanel(view) {
+        var p = $('#adminPanel');
+        if (!p) return;
+        $$('.admin-panel-view', p).forEach(function (sec) { sec.hidden = sec.dataset.apv !== view; });
+        var titles = { quotes: '비교견적 승인', vendors: '업체 승인', accounts: '회원 계정', coupons: '쿠폰 관리', listings: '판매시계 관리' };
+        var t = $('#adminPanelTitle'); if (t) t.textContent = titles[view] || '관리';
+        p.hidden = false; document.body.style.overflow = 'hidden';
+    }
+    function closeAdminPanel() {
+        var p = $('#adminPanel');
+        if (p) { p.hidden = true; document.body.style.overflow = 'hidden'; } // 마이페이지가 여전히 떠 있음
+    }
+
+    function initAdminDashboard() {
+        if (!backendOn() || !NWBackend.onAuthChange) return;
+
+        var menu = $('#adminMenuBox');
+        if (menu) menu.addEventListener('click', function (e) {
+            var row = e.target.closest('[data-apv]');
+            if (row) openAdminPanel(row.dataset.apv);
+        });
+        var back = $('#adminPanelBack');
+        if (back) back.addEventListener('click', closeAdminPanel);
+
+        NWBackend.onAuthChange(function (user, info) {
+            var isAdmin = !!(info && info.isAdmin);
+            ['adminDashBox', 'adminMenuBox'].forEach(function (id) { var el = $('#' + id); if (el) el.hidden = !isAdmin; });
+            // 관리자에겐 고객용 영역 숨김(포인트/내쿠폰/소식 시계)
+            ['pocketBox', 'myCouponSection', 'myAlertsSection', 'myItemsSection', 'myCartLink'].forEach(function (id) {
+                var el = $('#' + id); if (el) el.hidden = isAdmin;
+            });
+            if (!isAdmin) { var p = $('#adminPanel'); if (p) p.hidden = true; }
+            if (isAdmin) { renderAdminDash(); refreshAdminBadges(); }
+        });
+
+        // 마이페이지 열릴 때 대시보드 갱신
+        var myModal = $('#myPageModal');
+        if (myModal && window.MutationObserver) {
+            new MutationObserver(function () {
+                if (!myModal.hidden) { renderAdminDash(); refreshAdminBadges(); }
+            }).observe(myModal, { attributes: true, attributeFilter: ['hidden'] });
+        }
     }
 
     function couponClaimErr(e) {

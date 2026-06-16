@@ -2097,6 +2097,39 @@
                 <span class="noti-badge" id="notiBadge" hidden>0</span>
             </button>
 
+            <!-- 관리자 전용: 오늘 현황 대시보드 -->
+            <div class="mypage-section admin-only" hidden id="adminDashBox">
+                <h4>오늘 현황</h4>
+                <div class="admin-dash" id="adminDash"></div>
+            </div>
+
+            <!-- 관리자 전용: 관리 메뉴 (클릭 → 별도 페이지) -->
+            <div class="mypage-section admin-only" hidden id="adminMenuBox">
+                <h4>관리</h4>
+                <div class="admin-menu">
+                    <button type="button" class="admin-menu-row" data-apv="quotes">
+                        <span>비교견적 승인</span>
+                        <span class="amr-right"><span class="amr-badge" id="amrQuotes" hidden>0</span><span class="amr-arrow">›</span></span>
+                    </button>
+                    <button type="button" class="admin-menu-row" data-apv="vendors">
+                        <span>업체 승인</span>
+                        <span class="amr-right"><span class="amr-badge" id="amrVendors" hidden>0</span><span class="amr-arrow">›</span></span>
+                    </button>
+                    <button type="button" class="admin-menu-row" data-apv="accounts">
+                        <span>회원 계정</span>
+                        <span class="amr-right"><span class="amr-arrow">›</span></span>
+                    </button>
+                    <button type="button" class="admin-menu-row" data-apv="coupons">
+                        <span>쿠폰 관리</span>
+                        <span class="amr-right"><span class="amr-arrow">›</span></span>
+                    </button>
+                    <button type="button" class="admin-menu-row" data-apv="listings">
+                        <span>판매시계 관리</span>
+                        <span class="amr-right"><span class="amr-arrow">›</span></span>
+                    </button>
+                </div>
+            </div>
+
             <!-- 일반 고객: 마이포켓 -->
             <div class="pocket customer-only" id="pocketBox">
                 <!-- 헤더 카드 -->
@@ -2142,31 +2175,6 @@
                 </div>
             </div>
 
-            <!-- 관리자 전용: 관리 현황 요약 -->
-            <div class="mypage-section admin-only" hidden id="adminSummaryBox">
-                <h4>관리 현황</h4>
-                <div id="adminSummary"></div>
-            </div>
-
-            <!-- 관리자 전용: 비교견적 승인 대기 -->
-            <div class="mypage-section admin-only" hidden id="adminQuoteBox">
-                <h4>비교견적 승인 대기</h4>
-                <div class="admin-pending" id="adminPending"></div>
-            </div>
-
-            <!-- 관리자 전용: 회원 계정 관리 -->
-            <div class="mypage-section admin-only" hidden id="adminAccountsBox">
-                <h4>회원 계정</h4>
-                <div id="adminAccounts" class="admin-list"></div>
-                <p class="mypage-security">보안상 비밀번호는 어디에서도 조회할 수 없습니다(암호화 저장). 필요 시 "재설정 메일"로 변경하세요.</p>
-            </div>
-
-            <!-- 관리자 전용: 업체 승인 관리 -->
-            <div class="mypage-section admin-only" hidden id="adminManageBox">
-                <h4>업체 승인 관리</h4>
-                <div id="adminList" class="admin-list"></div>
-            </div>
-
             <!-- 업체 전용: 새 견적 알림 설정 -->
             <div class="mypage-section vendor-only" hidden id="vendorNotifyBox">
                 <h4>알림 설정</h4>
@@ -2175,13 +2183,6 @@
                     <span class="mypage-noti-state" id="notifyQuotesState">켜짐</span>
                 </button>
                 <p class="mypage-security" id="vendorVipNote" hidden>⭐ VIP 업체로 지정되어 있어요. 새 견적 시 카톡 알림톡도 함께 받습니다.</p>
-            </div>
-
-            <!-- 관리자 전용: 쿠폰 관리 -->
-            <div class="mypage-section admin-only" hidden id="adminCouponBox">
-                <h4>쿠폰 관리</h4>
-                <button type="button" class="mypage-btn" id="adminAddCouponBtn">+ 쿠폰 만들기</button>
-                <div id="adminCouponList" class="admin-list"></div>
             </div>
 
             <!-- 내 쿠폰 -->
@@ -2205,12 +2206,6 @@
             <div class="mypage-section" id="myItemsSection">
                 <h4>내 비교견적</h4>
                 <div id="myPageListings"></div>
-            </div>
-
-            <!-- 관리자 전용: 판매시계 등록 -->
-            <div class="mypage-section admin-only" hidden id="adminAddListingBox">
-                <h4>판매시계 관리</h4>
-                <button type="button" class="mypage-btn" id="adminAddListingBtn">+ 판매시계 등록</button>
             </div>
 
             <button type="button" class="mypage-cart-link" data-nav="wishlist" id="myCartLink">
@@ -2498,6 +2493,36 @@
                 <strong id="coTotal">0원</strong>
             </div>
             <button class="co-pay-btn" id="coPayBtn">결제하기</button>
+        </div>
+    </div>
+
+    <!-- 관리 패널 (관리자: 각 관리 항목을 전체화면 목록으로) -->
+    <div class="checkout admin-panel" id="adminPanel" hidden>
+        <header class="co-topbar">
+            <button class="co-back" id="adminPanelBack" aria-label="뒤로">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <span class="co-title" id="adminPanelTitle">관리</span>
+            <span style="width:22px"></span>
+        </header>
+        <div class="co-scroll admin-panel-scroll">
+            <section class="admin-panel-view" data-apv="quotes" hidden>
+                <div class="admin-pending" id="adminPending"></div>
+            </section>
+            <section class="admin-panel-view" data-apv="vendors" hidden>
+                <div id="adminList" class="admin-list"></div>
+            </section>
+            <section class="admin-panel-view" data-apv="accounts" hidden>
+                <div id="adminAccounts" class="admin-list"></div>
+                <p class="mypage-security">보안상 비밀번호는 어디에서도 조회할 수 없습니다(암호화 저장). 필요 시 "재설정 메일"로 변경하세요.</p>
+            </section>
+            <section class="admin-panel-view" data-apv="coupons" hidden>
+                <button type="button" class="mypage-btn" id="adminAddCouponBtn">+ 쿠폰 만들기</button>
+                <div id="adminCouponList" class="admin-list"></div>
+            </section>
+            <section class="admin-panel-view" data-apv="listings" hidden>
+                <button type="button" class="mypage-btn" id="adminAddListingBtn">+ 판매시계 등록</button>
+            </section>
         </div>
     </div>
 

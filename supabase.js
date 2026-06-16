@@ -983,6 +983,25 @@
     });
   };
 
+  // 관리자 대시보드: 오늘 주문/입금/배송 현황
+  Backend.adminOrderStats = function () {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    var start = new Date(); start.setHours(0, 0, 0, 0);
+    var iso = start.toISOString();
+    function c(q) { return q.then(function (r) { return r.count || 0; }, function () { return 0; }); }
+    return Promise.all([
+      c(sb.from('orders').select('*', { count: 'exact', head: true }).gte('created_at', iso)),
+      c(sb.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'pending')),
+      c(sb.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'paid')),
+      c(sb.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'preparing')),
+      c(sb.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'shipping')),
+      sb.from('orders').select('amount').eq('status', 'paid').gte('paid_at', iso)
+        .then(function (r) { return (r.data || []).reduce(function (s, o) { return s + (Number(o.amount) || 0); }, 0); }, function () { return 0; })
+    ]).then(function (r) {
+      return { todayOrders: r[0], pendingPay: r[1], paid: r[2], preparing: r[3], shipping: r[4], paidTodayAmount: r[5] };
+    });
+  };
+
   /* ---------------- 쿠폰 (coupons / user_coupons) ---------------- */
   function mapCoupon(c) {
     return {
