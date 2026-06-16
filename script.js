@@ -213,7 +213,6 @@
                             '<span class="hero-slide-ph-logo">BELLORE</span>' +
                             '<span class="hero-slide-ph-text">이미지 업로드 중입니다</span>' +
                             '<span class="hero-slide-ph-sub">이 화면 규격 이미지가 아직 등록되지 않았어요</span>' +
-                            '<span class="hero-slide-ph-sub" style="margin-top:10px;color:#c9a96e">[진단] 모바일:' + (b.image ? '있음' : '없음') + ' · 와이드:' + (b.imageWide ? '있음' : '없음') + ' · PC:' + (b.imagePc ? '있음' : '없음') + '</span>' +
                         '</div>' +
                         '<div class="hero-gradient"></div>' +
                         '<div class="container hero-content hero-slide-text">' +

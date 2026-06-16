@@ -5441,6 +5441,8 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
     gap: 6px; text-align: center;
     background: linear-gradient(135deg, #1c1813 0%, #0c0a08 100%);
 }
+/* hidden 속성이 display:flex 에 가려 무시되던 버그 수정 → 이미지가 있으면 안내문을 실제로 숨긴다 */
+.hero-slide-db .hero-slide-ph[hidden] { display: none; }
 .hero-slide-db .hero-slide-ph-logo {
     font-family: var(--serif); font-size: 30px; font-weight: 700;
     letter-spacing: 3px; color: #c9a96e;
