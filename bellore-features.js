@@ -409,14 +409,20 @@
       B.listAllBanners().then(function (rows) {
         var box = $('#bannerList', bannerModal);
         if (!rows.length) { box.innerHTML = '<p class="muted small">등록된 배너가 없습니다. 아래에서 추가하세요.</p>'; return; }
-        box.innerHTML = rows.map(function (b) {
-          return '<div class="admin-list-item banner-row">' +
+        box.innerHTML = '<p class="muted small" style="margin:0 0 8px">↕ 드래그(또는 ▲▼)로 노출 순서를 바꿀 수 있어요.</p>' +
+          rows.map(function (b) {
+          return '<div class="admin-list-item banner-row" draggable="true" data-bnid="' + esc(b.id) + '">' +
+            '<span class="banner-drag" aria-hidden="true" title="드래그하여 순서 변경">⠿</span>' +
             '<span class="banner-thumb"' + (b.image ? ' style="background-image:url(\'' + esc(b.image) + '\')"' : '') + '></span>' +
             '<span class="banner-meta"><b>' + (esc(b.title) || '(제목 없음)') + '</b>' +
-            '<small>' + (b.active ? '노출중' : '숨김') + ' · 순서 ' + b.sort_order + '</small></span>' +
-            '<span class="banner-acts"><button type="button" data-bnedit="' + esc(b.id) + '">수정</button>' +
+            '<small>' + (b.active ? '노출중' : '숨김') + '</small></span>' +
+            '<span class="banner-acts">' +
+            '<button type="button" class="bn-move" data-bnup="' + esc(b.id) + '" title="위로">▲</button>' +
+            '<button type="button" class="bn-move" data-bndown="' + esc(b.id) + '" title="아래로">▼</button>' +
+            '<button type="button" data-bnedit="' + esc(b.id) + '">수정</button>' +
             '<button type="button" data-bndel="' + esc(b.id) + '">삭제</button></span></div>';
         }).join('');
+        bannerDragInit(box);
       }).catch(function (err) {
         $('#bannerList', bannerModal).innerHTML = '<p class="muted small">불러오기 실패: ' + esc(errMsg(err)) + '<br>(banners 테이블이 생성됐는지 확인하세요)</p>';
       });
@@ -461,9 +467,60 @@
       });
     }
 
+    // 드래그 순서변경(데스크톱) + 순서 저장
+    function bannerOrderIds(box) {
+      return Array.prototype.map.call(box.querySelectorAll('.banner-row'), function (r) { return r.dataset.bnid; });
+    }
+    function bannerSaveOrder(box) {
+      B.reorderBanners(bannerOrderIds(box)).catch(function (err) { alert('순서 저장 실패: ' + errMsg(err)); });
+    }
+    function bannerDragInit(box) {
+      var dragEl = null;
+      box.addEventListener('dragstart', function (e) {
+        var row = e.target.closest('.banner-row'); if (!row) return;
+        dragEl = row; row.classList.add('drag-active');
+        if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', row.dataset.bnid); } catch (_) {} }
+      });
+      box.addEventListener('dragover', function (e) {
+        if (!dragEl) return;
+        e.preventDefault();
+        var rows = Array.prototype.slice.call(box.querySelectorAll('.banner-row:not(.drag-active)'));
+        var after = null, min = Infinity;
+        rows.forEach(function (child) {
+          var b = child.getBoundingClientRect();
+          var offset = e.clientY - b.top - b.height / 2;
+          if (offset < 0 && offset < min) { min = offset; after = child; }
+        });
+        if (after == null) box.appendChild(dragEl); else box.insertBefore(dragEl, after);
+      });
+      box.addEventListener('drop', function (e) { e.preventDefault(); });
+      box.addEventListener('dragend', function () {
+        if (!dragEl) return;
+        dragEl.classList.remove('drag-active'); dragEl = null;
+        bannerSaveOrder(box);
+      });
+    }
+
     bannerModal.addEventListener('click', function (e) {
       var ed = e.target.closest('[data-bnedit]');
       var dl = e.target.closest('[data-bndel]');
+      // ▲▼ 순서 이동(모바일/마우스 공용)
+      var up = e.target.closest('[data-bnup]');
+      var dn = e.target.closest('[data-bndown]');
+      if (up || dn) {
+        var box = $('#bannerList', bannerModal);
+        var row = (up || dn).closest('.banner-row');
+        if (row && box) {
+          if (up && row.previousElementSibling && row.previousElementSibling.classList.contains('banner-row')) {
+            box.insertBefore(row, row.previousElementSibling);
+            bannerSaveOrder(box);
+          } else if (dn && row.nextElementSibling && row.nextElementSibling.classList.contains('banner-row')) {
+            box.insertBefore(row.nextElementSibling, row);
+            bannerSaveOrder(box);
+          }
+        }
+        return;
+      }
       if (ed) {
         B.listAllBanners().then(function (rows) {
           var it = rows.filter(function (x) { return String(x.id) === ed.dataset.bnedit; })[0];

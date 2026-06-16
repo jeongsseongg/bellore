@@ -172,8 +172,10 @@
                     slide.className = 'hero-slide hero-slide-db';
                     if (b.link) { slide.href = b.link; }
                     // 문구(제목/부제목)를 넣으면 기본 히어로와 동일한 중앙 정렬 스타일로 노출
+                    var bgUrl = (b.image || '').replace(/'/g, '%27');
                     slide.innerHTML =
-                        '<div class="hero-slide-bg" style="background-image:url(\'' + (b.image || '').replace(/'/g, '%27') + '\')"></div>' +
+                        '<div class="hero-slide-blur" style="background-image:url(\'' + bgUrl + '\')"></div>' +
+                        '<div class="hero-slide-bg" style="background-image:url(\'' + bgUrl + '\')"></div>' +
                         '<div class="hero-gradient"></div>' +
                         '<div class="container hero-content hero-slide-text">' +
                         (b.title ? '<h2 class="hero-slide-title">' + escapeHtml(b.title) + '</h2>' : '') +

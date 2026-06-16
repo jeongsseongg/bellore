@@ -1054,6 +1054,19 @@
       .then(function (res) { if (res.error) throw res.error; refreshBanners(); });
   };
 
+  // 드래그 순서변경 일괄 저장 — ids 배열 순서대로 sort_order = 0,1,2...
+  Backend.reorderBanners = function (ids) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    if (!ids || !ids.length) return Promise.resolve();
+    return Promise.all(ids.map(function (id, i) {
+      return sb.from('banners').update({ sort_order: i }).eq('id', id);
+    })).then(function (results) {
+      var bad = results.filter(function (r) { return r && r.error; })[0];
+      if (bad) throw bad.error;
+      refreshBanners();
+    });
+  };
+
   /* ---------------- 찜 / 장바구니 (user_picks) — 계정별 ---------------- */
   function mapPick(p) {
     return { id: p.item_key, brand: p.brand || '', model: p.model || '', price: p.price || 0, img: p.image || '' };

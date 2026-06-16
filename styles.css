@@ -5357,21 +5357,34 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .hero-slide { position: relative; flex: 0 0 100%; min-width: 100%; }
 .hero-slide.hero { min-height: 70vh; }
 /* DB 배너 슬라이드 */
-/* 기본 히어로와 동일한 중앙 정렬 레이아웃 (문구 입력 시 '지금처럼' 보이게) */
-.hero-slide-db { min-height: 70vh; display: flex; align-items: center; color: #fff; overflow: hidden; padding: 96px 0 40px; }
+/* 고정 비율 박스 + 이미지 전체노출(contain) + 뒤에 같은 이미지를 블러로 깔아
+   업로드 비율이 제각각이어도 잘리지 않고 일관된 크기로 보이게 한다 */
+.hero-slide-db {
+    min-height: 0; aspect-ratio: 4 / 3; max-height: 80vh;
+    display: flex; align-items: flex-end; color: #fff; overflow: hidden; padding: 0;
+}
+.hero-slide-db .hero-slide-blur {
+    position: absolute; inset: 0; z-index: 0;
+    background-size: cover; background-position: center;
+    filter: blur(34px) brightness(.5); transform: scale(1.18);
+}
 .hero-slide-db .hero-slide-bg {
     position: absolute; inset: 0; background-size: contain; background-repeat: no-repeat;
-    background-position: center; background-color: #000; z-index: 0;
+    background-position: center; background-color: transparent; z-index: 1;
 }
 /* DB 배너는 디자인된 이미지라 어둡게 덮지 않고, 문구 가독성용 옅은 상·하단 그라데만 */
 .hero-slide-db .hero-gradient {
     background: linear-gradient(180deg, rgba(0,0,0,.28) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 68%, rgba(0,0,0,.42) 100%);
 }
 .hero-slide-db .hero-slide-title, .hero-slide-db .hero-slide-sub { text-shadow: 0 2px 14px rgba(0,0,0,.55); }
-.hero-slide-db .hero-slide-text { padding: 0; }
+.hero-slide-db .hero-slide-text { padding: 0 0 84px; position: relative; z-index: 3; }
 .hero-slide-db .hero-slide-title { font-size: 44px; font-weight: 700; line-height: 1.22; letter-spacing: -1px; margin-bottom: 18px; }
 .hero-slide-db .hero-slide-sub { font-size: 16px; color: rgba(255,255,255,.82); line-height: 1.6; }
 .hero-slide-db .hero-slide-cta { margin-top: 28px; margin-bottom: 0; }
+/* 데스크톱: 와이드 비율로 고정 (모바일 4:3 → PC 16:9) */
+@media (min-width: 700px) {
+    .hero-slide-db { aspect-ratio: 16 / 9; max-height: 86vh; }
+}
 
 /* 화살표 */
 .hero-nav {
@@ -5439,6 +5452,11 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 
 /* ============ 배너 관리(관리자) 목록 ============ */
 .banner-row { display: flex; align-items: center; gap: 12px; }
+.banner-row[draggable="true"] { cursor: grab; }
+.banner-row.drag-active { opacity: .45; background: #f6f4ee; border-radius: 8px; }
+.banner-drag { flex: 0 0 auto; color: #bbb; font-size: 18px; line-height: 1; cursor: grab; user-select: none; padding: 0 2px; }
+.banner-row.drag-active .banner-drag { cursor: grabbing; }
+.bn-move { font-size: 11px !important; padding: 6px 8px !important; }
 .banner-thumb {
     width: 54px; height: 36px; border-radius: 6px; flex: 0 0 auto;
     background: #eee center/cover no-repeat; border: 1px solid #e0ddd5;
