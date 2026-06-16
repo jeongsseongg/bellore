@@ -5356,11 +5356,16 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .hero-track { display: flex; transition: transform .45s cubic-bezier(.2,.8,.2,1); will-change: transform; touch-action: pan-y; }
 .hero-slide { position: relative; flex: 0 0 100%; min-width: 100%; }
 .hero-slide.hero { min-height: 70vh; }
+/* DB 배너가 있을 때는 고정 헤더(로고줄+카테고리탭)에 가리지 않도록 그 아래로 내린다 */
+.hero-carousel.has-db {
+    padding-top: calc(var(--header-h) + 52px + env(safe-area-inset-top));
+    background: #0e0c0a;
+}
 /* DB 배너 슬라이드 */
-/* 고정 비율 박스 + 이미지 전체노출(contain) + 뒤에 같은 이미지를 블러로 깔아
-   업로드 비율이 제각각이어도 잘리지 않고 일관된 크기로 보이게 한다 */
+/* 세로 프레임 + 이미지 전체노출(contain) + 뒤에 같은 이미지를 블러로 깔아
+   업로드 비율이 제각각이어도 잘리지 않고 일관된 규격으로 크게 보이게 한다 */
 .hero-slide-db {
-    min-height: 0; aspect-ratio: 4 / 3; max-height: 80vh;
+    min-height: 0; aspect-ratio: 3 / 4; max-height: none;
     display: flex; align-items: flex-end; color: #fff; overflow: hidden; padding: 0;
 }
 .hero-slide-db .hero-slide-blur {
@@ -5371,6 +5376,18 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .hero-slide-db .hero-slide-bg {
     position: absolute; inset: 0; background-size: contain; background-repeat: no-repeat;
     background-position: center; background-color: transparent; z-index: 1;
+    transform-origin: center center;
+}
+/* 강조 애니메이션: 슬라이드가 활성화되면 살짝 확대됐다가 천천히 원래 크기로 (바이버식 켄번스) */
+@keyframes heroDbReveal {
+    0%   { transform: scale(1.085); }
+    100% { transform: scale(1); }
+}
+.hero-slide-db.is-active .hero-slide-bg {
+    animation: heroDbReveal 6.2s cubic-bezier(.16,.84,.3,1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+    .hero-slide-db.is-active .hero-slide-bg { animation: none; }
 }
 /* DB 배너는 디자인된 이미지라 어둡게 덮지 않고, 문구 가독성용 옅은 상·하단 그라데만 */
 .hero-slide-db .hero-gradient {
@@ -5381,9 +5398,9 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .hero-slide-db .hero-slide-title { font-size: 44px; font-weight: 700; line-height: 1.22; letter-spacing: -1px; margin-bottom: 18px; }
 .hero-slide-db .hero-slide-sub { font-size: 16px; color: rgba(255,255,255,.82); line-height: 1.6; }
 .hero-slide-db .hero-slide-cta { margin-top: 28px; margin-bottom: 0; }
-/* 데스크톱: 와이드 비율로 고정 (모바일 4:3 → PC 16:9) */
+/* 데스크톱: 세로 배너가 작아지지 않게 높이를 충분히 주고 가운데 크게(블러 사이드) */
 @media (min-width: 700px) {
-    .hero-slide-db { aspect-ratio: 16 / 9; max-height: 86vh; }
+    .hero-slide-db { aspect-ratio: auto; height: min(72vh, 700px); max-height: none; }
 }
 
 /* 화살표 */

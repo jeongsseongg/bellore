@@ -81,6 +81,7 @@
         function update() {
             slides = slideEls();
             var n = slides.length;
+            slides.forEach(function (s, i) { s.classList.toggle('is-active', i === index); });
             track.style.transform = 'translateX(' + (-index * 100) + '%)';
             var multi = n > 1;
             if (prevBtn) prevBtn.hidden = !multi;
@@ -165,6 +166,7 @@
         window.belloreSetBanners = function (list) {
             $$('.hero-slide-db', track).forEach(function (n) { n.remove(); });
             var def = $('.hero-default', track);
+            carousel.classList.toggle('has-db', !!(list && list.length));
             if (list && list.length) {
                 if (def) def.style.display = 'none';
                 list.forEach(function (b) {
