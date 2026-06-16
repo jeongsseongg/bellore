@@ -407,6 +407,33 @@
                         .catch(function (err) { alert('취소 실패: ' + (err && err.message || err)); });
                 }
             }
+            // VIP 지정/해제 (관리자)
+            var von = e.target.closest('[data-vipon]');
+            var voff = e.target.closest('[data-vipoff]');
+            if (von) {
+                NWBackend.setVip(von.dataset.vipon, true)
+                    .then(function () { alert('VIP 업체로 지정했습니다. 새 견적 시 카톡 알림톡까지 발송됩니다.'); })
+                    .catch(function (err) { alert('VIP 지정 실패: ' + (err && err.message || err)); });
+            } else if (voff) {
+                NWBackend.setVip(voff.dataset.vipoff, false)
+                    .catch(function (err) { alert('VIP 해제 실패: ' + (err && err.message || err)); });
+            }
+        });
+
+        // 업체: 새 견적 알림 받기 ON/OFF
+        var notifyBtn = $('#btnNotifyQuotes');
+        if (notifyBtn) notifyBtn.addEventListener('click', function () {
+            if (!backendOn() || !NWBackend.setNotifyQuotes) return;
+            var on = notifyBtn.getAttribute('aria-pressed') !== 'true'; // 토글
+            notifyBtn.disabled = true;
+            NWBackend.setNotifyQuotes(on)
+                .then(function () {
+                    notifyBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+                    var st = $('#notifyQuotesState');
+                    if (st) st.textContent = on ? '켜짐' : '꺼짐';
+                })
+                .catch(function (err) { alert('설정 변경 실패: ' + (err && err.message || err)); })
+                .then(function () { notifyBtn.disabled = false; });
         });
 
         // 회원가입: 업체 선택 시 상호 입력칸 표시
@@ -501,6 +528,22 @@
             } else if (adminBox) {
                 adminBox.hidden = true;
             }
+
+            // 업체 전용: 새 견적 알림 설정
+            var vNotifyBox = $('#vendorNotifyBox');
+            if (vNotifyBox) {
+                var isVendor = info && info.role === 'vendor';
+                vNotifyBox.hidden = !isVendor;
+                if (isVendor) {
+                    var on = !(info && info.notifyQuotes === false);
+                    var btn = $('#btnNotifyQuotes');
+                    var st = $('#notifyQuotesState');
+                    if (btn) btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+                    if (st) st.textContent = on ? '켜짐' : '꺼짐';
+                    var vipNote = $('#vendorVipNote');
+                    if (vipNote) vipNote.hidden = !(info && info.vip);
+                }
+            }
         });
     }
 
@@ -538,15 +581,18 @@
             var acctBtn = v.account_verified
                 ? '<button type="button" data-acctoff="' + esc(v.id) + '">계좌인증취소</button>'
                 : '<button type="button" data-accton="' + esc(v.id) + '">계좌승인</button>';
+            var vipBtn = v.vip
+                ? '<button type="button" data-vipoff="' + esc(v.id) + '">VIP해제</button>'
+                : '<button type="button" data-vipon="' + esc(v.id) + '">VIP지정</button>';
             return '<div class="admin-list-item admin-vendor-item">' +
                 '<span class="av-main">' + nm + (v.approved ? ' · 승인됨' : ' · 대기') + ' · ' + phoneTag +
-                    (v.account_verified ? ' · 💳인증' : '') + '</span>' +
+                    (v.account_verified ? ' · 💳인증' : '') + (v.vip ? ' · ⭐VIP' : '') + '</span>' +
                 '<span class="av-acct">' + acct + bankbook + '</span>' +
                 '<span class="av-btns">' +
                     (v.approved
                         ? '<button type="button" data-vcancel="' + esc(v.id) + '">승인취소</button>'
                         : '<button type="button" data-vapprove="' + esc(v.id) + '">승인</button>') +
-                    acctBtn +
+                    acctBtn + vipBtn +
                 '</span>' +
             '</div>';
         }).join('');

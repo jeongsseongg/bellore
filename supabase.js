@@ -158,7 +158,9 @@
       phoneVerified: Backend.phoneVerified(),
       accountVerified: Backend.accountVerified(),
       accountSubmitted: Backend.accountSubmitted(),
-      phone: (profile && profile.phone) || (rawUser && rawUser.phone) || ''
+      phone: (profile && profile.phone) || (rawUser && rawUser.phone) || '',
+      notifyQuotes: !(profile && profile.notify_quotes === false), // 기본 켜짐
+      vip: !!(profile && profile.vip)
     };
   }
   function notifyAuth() {
@@ -431,11 +433,31 @@
     return function () { unsub(); removeFrom(quoteRefreshers, load); };
   };
 
-  // 관리자 승인: pending → open (승인된 업체에게 입찰 개방, 트리거가 알림)
+  // 관리자 승인: pending → open
+  //  - 승인업체(알림설정 ON)에게는 DB 트리거가 앱알림 생성
+  //  - VIP 업체에게는 추가로 카톡 알림톡 발송(Edge Function, best-effort)
   Backend.approveListing = function (id) {
     return sb.from('quote_requests').update({ status: 'open' }).eq('id', id)
-      .then(function (res) { if (res.error) throw res.error; refreshQuoteFeeds(); });
+      .then(function (res) {
+        if (res.error) throw res.error;
+        refreshQuoteFeeds();
+        notifyVipKakao(id); // 실패해도 승인 흐름엔 영향 없음
+      });
   };
+
+  // VIP 업체 카톡 알림톡 발송 요청 (서버에서 대상/내용 재검증)
+  function notifyVipKakao(quoteId) {
+    try {
+      var base = (window.BELLORE_SUPABASE && window.BELLORE_SUPABASE.url) || '';
+      var key = (window.BELLORE_SUPABASE && window.BELLORE_SUPABASE.anonKey) || '';
+      if (!base) return;
+      fetch(base + '/functions/v1/notify-vip-kakao', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+        body: JSON.stringify({ quoteId: quoteId })
+      }).catch(function () {});
+    } catch (e) {}
+  }
   // 관리자 거부: → closed
   Backend.rejectListing = function (id) {
     return sb.from('quote_requests').update({ status: 'closed' }).eq('id', id)
@@ -697,6 +719,26 @@
         if (res.error) throw res.error;
         if (approved) Backend.createNotification({ uid: id, type: 'approved', text: '업체 승인이 완료되었습니다. 이제 비교견적 입찰에 참여할 수 있어요.' });
         refreshVendors(); refreshAccounts();
+      });
+  };
+
+  // VIP 업체 지정/해제 (관리자) — VIP 는 새 견적 시 카톡 알림톡까지 발송 대상
+  Backend.setVip = function (id, vip) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    return sb.from('profiles').update({ vip: !!vip }).eq('id', id)
+      .then(function (res) {
+        if (res.error) throw res.error;
+        refreshVendors(); refreshAccounts();
+      });
+  };
+
+  // 본인(업체) 새 견적 앱알림 수신설정 ON/OFF
+  Backend.setNotifyQuotes = function (on) {
+    if (!rawUser) return Promise.reject(new Error('NOT_SIGNED_IN'));
+    return sb.from('profiles').update({ notify_quotes: !!on }).eq('id', rawUser.id)
+      .then(function (res) {
+        if (res.error) throw res.error;
+        return loadProfile().then(notifyAuth, notifyAuth);
       });
   };
 

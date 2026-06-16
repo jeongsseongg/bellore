@@ -2167,6 +2167,16 @@
                 <div id="adminList" class="admin-list"></div>
             </div>
 
+            <!-- 업체 전용: 새 견적 알림 설정 -->
+            <div class="mypage-section vendor-only" hidden id="vendorNotifyBox">
+                <h4>알림 설정</h4>
+                <button type="button" class="mypage-noti" id="btnNotifyQuotes" aria-pressed="true">
+                    <span class="mypage-noti-left">새 비교견적 알림 받기</span>
+                    <span class="mypage-noti-state" id="notifyQuotesState">켜짐</span>
+                </button>
+                <p class="mypage-security" id="vendorVipNote" hidden>⭐ VIP 업체로 지정되어 있어요. 새 견적 시 카톡 알림톡도 함께 받습니다.</p>
+            </div>
+
             <!-- 일반 고객: 소식 기다리는 시계 -->
             <div class="mypage-section customer-only" id="myAlertsSection">
                 <h4>소식 기다리는 시계 <b id="myAlertCount">0</b></h4>
