@@ -416,7 +416,21 @@
         var myModal = $('#myPageModal');
         if (myModal) {
             myModal.addEventListener('click', function (e) {
-                if (e.target.closest('[data-myclose]')) closeMyPage();
+                if (e.target.closest('[data-myclose]')) { closeMyPage(); return; }
+                // 원형 퀵메뉴: 모달 안 섹션으로 스크롤
+                var jump = e.target.closest('[data-myjump]');
+                if (jump) {
+                    var tgt = $(jump.getAttribute('data-myjump'), myModal);
+                    if (tgt) tgt.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    return;
+                }
+                // 원형 퀵메뉴: 알림 열기
+                if (e.target.closest('[data-myact="noti"]')) {
+                    var nb = $('#btnNoti'); if (nb) nb.click();
+                    return;
+                }
+                // 원형 퀵메뉴: 다른 페이지로 이동 시 모달 닫기 (네비게이션은 전역 핸들러가 처리)
+                if (e.target.closest('[data-nav]')) closeMyPage();
             });
         }
         // 로그아웃
