@@ -5469,16 +5469,16 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .hero-slide-db .hero-slide-title { font-size: 26px; font-weight: 700; line-height: 1.25; letter-spacing: -.6px; margin-bottom: 10px; word-break: keep-all; }
 .hero-slide-db .hero-slide-sub { font-size: 14px; color: rgba(255,255,255,.85); line-height: 1.55; word-break: keep-all; }
 .hero-slide-db .hero-slide-cta { margin-top: 18px; margin-bottom: 0; }
-/* 태블릿/와이드: 가로형 와이드 이미지 규격 */
+/* 태블릿/와이드: 배너가 첫 화면을 다 먹지 않게 높이 제한 → 배너 + 원형 카테고리 2줄이 함께 보이게 */
 @media (min-width: 700px) {
-    .hero-slide-db { height: min(58vh, 520px); max-height: none; }
+    .hero-slide-db { height: min(44vh, 380px); max-height: none; }
     .hero-slide-db .hero-slide-text { padding-bottom: 56px; }
     .hero-slide-db .hero-slide-title { font-size: 36px; letter-spacing: -.9px; margin-bottom: 14px; }
     .hero-slide-db .hero-slide-sub { font-size: 16px; }
 }
-/* PC: 가로 와이드 이미지 규격 */
+/* PC: 동일하게 첫 화면에 카테고리 2줄까지 보이도록 높이 제한 */
 @media (min-width: 1024px) {
-    .hero-slide-db { height: min(72vh, 660px); max-height: none; }
+    .hero-slide-db { height: min(50vh, 460px); max-height: none; }
     .hero-slide-db .hero-slide-text { padding-bottom: 84px; }
     .hero-slide-db .hero-slide-title { font-size: 44px; letter-spacing: -1px; margin-bottom: 18px; }
 }
