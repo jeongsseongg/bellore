@@ -698,6 +698,7 @@
             var ownedIds = list.map(function (u) { return u.couponId; });
             var active = list.filter(function (u) { return u.status === 'active' && u.coupon && !couponExpired(u.coupon); });
             var cnt = $('#myCouponCount'); if (cnt) cnt.textContent = active.length;
+            var pcoup = $('#pocketCoupon'); if (pcoup) pcoup.textContent = active.length;
             var el = $('#myCouponList');
             if (el) {
                 el.innerHTML = list.length
