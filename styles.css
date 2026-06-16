@@ -27,8 +27,8 @@
     --app-w: 100vw;
     --container: 100vw;
     --app-bg: #e8e8e8;        /* 앱 컨테이너 바깥(좌우 여백) 배경 */
-    /* 로고(하이컨트라스트 세리프) 톤의 영문/브랜드 디스플레이용 — 한글엔 적용하지 않음 */
-    --serif: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+    /* 로고(하이컨트라스트 세리프) 톤의 영문/브랜드 디스플레이용 — 영문만 세리프, 한글은 산세리프(Pretendard)로 폴백해 명조/궁서로 안 떨어지게 함 */
+    --serif: 'Cormorant Garamond', 'Playfair Display', Georgia, 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
 }
 
 /* PC(넓은 화면)에서는 앱 컨테이너 폭을 660px로 확대 */
