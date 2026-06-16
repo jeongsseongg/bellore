@@ -5513,6 +5513,9 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 
 /* ============ 브랜드 원형 바로가기 ============ */
 .brand-quicklinks { padding: 14px 0 12px; background: #fff; }
+/* 배너 높이를 줄이면서 원형 카테고리 아래에 생긴 빈 여백(다음 섹션 상단 패딩)을 줄여
+   원형 2줄이 자연스럽게 다음 콘텐츠와 이어지도록 한다 */
+.page-home #homeOnSale { padding-top: 22px; }
 .brand-circle-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
