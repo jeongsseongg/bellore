@@ -439,7 +439,7 @@
         '<label><span>노출 순서(숫자, 작을수록 먼저)</span><input name="sort_order" type="number" value="' + (item ? item.sort_order : 0) + '"></label>' +
         '<label class="banner-active-row"><input type="checkbox" name="active"' + (!item || item.active ? ' checked' : '') + '> <span>홈에 노출</span></label>' +
         '<div class="banner-img-slot"><label><span>① 모바일 이미지 *</span></label>' +
-        '<p class="muted small">휴대폰 화면용 · 권장 <b>1080 × 720px</b> (가로형 3:2) · 이 비율이면 잘리지 않습니다</p><div id="bannerPhoto"></div></div>' +
+        '<p class="muted small">휴대폰 화면용 · 권장 <b>1080 × 864px</b> (가로형 5:4) · 어떤 비율이든 잘리지 않습니다</p><div id="bannerPhoto"></div></div>' +
         '<div class="banner-img-slot"><label><span>② 태블릿(와이드) 이미지</span></label>' +
         '<p class="muted small">가로형 · 권장 <b>1600 × 1000px</b> (8:5) · 없으면 모바일 이미지 사용</p><div id="bannerPhotoWide"></div></div>' +
         '<div class="banner-img-slot"><label><span>③ PC(웹) 이미지</span></label>' +

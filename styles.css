@@ -5411,7 +5411,7 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
    높이는 비율에서 자동 산출 → 배너 아래에 원형 카테고리 2줄이 항상 맞게 들어온다. */
 .hero-slide-db {
     width: 100%;
-    aspect-ratio: 3 / 2;          /* 모바일: 가로형 1080×720 */
+    aspect-ratio: 5 / 4;          /* 모바일: 가로형 1080×864 (세로 20% 키움) */
     height: auto; min-height: 0; max-height: none;
     display: flex; align-items: flex-end; color: #fff; overflow: hidden; padding: 0;
 }
@@ -5420,12 +5420,11 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
     background-size: cover; background-position: center;
     filter: blur(34px) brightness(.5); transform: scale(1.18);
 }
-/* 이미지 전체노출(contain) — 업로드 비율이 프레임과 달라도 절대 잘리지 않게.
-   빈 공간은 뒤의 블러 배경이 자연스럽게 채운다 */
-/* 업로드 비율이 프레임과 달라도 빈 공간(레터박스) 없이 프레임을 꽉 채운다(강제 맞춤).
-   넘치는 가장자리는 잘리되, 중앙 기준이라 핵심 피사체는 유지된다. */
+/* 잘림 절대 금지: 프레임을 100% 100% 로 강제 맞춤 → 위아래/좌우 어디도 잘리지 않는다.
+   규격(모바일 5:4, 데스크톱 8:5)에 맞춘 사진은 왜곡 없이 정확히 노출되고,
+   비율이 어긋난 사진이 올라와도 레터박스(빈 공간) 없이 프레임을 꽉 채운다. */
 .hero-slide-db .hero-slide-bg {
-    position: absolute; inset: 0; background-size: cover; background-repeat: no-repeat;
+    position: absolute; inset: 0; background-size: 100% 100%; background-repeat: no-repeat;
     background-position: center; background-color: transparent; z-index: 1;
     transform-origin: center center;
 }
@@ -5451,7 +5450,8 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
     100% { transform: scale(1); }
 }
 .hero-slide-db.is-active .hero-slide-bg {
-    animation: heroDbReveal 6.2s cubic-bezier(.16,.84,.3,1) both;
+    /* 잘림 절대 금지: 확대 연출 제거 → 항상 프레임에 정확히 1:1 로 고정 */
+    animation: none;
 }
 @media (prefers-reduced-motion: reduce) {
     .hero-slide-db.is-active .hero-slide-bg { animation: none; }
