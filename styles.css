@@ -5353,14 +5353,15 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
    업로드 비율이 제각각이어도 잘리지 않고 일관된 규격으로 크게 보이게 한다 */
 /* 모바일: 배너 + 원형 카테고리 2줄이 한 화면에 들어오도록 높이를 화면에 맞춰 계산
    (100svh − 헤더 − 카테고리탭 52 − 브랜드퀵링크 약 226 − 노치) */
+/* 모바일: 배너가 화면을 다 먹지 않게 높이를 제한 → 배너 + 원형 카테고리 2줄이 첫 화면에 같이 보이게.
+   (남는 공간만큼 쓰되 최대 44svh로 캡, 최소 190px) */
 .hero-slide-db {
     min-height: 0; max-height: none;
-    height: max(220px, calc(100svh - var(--header-h) - 52px - 226px - env(safe-area-inset-top)));
-    height: max(220px, calc(100vh - var(--header-h) - 52px - 226px - env(safe-area-inset-top)));
+    height: clamp(190px, calc(100vh - var(--header-h) - 52px - 232px - env(safe-area-inset-top)), 46vh);
     display: flex; align-items: flex-end; color: #fff; overflow: hidden; padding: 0;
 }
 @supports (height: 100svh) {
-    .hero-slide-db { height: max(220px, calc(100svh - var(--header-h) - 52px - 226px - env(safe-area-inset-top))); }
+    .hero-slide-db { height: clamp(190px, calc(100svh - var(--header-h) - 52px - 232px - env(safe-area-inset-top)), 44svh); }
 }
 .hero-slide-db .hero-slide-blur {
     position: absolute; inset: 0; z-index: 0;
