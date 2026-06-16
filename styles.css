@@ -5406,12 +5406,13 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
     background: #0e0c0a;
 }
 /* DB 배너 슬라이드 */
-/* 틀(프레임)을 '고정 비율'로 박아둔다 → 그 규격에 맞춰 올린 이미지는 잘리지 않는다.
-   모바일은 1:1(정사각), 데스크톱(태블릿/PC)은 8:5(가로형). 높이는 비율에서 자동 산출. */
+/* 틀(프레임)을 '고정 비율'로 박아둔다 → 그 규격(아래 권장 사이즈)에 맞춰 올린 사진은
+   잘림·여백 없이 정확히 노출된다. 모바일 3:2(1080×720), 데스크톱 8:5(1600×1000).
+   높이는 비율에서 자동 산출 → 배너 아래에 원형 카테고리 2줄이 항상 맞게 들어온다. */
 .hero-slide-db {
     width: 100%;
-    aspect-ratio: 1 / 1;          /* 모바일: 1080×1080 정사각에 딱 맞음 */
-    height: auto; min-height: 0; max-height: 66vh;
+    aspect-ratio: 3 / 2;          /* 모바일: 가로형 1080×720 */
+    height: auto; min-height: 0; max-height: none;
     display: flex; align-items: flex-end; color: #fff; overflow: hidden; padding: 0;
 }
 .hero-slide-db .hero-slide-blur {
@@ -5467,7 +5468,7 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .hero-slide-db .hero-slide-cta { margin-top: 18px; margin-bottom: 0; }
 /* 태블릿/와이드/PC: 데스크톱은 가로형 8:5 고정 비율(1600×1000에 딱 맞음) */
 @media (min-width: 700px) {
-    .hero-slide-db { aspect-ratio: 8 / 5; height: auto; max-height: 64vh; }
+    .hero-slide-db { aspect-ratio: 8 / 5; height: auto; max-height: none; }
     .hero-slide-db .hero-slide-text { padding-bottom: 56px; }
     .hero-slide-db .hero-slide-title { font-size: 36px; letter-spacing: -.9px; margin-bottom: 14px; }
     .hero-slide-db .hero-slide-sub { font-size: 16px; }
@@ -5506,10 +5507,9 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .hero-manage-btn[hidden] { display: none; }
 
 /* ============ 브랜드 원형 바로가기 ============ */
-.brand-quicklinks { padding: 14px 0 12px; background: #fff; }
-/* 배너 높이를 줄이면서 원형 카테고리 아래에 생긴 빈 여백(다음 섹션 상단 패딩)을 줄여
-   원형 2줄이 자연스럽게 다음 콘텐츠와 이어지도록 한다 */
-.page-home #homeOnSale { padding-top: 22px; }
+.brand-quicklinks { padding: 16px 0 10px; background: #fff; }
+/* 원형 카테고리 2줄 아래 빈 여백을 최소화해 다음 콘텐츠(판매중인 시계)와 자연스럽게 이어지게 */
+.page-home #homeOnSale { padding-top: 12px; }
 .brand-circle-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
