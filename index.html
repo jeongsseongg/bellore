@@ -2177,6 +2177,24 @@
                 <p class="mypage-security" id="vendorVipNote" hidden>⭐ VIP 업체로 지정되어 있어요. 새 견적 시 카톡 알림톡도 함께 받습니다.</p>
             </div>
 
+            <!-- 관리자 전용: 쿠폰 관리 -->
+            <div class="mypage-section admin-only" hidden id="adminCouponBox">
+                <h4>쿠폰 관리</h4>
+                <button type="button" class="mypage-btn" id="adminAddCouponBtn">+ 쿠폰 만들기</button>
+                <div id="adminCouponList" class="admin-list"></div>
+            </div>
+
+            <!-- 내 쿠폰 -->
+            <div class="mypage-section" id="myCouponSection">
+                <h4>내 쿠폰 <b id="myCouponCount">0</b></h4>
+                <div class="coupon-redeem">
+                    <input type="text" id="couponCodeInput" placeholder="쿠폰 코드 입력">
+                    <button type="button" id="couponCodeBtn">등록</button>
+                </div>
+                <div id="myCouponList"></div>
+                <div id="downloadableCoupons"></div>
+            </div>
+
             <!-- 일반 고객: 소식 기다리는 시계 -->
             <div class="mypage-section customer-only" id="myAlertsSection">
                 <h4>소식 기다리는 시계 <b id="myAlertCount">0</b></h4>
@@ -2448,6 +2466,19 @@
                 </div>
             </section>
 
+            <!-- 쿠폰 -->
+            <section class="co-sec" id="coCouponSec">
+                <h3 class="co-sec-title">쿠폰</h3>
+                <select class="co-coupon-select" id="coCouponSelect">
+                    <option value="">쿠폰 사용 안 함</option>
+                </select>
+                <div class="co-coupon-code">
+                    <input type="text" id="coCouponCode" placeholder="쿠폰 코드 입력">
+                    <button type="button" id="coCouponApply">등록</button>
+                </div>
+                <p class="co-coupon-msg" id="coCouponMsg" hidden></p>
+            </section>
+
             <!-- 토스 결제수단 위젯 -->
             <section class="co-sec">
                 <h3 class="co-sec-title">결제 수단</h3>
@@ -2458,11 +2489,52 @@
 
         <!-- 하단 결제 버튼 -->
         <div class="co-bottom">
+            <div class="co-discount-row" id="coDiscountRow" hidden>
+                <span>쿠폰 할인</span>
+                <strong id="coDiscount">-0원</strong>
+            </div>
             <div class="co-total">
                 <span>최종 결제금액</span>
                 <strong id="coTotal">0원</strong>
             </div>
             <button class="co-pay-btn" id="coPayBtn">결제하기</button>
+        </div>
+    </div>
+
+    <!-- 쿠폰 생성 모달 (관리자) -->
+    <div class="login-modal" id="couponModal" hidden>
+        <div class="login-backdrop" data-cpclose></div>
+        <div class="login-content">
+            <button class="login-close" data-cpclose aria-label="닫기">×</button>
+            <div class="login-head">
+                <p class="login-eyebrow">COUPON</p>
+                <h2>쿠폰 만들기</h2>
+            </div>
+            <div class="cp-form">
+                <label>쿠폰 이름<input type="text" id="cpTitle" placeholder="예: 신규가입 1만원"></label>
+                <label>할인 방식
+                    <select id="cpType">
+                        <option value="amount">정액 (원)</option>
+                        <option value="percent">정률 (%)</option>
+                    </select>
+                </label>
+                <label>할인 값<input type="number" id="cpValue" placeholder="10000 또는 10"></label>
+                <label>정률 최대 할인액 (원, 선택)<input type="number" id="cpMax" placeholder="상한 없음"></label>
+                <label>최소 사용 금액 (원)<input type="number" id="cpMin" placeholder="0"></label>
+                <label>사용처
+                    <select id="cpApply">
+                        <option value="both">구매결제 + 위탁수수료</option>
+                        <option value="order">구매결제만</option>
+                        <option value="commission">위탁수수료만</option>
+                    </select>
+                </label>
+                <label>쿠폰 코드 (선택, 코드입력용)<input type="text" id="cpCode" placeholder="WELCOME10"></label>
+                <label class="cp-check"><input type="checkbox" id="cpDownloadable"> 이벤트 페이지에서 다운로드 허용</label>
+                <label>1인당 보유 수<input type="number" id="cpPerUser" value="1"></label>
+                <label>전체 발급 수량 (선택)<input type="number" id="cpLimit" placeholder="무제한"></label>
+                <label>만료일 (선택)<input type="date" id="cpExpires"></label>
+                <button type="button" class="co-pay-btn" id="cpSave">쿠폰 생성</button>
+            </div>
         </div>
     </div>
 

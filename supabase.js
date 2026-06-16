@@ -922,6 +922,8 @@
       product_price: data.productPrice || null,
       pay_type: data.payType || 'deposit',
       amount: data.amount,
+      coupon_user_id: data.couponUserId || null,
+      discount: data.discount || 0,
       buyer_name: data.buyerName || (profile && profile.name) || null,
       buyer_phone: data.buyerPhone || (profile && profile.phone) || null,
       memo: data.memo || null,
@@ -979,6 +981,94 @@
     ]).then(function (r) {
       return { pending: r[0], open: r[1], listings: r[2], posts: r[3], reviews: r[4], vendorsPending: r[5] };
     });
+  };
+
+  /* ---------------- 쿠폰 (coupons / user_coupons) ---------------- */
+  function mapCoupon(c) {
+    return {
+      id: c.id, code: c.code || '', title: c.title || '쿠폰',
+      discount_type: c.discount_type || 'amount',
+      discount_value: Number(c.discount_value) || 0,
+      max_discount: c.max_discount != null ? Number(c.max_discount) : null,
+      min_order: Number(c.min_order) || 0,
+      apply_to: c.apply_to || 'both',
+      downloadable: !!c.downloadable,
+      usage_limit: c.usage_limit != null ? Number(c.usage_limit) : null,
+      per_user_limit: c.per_user_limit != null ? Number(c.per_user_limit) : 1,
+      starts_at: c.starts_at || null, expires_at: c.expires_at || null,
+      active: c.active !== false
+    };
+  }
+  function mapUserCoupon(uc) {
+    return {
+      id: uc.id, couponId: uc.coupon_id, status: uc.status || 'active',
+      usedAt: uc.used_at || null, createdAt: uc.created_at || null,
+      coupon: uc.coupons ? mapCoupon(uc.coupons) : null
+    };
+  }
+  function couponExpired(c) {
+    return !!(c && c.expires_at && new Date(c.expires_at).getTime() < Date.now());
+  }
+  // 할인액 계산 (정액/정률, 최소금액·상한 반영) — 화면/결제 공용
+  function couponDiscount(c, base) {
+    base = Number(base) || 0;
+    if (!c || base <= 0 || couponExpired(c)) return 0;
+    if (c.min_order && base < c.min_order) return 0;
+    var d = 0;
+    if (c.discount_type === 'percent') {
+      d = Math.floor(base * (Number(c.discount_value) || 0) / 100);
+      if (c.max_discount) d = Math.min(d, Number(c.max_discount));
+    } else {
+      d = Number(c.discount_value) || 0;
+    }
+    return Math.max(0, Math.min(d, base));
+  }
+  Backend.couponDiscount = couponDiscount;
+  function rpcOut(res) { if (res.error) throw res.error; return res.data; }
+
+  // 내 보유 쿠폰 (사용가능/사용완료 모두)
+  Backend.myCoupons = function () {
+    if (!rawUser) return Promise.resolve([]);
+    return sb.from('user_coupons').select('*, coupons(*)').eq('user_id', rawUser.id)
+      .order('created_at', { ascending: false })
+      .then(function (res) { if (res.error) throw res.error; return (res.data || []).map(mapUserCoupon); });
+  };
+  // 다운로드 가능한 쿠폰(팝업/이벤트) — 활성·만료 전
+  Backend.downloadableCoupons = function () {
+    return sb.from('coupons').select('*').eq('downloadable', true).eq('active', true)
+      .then(function (res) {
+        return (res.data || []).map(mapCoupon).filter(function (c) { return !couponExpired(c); });
+      });
+  };
+  Backend.claimCouponByCode = function (code) { return sb.rpc('claim_coupon_by_code', { p_code: code }).then(rpcOut); };
+  Backend.claimCoupon = function (id) { return sb.rpc('claim_coupon', { p_coupon_id: id }).then(rpcOut); };
+  Backend.grantCoupon = function (couponId, userId) { return sb.rpc('admin_grant_coupon', { p_coupon_id: couponId, p_user_id: userId }).then(rpcOut); };
+  Backend.redeemUserCoupon = function (id, ctx) { return sb.rpc('redeem_user_coupon', { p_user_coupon_id: id, p_context: ctx || 'commission' }).then(rpcOut); };
+
+  // 관리자: 쿠폰 목록/생성/삭제/활성토글
+  Backend.listCoupons = function () {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    return sb.from('coupons').select('*').order('created_at', { ascending: false })
+      .then(function (res) { if (res.error) throw res.error; return (res.data || []).map(mapCoupon); });
+  };
+  Backend.createCoupon = function (d) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    return sb.from('coupons').insert({
+      code: d.code ? String(d.code).toUpperCase().trim() : null,
+      title: d.title, discount_type: d.discountType || 'amount',
+      discount_value: d.discountValue || 0, max_discount: d.maxDiscount || null,
+      min_order: d.minOrder || 0, apply_to: d.applyTo || 'both',
+      downloadable: !!d.downloadable, usage_limit: d.usageLimit || null,
+      per_user_limit: d.perUserLimit || 1, expires_at: d.expiresAt || null
+    }).select().single().then(function (res) { if (res.error) throw res.error; return mapCoupon(res.data); });
+  };
+  Backend.deleteCoupon = function (id) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    return sb.from('coupons').delete().eq('id', id).then(function (res) { if (res.error) throw res.error; });
+  };
+  Backend.setCouponActive = function (id, active) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    return sb.from('coupons').update({ active: !!active }).eq('id', id).then(function (res) { if (res.error) throw res.error; });
   };
 
   /* ---------------- 히어로 배너 (banners) ---------------- */

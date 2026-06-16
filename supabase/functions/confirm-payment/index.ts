@@ -96,6 +96,20 @@ Deno.serve(async (req) => {
       .select()
       .single();
 
+    // 4) 쿠폰 사용 확정 (결제 성공 시에만)
+    if (order.coupon_user_id) {
+      await admin
+        .from("user_coupons")
+        .update({
+          status: "used",
+          used_at: new Date().toISOString(),
+          order_id: order.id,
+          used_context: "order",
+        })
+        .eq("id", order.coupon_user_id)
+        .eq("status", "active");
+    }
+
     return json({ ok: true, order: updated, payment: toss });
   } catch (e) {
     return json({ error: "server_error", detail: String(e) }, 500);

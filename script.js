@@ -58,6 +58,7 @@
         initInquiryModal();
         initReveal();
         initParallax();
+        initCoupons();
         initBackendSync();
         initInstallPrompt();
         initPwaModal();
@@ -600,6 +601,193 @@
                 '</span>' +
             '</div>';
         }).join('');
+    }
+
+    /* ============ 쿠폰 ============ */
+    function couponValueText(c) {
+        if (!c) return '';
+        return c.discount_type === 'percent' ? (c.discount_value + '%') : (fmt(c.discount_value) + '원');
+    }
+    function couponApplyLabel(a) {
+        return a === 'order' ? '구매결제' : a === 'commission' ? '위탁수수료' : '구매+수수료';
+    }
+    function couponMetaText(c) {
+        var parts = [couponApplyLabel(c.apply_to)];
+        if (c.min_order) parts.push(fmt(c.min_order) + '원 이상');
+        if (c.discount_type === 'percent' && c.max_discount) parts.push('최대 ' + fmt(c.max_discount) + '원');
+        if (c.expires_at) parts.push('~' + String(c.expires_at).slice(0, 10));
+        return parts.join(' · ');
+    }
+    function couponExpired(c) { return !!(c && c.expires_at && new Date(c.expires_at).getTime() < Date.now()); }
+
+    function myCouponCardHtml(uc) {
+        var c = uc.coupon || {};
+        var used = uc.status === 'used';
+        var expired = !used && couponExpired(c);
+        var cls = 'coupon-card' + (used ? ' used' : '') + (expired ? ' expired' : '');
+        return '<div class="' + cls + '">' +
+            '<div class="cc-val">' + couponValueText(c) + '</div>' +
+            '<div class="cc-body"><strong>' + esc(c.title || '쿠폰') + '</strong>' +
+            '<span>' + esc(couponMetaText(c)) + '</span></div>' +
+            (used ? '<span class="cc-tag">사용완료</span>' : expired ? '<span class="cc-tag">기간만료</span>' : '') +
+            '</div>';
+    }
+
+    function renderMyCoupons() {
+        var sec = $('#myCouponSection');
+        if (!sec || !backendOn() || !NWBackend.myCoupons) { if (sec) sec.hidden = true; return; }
+        NWBackend.myCoupons().then(function (list) {
+            var ownedIds = list.map(function (u) { return u.couponId; });
+            var active = list.filter(function (u) { return u.status === 'active' && u.coupon && !couponExpired(u.coupon); });
+            var cnt = $('#myCouponCount'); if (cnt) cnt.textContent = active.length;
+            var el = $('#myCouponList');
+            if (el) {
+                el.innerHTML = list.length
+                    ? list.map(myCouponCardHtml).join('')
+                    : '<p class="coupon-empty">보유한 쿠폰이 없습니다.</p>';
+            }
+            renderDownloadable(ownedIds);
+        }).catch(function () {});
+    }
+
+    function renderDownloadable(ownedIds) {
+        var box = $('#downloadableCoupons');
+        if (!box || !NWBackend.downloadableCoupons) return;
+        NWBackend.downloadableCoupons().then(function (list) {
+            var avail = (list || []).filter(function (c) { return ownedIds.indexOf(c.id) < 0; });
+            if (!avail.length) { box.innerHTML = ''; return; }
+            box.innerHTML = '<h5 class="coupon-sub">받을 수 있는 쿠폰</h5>' + avail.map(function (c) {
+                return '<div class="coupon-card down">' +
+                    '<div class="cc-val">' + couponValueText(c) + '</div>' +
+                    '<div class="cc-body"><strong>' + esc(c.title) + '</strong>' +
+                    '<span>' + esc(couponMetaText(c)) + '</span></div>' +
+                    '<button type="button" class="cc-get" data-cpget="' + esc(c.id) + '">받기</button></div>';
+            }).join('');
+        }).catch(function () {});
+    }
+
+    function renderAdminCoupons() {
+        var el = $('#adminCouponList');
+        if (!el || !NWBackend.listCoupons) return;
+        NWBackend.listCoupons().then(function (list) {
+            el.innerHTML = list.length ? list.map(function (c) {
+                return '<div class="admin-list-item">' +
+                    '<span class="av-main">' + esc(c.title) + ' · ' + couponValueText(c) +
+                    (c.code ? ' · 코드 ' + esc(c.code) : '') + (c.active ? '' : ' · 비활성') +
+                    (c.downloadable ? ' · 다운로드' : '') + '</span>' +
+                    '<span class="av-acct">' + esc(couponMetaText(c)) + '</span>' +
+                    '<span class="av-btns">' +
+                    '<button type="button" data-cptoggle="' + esc(c.id) + '" data-on="' + (c.active ? '1' : '0') + '">' + (c.active ? '비활성화' : '활성화') + '</button>' +
+                    '<button type="button" data-cpdel="' + esc(c.id) + '">삭제</button>' +
+                    '</span></div>';
+            }).join('') : '<div class="admin-list-item"><span>쿠폰이 없습니다.</span></div>';
+        }).catch(function () {});
+    }
+
+    function initCoupons() {
+        if (!backendOn() || !NWBackend.onAuthChange) return;
+        window.belloreRefreshCoupons = renderMyCoupons;
+
+        // 코드 등록(마이페이지)
+        var codeBtn = $('#couponCodeBtn');
+        if (codeBtn) codeBtn.addEventListener('click', function () {
+            var code = ($('#couponCodeInput').value || '').trim();
+            if (!code) { alert('쿠폰 코드를 입력해 주세요.'); return; }
+            codeBtn.disabled = true;
+            NWBackend.claimCouponByCode(code).then(function () {
+                $('#couponCodeInput').value = '';
+                alert('쿠폰이 등록되었습니다.');
+                renderMyCoupons();
+            }).catch(function (e) { alert(couponClaimErr(e)); })
+                .then(function () { codeBtn.disabled = false; });
+        });
+
+        // 쿠폰 받기/삭제/토글 (위임)
+        document.addEventListener('click', function (e) {
+            var get = e.target.closest('[data-cpget]');
+            var del = e.target.closest('[data-cpdel]');
+            var tg = e.target.closest('[data-cptoggle]');
+            if (get) {
+                get.disabled = true;
+                NWBackend.claimCoupon(get.dataset.cpget).then(function () {
+                    alert('쿠폰을 받았습니다.'); renderMyCoupons();
+                }).catch(function (err) { alert(couponClaimErr(err)); get.disabled = false; });
+            } else if (del) {
+                if (confirm('이 쿠폰을 삭제할까요?')) {
+                    NWBackend.deleteCoupon(del.dataset.cpdel)
+                        .then(renderAdminCoupons).catch(function (err) { alert('삭제 실패: ' + (err && err.message || err)); });
+                }
+            } else if (tg) {
+                NWBackend.setCouponActive(tg.dataset.cptoggle, tg.dataset.on !== '1')
+                    .then(renderAdminCoupons).catch(function (err) { alert('변경 실패: ' + (err && err.message || err)); });
+            }
+        });
+
+        // 쿠폰 만들기 모달
+        var addBtn = $('#adminAddCouponBtn');
+        var cpModal = $('#couponModal');
+        if (addBtn && cpModal) {
+            addBtn.addEventListener('click', function () {
+                cpModal.hidden = false; document.body.style.overflow = 'hidden';
+            });
+            cpModal.addEventListener('click', function (e) {
+                if (e.target.closest('[data-cpclose]')) { cpModal.hidden = true; document.body.style.overflow = ''; }
+            });
+            var saveBtn = $('#cpSave');
+            if (saveBtn) saveBtn.addEventListener('click', function () {
+                var title = ($('#cpTitle').value || '').trim();
+                var value = parseInt($('#cpValue').value, 10) || 0;
+                if (!title || value <= 0) { alert('쿠폰 이름과 할인 값을 입력해 주세요.'); return; }
+                saveBtn.disabled = true;
+                NWBackend.createCoupon({
+                    title: title,
+                    discountType: $('#cpType').value,
+                    discountValue: value,
+                    maxDiscount: parseInt($('#cpMax').value, 10) || null,
+                    minOrder: parseInt($('#cpMin').value, 10) || 0,
+                    applyTo: $('#cpApply').value,
+                    code: ($('#cpCode').value || '').trim() || null,
+                    downloadable: $('#cpDownloadable').checked,
+                    perUserLimit: parseInt($('#cpPerUser').value, 10) || 1,
+                    usageLimit: parseInt($('#cpLimit').value, 10) || null,
+                    expiresAt: $('#cpExpires').value ? new Date($('#cpExpires').value + 'T23:59:59').toISOString() : null
+                }).then(function () {
+                    cpModal.hidden = true; document.body.style.overflow = '';
+                    ['cpTitle', 'cpValue', 'cpMax', 'cpMin', 'cpCode', 'cpLimit', 'cpExpires'].forEach(function (id) { var n = $('#' + id); if (n) n.value = ''; });
+                    $('#cpDownloadable').checked = false; $('#cpPerUser').value = '1';
+                    alert('쿠폰을 생성했습니다.'); renderAdminCoupons(); renderMyCoupons();
+                }).catch(function (err) { alert('생성 실패: ' + (err && err.message || err)); })
+                    .then(function () { saveBtn.disabled = false; });
+            });
+        }
+
+        NWBackend.onAuthChange(function (user, info) {
+            var adminBox = $('#adminCouponBox');
+            if (adminBox) {
+                var isAdmin = !!(info && info.isAdmin);
+                adminBox.hidden = !isAdmin;
+                if (isAdmin) renderAdminCoupons();
+            }
+            var mySec = $('#myCouponSection');
+            if (mySec) mySec.hidden = !user;
+            if (user) renderMyCoupons();
+            else {
+                var el = $('#myCouponList'); if (el) el.innerHTML = '';
+                var dl = $('#downloadableCoupons'); if (dl) dl.innerHTML = '';
+            }
+        });
+    }
+
+    function couponClaimErr(e) {
+        var m = (e && (e.message || e.code)) || '';
+        if (/NOT_FOUND/.test(m)) return '존재하지 않는 쿠폰입니다.';
+        if (/ALREADY_OWNED/.test(m)) return '이미 보유한 쿠폰입니다.';
+        if (/EXPIRED/.test(m)) return '만료된 쿠폰입니다.';
+        if (/NOT_STARTED/.test(m)) return '아직 받을 수 없는 쿠폰입니다.';
+        if (/SOLD_OUT/.test(m)) return '발급이 마감되었습니다.';
+        if (/DOWNLOADABLE/.test(m)) return '다운로드할 수 없는 쿠폰입니다.';
+        if (/LOGGED_IN/.test(m)) return '로그인이 필요합니다.';
+        return '쿠폰을 받을 수 없습니다.';
     }
 
     function relTime(ts) {

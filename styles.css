@@ -7008,3 +7008,74 @@ body.is-searching .tabbar { display: none !important; }
 .home-sale-grid .hcard-img,
 .col-grid-inner .hcard-img,
 .hcard-grid .hcard-img { flex: 0 0 auto; }
+
+/* ============ 쿠폰 ============ */
+/* 체크아웃 쿠폰 영역 */
+.co-coupon-select {
+    width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px;
+    font-size: 14px; background: #fff; color: var(--text); margin-bottom: 10px;
+}
+.co-coupon-code { display: flex; gap: 8px; }
+.co-coupon-code input {
+    flex: 1; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 14px;
+}
+.co-coupon-code button {
+    flex: 0 0 auto; padding: 0 18px; border: 1px solid var(--text); border-radius: 10px;
+    background: var(--text); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.co-coupon-msg { margin: 8px 0 0; font-size: 13px; }
+.co-coupon-msg.ok { color: #1a7f37; }
+.co-coupon-msg.err { color: #c0392b; }
+.co-discount-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 14px; color: #c0392b; margin-bottom: 6px;
+}
+.co-discount-row strong { font-weight: 700; }
+
+/* 마이페이지 쿠폰 등록 */
+.coupon-redeem { display: flex; gap: 8px; margin-bottom: 14px; }
+.coupon-redeem input {
+    flex: 1; padding: 11px 13px; border: 1px solid var(--border); border-radius: 10px; font-size: 14px;
+}
+.coupon-redeem button {
+    flex: 0 0 auto; padding: 0 18px; border: 1px solid var(--text); border-radius: 10px;
+    background: var(--text); color: #fff; font-weight: 600; cursor: pointer;
+}
+.coupon-empty { color: var(--text-2); font-size: 14px; padding: 6px 0; }
+.coupon-sub { margin: 18px 0 10px; font-size: 14px; font-weight: 700; color: var(--text); }
+
+/* 쿠폰 카드 */
+.coupon-card {
+    display: flex; align-items: center; gap: 14px;
+    border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
+    background: linear-gradient(90deg, #faf7f2 0, #fff 70px);
+    position: relative;
+}
+.coupon-card .cc-val {
+    flex: 0 0 auto; min-width: 72px; text-align: center;
+    font-size: 20px; font-weight: 800; color: var(--text); line-height: 1.1;
+    border-right: 1px dashed var(--border); padding-right: 14px;
+}
+.coupon-card .cc-body { flex: 1 1 auto; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.coupon-card .cc-body strong { font-size: 15px; font-weight: 700; color: var(--text); }
+.coupon-card .cc-body span { font-size: 12px; color: var(--text-2); }
+.coupon-card .cc-tag {
+    flex: 0 0 auto; font-size: 12px; font-weight: 700; color: var(--text-2);
+    background: #ececec; border-radius: 6px; padding: 4px 8px;
+}
+.coupon-card.used, .coupon-card.expired { opacity: .5; }
+.coupon-card .cc-get {
+    flex: 0 0 auto; padding: 9px 16px; border: none; border-radius: 8px;
+    background: var(--green-bright, #1a7f37); color: #fff; font-weight: 700; font-size: 13px; cursor: pointer;
+}
+.coupon-card.down { background: linear-gradient(90deg, #f1f7f3 0, #fff 70px); }
+
+/* 쿠폰 만들기 폼 */
+.cp-form { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+.cp-form label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text-2); font-weight: 600; }
+.cp-form input, .cp-form select {
+    padding: 11px 13px; border: 1px solid var(--border); border-radius: 10px; font-size: 14px; color: var(--text);
+}
+.cp-form .cp-check { flex-direction: row; align-items: center; gap: 8px; }
+.cp-form .cp-check input { width: auto; }
+.cp-form .co-pay-btn { margin-top: 6px; }

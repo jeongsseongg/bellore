@@ -58,13 +58,76 @@
     updateAmount();
   }
 
-  function currentAmount() {
+  /* ---------------- 쿠폰 ---------------- */
+  var myCoupons = [];
+  function escLite(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function couponValTxt(c) {
+    if (!c) return '';
+    return c.discount_type === 'percent' ? (c.discount_value + '%') : (fmt(c.discount_value) + '원');
+  }
+  function getSelectedCoupon() {
+    var sel = $('#coCouponSelect');
+    if (!sel || !sel.value) return null;
+    for (var i = 0; i < myCoupons.length; i++) if (myCoupons[i].id === sel.value) return myCoupons[i];
+    return null;
+  }
+  function currentDiscount(base) {
+    var uc = getSelectedCoupon();
+    if (!uc || !window.NWBackend || !window.NWBackend.couponDiscount) return 0;
+    return window.NWBackend.couponDiscount(uc.coupon, base);
+  }
+  function baseAmount() {
     if (!product) return 0;
     return payType === 'full' ? calcFull(product.price) : calcDeposit(product.price);
   }
+  function currentAmount() {
+    var b = baseAmount();
+    return Math.max(0, b - currentDiscount(b));
+  }
+  // 구매결제에 쓸 수 있는 내 쿠폰을 셀렉트에 채운다
+  function loadCoupons() {
+    var sec = $('#coCouponSec'), sel = $('#coCouponSelect');
+    if (!sel) return Promise.resolve();
+    if (!(backendOn() && window.NWBackend.myCoupons)) { if (sec) sec.hidden = true; return Promise.resolve(); }
+    return window.NWBackend.myCoupons().then(function (list) {
+      myCoupons = (list || []).filter(function (u) {
+        var c = u.coupon;
+        return u.status === 'active' && c && (c.apply_to === 'order' || c.apply_to === 'both') &&
+          !(c.expires_at && new Date(c.expires_at).getTime() < Date.now());
+      });
+      sel.innerHTML = '<option value="">쿠폰 사용 안 함</option>' + myCoupons.map(function (u) {
+        return '<option value="' + u.id + '">' + escLite(u.coupon.title) + ' (' + couponValTxt(u.coupon) + ')</option>';
+      }).join('');
+      if (sec) sec.hidden = false;
+      updateAmount();
+    }).catch(function () {});
+  }
+  function setCouponMsg(text, ok) {
+    var el = $('#coCouponMsg');
+    if (!el) return;
+    el.textContent = text; el.hidden = !text;
+    el.className = 'co-coupon-msg' + (ok ? ' ok' : ' err');
+  }
+  function couponErrText(e) {
+    var m = (e && (e.message || e.code)) || '';
+    if (/NOT_FOUND/.test(m)) return '존재하지 않는 코드입니다.';
+    if (/ALREADY_OWNED/.test(m)) return '이미 보유한 쿠폰입니다.';
+    if (/EXPIRED/.test(m)) return '만료된 쿠폰입니다.';
+    if (/NOT_STARTED/.test(m)) return '아직 사용할 수 없는 쿠폰입니다.';
+    if (/SOLD_OUT/.test(m)) return '발급이 마감된 쿠폰입니다.';
+    if (/LOGGED_IN/.test(m)) return '로그인이 필요합니다.';
+    return '쿠폰을 등록할 수 없습니다.';
+  }
 
   function updateAmount() {
-    var amt = currentAmount();
+    var b = baseAmount();
+    var disc = currentDiscount(b);
+    var amt = Math.max(0, b - disc);
+    var row = $('#coDiscountRow'), dEl = $('#coDiscount');
+    if (row) row.hidden = !(disc > 0);
+    if (dEl) dEl.textContent = '-' + fmt(disc) + '원';
     var totalEl = $('#coTotal');
     if (totalEl) totalEl.textContent = fmt(amt) + '원';
     if (tossWidgets && amt > 0) {
@@ -131,6 +194,11 @@
     payType = 'deposit';
     setPayType('deposit');
     renderProduct();
+    // 쿠폰 초기화 후 내 쿠폰 로드
+    var cSel = $('#coCouponSelect'); if (cSel) cSel.value = '';
+    var cCode = $('#coCouponCode'); if (cCode) cCode.value = '';
+    setCouponMsg('', true);
+    loadCoupons();
     modal.hidden = false;
     document.body.style.overflow = 'hidden';
     var sc = modal.querySelector('.co-scroll');
@@ -158,7 +226,11 @@
       return;
     }
 
-    var amount = currentAmount();
+    var uc = getSelectedCoupon();
+    var base = baseAmount();
+    var discount = uc ? currentDiscount(base) : 0;
+    var amount = Math.max(0, base - discount);
+    if (amount < 100) { alert('쿠폰 할인 후 결제금액이 너무 적습니다. 다른 결제 방식을 선택해 주세요.'); return; }
     var orderName = (product.brand ? product.brand + ' ' : '') + (product.model || '상품');
     if (payType === 'deposit') orderName += ' (예약금)';
 
@@ -176,6 +248,8 @@
           productPrice: product.price,
           payType: payType,
           amount: amount,
+          couponUserId: uc ? uc.id : null,
+          discount: discount,
           buyerName: name,
           buyerPhone: phone
         })
@@ -250,6 +324,7 @@
 
       doConfirm.then(function (res) {
         if (res && (res.ok || res.alreadyPaid)) {
+          if (window.belloreRefreshCoupons) window.belloreRefreshCoupons();
           showResult(true, '결제가 완료되었습니다',
             '주문번호 ' + (orderId || '') + '\n마이페이지에서 주문 내역을 확인하실 수 있습니다.');
         } else if (res && res.demo) {
@@ -278,6 +353,29 @@
 
     var payBtn = $('#coPayBtn');
     if (payBtn) payBtn.addEventListener('click', requestPay);
+
+    // 쿠폰 선택 변경 → 금액 재계산
+    var cSel = $('#coCouponSelect');
+    if (cSel) cSel.addEventListener('change', updateAmount);
+
+    // 쿠폰 코드 등록
+    var cApply = $('#coCouponApply');
+    if (cApply) cApply.addEventListener('click', function () {
+      var code = ($('#coCouponCode').value || '').trim();
+      if (!code) { setCouponMsg('쿠폰 코드를 입력해 주세요.', false); return; }
+      if (!(backendOn() && window.NWBackend.claimCouponByCode)) { setCouponMsg('로그인이 필요합니다.', false); return; }
+      cApply.disabled = true;
+      window.NWBackend.claimCouponByCode(code).then(function (newUc) {
+        setCouponMsg('쿠폰이 등록되었습니다.', true);
+        $('#coCouponCode').value = '';
+        return loadCoupons().then(function () {
+          var sel = $('#coCouponSelect');
+          if (sel && newUc && newUc.id) { sel.value = newUc.id; updateAmount(); }
+          if (window.belloreRefreshCoupons) window.belloreRefreshCoupons();
+        });
+      }).catch(function (e) { setCouponMsg(couponErrText(e), false); })
+        .then(function () { cApply.disabled = false; });
+    });
 
     var prHome = $('#prHome');
     if (prHome) prHome.addEventListener('click', function () {
