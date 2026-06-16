@@ -164,13 +164,14 @@
         track.addEventListener('pointerup', endDrag);
         track.addEventListener('pointercancel', endDrag);
 
-        // 뷰포트별 전용 이미지만 사용 (폴백으로 다른 규격을 끌어와 잘리게 하지 않는다)
-        // 해당 뷰포트 이미지가 없으면 url:'' → 플레이스홀더(로고+안내) 표시
+        // 뷰포트에 맞는 전용 이미지를 우선 사용하되, 없으면 다른 규격으로 폴백한다.
+        // (배경은 contain+블러라 폴백 이미지도 잘리지 않고 안전하게 노출 → 관리자 안내문구와 동작 일치)
+        // 한 슬롯이라도 채워져 있으면 항상 이미지가 보인다.
         function pickBannerImg(b) {
             var w = window.innerWidth || document.documentElement.clientWidth || 0;
-            if (w >= 1024) return b.imagePc || '';
-            if (w >= 700) return b.imageWide || '';
-            return b.image || '';
+            if (w >= 1024) return b.imagePc || b.imageWide || b.image || '';
+            if (w >= 700) return b.imageWide || b.imagePc || b.image || '';
+            return b.image || b.imageWide || b.imagePc || '';
         }
         function applySlideBg(slide) {
             var b = slide._banner; if (!b) return;
@@ -628,6 +629,7 @@
     }
 
     function renderVendorList(vendors) {
+        _adminCache.vendors = vendors || [];
         var el = $('#adminList');
         if (!el) return;
         if (!vendors || !vendors.length) {
@@ -838,6 +840,7 @@
     }
 
     /* ============ 관리자 대시보드 / 관리 패널 ============ */
+    var _adminCache = { pending: [], vendors: [] };
     function renderAdminDash() {
         var box = $('#adminDash');
         if (!box || !backendOn() || !NWBackend.adminOrderStats) return;
@@ -873,7 +876,13 @@
         $$('.admin-panel-view', p).forEach(function (sec) { sec.hidden = sec.dataset.apv !== view; });
         var titles = { quotes: '비교견적 승인', vendors: '업체 승인', accounts: '회원 계정', coupons: '쿠폰 관리', listings: '판매시계 관리' };
         var t = $('#adminPanelTitle'); if (t) t.textContent = titles[view] || '관리';
+        // 패널을 열 때 항목을 즉시 다시 그려, 첫 진입에서 빈 화면이 보이지 않게 한다
+        // (구독이 비동기로 들어오는 사이 들어와도 캐시로 바로 채움)
+        if (view === 'quotes') renderAdminPending(_adminCache.pending);
+        else if (view === 'vendors') renderVendorList(_adminCache.vendors);
+        else if (view === 'coupons') renderAdminCoupons();
         p.hidden = false; document.body.style.overflow = 'hidden';
+        var sc = $('.admin-panel-scroll', p); if (sc) sc.scrollTop = 0;
     }
     function closeAdminPanel() {
         var p = $('#adminPanel');
@@ -1729,7 +1738,8 @@
             else if (window.disableAdminMode) { disableAdminMode(); }
             updateAuthUI(user);
             // 비교견적 라이브보드 모자이크 갱신
-            _liveBoardLoggedIn = !!(user && (authInfo.role === 'vendor' || authInfo.role === 'admin' || authInfo.isAdmin));
+            // 로그인한 회원(업체 포함)에게는 금액·업체명을 공개 — 로그인 후엔 안내문구 숨김
+            _liveBoardLoggedIn = !!user;
             if (_liveBoardRender) _liveBoardRender();
             updateLiveLockNotice();
         });
@@ -2007,6 +2017,7 @@
 
     // 관리자: 승인 대기 매물 목록
     function renderAdminPending(rows) {
+        _adminCache.pending = rows || [];
         var box = $('#adminPending');
         if (!box) return;
         if (!rows.length) {

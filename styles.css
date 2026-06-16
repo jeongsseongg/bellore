@@ -4525,10 +4525,14 @@ body.admin-mode .main-wrap { padding-top: 0; }
 }
 
 /* ========== 비교견적 폼 ========== */
-/* 내시계팔기 최상단(랜딩)에 고정 헤더(로고바+카테고리바) 높이만큼 여백 확보 */
-.compare-top-pad { padding-top: calc(var(--header-h) + 64px); }
-/* 폼은 더 이상 최상단이 아니므로 일반 섹션 여백 사용 */
-.compare-form-top { padding-top: 0; }
+/* 내시계팔기 최상단(랜딩): 고정 헤더(로고바+카테고리바) 높이만큼만 띄우고
+   그 외 위·아래 여백은 0 → 상단탭과 랜딩이미지 사이, 랜딩이미지와 폼 사이 빈 공간 제거 */
+.compare-top-pad {
+    padding-top: calc(var(--header-h) + 52px + env(safe-area-inset-top));
+    padding-bottom: 0;
+}
+/* 폼은 랜딩 이미지 바로 아래에 붙되, 글씨가 이미지에 닿지 않게 최소 여백만 */
+.compare-form-top { padding-top: 26px; }
 .page-hero-compare {
     background-image: url('assets/2026-03-18_이미지자료_193412.jpg');
 }
@@ -5455,17 +5459,23 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
     background: linear-gradient(180deg, rgba(0,0,0,.28) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0) 68%, rgba(0,0,0,.42) 100%);
 }
 .hero-slide-db .hero-slide-title, .hero-slide-db .hero-slide-sub { text-shadow: 0 2px 14px rgba(0,0,0,.55); }
-.hero-slide-db .hero-slide-text { padding: 0 0 84px; position: relative; z-index: 3; }
-.hero-slide-db .hero-slide-title { font-size: 44px; font-weight: 700; line-height: 1.22; letter-spacing: -1px; margin-bottom: 18px; }
-.hero-slide-db .hero-slide-sub { font-size: 16px; color: rgba(255,255,255,.82); line-height: 1.6; }
-.hero-slide-db .hero-slide-cta { margin-top: 28px; margin-bottom: 0; }
+/* 문구는 좌측 정렬 + 화면 폭을 넘지 않게(모바일에서 줄바꿈으로 깨져보이지 않도록) */
+.hero-slide-db .hero-slide-text { padding: 0 0 32px; position: relative; z-index: 3; text-align: left; width: 100%; box-sizing: border-box; }
+.hero-slide-db .hero-slide-title { font-size: 26px; font-weight: 700; line-height: 1.25; letter-spacing: -.6px; margin-bottom: 10px; word-break: keep-all; }
+.hero-slide-db .hero-slide-sub { font-size: 14px; color: rgba(255,255,255,.85); line-height: 1.55; word-break: keep-all; }
+.hero-slide-db .hero-slide-cta { margin-top: 18px; margin-bottom: 0; }
 /* 태블릿/와이드: 가로형 와이드 이미지 규격 */
 @media (min-width: 700px) {
     .hero-slide-db { height: min(58vh, 520px); max-height: none; }
+    .hero-slide-db .hero-slide-text { padding-bottom: 56px; }
+    .hero-slide-db .hero-slide-title { font-size: 36px; letter-spacing: -.9px; margin-bottom: 14px; }
+    .hero-slide-db .hero-slide-sub { font-size: 16px; }
 }
 /* PC: 가로 와이드 이미지 규격 */
 @media (min-width: 1024px) {
     .hero-slide-db { height: min(72vh, 660px); max-height: none; }
+    .hero-slide-db .hero-slide-text { padding-bottom: 84px; }
+    .hero-slide-db .hero-slide-title { font-size: 44px; letter-spacing: -1px; margin-bottom: 18px; }
 }
 
 /* 화살표 */
