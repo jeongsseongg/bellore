@@ -5411,7 +5411,7 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
    높이는 비율에서 자동 산출 → 배너 아래에 원형 카테고리 2줄이 항상 맞게 들어온다. */
 .hero-slide-db {
     width: 100%;
-    aspect-ratio: 24 / 19;        /* 모바일: 가로형 1440×1140 */
+    aspect-ratio: 8 / 9;          /* 모바일: 세로형 1440×1620 (세로 더 길게) */
     height: auto; min-height: 0; max-height: none;
     display: flex; align-items: flex-end; color: #fff; overflow: hidden; padding: 0;
 }
@@ -6828,6 +6828,12 @@ body.is-searching .tabbar { display: none !important; }
     position: absolute; top: 6px; left: 6px; z-index: 2;
     background: var(--dark-green, #111); color: #fff; font-size: 10px; font-weight: 800;
     padding: 3px 8px; border-radius: 999px; letter-spacing: .5px;
+}
+/* 업로드한 배너의 실제 픽셀 크기 표시(수정 화면) */
+.cell-size {
+    position: absolute; left: 6px; bottom: 6px; z-index: 2;
+    background: rgba(0, 0, 0, .72); color: #fff; font-size: 10px; font-weight: 700;
+    padding: 3px 7px; border-radius: 6px; letter-spacing: .3px;
 }
 
 /* ============================================================
