@@ -7707,6 +7707,76 @@ body.is-searching .tabbar { display: none !important; }
 .cqo-locked b { color: #1f3b34; }
 .cqo-foot { display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 11.5px; color: #a39c8c; margin-top: 14px; }
 
+/* ============================================================
+   비교견적 시안(이미지) 정밀 반영 — 썸네일/스펙카드/결과목록/예상견적
+   ============================================================ */
+
+/* 목록 썸네일(실제 사진) */
+.cqd-thumb { flex: 0 0 auto; width: 52px; height: 52px; border-radius: 12px; overflow: hidden;
+  background: #f1efe9; display: inline-flex; align-items: center; justify-content: center; }
+.cqd-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cqd-thumb.ph { font-size: 24px; color: #c3bdae; }
+
+/* 시계 정보 카드(시안 공통) */
+.cqs-card { background: #fff; border-radius: 18px; padding: 18px; margin-bottom: 14px;
+  box-shadow: 0 6px 22px rgba(20,30,26,.07); }
+.cqs-top { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.cqs-txt { min-width: 0; }
+.cqs-brand { font-size: 22px; font-weight: 900; color: #15140f; letter-spacing: .6px; line-height: 1.1; }
+.cqs-model { font-size: 14.5px; color: #6f6a5e; margin-top: 5px; }
+.cqs-ref { font-size: 12px; color: #a39c8c; margin-top: 4px; letter-spacing: .3px; }
+.cqs-photo { width: 84px; height: 84px; border-radius: 14px; object-fit: cover; background: #f1efe9; flex: 0 0 auto; }
+.cqs-photo.ph { display: flex; align-items: center; justify-content: center; font-size: 32px; color: #cfc9bb; }
+.cqs-spec { margin-top: 16px; border-top: 1px solid #efece4; padding-top: 4px; }
+.cqs-spec > div { display: flex; justify-content: space-between; gap: 14px; padding: 9px 0; border-bottom: 1px solid #f4f1ea; }
+.cqs-spec > div:last-child { border-bottom: 0; }
+.cqs-spec dt { font-size: 12.5px; color: #9a9384; }
+.cqs-spec dd { font-size: 13.5px; font-weight: 800; color: #2a2a2a; }
+
+/* 비교견적 결과 — 통계바 + 결과목록(시안 1) */
+.cqc-stat { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 14px;
+  padding: 12px 14px; box-shadow: 0 4px 16px rgba(20,30,26,.06); }
+.cqc-stat > span { font-size: 12px; color: #8a8475; display: flex; align-items: baseline; gap: 4px; }
+.cqc-stat > span b { font-size: 15px; font-weight: 900; color: #1f3b34; }
+.cqc-stat-cd { margin-left: auto; }
+.cqc-stat-cd i { font-style: normal; font-size: 12.5px; font-weight: 800; color: #1f7a4d; }
+.cqc-stat-cd i.is-over { color: #c0492f; }
+.cqc-result-h { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 800;
+  color: #44403a; margin: 18px 2px 10px; }
+.cqc-result-h span { font-size: 12px; font-weight: 700; color: #fff; background: #1f3b34;
+  border-radius: 20px; padding: 2px 9px; }
+.cqc-list { display: flex; flex-direction: column; gap: 9px; margin-top: 0; }
+.cqc-row { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left;
+  background: #fff; border: 1px solid #ece8df; border-radius: 15px; padding: 14px 15px; cursor: pointer;
+  box-shadow: 0 4px 14px rgba(20,30,26,.05); }
+.cqc-row.is-top { border: 1.5px solid #1f3b34; box-shadow: 0 8px 22px rgba(31,59,52,.14);
+  background: linear-gradient(180deg, #f6faf7, #ffffff); }
+.cqc-rank { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; background: #eef1ef;
+  color: #6f6a5e; display: flex; align-items: baseline; justify-content: center; gap: 1px;
+  font-weight: 900; font-size: 16px; padding-top: 9px; }
+.cqc-rank small { font-size: 9px; font-weight: 700; }
+.cqc-rank.top { background: var(--cq-green, #1f3b34); color: var(--cq-gold, #e9dec3); }
+.cqc-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.cqc-row-name { font-size: 15px; font-weight: 800; color: #1a1a1a; display: flex; align-items: center; gap: 7px; }
+.cqc-best { font-size: 10.5px; font-weight: 800; padding: 2px 7px; border-radius: 6px;
+  background: #e7f1ea; color: #1f7a4d; font-style: normal; }
+.cqc-row-sub { font-size: 11.5px; color: #9a9384; }
+.cqc-row-amt { flex: 0 0 auto; font-size: 17px; font-weight: 900; color: #15140f; }
+.cqc-row-amt small { font-size: 12px; font-weight: 700; color: #8a8475; margin-left: 2px; }
+.cqc-row.is-top .cqc-row-amt { color: #1f3b34; }
+
+/* 예상 견적(시안 2) — BELLORE 워드마크 + 시세차트 */
+.cqe-brandmark { text-align: center; padding: 8px 0 14px; }
+.cqe-bm-name { font-family: var(--serif, "Times New Roman", serif); font-size: 26px; font-weight: 700;
+  letter-spacing: 5px; color: #15140f; }
+.cqe-bm-sub { font-size: 9px; letter-spacing: 3px; color: #a39c8c; margin-top: 2px; }
+.cqe-section { font-size: 13px; font-weight: 700; color: #8a8475; margin: 0 2px 12px; }
+.cqe-chart { width: 100%; height: 96px; margin-top: 14px; display: block; }
+.cqe-chart-area { fill: url(#cqeFill); }
+.cqe-chart-line { fill: none; stroke: #1f7a4d; stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
+.cqe-chart-dots circle { fill: #1f7a4d; stroke: #fff; stroke-width: 1.5; }
+.cqe-chart-note { font-size: 11px; color: #a39c8c; margin-top: 10px; line-height: 1.5; }
+
 /* 마이페이지: '새창' 느낌 제거 — 화면을 꽉 채우는 앱 내 페이지처럼 표시
    (떠있는 카드/딤 배경 대신 전체화면, PC/모바일/와이드 반응형) */
 #myPageModal { padding: 0; align-items: stretch; justify-content: stretch; background: #f4f1ea; }

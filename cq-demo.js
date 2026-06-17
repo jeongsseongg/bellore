@@ -187,6 +187,25 @@
       '<text class="cqd-chart-wm" x="160" y="62" text-anchor="middle">데이터 준비중</text>' +
     '</svg>';
   }
+  /* 예상견적 시세 차트(시안 2) — 그린 라인 + 도트 + y축 (디자인용) */
+  function estimateChart() {
+    var pts = '10,26 58,38 106,30 154,50 202,44 250,66 300,60';
+    var arr = pts.split(' ');
+    var dots = '';
+    for (var i = 0; i < arr.length; i++) {
+      var xy = arr[i].split(',');
+      dots += '<circle cx="' + xy[0] + '" cy="' + xy[1] + '" r="3.4"></circle>';
+    }
+    return '<svg class="cqe-chart" viewBox="0 0 320 96" preserveAspectRatio="none" aria-hidden="true">' +
+      '<defs><linearGradient id="cqeFill" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0" stop-color="#1f7a4d" stop-opacity=".18"></stop>' +
+        '<stop offset="1" stop-color="#1f7a4d" stop-opacity="0"></stop>' +
+      '</linearGradient></defs>' +
+      '<polygon class="cqe-chart-area" points="10,26 58,38 106,30 154,50 202,44 250,66 300,60 300,96 10,96"></polygon>' +
+      '<polyline class="cqe-chart-line" points="' + pts + '"></polyline>' +
+      '<g class="cqe-chart-dots">' + dots + '</g>' +
+    '</svg>';
+  }
   function priceTrendCard() {
     return '<div class="cqd-watchcard slim cqd-trend">' +
       '<div class="cqd-trend-head"><b>최근 시세 추이</b><span class="cqd-badge wait">데이터 준비중</span></div>' +
@@ -270,6 +289,54 @@
     '</div>';
   }
 
+  /* 목록 썸네일 — 실제 등록 사진(없으면 ⌚) */
+  function photoOf(q) { return (q.photos && q.photos[0]) || ''; }
+  function rowThumb(q) {
+    var p = photoOf(q);
+    return p
+      ? '<span class="cqd-thumb"><img src="' + esc(p) + '" alt="" onerror="this.parentNode.classList.add(\'ph\');this.parentNode.textContent=\'⌚\'"></span>'
+      : '<span class="cqd-thumb ph">⌚</span>';
+  }
+
+  /* 브랜드 영문 표기(시안의 ROLEX 처럼) — brands.js slug 기준 */
+  var BRAND_EN = {
+    rolex: 'ROLEX', patek: 'PATEK PHILIPPE', ap: 'AUDEMARS PIGUET', vacheron: 'VACHERON CONSTANTIN',
+    cartier: 'CARTIER', omega: 'OMEGA', hublot: 'HUBLOT', tagheuer: 'TAG HEUER', iwc: 'IWC',
+    breitling: 'BREITLING', panerai: 'PANERAI', tudor: 'TUDOR', gucci: 'GUCCI', chanel: 'CHANEL',
+    franckmuller: 'FRANCK MULLER', richardmille: 'RICHARD MILLE', jaegerlecoultre: 'JAEGER-LECOULTRE',
+    rogerdubuis: 'ROGER DUBUIS', breguet: 'BREGUET', blancpain: 'BLANCPAIN', alange: 'A. LANGE & SÖHNE',
+    piaget: 'PIAGET', hermes: 'HERMÈS', bulgari: 'BVLGARI', longines: 'LONGINES', rado: 'RADO',
+    mido: 'MIDO', oris: 'ORIS', seiko: 'SEIKO', tissot: 'TISSOT', hamilton: 'HAMILTON', frederique: 'FREDERIQUE CONSTANT'
+  };
+  function brandDisplay(q) {
+    var b = window.BELLORE_BRAND_BY_NAME && window.BELLORE_BRAND_BY_NAME(q.brand);
+    if (b && BRAND_EN[b.slug]) return BRAND_EN[b.slug];
+    return (q.brand || '시계').replace(/\s*\(.*\)\s*/, '').trim() || '시계';
+  }
+  function gradeShort(q) { return (q.grade || '').replace(/\s*\(.*\)\s*/, '').trim(); }
+
+  /* 시안 공통 — 시계 정보 카드(브랜드/모델/레퍼런스 + 실제 사진) */
+  function quoteSpecCard(q, full) {
+    var ph = photoOf(q);
+    var spec = full
+      ? '<dl class="cqs-spec">' +
+          '<div><dt>레퍼런스</dt><dd>' + esc(q.ref || '-') + '</dd></div>' +
+          '<div><dt>구매일</dt><dd>' + esc(q.year || '-') + '</dd></div>' +
+          '<div><dt>상태</dt><dd>' + esc(gradeShort(q) || '-') + '</dd></div>' +
+        '</dl>'
+      : '';
+    return '<div class="cqs-card">' +
+      '<div class="cqs-top">' +
+        '<div class="cqs-txt">' +
+          '<p class="cqs-brand">' + esc(brandDisplay(q)) + '</p>' +
+          '<p class="cqs-model">' + esc(q.model || '') + '</p>' +
+          (q.ref ? '<p class="cqs-ref">' + esc(q.ref) + '</p>' : '') +
+        '</div>' +
+        (ph ? '<img class="cqs-photo" src="' + esc(ph) + '" alt="" onerror="this.style.visibility=\'hidden\'">' : '<div class="cqs-photo ph">⌚</div>') +
+      '</div>' + spec +
+    '</div>';
+  }
+
   /* --- 고객: 내 시계 목록 --- */
   SCREENS['c-watches'] = function () {
     titleEl.textContent = '내 시계팔기';
@@ -280,10 +347,10 @@
         ? '<span class="cqd-vrow-amt">' + man(q.bidAmount) + '원<small>›</small></span>'
         : '<span class="cqd-vrow-amt"><small>›</small></span>';
       return '<button type="button" class="cqd-vrow" data-cqd-go="c-detail" data-cqd-id="' + esc(q.id) + '">' +
-        '<span class="cqd-avatar lite">⌚</span>' +
+        rowThumb(q) +
         '<span class="cqd-vrow-main">' +
           '<span class="cqd-vrow-name">' + esc((q.brand || '') + ' ' + (q.model || '')) + ' ' + statusBadge(q) + '</span>' +
-          '<span class="cqd-vrow-sub"><em>받은 입찰 ' + n + '건</em></span>' +
+          '<span class="cqd-vrow-sub"><em>' + (q.ref ? 'Ref. ' + esc(q.ref) + ' · ' : '') + '받은 입찰 ' + n + '건</em></span>' +
         '</span>' + right +
       '</button>';
     }).join('');
@@ -317,35 +384,36 @@
     if (q.status === 'awarded')
       return SCREENS['c-offer'](q.id + '|' + q.awarded_bid);
 
-    /* open — 비교견적 목록 (세 번째 이미지) */
+    /* open — 비교견적 결과 (시안 1) */
     var bids = q.bids || [];
     var views = totalViews(q);
-    var header = '<div class="cqc-head">' +
-      '<div class="cqc-head-top"><span class="cqc-head-title">비교견적</span>' +
-        '<span class="cqc-bell" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg></span>' +
-      '</div>' +
-      '<p class="cqc-head-stat">지금까지 총 <b>' + num(views) + '명</b>이 조회했고,<br><b>' + bids.length + '명</b>이 입찰했습니다.</p>' +
-      '<p class="cqc-timer"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>' +
-        '<span class="cqc-cd" data-exp="' + q.expiresMs + '">' + cdLabel(q.expiresMs - Date.now()) + '</span></p>' +
+    var card = quoteSpecCard(q, true);
+    var statBar = '<div class="cqc-stat">' +
+      '<span><b>' + num(views) + '</b>조회</span>' +
+      '<span><b>' + bids.length + '</b>입찰</span>' +
+      '<span class="cqc-stat-cd"><i class="cqc-cd" data-exp="' + q.expiresMs + '">' + cdLabel(q.expiresMs - Date.now()) + '</i></span>' +
     '</div>';
 
     if (!bids.length)
-      return '<div class="cqd-screen cqc">' + header +
-        '<p class="cqd-state wait" style="margin-top:16px">🕒 업체 입찰을 기다리는 중입니다.<br><span>입찰이 들어오면 이 화면에 실시간으로 표시됩니다.</span></p></div>';
+      return '<div class="cqd-screen cqc">' + card + statBar +
+        '<p class="cqd-state wait" style="margin-top:14px">🕒 업체 입찰을 기다리는 중입니다.<br><span>입찰이 들어오면 이 화면에 실시간으로 표시됩니다.</span></p></div>';
 
+    var top0 = Number(bids[0].amount) || 0;
     var rows = bids.map(function (b, i) {
       var top = i === 0;
+      var diff = top ? 0 : (Number(b.amount) - top0);
       return '<button type="button" class="cqc-row' + (top ? ' is-top' : '') + '" data-cqd-go="c-offer" data-cqd-id="' + esc(q.id) + '|' + esc(b.id) + '">' +
-        '<span class="cqc-row-l">' +
-          '<span class="cqc-logo' + (top ? ' top' : '') + '">' + (top ? '★' : (i + 1)) + '</span>' +
-          '<span class="cqc-row-name">' + (top ? '최고 견적 업체' : (i + 1) + '순위 업체') +
-            '<small>업체 비공개 · 선택 시 공개</small></span>' +
+        '<span class="cqc-rank' + (top ? ' top' : '') + '">' + (i + 1) + '<small>위</small></span>' +
+        '<span class="cqc-row-main">' +
+          '<span class="cqc-row-name">' + (top ? '최고 견적' : '비공개 업체') +
+            (top ? '<em class="cqc-best">최고가</em>' : '') + '</span>' +
+          '<span class="cqc-row-sub">' + (top ? '업체명·상세는 선택 시 공개' : '최고가 대비 ' + man(diff) + '원') + '</span>' +
         '</span>' +
-        '<span class="cqc-row-r">' + (top ? '<span class="cqc-top-badge">최고가</span>' : '') +
-          '<b>' + won(b.amount) + '</b></span>' +
+        '<span class="cqc-row-amt">' + num(b.amount) + '<small>원</small></span>' +
       '</button>';
     }).join('');
-    return '<div class="cqd-screen cqc">' + header +
+    return '<div class="cqd-screen cqc">' + card + statBar +
+      '<p class="cqc-result-h">비교견적 결과 <span>' + bids.length + '곳</span></p>' +
       '<div class="cqc-list">' + rows + '</div>' +
       '<p class="cqc-guide">업체명·후기·상세 페이지는 <b>판매 확정 시에만</b> 공개됩니다.<br>지금은 제시 금액만 비교해 선택하세요.</p>' +
     '</div>';
@@ -566,7 +634,7 @@
     '</div>';
   };
 
-  /* --- 고객: 예상 견적 확인 (첫 번째 이미지) — 시작 전 미리보기 --- */
+  /* --- 고객: 예상 견적 확인 (시안 2) — 시작 전 미리보기 --- */
   SCREENS['c-estimate'] = function () {
     titleEl.textContent = '예상 견적';
     var d = newData || {};
@@ -576,31 +644,24 @@
     }
     var ph = '';
     try { if (newPhotos[0]) ph = URL.createObjectURL(newPhotos[0]); } catch (e) {}
-    var brandShort = (d.brand || '').replace(/\s*\(.*\)\s*/, '').trim() || '시계';
+    var pseudo = { brand: d.brand, model: d.model, ref: d.ref, year: d.year, grade: d.grade, photos: ph ? [ph] : [] };
     return '<div class="cqd-screen cqe">' +
-      '<div class="cqe-card">' +
-        '<div class="cqe-head">' +
-          '<div class="cqe-head-txt">' +
-            '<p class="cqe-brand">' + esc(brandShort) + '</p>' +
-            '<p class="cqe-model">' + esc(d.model || '') + '</p>' +
-          '</div>' +
-          (ph ? '<img class="cqe-photo" src="' + ph + '" alt="">' : '<div class="cqe-photo ph">⌚</div>') +
-        '</div>' +
-        '<dl class="cqe-spec">' +
-          '<div><dt>레퍼런스</dt><dd>' + esc(d.ref || '-') + '</dd></div>' +
-          '<div><dt>구매일</dt><dd>' + esc(d.year || '-') + '</dd></div>' +
-          '<div><dt>상태</dt><dd>' + esc((d.grade || '-').replace(/\s*\(.*\)\s*/, '')) + '</dd></div>' +
-        '</dl>' +
+      '<div class="cqe-brandmark">' +
+        '<p class="cqe-bm-name">BELLORE</p>' +
+        '<p class="cqe-bm-sub">L &nbsp; O &nbsp; R &nbsp; E</p>' +
       '</div>' +
+      '<p class="cqe-section">선택 조회 결과</p>' +
+      quoteSpecCard(pseudo, false) +
       '<div class="cqe-card cqe-price">' +
         '<p class="cqe-price-label">예상 견적가</p>' +
         '<p class="cqe-price-val">데이터 수집중</p>' +
-        '<p class="cqe-price-sub">현재 모델은 데이터 수집중입니다.<br>비교견적을 시작하면 실제 업체들이 금액을 제시합니다.</p>' +
+        '<p class="cqe-price-sub">현재 모델은 시세 데이터를 수집중입니다.<br>비교견적을 시작하면 실제 업체들이 금액을 제시합니다.</p>' +
       '</div>' +
       '<div class="cqe-card cqe-chart-card">' +
-        '<div class="cqe-chart-head"><b>6개월 시세 추이</b><span>단위: 원</span></div>' +
-        trendSvg() +
+        '<div class="cqe-chart-head"><b>수집 시세</b><span>최근 6개월</span></div>' +
+        estimateChart() +
         '<div class="cqe-chart-x"><span>1월</span><span>2월</span><span>3월</span><span>4월</span><span>5월</span><span>6월</span></div>' +
+        '<p class="cqe-chart-note">※ 시세 데이터가 쌓이면 실제 그래프로 표시됩니다.</p>' +
       '</div>' +
       '<button type="button" class="cqe-start" data-cqd-start>내 시계 비교견적 시작하기</button>' +
       '<button type="button" class="cqd-cta ghost" data-cqd-go="c-new">‹ 정보 수정</button>' +
@@ -670,10 +731,10 @@
     var rows = vend.quotes.map(function (q) {
       var mine = myBidOf(q);
       return '<button type="button" class="cqd-vrow" data-cqd-go="v-bid" data-cqd-id="' + esc(q.id) + '">' +
-        '<span class="cqd-avatar lite">⌚</span>' +
+        rowThumb(q) +
         '<span class="cqd-vrow-main">' +
           '<span class="cqd-vrow-name">' + esc((q.brand || '') + ' ' + (q.model || '')) + '</span>' +
-          '<span class="cqd-vrow-sub"><em>입찰 ' + (q.bids || []).length + '건' + (mine ? ' · 내 입찰 ' + man(mine.amount) + '원' : '') + '</em></span>' +
+          '<span class="cqd-vrow-sub"><em>' + (q.ref ? 'Ref. ' + esc(q.ref) + ' · ' : '') + '입찰 ' + (q.bids || []).length + '건' + (mine ? ' · 내 입찰 ' + man(mine.amount) + '원' : '') + '</em></span>' +
         '</span>' +
         '<span class="cqd-vrow-amt">' + (mine ? '수정' : '입찰') + '<small>›</small></span>' +
       '</button>';
@@ -764,7 +825,7 @@
     var rows = list.map(function (q) {
       var c = accById(q.uid);
       return '<button type="button" class="cqd-vrow" data-cqd-go="a-quote" data-cqd-id="' + esc(q.id) + '">' +
-        '<span class="cqd-avatar lite">⌚</span>' +
+        rowThumb(q) +
         '<span class="cqd-vrow-main">' +
           '<span class="cqd-vrow-name">' + esc((q.brand || '') + ' ' + (q.model || '')) + ' ' + statusBadge(q) + '</span>' +
           '<span class="cqd-vrow-sub"><em>고객 ' + esc(c ? (c.display_name || c.email || '회원') : '회원') + ' · 입찰 ' + (q.bids || []).length + '건</em></span>' +

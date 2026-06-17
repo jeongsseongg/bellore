@@ -35,3 +35,32 @@ set search_path = public as $$
 $$;
 
 grant execute on function public.bump_quote_view(bigint) to anon, authenticated;
+
+-- 4) 신규 등록 / 수정(재승인) 시 관리자에게 앱 알림 ----------------
+--    이메일(formsubmit)은 최초 1회 활성화가 필요해 누락될 수 있어,
+--    관리자 알림(notifications)을 트리거로 항상 남긴다.
+--    관리자 = profiles.email = 'bellorekr@gmail.com'
+create or replace function public.notify_admin_quote()
+returns trigger
+language plpgsql
+security definer
+set search_path = public as $$
+begin
+  if (TG_OP = 'INSERT')
+     or (NEW.status = 'pending' and NEW.status is distinct from OLD.status) then
+    insert into public.notifications (user_id, type, title, body, is_read)
+    select p.id, 'quote_new', '새 비교견적 등록(승인 대기)',
+           trim(coalesce(NEW.item_brand, '') || ' ' || coalesce(NEW.item_name, '')) ||
+             case when TG_OP = 'UPDATE' then ' · 수정 재승인 요청' else ' · 신규 신청' end,
+           false
+      from public.profiles p
+     where lower(p.email) = lower('bellorekr@gmail.com');
+  end if;
+  return NEW;
+end;
+$$;
+
+drop trigger if exists trg_notify_admin_quote on public.quote_requests;
+create trigger trg_notify_admin_quote
+  after insert or update on public.quote_requests
+  for each row execute function public.notify_admin_quote();
