@@ -23,7 +23,8 @@ alter table public.quote_requests add column if not exists item_parts    text;  
 alter table public.quote_requests add column if not exists view_count integer not null default 0;
 
 -- 3) 조회수 +1 RPC (보안 정의자 — RLS 우회해 카운트만 증가) ----
-create or replace function public.bump_quote_view(qid bigint)
+drop function if exists public.bump_quote_view(bigint);
+create or replace function public.bump_quote_view(qid uuid)
 returns integer
 language sql
 security definer
@@ -34,7 +35,7 @@ set search_path = public as $$
    returning view_count;
 $$;
 
-grant execute on function public.bump_quote_view(bigint) to anon, authenticated;
+grant execute on function public.bump_quote_view(uuid) to anon, authenticated;
 
 -- 4) 신규 등록 / 수정(재승인) 시 관리자에게 앱 알림 ----------------
 --    이메일(formsubmit)은 최초 1회 활성화가 필요해 누락될 수 있어,
