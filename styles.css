@@ -7640,7 +7640,9 @@ body.is-searching .tabbar { display: none !important; }
    ============================================================ */
 
 /* --- 예상 견적 페이지 (첫 번째 이미지) --- */
-.cqe-card { background: #fff; border-radius: 18px; padding: 20px 18px; box-shadow: 0 6px 22px rgba(20,30,26,.07); margin-bottom: 12px; }
+.cqe-card { background: linear-gradient(180deg,#fff,#fdfcf9); border-radius: 18px; padding: 20px 18px;
+  box-shadow: 0 3px 12px rgba(20,30,26,.06), 0 16px 40px rgba(20,30,26,.07); border: 1px solid #f0ece2;
+  margin-bottom: 12px; animation: cqdRowIn .45s cubic-bezier(.2,.8,.2,1) both; }
 .cqe-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .cqe-brand { font-size: 24px; font-weight: 900; color: #1a1a1a; letter-spacing: .5px; }
 .cqe-model { font-size: 15px; color: #6f6a5e; margin-top: 4px; }
@@ -7750,8 +7752,9 @@ body.is-searching .tabbar { display: none !important; }
 .cqd-thumb svg { width: 24px; height: 24px; }
 
 /* 시계 정보 카드(시안 공통) */
-.cqs-card { background: #fff; border-radius: 18px; padding: 18px; margin-bottom: 14px;
-  box-shadow: 0 6px 22px rgba(20,30,26,.07); }
+.cqs-card { background: linear-gradient(180deg,#fff,#fdfcf9); border-radius: 18px; padding: 18px; margin-bottom: 14px;
+  box-shadow: 0 3px 12px rgba(20,30,26,.06), 0 16px 40px rgba(20,30,26,.07); border: 1px solid #f0ece2;
+  animation: cqdRowIn .45s cubic-bezier(.2,.8,.2,1) both; }
 .cqs-top { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
 .cqs-txt { min-width: 0; }
 .cqs-brand { font-size: 22px; font-weight: 900; color: #15140f; letter-spacing: .6px; line-height: 1.1; }
@@ -7781,9 +7784,17 @@ body.is-searching .tabbar { display: none !important; }
 .cqc-list { display: flex; flex-direction: column; gap: 9px; margin-top: 0; }
 .cqc-row { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left;
   background: #fff; border: 1px solid #ece8df; border-radius: 15px; padding: 14px 15px; cursor: pointer;
-  box-shadow: 0 4px 14px rgba(20,30,26,.05); }
+  box-shadow: 0 2px 10px rgba(20,30,26,.05), 0 10px 26px rgba(20,30,26,.05);
+  transition: transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .18s;
+  animation: cqdRowIn .42s cubic-bezier(.2,.8,.2,1) both; }
+.cqc-row:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(20,30,26,.1), 0 20px 44px rgba(20,30,26,.08); }
+.cqc-row:active { transform: translateY(0) scale(.99); }
+.cqc-list .cqc-row:nth-child(2) { animation-delay: .05s; }
+.cqc-list .cqc-row:nth-child(3) { animation-delay: .1s; }
+.cqc-list .cqc-row:nth-child(n+4) { animation-delay: .14s; }
 .cqc-row.is-top { border: 1.5px solid #1f3b34; box-shadow: 0 8px 22px rgba(31,59,52,.14);
   background: linear-gradient(180deg, #f6faf7, #ffffff); }
+.cqc-row.is-top:hover { box-shadow: 0 12px 30px rgba(31,59,52,.2); }
 .cqc-rank { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; background: #eef1ef;
   color: #6f6a5e; display: flex; align-items: baseline; justify-content: center; gap: 1px;
   font-weight: 900; font-size: 16px; padding-top: 9px; }
