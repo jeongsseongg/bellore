@@ -1059,6 +1059,66 @@
     });
   };
 
+  /* ---------------- 고객센터 채팅 (support_messages) ---------------- */
+  function mapMsg(m) {
+    return {
+      id: m.id,
+      threadUser: m.thread_user,
+      role: m.sender_role || 'customer',
+      senderId: m.sender_id,
+      body: m.body || '',
+      refQuote: (m.ref_quote != null ? String(m.ref_quote) : ''),
+      createdAtMs: Date.parse(m.created_at) || Date.now()
+    };
+  }
+  Backend.sendSupportMessage = function (data) {
+    if (!rawUser) return Promise.reject(new Error('로그인이 필요합니다.'));
+    var isAdm = Backend.isAdmin();
+    var role = isAdm ? 'admin' : (Backend.role() === 'vendor' ? 'vendor' : 'customer');
+    var row = {
+      thread_user: (isAdm && data.threadUser) ? data.threadUser : rawUser.id,
+      sender_role: role,
+      sender_id: rawUser.id,
+      body: data.body || ''
+    };
+    if (data.refQuote) row.ref_quote = data.refQuote;
+    return sb.from('support_messages').insert(row).then(function (res) {
+      if (res.error && row.ref_quote !== undefined && isMissingCol(res.error)) {
+        delete row.ref_quote;
+        return sb.from('support_messages').insert(row);
+      }
+      return res;
+    }).then(function (res) { if (res && res.error) throw res.error; });
+  };
+  Backend.subscribeSupportThread = function (threadUser, cb) {
+    var uid = threadUser || (rawUser && rawUser.id);
+    if (!uid) { cb([]); return function () {}; }
+    function load() {
+      sb.from('support_messages').select('*').eq('thread_user', uid)
+        .order('created_at', { ascending: true }).limit(300)
+        .then(function (res) { cb((res.data || []).map(mapMsg)); });
+    }
+    load();
+    return channelRefetch('supp', ['support_messages'], load);
+  };
+  Backend.subscribeSupportThreads = function (cb) {
+    if (!Backend.isAdmin()) { cb([]); return function () {}; }
+    function load() {
+      sb.from('support_messages').select('*')
+        .order('created_at', { ascending: false }).limit(800)
+        .then(function (res) {
+          var rows = res.data || [], byUser = {}, order = [];
+          rows.forEach(function (m) {
+            if (!byUser[m.thread_user]) { byUser[m.thread_user] = { last: m, count: 0 }; order.push(m.thread_user); }
+            byUser[m.thread_user].count++;
+          });
+          cb(order.map(function (u) { return { user: u, last: mapMsg(byUser[u].last), count: byUser[u].count }; }));
+        });
+    }
+    load();
+    return channelRefetch('suppA', ['support_messages'], load);
+  };
+
   /* ---------------- 주문/결제 (orders) ---------------- */
   function mapOrder(o) {
     return {

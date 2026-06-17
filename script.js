@@ -664,12 +664,21 @@
     }
 
     var NOTI_LABEL = {
-        quote_open: '새 비교견적', awarded: '입찰 채택', approved: '업체 승인',
-        account: '계좌 인증', listing: '매물 승인', info: '알림'
+        quote_open: '비교견적', quote_new: '비교견적 등록', awarded: '입찰 채택', approved: '업체 승인',
+        account: '계좌 인증', listing: '판매 매물',
+        support_new: '고객센터 문의', support_reply: '고객센터 답변', info: '알림'
     };
+    // 알림 종류별 색상 카테고리(비교견적/판매/고객센터)
+    function notiCat(type) {
+        if (type === 'quote_open' || type === 'quote_new' || type === 'awarded' || type === 'approved') return 'quote';
+        if (type === 'listing') return 'sale';
+        if (type === 'support_new' || type === 'support_reply') return 'support';
+        return 'info';
+    }
     // 알림 종류별로 눌렀을 때 이동할 화면
     function notiTarget(type) {
-        if (type === 'quote_open' || type === 'awarded' || type === 'approved' || type === 'account') return 'cq';
+        if (type === 'quote_open' || type === 'quote_new' || type === 'awarded' || type === 'approved' ||
+            type === 'account' || type === 'support_new' || type === 'support_reply') return 'cq';
         if (type === 'listing') return 'collection';
         return '';
     }
@@ -682,7 +691,7 @@
             var go = notiTarget(n.type) ? ' has-go' : '';
             return '<button type="button" class="noti-item' + (n.read ? '' : ' unread') + go + '" data-nid="' + esc(n.id) +
                 '" data-ntype="' + esc(n.type || '') + '" data-nref="' + esc(n.refId || '') + '">' +
-                '<span class="noti-tag">' + esc(label) + '</span>' +
+                '<span class="noti-tag cat-' + notiCat(n.type) + '">' + esc(label) + '</span>' +
                 '<span class="noti-text">' + esc(n.text) + '</span>' +
                 '<time>' + relTime(n.createdAt) + '</time>' +
                 (notiTarget(n.type) ? '<span class="noti-arrow">바로가기 ›</span>' : '') +
@@ -710,6 +719,11 @@
                 if (type === 'quote_open' && ref) opts = { screen: 'v-bid', id: ref };
                 // 입찰 채택 알림 → 채택된 견적은 더 이상 open 목록에 없으므로 업체 홈으로
                 else if (type === 'awarded') opts = { screen: 'v-watches' };
+                // 비교견적 등록(관리자) → 관리자 견적 현황
+                else if (type === 'quote_new') opts = { screen: 'a-dash' };
+                // 고객센터: 관리자는 문의 목록, 고객은 본인 채팅
+                else if (type === 'support_new') opts = { screen: 'a-chats' };
+                else if (type === 'support_reply') opts = { screen: 'c-chat' };
                 window.CQDemo.open(opts);
             }
         } else if (tgt === 'collection') { closeMyPage(); location.hash = '#collection'; }

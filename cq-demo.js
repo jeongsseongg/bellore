@@ -21,6 +21,26 @@
     for (var i = 1; i <= 5; i++) s += '<span class="cqd-star' + (i <= full ? ' on' : '') + '">★</span>';
     return '<span class="cqd-stars">' + s + '</span>';
   }
+  /* 사진 없을 때 쓰는 깔끔한 라인 아이콘(이모지 대신) */
+  var ICON_WATCH = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<circle cx="12" cy="12" r="6"></circle><path d="M12 9v3l2 1.5"></path>' +
+    '<path d="M9 5.2 9.5 2h5L15 5.2M9 18.8 9.5 22h5l.5-3.2"></path></svg>';
+  var ICON_CHAT = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 9 9 0 0 1-3.8-.8L3 21l1.9-4.7A8.38 8.38 0 0 1 4 11.5 8.5 8.5 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5z"></path></svg>';
+  var ICON_SHARE = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle>' +
+    '<path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"></path></svg>';
+  var ICON_MAIL = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m3 7 9 6 9-6"></path></svg>';
+  var ICON_LINK = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"></path><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"></path></svg>';
+  var ICON_SEND = '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M3.4 20.4 21 12 3.4 3.6 3 10l12 2-12 2z"></path></svg>';
+  function svg24(p, sw) { return '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="' + (sw || 1.8) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>'; }
+  var ICON_SHIELD = svg24('<path d="M12 3l7 3v5c0 4.5-3 7.3-7 9-4-1.7-7-4.5-7-9V6z"></path>');
+  var ICON_SEARCH = svg24('<circle cx="11" cy="11" r="6"></circle><path d="m20 20-3.2-3.2"></path>');
+  var ICON_LOCK = svg24('<rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path>');
+  var ICON_STORE = svg24('<path d="M4 9h16l-1-4H5zM5 9v10h14V9M9 19v-5h6v5"></path>');
+  var ICON_CHECK = svg24('<path d="M5 12.5 10 17l9-10"></path>', 2.2);
 
   /* ===== 로그인 상태 추적 ===== */
   var AUTH = { user: null, info: {} };
@@ -50,6 +70,18 @@
   var awardedVendorCache = {}; // quoteId → {company_name,...}
   var subs = [];
 
+  /* 고객센터 채팅 상태 */
+  var chat = { threadUser: null, messages: [], loaded: false, refQuote: null, draft: '' };
+  var chatSub = null;
+  var admChats = { threads: [], loaded: false };
+  function openChat(threadUser, refQuote) {
+    closeChat();
+    chat = { threadUser: threadUser || myUid(), messages: [], loaded: false, refQuote: refQuote || null, draft: '' };
+    if (B && B.subscribeSupportThread)
+      chatSub = B.subscribeSupportThread(chat.threadUser, function (m) { chat.messages = m || []; chat.loaded = true; renderIfOpen(); });
+  }
+  function closeChat() { if (chatSub) { try { chatSub(); } catch (e) {} chatSub = null; } }
+
   function clearSubs() { subs.slice().forEach(function (u) { try { u(); } catch (e) {} }); subs = []; }
 
   function setupSubs(role) {
@@ -67,6 +99,7 @@
       if (B.subscribeOpenQuotes) subs.push(B.subscribeOpenQuotes(function (r) { adm.open = r || []; renderIfOpen(); }));
       if (B.subscribeVendors) subs.push(B.subscribeVendors(function (r) { adm.vendors = r || []; renderIfOpen(); }));
       if (B.subscribeAccounts) subs.push(B.subscribeAccounts(function (r) { adm.accounts = r || []; renderIfOpen(); }));
+      if (B.subscribeSupportThreads) subs.push(B.subscribeSupportThreads(function (r) { admChats.threads = r || []; admChats.loaded = true; renderIfOpen(); }));
     }
   }
 
@@ -134,6 +167,7 @@
     overlay.addEventListener('click', onClick);
     overlay.addEventListener('change', onChange);
     overlay.addEventListener('input', onInput);
+    overlay.addEventListener('keydown', onKey);
     var roleBtns = rolesEl.querySelectorAll('button');
     for (var i = 0; i < roleBtns.length; i++) {
       roleBtns[i].addEventListener('click', function () {
@@ -165,9 +199,18 @@
     var cur = stack[stack.length - 1]; if (!cur) return;
     backBtn.hidden = stack.length <= 1;
     if (addBtn) addBtn.hidden = !(cur.screen === 'c-watches');
+    var isChat = (cur.screen === 'c-chat' || cur.screen === 'a-chat');
+    if (!isChat) closeChat();
     bodyEl.scrollTop = 0;
     bodyEl.innerHTML = SCREENS[cur.screen] ? SCREENS[cur.screen](cur.param) : '<p class="cqd-note">준비중</p>';
     if (cur.screen === 'c-new' || cur.screen === 'c-edit') wireCqBrand();
+    if (isChat) afterChatRender();
+  }
+  function afterChatRender() {
+    var inp = overlay.querySelector('#cqChatInput');
+    if (inp) { inp.value = chat.draft || ''; }
+    var sc = overlay.querySelector('#cqChatScroll');
+    if (sc) sc.scrollTop = sc.scrollHeight;
   }
 
   function loadingBlock() { return '<div class="cqd-screen"><p class="cqd-note">불러오는 중…</p></div>'; }
@@ -272,6 +315,63 @@
     return t || '시계';
   }
 
+  /* ===== 공유하기 (Web Share + 폴백 시트) ===== */
+  var shareCtx = null;
+  function shareText(q) {
+    var t = q ? ((brandDisplay(q) || '') + ' ' + (q.model || '')).trim() : '벨로르 명품시계';
+    return t + ' — 벨로르에서 여러 업체 비교견적으로 안전하게 거래하세요.';
+  }
+  function shareUrl() { try { return location.origin + location.pathname; } catch (e) { return 'https://bellore.kr'; } }
+  function cqShare(q) {
+    shareCtx = { title: '벨로르 비교견적', text: shareText(q), url: shareUrl() };
+    if (navigator.share) {
+      navigator.share(shareCtx).catch(function () { openShareSheet(); });
+    } else { openShareSheet(); }
+  }
+  function openShareSheet() {
+    closeShareSheet();
+    var el = document.createElement('div');
+    el.className = 'cq-share-wrap'; el.id = 'cqShareWrap';
+    el.innerHTML =
+      '<div class="cq-share-mask" id="cqShareMask"></div>' +
+      '<div class="cq-share-sheet" role="dialog" aria-label="공유하기">' +
+        '<div class="cq-share-head"><b>공유하기</b><button type="button" id="cqShareClose" aria-label="닫기">×</button></div>' +
+        '<p class="cq-share-pre">' + esc(shareCtx.text) + '</p>' +
+        '<div class="cq-share-grid">' +
+          '<button type="button" class="cq-share-opt kakao" data-cqd-shareact="kakao"><span>K</span>카카오톡</button>' +
+          '<button type="button" class="cq-share-opt mail" data-cqd-shareact="mail">' + ICON_MAIL + '이메일</button>' +
+          '<button type="button" class="cq-share-opt link" data-cqd-shareact="copy">' + ICON_LINK + '링크 복사</button>' +
+          '<button type="button" class="cq-share-opt sms" data-cqd-shareact="sms">' + ICON_CHAT + '문자</button>' +
+        '</div>' +
+      '</div>';
+    overlay.appendChild(el);
+    requestAnimationFrame(function () { el.classList.add('on'); });
+  }
+  function closeShareSheet() {
+    var el = overlay && overlay.querySelector('#cqShareWrap');
+    if (el) el.parentNode.removeChild(el);
+  }
+  function shareAct(kind) {
+    if (!shareCtx) return;
+    var u = shareCtx.url, t = shareCtx.text;
+    if (kind === 'copy') {
+      var done = function () { alert('링크를 복사했습니다.'); closeShareSheet(); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(u + '\n' + t).then(done, done);
+      else { try { var ta = document.createElement('textarea'); ta.value = u + '\n' + t; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); } catch (e) {} done(); }
+      return;
+    }
+    if (kind === 'mail') { window.location.href = 'mailto:?subject=' + encodeURIComponent(shareCtx.title) + '&body=' + encodeURIComponent(t + '\n\n' + u); closeShareSheet(); return; }
+    if (kind === 'sms') { window.location.href = 'sms:?body=' + encodeURIComponent(t + ' ' + u); closeShareSheet(); return; }
+    if (kind === 'kakao') {
+      if (window.Kakao && window.Kakao.Share) {
+        try { window.Kakao.Share.sendDefault({ objectType: 'text', text: t + '\n' + u, link: { mobileWebUrl: u, webUrl: u } }); closeShareSheet(); return; } catch (e) {}
+      }
+      window.open('https://accounts.kakao.com/weblogin/sharer.html?url=' + encodeURIComponent(u), '_blank');
+      closeShareSheet();
+      return;
+    }
+  }
+
   /* ===== 화면들 ===== */
   var SCREENS = {};
   var NO_TREND = '<div class="cqd-nodata"><b>최근 6개월 시세</b><span>최근 6개월 내 데이터가 없습니다.</span></div>';
@@ -294,8 +394,8 @@
   function rowThumb(q) {
     var p = photoOf(q);
     return p
-      ? '<span class="cqd-thumb"><img src="' + esc(p) + '" alt="" onerror="this.parentNode.classList.add(\'ph\');this.parentNode.textContent=\'⌚\'"></span>'
-      : '<span class="cqd-thumb ph">⌚</span>';
+      ? '<span class="cqd-thumb"><img src="' + esc(p) + '" alt="" onerror="this.remove();this.parentNode.classList.add(\'ph\')">' + ICON_WATCH + '</span>'
+      : '<span class="cqd-thumb ph">' + ICON_WATCH + '</span>';
   }
 
   /* 브랜드 영문 표기(시안의 ROLEX 처럼) — brands.js slug 기준 */
@@ -332,7 +432,7 @@
           '<p class="cqs-model">' + esc(q.model || '') + '</p>' +
           (q.ref ? '<p class="cqs-ref">' + esc(q.ref) + '</p>' : '') +
         '</div>' +
-        (ph ? '<img class="cqs-photo" src="' + esc(ph) + '" alt="" onerror="this.style.visibility=\'hidden\'">' : '<div class="cqs-photo ph">⌚</div>') +
+        (ph ? '<img class="cqs-photo" src="' + esc(ph) + '" alt="" onerror="this.style.visibility=\'hidden\'">' : '<div class="cqs-photo ph">' + ICON_WATCH + '</div>') +
       '</div>' + spec +
     '</div>';
   }
@@ -346,26 +446,32 @@
       var right = (q.status === 'open' || q.status === 'awarded') && q.bidAmount
         ? '<span class="cqd-vrow-amt">' + man(q.bidAmount) + '원<small>›</small></span>'
         : '<span class="cqd-vrow-amt"><small>›</small></span>';
+      var chips = [];
+      if (q.ref) chips.push('Ref. ' + esc(q.ref));
+      if (gradeShort(q)) chips.push(esc(gradeShort(q)));
+      if (q.year) chips.push(esc(q.year));
+      chips.push('입찰 ' + n + '건');
       return '<button type="button" class="cqd-vrow" data-cqd-go="c-detail" data-cqd-id="' + esc(q.id) + '">' +
         rowThumb(q) +
         '<span class="cqd-vrow-main">' +
           '<span class="cqd-vrow-name">' + esc((q.brand || '') + ' ' + (q.model || '')) + ' ' + statusBadge(q) + '</span>' +
-          '<span class="cqd-vrow-sub"><em>' + (q.ref ? 'Ref. ' + esc(q.ref) + ' · ' : '') + '받은 입찰 ' + n + '건</em></span>' +
+          '<span class="cqd-vrow-sub"><em>' + chips.join(' · ') + '</em></span>' +
         '</span>' + right +
       '</button>';
     }).join('');
+    var csLink = '<button type="button" class="cqd-cs-link" data-cqd-cs>' + ICON_CHAT + '고객센터에 문의하기</button>';
     if (!rows) {
       return '<div class="cqd-screen">' +
         '<p class="cqd-note">아직 판매 등록한 시계가 없습니다.</p>' +
         '<div class="cqd-empty-cta">' +
           '<p>시계를 등록하면 여러 업체가 금액을 제시해요.<br>여기에서 받은 견적을 확인하고 선택할 수 있어요.</p>' +
           '<button type="button" class="cqd-cta primary" data-cqd-new>＋ 시계 등록하러 가기</button>' +
-        '</div>' +
+        '</div>' + csLink +
       '</div>';
     }
     return '<div class="cqd-screen">' +
       '<p class="cqd-note">판매 등록한 내 시계입니다. 시계를 눌러 받은 견적을 확인하세요.</p>' +
-      '<div class="cqd-vlist">' + rows + '</div>' +
+      '<div class="cqd-vlist">' + rows + '</div>' + csLink +
     '</div>';
   };
 
@@ -376,9 +482,9 @@
     titleEl.textContent = '비교견적';
 
     if (q.status === 'pending')
-      return '<div class="cqd-screen">' + watchCard(q) + '<p class="cqd-state wait">🕒 정·가품 감정 및 승인 검토 중입니다.<br><span>승인되면 업체 비교견적이 시작됩니다.</span></p></div>';
+      return '<div class="cqd-screen">' + watchCard(q) + '<p class="cqd-state wait">정·가품 감정 및 승인 검토 중입니다.<br><span>승인되면 업체 비교견적이 시작됩니다.</span></p></div>';
     if (q.status === 'suspended')
-      return '<div class="cqd-screen">' + watchCard(q) + '<p class="cqd-state stop">⛔ 관리자에 의해 정지된 견적입니다.</p></div>';
+      return '<div class="cqd-screen">' + watchCard(q) + '<p class="cqd-state stop">관리자에 의해 정지된 견적입니다.</p></div>';
     if (q.status === 'closed')
       return '<div class="cqd-screen">' + watchCard(q) + '<p class="cqd-state stop">종료된 견적입니다.</p></div>';
     if (q.status === 'awarded')
@@ -396,7 +502,7 @@
 
     if (!bids.length)
       return '<div class="cqd-screen cqc">' + card + statBar +
-        '<p class="cqd-state wait" style="margin-top:14px">🕒 업체 입찰을 기다리는 중입니다.<br><span>입찰이 들어오면 이 화면에 실시간으로 표시됩니다.</span></p></div>';
+        '<p class="cqd-state wait" style="margin-top:14px">업체 입찰을 기다리는 중입니다.<br><span>입찰이 들어오면 이 화면에 실시간으로 표시됩니다.</span></p></div>';
 
     var top0 = Number(bids[0].amount) || 0;
     var rows = bids.map(function (b, i) {
@@ -454,25 +560,25 @@
 
     /* 업체 카드 */
     var shop = '<div class="cqo-shop' + (reveal ? '' : ' masked') + '">' +
-      '<div class="cqo-shop-photo">' + (reveal && vLogo ? '<img src="' + esc(vLogo) + '" alt="" onerror="this.style.display=\'none\'">' : '<span class="cqo-shop-ph">' + (reveal ? '🏪' : '🔒') + '</span>') + '</div>' +
-      '<div class="cqo-shop-logo">' + (reveal && vLogo ? '<img src="' + esc(vLogo) + '" alt="" onerror="this.parentNode.textContent=\'' + esc(vName.charAt(0)) + '\'">' : (reveal ? esc(vName.charAt(0)) : '🔒')) + '</div>' +
+      '<div class="cqo-shop-photo">' + (reveal && vLogo ? '<img src="' + esc(vLogo) + '" alt="" onerror="this.style.display=\'none\'">' : '<span class="cqo-shop-ph">' + (reveal ? ICON_STORE : ICON_LOCK) + '</span>') + '</div>' +
+      '<div class="cqo-shop-logo">' + (reveal && vLogo ? '<img src="' + esc(vLogo) + '" alt="" onerror="this.parentNode.textContent=\'' + esc(vName.charAt(0)) + '\'">' : (reveal ? esc(vName.charAt(0)) : ICON_LOCK)) + '</div>' +
       '<p class="cqo-shop-name">' + (reveal ? esc(vName) : '비공개 업체') + '</p>' +
       '<p class="cqo-shop-partner"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"></path></svg>' + (reveal ? '공식 파트너' : '확정 시 공개') + '</p>' +
       (reveal && revCount
         ? '<p class="cqo-shop-rating"><b>★ ' + revAvg.toFixed(1) + '</b><span>고객 후기 ' + revCount + '</span></p>'
         : '') +
       '<div class="cqo-trust">' +
-        '<div><span>🛡</span><b>정품 보장</b><small>100% 정품 보장</small></div>' +
-        '<div><span>🔍</span><b>전문 감정</b><small>전문 감정사 검수</small></div>' +
-        '<div><span>🔒</span><b>안전 결제</b><small>안전한 거래 보장</small></div>' +
+        '<div><span>' + ICON_SHIELD + '</span><b>정품 보장</b><small>100% 정품 보장</small></div>' +
+        '<div><span>' + ICON_SEARCH + '</span><b>전문 감정</b><small>전문 감정사 검수</small></div>' +
+        '<div><span>' + ICON_LOCK + '</span><b>안전 결제</b><small>안전한 거래 보장</small></div>' +
       '</div>' +
     '</div>';
 
     /* 제안 견적 카드 */
     var sellBtns;
     if (isThisAwarded) {
-      sellBtns = '<div class="cqo-confirmed">✓ 이 견적으로 판매가 확정되었습니다</div>' +
-        '<p class="cqo-locked">🔒 업체 연락처·주소는 공개되지 않습니다. 모든 거래는 <b>벨로르를 통해</b> 안전하게 진행됩니다.</p>';
+      sellBtns = '<div class="cqo-confirmed">' + ICON_CHECK + ' 이 견적으로 판매가 확정되었습니다</div>' +
+        '<p class="cqo-locked">' + ICON_LOCK + ' 업체 연락처·주소는 공개되지 않습니다. 모든 거래는 <b>벨로르를 통해</b> 안전하게 진행됩니다.</p>';
     } else if (isAwarded) {
       sellBtns = '<p class="cqd-note" style="text-align:center">이미 다른 견적으로 판매가 확정되었습니다.</p>' +
         '<button type="button" class="cqd-cta ghost" data-cqd-go="c-bids" data-cqd-id="' + esc(q.id) + '">‹ 목록으로</button>';
@@ -491,7 +597,7 @@
         '<div><dt>입금 예정</dt><dd>당일 입금</dd></div>' +
       '</dl>' +
       sellBtns +
-      '<p class="cqo-foot">🔒 개인 정보와 거래 내역은 안전하게 보호됩니다.</p>' +
+      '<p class="cqo-foot">' + ICON_LOCK + ' 개인 정보와 거래 내역은 안전하게 보호됩니다.</p>' +
     '</div>';
 
     var revBlock = isThisAwarded
@@ -682,7 +788,7 @@
     var card = '<div class="cqe-card">' +
       '<div class="cqe-head">' +
         '<div class="cqe-head-txt"><p class="cqe-brand">' + esc(brandShort) + '</p><p class="cqe-model">' + esc(q.model || '') + '</p></div>' +
-        (ph ? '<img class="cqe-photo" src="' + esc(ph) + '" alt="" onerror="this.style.visibility=\'hidden\'">' : '<div class="cqe-photo ph">⌚</div>') +
+        (ph ? '<img class="cqe-photo" src="' + esc(ph) + '" alt="" onerror="this.style.visibility=\'hidden\'">' : '<div class="cqe-photo ph">' + ICON_WATCH + '</div>') +
       '</div>' +
       '<dl class="cqe-spec">' +
         '<div><dt>레퍼런스</dt><dd>' + esc(q.ref || '-') + '</dd></div>' +
@@ -695,10 +801,10 @@
     '</div>';
 
     var info = '';
-    if (q.status === 'pending') info = '<p class="cqd-state wait">🕒 정·가품 감정 및 승인 검토 중입니다.<br><span>승인되면 업체 비교견적이 시작됩니다.</span></p>';
-    else if (q.status === 'suspended') info = '<p class="cqd-state stop">⛔ 관리자에 의해 정지된 견적입니다.</p>';
+    if (q.status === 'pending') info = '<p class="cqd-state wait">정·가품 감정 및 승인 검토 중입니다.<br><span>승인되면 업체 비교견적이 시작됩니다.</span></p>';
+    else if (q.status === 'suspended') info = '<p class="cqd-state stop">관리자에 의해 정지된 견적입니다.</p>';
     else if (q.status === 'closed') info = '<p class="cqd-state stop">종료된 견적입니다.</p>';
-    else if (q.status === 'awarded') info = '<p class="cqd-state ok">✓ 판매가 확정된 시계입니다.</p>';
+    else if (q.status === 'awarded') info = '<p class="cqd-state ok">' + ICON_CHECK + ' 판매가 확정된 시계입니다.</p>';
     else {
       var views = totalViews(q);
       info = '<div class="cqc-head" style="margin-top:6px">' +
@@ -714,9 +820,114 @@
         (q.status === 'awarded' ? '확정 업체 확인하기' : '입찰 업체 확인하기' + (n ? ' (' + n + '건)' : '')) + '</button>';
     if (q.status !== 'awarded' && q.status !== 'closed')
       btns += '<button type="button" class="cqd-cta ghost" data-cqd-edit="' + esc(q.id) + '">등록 정보 수정</button>';
+    btns += '<div class="cqd-btn-row">' +
+      '<button type="button" class="cqd-cta ghost half" data-cqd-inquire="' + esc(q.id) + '">' + ICON_CHAT + '이 시계 문의</button>' +
+      '<button type="button" class="cqd-cta ghost half" data-cqd-share="' + esc(q.id) + '">' + ICON_SHARE + '공유하기</button>' +
+    '</div>';
     btns += '<button type="button" class="cqd-cta ghost" data-cqd-go="c-watches">‹ 목록으로</button>';
 
     return '<div class="cqd-screen cqe">' + card + info + priceTrendCard() + btns + '</div>';
+  };
+
+  /* ===== 고객센터 채팅 화면 ===== */
+  function quoteById(id) {
+    return findIn(cust.watches, id) || findIn(vend.quotes, id) ||
+           findIn(adm.open, id) || findIn(adm.pending, id) || null;
+  }
+  function chatTime(ms) { var d = new Date(ms); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
+  function chatWatchBox(q, nav) {
+    if (!q) return '';
+    var ph = photoOf(q);
+    var inner =
+      (ph ? '<img src="' + esc(ph) + '" alt="" onerror="this.style.visibility=\'hidden\'">' : '<span class="cq-chat-watch-ph">' + ICON_WATCH + '</span>') +
+      '<span class="cq-chat-watch-txt"><b>' + esc((brandDisplay(q) + ' ' + (q.model || '')).trim()) + '</b>' +
+        '<em>' + (q.ref ? 'Ref. ' + esc(q.ref) : '등록 시계') + '</em></span>' +
+      (nav ? '<span class="cq-chat-watch-go">›</span>' : '');
+    return nav
+      ? '<button type="button" class="cq-chat-watch" data-cqd-go="c-detail" data-cqd-id="' + esc(q.id) + '">' + inner + '</button>'
+      : '<div class="cq-chat-watch static">' + inner + '</div>';
+  }
+  function chatBubbles(mineIsAdmin) {
+    if (!chat.loaded) return '<p class="cqd-note" style="text-align:center">불러오는 중…</p>';
+    if (!chat.messages.length)
+      return '<div class="cq-chat-empty">아직 대화가 없습니다.<br>궁금한 점을 남겨주시면 관리자가 답변드립니다.</div>';
+    return chat.messages.map(function (m) {
+      var mine = mineIsAdmin ? (m.role === 'admin') : (m.role !== 'admin');
+      var box = m.refQuote ? chatWatchBox(quoteById(m.refQuote), !mineIsAdmin) : '';
+      return '<div class="cq-msg ' + (mine ? 'me' : 'other') + '">' +
+        (mine ? '' : '<span class="cq-msg-who">' + (m.role === 'admin' ? '고객센터' : '고객') + '</span>') +
+        box +
+        '<div class="cq-msg-bubble">' + esc(m.body).replace(/\n/g, '<br>') + '</div>' +
+        '<time class="cq-msg-time">' + chatTime(m.createdAtMs) + '</time>' +
+      '</div>';
+    }).join('');
+  }
+  function chatInputBar() {
+    return '<div class="cq-chat-bar">' +
+      '<input type="text" id="cqChatInput" placeholder="메시지를 입력하세요" autocomplete="off">' +
+      '<button type="button" class="cq-chat-send" data-cqd-chatsend aria-label="전송">' + ICON_SEND + '</button>' +
+    '</div>';
+  }
+  function sendChat() {
+    var inp = overlay.querySelector('#cqChatInput');
+    var body = inp ? inp.value.trim() : '';
+    if (!body) return;
+    if (!B || !B.sendSupportMessage) { alert('로그인이 필요합니다.'); return; }
+    var ref = chat.refQuote || null;
+    chat.draft = ''; if (inp) inp.value = '';
+    B.sendSupportMessage({ threadUser: chat.threadUser, body: body, refQuote: ref })
+      .then(function () { chat.refQuote = null; })
+      .catch(function (err) { alert('전송 실패: ' + msg(err)); chat.draft = body; if (inp) { inp.value = body; inp.focus(); } });
+  }
+
+  SCREENS['c-chat'] = function (quoteId) {
+    titleEl.textContent = '고객센터';
+    if (!myUid()) return '<div class="cqd-screen"><p class="cqd-note">로그인 후 이용할 수 있습니다.</p></div>';
+    if (!chatSub) openChat(myUid(), quoteId || null);
+    var refQ = chat.refQuote ? quoteById(chat.refQuote) : null;
+    var attach = refQ ? '<div class="cq-chat-attach"><span>문의 시계</span>' + chatWatchBox(refQ, true) + '</div>' : '';
+    return '<div class="cq-chat">' +
+      '<div class="cq-chat-scroll" id="cqChatScroll">' +
+        '<div class="cq-chat-intro">벨로르 고객센터입니다. 비교견적·판매·계정 등 무엇이든 문의해 주세요.<br>평일 11:00~19:00 순차 답변드립니다.</div>' +
+        attach +
+        chatBubbles(false) +
+      '</div>' +
+      chatInputBar() +
+    '</div>';
+  };
+
+  SCREENS['a-chats'] = function () {
+    titleEl.textContent = '관리자 · 고객센터';
+    if (!admChats.loaded) return '<div class="cqd-screen">' + adminSubtabs('chats') + loadingBody();
+    var rows = admChats.threads.map(function (t) {
+      var c = accById(t.user);
+      var who = c ? (c.display_name || c.email || '회원') : '회원';
+      var preview = (t.last.role === 'admin' ? '나: ' : '') + (t.last.body || '');
+      return '<button type="button" class="cqd-vrow" data-cqd-chat="' + esc(t.user) + '">' +
+        '<span class="cqd-thumb ph">' + ICON_CHAT + '</span>' +
+        '<span class="cqd-vrow-main">' +
+          '<span class="cqd-vrow-name">' + esc(who) + '</span>' +
+          '<span class="cqd-vrow-sub"><em>' + esc(preview) + '</em></span>' +
+        '</span>' +
+        '<span class="cqd-vrow-amt"><small>' + chatTime(t.last.createdAtMs) + '</small></span>' +
+      '</button>';
+    }).join('') || '<p class="cqd-note">아직 들어온 문의가 없습니다.</p>';
+    return '<div class="cqd-screen">' + adminSubtabs('chats') +
+      '<p class="cqd-block-label">고객 문의 목록</p>' +
+      '<div class="cqd-vlist">' + rows + '</div>' +
+    '</div>';
+  };
+
+  SCREENS['a-chat'] = function (userId) {
+    var c = accById(userId);
+    titleEl.textContent = (c ? (c.display_name || c.email || '고객') : '고객') + ' · 문의';
+    if (!chatSub || chat.threadUser !== userId) openChat(userId, null);
+    return '<div class="cq-chat">' +
+      '<div class="cq-chat-scroll" id="cqChatScroll">' +
+        chatBubbles(true) +
+      '</div>' +
+      chatInputBar() +
+    '</div>';
   };
 
   /* --- 업체: 들어온 비교견적 --- */
@@ -725,8 +936,8 @@
     var approved = !!(AUTH.info && AUTH.info.isApprovedVendor);
     var suspended = !!(AUTH.info && AUTH.info.suspended);
     var notice = '';
-    if (suspended) notice = '<p class="cqd-state stop">⛔ 사용정지된 업체 계정입니다. 입찰이 제한됩니다.</p>';
-    else if (!approved) notice = '<p class="cqd-state wait">🕒 업체 승인 대기중입니다. 승인 후 입찰할 수 있어요.</p>';
+    if (suspended) notice = '<p class="cqd-state stop">사용정지된 업체 계정입니다. 입찰이 제한됩니다.</p>';
+    else if (!approved) notice = '<p class="cqd-state wait">업체 승인 대기중입니다. 승인 후 입찰할 수 있어요.</p>';
     if (!vend.loaded) return '<div class="cqd-screen">' + vendorSubtabs('v-watches') + loadingBody();
     var rows = vend.quotes.map(function (q) {
       var mine = myBidOf(q);
@@ -763,7 +974,7 @@
     var approved = !!(AUTH.info && AUTH.info.isApprovedVendor);
     return '<div class="cqd-screen">' +
       watchCard(q) + priceTrendCard() +
-      (approved ? '' : '<p class="cqd-state wait">🕒 업체 승인 후 입찰이 저장됩니다.</p>') +
+      (approved ? '' : '<p class="cqd-state wait">업체 승인 후 입찰이 저장됩니다.</p>') +
       '<div class="cqd-form">' +
         '<label>제안 금액 (원)</label>' +
         '<input type="tel" id="cqdBidAmt" value="' + (mine ? mine.amount : '') + '" placeholder="예: 21000000">' +
@@ -806,6 +1017,7 @@
       '<button type="button" class="' + (cur === 'quotes' ? 'is-on' : '') + '" data-cqd-go="a-dash">견적 현황</button>' +
       '<button type="button" class="' + (cur === 'vendors' ? 'is-on' : '') + '" data-cqd-go="a-vendors">업체 관리</button>' +
       '<button type="button" class="' + (cur === 'customers' ? 'is-on' : '') + '" data-cqd-go="a-customers">고객 관리</button>' +
+      '<button type="button" class="' + (cur === 'chats' ? 'is-on' : '') + '" data-cqd-go="a-chats">고객센터</button>' +
     '</div>';
   }
   function accById(id) {
@@ -821,26 +1033,37 @@
   SCREENS['a-dash'] = function () {
     titleEl.textContent = '관리자 · 비교견적';
     if (!adm.loaded) return '<div class="cqd-screen">' + adminSubtabs('quotes') + loadingBody();
-    var list = allAdminQuotes();
-    var rows = list.map(function (q) {
+    function admRow(q) {
       var c = accById(q.uid);
+      var chips = [];
+      if (q.ref) chips.push('Ref. ' + esc(q.ref));
+      chips.push('고객 ' + esc(c ? (c.display_name || c.email || '회원') : '회원'));
+      chips.push('입찰 ' + (q.bids || []).length + '건');
       return '<button type="button" class="cqd-vrow" data-cqd-go="a-quote" data-cqd-id="' + esc(q.id) + '">' +
         rowThumb(q) +
         '<span class="cqd-vrow-main">' +
           '<span class="cqd-vrow-name">' + esc((q.brand || '') + ' ' + (q.model || '')) + ' ' + statusBadge(q) + '</span>' +
-          '<span class="cqd-vrow-sub"><em>고객 ' + esc(c ? (c.display_name || c.email || '회원') : '회원') + ' · 입찰 ' + (q.bids || []).length + '건</em></span>' +
+          '<span class="cqd-vrow-sub"><em>' + chips.join(' · ') + '</em></span>' +
         '</span>' +
         '<span class="cqd-vrow-amt">' + (q.bidAmount ? man(q.bidAmount) + '원' : '-') + '<small>›</small></span>' +
       '</button>';
-    }).join('') || '<p class="cqd-note">대기/진행중 견적이 없습니다.</p>';
+    }
+    var pend = adm.pending.slice();
+    var pendRows = pend.map(admRow).join('');
+    var openRows = adm.open.map(admRow).join('') || '<p class="cqd-note">진행중 견적이 없습니다.</p>';
+    var pendBlock = pend.length
+      ? '<p class="cqd-block-label hot">승인 대기 <span class="cqd-cnt">' + pend.length + '</span></p>' +
+        '<div class="cqd-vlist cqd-vlist-pend">' + pendRows + '</div>'
+      : '<div class="cqd-state ok" style="margin:8px 0 4px">승인 대기중인 시계가 없습니다.</div>';
     return '<div class="cqd-screen">' + adminSubtabs('quotes') +
       '<div class="cqd-stats">' +
         '<div class="cqd-stat"><b>' + adm.pending.length + '</b><span>승인 대기</span></div>' +
         '<div class="cqd-stat"><b>' + adm.open.length + '</b><span>입찰 진행</span></div>' +
         '<div class="cqd-stat"><b>' + adm.vendors.length + '</b><span>업체</span></div>' +
       '</div>' +
-      '<p class="cqd-block-label">견적 목록</p>' +
-      '<div class="cqd-vlist">' + rows + '</div>' +
+      pendBlock +
+      '<p class="cqd-block-label">입찰 진행중</p>' +
+      '<div class="cqd-vlist">' + openRows + '</div>' +
     '</div>';
   };
 
@@ -974,6 +1197,24 @@
 
     var cnav = e.target.closest('[data-cqd-close-nav]');
     if (cnav) { close(); location.hash = '#' + cnav.getAttribute('data-cqd-close-nav'); return; }
+
+    /* 공유하기 */
+    var shr = e.target.closest('[data-cqd-share]');
+    if (shr) { cqShare(findIn(cust.watches, shr.getAttribute('data-cqd-share'))); return; }
+    /* 이 시계 문의(고객센터 채팅) */
+    var iq = e.target.closest('[data-cqd-inquire]');
+    if (iq) { openChat(myUid(), iq.getAttribute('data-cqd-inquire')); go('c-chat', iq.getAttribute('data-cqd-inquire')); return; }
+    /* 일반 고객센터 채팅 진입 */
+    if (e.target.closest('[data-cqd-cs]')) { openChat(myUid(), null); go('c-chat', null); return; }
+    /* 관리자: 고객 문의 스레드 열기 */
+    var ach = e.target.closest('[data-cqd-chat]');
+    if (ach) { openChat(ach.getAttribute('data-cqd-chat'), null); go('a-chat', ach.getAttribute('data-cqd-chat')); return; }
+    /* 채팅 전송 */
+    if (e.target.closest('[data-cqd-chatsend]')) { sendChat(); return; }
+    /* 공유 시트 액션 */
+    var sa = e.target.closest('[data-cqd-shareact]');
+    if (sa) { shareAct(sa.getAttribute('data-cqd-shareact')); return; }
+    if (e.target.closest('#cqShareClose') || e.target.closest('#cqShareMask')) { closeShareSheet(); return; }
 
     /* 상단 + 버튼 / 빈목록 CTA → 새 시계 등록(상태 초기화) */
     if (e.target.closest('.cqd-add') || e.target.closest('[data-cqd-new]')) {
@@ -1145,6 +1386,13 @@
       tmp.innerHTML = brandSheetHTML(e.target.value);
       var nl = tmp.querySelector('.cqd-brand-list');
       if (nl) listEl.innerHTML = nl.innerHTML;
+    } else if (e.target && e.target.id === 'cqChatInput') {
+      chat.draft = e.target.value;
+    }
+  }
+  function onKey(e) {
+    if (e.target && e.target.id === 'cqChatInput' && e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault(); sendChat();
     }
   }
 
@@ -1271,6 +1519,8 @@
   }
   function close() {
     clearSubs();
+    closeChat();
+    closeShareSheet();
     stopCdTimer();
     if (overlay) overlay.hidden = true;
     document.body.style.overflow = '';
