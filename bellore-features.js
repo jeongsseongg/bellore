@@ -807,8 +807,9 @@
     }
     function applyMyPageRole(info) {
       var admin = !!(info && info.isAdmin);
-      // 내 시계팔기(비교견적 데모): 관리자 포함 모든 로그인 사용자에게 노출(역할별 화면은 모듈이 제어)
-      if (myItemsSection) myItemsSection.hidden = false;
+      // 내 시계팔기는 '내 시계팔기' 아이콘/관리 메뉴 → 전체화면 페이지(cq-demo)로 진입.
+      // 마이페이지 내부의 (구) 카드 목록 자리는 항상 숨김 placeholder 로만 유지한다.
+      if (myItemsSection) myItemsSection.hidden = true;
       // 마이포켓: 모든 로그인 사용자(관리자 포함)에게 표시
       var roleEl = $('#myPageRole');
       var user = B.currentUser();

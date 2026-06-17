@@ -438,6 +438,22 @@
                 if (e.target.closest('[data-nav]')) closeMyPage();
             });
         }
+        // 비밀번호 변경 (로그인 사용자 본인)
+        var chPw = $('#btnChangePw');
+        if (chPw) {
+            chPw.addEventListener('click', function () {
+                if (!backendOn() || !NWBackend.updatePassword) { alert('로그인 후 이용해 주세요.'); return; }
+                var p1 = prompt('새 비밀번호를 입력하세요 (6자 이상)');
+                if (p1 == null) return;
+                if (p1.length < 6) { alert('비밀번호는 6자 이상이어야 합니다.'); return; }
+                var p2 = prompt('확인을 위해 새 비밀번호를 한 번 더 입력하세요');
+                if (p2 == null) return;
+                if (p1 !== p2) { alert('비밀번호가 일치하지 않습니다.'); return; }
+                NWBackend.updatePassword(p1)
+                    .then(function () { alert('비밀번호가 변경되었습니다.'); })
+                    .catch(function (err) { alert('변경 실패: ' + (err && err.message || err)); });
+            });
+        }
         // 로그아웃
         var logout = $('#btnLogout');
         if (logout) {
@@ -622,15 +638,47 @@
         else badge.hidden = true;
     }
 
+    var NOTI_LABEL = {
+        quote_open: '새 비교견적', awarded: '입찰 채택', approved: '업체 승인',
+        account: '계좌 인증', listing: '매물 승인', info: '알림'
+    };
+    // 알림 종류별로 눌렀을 때 이동할 화면
+    function notiTarget(type) {
+        if (type === 'quote_open' || type === 'awarded' || type === 'approved' || type === 'account') return 'cq';
+        if (type === 'listing') return 'collection';
+        return '';
+    }
     function renderNotiList(rows) {
         var el = $('#notiList');
         if (!el) return;
         if (!rows.length) { el.innerHTML = '<div class="noti-empty">알림이 없습니다.</div>'; return; }
         el.innerHTML = rows.map(function (n) {
-            return '<div class="noti-item' + (n.read ? '' : ' unread') + '">' + esc(n.text) +
-                '<time>' + relTime(n.createdAt) + '</time></div>';
+            var label = NOTI_LABEL[n.type] || '알림';
+            var go = notiTarget(n.type) ? ' has-go' : '';
+            return '<button type="button" class="noti-item' + (n.read ? '' : ' unread') + go + '" data-nid="' + esc(n.id) +
+                '" data-ntype="' + esc(n.type || '') + '">' +
+                '<span class="noti-tag">' + esc(label) + '</span>' +
+                '<span class="noti-text">' + esc(n.text) + '</span>' +
+                '<time>' + relTime(n.createdAt) + '</time>' +
+                (notiTarget(n.type) ? '<span class="noti-arrow">바로가기 ›</span>' : '') +
+                '</button>';
         }).join('');
     }
+    // 알림 클릭 → 읽음 처리 + 해당 화면으로 이동
+    document.addEventListener('click', function (e) {
+        var it = e.target.closest('#notiList .noti-item');
+        if (!it) return;
+        var id = it.getAttribute('data-nid');
+        var type = it.getAttribute('data-ntype');
+        if (id && backendOn() && NWBackend.markNotificationRead) {
+            NWBackend.markNotificationRead(id).then(function () {}, function () {});
+        }
+        it.classList.remove('unread');
+        var tgt = notiTarget(type);
+        var nm = $('#notiModal'); if (nm) { nm.hidden = true; document.body.style.overflow = ''; }
+        if (tgt === 'cq') { if (window.CQDemo) window.CQDemo.open(); }
+        else if (tgt === 'collection') { closeMyPage(); location.hash = '#collection'; }
+    });
 
     function renderVendorList(vendors) {
         _adminCache.vendors = vendors || [];
@@ -848,17 +896,17 @@
     function renderAdminDash() {
         var box = $('#adminDash');
         if (!box || !backendOn() || !NWBackend.adminOrderStats) return;
-        function cell(val, label) {
-            return '<div class="admin-dash-cell"><b>' + val + '</b><span>' + label + '</span></div>';
+        function cell(val, label, status) {
+            return '<button type="button" class="admin-dash-cell" data-ostatus="' + (status || '') + '"><b>' + val + '</b><span>' + label + ' ›</span></button>';
         }
         NWBackend.adminOrderStats().then(function (s) {
             box.innerHTML =
-                cell(s.todayOrders + '건', '오늘 주문') +
-                cell(fmt(s.paidTodayAmount) + '원', '오늘 입금확인') +
-                cell(s.shipping + '건', '배송중') +
-                cell(s.pendingPay + '건', '결제대기') +
-                cell(s.preparing + '건', '상품준비중') +
-                cell(s.paid + '건', '결제완료');
+                cell(s.todayOrders + '건', '오늘 주문', '') +
+                cell(fmt(s.paidTodayAmount) + '원', '오늘 입금확인', 'paid') +
+                cell(s.shipping + '건', '배송중', 'shipping') +
+                cell(s.pendingPay + '건', '결제대기', 'pending') +
+                cell(s.preparing + '건', '상품준비중', 'preparing') +
+                cell(s.paid + '건', '결제완료', 'paid');
         }).catch(function () {});
     }
     function refreshAdminBadges() {
@@ -899,6 +947,9 @@
             var row = e.target.closest('#adminMenuBox [data-apv]');
             if (row) { openAdminPanel(row.dataset.apv); return; }
             if (e.target.closest('#adminPanelBack')) closeAdminPanel();
+            // 오늘 현황 칸 탭 → 해당 상태 주문 목록 열기
+            var dc = e.target.closest('#adminDash [data-ostatus]');
+            if (dc) { openOrdersList(dc.dataset.ostatus || ''); return; }
         });
 
         if (!backendOn() || !NWBackend.onAuthChange) return;
@@ -907,7 +958,7 @@
             var isAdmin = !!(info && info.isAdmin);
             ['adminDashBox', 'adminMenuBox'].forEach(function (id) { var el = $('#' + id); if (el) el.hidden = !isAdmin; });
             // 관리자에겐 고객용 영역 숨김(포인트/내쿠폰/소식 시계)
-            ['pocketBox', 'myCouponSection', 'myAlertsSection', 'myItemsSection', 'myCartLink'].forEach(function (id) {
+            ['pocketBox', 'myCouponSection', 'myAlertsSection', 'myCartLink'].forEach(function (id) {
                 var el = $('#' + id); if (el) el.hidden = isAdmin;
             });
             if (!isAdmin) { var p = $('#adminPanel'); if (p) p.hidden = true; }

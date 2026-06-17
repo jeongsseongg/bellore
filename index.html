@@ -2101,6 +2101,10 @@
             <div class="mypage-section admin-only" hidden id="adminMenuBox">
                 <h4>관리</h4>
                 <div class="admin-menu">
+                    <button type="button" class="admin-menu-row" data-cqd-open>
+                        <span>내시계팔기 (견적·업체·고객)</span>
+                        <span class="amr-right"><span class="amr-arrow">›</span></span>
+                    </button>
                     <button type="button" class="admin-menu-row" data-apv="quotes">
                         <span>비교견적 승인</span>
                         <span class="amr-right"><span class="amr-badge" id="amrQuotes" hidden>0</span><span class="amr-arrow">›</span></span>
@@ -2151,7 +2155,7 @@
                         <span class="pl-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"/><path d="M12 6v12" stroke-dasharray="2 2"/></svg></span>
                         <span class="pl-label">쿠폰</span>
                     </button>
-                    <button type="button" class="pl-item" data-myjump="#myItemsSection">
+                    <button type="button" class="pl-item" data-cqd-open>
                         <span class="pl-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6a1 1 0 0 1 1 1v1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h1V5a1 1 0 0 1 1-1z"/><path d="M9 12h6M9 16h4"/></svg></span>
                         <span class="pl-label">내 시계팔기</span>
                     </button>
@@ -2181,18 +2185,8 @@
                     </button>
                 </div>
 
-                <!-- 내 시계팔기 (비교견적) -->
-                <div class="mypage-section" id="myItemsSection">
-                    <h4>내 시계팔기</h4>
-                    <button type="button" class="cqd-enter" data-cqd-open>
-                        <span class="cqd-enter-l">
-                            <b>내 시계팔기 입장</b>
-                            <small>등록한 시계의 받은 견적을 확인하고 선택하세요</small>
-                        </span>
-                        <span class="cqd-enter-arrow">›</span>
-                    </button>
-                    <div id="myPageListings"></div>
-                </div>
+                <!-- (구) 내 시계팔기 카드 목록은 '내 시계팔기' 아이콘 → 전체화면 페이지로 통합되었습니다. -->
+                <div id="myItemsSection" hidden><div id="myPageListings"></div></div>
 
                 <!-- 나의쇼핑 -->
                 <div class="pocket-shop">
@@ -2241,6 +2235,11 @@
 
             <button type="button" class="mypage-cart-link" data-nav="wishlist" id="myCartLink">
                 <span>장바구니 / 찜 목록 (My Pick)</span>
+                <span aria-hidden="true">›</span>
+            </button>
+
+            <button type="button" class="mypage-cart-link" id="btnChangePw">
+                <span>비밀번호 변경</span>
                 <span aria-hidden="true">›</span>
             </button>
 

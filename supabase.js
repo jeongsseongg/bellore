@@ -162,7 +162,10 @@
       accountSubmitted: Backend.accountSubmitted(),
       phone: (profile && profile.phone) || (rawUser && rawUser.phone) || '',
       notifyQuotes: !(profile && profile.notify_quotes === false), // 기본 켜짐
-      vip: !!(profile && profile.vip)
+      vip: !!(profile && profile.vip),
+      companyName: (profile && profile.company_name) || '',
+      logoUrl: (profile && profile.logo_url) || '',
+      suspended: !!(profile && profile.suspended)
     };
   }
   function notifyAuth() {
@@ -264,6 +267,14 @@
     return sb.auth.resetPasswordForEmail(email, {
       redirectTo: location.origin + location.pathname
     }).then(function (res) { if (res.error) throw res.error; });
+  };
+
+  // 로그인 사용자 본인 비밀번호 직접 변경
+  Backend.updatePassword = function (newPw) {
+    if (!rawUser) return Promise.reject(new Error('NOT_LOGGED_IN'));
+    if (!newPw || String(newPw).length < 6) return Promise.reject(new Error('비밀번호는 6자 이상이어야 합니다.'));
+    return sb.auth.updateUser({ password: newPw })
+      .then(function (res) { if (res.error) throw res.error; return true; });
   };
 
   /* ---------------- 휴대폰(SMS OTP) 인증 ----------------
@@ -490,6 +501,30 @@
         }
         refreshQuoteFeeds();
       });
+  };
+
+  // 관리자: 견적 정지 / 해제 / 삭제
+  Backend.suspendQuote = function (id) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    return sb.from('quote_requests').update({ status: 'suspended' }).eq('id', id)
+      .then(function (res) { if (res.error) throw res.error; refreshQuoteFeeds(); });
+  };
+  Backend.unsuspendQuote = function (id) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    return sb.from('quote_requests').update({ status: 'open' }).eq('id', id)
+      .then(function (res) { if (res.error) throw res.error; refreshQuoteFeeds(); });
+  };
+  Backend.deleteQuote = function (id) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    return sb.from('quote_requests').delete().eq('id', id)
+      .then(function (res) { if (res.error) throw res.error; refreshQuoteFeeds(); });
+  };
+
+  // 확정 업체 공개용 — 연락처/주소는 제외하고 상호/로고만 (RLS가 막으면 graceful)
+  Backend.getVendorPublic = function (id) {
+    if (!id) return Promise.resolve(null);
+    return sb.from('profiles').select('id, company_name, display_name, logo_url').eq('id', id).maybeSingle()
+      .then(function (res) { return res.data || null; }, function () { return null; });
   };
 
   var quoteRefreshers = [];
@@ -731,6 +766,32 @@
       .then(function (res) {
         if (res.error) throw res.error;
         refreshVendors(); refreshAccounts();
+      });
+  };
+
+  // 관리자: 업체 사용정지 / 해제 (profiles.suspended)
+  Backend.setVendorSuspended = function (id, on) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    return sb.from('profiles').update({ suspended: !!on }).eq('id', id)
+      .then(function (res) { if (res.error) throw res.error; refreshVendors(); refreshAccounts(); });
+  };
+  // 관리자: 업체/회원 프로필 삭제 (auth 계정 완전 삭제는 Supabase 콘솔에서)
+  Backend.deleteAccount = function (id) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    return sb.from('profiles').delete().eq('id', id)
+      .then(function (res) { if (res.error) throw res.error; refreshVendors(); refreshAccounts(); });
+  };
+  // 업체 본인: 상호 / 로고 이미지 수정
+  Backend.updateMyVendorProfile = function (data) {
+    if (!rawUser) return Promise.reject(new Error('NOT_LOGGED_IN'));
+    var patch = {};
+    if (data.company_name != null) patch.company_name = String(data.company_name).trim();
+    if (data.logo_url !== undefined) patch.logo_url = data.logo_url || null;
+    if (!Object.keys(patch).length) return Promise.resolve();
+    return sb.from('profiles').update(patch).eq('id', rawUser.id)
+      .then(function (res) {
+        if (res.error) throw res.error;
+        return loadProfile().then(notifyAuth, notifyAuth);
       });
   };
 

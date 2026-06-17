@@ -5205,9 +5205,15 @@ body.admin-mode .main-wrap { padding-top: 0; }
 }
 .noti-list { display: flex; flex-direction: column; gap: 8px; max-height: 60vh; }
 .noti-item {
+    display: block; width: 100%; text-align: left; border: 0; cursor: default;
     padding: 12px 14px; border-radius: 12px;
     background: var(--bg-soft); font-size: 13px; line-height: 1.5; color: var(--text);
 }
+.noti-item.has-go { cursor: pointer; }
+.noti-tag { display: inline-block; font-size: 10.5px; font-weight: 800; letter-spacing: .3px;
+    color: var(--green-bright); background: rgba(31,59,52,.08); border-radius: 999px; padding: 2px 8px; margin-bottom: 5px; }
+.noti-text { display: block; }
+.noti-arrow { display: block; margin-top: 5px; font-size: 11.5px; font-weight: 800; color: var(--green-bright); }
 .noti-item.unread { background: #f2f2f2; border-left: 3px solid var(--green-bright); }
 .noti-item time { display: block; margin-top: 4px; font-size: 11px; color: var(--text-3); }
 .noti-empty, .mypage-empty {
@@ -5425,11 +5431,11 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
     background-size: cover; background-position: center;
     filter: blur(34px) brightness(.5); transform: scale(1.18);
 }
-/* 잘림 절대 금지: 프레임을 100% 100% 로 강제 맞춤 → 위아래/좌우 어디도 잘리지 않는다.
-   규격(모바일 5:4, 데스크톱 8:5)에 맞춘 사진은 왜곡 없이 정확히 노출되고,
-   비율이 어긋난 사진이 올라와도 레터박스(빈 공간) 없이 프레임을 꽉 채운다. */
+/* 왜곡 금지: 'contain' 으로 업로드한 사진의 원래 비율을 그대로 노출한다.
+   (100% 100% 강제 맞춤은 노트북/와이드처럼 프레임 비율이 다른 화면에서 사진을 늘려 깨뜨림)
+   남는 영역은 뒤의 hero-slide-blur(흐림 배경)가 채워 레터박스가 보이지 않는다. */
 .hero-slide-db .hero-slide-bg {
-    position: absolute; inset: 0; background-size: 100% 100%; background-repeat: no-repeat;
+    position: absolute; inset: 0; background-size: contain; background-repeat: no-repeat;
     background-position: center; background-color: transparent; z-index: 1;
     transform-origin: center center;
 }
@@ -7315,9 +7321,10 @@ body.is-searching .tabbar { display: none !important; }
     background: var(--border); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
 }
 .admin-dash-cell {
-    background: #fff; padding: 16px 10px; text-align: center;
+    background: #fff; padding: 16px 10px; text-align: center; border: 0; cursor: pointer; width: 100%;
     display: flex; flex-direction: column; gap: 5px;
 }
+.admin-dash-cell:active { background: var(--bg-soft); }
 .admin-dash-cell b { font-size: 19px; font-weight: 700; color: var(--text); letter-spacing: -.5px; }
 .admin-dash-cell span { font-size: 11.5px; color: var(--text-2); }
 
@@ -7537,6 +7544,18 @@ body.is-searching .tabbar { display: none !important; }
   font-size: 13px; font-weight: 800; cursor: pointer; }
 .cqd-actbtn.stop { color: #7a6a32; border-color: #e0d3a8; }
 .cqd-actbtn.warn { color: #9a3b2c; border-color: #e3b9b0; }
+.cqd-actbtn.ok { color: #fff; background: #1f3b34; border-color: #1f3b34; }
+.cqd-actbtn.sm { flex: 0 0 auto; padding: 8px 10px; font-size: 12px; }
+.cqd-actions { flex-wrap: wrap; }
+.cqd-actions.inline { margin-top: 0; flex: 0 0 auto; gap: 6px; }
+
+/* 클릭 불가(정보 표시) 행 */
+.cqd-vrow.static { cursor: default; }
+
+/* 등록 시계 없음 — 안내 CTA */
+.cqd-empty-cta { background: #fff; border-radius: 16px; padding: 22px 18px; text-align: center;
+  box-shadow: 0 6px 22px rgba(20,30,26,.06); }
+.cqd-empty-cta p { font-size: 13px; color: #6f6a5e; line-height: 1.6; margin-bottom: 14px; }
 
 /* 후기 카드 */
 .cqd-rev { list-style: none; background: #fff; border-radius: 12px; padding: 13px 14px; }
@@ -7544,9 +7563,36 @@ body.is-searching .tabbar { display: none !important; }
 .cqd-rev-top b { font-size: 13px; font-weight: 800; color: #1a1a1a; }
 .cqd-rev p { font-size: 12.5px; color: #555; margin-top: 7px; line-height: 1.5; }
 
-/* 마이페이지 모달: 더 크게(풀화면에 가깝게) */
-#myPageModal .login-content { max-width: 600px; max-height: 94vh; }
-@media (max-width: 600px) {
-  #myPageModal .login-content { max-width: 100%; max-height: 100vh; height: 100vh;
-    border-radius: 0; padding: 22px 16px calc(20px + env(safe-area-inset-bottom)); }
+/* 마이페이지: '새창' 느낌 제거 — 화면을 꽉 채우는 앱 내 페이지처럼 표시
+   (떠있는 카드/딤 배경 대신 전체화면, PC/모바일/와이드 반응형) */
+#myPageModal { padding: 0; align-items: stretch; justify-content: stretch; background: #f4f1ea; }
+#myPageModal .login-backdrop { display: none; }
+#myPageModal .login-content {
+  max-width: 100%;
+  width: 100%;
+  max-height: none;
+  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  border-radius: 0;
+  box-shadow: none;
+  background: #f4f1ea;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: calc(20px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom));
+  animation: none;
 }
+/* 내부 콘텐츠는 와이드에서 가독성을 위해 가운데 정렬 + 최대폭 제한 */
+#myPageModal .login-head,
+#myPageModal .mypage-section,
+#myPageModal .mypage-noti,
+#myPageModal .pocket,
+#myPageModal .mypage-cart-link,
+#myPageModal #btnLogout,
+#myPageModal #btnChangePw { width: 100%; max-width: 720px; margin-left: auto; margin-right: auto; }
+#myPageModal .login-close { top: calc(12px + env(safe-area-inset-top)); right: 14px; z-index: 5; }
+
+/* 관리 패널(z 3200) 위에서 열리는 화면들은 더 위로 올려 가린 채로 뜨지 않게 한다
+   (쿠폰 만들기 모달 · 판매시계 등록/수정 페이지) */
+#couponModal { z-index: 3600; }
+#listingPage { z-index: 3600; }
