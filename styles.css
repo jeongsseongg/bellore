@@ -7363,23 +7363,24 @@ body.is-searching .tabbar { display: none !important; }
 .ps-cell b { font-weight: 600; }
 
 /* ===================== 비교견적 데모 시스템 (cq-demo.js) ===================== */
-.cqd-overlay { position: fixed; inset: 0; z-index: 4000; background: rgba(15,20,18,.55);
-  display: flex; justify-content: center; align-items: stretch; }
+.cqd-overlay { position: fixed; inset: 0; z-index: 4000; background: #f4f1ea;
+  display: flex; flex-direction: column; }
 .cqd-overlay[hidden] { display: none; }
-.cqd-frame { width: 100%; max-width: 480px; background: #f4f1ea; display: flex; flex-direction: column;
-  height: 100%; box-shadow: 0 0 40px rgba(0,0,0,.3); }
+.cqd-frame { width: 100%; max-width: 100%; background: #f4f1ea; display: flex; flex-direction: column; height: 100%; }
 .cqd-bar { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 14px 14px;
   padding-top: calc(14px + env(safe-area-inset-top)); background: var(--cq-green, #1f3b34); color: #fff; }
 .cqd-bar .cqd-title { flex: 1 1 auto; text-align: center; font-weight: 700; font-size: 16px; letter-spacing: .3px; }
 .cqd-back, .cqd-close { width: 34px; height: 34px; border: 0; background: rgba(255,255,255,.12); color: #fff;
   border-radius: 9px; font-size: 20px; line-height: 1; cursor: pointer; }
 .cqd-back[hidden] { visibility: hidden; }
-.cqd-roles { flex: 0 0 auto; display: flex; gap: 6px; padding: 10px 12px; background: var(--cq-green-deep, #163029); }
+.cqd-roles { flex: 0 0 auto; display: flex; gap: 6px; padding: 10px 12px; background: var(--cq-green-deep, #163029);
+  width: 100%; max-width: 820px; margin: 0 auto; }
+.cqd-roles[hidden] { display: none; }
 .cqd-roles button { flex: 1; border: 0; background: rgba(255,255,255,.08); color: #cfe0d9;
   padding: 9px 0; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer; }
 .cqd-roles button.is-on { background: var(--cq-gold, #e9dec3); color: #163029; }
 .cqd-body { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-.cqd-screen { padding: 16px 14px calc(28px + env(safe-area-inset-bottom)); }
+.cqd-screen { padding: 16px 14px calc(28px + env(safe-area-inset-bottom)); max-width: 760px; margin: 0 auto; }
 
 .cqd-note { font-size: 12.5px; color: #6f6a5e; margin: 2px 2px 12px; line-height: 1.5; }
 .cqd-note.ok { color: #1f3b34; font-weight: 700; }
@@ -7497,3 +7498,55 @@ body.is-searching .tabbar { display: none !important; }
 .cqd-enter b { display: block; font-size: 15px; font-weight: 800; }
 .cqd-enter small { display: block; font-size: 11.5px; color: #b9d0c7; margin-top: 3px; }
 .cqd-enter .cqd-enter-arrow { font-size: 22px; color: var(--cq-gold, #e9dec3); }
+
+/* 상태 배지 */
+.cqd-badge { font-size: 10.5px; font-weight: 800; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.cqd-badge.live { background: #1f3b34; color: #fff; }
+.cqd-badge.wait { background: #efe7cf; color: #7a6a32; }
+.cqd-badge.done { background: #dfeae4; color: #1f3b34; }
+.cqd-badge.stop { background: #f0d8d4; color: #9a3b2c; }
+.cqd-watchcard-head .cqd-badge { margin-left: auto; align-self: flex-start; }
+
+/* 시세 데이터 없음 */
+.cqd-nodata { background: #fff; border-radius: 14px; padding: 18px 16px; margin-top: 12px; text-align: center;
+  box-shadow: 0 6px 22px rgba(20,30,26,.06); }
+.cqd-nodata b { display: block; font-size: 12.5px; color: #6f6a5e; font-weight: 700; }
+.cqd-nodata span { display: block; font-size: 13px; color: #a39c8c; margin-top: 6px; }
+
+/* 상태 안내 (승인중/대기중/정지/확정) */
+.cqd-state { border-radius: 14px; padding: 22px 16px; margin-top: 12px; text-align: center; font-size: 14px; font-weight: 800; line-height: 1.5; }
+.cqd-state span { display: block; font-size: 12px; font-weight: 600; color: inherit; opacity: .8; margin-top: 6px; }
+.cqd-state.wait { background: #fbf6e6; color: #7a6a32; }
+.cqd-state.done { background: #e3efe9; color: #1f3b34; }
+.cqd-state.stop { background: #f7e3df; color: #9a3b2c; }
+
+/* 아바타 이미지 */
+.cqd-avatar img, .cqd-shop-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block; }
+
+/* 정지 업체 행 */
+.cqd-vrow.is-stop { opacity: .65; }
+
+/* 고객 정보 카드 (관리자) */
+.cqd-cust { background: #fff; border-radius: 14px; padding: 14px 16px; margin-top: 12px; box-shadow: 0 6px 22px rgba(20,30,26,.06); }
+.cqd-cust-h { font-size: 12.5px; font-weight: 800; color: #44403a; margin-bottom: 4px; }
+.cqd-cust .cqd-rows { border-top: 0; }
+
+/* 관리 액션 버튼 */
+.cqd-actions { display: flex; gap: 8px; margin-top: 14px; }
+.cqd-actbtn { flex: 1; padding: 13px 8px; border-radius: 11px; border: 1px solid #ddd8cc; background: #fff;
+  font-size: 13px; font-weight: 800; cursor: pointer; }
+.cqd-actbtn.stop { color: #7a6a32; border-color: #e0d3a8; }
+.cqd-actbtn.warn { color: #9a3b2c; border-color: #e3b9b0; }
+
+/* 후기 카드 */
+.cqd-rev { list-style: none; background: #fff; border-radius: 12px; padding: 13px 14px; }
+.cqd-rev-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.cqd-rev-top b { font-size: 13px; font-weight: 800; color: #1a1a1a; }
+.cqd-rev p { font-size: 12.5px; color: #555; margin-top: 7px; line-height: 1.5; }
+
+/* 마이페이지 모달: 더 크게(풀화면에 가깝게) */
+#myPageModal .login-content { max-width: 600px; max-height: 94vh; }
+@media (max-width: 600px) {
+  #myPageModal .login-content { max-width: 100%; max-height: 100vh; height: 100vh;
+    border-radius: 0; padding: 22px 16px calc(20px + env(safe-area-inset-bottom)); }
+}
