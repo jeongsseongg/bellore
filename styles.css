@@ -5397,7 +5397,7 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 
 /* ============ 히어로 배너 캐러셀 ============ */
 .hero-carousel { position: relative; overflow: hidden; }
-.hero-track { display: flex; transition: transform .45s cubic-bezier(.2,.8,.2,1); will-change: transform; touch-action: pan-y; }
+.hero-track { display: flex; align-items: flex-start; transition: transform .45s cubic-bezier(.2,.8,.2,1); will-change: transform; touch-action: pan-y; }
 .hero-slide { position: relative; flex: 0 0 100%; min-width: 100%; }
 .hero-slide.hero { min-height: 70vh; }
 /* DB 배너가 있을 때는 고정 헤더(로고줄+카테고리탭)에 가리지 않도록 그 아래로 내린다 */
