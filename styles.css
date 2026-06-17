@@ -7783,11 +7783,48 @@ body.is-searching .tabbar { display: none !important; }
   justify-content: center; gap: 2px; cursor: pointer; }
 .cqd-photo-add small { font-size: 10px; font-weight: 700; }
 
-/* 신규 등록: 구성품 체크 그리드 */
-.cqd-chkgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.cqd-chk { display: flex; align-items: center; gap: 6px; background: #fcfbf7; border: 1px solid #e0dcd0;
-  border-radius: 10px; padding: 10px 8px; font-size: 12.5px; color: #44403a; cursor: pointer; }
-.cqd-chk input { width: auto; }
+/* 신규 등록: 구성품 체크 그리드 (선택형 카드) */
+.cqd-chkgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; margin-bottom: 4px; }
+.cqd-chk { position: relative; display: flex; align-items: center; gap: 9px; background: #fcfbf7;
+  border: 1.5px solid #e3dfd3; border-radius: 12px; padding: 12px 12px; font-size: 13.5px; font-weight: 600;
+  color: #44403a; cursor: pointer; transition: border-color .15s, background .15s, box-shadow .15s; }
+.cqd-chk input { position: absolute; opacity: 0; width: 0; height: 0; }
+.cqd-chk-box { flex: 0 0 auto; width: 21px; height: 21px; border-radius: 7px; border: 1.5px solid #c9c3b4;
+  background: #fff; display: inline-flex; align-items: center; justify-content: center; color: #fff;
+  transition: background .15s, border-color .15s, transform .12s; }
+.cqd-chk-box svg { opacity: 0; transition: opacity .12s; }
+.cqd-chk:has(input:checked) { border-color: var(--cq-green, #1f3b34);
+  background: #f3f7f4; box-shadow: 0 2px 10px rgba(31,59,52,.12); }
+.cqd-chk:has(input:checked) .cqd-chk-box { background: var(--cq-green, #1f3b34);
+  border-color: var(--cq-green, #1f3b34); transform: scale(1.04); }
+.cqd-chk:has(input:checked) .cqd-chk-box svg { opacity: 1; }
+.cqd-chk:has(input:checked) .cqd-chk-txt { color: var(--cq-green, #1f3b34); }
+
+/* 신규 등록: 브랜드 이미지 선택 */
+.cqd-lbl-sub { font-size: 11px; font-weight: 600; color: #a39c8c; }
+.cqd-brandbtn { width: 100%; display: flex; align-items: center; gap: 10px; padding: 13px 14px;
+  background: #fff; border: 1.5px solid #e0dcd0; border-radius: 12px; font-size: 14.5px; font-weight: 600;
+  color: #8a8475; cursor: pointer; text-align: left; }
+.cqd-brandbtn.on { color: #1a1a1a; border-color: var(--cq-green, #1f3b34); }
+.cqd-brandbtn-logo { flex: 0 0 auto; width: 26px; height: 26px; border-radius: 50%; overflow: hidden;
+  background: #f3f1ea; display: inline-flex; align-items: center; justify-content: center; }
+.cqd-brandbtn-logo img { width: 100%; height: 100%; object-fit: contain; }
+.cqd-brandsheet { margin-top: 8px; border: 1px solid #e6e2d6; border-radius: 14px; background: #fff;
+  overflow: hidden; box-shadow: 0 8px 26px rgba(20,30,26,.12); }
+.cqd-brand-search { display: flex; align-items: center; gap: 8px; padding: 11px 13px; border-bottom: 1px solid #eee9dc; }
+.cqd-brand-search input { flex: 1; border: 0; outline: 0; font-size: 14px; background: transparent; }
+.cqd-brand-list { max-height: 280px; overflow-y: auto; display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 6px; padding: 12px; }
+.cqd-brand-opt { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px;
+  background: #fcfbf7; border: 1.5px solid transparent; border-radius: 12px; cursor: pointer; }
+.cqd-brand-opt:hover { border-color: #d7d2c4; }
+.cqd-brand-opt img { width: 42px; height: 42px; border-radius: 50%; object-fit: contain; background: #fff; }
+.cqd-brand-opt span { font-size: 11.5px; font-weight: 600; color: #44403a; text-align: center; line-height: 1.25; }
+.cqd-brand-none { grid-column: 1 / -1; text-align: center; color: #9a948a; font-size: 13px; padding: 20px 0; }
+
+/* 등록 시계 정보: 상태 배지 줄 */
+.cqe-status-row { margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee9dc; }
+.cqd-state.ok { background: #eef6f0; color: #1f3b34; border-color: #cfe6d8; }
 
 /* ===== 마이페이지 서브페이지(스크롤 대신 페이지 전환) ===== */
 .mp-sub-bar { display: none; align-items: center; gap: 8px; margin: -8px 0 14px; }

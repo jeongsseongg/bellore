@@ -35,12 +35,11 @@
   }
 
   /* 신규 등록 폼에서 선택한 사진(File) 임시 보관 + 입력값(견적 미리보기용) */
-  var newPhotos = [];
+  var newPhotos = [];     // 새로 추가한 File 목록
+  var editPhotos = [];    // (수정 모드) 기존 사진 URL 목록
+  var editId = null;      // (수정 모드) 대상 견적 id
   var newData = {};
-  var BRAND_OPTS = ['ROLEX (롤렉스)', 'PATEK PHILIPPE (파텍필립)', 'AUDEMARS PIGUET (오데마피게)',
-    'VACHERON CONSTANTIN (바쉐론 콘스탄틴)', 'RICHARD MILLE (리차드 밀)', 'FRANCK MULLER (프랭크뮬러)',
-    'CARTIER (까르띠에)', '기타'];
-  var PART_OPTS = ['보증서', '박스', '설명서', '추가 링크', '택', '구매 영수증'];
+  var PART_OPTS = ['보증서', '정품 박스', '설명서/책자', '추가 링크', '정품 택', '구매 영수증'];
   var GRADE_OPTS = ['S등급 (미착용/신품급)', 'A등급 (사용감 적음)', 'B등급 (일반 사용감)', 'C등급 (사용감 많음)'];
 
   /* ===== 데이터 캐시 (구독으로 채움) ===== */
@@ -134,6 +133,7 @@
 
     overlay.addEventListener('click', onClick);
     overlay.addEventListener('change', onChange);
+    overlay.addEventListener('input', onInput);
     var roleBtns = rolesEl.querySelectorAll('button');
     for (var i = 0; i < roleBtns.length; i++) {
       roleBtns[i].addEventListener('click', function () {
@@ -167,6 +167,7 @@
     if (addBtn) addBtn.hidden = !(cur.screen === 'c-watches');
     bodyEl.scrollTop = 0;
     bodyEl.innerHTML = SCREENS[cur.screen] ? SCREENS[cur.screen](cur.param) : '<p class="cqd-note">준비중</p>';
+    if (cur.screen === 'c-new' || cur.screen === 'c-edit') wireCqBrand();
   }
 
   function loadingBlock() { return '<div class="cqd-screen"><p class="cqd-note">불러오는 중…</p></div>'; }
@@ -278,7 +279,7 @@
       var right = (q.status === 'open' || q.status === 'awarded') && q.bidAmount
         ? '<span class="cqd-vrow-amt">' + man(q.bidAmount) + '원<small>›</small></span>'
         : '<span class="cqd-vrow-amt"><small>›</small></span>';
-      return '<button type="button" class="cqd-vrow" data-cqd-go="c-bids" data-cqd-id="' + esc(q.id) + '">' +
+      return '<button type="button" class="cqd-vrow" data-cqd-go="c-detail" data-cqd-id="' + esc(q.id) + '">' +
         '<span class="cqd-avatar lite">⌚</span>' +
         '<span class="cqd-vrow-main">' +
           '<span class="cqd-vrow-name">' + esc((q.brand || '') + ' ' + (q.model || '')) + ' ' + statusBadge(q) + '</span>' +
@@ -291,7 +292,7 @@
         '<p class="cqd-note">아직 판매 등록한 시계가 없습니다.</p>' +
         '<div class="cqd-empty-cta">' +
           '<p>시계를 등록하면 여러 업체가 금액을 제시해요.<br>여기에서 받은 견적을 확인하고 선택할 수 있어요.</p>' +
-          '<button type="button" class="cqd-cta primary" data-cqd-go="c-new">＋ 시계 등록하러 가기</button>' +
+          '<button type="button" class="cqd-cta primary" data-cqd-new>＋ 시계 등록하러 가기</button>' +
         '</div>' +
       '</div>';
     }
@@ -434,9 +435,13 @@
   /* --- 고객: 새 시계 등록(비교견적 신청) — 앱 내 전체화면 페이지 --- */
   function photoGrid() {
     var thumbs = '';
+    for (var e = 0; e < editPhotos.length; e++) {
+      thumbs += '<div class="cqd-photo"><img src="' + esc(editPhotos[e]) + '" alt="" onerror="this.style.visibility=\'hidden\'">' +
+        '<button type="button" class="cqd-photo-rm" data-cqd-rmexist="' + e + '" aria-label="삭제">×</button></div>';
+    }
     for (var i = 0; i < newPhotos.length; i++) {
       var url = '';
-      try { url = URL.createObjectURL(newPhotos[i]); } catch (e) {}
+      try { url = URL.createObjectURL(newPhotos[i]); } catch (e2) {}
       thumbs += '<div class="cqd-photo">' +
         (url ? '<img src="' + url + '" alt="">' : '') +
         '<button type="button" class="cqd-photo-rm" data-cqd-rmphoto="' + i + '" aria-label="삭제">×</button>' +
@@ -449,54 +454,114 @@
     var g = overlay && overlay.querySelector('#cqdNewPhotos');
     if (g) g.innerHTML = photoGrid();
   }
+
+  /* ===== 브랜드 선택(이미지) + 모델 추천 — brands.js 연동 ===== */
+  function brandOptHTML(b) {
+    return '<button type="button" class="cqd-brand-opt" data-cqbrand="' + esc(b.name) + '">' +
+      '<img src="' + window.BELLORE_BRAND_LOGO(b.slug) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">' +
+      '<span>' + esc(b.name) + '</span></button>';
+  }
+  function brandSheetHTML(q) {
+    var brands = window.BELLORE_BRANDS || [];
+    var ql = String(q || '').trim().toLowerCase();
+    var hit = brands.filter(function (b) {
+      return !ql || b.name.toLowerCase().indexOf(ql) > -1 || (b.slug || '').toLowerCase().indexOf(ql) > -1;
+    });
+    var opts = hit.length ? hit.map(brandOptHTML).join('') : '<p class="cqd-brand-none">검색 결과가 없습니다.</p>';
+    return '<div class="cqd-brand-search">' +
+        '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4-4"></path></svg>' +
+        '<input type="text" id="cqdBrandQ" placeholder="브랜드 검색 (예: 롤렉스, rolex)" autocomplete="off"></div>' +
+      '<div class="cqd-brand-list">' + opts + '</div>';
+  }
+  function fillCqModels(name) {
+    var dl = overlay && overlay.querySelector('#cqdModelList'); if (!dl) return;
+    var b = window.BELLORE_BRAND_BY_NAME && window.BELLORE_BRAND_BY_NAME(name);
+    dl.innerHTML = ((b && b.models) || []).map(function (m) { return '<option value="' + esc(m) + '">'; }).join('');
+  }
+  function setBrandLogo(name) {
+    var box = overlay && overlay.querySelector('#cqdBrandLogo'); if (!box) return;
+    var b = window.BELLORE_BRAND_BY_NAME && window.BELLORE_BRAND_BY_NAME(name);
+    box.innerHTML = b ? '<img src="' + window.BELLORE_BRAND_LOGO(b.slug) + '" alt="" onerror="this.remove()">' : '';
+  }
+  function wireCqBrand() {
+    var sheet = overlay.querySelector('#cqdBrandSheet');
+    var hidden = overlay.querySelector('#cqdNewBrand');
+    if (sheet) sheet.innerHTML = brandSheetHTML('');
+    if (hidden) { fillCqModels(hidden.value); setBrandLogo(hidden.value); }
+  }
+  /* 신청/수정 공통 입력 필드 (브랜드는 이미지 선택, 모델은 추천 datalist) */
+  function formFields(d, nm, ph) {
+    var brandName = d.brand || '';
+    var gradeOpts = '<option value="">선택해주세요</option>' +
+      GRADE_OPTS.map(function (g) { return '<option' + (d.grade === g ? ' selected' : '') + '>' + esc(g) + '</option>'; }).join('');
+    var savedParts = (d.parts || '').split(',').map(function (s) { return s.trim(); });
+    var partChips = PART_OPTS.map(function (p) {
+      var on = savedParts.indexOf(p) >= 0 ? ' checked' : '';
+      return '<label class="cqd-chk"><input type="checkbox" name="cqdpart" value="' + esc(p) + '"' + on + '><span class="cqd-chk-box" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg></span><span class="cqd-chk-txt">' + esc(p) + '</span></label>';
+    }).join('');
+    return '<div class="cqd-form">' +
+      '<label>시계 사진 *</label>' +
+      '<div class="cqd-photos" id="cqdNewPhotos">' + photoGrid() + '</div>' +
+      '<input type="file" id="cqdNewFile" accept="image/*" multiple hidden>' +
+      '<label>브랜드 * <small class="cqd-lbl-sub">눌러서 선택</small></label>' +
+      '<button type="button" class="cqd-brandbtn' + (brandName ? ' on' : '') + '" id="cqdBrandBtn">' +
+        (brandName ? '<span class="cqd-brandbtn-logo" id="cqdBrandLogo"></span>' + esc(brandName) : '브랜드 선택') +
+      '</button>' +
+      '<input type="hidden" id="cqdNewBrand" value="' + esc(brandName) + '">' +
+      '<div class="cqd-brandsheet" id="cqdBrandSheet" hidden></div>' +
+      '<label>모델명 *</label>' +
+      '<input type="text" id="cqdNewModel" list="cqdModelList" value="' + esc(d.model || '') + '" placeholder="브랜드 선택 시 대표 모델 추천" autocomplete="off">' +
+      '<datalist id="cqdModelList"></datalist>' +
+      '<label>레퍼런스</label>' +
+      '<input type="text" id="cqdNewRef" value="' + esc(d.ref || '') + '" placeholder="예: 126610LN">' +
+      '<label>스템핑(각인) 정보</label>' +
+      '<input type="text" id="cqdNewStamp" value="' + esc(d.stamping || '') + '" placeholder="예: 시리얼/케이스백 각인 · 보증서 일련번호">' +
+      '<label>구매일 / 구입 시기</label>' +
+      '<input type="text" id="cqdNewYear" value="' + esc(d.year || '') + '" placeholder="예: 2023년 05월">' +
+      '<label>상태 등급</label>' +
+      '<select id="cqdNewGrade">' + gradeOpts + '</select>' +
+      '<label>구성품 (해당되는 항목을 모두 선택)</label>' +
+      '<div class="cqd-chkgrid">' + partChips + '</div>' +
+      '<label>특이사항 (수리이력 · 흠집 · 정품여부 등)</label>' +
+      '<textarea id="cqdNewMemo" rows="4" placeholder="시계 상태를 자세히 적어주실수록 정확한 견적이 가능합니다.">' + esc(d.memo || '') + '</textarea>' +
+      '<label>성함 *</label>' +
+      '<input type="text" id="cqdNewName" value="' + esc(nm) + '" placeholder="홍길동">' +
+      '<label>연락처 *</label>' +
+      '<input type="tel" id="cqdNewPhone" value="' + esc(ph) + '" placeholder="010-0000-0000">';
+  }
+
   SCREENS['c-new'] = function () {
     titleEl.textContent = '비교견적 신청';
     var info = AUTH.info || {};
     var d = newData || {};
     var nm = d.name || (AUTH.user && AUTH.user.displayName) || '';
     var ph = d.phone || info.phone || '';
-    var brandOpts = '<option value="">선택해주세요</option>' +
-      BRAND_OPTS.map(function (b) { return '<option' + (d.brand === b ? ' selected' : '') + '>' + esc(b) + '</option>'; }).join('');
-    var gradeOpts = '<option value="">선택해주세요</option>' +
-      GRADE_OPTS.map(function (g) { return '<option' + (d.grade === g ? ' selected' : '') + '>' + esc(g) + '</option>'; }).join('');
-    var savedParts = (d.parts || '').split(',').map(function (s) { return s.trim(); });
-    var partChips = PART_OPTS.map(function (p) {
-      var on = savedParts.indexOf(p) >= 0 ? ' checked' : '';
-      return '<label class="cqd-chk"><input type="checkbox" name="cqdpart" value="' + esc(p) + '"' + on + '><span>' + esc(p) + '</span></label>';
-    }).join('');
     return '<div class="cqd-screen">' +
       '<div class="cqd-newhero">' +
         '<p class="cqd-newhero-eyebrow">REQUEST QUOTE</p>' +
         '<h2 class="cqd-newhero-title">내 시계 비교견적 신청</h2>' +
         '<p class="cqd-newhero-sub">사진과 정보만 등록하면 여러 업체가 금액을 제시합니다.<br>업체명·정보는 <b>확정 시에만</b> 공개됩니다.</p>' +
       '</div>' +
-      '<div class="cqd-form">' +
-        '<label>시계 사진 *</label>' +
-        '<div class="cqd-photos" id="cqdNewPhotos">' + photoGrid() + '</div>' +
-        '<input type="file" id="cqdNewFile" accept="image/*" multiple hidden>' +
-        '<label>브랜드 *</label>' +
-        '<select id="cqdNewBrand">' + brandOpts + '</select>' +
-        '<label>모델명 *</label>' +
-        '<input type="text" id="cqdNewModel" value="' + esc(d.model || '') + '" placeholder="예: 서브마리너 데이트">' +
-        '<label>레퍼런스</label>' +
-        '<input type="text" id="cqdNewRef" value="' + esc(d.ref || '') + '" placeholder="예: 126610LN">' +
-        '<label>스템핑(각인) 정보</label>' +
-        '<input type="text" id="cqdNewStamp" value="' + esc(d.stamping || '') + '" placeholder="예: 시리얼/케이스백 각인 · 보증서 일련번호">' +
-        '<label>구매일 / 구입 시기</label>' +
-        '<input type="text" id="cqdNewYear" value="' + esc(d.year || '') + '" placeholder="예: 2023년 05월">' +
-        '<label>상태 등급</label>' +
-        '<select id="cqdNewGrade">' + gradeOpts + '</select>' +
-        '<label>구성품 (중복 선택)</label>' +
-        '<div class="cqd-chkgrid">' + partChips + '</div>' +
-        '<label>특이사항 (수리이력 · 흠집 · 정품여부 등)</label>' +
-        '<textarea id="cqdNewMemo" rows="4" placeholder="시계 상태를 자세히 적어주실수록 정확한 견적이 가능합니다.">' + esc(d.memo || '') + '</textarea>' +
-        '<label>성함 *</label>' +
-        '<input type="text" id="cqdNewName" value="' + esc(nm) + '" placeholder="홍길동">' +
-        '<label>연락처 *</label>' +
-        '<input type="tel" id="cqdNewPhone" value="' + esc(ph) + '" placeholder="010-0000-0000">' +
+      formFields(d, nm, ph) +
         '<button type="button" class="cqd-cta primary" data-cqd-preview>예상 견적 확인하기</button>' +
         '<button type="button" class="cqd-cta ghost" data-cqd-go="c-watches">취소</button>' +
         '<p class="cqd-offer-foot">* 시작 후 정·가품 구별 및 감정 승인 절차가 진행됩니다.</p>' +
+      '</div>' +
+    '</div>';
+  };
+
+  /* --- 고객: 등록 시계 수정 (수정 시 재승인 필요) --- */
+  SCREENS['c-edit'] = function () {
+    titleEl.textContent = '등록 시계 수정';
+    var d = newData || {};
+    var nm = d.name || '';
+    var ph = d.phone || '';
+    return '<div class="cqd-screen">' +
+      '<p class="cqd-state wait" style="margin-bottom:14px">✏️ 등록 정보를 수정합니다.<br><span>수정하면 <b>다시 감정 승인(재승인)</b>을 거치며, 그동안 받은 입찰은 초기화됩니다.</span></p>' +
+      formFields(d, nm, ph) +
+        '<button type="button" class="cqd-cta primary" data-cqd-editsave>수정 후 재승인 요청</button>' +
+        '<button type="button" class="cqd-cta ghost" data-cqd-go="c-watches">취소</button>' +
+        '<p class="cqd-offer-foot">* 저장 시 관리자에게 재승인 요청 메일이 전송됩니다.</p>' +
       '</div>' +
     '</div>';
   };
@@ -540,6 +605,57 @@
       '<button type="button" class="cqe-start" data-cqd-start>내 시계 비교견적 시작하기</button>' +
       '<button type="button" class="cqd-cta ghost" data-cqd-go="c-new">‹ 정보 수정</button>' +
     '</div>';
+  };
+
+  /* --- 고객: 등록 시계 정보(첫 번째 이미지 스타일) — 비교견적 진입 화면 ---
+     여기서 입찰 업체 확인하기 / 등록 정보 수정 으로 이동 */
+  SCREENS['c-detail'] = function (id) {
+    if (!cust.loaded) return loadingBlock();
+    var q = findIn(cust.watches, id);
+    if (!q) return '<div class="cqd-screen"><p class="cqd-note">정보를 찾을 수 없습니다.</p></div>';
+    titleEl.textContent = '등록 시계 정보';
+    var ph = (q.photos && q.photos[0]) || '';
+    var brandShort = (q.brand || '').replace(/\s*\(.*\)\s*/, '').trim() || '시계';
+    var n = (q.bids || []).length;
+
+    var card = '<div class="cqe-card">' +
+      '<div class="cqe-head">' +
+        '<div class="cqe-head-txt"><p class="cqe-brand">' + esc(brandShort) + '</p><p class="cqe-model">' + esc(q.model || '') + '</p></div>' +
+        (ph ? '<img class="cqe-photo" src="' + esc(ph) + '" alt="" onerror="this.style.visibility=\'hidden\'">' : '<div class="cqe-photo ph">⌚</div>') +
+      '</div>' +
+      '<dl class="cqe-spec">' +
+        '<div><dt>레퍼런스</dt><dd>' + esc(q.ref || '-') + '</dd></div>' +
+        '<div><dt>구매일</dt><dd>' + esc(q.year || '-') + '</dd></div>' +
+        '<div><dt>상태</dt><dd>' + esc((q.grade || '-').replace(/\s*\(.*\)\s*/, '')) + '</dd></div>' +
+        '<div><dt>스템핑</dt><dd>' + esc(q.stamping || '-') + '</dd></div>' +
+        '<div><dt>구성품</dt><dd>' + esc(q.parts || '-') + '</dd></div>' +
+      '</dl>' +
+      '<div class="cqe-status-row">' + statusBadge(q) + '</div>' +
+    '</div>';
+
+    var info = '';
+    if (q.status === 'pending') info = '<p class="cqd-state wait">🕒 정·가품 감정 및 승인 검토 중입니다.<br><span>승인되면 업체 비교견적이 시작됩니다.</span></p>';
+    else if (q.status === 'suspended') info = '<p class="cqd-state stop">⛔ 관리자에 의해 정지된 견적입니다.</p>';
+    else if (q.status === 'closed') info = '<p class="cqd-state stop">종료된 견적입니다.</p>';
+    else if (q.status === 'awarded') info = '<p class="cqd-state ok">✓ 판매가 확정된 시계입니다.</p>';
+    else {
+      var views = totalViews(q);
+      info = '<div class="cqc-head" style="margin-top:6px">' +
+        '<p class="cqc-head-stat">지금까지 총 <b>' + num(views) + '명</b>이 조회했고,<br><b>' + n + '명</b>이 입찰했습니다.</p>' +
+        '<p class="cqc-timer"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>' +
+        '<span class="cqc-cd" data-exp="' + q.expiresMs + '">' + cdLabel(q.expiresMs - Date.now()) + '</span></p>' +
+      '</div>';
+    }
+
+    var btns = '';
+    if (q.status === 'open' || q.status === 'awarded')
+      btns += '<button type="button" class="cqe-start" data-cqd-go="c-bids" data-cqd-id="' + esc(q.id) + '">' +
+        (q.status === 'awarded' ? '확정 업체 확인하기' : '입찰 업체 확인하기' + (n ? ' (' + n + '건)' : '')) + '</button>';
+    if (q.status !== 'awarded' && q.status !== 'closed')
+      btns += '<button type="button" class="cqd-cta ghost" data-cqd-edit="' + esc(q.id) + '">등록 정보 수정</button>';
+    btns += '<button type="button" class="cqd-cta ghost" data-cqd-go="c-watches">‹ 목록으로</button>';
+
+    return '<div class="cqd-screen cqe">' + card + info + priceTrendCard() + btns + '</div>';
   };
 
   /* --- 업체: 들어온 비교견적 --- */
@@ -798,8 +914,39 @@
     var cnav = e.target.closest('[data-cqd-close-nav]');
     if (cnav) { close(); location.hash = '#' + cnav.getAttribute('data-cqd-close-nav'); return; }
 
-    /* 상단 + 버튼 → 새 시계 등록 */
-    if (e.target.closest('.cqd-add')) { go('c-new'); return; }
+    /* 상단 + 버튼 / 빈목록 CTA → 새 시계 등록(상태 초기화) */
+    if (e.target.closest('.cqd-add') || e.target.closest('[data-cqd-new]')) {
+      editId = null; editPhotos = []; newPhotos = []; newData = {};
+      go('c-new'); return;
+    }
+
+    /* 브랜드 선택 시트 토글 */
+    if (e.target.closest('#cqdBrandBtn')) {
+      var sh = overlay.querySelector('#cqdBrandSheet');
+      if (sh) {
+        sh.hidden = !sh.hidden;
+        if (!sh.hidden) {
+          sh.innerHTML = brandSheetHTML('');
+          var qq = sh.querySelector('#cqdBrandQ');
+          if (qq) setTimeout(function () { qq.focus(); }, 30);
+        }
+      }
+      return;
+    }
+    /* 브랜드 선택 */
+    var bopt = e.target.closest('[data-cqbrand]');
+    if (bopt) {
+      var bname = bopt.getAttribute('data-cqbrand');
+      var hb = overlay.querySelector('#cqdNewBrand');
+      var bb = overlay.querySelector('#cqdBrandBtn');
+      var sh2 = overlay.querySelector('#cqdBrandSheet');
+      if (hb) hb.value = bname;
+      if (bb) { bb.innerHTML = '<span class="cqd-brandbtn-logo" id="cqdBrandLogo"></span>' + esc(bname); bb.classList.add('on'); }
+      setBrandLogo(bname);
+      fillCqModels(bname);
+      if (sh2) sh2.hidden = true;
+      return;
+    }
 
     /* 신규 등록: 사진 추가/삭제 */
     if (e.target.closest('[data-cqd-addphoto]')) {
@@ -809,6 +956,29 @@
     }
     var rmph = e.target.closest('[data-cqd-rmphoto]');
     if (rmph) { newPhotos.splice(Number(rmph.getAttribute('data-cqd-rmphoto')), 1); refreshPhotoGrid(); return; }
+    var rmex = e.target.closest('[data-cqd-rmexist]');
+    if (rmex) { editPhotos.splice(Number(rmex.getAttribute('data-cqd-rmexist')), 1); refreshPhotoGrid(); return; }
+
+    /* 등록 시계 수정 진입 (기존 값 채워넣기) */
+    var ed = e.target.closest('[data-cqd-edit]');
+    if (ed) {
+      var qe = findIn(cust.watches, ed.getAttribute('data-cqd-edit')); if (!qe) return;
+      editId = qe.id;
+      editPhotos = (qe.photos || []).slice();
+      newPhotos = [];
+      var cm = String(qe.memo || '').match(/\[연락처\]\s*([^\/\n]*)\/\s*([^\n]*)/);
+      newData = {
+        brand: qe.brand || '', model: qe.model || '', ref: qe.ref || '',
+        stamping: qe.stamping || '', year: qe.year || '', grade: qe.grade || '',
+        parts: qe.parts || '', memo: cleanMemo(qe.memo),
+        name: cm ? cm[1].trim() : '', phone: cm ? cm[2].trim() : ''
+      };
+      go('c-edit', qe.id);
+      return;
+    }
+    /* 등록 시계 수정 저장 → 재승인 */
+    var es = e.target.closest('[data-cqd-editsave]');
+    if (es) { if (collectNew()) submitEdit(es); return; }
 
     /* 신규 등록: 예상 견적 미리보기로 이동 */
     var pv = e.target.closest('[data-cqd-preview]');
@@ -906,6 +1076,44 @@
     }
   }
 
+  /* 브랜드 검색어 입력 → 리스트만 갱신 */
+  function onInput(e) {
+    if (e.target && e.target.id === 'cqdBrandQ') {
+      var listEl = overlay.querySelector('.cqd-brand-list'); if (!listEl) return;
+      var tmp = document.createElement('div');
+      tmp.innerHTML = brandSheetHTML(e.target.value);
+      var nl = tmp.querySelector('.cqd-brand-list');
+      if (nl) listEl.innerHTML = nl.innerHTML;
+    }
+  }
+
+  /* item_detail 에서 태그/연락처 줄을 제거한 순수 메모만 추출 */
+  function cleanMemo(detail) {
+    return String(detail || '').split('\n').filter(function (l) {
+      var t = l.trim();
+      return t && t.charAt(0) !== '[';
+    }).join('\n').trim();
+  }
+
+  /* 관리자 메일 — 신규 신청 / 수정(재승인) 시 발송(필수) */
+  function emailAdminSubmit(d, isEdit) {
+    try {
+      var payload = {
+        _subject: '[벨로르] 내시계팔기 ' + (isEdit ? '견적 수정(재승인 요청)' : '신규 비교견적 신청'),
+        _template: 'table', _captcha: 'false',
+        구분: isEdit ? '수정·재승인 요청' : '신규 신청',
+        시계: (d.brand || '') + ' ' + (d.model || ''),
+        레퍼런스: d.ref || '-', 구매일: d.year || '-', 상태등급: d.grade || '-',
+        구성품: d.parts || '-', 신청자: (d.name || '') + ' / ' + (d.phone || '')
+      };
+      fetch('https://formsubmit.co/ajax/' + ADMIN_EMAIL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify(payload)
+      }).catch(function () {});
+    } catch (e) {}
+  }
+
   /* 신청서 입력값 수집 → newData (예상견적 미리보기 전 검증) */
   function collectNew() {
     var parts = [];
@@ -923,7 +1131,7 @@
       name: valOf('#cqdNewName'),
       phone: valOf('#cqdNewPhone')
     };
-    if (!newPhotos.length) { alert('시계 사진을 1장 이상 등록해주세요.'); return false; }
+    if (!newPhotos.length && !editPhotos.length) { alert('시계 사진을 1장 이상 등록해주세요.'); return false; }
     if (!d.brand) { alert('브랜드를 선택해주세요.'); return false; }
     if (!d.model) { alert('모델명을 입력해주세요.'); return false; }
     if (!d.name || !d.phone) { alert('성함과 연락처를 입력해주세요.'); return false; }
@@ -945,12 +1153,38 @@
       memo: d.memo, name: d.name, phone: d.phone
     })
       .then(function () {
-        newPhotos = []; newData = {};
+        emailAdminSubmit(d, false);
+        newPhotos = []; editPhotos = []; editId = null; newData = {};
         alert('비교견적이 시작되었습니다.\n정·가품 감정 승인 후 업체 비교견적이 진행됩니다.');
         go('c-watches', null, true);
       })
       .catch(function (err) { alert('시작 실패: ' + msg(err)); })
       .then(function () { btn.disabled = false; btn.textContent = '내 시계 비교견적 시작하기'; });
+  }
+
+  /* 등록 시계 수정 → updateListing (status=pending 재승인) + 관리자 메일 */
+  function submitEdit(btn) {
+    var d = newData || {};
+    if (!d.brand || !d.model) { alert('브랜드와 모델명을 확인해주세요.'); return; }
+    var photos = editPhotos.concat(newPhotos);
+    if (!photos.length) { alert('시계 사진을 1장 이상 등록해주세요.'); return; }
+    if (!B.updateListing) { alert('수정 기능을 사용할 수 없습니다.'); return; }
+    if (!confirm('수정하면 다시 정·가품 감정 승인(재승인) 절차를 거칩니다.\n그동안 받은 입찰은 초기화됩니다. 계속할까요?')) return;
+    btn.disabled = true; btn.textContent = '수정 중…';
+    B.updateListing(editId, {
+      photos: photos,
+      brand: d.brand, model: d.model, ref: d.ref, stamping: d.stamping,
+      year: d.year, grade: d.grade, parts: d.parts,
+      memo: d.memo, name: d.name, phone: d.phone
+    })
+      .then(function () {
+        emailAdminSubmit(d, true);
+        newPhotos = []; editPhotos = []; editId = null; newData = {};
+        alert('수정되었습니다. 재승인 후 비교견적이 다시 시작됩니다.\n관리자에게 재승인 요청 메일을 전송했습니다.');
+        go('c-watches', null, true);
+      })
+      .catch(function (err) { alert('수정 실패: ' + msg(err)); })
+      .then(function () { btn.disabled = false; btn.textContent = '수정 후 재승인 요청'; });
   }
   function valOf(sel) {
     var el = overlay && overlay.querySelector(sel);
