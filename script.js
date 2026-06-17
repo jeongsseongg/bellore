@@ -2056,8 +2056,21 @@
     };
     function cqShopName(rank) { return '비교견적 업체 ' + String.fromCharCode(65 + (rank % 26)); }
 
+    // 테스트용 데모 견적 (등록된 비교견적이 없을 때 마이페이지에서 UI 확인용)
+    var CQ_DEMO = {
+        id: 'demo-1', status: 'open', brand: '롤렉스', model: '데이저스트 126234 (데모)',
+        photos: [], awarded_bid: null, bidAmount: 11800000,
+        bids: [
+            { id: 'demo-b1', vendor_id: 'demo-v1', amount: 11800000, message: '풀세트 기준 당일 입금 가능합니다.' },
+            { id: 'demo-b2', vendor_id: 'demo-v2', amount: 11500000, message: '보증서 확인 후 즉시 거래' },
+            { id: 'demo-b3', vendor_id: 'demo-v3', amount: 11200000, message: '실물 감정 후 책정' }
+        ]
+    };
+
     function renderMyItemsBackend(rows) {
         myListingsCache = rows || [];
+        // 등록된 비교견적이 없으면 테스트용 데모 카드를 노출
+        if (!myListingsCache.length) myListingsCache = [CQ_DEMO];
         rows = myListingsCache;
 
         // 이미지3: 들어온 견적의 최저~최고 범위
