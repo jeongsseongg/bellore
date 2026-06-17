@@ -346,19 +346,35 @@
   };
 
   /* ---------------- 비교견적 (quote_requests + bids) ---------------- */
+  // item_detail 에 묻어둔 태그 추출(컬럼 미생성 환경 대비 폴백)
+  function detailTag(detail, key) {
+    var m = String(detail || '').match(new RegExp('\\[' + key + '\\]\\s*([^\\n]+)'));
+    return m ? m[1].trim() : '';
+  }
   function mapQuote(q, bidsByQuote) {
     var bs = (bidsByQuote && bidsByQuote[q.id]) ? bidsByQuote[q.id].slice() : [];
     bs.sort(function (a, b) { return Number(b.amount) - Number(a.amount); });
+    var detail = q.item_detail || '';
+    var createdMs = q.created_at ? Date.parse(q.created_at) : Date.now();
+    if (isNaN(createdMs)) createdMs = Date.now();
     return {
       id: q.id, uid: q.customer_id,
       brand: q.item_brand || '', model: q.item_name || '',
-      memo: q.item_detail || '',
+      ref: q.item_ref || detailTag(detail, '레퍼런스'),
+      year: q.item_year || detailTag(detail, '구입시기'),
+      grade: q.item_grade || detailTag(detail, '상태등급'),
+      stamping: q.item_stamping || detailTag(detail, '스템핑'),
+      parts: q.item_parts || detailTag(detail, '구성품'),
+      memo: detail,
       name: '고객',
       photos: (q.photo_urls && q.photo_urls.length) ? q.photo_urls : (q.photo_url ? [q.photo_url] : []),
       photoCount: (q.photo_urls && q.photo_urls.length) || (q.photo_url ? 1 : 0),
       status: q.status, awarded_bid: q.awarded_bid,
       bids: bs, bidAmount: bs[0] ? Number(bs[0].amount) : 0,
-      createdAt: tsObj(q.created_at)
+      viewCount: Number(q.view_count || 0),
+      createdAt: tsObj(q.created_at),
+      createdAtMs: createdMs,
+      expiresMs: createdMs + 72 * 3600 * 1000
     };
   }
 
@@ -375,19 +391,49 @@
   // 비교견적 신청 (고객) — compareForm 에서 호출
   Backend.addListing = function (data) {
     if (!rawUser) return Promise.reject(new Error('NOT_SIGNED_IN'));
+    // 추가 항목은 전용 컬럼 + item_detail 태그 양쪽에 기록(컬럼 미생성 환경 폴백)
+    var tags = '';
+    if (data.ref) tags += '[레퍼런스] ' + data.ref + '\n';
+    if (data.year) tags += '[구입시기] ' + data.year + '\n';
+    if (data.grade) tags += '[상태등급] ' + data.grade + '\n';
+    if (data.stamping) tags += '[스템핑] ' + data.stamping + '\n';
+    if (data.parts) tags += '[구성품] ' + data.parts + '\n';
     var memo = data.memo || '';
-    var contact = '\n[연락처] ' + (data.name || '') + ' / ' + (data.phone || '');
+    var contact = '[연락처] ' + (data.name || '') + ' / ' + (data.phone || '');
+    var detail = (tags + memo + '\n' + contact).trim();
     return uploadPhotos(data.photos, 10).then(function (urls) {
-      return sb.from('quote_requests').insert({
+      var row = {
         customer_id: rawUser.id,
         item_name: (data.model || data.brand || '시계'),
         item_brand: data.brand || null,
-        item_detail: (memo + contact).trim(),
+        item_ref: data.ref || null,
+        item_year: data.year || null,
+        item_grade: data.grade || null,
+        item_stamping: data.stamping || null,
+        item_parts: data.parts || null,
+        item_detail: detail,
         photo_urls: urls,
         photo_url: urls[0] || null,
         status: 'pending'
-      }).then(function (res) { if (res.error) throw res.error; refreshQuoteFeeds(); });
+      };
+      function ins() {
+        return sb.from('quote_requests').insert(row).then(function (res) {
+          if (res.error && isMissingCol(res.error)) {
+            delete row.item_ref; delete row.item_year; delete row.item_grade;
+            delete row.item_stamping; delete row.item_parts;
+            return sb.from('quote_requests').insert(row).then(function (r2) { if (r2.error) throw r2.error; });
+          }
+          if (res.error) throw res.error;
+        });
+      }
+      return ins().then(function () { refreshQuoteFeeds(); });
     });
+  };
+
+  // 실제 조회수 +1 (업체가 견적을 열어볼 때). 실패해도 무시.
+  Backend.bumpQuoteView = function (qid) {
+    if (!sb || qid == null) return Promise.resolve();
+    return sb.rpc('bump_quote_view', { qid: qid }).then(function () {}).catch(function () {});
   };
 
   // 내 비교견적 (고객) — 입찰 포함
