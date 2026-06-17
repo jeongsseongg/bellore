@@ -3197,7 +3197,53 @@ body.admin-mode .main-wrap { padding-top: 0; }
     display: flex; align-items: center; justify-content: center;
     padding: 28px;
 }
-.pp-main img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.pp-main img { max-width: 100%; max-height: 100%; object-fit: contain; cursor: zoom-in; touch-action: pan-y; }
+.pp-detail-imgs img { cursor: zoom-in; }
+
+/* 사진 확대 라이트박스 (req7) */
+.pp-lightbox {
+    position: fixed; inset: 0;
+    z-index: 5000;
+    background: rgba(0,0,0,0.92);
+    display: flex; align-items: center; justify-content: center;
+}
+.pp-lightbox[hidden] { display: none; }
+.pp-lb-stage {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px;
+    max-width: 100%; max-height: 100%;
+}
+.pp-lb-img {
+    max-width: 92vw; max-height: 86vh;
+    object-fit: contain;
+    user-select: none; -webkit-user-drag: none;
+}
+.pp-lb-close {
+    position: absolute; top: 14px; right: 14px;
+    width: 42px; height: 42px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.12);
+    color: #fff; border: none; border-radius: 50%;
+    cursor: pointer;
+}
+.pp-lb-nav {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.12);
+    color: #fff; border: none; border-radius: 50%;
+    cursor: pointer;
+}
+.pp-lb-nav.prev { left: 12px; }
+.pp-lb-nav.next { right: 12px; }
+.pp-lb-count {
+    position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+    color: #fff; font-size: 13px;
+    background: rgba(255,255,255,0.14);
+    padding: 4px 14px; border-radius: 20px;
+}
+body.pp-lb-open { overflow: hidden; }
 .pp-count {
     position: absolute;
     bottom: 14px; left: 50%;

@@ -324,6 +324,7 @@
             '<div class="lp-brand-sheet" id="lpBrandSheet" hidden></div>' +
           '</label>' +
           '<label><span>모델 / 레퍼런스 *</span><input name="model" id="lpModelInput" list="lpModelList" placeholder="브랜드 선택 시 대표 모델 추천" value="' + esc(item ? item.model : '') + '" required autocomplete="off"><datalist id="lpModelList"></datalist></label>' +
+          '<label><span>상품번호 (선택 — 비우면 자동 생성)</span><input name="product_no" placeholder="예: BL-2024-0012" value="' + esc(item ? item.product_no : '') + '"></label>' +
           '<label><span>판매가 (숫자, 비우면 가격문의)</span><input name="price" class="lp-money" type="text" inputmode="numeric" placeholder="예: 22,800,000" value="' + (item && item.price ? fmt(item.price) : '') + '"></label>' +
           '<label><span>할인 판매가 (선택) — 입력 시 정가에 취소선·할인율 표시</span><input name="sale_price" class="lp-money" type="text" inputmode="numeric" placeholder="예: 19,900,000" value="' + (item && item.sale_price ? fmt(item.sale_price) : '') + '"></label>' +
           '<label><span>판매 상태</span><select name="status">' + statusOptions(item ? item.status : 'on_sale') + '</select></label>' +
@@ -334,6 +335,7 @@
           '<label><span>스탬핑 (선택 — 비우면 카드에 “미표기”)</span><input name="stamping" placeholder="예: 2023년 스탬핑 / 스탬핑 있음" value="' + esc(item ? item.stamping : '') + '"></label>' +
           '<label><span>미리수 (선택 — 비우면 카드에 “미표기”)</span><input name="misu" placeholder="예: 미리수 / 정식수입(내수)" value="' + esc(item ? item.misu : '') + '"></label>' +
           '<label><span>판매 방식 (선택 — 비우면 “벨로르 직접 검수 판매”)</span><input name="sale_method" placeholder="예: 벨로르 직접 검수 판매 / 위탁 판매" value="' + esc(item ? item.sale_method : '') + '"></label>' +
+          '<label><span>배송 예정일 (선택 — 비우면 “진단 후 배송 · 7~9일 후 배송/쇼룸 픽업”)</span><input name="ship_info" placeholder="예: 결제 후 3일 이내 발송 / 2024-07-15 발송 예정" value="' + esc(item ? item.ship_info : '') + '"></label>' +
           '<label><span>구매년도 (선택)</span><input name="purchase_year" inputmode="numeric" placeholder="예: 2019" value="' + esc(item ? item.purchase_year : '') + '"></label>' +
           '<label><span>특이사항 (선택 — 상세페이지 “제품 상태”에 표시)</span><input name="special_note" placeholder="예: 베젤 미세 스크래치 있음" value="' + esc(item ? item.special_note : '') + '"></label>' +
           '<label><span>상세 설명 (선택 — 상세페이지 “제품 상태”에 표시)</span><textarea name="detail_desc" rows="4" placeholder="제품 상태·구성·착용감 등 자세한 설명을 적어주세요.">' + esc(item ? item.detail_desc : '') + '</textarea></label>' +
@@ -373,7 +375,7 @@
         if (fd.get('tag_today')) tags.push('today');
         var saleOn = tags.indexOf('sale') !== -1;
         var saleStart = saleOn ? ((item && item.tags && item.tags.indexOf('sale') !== -1 && item.sale_started_at) ? item.sale_started_at : new Date().toISOString()) : null;
-        var payload = { brand: brand, model: model, price: price, sale_price: salePrice, category: fd.get('category'), status: fd.get('status'), tags: tags, condition: String(fd.get('condition') || ''), has_warranty: !!fd.get('has_warranty'), accessories: String(fd.get('accessories') || '').trim(), stamping: String(fd.get('stamping') || '').trim(), misu: String(fd.get('misu') || '').trim(), pack: String(fd.get('pack') || ''), size_mm: parseInt(fd.get('size_mm'), 10) || null, purchase_year: String(fd.get('purchase_year') || '').trim(), special_note: String(fd.get('special_note') || '').trim(), detail_desc: String(fd.get('detail_desc') || '').trim(), sale_method: String(fd.get('sale_method') || '').trim(), components: [fd.get('comp_box') ? 'box' : '', fd.get('comp_case') ? 'case' : '', fd.get('comp_card') ? 'card' : ''].filter(Boolean).join(','), sale_started_at: saleStart, photos: lPicker.files };
+        var payload = { brand: brand, model: model, price: price, sale_price: salePrice, category: fd.get('category'), status: fd.get('status'), tags: tags, condition: String(fd.get('condition') || ''), has_warranty: !!fd.get('has_warranty'), accessories: String(fd.get('accessories') || '').trim(), stamping: String(fd.get('stamping') || '').trim(), misu: String(fd.get('misu') || '').trim(), pack: String(fd.get('pack') || ''), size_mm: parseInt(fd.get('size_mm'), 10) || null, purchase_year: String(fd.get('purchase_year') || '').trim(), special_note: String(fd.get('special_note') || '').trim(), detail_desc: String(fd.get('detail_desc') || '').trim(), sale_method: String(fd.get('sale_method') || '').trim(), product_no: String(fd.get('product_no') || '').trim(), ship_info: String(fd.get('ship_info') || '').trim(), components: [fd.get('comp_box') ? 'box' : '', fd.get('comp_case') ? 'case' : '', fd.get('comp_card') ? 'card' : ''].filter(Boolean).join(','), sale_started_at: saleStart, photos: lPicker.files };
         var btn = $('#lpSubmit', listingPage); btn.disabled = true; btn.textContent = '저장 중…';
         // 사진 picker가 기존 URL+새 사진을 모두 보유 → existingPhotos는 비우고 picker 결과로 통째 교체(삭제 반영)
         var p = lEditId

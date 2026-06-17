@@ -497,7 +497,7 @@
       .then(function (res) {
         if (res.error) throw res.error;
         if (vendorId) {
-          Backend.createNotification({ uid: vendorId, type: 'awarded', text: '축하합니다! 입찰하신 비교견적이 채택되었습니다.' });
+          Backend.createNotification({ uid: vendorId, type: 'awarded', text: '축하합니다! 입찰하신 비교견적이 채택되었습니다.', refId: quoteId });
         }
         refreshQuoteFeeds();
       });
@@ -554,6 +554,8 @@
       detail_desc: l.detail_desc || '',
       components: l.components || '',
       sale_method: l.sale_method || '',
+      product_no: l.product_no || '',
+      ship_info: l.ship_info || '',
       created_at: l.created_at || null,
       sale_started_at: l.sale_started_at || null,
       photos: (l.image_urls && l.image_urls.length) ? l.image_urls : (l.image_url ? [l.image_url] : [])
@@ -583,13 +585,14 @@
   // 신규 컬럼(stamping·misu)이 아직 DB에 없을 때 발생하는 오류 감지
   function isMissingCol(err) {
     var m = (err && (err.message || err.hint || '')) + ' ' + (err && err.code || '');
-    return /stamping|misu|purchase_year|special_note|detail_desc|components|sale_method|schema cache|PGRST204|find the .* column/i.test(m);
+    return /stamping|misu|purchase_year|special_note|detail_desc|components|sale_method|product_no|ship_info|ref_id|schema cache|PGRST204|find the .* column/i.test(m);
   }
   // 신규 속성 컬럼이 DB에 없을 때 제외하고 재시도하기 위한 목록
   function dropNewCols(o) {
     delete o.stamping; delete o.misu;
     delete o.purchase_year; delete o.special_note; delete o.detail_desc;
     delete o.components; delete o.sale_method;
+    delete o.product_no; delete o.ship_info;
   }
   Backend.addProduct = function (data) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
@@ -616,6 +619,8 @@
         detail_desc: data.detail_desc || null,
         components: data.components || null,
         sale_method: data.sale_method || null,
+        product_no: data.product_no || null,
+        ship_info: data.ship_info || null,
         image_urls: urls,
         image_url: urls[0] || null
       };
@@ -661,6 +666,8 @@
       if (data.detail_desc != null) patch.detail_desc = data.detail_desc;
       if (data.components != null) patch.components = data.components;
       if (data.sale_method != null) patch.sale_method = data.sale_method;
+      if (data.product_no != null) patch.product_no = data.product_no;
+      if (data.ship_info != null) patch.ship_info = data.ship_info;
       var existing = data.existingPhotos || [];
       if (newUrls.length || data.existingPhotos) {
         var all = existing.concat(newUrls).slice(0, 10);
@@ -940,13 +947,25 @@
   // RLS상 클라이언트 insert가 막혀 있을 수 있으므로 best-effort.
   // (핵심 알림은 DB 트리거가 security definer로 생성)
   Backend.createNotification = function (data) {
-    return sb.from('notifications').insert({
+    var base = {
       user_id: data.uid,
       type: data.type || 'info',
       title: data.title || '알림',
       body: data.text || data.body || '',
       is_read: false
-    }).then(function (res) { if (res.error) console.warn('[BELLORE] 알림 생성 보류:', res.error.message); });
+    };
+    var row = (data.refId != null && data.refId !== '')
+      ? Object.assign({ ref_id: data.refId }, base)
+      : base;
+    return sb.from('notifications').insert(row).then(function (res) {
+      // ref_id 컬럼이 아직 없으면(quote_notify.sql 미실행) 제외하고 재시도
+      if (res.error && row.ref_id !== undefined && isMissingCol(res.error)) {
+        return sb.from('notifications').insert(base);
+      }
+      return res;
+    }).then(function (res) {
+      if (res && res.error) console.warn('[BELLORE] 알림 생성 보류:', res.error.message);
+    });
   };
 
   /* ---------------- 주문/결제 (orders) ---------------- */

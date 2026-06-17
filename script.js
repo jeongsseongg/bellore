@@ -706,8 +706,10 @@
             if (window.CQDemo) {
                 // 알림 종류별로 해당 화면으로 바로 이동(딥링크)
                 var opts = null;
+                // 새 비교견적 → 해당 견적 입찰 화면(딥링크)
                 if (type === 'quote_open' && ref) opts = { screen: 'v-bid', id: ref };
-                else if (type === 'awarded' && ref) opts = { screen: 'c-bids', id: ref };
+                // 입찰 채택 알림 → 채택된 견적은 더 이상 open 목록에 없으므로 업체 홈으로
+                else if (type === 'awarded') opts = { screen: 'v-watches' };
                 window.CQDemo.open(opts);
             }
         } else if (tgt === 'collection') { closeMyPage(); location.hash = '#collection'; }
@@ -3671,15 +3673,117 @@
         });
 
         var curPhotos = [];
+        var curIdx = 0;
         function selectPhoto(i) {
             if (!curPhotos.length) return;
             i = Math.max(0, Math.min(i, curPhotos.length - 1));
+            curIdx = i;
             $('#pmImg').src = curPhotos[i];
             $('#pmIdx').textContent = (i + 1);
             $$('.pp-thumb', modal).forEach(function (t) {
                 t.classList.toggle('on', parseInt(t.dataset.i, 10) === i);
             });
+            // 라이트박스가 열려 있으면 함께 갱신
+            if (lb && !lb.hidden) paintLightbox();
         }
+
+        /* ===== 대표 이미지: 좌우 스와이프로 사진 넘기기 (req6) ===== */
+        var ppMain = $('.pp-main', modal);
+        if (ppMain) {
+            var sx = 0, sy = 0, sMoved = false, sActive = false;
+            ppMain.addEventListener('touchstart', function (e) {
+                var t = e.touches[0]; sx = t.clientX; sy = t.clientY; sMoved = false; sActive = true;
+            }, { passive: true });
+            ppMain.addEventListener('touchmove', function (e) {
+                if (!sActive) return;
+                var t = e.touches[0];
+                if (Math.abs(t.clientX - sx) > 8 || Math.abs(t.clientY - sy) > 8) sMoved = true;
+            }, { passive: true });
+            ppMain.addEventListener('touchend', function (e) {
+                if (!sActive) return; sActive = false;
+                var t = (e.changedTouches && e.changedTouches[0]) || null; if (!t) return;
+                var dx = t.clientX - sx, dy = t.clientY - sy;
+                if (sMoved && Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+                    selectPhoto(curIdx + (dx < 0 ? 1 : -1));   // 왼쪽으로 밀면 다음
+                } else if (!sMoved) {
+                    openLightbox(curIdx);                       // 탭하면 확대 (req7)
+                }
+            });
+            // 데스크톱: 클릭하면 확대
+            ppMain.addEventListener('click', function (e) {
+                if (e.target.closest('#pmImg')) openLightbox(curIdx);
+            });
+        }
+
+        /* ===== 사진 확대 라이트박스 (req7) ===== */
+        var lb = null, lbImg = null, lbCount = null;
+        function ensureLightbox() {
+            if (lb) return;
+            lb = document.createElement('div');
+            lb.className = 'pp-lightbox';
+            lb.hidden = true;
+            lb.innerHTML =
+                '<button type="button" class="pp-lb-close" aria-label="닫기">' +
+                    '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+                '</button>' +
+                '<button type="button" class="pp-lb-nav prev" aria-label="이전"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>' +
+                '<div class="pp-lb-stage"><img class="pp-lb-img" src="" alt=""></div>' +
+                '<button type="button" class="pp-lb-nav next" aria-label="다음"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>' +
+                '<span class="pp-lb-count"></span>';
+            document.body.appendChild(lb);
+            lbImg = lb.querySelector('.pp-lb-img');
+            lbCount = lb.querySelector('.pp-lb-count');
+            lb.addEventListener('click', function (e) {
+                if (e.target.closest('.pp-lb-close')) { closeLightbox(); return; }
+                if (e.target.closest('.pp-lb-nav.prev')) { selectPhoto(curIdx - 1); return; }
+                if (e.target.closest('.pp-lb-nav.next')) { selectPhoto(curIdx + 1); return; }
+                if (!e.target.closest('.pp-lb-img')) closeLightbox();   // 배경 탭하면 닫힘
+            });
+            // 라이트박스 안에서도 좌우 스와이프
+            var lx = 0, lmoved = false;
+            var stage = lb.querySelector('.pp-lb-stage');
+            stage.addEventListener('touchstart', function (e) { lx = e.touches[0].clientX; lmoved = false; }, { passive: true });
+            stage.addEventListener('touchmove', function (e) { if (Math.abs(e.touches[0].clientX - lx) > 8) lmoved = true; }, { passive: true });
+            stage.addEventListener('touchend', function (e) {
+                var t = e.changedTouches && e.changedTouches[0]; if (!t) return;
+                var dx = t.clientX - lx;
+                if (lmoved && Math.abs(dx) > 40) selectPhoto(curIdx + (dx < 0 ? 1 : -1));
+            });
+        }
+        function paintLightbox() {
+            if (!lbImg || !curPhotos.length) return;
+            lbImg.src = curPhotos[curIdx];
+            lbCount.textContent = (curIdx + 1) + ' / ' + curPhotos.length;
+            var single = curPhotos.length <= 1;
+            $$('.pp-lb-nav', lb).forEach(function (b) { b.style.display = single ? 'none' : ''; });
+        }
+        function openLightbox(i) {
+            if (!curPhotos.length) return;
+            ensureLightbox();
+            if (typeof i === 'number') curIdx = Math.max(0, Math.min(i, curPhotos.length - 1));
+            paintLightbox();
+            lb.hidden = false;
+            document.body.classList.add('pp-lb-open');
+        }
+        function closeLightbox() {
+            if (lb) lb.hidden = true;
+            document.body.classList.remove('pp-lb-open');
+        }
+        // 하단 상세 큰 이미지 클릭 시에도 확대
+        var detailWrap = $('#pmDetailImgs');
+        if (detailWrap) detailWrap.addEventListener('click', function (e) {
+            var img = e.target.closest('img'); if (!img) return;
+            var imgs = $$('#pmDetailImgs img');
+            var di = Array.prototype.indexOf.call(imgs, img);
+            // 상세 이미지는 대표 사진과 동일 배열이므로 그대로 인덱스 사용
+            openLightbox(di >= 0 && di < curPhotos.length ? di : 0);
+        });
+        document.addEventListener('keydown', function (e) {
+            if (!lb || lb.hidden) return;
+            if (e.key === 'Escape') closeLightbox();
+            else if (e.key === 'ArrowLeft') selectPhoto(curIdx - 1);
+            else if (e.key === 'ArrowRight') selectPhoto(curIdx + 1);
+        });
 
         function ppPriceHTML(d) {
             if (!d.price) return d.priceHtml || '가격 문의';
@@ -3780,13 +3884,16 @@
             var photos = (d.photos && d.photos.length) ? d.photos : (d.img ? [d.img] : []);
             if (!photos.length) photos = ['assets/images.jpg'];
             curPhotos = photos;
+            curIdx = 0;
 
             $('#pmBrand').textContent = d.brand || '';
             $('#pmModel').textContent = d.model || '';
             $('#pmPrice').innerHTML = ppPriceHTML(d);
-            $('#pmNo').textContent = d.no || '-';
-            var no2 = $('#pmNo2'); if (no2) no2.textContent = d.no || '-';
+            var pno = d.product_no || d.no || '-';
+            $('#pmNo').textContent = pno;
+            var no2 = $('#pmNo2'); if (no2) no2.textContent = pno;
             var sm = $('#pmSaleMethod'); if (sm) sm.textContent = d.sale_method || '벨로르 직접 검수 판매';
+            var ship = $('#pmShip'); if (ship) ship.textContent = d.ship_info || '진단 후 배송 · 7~9일 후 배송/쇼룸 픽업';
             $('#pmPoint').textContent = d.price ? (fmt(Math.round(d.price * 0.01)) + 'P 적립 (1%)') : '-';
             paintAcc(d);
             paintChips(d);
@@ -3868,6 +3975,8 @@
                         detail_desc: it.detail_desc || '',
                         components: it.components || '',
                         sale_method: it.sale_method || '',
+                        product_no: it.product_no || '',
+                        ship_info: it.ship_info || '',
                         no: String(it.id).slice(0, 8).toUpperCase()
                     });
                     window.BELLORE_currentProduct = {
@@ -3882,6 +3991,7 @@
         }
 
         function closeProduct() {
+            closeLightbox();
             modal.hidden = true;
             document.body.style.overflow = '';
         }
