@@ -5411,8 +5411,13 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
    높이는 비율에서 자동 산출 → 배너 아래에 원형 카테고리 2줄이 항상 맞게 들어온다. */
 .hero-slide-db {
     width: 100%;
-    aspect-ratio: 61 / 74;        /* 모바일: 1220×1480 */
-    height: auto; min-height: 0; max-height: none;
+    /* 모든 기기 공통: 화면 높이에서 (헤더 + 원형 카테고리 2줄 + 하단탭)을 뺀 만큼만 차지.
+       → 첫 화면에 '배너 + 원형 2줄'이 항상 같이 보인다(기기·템플릿 무관, 4번 구도).
+       비율 고정이 아니라 화면 높이 기준이라 길든 짧든 항상 맞는다.
+       (헤더 68 + 52, 원형 2줄 ≈216, 하단탭 68, 여유 16 = 약 300 + 안전영역) */
+    height: calc(100vh - var(--header-h) - 52px - 300px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    height: calc(100dvh - var(--header-h) - 52px - 300px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    min-height: 240px; max-height: 620px;
     display: flex; align-items: flex-end; color: #fff; overflow: hidden; padding: 0;
 }
 .hero-slide-db .hero-slide-blur {
@@ -5466,16 +5471,14 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .hero-slide-db .hero-slide-title { font-size: 26px; font-weight: 700; line-height: 1.25; letter-spacing: -.6px; margin-bottom: 10px; word-break: keep-all; }
 .hero-slide-db .hero-slide-sub { font-size: 14px; color: rgba(255,255,255,.85); line-height: 1.55; word-break: keep-all; }
 .hero-slide-db .hero-slide-cta { margin-top: 18px; margin-bottom: 0; }
-/* 와이드(태블릿) 700~1023px: 1800×1480 */
+/* 와이드(태블릿) 700~1023px: 문구만 키움(높이는 위 공통 계산식이 담당) */
 @media (min-width: 700px) {
-    .hero-slide-db { aspect-ratio: 45 / 37; height: auto; max-height: none; }
     .hero-slide-db .hero-slide-text { padding-bottom: 56px; }
     .hero-slide-db .hero-slide-title { font-size: 36px; letter-spacing: -.9px; margin-bottom: 14px; }
     .hero-slide-db .hero-slide-sub { font-size: 16px; }
 }
-/* PC(웹) 1024px+: 1440×1480 */
+/* PC(웹) 1024px+: 문구만 키움(높이는 위 공통 계산식이 담당) */
 @media (min-width: 1024px) {
-    .hero-slide-db { aspect-ratio: 36 / 37; height: auto; max-height: none; }
     .hero-slide-db .hero-slide-text { padding-bottom: 84px; }
     .hero-slide-db .hero-slide-title { font-size: 44px; letter-spacing: -1px; margin-bottom: 18px; }
 }
@@ -6831,11 +6834,20 @@ body.is-searching .tabbar { display: none !important; }
     background: var(--dark-green, #111); color: #fff; font-size: 10px; font-weight: 800;
     padding: 3px 8px; border-radius: 999px; letter-spacing: .5px;
 }
-/* 업로드한 배너의 실제 픽셀 크기 표시(수정 화면) */
-.cell-size {
-    position: absolute; left: 6px; bottom: 6px; z-index: 2;
-    background: rgba(0, 0, 0, .72); color: #fff; font-size: 10px; font-weight: 700;
-    padding: 3px 7px; border-radius: 6px; letter-spacing: .3px;
+/* 업로드한 배너의 실제 픽셀 크기 표시 — 이미지 위가 아니라 오른쪽 여백에 별도 표기(수정 화면) */
+.banner-slot-body { display: flex; gap: 12px; align-items: stretch; }
+.banner-slot-pick { flex: 1 1 auto; min-width: 0; }
+.banner-slot-size {
+    flex: 0 0 auto; width: 124px;
+    display: flex; flex-direction: column; justify-content: center; gap: 5px;
+    padding: 10px; border: 1px dashed #d8d4c8; border-radius: 10px;
+    background: #fff; text-align: center;
+}
+.banner-slot-size .bss-label { font-size: 11px; color: #8a8475; font-weight: 600; line-height: 1.35; }
+.banner-slot-size .bss-val { font-size: 13.5px; font-weight: 800; color: #1a1a1a; letter-spacing: .2px; }
+@media (max-width: 480px) {
+    .banner-slot-body { flex-direction: column; }
+    .banner-slot-size { width: 100%; flex-direction: row; justify-content: space-between; align-items: center; text-align: left; }
 }
 
 /* ============================================================

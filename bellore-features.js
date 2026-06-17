@@ -104,24 +104,25 @@
     container.appendChild(input);
     var grid = document.createElement('div'); grid.className = 'upload-grid';
     container.appendChild(grid);
+    // 업로드된 실제 파일의 픽셀 크기를 측정해 바깥(오른쪽 여백)으로 전달
+    function reportSize() {
+      if (!opts.onSize) return;
+      if (!files.length) { opts.onSize(''); return; }
+      var probe = new Image();
+      probe.onload = function () { opts.onSize(probe.naturalWidth + ' × ' + probe.naturalHeight + 'px'); };
+      probe.onerror = function () { opts.onSize(''); };
+      probe.src = files[0];
+    }
     function draw() {
       grid.innerHTML = '';
       files.forEach(function (src, i) {
         var cell = document.createElement('div'); cell.className = 'upload-cell has-img';
         cell.innerHTML = '<img src="' + src + '" alt="" draggable="false">' +
           (i === 0 ? '<span class="cell-cover">대표</span>' : '') +
-          (opts.showSize ? '<span class="cell-size">…</span>' : '') +
           '<button type="button" class="remove-btn" data-i="' + i + '">×</button>';
         grid.appendChild(cell);
-        if (opts.showSize) {
-          var im = cell.querySelector('img');
-          var lbl = cell.querySelector('.cell-size');
-          var setSize = function () {
-            if (im.naturalWidth) lbl.textContent = im.naturalWidth + ' × ' + im.naturalHeight + 'px';
-          };
-          if (im.complete) setSize(); else im.addEventListener('load', setSize);
-        }
       });
+      reportSize();
       if (files.length < max) {
         var add = document.createElement('label'); add.className = 'upload-cell upload-add';
         add.innerHTML = '<span class="plus">+</span><span class="upload-cell-text">사진 추가</span>';
@@ -449,17 +450,26 @@
         '<label><span>노출 순서(숫자, 작을수록 먼저)</span><input name="sort_order" type="number" value="' + (item ? item.sort_order : 0) + '"></label>' +
         '<label class="banner-active-row"><input type="checkbox" name="active"' + (!item || item.active ? ' checked' : '') + '> <span>홈에 노출</span></label>' +
         '<div class="banner-img-slot"><label><span>① 모바일 이미지 *</span></label>' +
-        '<p class="muted small">휴대폰 화면용 · 권장 <b>1220 × 1480px</b> · 어떤 비율이든 잘리지 않습니다</p><div id="bannerPhoto"></div></div>' +
+        '<p class="muted small">휴대폰 화면용 · 권장 <b>1220 × 1480px</b> · 어떤 비율이든 잘리지 않습니다</p>' +
+        '<div class="banner-slot-body"><div class="banner-slot-pick" id="bannerPhoto"></div>' +
+        '<div class="banner-slot-size"><span class="bss-label">현재 등록된 사진 사이즈</span><span class="bss-val" id="bannerSize">—</span></div></div></div>' +
         '<div class="banner-img-slot"><label><span>② 태블릿(와이드) 이미지</span></label>' +
-        '<p class="muted small">권장 <b>1800 × 1480px</b> · 없으면 모바일 이미지 사용</p><div id="bannerPhotoWide"></div></div>' +
+        '<p class="muted small">권장 <b>1800 × 1480px</b> · 없으면 모바일 이미지 사용</p>' +
+        '<div class="banner-slot-body"><div class="banner-slot-pick" id="bannerPhotoWide"></div>' +
+        '<div class="banner-slot-size"><span class="bss-label">현재 등록된 사진 사이즈</span><span class="bss-val" id="bannerSizeWide">—</span></div></div></div>' +
         '<div class="banner-img-slot"><label><span>③ PC(웹) 이미지</span></label>' +
-        '<p class="muted small">권장 <b>1440 × 1480px</b> · 없으면 와이드/모바일 이미지 사용</p><div id="bannerPhotoPc"></div></div>' +
+        '<p class="muted small">권장 <b>1440 × 1480px</b> · 없으면 와이드/모바일 이미지 사용</p>' +
+        '<div class="banner-slot-body"><div class="banner-slot-pick" id="bannerPhotoPc"></div>' +
+        '<div class="banner-slot-size"><span class="bss-label">현재 등록된 사진 사이즈</span><span class="bss-val" id="bannerSizePc">—</span></div></div></div>' +
         '<button type="submit" class="login-btn login-default">' + (item ? '수정 저장' : '등록') + '</button>' +
         '<button type="button" class="login-btn" id="bannerBack" style="background:#eee;color:#444;margin-top:8px">목록으로</button>' +
         '</form>';
-      bnPicker = photoPicker($('#bannerPhoto', bannerModal), 1, item && item.image ? [item.image] : [], { showSize: true });
-      bnPickerWide = photoPicker($('#bannerPhotoWide', bannerModal), 1, item && item.imageWide ? [item.imageWide] : [], { showSize: true });
-      bnPickerPc = photoPicker($('#bannerPhotoPc', bannerModal), 1, item && item.imagePc ? [item.imagePc] : [], { showSize: true });
+      function sizeWriter(id) {
+        return function (t) { var el = $(id, bannerModal); if (el) el.textContent = t || '—'; };
+      }
+      bnPicker = photoPicker($('#bannerPhoto', bannerModal), 1, item && item.image ? [item.image] : [], { onSize: sizeWriter('#bannerSize') });
+      bnPickerWide = photoPicker($('#bannerPhotoWide', bannerModal), 1, item && item.imageWide ? [item.imageWide] : [], { onSize: sizeWriter('#bannerSizeWide') });
+      bnPickerPc = photoPicker($('#bannerPhotoPc', bannerModal), 1, item && item.imagePc ? [item.imagePc] : [], { onSize: sizeWriter('#bannerSizePc') });
       $('#bannerBack', bannerModal).addEventListener('click', bannerListView);
       $('#bannerForm', bannerModal).addEventListener('submit', function (e) {
         e.preventDefault();
