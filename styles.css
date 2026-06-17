@@ -5411,7 +5411,7 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
    높이는 비율에서 자동 산출 → 배너 아래에 원형 카테고리 2줄이 항상 맞게 들어온다. */
 .hero-slide-db {
     width: 100%;
-    aspect-ratio: 5 / 4;          /* 모바일: 가로형 1080×864 (세로 20% 키움) */
+    aspect-ratio: 24 / 19;        /* 모바일: 가로형 1440×1140 */
     height: auto; min-height: 0; max-height: none;
     display: flex; align-items: flex-end; color: #fff; overflow: hidden; padding: 0;
 }
