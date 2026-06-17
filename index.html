@@ -576,10 +576,11 @@
             <!-- 2) 비교견적 등록 폼 (입력폼) -->
             <section class="section section-soft compare-form-top">
                 <div class="container">
-                    <p class="eyebrow center">REQUEST QUOTE</p>
-                    <h2 class="section-title center">내 시계 <span class="g">비교견적</span> 신청</h2>
-                    <p class="lead center">시계 사진과 간단한 정보만 입력하면 120곳에서 자동 입찰</p>
-
+                    <div class="compare-form-hero">
+                        <p class="eyebrow center">REQUEST QUOTE</p>
+                        <h2 class="section-title center">내 시계 <span class="g">비교견적</span> 신청</h2>
+                        <p class="lead center">시계 사진과 간단한 정보만 입력하면 여러 전문업체가 자동 입찰</p>
+                    </div>
 
                     <form class="compare-form" id="compareForm">
                         <!-- 사진 업로드 -->
@@ -2071,6 +2072,10 @@
         <div class="login-backdrop" data-myclose></div>
         <div class="login-content">
             <button class="login-close" data-myclose aria-label="닫기">×</button>
+            <div class="mp-sub-bar" id="mpSubBar">
+                <button type="button" class="mp-sub-back" id="mpSubBack" aria-label="뒤로">‹</button>
+                <span class="mp-sub-title" id="mpSubTitle"></span>
+            </div>
             <div class="login-head">
                 <p class="login-eyebrow">MY PAGE</p>
                 <h2 id="myPageName">마이페이지</h2>

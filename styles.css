@@ -7596,3 +7596,72 @@ body.is-searching .tabbar { display: none !important; }
    (쿠폰 만들기 모달 · 판매시계 등록/수정 페이지) */
 #couponModal { z-index: 3600; }
 #listingPage { z-index: 3600; }
+
+/* ===== 내시계팔기 추가 (+ 버튼 · 신규 등록 · 시세 그래프 · 순위) ===== */
+.cqd-add { width: 34px; height: 34px; border: 0; background: var(--cq-gold, #e9dec3); color: #163029;
+  border-radius: 9px; font-size: 24px; line-height: 1; font-weight: 700; cursor: pointer; flex: 0 0 auto; }
+.cqd-add[hidden] { display: none; }
+
+/* 순위 배지 (비교견적 결과) */
+.cqd-rankpill { flex: 0 0 auto; min-width: 40px; height: 40px; padding: 0 8px; border-radius: 11px;
+  background: #eef1ef; color: #1f3b34; display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 13px; }
+.cqd-rankpill.top { background: var(--cq-green, #1f3b34); color: var(--cq-gold, #e9dec3); }
+.cqd-bidrow.is-top { border-color: #1f3b34; box-shadow: 0 0 0 1px rgba(31,59,52,.45) inset; }
+
+/* 시세 추이 그래프 (디자인 · 데이터 준비중) */
+.cqd-trend { margin-top: 12px; }
+.cqd-trend-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.cqd-trend-head b { font-size: 13px; color: #44403a; font-weight: 800; }
+.cqd-chart { width: 100%; height: 110px; }
+.cqd-chart-line { fill: none; stroke: #c9c2b2; stroke-width: 2; stroke-dasharray: 5 5; stroke-linejoin: round; stroke-linecap: round; }
+.cqd-chart-dots circle { fill: #1f3b34; opacity: .35; }
+.cqd-chart-wm { fill: #b8b1a1; font-size: 13px; font-weight: 800; letter-spacing: 1px; }
+
+/* 신규 등록 헤더 (배경 이미지 — 상단 글씨 부분) */
+.cqd-newhero { position: relative; border-radius: 16px; overflow: hidden; padding: 30px 18px;
+  text-align: center; color: #fff; margin-bottom: 14px;
+  background: linear-gradient(rgba(15,28,24,.62), rgba(15,28,24,.74)), url('assets/2026-03-18_이미지자료_193412.jpg');
+  background-size: cover; background-position: center; }
+.cqd-newhero-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 2px; color: var(--cq-gold, #e9dec3); }
+.cqd-newhero-title { font-size: 21px; font-weight: 800; margin: 6px 0 8px; }
+.cqd-newhero-sub { font-size: 12.5px; line-height: 1.6; color: rgba(255,255,255,.86); }
+.cqd-newhero-sub b { color: #fff; }
+
+/* 신규 등록: 사진 그리드 */
+.cqd-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; }
+.cqd-photo { position: relative; aspect-ratio: 1/1; border-radius: 11px; overflow: hidden; background: #efece4; }
+.cqd-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cqd-photo-rm { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border: 0; border-radius: 50%;
+  background: rgba(0,0,0,.55); color: #fff; font-size: 14px; line-height: 1; cursor: pointer; }
+.cqd-photo-add { aspect-ratio: 1/1; border: 1.5px dashed #c7c0b1; border-radius: 11px; background: #fcfbf7;
+  color: #8a8475; font-size: 22px; font-weight: 700; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 2px; cursor: pointer; }
+.cqd-photo-add small { font-size: 10px; font-weight: 700; }
+
+/* 신규 등록: 구성품 체크 그리드 */
+.cqd-chkgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.cqd-chk { display: flex; align-items: center; gap: 6px; background: #fcfbf7; border: 1px solid #e0dcd0;
+  border-radius: 10px; padding: 10px 8px; font-size: 12.5px; color: #44403a; cursor: pointer; }
+.cqd-chk input { width: auto; }
+
+/* ===== 마이페이지 서브페이지(스크롤 대신 페이지 전환) ===== */
+.mp-sub-bar { display: none; align-items: center; gap: 8px; margin: -8px 0 14px; }
+.login-content.mp-sub > .mp-sub-bar { display: flex; }
+.mp-sub-back { width: 36px; height: 36px; border: 0; background: #fff; color: #1f3b34; border-radius: 10px;
+  font-size: 22px; line-height: 1; cursor: pointer; box-shadow: 0 2px 8px rgba(20,30,26,.08); }
+.mp-sub-title { font-size: 16px; font-weight: 800; color: #1a1a1a; }
+.login-content.mp-sub > *:not(.mp-sub-bar) { display: none !important; }
+.login-content.mp-sub > .login-close { display: none !important; }
+.login-content.mp-sub[data-mpsub="myCouponSection"] > #myCouponSection,
+.login-content.mp-sub[data-mpsub="myAlertsSection"] > #myAlertsSection { display: block !important; }
+
+/* ===== 비교견적 신청 헤더 배경(여러 시계 사진) — 상단 글씨 부분에만 ===== */
+.compare-form-hero { position: relative; border-radius: 18px; overflow: hidden;
+  padding: 38px 20px 34px; margin-bottom: 22px; text-align: center;
+  background: linear-gradient(rgba(15,28,24,.6), rgba(15,28,24,.72)), url('assets/2026-03-18_이미지자료_193412.jpg');
+  background-size: cover; background-position: center; }
+.compare-form-hero .eyebrow { color: var(--cq-gold, #e9dec3); }
+.compare-form-hero .section-title { color: #fff; }
+.compare-form-hero .section-title .g { color: var(--cq-gold, #e9dec3); }
+.compare-form-hero .lead { color: rgba(255,255,255,.85); margin-bottom: 0; }

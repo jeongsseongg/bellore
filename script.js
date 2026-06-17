@@ -371,6 +371,26 @@
     function closeMyPage() {
         var m = $('#myPageModal');
         if (m) { m.hidden = true; document.body.style.overflow = ''; }
+        closeMpSub();
+    }
+
+    // 마이페이지 서브페이지(쿠폰·소식시계 등): 스크롤 대신 해당 화면으로 전환
+    var MP_SUB_TITLE = { myCouponSection: '내 쿠폰', myAlertsSection: '소식 기다리는 시계' };
+    function openMpSub(id) {
+        var mc = document.querySelector('#myPageModal .login-content');
+        var sec = mc && mc.querySelector('#' + id);
+        if (!mc || !sec) return false;
+        mc.setAttribute('data-mpsub', id);
+        mc.classList.add('mp-sub');
+        var t = $('#mpSubTitle'); if (t) t.textContent = MP_SUB_TITLE[id] || '';
+        mc.scrollTop = 0;
+        return true;
+    }
+    function closeMpSub() {
+        var mc = document.querySelector('#myPageModal .login-content');
+        if (!mc) return;
+        mc.classList.remove('mp-sub');
+        mc.removeAttribute('data-mpsub');
     }
 
     var notiCache = [];
@@ -421,12 +441,17 @@
         var myModal = $('#myPageModal');
         if (myModal) {
             myModal.addEventListener('click', function (e) {
+                if (e.target.closest('#mpSubBack')) { closeMpSub(); return; }
                 if (e.target.closest('[data-myclose]')) { closeMyPage(); return; }
-                // 원형 퀵메뉴: 모달 안 섹션으로 스크롤
+                // 원형 퀵메뉴: 스크롤 대신 해당 섹션을 전체 화면(서브페이지)으로 전환
                 var jump = e.target.closest('[data-myjump]');
                 if (jump) {
-                    var tgt = $(jump.getAttribute('data-myjump'), myModal);
-                    if (tgt) tgt.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    var sel = jump.getAttribute('data-myjump');
+                    var secId = sel.charAt(0) === '#' ? sel.slice(1) : sel;
+                    if (!openMpSub(secId)) {
+                        var tgt = $(sel, myModal);
+                        if (tgt) tgt.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
                     return;
                 }
                 // 원형 퀵메뉴: 알림 열기
@@ -656,7 +681,7 @@
             var label = NOTI_LABEL[n.type] || '알림';
             var go = notiTarget(n.type) ? ' has-go' : '';
             return '<button type="button" class="noti-item' + (n.read ? '' : ' unread') + go + '" data-nid="' + esc(n.id) +
-                '" data-ntype="' + esc(n.type || '') + '">' +
+                '" data-ntype="' + esc(n.type || '') + '" data-nref="' + esc(n.refId || '') + '">' +
                 '<span class="noti-tag">' + esc(label) + '</span>' +
                 '<span class="noti-text">' + esc(n.text) + '</span>' +
                 '<time>' + relTime(n.createdAt) + '</time>' +
@@ -670,14 +695,22 @@
         if (!it) return;
         var id = it.getAttribute('data-nid');
         var type = it.getAttribute('data-ntype');
+        var ref = it.getAttribute('data-nref') || '';
         if (id && backendOn() && NWBackend.markNotificationRead) {
             NWBackend.markNotificationRead(id).then(function () {}, function () {});
         }
         it.classList.remove('unread');
         var tgt = notiTarget(type);
         var nm = $('#notiModal'); if (nm) { nm.hidden = true; document.body.style.overflow = ''; }
-        if (tgt === 'cq') { if (window.CQDemo) window.CQDemo.open(); }
-        else if (tgt === 'collection') { closeMyPage(); location.hash = '#collection'; }
+        if (tgt === 'cq') {
+            if (window.CQDemo) {
+                // 알림 종류별로 해당 화면으로 바로 이동(딥링크)
+                var opts = null;
+                if (type === 'quote_open' && ref) opts = { screen: 'v-bid', id: ref };
+                else if (type === 'awarded' && ref) opts = { screen: 'c-bids', id: ref };
+                window.CQDemo.open(opts);
+            }
+        } else if (tgt === 'collection') { closeMyPage(); location.hash = '#collection'; }
     });
 
     function renderVendorList(vendors) {

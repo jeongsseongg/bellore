@@ -24,6 +24,9 @@ create table if not exists public.notifications (
 );
 create index if not exists idx_notifications_user on public.notifications(user_id, created_at desc);
 
+-- 0-1) 알림 클릭 시 해당 견적으로 바로 이동하기 위한 참조 ID (견적 id 등)
+alter table public.notifications add column if not exists ref_id bigint;
+
 -- 1) 트리거 함수: open 전환 시 승인업체 전체에게 알림 insert
 create or replace function public.notify_vendors_on_open()
 returns trigger language plpgsql security definer set search_path = public as $$
@@ -35,11 +38,12 @@ begin
 
     label := coalesce(nullif(trim(coalesce(new.item_brand,'') || ' ' || coalesce(new.item_name,'')), ''), '시계');
 
-    insert into public.notifications (user_id, type, title, body)
+    insert into public.notifications (user_id, type, title, body, ref_id)
     select p.id,
            'quote_open',
            '새 비교견적이 등록되었어요',
-           label || ' 견적 요청이 들어왔습니다. 지금 입찰해 보세요.'
+           label || ' 견적 요청이 들어왔습니다. 지금 입찰해 보세요.',
+           new.id
       from public.profiles p
      where p.role = 'vendor'
        and p.approved = true;

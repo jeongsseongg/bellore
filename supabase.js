@@ -922,6 +922,7 @@
               read: n.is_read,
               text: n.body || n.title || '',
               type: n.type,
+              refId: (n.ref_id != null ? String(n.ref_id) : ''),
               createdAt: tsObj(n.created_at)
             };
           }));
