@@ -6851,6 +6851,107 @@ body.is-searching .tabbar { display: none !important; }
 }
 
 /* ============================================================
+   비교견적 (마이페이지) — 고객이 등록한 시계의 업체 견적 비교/선택
+   레퍼런스: ① 업체 견적 상세  ② 견적 순위 리스트  ③ 견적 범위
+   ============================================================ */
+:root { --cq-green: #1f3b34; --cq-green-deep: #163029; --cq-gold: #e9dec3; }
+
+.cq-card {
+    background: #fff; border: 1px solid #ececec; border-radius: 14px;
+    padding: 14px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.04);
+}
+.cq-watch { display: flex; gap: 12px; align-items: center; }
+.cq-watch-img { width: 60px; height: 60px; border-radius: 12px; overflow: hidden; flex: 0 0 auto; background: #f3f1ec; }
+.cq-watch-img img { width: 100%; height: 100%; object-fit: cover; }
+.cq-watch-info { flex: 1; min-width: 0; }
+.cq-watch-brand { font-size: 15px; font-weight: 800; color: #1a1a1a; letter-spacing: .2px; }
+.cq-watch-model { font-size: 12.5px; color: #777; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cq-status {
+    display: inline-block; margin-top: 6px; font-size: 11px; font-weight: 700;
+    padding: 3px 9px; border-radius: 999px; background: #f0efea; color: #6a6a6a;
+}
+.cq-status-open { background: #e7f1ec; color: var(--cq-green); }
+.cq-status-awarded { background: var(--cq-green); color: #fff; }
+.cq-status-pending { background: #fff4e2; color: #b07b1e; }
+
+.cq-range {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 12px; padding: 10px 12px; border-radius: 10px;
+    background: #f7f6f2;
+}
+.cq-range-label { font-size: 11.5px; color: #8a8475; font-weight: 600; }
+.cq-range-val { font-size: 14px; font-weight: 800; color: var(--cq-green); }
+
+.cq-bids-head { margin: 14px 2px 8px; font-size: 12px; color: #777; }
+.cq-bids-head b { color: #1a1a1a; }
+.cq-bids { display: flex; flex-direction: column; gap: 8px; }
+.cq-bid {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    padding: 11px 12px; border: 1px solid #eaeaea; border-radius: 11px;
+    background: #fff; cursor: pointer; text-align: left; transition: border-color .15s, box-shadow .15s;
+}
+.cq-bid:hover { border-color: #d2cdbf; box-shadow: 0 2px 10px rgba(0,0,0,.05); }
+.cq-bid:first-child { border-color: var(--cq-gold); background: #fcfaf3; }
+.cq-bid.is-awarded { border-color: var(--cq-green); background: #f1f7f4; }
+.cq-bid-rank {
+    flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%;
+    background: #f0efea; color: #777; font-size: 11.5px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+}
+.cq-bid:first-child .cq-bid-rank { background: var(--cq-green); color: #fff; }
+.cq-bid-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.cq-bid-name { font-size: 13.5px; font-weight: 700; color: #1a1a1a; }
+.cq-bid-msg { font-size: 11.5px; color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cq-bid-amt { font-size: 14.5px; font-weight: 800; color: #1a1a1a; white-space: nowrap; }
+.cq-bid-flag { flex: 0 0 auto; font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 6px; }
+.cq-bid-flag.top { background: var(--cq-gold); color: #7a5a12; }
+.cq-bid-flag.awarded { background: var(--cq-green); color: #fff; }
+.cq-bid-arrow { flex: 0 0 auto; color: #c2c2c2; font-size: 18px; line-height: 1; }
+.cq-empty { margin: 12px 2px 2px; font-size: 12.5px; color: #999; }
+
+/* 업체 견적 상세 모달 (이미지 ①) */
+.cq-detail-content { max-width: 420px; padding: 0; overflow: hidden; }
+.cq-detail { display: flex; flex-direction: column; }
+.cq-shop {
+    background: linear-gradient(160deg, var(--cq-green) 0%, var(--cq-green-deep) 100%);
+    color: #fff; padding: 26px 20px 20px; text-align: center;
+}
+.cq-shop-avatar {
+    width: 56px; height: 56px; margin: 0 auto 10px; border-radius: 50%;
+    background: #fff; color: var(--cq-green); font-family: var(--serif, serif);
+    font-weight: 800; font-size: 24px; display: flex; align-items: center; justify-content: center;
+}
+.cq-shop-name { font-size: 18px; font-weight: 800; letter-spacing: .3px; }
+.cq-shop-partner { font-size: 12px; color: rgba(255,255,255,.78); margin-top: 3px; }
+.cq-shop-trust { display: flex; gap: 8px; margin-top: 16px; }
+.cq-shop-trust > div {
+    flex: 1; background: rgba(255,255,255,.1); border-radius: 9px; padding: 9px 4px;
+    display: flex; flex-direction: column; gap: 2px;
+}
+.cq-shop-trust b { font-size: 11.5px; font-weight: 700; }
+.cq-shop-trust small { font-size: 9.5px; color: rgba(255,255,255,.65); }
+.cq-offer { padding: 20px; }
+.cq-offer-label { font-size: 13px; color: #888; font-weight: 600; }
+.cq-offer-amt { font-size: 30px; font-weight: 800; color: #1a1a1a; margin: 2px 0 16px; }
+.cq-offer-amt span { font-size: 16px; font-weight: 700; margin-left: 2px; }
+.cq-offer-rows { display: flex; flex-direction: column; }
+.cq-offer-rows > div {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
+    padding: 12px 0; border-top: 1px solid #f0f0f0;
+}
+.cq-offer-rows dt { font-size: 13px; color: #999; flex: 0 0 auto; }
+.cq-offer-rows dd { font-size: 13.5px; font-weight: 700; color: #222; text-align: right; }
+.cq-cta {
+    width: 100%; padding: 15px; border-radius: 11px; font-size: 15px; font-weight: 800;
+    border: none; cursor: pointer; margin-top: 16px; text-align: center;
+}
+.cq-cta-primary { background: var(--cq-green); color: #fff; }
+.cq-cta-primary:hover { background: var(--cq-green-deep); }
+.cq-cta-ghost { background: #fff; color: #444; border: 1px solid #ddd; margin-top: 10px; }
+.cq-cta-done { background: #f1f1f1; color: #888; cursor: default; }
+.cq-offer-foot { margin-top: 14px; font-size: 11px; color: #aaa; text-align: center; }
+
+/* ============================================================
    판매시계 브랜드 바(개수 + 더 보기 ›) · 브랜드 검색 · 결과없음 안내
    ============================================================ */
 .cat-brandbar {

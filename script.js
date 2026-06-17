@@ -409,7 +409,11 @@
             e.preventDefault();
             if (!confirm('이 입찰을 채택하시겠어요? 채택하면 견적이 마감됩니다.')) return;
             NWBackend.awardBid(aw.dataset.quote, aw.dataset.award, aw.dataset.vendor)
-                .then(function () { alert('입찰을 채택했습니다.'); })
+                .then(function () {
+                    var cm = document.getElementById('cqDetailModal');
+                    if (cm) { cm.hidden = true; document.body.style.overflow = ''; }
+                    alert('이 견적으로 판매를 진행합니다. 업체에서 곧 연락드립니다.');
+                })
                 .catch(function (err) { alert('채택 실패: ' + (err && err.message || err)); });
         });
 
@@ -2046,55 +2050,148 @@
 
     // 로그인 사용자 본인의 매물 (상태 + 입찰 포함). 비교견적 페이지와 마이페이지 양쪽에 렌더.
     var myListingsCache = [];
+    var CQ_STATUS = {
+        pending: '승인 대기', open: '입찰 진행중', awarded: '채택 완료', closed: '종료',
+        approved: '판매중', rejected: '거부됨'
+    };
+    function cqShopName(rank) { return '비교견적 업체 ' + String.fromCharCode(65 + (rank % 26)); }
+
     function renderMyItemsBackend(rows) {
         myListingsCache = rows || [];
-        // 비교견적 상태(quote_requests) 한글 표기
-        var label = {
-            pending: '승인 대기', open: '입찰 진행중', awarded: '채택 완료', closed: '종료',
-            approved: '판매중', rejected: '거부됨'
-        };
+        rows = myListingsCache;
 
-        function bidsHtml(it) {
+        // 이미지3: 들어온 견적의 최저~최고 범위
+        function rangeLine(it) {
             var bids = it.bids || [];
-            if (!bids.length) {
-                return '<p class="my-item-sub">' +
-                    (it.status === 'pending'
-                        ? '관리자 승인 후 업체 입찰이 시작됩니다.'
-                        : '아직 들어온 입찰이 없습니다.') + '</p>';
-            }
-            return '<div class="my-item-bids">' + bids.map(function (b) {
-                var awarded = it.awarded_bid === b.id;
-                var action = (it.status === 'open')
-                    ? '<button type="button" class="admin-bid-btn" data-award="' + esc(b.id) +
-                      '" data-quote="' + esc(it.id) + '" data-vendor="' + esc(b.vendor_id) + '">채택</button>'
-                    : (awarded ? '<span class="my-item-bid">채택됨</span>' : '');
-                return '<div class="bid-row"><strong>' + fmt(b.amount) + '원</strong>' +
-                    (b.message ? ' <span>' + esc(b.message) + '</span>' : '') + ' ' + action + '</div>';
-            }).join('') + '</div>';
+            if (!bids.length) return '';
+            var amts = bids.map(function (b) { return Number(b.amount); });
+            var lo = Math.min.apply(null, amts), hi = Math.max.apply(null, amts);
+            var txt = (lo === hi) ? (fmt(hi) + '원') : (fmt(lo) + ' ~ ' + fmt(hi) + '원');
+            return '<div class="cq-range"><span class="cq-range-label">현재 견적 범위</span>' +
+                '<span class="cq-range-val">' + txt + '</span></div>';
         }
 
-        function itemHtml(it) {
-            return '' +
-                '<div class="my-item">' +
-                '<div class="my-item-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
-                '<div class="my-item-info">' +
-                '<strong>' + esc(it.brand) + ' · ' + esc(it.model) + '</strong>' +
-                '<p>사진 ' + (it.photoCount || (it.photos ? it.photos.length : 0)) + '장</p>' +
-                bidsHtml(it) +
-                '</div>' +
-                '<div class="my-item-status">' + (label[it.status] || it.status) + '</div>' +
+        // 이미지2: 업체 견적 순위 리스트(탭하면 상세)
+        function bidsBlock(it) {
+            var bids = it.bids || [];
+            if (!bids.length) {
+                return '<p class="cq-empty">' + (it.status === 'pending'
+                    ? '관리자 승인 후 업체 견적이 시작됩니다.'
+                    : '아직 들어온 견적이 없습니다.') + '</p>';
+            }
+            var head = '<p class="cq-bids-head">총 <b>' + bids.length + '</b>개 업체 견적 · 최고 <b>' + fmt(it.bidAmount) + '원</b></p>';
+            var list = bids.map(function (b, i) {
+                var awarded = it.awarded_bid === b.id;
+                var flag = awarded ? '<span class="cq-bid-flag awarded">채택됨</span>'
+                    : (i === 0 ? '<span class="cq-bid-flag top">최고가</span>' : '');
+                return '<button type="button" class="cq-bid' + (awarded ? ' is-awarded' : '') + '"' +
+                    ' data-cqdetail="' + esc(it.id) + '" data-bidid="' + esc(b.id) + '">' +
+                    '<span class="cq-bid-rank">' + (i + 1) + '</span>' +
+                    '<span class="cq-bid-main"><span class="cq-bid-name">' + esc(cqShopName(i)) + '</span>' +
+                    (b.message ? '<span class="cq-bid-msg">' + esc(b.message) + '</span>' : '') + '</span>' +
+                    '<span class="cq-bid-amt">' + fmt(b.amount) + '원</span>' + flag +
+                    '<span class="cq-bid-arrow">›</span>' +
+                    '</button>';
+            }).join('');
+            return head + '<div class="cq-bids">' + list + '</div>';
+        }
+
+        function cardHtml(it) {
+            return '<div class="cq-card" data-quoteid="' + esc(it.id) + '">' +
+                '<div class="cq-watch">' +
+                '<div class="cq-watch-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
+                '<div class="cq-watch-info">' +
+                '<p class="cq-watch-brand">' + esc(it.brand || '시계') + '</p>' +
+                '<p class="cq-watch-model">' + esc(it.model || '') + '</p>' +
+                '<span class="cq-status cq-status-' + esc(it.status) + '">' + (CQ_STATUS[it.status] || it.status) + '</span>' +
+                '</div></div>' +
+                rangeLine(it) + bidsBlock(it) +
                 '</div>';
         }
 
-        var emptyHtml = '<div class="empty-items"><p>아직 등록한 매물이 없습니다.</p>' +
-            '<p class="sub">비교견적 페이지에서 시계를 등록해보세요.</p></div>';
+        var emptyHtml = '<div class="empty-items"><p>아직 등록한 비교견적이 없습니다.</p>' +
+            '<p class="sub">내시계팔기에서 시계를 등록하면 업체 견적을 한눈에 비교할 수 있어요.</p></div>';
 
-        var el = $('#myItems');
-        if (el) el.innerHTML = rows.length ? rows.map(itemHtml).join('') : emptyHtml;
-
-        var mp = $('#myPageListings');
-        if (mp) mp.innerHTML = rows.length ? rows.map(itemHtml).join('') : emptyHtml;
+        var html = rows.length ? rows.map(cardHtml).join('') : emptyHtml;
+        var el = $('#myItems'); if (el) el.innerHTML = html;
+        var mp = $('#myPageListings'); if (mp) mp.innerHTML = html;
     }
+
+    // 이미지1: 업체 견적 상세 카드 (탭하면 열림 → 채택 가능)
+    function ensureCqModal() {
+        var m = document.getElementById('cqDetailModal');
+        if (m) return m;
+        m = document.createElement('div');
+        m.className = 'login-modal cq-modal'; m.id = 'cqDetailModal'; m.hidden = true;
+        m.innerHTML = '<div class="login-backdrop" data-cqx></div>' +
+            '<div class="login-content cq-detail-content">' +
+            '<button class="login-close" data-cqx aria-label="닫기">×</button>' +
+            '<div id="cqDetailBody"></div></div>';
+        document.body.appendChild(m);
+        m.addEventListener('click', function (e) {
+            if (e.target.closest('[data-cqx]')) closeCqModal();
+        });
+        return m;
+    }
+    function closeCqModal() {
+        var m = document.getElementById('cqDetailModal');
+        if (m) { m.hidden = true; document.body.style.overflow = ''; }
+    }
+    function openQuoteDetail(quoteId, bidId) {
+        var it = null, i;
+        for (i = 0; i < myListingsCache.length; i++) {
+            if (String(myListingsCache[i].id) === String(quoteId)) { it = myListingsCache[i]; break; }
+        }
+        if (!it) return;
+        var bids = it.bids || [], bid = null, rank = 0;
+        for (i = 0; i < bids.length; i++) {
+            if (String(bids[i].id) === String(bidId)) { bid = bids[i]; rank = i; break; }
+        }
+        if (!bid) return;
+        var isTop = rank === 0;
+        var awarded = it.awarded_bid === bid.id;
+        var canAward = it.status === 'open';
+
+        var cta;
+        if (awarded) cta = '<div class="cq-cta cq-cta-done">이 견적으로 판매 진행 중</div>';
+        else if (canAward) cta = '<button type="button" class="cq-cta cq-cta-primary" data-award="' + esc(bid.id) +
+            '" data-quote="' + esc(it.id) + '" data-vendor="' + esc(bid.vendor_id) + '">이 견적으로 판매하기</button>';
+        else cta = '<div class="cq-cta cq-cta-done">견적이 마감되었습니다</div>';
+
+        var body = '<div class="cq-detail">' +
+            '<div class="cq-shop">' +
+            '<div class="cq-shop-avatar">B</div>' +
+            '<p class="cq-shop-name">' + esc(cqShopName(rank)) + '</p>' +
+            '<p class="cq-shop-partner">벨로르 인증 업체</p>' +
+            '<div class="cq-shop-trust">' +
+            '<div><b>정품 보장</b><small>100% 정품</small></div>' +
+            '<div><b>전문 감정</b><small>감정사 검수</small></div>' +
+            '<div><b>안전 결제</b><small>거래 보장</small></div>' +
+            '</div></div>' +
+            '<div class="cq-offer">' +
+            '<p class="cq-offer-label">제안 견적' + (isTop ? ' <span class="cq-bid-flag top">최고가</span>' : '') + '</p>' +
+            '<p class="cq-offer-amt">' + fmt(bid.amount) + '<span>원</span></p>' +
+            '<dl class="cq-offer-rows">' +
+            '<div><dt>모델</dt><dd>' + esc(((it.brand ? it.brand + ' ' : '') + (it.model || '')).trim() || '시계') + '</dd></div>' +
+            (bid.message ? '<div><dt>업체 메모</dt><dd>' + esc(bid.message) + '</dd></div>' : '') +
+            '<div><dt>감정 방식</dt><dd>실물 감정</dd></div>' +
+            '<div><dt>입금 예정</dt><dd>당일 입금</dd></div>' +
+            '</dl>' + cta +
+            '<button type="button" class="cq-cta cq-cta-ghost" data-cqx>다른 견적 비교하기</button>' +
+            '<p class="cq-offer-foot">개인정보와 거래 내역은 안전하게 보호됩니다.</p>' +
+            '</div></div>';
+
+        var m = ensureCqModal();
+        document.getElementById('cqDetailBody').innerHTML = body;
+        m.hidden = false; document.body.style.overflow = 'hidden';
+    }
+    // 견적 행 탭 → 상세 열기 (마이페이지·비교견적 페이지 공용)
+    document.addEventListener('click', function (e) {
+        var row = e.target.closest('[data-cqdetail]');
+        if (!row) return;
+        e.preventDefault();
+        openQuoteDetail(row.getAttribute('data-cqdetail'), row.getAttribute('data-bidid'));
+    });
 
     /* ============ 제휴처 클릭 → 예약/문의 모달 ============ */
     function initPartnerModal() {
