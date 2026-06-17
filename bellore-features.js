@@ -449,11 +449,11 @@
         '<label><span>노출 순서(숫자, 작을수록 먼저)</span><input name="sort_order" type="number" value="' + (item ? item.sort_order : 0) + '"></label>' +
         '<label class="banner-active-row"><input type="checkbox" name="active"' + (!item || item.active ? ' checked' : '') + '> <span>홈에 노출</span></label>' +
         '<div class="banner-img-slot"><label><span>① 모바일 이미지 *</span></label>' +
-        '<p class="muted small">휴대폰 화면용 · 권장 <b>1440 × 1620px</b> (세로형 8:9) · 어떤 비율이든 잘리지 않습니다</p><div id="bannerPhoto"></div></div>' +
+        '<p class="muted small">휴대폰 화면용 · 권장 <b>1220 × 1480px</b> · 어떤 비율이든 잘리지 않습니다</p><div id="bannerPhoto"></div></div>' +
         '<div class="banner-img-slot"><label><span>② 태블릿(와이드) 이미지</span></label>' +
-        '<p class="muted small">가로형 · 권장 <b>1600 × 1000px</b> (8:5) · 없으면 모바일 이미지 사용</p><div id="bannerPhotoWide"></div></div>' +
+        '<p class="muted small">권장 <b>1800 × 1480px</b> · 없으면 모바일 이미지 사용</p><div id="bannerPhotoWide"></div></div>' +
         '<div class="banner-img-slot"><label><span>③ PC(웹) 이미지</span></label>' +
-        '<p class="muted small">가로형 · 권장 <b>1600 × 1000px</b> (8:5) · 와이드와 동일하게 1장이면 됩니다</p><div id="bannerPhotoPc"></div></div>' +
+        '<p class="muted small">권장 <b>1440 × 1480px</b> · 없으면 와이드/모바일 이미지 사용</p><div id="bannerPhotoPc"></div></div>' +
         '<button type="submit" class="login-btn login-default">' + (item ? '수정 저장' : '등록') + '</button>' +
         '<button type="button" class="login-btn" id="bannerBack" style="background:#eee;color:#444;margin-top:8px">목록으로</button>' +
         '</form>';
