@@ -554,19 +554,22 @@
             });
         }
 
-        // 알림 모달
+        // 알림 모달 (마이페이지 내부 #btnNoti + 상단 헤더 #btnNotiTop 둘 다 연동)
         var btnNoti = $('#btnNoti');
+        var btnNotiTop = $('#btnNotiTop');
         var notiModal = $('#notiModal');
-        if (btnNoti && notiModal) {
-            btnNoti.addEventListener('click', function () {
+        if (notiModal) {
+            function openNotiModal() {
                 notiModal.hidden = false;
                 document.body.style.overflow = 'hidden';
                 renderNotiList(notiCache);
                 // 열람 시 읽지 않은 알림 읽음 처리
                 notiCache.forEach(function (n) {
-                    if (!n.read) NWBackend.markNotificationRead(n.id).catch(function () {});
+                    if (!n.read && backendOn() && NWBackend.markNotificationRead) NWBackend.markNotificationRead(n.id).catch(function () {});
                 });
-            });
+            }
+            if (btnNoti) btnNoti.addEventListener('click', openNotiModal);
+            if (btnNotiTop) btnNotiTop.addEventListener('click', openNotiModal);
             notiModal.addEventListener('click', function (e) {
                 if (e.target.closest('[data-noticlose]')) {
                     notiModal.hidden = true;
@@ -574,6 +577,20 @@
                 }
             });
         }
+
+        // 상단 공유 아이콘 — 사이트 공유(Web Share API + 링크복사 폴백)
+        var btnShareTop = $('#btnShareTop');
+        if (btnShareTop) btnShareTop.addEventListener('click', function () {
+            var data = {
+                title: '벨로르 BELLORE',
+                text: '명품시계 비교견적·매입·판매는 벨로르에서 — 여러 업체 견적을 한눈에 비교하세요.',
+                url: (function () { try { return location.origin + location.pathname; } catch (e) { return 'https://bellore.co.kr'; } })()
+            };
+            if (navigator.share) { navigator.share(data).catch(function () {}); return; }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(data.url).then(function () { alert('링크를 복사했습니다.'); }, function () {});
+            } else { alert(data.url); }
+        });
 
         // 상품 수정/삭제 (관리자) — 수정은 등록 폼(모달)을 연다
         document.addEventListener('click', function (e) {
@@ -657,10 +674,11 @@
     }
 
     function updateNotiBadge(n) {
-        var badge = $('#notiBadge');
-        if (!badge) return;
-        if (n > 0) { badge.textContent = n > 99 ? '99+' : n; badge.hidden = false; }
-        else badge.hidden = true;
+        [$('#notiBadge'), $('#notiBadgeTop')].forEach(function (badge) {
+            if (!badge) return;
+            if (n > 0) { badge.textContent = n > 99 ? '99+' : n; badge.hidden = false; }
+            else badge.hidden = true;
+        });
     }
 
     var NOTI_LABEL = {
@@ -3459,17 +3477,17 @@
     function initLoginModal() {
         var modal = $('#loginModal');
         var btnMy = $('#btnMy');
-        if (!modal || !btnMy) return;
+        if (!modal) return;
 
-        btnMy.addEventListener('click', function () {
+        function openMyOrLogin() {
             // 로그인 상태면 마이페이지, 아니면 로그인 모달
-            if (backendOn() && NWBackend.currentUser()) {
-                openMyPage();
-                return;
-            }
+            if (backendOn() && NWBackend.currentUser()) { openMyPage(); return; }
             modal.hidden = false;
             document.body.style.overflow = 'hidden';
-        });
+        }
+        if (btnMy) btnMy.addEventListener('click', openMyOrLogin);
+        var tabMy = $('#tabMy');
+        if (tabMy) tabMy.addEventListener('click', openMyOrLogin);
 
         modal.addEventListener('click', function (e) {
             if (e.target.closest('[data-mclose]')) {

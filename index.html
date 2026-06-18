@@ -201,8 +201,12 @@
                 <input type="search" id="searchInput" placeholder="브랜드·모델 검색" autocomplete="off" enterkeyhint="search">
             </form>
             <div class="header-actions">
-                <button class="header-icon" aria-label="마이페이지" id="btnMy">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+                <button class="header-icon" type="button" aria-label="공유" id="btnShareTop">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+                </button>
+                <button class="header-icon" type="button" aria-label="알림" id="btnNotiTop">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+                    <span class="noti-badge" id="notiBadgeTop" hidden>0</span>
                 </button>
             </div>
         </div>
@@ -2143,13 +2147,13 @@
                     </div>
                     <p class="pocket-name" id="pocketName">고객님</p>
                     <div class="pocket-stats">
-                        <button type="button" class="pocket-stat" data-myjump="#myCouponSection">
-                            <span class="pocket-stat-label">보유 쿠폰</span>
-                            <span class="pocket-stat-val"><b id="pocketCoupon">0</b>장 ›</span>
-                        </button>
                         <div class="pocket-stat pocket-stat-static">
                             <span class="pocket-stat-label">보유 포인트</span>
                             <span class="pocket-stat-val" id="pocketPoint">0P</span>
+                        </div>
+                        <div class="pocket-stat pocket-stat-static">
+                            <span class="pocket-stat-label">보유 쿠폰</span>
+                            <span class="pocket-stat-val"><b id="pocketCoupon">0</b>장</span>
                         </div>
                     </div>
                 </div>
@@ -2648,9 +2652,9 @@
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.83 0l-7.17-7.17A2 2 0 0 1 2.8 12V4.8A2 2 0 0 1 4.8 2.8H12a2 2 0 0 1 1.43.6l7.17 7.17a2 2 0 0 1 0 2.83z"/><circle cx="7.6" cy="7.6" r="1.3"/></svg>
             <span>내시계팔기</span>
         </button>
-        <button class="tab-item" data-nav="about">
-            <span class="tab-logo-ic" aria-hidden="true"></span>
-            <span>벨로르</span>
+        <button class="tab-item" type="button" id="tabMy">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+            <span>마이</span>
         </button>
     </nav>
 

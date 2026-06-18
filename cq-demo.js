@@ -608,22 +608,45 @@
   };
 
   /* --- 고객: 새 시계 등록(비교견적 신청) — 앱 내 전체화면 페이지 --- */
+  var ICON_CAM = svg24('<rect x="3" y="6.5" width="18" height="13" rx="2.5"></rect><circle cx="12" cy="13" r="3.4"></circle><path d="M8 6.5l1.4-2.2h5.2L16 6.5"></path>', 1.7);
   function photoGrid() {
-    var thumbs = '';
-    for (var e = 0; e < editPhotos.length; e++) {
-      thumbs += '<div class="cqd-photo"><img src="' + esc(editPhotos[e]) + '" alt="" onerror="this.style.visibility=\'hidden\'">' +
-        '<button type="button" class="cqd-photo-rm" data-cqd-rmexist="' + e + '" aria-label="삭제">×</button></div>';
-    }
-    for (var i = 0; i < newPhotos.length; i++) {
+    var items = [];
+    var e, i;
+    for (e = 0; e < editPhotos.length; e++) items.push({ src: esc(editPhotos[e]), rm: 'data-cqd-rmexist="' + e + '"' });
+    for (i = 0; i < newPhotos.length; i++) {
       var url = '';
       try { url = URL.createObjectURL(newPhotos[i]); } catch (e2) {}
-      thumbs += '<div class="cqd-photo">' +
-        (url ? '<img src="' + url + '" alt="">' : '') +
-        '<button type="button" class="cqd-photo-rm" data-cqd-rmphoto="' + i + '" aria-label="삭제">×</button>' +
-      '</div>';
+      items.push({ src: url, rm: 'data-cqd-rmphoto="' + i + '"' });
     }
-    return thumbs +
-      '<button type="button" class="cqd-photo-add" data-cqd-addphoto>＋<small>사진</small></button>';
+    if (!items.length) {
+      return '<button type="button" class="cqd-photo-add main" data-cqd-addphoto>' + ICON_CAM +
+          '<small>대표사진<em>필수</em></small></button>' +
+        '<button type="button" class="cqd-photo-add" data-cqd-addphoto>＋<small>추가 사진</small></button>';
+    }
+    var cells = items.map(function (p, idx) {
+      return '<div class="cqd-photo' + (idx === 0 ? ' is-main' : '') + '">' +
+        (p.src ? '<img src="' + p.src + '" alt="" onerror="this.style.visibility=\'hidden\'">' : '') +
+        (idx === 0 ? '<span class="cqd-photo-tag">대표</span>' : '') +
+        '<button type="button" class="cqd-photo-rm" ' + p.rm + ' aria-label="삭제">×</button>' +
+      '</div>';
+    }).join('');
+    return cells + '<button type="button" class="cqd-photo-add" data-cqd-addphoto>＋<small>추가</small></button>';
+  }
+  /* 촬영 가이드 + 예시 (시안풍 — 문구는 자체 톤으로) */
+  function photoGuide() {
+    var tips = [
+      '대표 사진은 시계 정면이 또렷하게 나오도록 담아주세요.',
+      '흠집·눌림 등 상태가 보이는 부분도 함께 올려주세요.',
+      '보증서·박스 등 함께 보내는 구성품도 빠짐없이 촬영해 주세요.',
+      '시리얼·일련번호가 그대로 노출되지 않게 가려주세요.',
+      '시계와 무관하거나 흐릿한 사진은 반려될 수 있어요.'
+    ];
+    var ex = ['앞면', '구성품', '뒷면', '좌측면', '우측면', '클라스프'];
+    return '<ul class="cqd-photo-tips">' + tips.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ul>' +
+      '<p class="cqd-photo-ex-h">이렇게 찍어주시면 좋아요</p>' +
+      '<div class="cqd-photo-ex">' + ex.map(function (name) {
+        return '<div class="cqd-photo-ex-cell"><span class="cqd-photo-ex-ic">' + ICON_WATCH + '</span><em>' + name + '</em></div>';
+      }).join('') + '</div>';
   }
   function refreshPhotoGrid() {
     var g = overlay && overlay.querySelector('#cqdNewPhotos');
@@ -701,9 +724,10 @@
       return '<label class="cqd-chk"><input type="checkbox" name="cqdpart" value="' + esc(p) + '"' + on + '><span class="cqd-chk-box" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg></span><span class="cqd-chk-txt">' + esc(p) + '</span></label>';
     }).join('');
     return '<div class="cqd-form">' +
-      '<label>시계 사진 *</label>' +
+      '<label>사진 등록 <small class="cqd-lbl-sub">최대 20장 · 첫 장이 대표사진</small></label>' +
       '<div class="cqd-photos" id="cqdNewPhotos">' + photoGrid() + '</div>' +
       '<input type="file" id="cqdNewFile" accept="image/*" multiple hidden>' +
+      photoGuide() +
       '<label>브랜드 * <small class="cqd-lbl-sub">눌러서 선택</small></label>' +
       '<button type="button" class="cqd-brandbtn' + (brandName ? ' on' : '') + '" id="cqdBrandBtn">' +
         (brandName ? '<span class="cqd-brandbtn-logo" id="cqdBrandLogo"></span>' + esc(brandName) : '브랜드 선택') +

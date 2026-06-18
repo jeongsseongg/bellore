@@ -36,10 +36,20 @@
 
   var BELL = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>';
 
+  function brandIc(it) {
+    var b = window.BELLORE_BRAND_BY_NAME && window.BELLORE_BRAND_BY_NAME(it.brand);
+    var logo = (b && window.BELLORE_BRAND_LOGO) ? window.BELLORE_BRAND_LOGO(b.slug) : '';
+    if (logo) {
+      return '<span class="alert-ic alert-ic-brand">' +
+        '<img src="' + esc(logo) + '" alt="" loading="lazy" onerror="this.remove();this.parentNode.classList.add(\'fallback\')">' +
+        BELL + '</span>';
+    }
+    return '<span class="alert-ic">' + BELL + '</span>';
+  }
   function rowHTML(it) {
     var id = idOf(it);
     return '<div class="alert-row">' +
-        '<span class="alert-ic">' + BELL + '</span>' +
+        brandIc(it) +
         '<div class="alert-main">' +
           '<p class="alert-name">' + esc(label(it)) + '</p>' +
           '<p class="alert-sub">입고되면 가장 먼저 소식 보내드릴게요</p>' +
