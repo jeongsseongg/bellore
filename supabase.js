@@ -537,7 +537,23 @@
     return function () { unsub(); removeFrom(quoteRefreshers, load); };
   };
 
-  // 관리자 승인: pending → open
+  // 정지(suspended)된 비교견적 (관리자) — 정지 목록/재개용
+  Backend.subscribeSuspended = function (cb) {
+    function load() {
+      sb.from('quote_requests').select('*').eq('status', 'suspended')
+        .order('created_at', { ascending: false })
+        .then(function (res) {
+          var quotes = res.data || [];
+          fetchBidsFor(quotes.map(function (q) { return q.id; })).then(function (by) {
+            cb(quotes.map(function (q) { return mapQuote(q, by); }));
+          });
+        });
+    }
+    load();
+    var unsub = channelRefetch('suspendedquotes', ['quote_requests', 'bids'], load);
+    quoteRefreshers.push(load);
+    return function () { unsub(); removeFrom(quoteRefreshers, load); };
+  };
   //  - 승인업체(알림설정 ON)에게는 DB 트리거가 앱알림 생성
   //  - VIP 업체에게는 추가로 카톡 알림톡 발송(Edge Function, best-effort)
   Backend.approveListing = function (id) {
@@ -879,18 +895,22 @@
     return sb.from('profiles').delete().eq('id', id)
       .then(function (res) { if (res.error) throw res.error; refreshVendors(); refreshAccounts(); });
   };
-  // 업체 본인: 상호 / 로고 이미지 수정
+  // 업체 본인: 상호 / 로고 이미지 수정 (logoFile: PC·모바일에서 직접 첨부한 파일)
   Backend.updateMyVendorProfile = function (data) {
     if (!rawUser) return Promise.reject(new Error('NOT_LOGGED_IN'));
-    var patch = {};
-    if (data.company_name != null) patch.company_name = String(data.company_name).trim();
-    if (data.logo_url !== undefined) patch.logo_url = data.logo_url || null;
-    if (!Object.keys(patch).length) return Promise.resolve();
-    return sb.from('profiles').update(patch).eq('id', rawUser.id)
-      .then(function (res) {
-        if (res.error) throw res.error;
-        return loadProfile().then(notifyAuth, notifyAuth);
-      });
+    var pre = data.logoFile ? firstUrl([data.logoFile]) : Promise.resolve(undefined);
+    return pre.then(function (uploadedUrl) {
+      var patch = {};
+      if (data.company_name != null) patch.company_name = String(data.company_name).trim();
+      if (uploadedUrl !== undefined) patch.logo_url = uploadedUrl || null;
+      else if (data.logo_url !== undefined) patch.logo_url = data.logo_url || null;
+      if (!Object.keys(patch).length) return Promise.resolve();
+      return sb.from('profiles').update(patch).eq('id', rawUser.id)
+        .then(function (res) {
+          if (res.error) throw res.error;
+          return loadProfile().then(notifyAuth, notifyAuth);
+        });
+    });
   };
 
   // 본인(업체) 새 견적 앱알림 수신설정 ON/OFF

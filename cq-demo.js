@@ -59,13 +59,14 @@
   var editPhotos = [];    // (수정 모드) 기존 사진 URL 목록
   var editId = null;      // (수정 모드) 대상 견적 id
   var newData = {};
+  var vendLogoFile = null; // 업체 대표 이미지(직접 첨부한 File)
   var PART_OPTS = ['보증서', '정품 박스', '설명서/책자', '추가 링크', '정품 택', '구매 영수증'];
   var GRADE_OPTS = ['S등급 (미착용/신품급)', 'A등급 (사용감 적음)', 'B등급 (일반 사용감)', 'C등급 (사용감 많음)'];
 
   /* ===== 데이터 캐시 (구독으로 채움) ===== */
   var cust = { watches: [], loaded: false };
   var vend = { quotes: [], loaded: false };
-  var adm = { pending: [], open: [], vendors: [], accounts: [], loaded: false };
+  var adm = { pending: [], open: [], suspended: [], vendors: [], accounts: [], loaded: false };
   var reviews = [];
   var awardedVendorCache = {}; // quoteId → {company_name,...}
   var subs = [];
@@ -97,6 +98,7 @@
     if (role === 'admin') {
       if (B.subscribePending) subs.push(B.subscribePending(function (r) { adm.pending = r || []; adm.loaded = true; renderIfOpen(); }));
       if (B.subscribeOpenQuotes) subs.push(B.subscribeOpenQuotes(function (r) { adm.open = r || []; renderIfOpen(); }));
+      if (B.subscribeSuspended) subs.push(B.subscribeSuspended(function (r) { adm.suspended = r || []; renderIfOpen(); }));
       if (B.subscribeVendors) subs.push(B.subscribeVendors(function (r) { adm.vendors = r || []; renderIfOpen(); }));
       if (B.subscribeAccounts) subs.push(B.subscribeAccounts(function (r) { adm.accounts = r || []; renderIfOpen(); }));
       if (B.subscribeSupportThreads) subs.push(B.subscribeSupportThreads(function (r) { admChats.threads = r || []; admChats.loaded = true; renderIfOpen(); }));
@@ -459,19 +461,18 @@
         '</span>' + right +
       '</button>';
     }).join('');
-    var csLink = '<button type="button" class="cqd-cs-link" data-cqd-cs>' + ICON_CHAT + '고객센터에 문의하기</button>';
     if (!rows) {
       return '<div class="cqd-screen">' +
         '<p class="cqd-note">아직 판매 등록한 시계가 없습니다.</p>' +
         '<div class="cqd-empty-cta">' +
           '<p>시계를 등록하면 여러 업체가 금액을 제시해요.<br>여기에서 받은 견적을 확인하고 선택할 수 있어요.</p>' +
           '<button type="button" class="cqd-cta primary" data-cqd-new>＋ 시계 등록하러 가기</button>' +
-        '</div>' + csLink +
+        '</div>' +
       '</div>';
     }
     return '<div class="cqd-screen">' +
       '<p class="cqd-note">판매 등록한 내 시계입니다. 시계를 눌러 받은 견적을 확인하세요.</p>' +
-      '<div class="cqd-vlist">' + rows + '</div>' + csLink +
+      '<div class="cqd-vlist">' + rows + '</div>' +
     '</div>';
   };
 
@@ -629,6 +630,27 @@
     if (g) g.innerHTML = photoGrid();
   }
 
+  /* 업체 대표 이미지 미리보기 (직접 첨부 파일 우선, 없으면 기존 logo_url) */
+  function vendorLogoPreview(logo) {
+    var src = '';
+    if (vendLogoFile) { try { src = URL.createObjectURL(vendLogoFile); } catch (e) {} }
+    else if (logo) src = logo;
+    var thumb = src
+      ? '<span class="cqd-logo-thumb"><img src="' + esc(src) + '" alt="" onerror="this.style.visibility=\'hidden\'">' +
+        (vendLogoFile ? '<button type="button" class="cqd-photo-rm" data-cqd-vlogorm aria-label="삭제">×</button>' : '') + '</span>'
+      : '';
+    return thumb +
+      '<button type="button" class="cqd-logo-add" data-cqd-vlogopick>' +
+        svg24('<rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="9" cy="11" r="2"></circle><path d="m4 18 5-4 4 3 3-2 4 3"></path>') +
+        '<small>' + (src ? '이미지 변경' : '이미지 선택') + '</small>' +
+      '</button>';
+  }
+  function refreshVendorLogo() {
+    var info = AUTH.info || {};
+    var box = overlay && overlay.querySelector('#cqdVLogoPick');
+    if (box) box.innerHTML = vendorLogoPreview(info.logoUrl || '');
+  }
+
   /* ===== 브랜드 선택(이미지) + 모델 추천 — brands.js 연동 ===== */
   function brandOptHTML(b) {
     return '<button type="button" class="cqd-brand-opt" data-cqbrand="' + esc(b.name) + '">' +
@@ -666,8 +688,13 @@
   /* 신청/수정 공통 입력 필드 (브랜드는 이미지 선택, 모델은 추천 datalist) */
   function formFields(d, nm, ph) {
     var brandName = d.brand || '';
-    var gradeOpts = '<option value="">선택해주세요</option>' +
-      GRADE_OPTS.map(function (g) { return '<option' + (d.grade === g ? ' selected' : '') + '>' + esc(g) + '</option>'; }).join('');
+    var gradeChips = GRADE_OPTS.map(function (g) {
+      var on = d.grade === g ? ' is-on' : '';
+      var main = g.replace(/\s*\(.*\)\s*/, '');
+      var subm = (g.match(/\(([^)]*)\)/) || [])[1] || '';
+      return '<label class="cqd-grade-chip' + on + '"><input type="radio" name="cqdgrade" value="' + esc(g) + '"' + (d.grade === g ? ' checked' : '') + '>' +
+        '<b>' + esc(main) + '</b>' + (subm ? '<em>' + esc(subm) + '</em>' : '') + '</label>';
+    }).join('');
     var savedParts = (d.parts || '').split(',').map(function (s) { return s.trim(); });
     var partChips = PART_OPTS.map(function (p) {
       var on = savedParts.indexOf(p) >= 0 ? ' checked' : '';
@@ -693,7 +720,7 @@
       '<label>구매일 / 구입 시기</label>' +
       '<input type="text" id="cqdNewYear" value="' + esc(d.year || '') + '" placeholder="예: 2023년 05월">' +
       '<label>상태 등급</label>' +
-      '<select id="cqdNewGrade">' + gradeOpts + '</select>' +
+      '<div class="cqd-gradegrid">' + gradeChips + '</div>' +
       '<label>구성품 (해당되는 항목을 모두 선택)</label>' +
       '<div class="cqd-chkgrid">' + partChips + '</div>' +
       '<label>특이사항 (수리이력 · 흠집 · 정품여부 등)</label>' +
@@ -1002,8 +1029,9 @@
       '<div class="cqd-form">' +
         '<label>업체명(상호)</label>' +
         '<input type="text" id="cqdVName" value="' + esc(name) + '" placeholder="업체명">' +
-        '<label>대표 이미지 주소 (URL)</label>' +
-        '<input type="text" id="cqdVImg" value="' + esc(logo) + '" placeholder="https://…  (비우면 첫 글자 표시)">' +
+        '<label>대표 이미지 <small class="cqd-lbl-sub">PC·모바일에서 바로 첨부</small></label>' +
+        '<div class="cqd-logopick" id="cqdVLogoPick">' + vendorLogoPreview(logo) + '</div>' +
+        '<input type="file" id="cqdVLogoFile" accept="image/*" hidden>' +
         '<button type="button" class="cqd-cta primary" data-cqd-vsave>업체 정보 저장</button>' +
       '</div>' +
       '<p class="cqd-block-label">벨로르 거래 후기</p>' +
@@ -1028,7 +1056,7 @@
     for (var i = 0; i < adm.vendors.length; i++) if (adm.vendors[i].id === id) return adm.vendors[i];
     return null;
   }
-  function allAdminQuotes() { return adm.pending.concat(adm.open); }
+  function allAdminQuotes() { return adm.pending.concat(adm.open).concat(adm.suspended); }
 
   SCREENS['a-dash'] = function () {
     titleEl.textContent = '관리자 · 비교견적';
@@ -1051,19 +1079,25 @@
     var pend = adm.pending.slice();
     var pendRows = pend.map(admRow).join('');
     var openRows = adm.open.map(admRow).join('') || '<p class="cqd-note">진행중 견적이 없습니다.</p>';
+    var suspRows = adm.suspended.map(admRow).join('');
     var pendBlock = pend.length
       ? '<p class="cqd-block-label hot">승인 대기 <span class="cqd-cnt">' + pend.length + '</span></p>' +
         '<div class="cqd-vlist cqd-vlist-pend">' + pendRows + '</div>'
       : '<div class="cqd-state ok" style="margin:8px 0 4px">승인 대기중인 시계가 없습니다.</div>';
+    var suspBlock = adm.suspended.length
+      ? '<p class="cqd-block-label stop">정지된 견적 <span class="cqd-cnt stop">' + adm.suspended.length + '</span></p>' +
+        '<div class="cqd-vlist cqd-vlist-stop">' + suspRows + '</div>'
+      : '';
     return '<div class="cqd-screen">' + adminSubtabs('quotes') +
       '<div class="cqd-stats">' +
         '<div class="cqd-stat"><b>' + adm.pending.length + '</b><span>승인 대기</span></div>' +
         '<div class="cqd-stat"><b>' + adm.open.length + '</b><span>입찰 진행</span></div>' +
-        '<div class="cqd-stat"><b>' + adm.vendors.length + '</b><span>업체</span></div>' +
+        '<div class="cqd-stat"><b>' + adm.suspended.length + '</b><span>정지</span></div>' +
       '</div>' +
       pendBlock +
       '<p class="cqd-block-label">입찰 진행중</p>' +
       '<div class="cqd-vlist">' + openRows + '</div>' +
+      suspBlock +
     '</div>';
   };
 
@@ -1323,14 +1357,21 @@
       return;
     }
 
+    /* 업체: 대표 이미지 직접 첨부 */
+    if (e.target.closest('[data-cqd-vlogopick]')) {
+      var lf = overlay.querySelector('#cqdVLogoFile'); if (lf) lf.click(); return;
+    }
+    if (e.target.closest('[data-cqd-vlogorm]')) { vendLogoFile = null; refreshVendorLogo(); return; }
+
     /* 업체: 내 업체 정보 저장 */
     var vs = e.target.closest('[data-cqd-vsave]');
     if (vs) {
       var nm = overlay.querySelector('#cqdVName');
-      var im = overlay.querySelector('#cqdVImg');
-      B.updateMyVendorProfile({ company_name: nm ? nm.value.trim() : null, logo_url: im ? im.value.trim() : '' })
-        .then(function () { alert('업체 정보가 저장되었습니다.'); render(); })
-        .catch(function (err) { alert('저장 실패: ' + msg(err)); });
+      vs.disabled = true;
+      B.updateMyVendorProfile({ company_name: nm ? nm.value.trim() : null, logoFile: vendLogoFile || undefined })
+        .then(function () { vendLogoFile = null; alert('업체 정보가 저장되었습니다.'); render(); })
+        .catch(function (err) { alert('저장 실패: ' + msg(err)); })
+        .then(function () { vs.disabled = false; });
       return;
     }
 
@@ -1375,6 +1416,13 @@
       for (var i = 0; i < fs.length; i++) newPhotos.push(fs[i]);
       e.target.value = '';
       refreshPhotoGrid();
+    } else if (e.target && e.target.id === 'cqdVLogoFile') {
+      if (e.target.files && e.target.files[0]) vendLogoFile = e.target.files[0];
+      e.target.value = '';
+      refreshVendorLogo();
+    } else if (e.target && e.target.name === 'cqdgrade') {
+      var chips = overlay.querySelectorAll('.cqd-grade-chip');
+      for (var g = 0; g < chips.length; g++) chips[g].classList.toggle('is-on', chips[g].contains(e.target) && e.target.checked);
     }
   }
 
@@ -1428,13 +1476,14 @@
     var parts = [];
     var chk = overlay.querySelectorAll('input[name="cqdpart"]:checked');
     for (var i = 0; i < chk.length; i++) parts.push(chk[i].value);
+    var gradeEl = overlay.querySelector('input[name="cqdgrade"]:checked');
     var d = {
       brand: valOf('#cqdNewBrand'),
       model: valOf('#cqdNewModel'),
       ref: valOf('#cqdNewRef'),
       stamping: valOf('#cqdNewStamp'),
       year: valOf('#cqdNewYear'),
-      grade: valOf('#cqdNewGrade'),
+      grade: gradeEl ? gradeEl.value : '',
       parts: parts.join(', '),
       memo: valOf('#cqdNewMemo'),
       name: valOf('#cqdNewName'),
@@ -1530,6 +1579,8 @@
 
   /* 마이페이지 진입 버튼 위임 */
   document.addEventListener('click', function (e) {
+    var cs = e.target.closest('[data-cqd-cs-open]');
+    if (cs) { e.preventDefault(); open({ screen: 'c-chat' }); return; }
     var t = e.target.closest('[data-cqd-open]');
     if (t) { e.preventDefault(); open(); }
   });

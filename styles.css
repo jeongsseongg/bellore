@@ -7916,6 +7916,41 @@ body.is-searching .tabbar { display: none !important; }
 .cqd-chk:has(input:checked) .cqd-chk-box svg { opacity: 1; }
 .cqd-chk:has(input:checked) .cqd-chk-txt { color: var(--cq-green, #1f3b34); }
 
+/* 입력 포커스(미니멀 / 구구스풍) */
+.cqd-form input:focus, .cqd-form textarea:focus { outline: none; border-color: var(--cq-green, #1f3b34);
+  background: #fff; box-shadow: 0 0 0 3px rgba(31,59,52,.1); }
+
+/* 신규 등록: 상태 등급 선택 칩 (단일 선택) */
+.cqd-gradegrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; margin-bottom: 4px; }
+.cqd-grade-chip { position: relative; display: flex; flex-direction: column; gap: 3px; justify-content: center;
+  background: #fcfbf7; border: 1.5px solid #e3dfd3; border-radius: 12px; padding: 13px 14px; cursor: pointer;
+  transition: border-color .15s, background .15s, box-shadow .15s, transform .12s; }
+.cqd-grade-chip input { position: absolute; opacity: 0; width: 0; height: 0; }
+.cqd-grade-chip b { font-size: 14px; font-weight: 800; color: #2a2a2a; }
+.cqd-grade-chip em { font-style: normal; font-size: 11px; font-weight: 600; color: #9a9384; }
+.cqd-grade-chip:active { transform: scale(.98); }
+.cqd-grade-chip.is-on, .cqd-grade-chip:has(input:checked) { border-color: var(--cq-green, #1f3b34);
+  background: #f3f7f4; box-shadow: 0 4px 14px rgba(31,59,52,.14); }
+.cqd-grade-chip.is-on b, .cqd-grade-chip:has(input:checked) b { color: var(--cq-green, #1f3b34); }
+
+/* 업체: 대표 이미지 직접 첨부(PC·모바일) */
+.cqd-logopick { display: flex; align-items: center; gap: 12px; }
+.cqd-logo-thumb { position: relative; flex: 0 0 auto; width: 76px; height: 76px; border-radius: 16px; overflow: hidden;
+  background: #f3f1ea; border: 1px solid #e6e2d6; }
+.cqd-logo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.cqd-logo-thumb .cqd-photo-rm { top: 4px; right: 4px; }
+.cqd-logo-add { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  min-height: 76px; border: 1.5px dashed #cfc9ba; border-radius: 16px; background: #fcfbf7; color: #6f6a5e;
+  font-size: 12px; cursor: pointer; transition: border-color .15s, color .15s; }
+.cqd-logo-add:hover { border-color: var(--cq-green, #1f3b34); color: var(--cq-green, #1f3b34); }
+.cqd-logo-add svg { width: 24px; height: 24px; }
+.cqd-logo-add small { font-weight: 700; }
+
+/* 관리자: 정지된 견적 섹션 */
+.cqd-block-label.stop { color: #b23b2b; display: flex; align-items: center; gap: 7px; }
+.cqd-block-label .cqd-cnt.stop { background: #c0492f; }
+.cqd-vlist-stop .cqd-vrow { border-color: #f0c5bd; background: linear-gradient(180deg,#fff7f5,#fff); }
+
 /* 신규 등록: 브랜드 이미지 선택 */
 .cqd-lbl-sub { font-size: 11px; font-weight: 600; color: #a39c8c; }
 .cqd-brandbtn { width: 100%; display: flex; align-items: center; gap: 10px; padding: 13px 14px;

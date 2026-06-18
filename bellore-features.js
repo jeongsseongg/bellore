@@ -913,6 +913,9 @@
       Array.prototype.forEach.call(blocks, function (el) {
         var key = el.getAttribute('data-cms');
         if (cmsCache[key] !== undefined) { cmsRenderBlock(el); return; }
+        // 비동기 로드 전에 폴백(랜딩)을 먼저 즉시 그려, 입력폼이 위로 깜빡 떴다가
+        // 랜딩이 나중에 끼어드는 현상을 막는다. (랜딩페이지가 항상 먼저 보이게)
+        if (!el.innerHTML) cmsRenderBlock(el);
         B.getSiteContent(key)
           .then(function (d) { cmsCache[key] = d; cmsRenderBlock(el); })
           .catch(function () { cmsCache[key] = null; cmsRenderBlock(el); });
