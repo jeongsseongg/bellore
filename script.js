@@ -932,16 +932,14 @@
             return _adminCouponKind === 'all' || couponKindOf(c) === _adminCouponKind;
         });
         el.innerHTML = list.length ? list.map(function (c) {
-            return '<div class="admin-list-item cpadm-item">' +
-                '<span class="av-main"><span class="cpadm-kind k-' + couponKindOf(c) + '">' + couponKindLabel(c) + '</span> ' +
-                    esc(c.title) + ' · ' + couponValueText(c) +
-                    (c.code ? ' · 코드 ' + esc(c.code) : '') + (c.active ? '' : ' · 비활성') + '</span>' +
-                '<span class="av-acct">' + esc(couponMetaText(c)) + '</span>' +
-                '<span class="av-btns">' +
-                '<button type="button" data-cpedit="' + esc(c.id) + '">수정</button>' +
-                '<button type="button" data-cptoggle="' + esc(c.id) + '" data-on="' + (c.active ? '1' : '0') + '">' + (c.active ? '비활성화' : '활성화') + '</button>' +
-                '<button type="button" data-cpdel="' + esc(c.id) + '">삭제</button>' +
-                '</span></div>';
+            return '<button type="button" class="cpadm-card' + (c.active ? '' : ' off') + '" data-cpedit="' + esc(c.id) + '">' +
+                '<span class="cpadm-kind k-' + couponKindOf(c) + '">' + couponKindLabel(c) + '</span>' +
+                '<span class="cpadm-card-main">' +
+                    '<b>' + esc(c.title) + '</b>' +
+                    '<span class="cpadm-card-sub">' + couponValueText(c) + (c.code ? ' · ' + esc(c.code) : '') + (c.active ? '' : ' · 사용중지') + '</span>' +
+                '</span>' +
+                '<span class="cpadm-card-arrow">›</span>' +
+            '</button>';
         }).join('') : '<div class="admin-list-item"><span>쿠폰이 없습니다.</span></div>';
     }
     function renderAdminCoupons() {
@@ -1040,6 +1038,8 @@
             $('#cpPerUser').value = c ? (c.per_user_limit || 1) : 1;
             $('#cpLimit').value = c && c.usage_limit ? c.usage_limit : '';
             $('#cpExpires').value = c && c.expires_at ? String(c.expires_at).slice(0, 10) : '';
+            var cpAct = $('#cpActive'); if (cpAct) cpAct.checked = c ? (c.active !== false) : true;
+            var cpDel = $('#cpDelete'); if (cpDel) cpDel.hidden = !cpEditId;
             if (cpEditId) { var sl = $('#cpShareLink'); if (sl) sl.value = cpShareUrl(cpEditId); }
             cpUpdateImgPreview();
             cpApplyKindUI();
@@ -1093,7 +1093,8 @@
                     autoGrant: kind === 'auto',
                     perUserLimit: parseInt($('#cpPerUser').value, 10) || 1,
                     usageLimit: parseInt($('#cpLimit').value, 10) || null,
-                    expiresAt: $('#cpExpires').value ? new Date($('#cpExpires').value + 'T23:59:59').toISOString() : null
+                    expiresAt: $('#cpExpires').value ? new Date($('#cpExpires').value + 'T23:59:59').toISOString() : null,
+                    active: $('#cpActive') ? $('#cpActive').checked : true
                 };
                 saveBtn.disabled = true;
                 var op = cpEditId ? NWBackend.updateCoupon(cpEditId, payload) : NWBackend.createCoupon(payload);
@@ -1103,6 +1104,16 @@
                     renderAdminCoupons(); renderMyCoupons();
                 }).catch(function (err) { alert('저장 실패: ' + (err && err.message || err)); })
                     .then(function () { saveBtn.disabled = false; });
+            });
+            var delBtn = $('#cpDelete');
+            if (delBtn) delBtn.addEventListener('click', function () {
+                if (!cpEditId) return;
+                if (!confirm('이 쿠폰을 삭제할까요? 되돌릴 수 없습니다.')) return;
+                delBtn.disabled = true;
+                NWBackend.deleteCoupon(cpEditId).then(function () {
+                    closeCouponPage(); alert('쿠폰을 삭제했습니다.'); renderAdminCoupons(); renderMyCoupons();
+                }).catch(function (err) { alert('삭제 실패: ' + (err && err.message || err)); })
+                    .then(function () { delBtn.disabled = false; });
             });
         }
 
@@ -4136,7 +4147,7 @@
             var html = row('브랜드', d.brand) +
                 row('모델', d.model) +
                 row('컨디션', d.condition) +
-                row('구성', d.accessories || d.pack) +
+                row('구성품', d.accessories || d.pack) +
                 row('스탬핑 / 연식', d.stamping || d.purchase_year) +
                 row('미리수', d.misu);
             box.innerHTML = html || '<div class="pp-spec-row"><span>정보</span><strong>등록된 상세 정보가 없습니다.</strong></div>';
@@ -4149,10 +4160,8 @@
             var isNew = cond.indexOf('미착용') !== -1 || cond.indexOf('신품') !== -1;
             badge.textContent = isNew ? '미착용 (신품급) 상품입니다.' : '착용 이력이 있는 중고 상품입니다.';
             badge.classList.toggle('is-new', isNew);
+            // 연식·구성품은 위 '상품 기본정보' 표에 이미 있으므로 여기서는 중복 표기하지 않음
             var lines = [];
-            var yr = d.stamping || d.purchase_year;
-            if (yr) lines.push('스탬핑 / 연식 : ' + esc(String(yr)));
-            if (d.accessories || d.pack) lines.push('상품구성 : ' + esc(String(d.accessories || d.pack)));
             if (String(d.detail_desc || '').trim()) lines.push(esc(String(d.detail_desc).trim()).replace(/\n/g, '<br>'));
             if (String(d.special_note || '').trim()) lines.push('<b>특이사항</b> : ' + esc(String(d.special_note).trim()));
             lines.push('<span class="pp-state-note">본 상품은 판매자가 입력한 정보이며, 구매 완료 시 벨로르 정밀 검수 후 출고됩니다. 중고 상품 특성상 스크래치·찍힘 및 사용감이 있을 수 있는 점 참고 부탁드립니다.</span>');

@@ -2395,10 +2395,8 @@
                 <div class="pp-meta">
                     <div class="pp-meta-row"><span>포인트</span><strong id="pmPoint">-</strong> <span class="pp-event">EVENT</span></div>
                     <div class="pp-meta-row"><span>무이자 할부</span><strong>2~6개월</strong></div>
-                    <div class="pp-meta-row pp-meta-ship"><span>배송비</span><strong>30,000원
-                        <span class="pp-tip" tabindex="0">?
-                            <span class="pp-tip-box">5,000,000원 이상 제품에 필수로 체크되어야 하는 보험 서비스가 적용된 배송입니다.</span>
-                        </span></strong></div>
+                    <div class="pp-meta-row pp-meta-ship"><span>배송비</span><strong>30,000원</strong></div>
+                    <p class="pp-ship-note">5,000,000원 이상 제품에 필수로 적용되는 보험 배송 서비스입니다.</p>
                 </div>
             </section>
 
@@ -2646,6 +2644,9 @@
                     <label class="cp-fld">전체 발급 수량<input type="number" id="cpLimit" placeholder="무제한"></label>
                 </div>
                 <label class="cp-fld">만료일<input type="date" id="cpExpires"></label>
+
+                <label class="cp-toggle-row"><input type="checkbox" id="cpActive" checked><span>활성화 (체크 해제 시 회원에게 노출·발급 중지)</span></label>
+                <button type="button" class="cp-del-btn" id="cpDelete" hidden>이 쿠폰 삭제</button>
             </div>
         </div>
         <div class="pp-bottom"><button type="button" class="pp-buy" id="cpSave">쿠폰 저장</button></div>

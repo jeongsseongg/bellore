@@ -701,6 +701,31 @@
     delete o.components; delete o.sale_method;
     delete o.product_no; delete o.ship_info;
   }
+  // 상품번호 자동 생성: 00 + 등급(A/B/C/D) + YYMMDD(한국시간) + 그날 순번(3자리)
+  function priceGrade(p) {
+    p = Number(p) || 0;
+    return p >= 100000000 ? 'A' : p >= 10000000 ? 'B' : p >= 1000000 ? 'C' : 'D';
+  }
+  function pad(n, w) { n = String(n); while (n.length < w) n = '0' + n; return n; }
+  function kstYmd() {
+    var t = new Date(Date.now() + 9 * 3600 * 1000);
+    return pad(t.getUTCFullYear() % 100, 2) + pad(t.getUTCMonth() + 1, 2) + pad(t.getUTCDate(), 2);
+  }
+  function kstDayStartISO() {
+    var k = new Date(Date.now() + 9 * 3600 * 1000);
+    return new Date(Date.UTC(k.getUTCFullYear(), k.getUTCMonth(), k.getUTCDate()) - 9 * 3600 * 1000).toISOString();
+  }
+  // product_no 가 비어 있으면 그날 등록 수를 세어 다음 순번으로 자동 생성
+  function ensureProductNo(row) {
+    if (row.product_no) return Promise.resolve(row);
+    return sb.from('listings').select('id', { count: 'exact', head: true })
+      .gte('created_at', kstDayStartISO())
+      .then(function (res) {
+        var seq = (res && res.count != null ? res.count : 0) + 1;
+        row.product_no = '00' + priceGrade(row.price) + kstYmd() + pad(seq, 3);
+        return row;
+      }, function () { row.product_no = '00' + priceGrade(row.price) + kstYmd() + '001'; return row; });
+  }
   Backend.addProduct = function (data) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
     return uploadPhotos(data.photos || [], 10).then(function (urls) {
@@ -731,14 +756,16 @@
         image_urls: urls,
         image_url: urls[0] || null
       };
-      function ins() { return sb.from('listings').insert(row); }
-      return ins().then(function (res) {
-        if (res.error && isMissingCol(res.error)) {
-          dropNewCols(row);   // 컬럼 미생성 시 제외하고 재시도
-          return ins();
-        }
-        return res;
-      }).then(function (res) { if (res.error) throw res.error; refreshListingFeeds(); });
+      return ensureProductNo(row).then(function (row) {
+        function ins() { return sb.from('listings').insert(row); }
+        return ins().then(function (res) {
+          if (res.error && isMissingCol(res.error)) {
+            dropNewCols(row);   // 컬럼 미생성 시 제외하고 재시도
+            return ins();
+          }
+          return res;
+        }).then(function (res) { if (res.error) throw res.error; refreshListingFeeds(); });
+      });
     });
   };
 
@@ -1356,6 +1383,7 @@
       min_order: d.minOrder || 0, apply_to: d.applyTo || 'both',
       downloadable: !!d.downloadable, usage_limit: d.usageLimit || null,
       per_user_limit: d.perUserLimit || 1, expires_at: d.expiresAt || null,
+      active: d.active !== false,
       kind: d.kind || 'code', image_url: d.imageUrl || null, auto_grant: !!d.autoGrant
     };
     function ins() { return sb.from('coupons').insert(row).select().single(); }
@@ -1380,6 +1408,7 @@
       min_order: d.minOrder || 0, apply_to: d.applyTo || 'both',
       downloadable: !!d.downloadable, usage_limit: d.usageLimit || null,
       per_user_limit: d.perUserLimit || 1, expires_at: d.expiresAt || null,
+      active: d.active !== false,
       kind: d.kind || 'code', image_url: d.imageUrl || null, auto_grant: !!d.autoGrant
     };
     function upd() { return sb.from('coupons').update(patch).eq('id', id).select().single(); }
