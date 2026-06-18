@@ -48,6 +48,7 @@
     lsSet(VIEWED_KEY, arr.slice(0, 20));
   };
   function getViewed() { return lsGet(VIEWED_KEY); }
+  window.BELLORE_getViewed = getViewed;
 
   /* ---------- 추천 검색어(3시간마다 회전) ---------- */
   var SUGGEST_POOL = [

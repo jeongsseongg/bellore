@@ -204,6 +204,10 @@
                 <button class="header-icon" type="button" aria-label="공유" id="btnShareTop">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
                 </button>
+                <button class="header-icon" type="button" aria-label="장바구니" id="btnCartTop">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3h2.2l2.2 12.2a1.6 1.6 0 0 0 1.6 1.3h8.7a1.6 1.6 0 0 0 1.6-1.3L21.5 7H6"/></svg>
+                    <span class="noti-badge" id="cartBadgeTop" hidden>0</span>
+                </button>
                 <button class="header-icon" type="button" aria-label="알림" id="btnNotiTop">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
                     <span class="noti-badge" id="notiBadgeTop" hidden>0</span>
@@ -600,57 +604,67 @@
                             </div>
                         </div>
 
-                        <!-- 시계 정보 -->
+                        <!-- 시계 정보 (2단 정렬) -->
                         <div class="form-block">
-                            <label>브랜드 *
-                                <select name="brand" required>
-                                    <option value="">선택해주세요</option>
-                                    <option>ROLEX (롤렉스)</option>
-                                    <option>PATEK PHILIPPE (파텍필립)</option>
-                                    <option>AUDEMARS PIGUET (오데마피게)</option>
-                                    <option>VACHERON CONSTANTIN (바쉐론 콘스탄틴)</option>
-                                    <option>RICHARD MILLE (리차드 밀)</option>
-                                    <option>FRANCK MULLER (프랭크뮬러)</option>
-                                    <option>CARTIER (까르띠에)</option>
-                                    <option>기타</option>
-                                </select>
-                            </label>
-                            <label>모델명 / 레퍼런스 *
-                                <input type="text" name="model" placeholder="예: 서브마리너 126610LN" required>
-                            </label>
-                            <label>구입 시기
-                                <input type="text" name="year" placeholder="예: 2023년 1월">
-                            </label>
+                            <div class="form-row2">
+                                <label>브랜드 *
+                                    <select name="brand" required>
+                                        <option value="">선택해주세요</option>
+                                        <option>ROLEX (롤렉스)</option>
+                                        <option>PATEK PHILIPPE (파텍필립)</option>
+                                        <option>AUDEMARS PIGUET (오데마피게)</option>
+                                        <option>VACHERON CONSTANTIN (바쉐론 콘스탄틴)</option>
+                                        <option>RICHARD MILLE (리차드 밀)</option>
+                                        <option>FRANCK MULLER (프랭크뮬러)</option>
+                                        <option>CARTIER (까르띠에)</option>
+                                        <option>OMEGA (오메가)</option>
+                                        <option>기타 (목록에 없는 브랜드)</option>
+                                    </select>
+                                </label>
+                                <label>모델명 *
+                                    <input type="text" name="model" placeholder="예: 서브마리너 126610LN" required>
+                                </label>
+                            </div>
+                            <div class="form-row2">
+                                <label>레퍼런스
+                                    <input type="text" name="ref" placeholder="예: 126610LN">
+                                </label>
+                                <label>구입 시기
+                                    <input type="text" name="year" placeholder="예: 2023년 1월">
+                                </label>
+                            </div>
                         </div>
 
-                        <!-- 구성품 -->
+                        <!-- 구성품 (박스 클릭 · 중복 선택) -->
                         <div class="form-block">
-                            <label class="block-label">구성품 보유 여부 (중복 선택)</label>
-                            <div class="check-grid">
-                                <label class="check-cell"><input type="checkbox" name="parts" value="warranty"><span>보증서</span></label>
-                                <label class="check-cell"><input type="checkbox" name="parts" value="box"><span>박스</span></label>
-                                <label class="check-cell"><input type="checkbox" name="parts" value="manual"><span>설명서</span></label>
-                                <label class="check-cell"><input type="checkbox" name="parts" value="extra-link"><span>추가 링크</span></label>
-                                <label class="check-cell"><input type="checkbox" name="parts" value="tag"><span>택</span></label>
-                                <label class="check-cell"><input type="checkbox" name="parts" value="receipt"><span>구매 영수증</span></label>
+                            <label class="block-label">구성품 <small>해당 항목을 모두 선택</small></label>
+                            <div class="parts-boxes">
+                                <label class="part-box"><input type="checkbox" name="parts" value="warranty"><span class="pb-ic">📄</span><span class="pb-txt">보증서</span></label>
+                                <label class="part-box"><input type="checkbox" name="parts" value="box"><span class="pb-ic">📦</span><span class="pb-txt">정품 박스</span></label>
+                                <label class="part-box"><input type="checkbox" name="parts" value="manual"><span class="pb-ic">📖</span><span class="pb-txt">설명서/책자</span></label>
+                                <label class="part-box"><input type="checkbox" name="parts" value="extra-link"><span class="pb-ic">🔗</span><span class="pb-txt">추가 링크</span></label>
+                                <label class="part-box"><input type="checkbox" name="parts" value="tag"><span class="pb-ic">🏷️</span><span class="pb-txt">정품 택</span></label>
+                                <label class="part-box"><input type="checkbox" name="parts" value="receipt"><span class="pb-ic">🧾</span><span class="pb-txt">구매 영수증</span></label>
                             </div>
                         </div>
 
                         <!-- 특이사항 -->
                         <div class="form-block">
-                            <label>특이사항 (수리이력, 흠집, 정품여부 등)
-                                <textarea name="memo" rows="4" placeholder="시계 상태에 대해 자세히 적어주실수록 정확한 견적이 가능합니다."></textarea>
+                            <label>특이사항 (수리이력 · 흠집 · 정품여부 등)
+                                <textarea name="memo" rows="4" placeholder="시계 상태를 자세히 적어주실수록 정확한 견적이 가능합니다."></textarea>
                             </label>
                         </div>
 
-                        <!-- 연락처 -->
+                        <!-- 연락처 (2단 정렬) -->
                         <div class="form-block">
-                            <label>성함 *
-                                <input type="text" name="name" placeholder="홍길동" required>
-                            </label>
-                            <label>연락처 *
-                                <input type="tel" name="phone" placeholder="010-0000-0000" required>
-                            </label>
+                            <div class="form-row2">
+                                <label>성함 *
+                                    <input type="text" name="name" placeholder="홍길동" required>
+                                </label>
+                                <label>연락처 *
+                                    <input type="tel" name="phone" placeholder="010-0000-0000" required>
+                                </label>
+                            </div>
                         </div>
 
                         <button type="submit" class="btn btn-primary btn-full">비교견적 신청하기</button>
@@ -2080,11 +2094,17 @@
                 <button type="button" class="mp-sub-back" id="mpSubBack" aria-label="뒤로">‹</button>
                 <span class="mp-sub-title" id="mpSubTitle"></span>
             </div>
-            <div class="login-head">
-                <p class="login-eyebrow">MY PAGE</p>
-                <h2 id="myPageName">마이페이지</h2>
-                <p class="mypage-email" id="myPageEmail"></p>
-                <p class="mypage-role" id="myPageRole" hidden></p>
+            <!-- 계정 박스 (아이디 · 계정유형 · 알림) -->
+            <div class="mypage-account" id="myAccountBox">
+                <div class="mpa-main">
+                    <h2 class="mpa-name" id="myPageName">마이페이지</h2>
+                    <p class="mpa-id" id="myPageEmail"></p>
+                    <p class="mpa-role" id="myPageRole" hidden></p>
+                </div>
+                <button type="button" class="mpa-noti" id="btnNoti" aria-label="알림">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+                    <span class="noti-badge" id="notiBadge" hidden>0</span>
+                </button>
             </div>
 
             <!-- 화면 설정 (상단·간단) -->
@@ -2094,11 +2114,6 @@
                     <button type="button" class="switch" id="toggleWide" role="switch" aria-checked="false" aria-label="와이드 모드 전환"><span class="switch-knob"></span></button>
                 </div>
             </div>
-
-            <button type="button" class="mypage-noti" id="btnNoti">
-                <span class="mypage-noti-left">알림 (Alerts)</span>
-                <span class="noti-badge" id="notiBadge" hidden>0</span>
-            </button>
 
             <!-- 관리자 전용: 오늘 현황 대시보드 -->
             <div class="mypage-section admin-only" hidden id="adminDashBox">
@@ -2139,25 +2154,6 @@
 
             <!-- 일반 고객: 마이포켓 -->
             <div class="pocket customer-only" id="pocketBox">
-                <!-- 헤더 카드 -->
-                <div class="pocket-card">
-                    <div class="pocket-card-top">
-                        <span class="pocket-eyebrow">MY POCKET</span>
-                        <span class="pocket-grade" id="pocketGrade">Family</span>
-                    </div>
-                    <p class="pocket-name" id="pocketName">고객님</p>
-                    <div class="pocket-stats">
-                        <div class="pocket-stat pocket-stat-static">
-                            <span class="pocket-stat-label">보유 포인트</span>
-                            <span class="pocket-stat-val" id="pocketPoint">0P</span>
-                        </div>
-                        <div class="pocket-stat pocket-stat-static">
-                            <span class="pocket-stat-label">보유 쿠폰</span>
-                            <span class="pocket-stat-val"><b id="pocketCoupon">0</b>장</span>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- 원형 퀵메뉴 그리드 -->
                 <div class="pocket-links">
                     <button type="button" class="pl-item" data-myjump="#myCouponSection">
@@ -2215,6 +2211,25 @@
                         <button type="button" class="ps-cell" data-ostatus="delivered"><b id="psDone">0</b><span>배송완료</span></button>
                     </div>
                 </div>
+
+                <!-- 장바구니 (가장 중요 — 이미지와 함께) -->
+                <div class="pocket-shop mypage-cart">
+                    <div class="pocket-shop-head">
+                        <h4>장바구니 <b id="myCartCount">0</b></h4>
+                        <button type="button" class="pocket-shop-all" data-myact="cart">전체보기 ›</button>
+                    </div>
+                    <div class="mypage-prodrow" id="myCartRow"></div>
+                    <p class="mypage-prodrow-empty" id="myCartEmpty">장바구니가 비어 있습니다.</p>
+                </div>
+
+                <!-- 최근 본 상품 -->
+                <div class="pocket-shop mypage-recent">
+                    <div class="pocket-shop-head">
+                        <h4>최근 본 상품</h4>
+                    </div>
+                    <div class="mypage-prodrow" id="myRecentRow"></div>
+                    <p class="mypage-prodrow-empty" id="myRecentEmpty">최근 본 상품이 없습니다.</p>
+                </div>
             </div>
 
             <!-- 업체 전용: 새 견적 알림 설정 -->
@@ -2245,11 +2260,6 @@
             </div>
 
             <!-- 일반 고객: 내 비교견적 → 마이포켓 내부로 이동 -->
-
-            <button type="button" class="mypage-cart-link" data-nav="wishlist" id="myCartLink">
-                <span>장바구니 / 찜 목록 (My Pick)</span>
-                <span aria-hidden="true">›</span>
-            </button>
 
             <button type="button" class="mypage-cart-link" id="btnChangePw">
                 <span>비밀번호 변경</span>
@@ -2351,9 +2361,14 @@
                 <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
             </button>
             <span class="pp-topbar-title">상품상세</span>
-            <button class="pp-top-wish" id="pmWishTop" aria-label="찜">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
-            </button>
+            <div class="pp-top-acts">
+                <button class="pp-top-share" id="pmShareTop" aria-label="공유">
+                    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+                </button>
+                <button class="pp-top-wish" id="pmWishTop" aria-label="찜">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+                </button>
+            </div>
         </header>
 
         <div class="pp-scroll">
@@ -2445,6 +2460,9 @@
 
         <!-- 하단 고정 구매바 -->
         <div class="pp-bottom">
+            <button class="pp-wish" id="pmShare" aria-label="공유하기">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+            </button>
             <button class="pp-wish" id="pmWish" aria-label="찜하기">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
             </button>
@@ -2654,7 +2672,7 @@
         </button>
         <button class="tab-item" type="button" id="tabMy">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
-            <span>마이</span>
+            <span>마이페이지</span>
         </button>
     </nav>
 

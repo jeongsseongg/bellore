@@ -216,9 +216,11 @@
     if ($('#cartCount')) $('#cartCount').textContent = cart.length;
   }
   function updateBadge() {
-    var b = $('#tabWishBadge'); if (!b) return;
-    var n = getWish().length + getCart().length;
-    b.textContent = n > 99 ? '99+' : n; b.hidden = (n === 0);
+    var b = $('#tabWishBadge');
+    if (b) { var n = getWish().length + getCart().length; b.textContent = n > 99 ? '99+' : n; b.hidden = (n === 0); }
+    // 상단 헤더 장바구니 배지(장바구니 수량만)
+    var cb = $('#cartBadgeTop');
+    if (cb) { var c = getCart().length; cb.textContent = c > 99 ? '99+' : c; cb.hidden = (c === 0); }
   }
   function refreshAll() {
     updateBadge(); renderPage();
@@ -256,6 +258,8 @@
       [800, 2500, 5000].forEach(function (t) { setTimeout(decorateCards, t); });
     }
   }
+  // 외부(마이페이지 등)에서 장바구니/찜 데이터 읽기
+  window.BELLOREWishlist = { getCart: getCart, getWish: getWish, refresh: refreshAll };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();

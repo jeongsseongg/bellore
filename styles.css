@@ -8094,3 +8094,84 @@ body.is-searching .tabbar { display: none !important; }
 .compare-form-hero .section-title { color: #fff; }
 .compare-form-hero .section-title .g { color: var(--cq-gold, #e9dec3); }
 .compare-form-hero .lead { color: rgba(255,255,255,.85); margin-bottom: 0; }
+
+/* ===== 비교견적 신청폼 정리: 2단 배치 / 구성품 박스 / 기타 브랜드 ===== */
+.cqd-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+.cqd-row2 .cqd-field { display: flex; flex-direction: column; min-width: 0; }
+.cqd-row2 .cqd-field > label { margin-top: 0; }
+.cqd-form .cqd-row2 input, .cqd-form .cqd-field input { width: 100%; box-sizing: border-box; }
+/* 구성품: 클릭하는 박스(다중 선택) */
+.cqd-partgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-bottom: 4px; }
+.cqd-part-box { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  background: #fcfbf7; border: 1.5px solid #e3dfd3; border-radius: 12px; padding: 14px 8px; cursor: pointer;
+  text-align: center; transition: border-color .15s, background .15s, box-shadow .15s, transform .12s; }
+.cqd-part-ic { font-size: 22px; line-height: 1; }
+.cqd-part-txt { font-size: 12px; font-weight: 700; color: #4a463d; word-break: keep-all; }
+.cqd-part-check { position: absolute; top: 7px; right: 7px; width: 18px; height: 18px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; background: #d8d3c5; color: #fff; opacity: 0; transition: opacity .15s; }
+.cqd-part-box:active { transform: scale(.97); }
+.cqd-part-box.is-on { border-color: var(--cq-green, #1f3b34); background: #f3f7f4; box-shadow: 0 4px 14px rgba(31,59,52,.14); }
+.cqd-part-box.is-on .cqd-part-txt { color: var(--cq-green, #1f3b34); }
+.cqd-part-box.is-on .cqd-part-check { opacity: 1; background: var(--cq-green, #1f3b34); }
+/* 브랜드 시트: 기타 옵션 */
+.cqd-brand-etc { color: var(--cq-green, #1f3b34); font-weight: 700; }
+.cqd-brand-etc-ic { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px;
+  border-radius: 50%; background: #eef3f0; color: var(--cq-green, #1f3b34); font-size: 18px; font-weight: 700; }
+@media (max-width: 380px) { .cqd-partgrid { grid-template-columns: repeat(2, 1fr); } }
+
+/* ===== 상품 상세: 상단 공유+찜 / 하단 공유 / 돋보기 확대 ===== */
+.pp-top-acts { display: flex; align-items: center; gap: 2px; }
+.pp-top-share { width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center;
+  border: none; background: transparent; border-radius: 50%; color: #333; cursor: pointer; }
+.pp-top-share:active { background: var(--bg-soft, #f3f1ea); }
+.pp-main { position: relative; overflow: hidden; }
+.pp-zoom-lens { position: absolute; width: 150px; height: 150px; border-radius: 50%; pointer-events: none;
+  transform: translate(-50%, -50%); border: 2px solid rgba(255,255,255,.9); box-shadow: 0 6px 20px rgba(0,0,0,.28);
+  background-repeat: no-repeat; opacity: 0; transition: opacity .12s; z-index: 4; }
+.pp-zoom-lens.on { opacity: 1; }
+@media (hover: none) { .pp-zoom-lens { display: none; } }
+
+/* ===== 마이페이지: 계정 박스 / 장바구니·최근본상품 ===== */
+.mypage-account { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: linear-gradient(135deg, #1b1b1d, #2c2c30); color: #fff; border-radius: 16px;
+  padding: 18px 18px; margin: 4px 0 16px; }
+.mypage-account .mpa-main { min-width: 0; }
+.mypage-account .mpa-name { font-size: 18px; font-weight: 800; color: #fff; margin: 0; line-height: 1.2;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mypage-account .mpa-id { font-size: 12.5px; color: rgba(255,255,255,.72); margin: 5px 0 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mypage-account .mpa-role { display: inline-block; margin: 8px 0 0; font-size: 11px; font-weight: 700;
+  color: #1b1b1d; background: var(--cq-gold, #e9dec3); border-radius: 999px; padding: 3px 10px; }
+.mypage-account .mpa-noti { position: relative; flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.08); color: #fff;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.mypage-account .mpa-noti:active { background: rgba(255,255,255,.18); }
+.mypage-account .mpa-noti .noti-badge { position: absolute; top: 4px; right: 4px; }
+
+.mypage-cart .pocket-shop-head h4 b, .pocket-shop-head h4 b { color: var(--cq-green, #1f3b34); margin-left: 4px; }
+.mypage-prodrow { display: flex; gap: 11px; overflow-x: auto; padding: 4px 2px 8px; -webkit-overflow-scrolling: touch; }
+.mypage-prodrow::-webkit-scrollbar { height: 0; }
+.mypage-prodrow-empty { font-size: 13px; color: #9a948a; padding: 6px 2px 4px; margin: 0; }
+.mypc { flex: 0 0 auto; width: 116px; display: flex; flex-direction: column; gap: 3px; text-align: left;
+  background: none; border: none; padding: 0; cursor: pointer; }
+.mypc-img { display: block; width: 116px; height: 116px; border-radius: 12px; overflow: hidden; background: #f3f1ea; }
+.mypc-img img { width: 100%; height: 100%; object-fit: cover; }
+.mypc-brand { font-size: 11.5px; font-weight: 700; color: #6f6a5e; margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mypc-model { font-size: 12.5px; font-weight: 600; color: #2a2a2a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mypc-price { font-size: 13px; font-weight: 800; color: #1b1b1d; }
+
+/* ===== 내시계팔기(하단탭) 비교견적 폼: 2단 정렬 + 구성품 박스 ===== */
+.compare-form .form-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.compare-form .form-row2 > label { display: block; }
+.compare-form .block-label small { font-size: 11px; font-weight: 600; color: #a39c8c; margin-left: 4px; }
+.parts-boxes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-top: 8px; }
+.parts-boxes .part-box { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  background: #fcfbf7; border: 1.5px solid #e3dfd3; border-radius: 12px; padding: 14px 8px; cursor: pointer;
+  text-align: center; transition: border-color .15s, background .15s, box-shadow .15s, transform .12s; }
+.parts-boxes .part-box input { position: absolute; opacity: 0; width: 0; height: 0; }
+.parts-boxes .pb-ic { font-size: 22px; line-height: 1; }
+.parts-boxes .pb-txt { font-size: 12px; font-weight: 700; color: #4a463d; word-break: keep-all; }
+.parts-boxes .part-box:active { transform: scale(.97); }
+.parts-boxes .part-box:has(input:checked) { border-color: var(--cq-green, #1f3b34); background: #f3f7f4; box-shadow: 0 4px 14px rgba(31,59,52,.14); }
+.parts-boxes .part-box:has(input:checked) .pb-txt { color: var(--cq-green, #1f3b34); }
+@media (max-width: 480px) { .parts-boxes { grid-template-columns: repeat(2, 1fr); } }

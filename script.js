@@ -309,6 +309,7 @@
         m.hidden = false;
         document.body.style.overflow = 'hidden';
         renderMyItemsBackend(myListingsCache); // 현재 캐시로 즉시 렌더
+        renderMyShortcuts(); // 장바구니 · 최근 본 상품
 
         // 마이포켓: 구매 가능한 상품 수(현재 판매중 매물 그리드 기준)
         var pqAvail = $('#pqAvailable');
@@ -459,6 +460,25 @@
                     var nb = $('#btnNoti'); if (nb) nb.click();
                     return;
                 }
+                // 장바구니 전체보기 → 찜/장바구니 페이지 장바구니 탭
+                if (e.target.closest('[data-myact="cart"]')) {
+                    closeMyPage();
+                    location.hash = '#wishlist';
+                    setTimeout(function () {
+                        var t = document.querySelector('.wish-tab[data-wishtab="cart"]');
+                        if (t) t.click();
+                    }, 80);
+                    return;
+                }
+                // 장바구니/최근 본 상품 미니카드 → 상세 열기
+                var mypc = e.target.closest('.mypc');
+                if (mypc) {
+                    var pid = mypc.getAttribute('data-mypid');
+                    closeMyPage();
+                    if (pid && window.BELLORE_openProductById) { window.BELLORE_openProductById(pid); return; }
+                    if (window.BELLORE_openProductCard) window.BELLORE_openProductCard(mypc);
+                    return;
+                }
                 // 원형 퀵메뉴: 다른 페이지로 이동 시 모달 닫기 (네비게이션은 전역 핸들러가 처리)
                 if (e.target.closest('[data-nav]')) closeMyPage();
             });
@@ -592,6 +612,16 @@
             } else { alert(data.url); }
         });
 
+        // 상단 장바구니 아이콘 — 찜/장바구니 페이지의 '장바구니' 탭으로 이동
+        var btnCartTop = $('#btnCartTop');
+        if (btnCartTop) btnCartTop.addEventListener('click', function () {
+            location.hash = '#wishlist';
+            setTimeout(function () {
+                var t = document.querySelector('.wish-tab[data-wishtab="cart"]');
+                if (t) t.click();
+            }, 60);
+        });
+
         // 상품 수정/삭제 (관리자) — 수정은 등록 폼(모달)을 연다
         document.addEventListener('click', function (e) {
             var ed = e.target.closest('[data-pedit]');
@@ -617,6 +647,15 @@
             var emailEl = $('#myPageEmail');
             if (nameEl) nameEl.textContent = user ? ((user.displayName || '회원') + '님') : '마이페이지';
             if (emailEl) emailEl.textContent = user ? (user.email || '') : '';
+            // 계정유형(일반회원/업체/관리자)
+            var roleEl = $('#myPageRole');
+            if (roleEl) {
+                if (!user) { roleEl.hidden = true; }
+                else {
+                    var rt = (info && info.isAdmin) ? '관리자' : (info && info.role === 'vendor') ? '업체회원' : '일반회원';
+                    roleEl.textContent = rt; roleEl.hidden = false;
+                }
+            }
 
             // 마이포켓 헤더(고객명 · 등급 · 포인트) — 실제 프로필 데이터
             var pname = $('#pocketName');
@@ -682,20 +721,20 @@
     }
 
     var NOTI_LABEL = {
-        quote_open: '비교견적', quote_new: '비교견적 등록', awarded: '입찰 채택', approved: '업체 승인',
+        quote_open: '비교견적', quote_new: '비교견적 등록', bid_new: '입찰 도착', awarded: '입찰 채택', approved: '업체 승인',
         account: '계좌 인증', listing: '판매 매물',
         support_new: '고객센터 문의', support_reply: '고객센터 답변', info: '알림'
     };
     // 알림 종류별 색상 카테고리(비교견적/판매/고객센터)
     function notiCat(type) {
-        if (type === 'quote_open' || type === 'quote_new' || type === 'awarded' || type === 'approved') return 'quote';
+        if (type === 'quote_open' || type === 'quote_new' || type === 'bid_new' || type === 'awarded' || type === 'approved') return 'quote';
         if (type === 'listing') return 'sale';
         if (type === 'support_new' || type === 'support_reply') return 'support';
         return 'info';
     }
     // 알림 종류별로 눌렀을 때 이동할 화면
     function notiTarget(type) {
-        if (type === 'quote_open' || type === 'quote_new' || type === 'awarded' || type === 'approved' ||
+        if (type === 'quote_open' || type === 'quote_new' || type === 'bid_new' || type === 'awarded' || type === 'approved' ||
             type === 'account' || type === 'support_new' || type === 'support_reply') return 'cq';
         if (type === 'listing') return 'collection';
         return '';
@@ -735,6 +774,8 @@
                 var opts = null;
                 // 새 비교견적 → 해당 견적 입찰 화면(딥링크)
                 if (type === 'quote_open' && ref) opts = { screen: 'v-bid', id: ref };
+                // 새 입찰 도착(고객) → 해당 견적 비교 결과 화면(딥링크)
+                else if (type === 'bid_new' && ref) opts = { screen: 'c-bids', id: ref };
                 // 입찰 채택 알림 → 채택된 견적은 더 이상 open 목록에 없으므로 업체 홈으로
                 else if (type === 'awarded') opts = { screen: 'v-watches' };
                 // 비교견적 등록(관리자) → 관리자 견적 현황
@@ -810,6 +851,34 @@
             '<span>' + esc(couponMetaText(c)) + '</span></div>' +
             (used ? '<span class="cc-tag">사용완료</span>' : expired ? '<span class="cc-tag">기간만료</span>' : '') +
             '</div>';
+    }
+
+    // 마이페이지: 장바구니 · 최근 본 상품 (이미지와 함께 가로 스크롤)
+    function miniProdCard(it) {
+        var img = it.img || it.image || (it.photos && it.photos[0]) || 'assets/images.jpg';
+        var price = parseInt(it.sale_price, 10) > 0 ? parseInt(it.sale_price, 10) : (parseInt(it.price, 10) || 0);
+        var priceTxt = price > 0 ? (fmt(price) + '원') : '가격문의';
+        return '<button type="button" class="mypc" data-mypid="' + esc(String(it.id || '')) + '" ' +
+            'data-brand="' + esc(it.brand || '') + '" data-model="' + esc(it.model || '') + '" ' +
+            'data-price="' + esc(String(it.price || 0)) + '" data-sprice="' + esc(String(it.sale_price || '')) + '">' +
+            '<span class="mypc-img"><img src="' + esc(img) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'"></span>' +
+            '<span class="mypc-brand">' + esc(it.brand || '') + '</span>' +
+            '<span class="mypc-model">' + esc(it.model || '') + '</span>' +
+            '<span class="mypc-price">' + priceTxt + '</span>' +
+        '</button>';
+    }
+    function renderMyShortcuts() {
+        // 장바구니
+        var cart = (window.BELLOREWishlist && window.BELLOREWishlist.getCart) ? (window.BELLOREWishlist.getCart() || []) : [];
+        var cRow = $('#myCartRow'), cEmpty = $('#myCartEmpty'), cCnt = $('#myCartCount');
+        if (cCnt) cCnt.textContent = cart.length;
+        if (cRow) cRow.innerHTML = cart.map(miniProdCard).join('');
+        if (cEmpty) cEmpty.hidden = cart.length > 0;
+        // 최근 본 상품
+        var recent = (window.BELLORE_getViewed && window.BELLORE_getViewed()) || [];
+        var rRow = $('#myRecentRow'), rEmpty = $('#myRecentEmpty');
+        if (rRow) rRow.innerHTML = recent.map(miniProdCard).join('');
+        if (rEmpty) rEmpty.hidden = recent.length > 0;
     }
 
     function renderMyCoupons() {
@@ -3041,7 +3110,7 @@
 
             var payload = {
                 brand: brand, model: model, name: name, phone: phone, memo: memo,
-                year: fd.get('year') || '',
+                year: fd.get('year') || '', ref: fd.get('ref') || '',
                 parts: (fd.getAll ? fd.getAll('parts') : []),
                 photos: uploadedPhotos.slice(0), photoCount: uploadedPhotos.length
             };
@@ -3114,6 +3183,8 @@
             if (btn) btn.disabled = true;
             NWBackend.addListing({
                 brand: p.brand, model: p.model, name: p.name, phone: p.phone, memo: p.memo,
+                ref: p.ref || '', year: p.year || '',
+                parts: (p.parts && p.parts.length ? p.parts.join(', ') : ''),
                 photos: p.photos, photoCount: p.photoCount
             }).then(function () {
                 if (form) { showSubmitSuccess(form); form.reset(); }
@@ -3690,6 +3761,62 @@
             if (th) selectPhoto(parseInt(th.dataset.i, 10));
         });
 
+        // 상품 공유 (상단/하단 공유 버튼 공용) — 현재 보고 있는 상품 정보 공유
+        function shareCurrentProduct() {
+            var p = window.BELLORE_currentProduct || {};
+            var title = [p.brand, p.model].filter(Boolean).join(' ') || '벨로르 시계';
+            var url = (function () {
+                try {
+                    var base = location.origin + location.pathname;
+                    return p.listingId ? (base + '#p=' + encodeURIComponent(p.listingId)) : base;
+                } catch (e) { return 'https://bellore.co.kr'; }
+            })();
+            var data = { title: title + ' · 벨로르', text: title + ' — 벨로르에서 확인해 보세요.', url: url };
+            if (navigator.share) { navigator.share(data).catch(function () {}); return; }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(function () { alert('상품 링크를 복사했습니다.'); }, function () {});
+            } else { alert(url); }
+        }
+        var shareTop = $('#pmShareTop'), shareBot = $('#pmShare');
+        if (shareTop) shareTop.addEventListener('click', shareCurrentProduct);
+        if (shareBot) shareBot.addEventListener('click', shareCurrentProduct);
+
+        // 대표 이미지에 커서가 1초 이상 머무르면 돋보기 확대(데스크톱) / 클릭 시 라이트박스
+        (function initMagnify() {
+            var main = modal.querySelector('.pp-main');
+            var img = $('#pmImg');
+            if (!main || !img) return;
+            var lens = null, hoverT = null, active = false;
+            function ensureLens() {
+                if (lens) return lens;
+                lens = document.createElement('div');
+                lens.className = 'pp-zoom-lens';
+                main.appendChild(lens);
+                return lens;
+            }
+            function move(e) {
+                if (!active) return;
+                var r = main.getBoundingClientRect();
+                var x = (e.clientX - r.left) / r.width;
+                var y = (e.clientY - r.top) / r.height;
+                x = Math.max(0, Math.min(1, x)); y = Math.max(0, Math.min(1, y));
+                lens.style.backgroundImage = 'url("' + img.src + '")';
+                lens.style.backgroundSize = (r.width * 2.2) + 'px ' + (r.height * 2.2) + 'px';
+                lens.style.backgroundPosition = (x * 100) + '% ' + (y * 100) + '%';
+                lens.style.left = (e.clientX - r.left) + 'px';
+                lens.style.top = (e.clientY - r.top) + 'px';
+            }
+            main.addEventListener('mouseenter', function () {
+                clearTimeout(hoverT);
+                hoverT = setTimeout(function () { active = true; ensureLens().classList.add('on'); }, 1000);
+            });
+            main.addEventListener('mousemove', move);
+            main.addEventListener('mouseleave', function () {
+                clearTimeout(hoverT); active = false;
+                if (lens) lens.classList.remove('on');
+            });
+        })();
+
         var buyBtn = $('#pmBuy');
         var askBtn = $('#pmAsk');
         if (buyBtn) buyBtn.addEventListener('click', function () {
@@ -3989,6 +4116,8 @@
             $$('.pp-tab', modal).forEach(function (x, i) { x.classList.toggle('active', i === 0); });
             $$('.pp-panel', modal).forEach(function (p) { p.hidden = p.dataset.pppanel !== 'info'; });
             document.body.style.overflow = 'hidden';
+            // 새로고침해도 보던 상품이 유지되도록 기록(DB 매물만)
+            try { if (pid) sessionStorage.setItem('bellore_view_product', pid); } catch (e) {}
 
             // DB 매물이면 전체 사진/상세 보강
             if (pid && backendOn() && NWBackend.getListing) {
@@ -4026,10 +4155,51 @@
             closeLightbox();
             modal.hidden = true;
             document.body.style.overflow = '';
+            try { sessionStorage.removeItem('bellore_view_product'); } catch (e) {}
+        }
+
+        // id만으로 상세 열기(새로고침 복원 / 공유 링크)
+        function openProductById(pid) {
+            if (!pid || !backendOn() || !NWBackend.getListing) return;
+            NWBackend.getListing(pid).then(function (it) {
+                if (!it) return;
+                paint({
+                    brand: it.brand, model: it.model, price: it.price,
+                    sale_price: it.sale_price || 0, photos: it.photos, category: it.category,
+                    pack: it.pack || '', has_warranty: !!it.has_warranty, accessories: it.accessories || '',
+                    condition: it.condition || '', size_mm: it.size_mm || 0, stamping: it.stamping || '',
+                    misu: it.misu || '', purchase_year: it.purchase_year || '', special_note: it.special_note || '',
+                    detail_desc: it.detail_desc || '', components: it.components || '', sale_method: it.sale_method || '',
+                    product_no: it.product_no || '', ship_info: it.ship_info || '',
+                    no: String(it.id).slice(0, 8).toUpperCase()
+                });
+                window.BELLORE_currentProduct = {
+                    listingId: it.id, brand: it.brand, model: it.model,
+                    price: it.price || 0, image: (it.photos && it.photos[0]) || ''
+                };
+                modal.hidden = false;
+                modal.querySelector('.pp-scroll').scrollTop = 0;
+                $$('.pp-tab', modal).forEach(function (x, i) { x.classList.toggle('active', i === 0); });
+                $$('.pp-panel', modal).forEach(function (p) { p.hidden = p.dataset.pppanel !== 'info'; });
+                document.body.style.overflow = 'hidden';
+                try { sessionStorage.setItem('bellore_view_product', it.id); } catch (e) {}
+            }).catch(function () {});
         }
 
         // 검색 페이지(최근 본 상품)에서 상세 열기
         window.BELLORE_openProductCard = openProduct;
+        window.BELLORE_openProductById = openProductById;
+
+        // 새로고침/공유 링크 복원: #p=<id> 우선, 없으면 직전에 보던 상품
+        (function restoreProductView() {
+            var pid = '';
+            try {
+                var m = (location.hash || '').match(/^#p=(.+)$/);
+                if (m) pid = decodeURIComponent(m[1]);
+                if (!pid) pid = sessionStorage.getItem('bellore_view_product') || '';
+            } catch (e) {}
+            if (pid) setTimeout(function () { openProductById(pid); }, 400);
+        })();
     }
 
     /* ============ 11. 리빌 ============ */

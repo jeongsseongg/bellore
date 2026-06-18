@@ -686,7 +686,11 @@
     var hit = brands.filter(function (b) {
       return !ql || b.name.toLowerCase().indexOf(ql) > -1 || (b.slug || '').toLowerCase().indexOf(ql) > -1;
     });
-    var opts = hit.length ? hit.map(brandOptHTML).join('') : '<p class="cqd-brand-none">검색 결과가 없습니다.</p>';
+    // 목록에 없는 브랜드를 위한 '기타' 옵션 (검색어가 없거나 '기타/etc' 일 때 노출)
+    var showEtc = !ql || '기타'.indexOf(ql) > -1 || 'etc'.indexOf(ql) > -1 || '기타'.indexOf(q) > -1;
+    var etcOpt = showEtc ? '<button type="button" class="cqd-brand-opt cqd-brand-etc" data-cqbrand="기타">' +
+        '<span class="cqd-brand-etc-ic">＋</span><span>기타 (목록에 없는 브랜드)</span></button>' : '';
+    var opts = (hit.length ? hit.map(brandOptHTML).join('') : (showEtc ? '' : '<p class="cqd-brand-none">검색 결과가 없습니다.</p>')) + etcOpt;
     return '<div class="cqd-brand-search">' +
         '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#999" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4-4"></path></svg>' +
         '<input type="text" id="cqdBrandQ" placeholder="브랜드 검색 (예: 롤렉스, rolex)" autocomplete="off"></div>' +
@@ -695,7 +699,19 @@
   function fillCqModels(name) {
     var dl = overlay && overlay.querySelector('#cqdModelList'); if (!dl) return;
     var b = window.BELLORE_BRAND_BY_NAME && window.BELLORE_BRAND_BY_NAME(name);
-    dl.innerHTML = ((b && b.models) || []).map(function (m) { return '<option value="' + esc(m) + '">'; }).join('');
+    var base = ((b && b.models) || []).slice();
+    function paint(list) {
+      var seen = {}, out = [];
+      list.forEach(function (m) { var k = String(m || '').trim(); if (k && !seen[k.toLowerCase()]) { seen[k.toLowerCase()] = 1; out.push(k); } });
+      dl.innerHTML = out.map(function (m) { return '<option value="' + esc(m) + '">'; }).join('');
+    }
+    paint(base);
+    // 등록된 매물에서 모델명 자동완성 후보를 추가로 합친다
+    if (B && B.suggestModels) {
+      B.suggestModels(name).then(function (models) {
+        if (overlay && overlay.querySelector('#cqdModelList') === dl) paint(base.concat(models || []));
+      });
+    }
   }
   function setBrandLogo(name) {
     var box = overlay && overlay.querySelector('#cqdBrandLogo'); if (!box) return;
@@ -719,40 +735,73 @@
         '<b>' + esc(main) + '</b>' + (subm ? '<em>' + esc(subm) + '</em>' : '') + '</label>';
     }).join('');
     var savedParts = (d.parts || '').split(',').map(function (s) { return s.trim(); });
-    var partChips = PART_OPTS.map(function (p) {
-      var on = savedParts.indexOf(p) >= 0 ? ' checked' : '';
-      return '<label class="cqd-chk"><input type="checkbox" name="cqdpart" value="' + esc(p) + '"' + on + '><span class="cqd-chk-box" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg></span><span class="cqd-chk-txt">' + esc(p) + '</span></label>';
+    var partBoxes = PART_OPTS.map(function (p) {
+      var on = savedParts.indexOf(p) >= 0;
+      return '<label class="cqd-part-box' + (on ? ' is-on' : '') + '">' +
+        '<input type="checkbox" name="cqdpart" value="' + esc(p) + '"' + (on ? ' checked' : '') + ' hidden>' +
+        '<span class="cqd-part-ic">' + partIcon(p) + '</span>' +
+        '<span class="cqd-part-txt">' + esc(p) + '</span>' +
+        '<span class="cqd-part-check" aria-hidden="true"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg></span>' +
+      '</label>';
     }).join('');
     return '<div class="cqd-form">' +
       '<label>사진 등록 <small class="cqd-lbl-sub">최대 20장 · 첫 장이 대표사진</small></label>' +
       '<div class="cqd-photos" id="cqdNewPhotos">' + photoGrid() + '</div>' +
       '<input type="file" id="cqdNewFile" accept="image/*" multiple hidden>' +
       photoGuide() +
-      '<label>브랜드 * <small class="cqd-lbl-sub">눌러서 선택</small></label>' +
-      '<button type="button" class="cqd-brandbtn' + (brandName ? ' on' : '') + '" id="cqdBrandBtn">' +
-        (brandName ? '<span class="cqd-brandbtn-logo" id="cqdBrandLogo"></span>' + esc(brandName) : '브랜드 선택') +
-      '</button>' +
-      '<input type="hidden" id="cqdNewBrand" value="' + esc(brandName) + '">' +
+      // 브랜드 · 모델명 (2단)
+      '<div class="cqd-row2">' +
+        '<div class="cqd-field">' +
+          '<label>브랜드 * <small class="cqd-lbl-sub">눌러서 선택</small></label>' +
+          '<button type="button" class="cqd-brandbtn' + (brandName ? ' on' : '') + '" id="cqdBrandBtn">' +
+            (brandName ? '<span class="cqd-brandbtn-logo" id="cqdBrandLogo"></span>' + esc(brandName) : '브랜드 선택') +
+          '</button>' +
+          '<input type="hidden" id="cqdNewBrand" value="' + esc(brandName) + '">' +
+        '</div>' +
+        '<div class="cqd-field">' +
+          '<label>모델명 *</label>' +
+          '<input type="text" id="cqdNewModel" list="cqdModelList" value="' + esc(d.model || '') + '" placeholder="모델명 입력 · 등록 모델 추천" autocomplete="off">' +
+          '<datalist id="cqdModelList"></datalist>' +
+        '</div>' +
+      '</div>' +
       '<div class="cqd-brandsheet" id="cqdBrandSheet" hidden></div>' +
-      '<label>모델명 *</label>' +
-      '<input type="text" id="cqdNewModel" list="cqdModelList" value="' + esc(d.model || '') + '" placeholder="브랜드 선택 시 대표 모델 추천" autocomplete="off">' +
-      '<datalist id="cqdModelList"></datalist>' +
-      '<label>레퍼런스</label>' +
-      '<input type="text" id="cqdNewRef" value="' + esc(d.ref || '') + '" placeholder="예: 126610LN">' +
-      '<label>스템핑(각인) 정보</label>' +
-      '<input type="text" id="cqdNewStamp" value="' + esc(d.stamping || '') + '" placeholder="예: 시리얼/케이스백 각인 · 보증서 일련번호">' +
+      // 레퍼런스 · 스템핑 (2단)
+      '<div class="cqd-row2">' +
+        '<div class="cqd-field">' +
+          '<label>레퍼런스</label>' +
+          '<input type="text" id="cqdNewRef" value="' + esc(d.ref || '') + '" placeholder="예: 126610LN">' +
+        '</div>' +
+        '<div class="cqd-field">' +
+          '<label>스템핑(각인)</label>' +
+          '<input type="text" id="cqdNewStamp" value="' + esc(d.stamping || '') + '" placeholder="시리얼 · 보증서 번호">' +
+        '</div>' +
+      '</div>' +
       '<label>구매일 / 구입 시기</label>' +
       '<input type="text" id="cqdNewYear" value="' + esc(d.year || '') + '" placeholder="예: 2023년 05월">' +
-      '<label>상태 등급</label>' +
+      '<label>상태 및 등급</label>' +
       '<div class="cqd-gradegrid">' + gradeChips + '</div>' +
-      '<label>구성품 (해당되는 항목을 모두 선택)</label>' +
-      '<div class="cqd-chkgrid">' + partChips + '</div>' +
+      '<label>구성품 <small class="cqd-lbl-sub">해당 항목을 모두 선택</small></label>' +
+      '<div class="cqd-partgrid">' + partBoxes + '</div>' +
       '<label>특이사항 (수리이력 · 흠집 · 정품여부 등)</label>' +
       '<textarea id="cqdNewMemo" rows="4" placeholder="시계 상태를 자세히 적어주실수록 정확한 견적이 가능합니다.">' + esc(d.memo || '') + '</textarea>' +
-      '<label>성함 *</label>' +
-      '<input type="text" id="cqdNewName" value="' + esc(nm) + '" placeholder="홍길동">' +
-      '<label>연락처 *</label>' +
-      '<input type="tel" id="cqdNewPhone" value="' + esc(ph) + '" placeholder="010-0000-0000">';
+      '<div class="cqd-row2">' +
+        '<div class="cqd-field">' +
+          '<label>성함 *</label>' +
+          '<input type="text" id="cqdNewName" value="' + esc(nm) + '" placeholder="홍길동">' +
+        '</div>' +
+        '<div class="cqd-field">' +
+          '<label>연락처 *</label>' +
+          '<input type="tel" id="cqdNewPhone" value="' + esc(ph) + '" placeholder="010-0000-0000">' +
+        '</div>' +
+      '</div>';
+  }
+  // 구성품 아이콘(이미지 제공 전 임시 — 추후 이미지로 교체 가능)
+  function partIcon(p) {
+    var map = {
+      '보증서': '📄', '정품 박스': '📦', '설명서/책자': '📖',
+      '추가 링크': '🔗', '정품 택': '🏷️', '구매 영수증': '🧾'
+    };
+    return map[p] || '✔';
   }
 
   SCREENS['c-new'] = function () {
@@ -1447,6 +1496,9 @@
     } else if (e.target && e.target.name === 'cqdgrade') {
       var chips = overlay.querySelectorAll('.cqd-grade-chip');
       for (var g = 0; g < chips.length; g++) chips[g].classList.toggle('is-on', chips[g].contains(e.target) && e.target.checked);
+    } else if (e.target && e.target.name === 'cqdpart') {
+      var box = e.target.closest('.cqd-part-box');
+      if (box) box.classList.toggle('is-on', e.target.checked);
     }
   }
 

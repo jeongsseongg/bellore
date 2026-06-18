@@ -743,6 +743,20 @@
   };
 
   // 단건 조회 (수정 폼용)
+  // 모델명 자동완성: 등록된 매물(listings)에서 모델명 후보를 추려 반환
+  Backend.suggestModels = function (brand) {
+    var qy = sb.from('listings').select('model').not('model', 'is', null).limit(300);
+    if (brand) qy = qy.ilike('brand', '%' + String(brand).trim() + '%');
+    return qy.then(function (res) {
+      var seen = {}, out = [];
+      (res.data || []).forEach(function (r) {
+        var m = String(r.model || '').trim();
+        if (m && !seen[m.toLowerCase()]) { seen[m.toLowerCase()] = 1; out.push(m); }
+      });
+      return out;
+    }, function () { return []; });
+  };
+
   Backend.getListing = function (id) {
     return sb.from('listings').select('*').eq('id', id).single()
       .then(function (res) { if (res.error) throw res.error; return mapListing(res.data); });
