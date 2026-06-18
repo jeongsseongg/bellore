@@ -2578,8 +2578,14 @@
                 <p class="mypage-security">보안상 비밀번호는 어디에서도 조회할 수 없습니다(암호화 저장). 필요 시 "재설정 메일"로 변경하세요.</p>
             </section>
             <section class="admin-panel-view" data-apv="coupons" hidden>
-                <button type="button" class="mypage-btn" id="adminAddCouponBtn">+ 쿠폰 만들기</button>
-                <div id="adminCouponList" class="admin-list"></div>
+                <div class="cpadm-tabs" id="cpAdmTabs">
+                    <button type="button" class="cpadm-tab on" data-cpkind="all">전체</button>
+                    <button type="button" class="cpadm-tab" data-cpkind="auto">가입 자동지급</button>
+                    <button type="button" class="cpadm-tab" data-cpkind="code">코드입력</button>
+                    <button type="button" class="cpadm-tab" data-cpkind="image">이미지 다운로드</button>
+                </div>
+                <button type="button" class="mypage-btn" id="adminAddCouponBtn">+ 새 쿠폰 만들기</button>
+                <div id="adminCouponList" class="admin-list cpadm-list"></div>
             </section>
             <section class="admin-panel-view" data-apv="listings" hidden>
                 <button type="button" class="mypage-btn" id="adminAddListingBtn">+ 판매시계 등록</button>
@@ -2587,41 +2593,62 @@
         </div>
     </div>
 
-    <!-- 쿠폰 생성 모달 (관리자) -->
-    <div class="login-modal" id="couponModal" hidden>
-        <div class="login-backdrop" data-cpclose></div>
-        <div class="login-content">
-            <button class="login-close" data-cpclose aria-label="닫기">×</button>
-            <div class="login-head">
-                <p class="login-eyebrow">COUPON</p>
-                <h2>쿠폰 만들기</h2>
-            </div>
-            <div class="cp-form">
-                <label>쿠폰 이름<input type="text" id="cpTitle" placeholder="예: 신규가입 1만원"></label>
-                <label>할인 방식
-                    <select id="cpType">
-                        <option value="amount">정액 (원)</option>
-                        <option value="percent">정률 (%)</option>
-                    </select>
-                </label>
-                <label>할인 값<input type="number" id="cpValue" placeholder="10000 또는 10"></label>
-                <label>정률 최대 할인액 (원, 선택)<input type="number" id="cpMax" placeholder="상한 없음"></label>
-                <label>최소 사용 금액 (원)<input type="number" id="cpMin" placeholder="0"></label>
-                <label>사용처
+    <!-- 쿠폰 생성/수정 페이지 (관리자) -->
+    <div class="cp-page" id="couponPage" hidden>
+        <header class="pp-topbar">
+            <button class="pp-back" type="button" data-cpclose aria-label="닫기">‹</button>
+            <span class="pp-topbar-title" id="cpPageTitle">쿠폰 만들기</span>
+            <span class="pp-topbar-spacer"></span>
+        </header>
+        <div class="pp-scroll">
+            <div class="cp-form2">
+                <div class="cp-kindpick" id="cpKindPick">
+                    <label class="cp-kindopt"><input type="radio" name="cp_kind" value="auto"><span class="cp-kindbox"><b>회원가입 자동지급</b><em>가입하면 자동으로 지급</em></span></label>
+                    <label class="cp-kindopt"><input type="radio" name="cp_kind" value="code" checked><span class="cp-kindbox"><b>쿠폰번호 입력</b><em>코드를 입력해야 받음</em></span></label>
+                    <label class="cp-kindopt"><input type="radio" name="cp_kind" value="image"><span class="cp-kindbox"><b>이미지 클릭 다운로드</b><em>이미지/링크 클릭으로 받음</em></span></label>
+                </div>
+
+                <label class="cp-fld">쿠폰 이름<input type="text" id="cpTitle" placeholder="예: 신규가입 1만원"></label>
+                <div class="cp-grid2">
+                    <label class="cp-fld">할인 방식
+                        <select id="cpType">
+                            <option value="amount">정액 (원)</option>
+                            <option value="percent">정률 (%)</option>
+                        </select>
+                    </label>
+                    <label class="cp-fld">할인 값<input type="number" id="cpValue" placeholder="10000 또는 10"></label>
+                </div>
+                <div class="cp-grid2">
+                    <label class="cp-fld" id="cpMaxFld">정률 최대 할인액 (원)<input type="number" id="cpMax" placeholder="상한 없음"></label>
+                    <label class="cp-fld">최소 사용 금액 (원)<input type="number" id="cpMin" placeholder="0"></label>
+                </div>
+                <label class="cp-fld">사용처
                     <select id="cpApply">
                         <option value="both">구매결제 + 위탁수수료</option>
                         <option value="order">구매결제만</option>
                         <option value="commission">위탁수수료만</option>
                     </select>
                 </label>
-                <label>쿠폰 코드 (선택, 코드입력용)<input type="text" id="cpCode" placeholder="WELCOME10"></label>
-                <label class="cp-check"><input type="checkbox" id="cpDownloadable"> 이벤트 페이지에서 다운로드 허용</label>
-                <label>1인당 보유 수<input type="number" id="cpPerUser" value="1"></label>
-                <label>전체 발급 수량 (선택)<input type="number" id="cpLimit" placeholder="무제한"></label>
-                <label>만료일 (선택)<input type="date" id="cpExpires"></label>
-                <button type="button" class="co-pay-btn" id="cpSave">쿠폰 생성</button>
+
+                <label class="cp-fld cp-row-code">쿠폰 코드<input type="text" id="cpCode" placeholder="예: WELCOME10"></label>
+
+                <div class="cp-row-image">
+                    <label class="cp-fld">쿠폰 이미지 URL<input type="text" id="cpImageUrl" placeholder="https://.../coupon.jpg"></label>
+                    <div class="cp-img-preview" id="cpImgPreview" hidden><img id="cpImgPreviewImg" src="" alt="쿠폰 이미지 미리보기"></div>
+                    <div class="cp-sharelink" id="cpShareWrap" hidden>
+                        <span class="cp-sharelink-label">공유 링크 (회원이 클릭하면 자동 다운로드)</span>
+                        <div class="cp-sharelink-row"><input type="text" id="cpShareLink" readonly><button type="button" class="cp-copy" id="cpCopyLink">복사</button></div>
+                    </div>
+                </div>
+
+                <div class="cp-grid2">
+                    <label class="cp-fld">1인당 보유 수<input type="number" id="cpPerUser" value="1"></label>
+                    <label class="cp-fld">전체 발급 수량<input type="number" id="cpLimit" placeholder="무제한"></label>
+                </div>
+                <label class="cp-fld">만료일<input type="date" id="cpExpires"></label>
             </div>
         </div>
+        <div class="pp-bottom"><button type="button" class="pp-buy" id="cpSave">쿠폰 저장</button></div>
     </div>
 
     <!-- 결제 결과 모달 -->

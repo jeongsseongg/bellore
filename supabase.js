@@ -1283,7 +1283,11 @@
       usage_limit: c.usage_limit != null ? Number(c.usage_limit) : null,
       per_user_limit: c.per_user_limit != null ? Number(c.per_user_limit) : 1,
       starts_at: c.starts_at || null, expires_at: c.expires_at || null,
-      active: c.active !== false
+      active: c.active !== false,
+      // 쿠폰 종류: auto(가입 자동지급) | code(코드입력) | image(이미지 클릭 다운로드)
+      kind: c.kind || (c.auto_grant ? 'auto' : (c.code ? 'code' : (c.downloadable ? 'image' : 'code'))),
+      image_url: c.image_url || '',
+      auto_grant: !!c.auto_grant
     };
   }
   function mapUserCoupon(uc) {
@@ -1338,16 +1342,54 @@
     return sb.from('coupons').select('*').order('created_at', { ascending: false })
       .then(function (res) { if (res.error) throw res.error; return (res.data || []).map(mapCoupon); });
   };
+  // 신규 쿠폰 컬럼(kind/image_url/auto_grant)이 아직 DB에 없을 때 감지
+  function isMissingCouponCol(err) {
+    var m = (err && (err.message || err.hint || '')) + ' ' + (err && err.code || '');
+    return /kind|image_url|auto_grant|schema cache|PGRST204|find the .* column/i.test(m);
+  }
   Backend.createCoupon = function (d) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
-    return sb.from('coupons').insert({
+    var row = {
       code: d.code ? String(d.code).toUpperCase().trim() : null,
       title: d.title, discount_type: d.discountType || 'amount',
       discount_value: d.discountValue || 0, max_discount: d.maxDiscount || null,
       min_order: d.minOrder || 0, apply_to: d.applyTo || 'both',
       downloadable: !!d.downloadable, usage_limit: d.usageLimit || null,
-      per_user_limit: d.perUserLimit || 1, expires_at: d.expiresAt || null
-    }).select().single().then(function (res) { if (res.error) throw res.error; return mapCoupon(res.data); });
+      per_user_limit: d.perUserLimit || 1, expires_at: d.expiresAt || null,
+      kind: d.kind || 'code', image_url: d.imageUrl || null, auto_grant: !!d.autoGrant
+    };
+    function ins() { return sb.from('coupons').insert(row).select().single(); }
+    return ins().then(function (res) {
+      if (res.error && isMissingCouponCol(res.error)) {
+        delete row.kind; delete row.image_url; delete row.auto_grant;
+        return ins();
+      }
+      return res;
+    }).then(function (res) { if (res.error) throw res.error; return mapCoupon(res.data); });
+  };
+  Backend.getCoupon = function (id) {
+    return sb.from('coupons').select('*').eq('id', id).single()
+      .then(function (res) { if (res.error) throw res.error; return mapCoupon(res.data); });
+  };
+  Backend.updateCoupon = function (id, d) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    var patch = {
+      code: d.code ? String(d.code).toUpperCase().trim() : null,
+      title: d.title, discount_type: d.discountType || 'amount',
+      discount_value: d.discountValue || 0, max_discount: d.maxDiscount || null,
+      min_order: d.minOrder || 0, apply_to: d.applyTo || 'both',
+      downloadable: !!d.downloadable, usage_limit: d.usageLimit || null,
+      per_user_limit: d.perUserLimit || 1, expires_at: d.expiresAt || null,
+      kind: d.kind || 'code', image_url: d.imageUrl || null, auto_grant: !!d.autoGrant
+    };
+    function upd() { return sb.from('coupons').update(patch).eq('id', id).select().single(); }
+    return upd().then(function (res) {
+      if (res.error && isMissingCouponCol(res.error)) {
+        delete patch.kind; delete patch.image_url; delete patch.auto_grant;
+        return upd();
+      }
+      return res;
+    }).then(function (res) { if (res.error) throw res.error; return mapCoupon(res.data); });
   };
   Backend.deleteCoupon = function (id) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));

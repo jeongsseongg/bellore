@@ -906,7 +906,8 @@
             var avail = (list || []).filter(function (c) { return ownedIds.indexOf(c.id) < 0; });
             if (!avail.length) { box.innerHTML = ''; return; }
             box.innerHTML = '<h5 class="coupon-sub">받을 수 있는 쿠폰</h5>' + avail.map(function (c) {
-                return '<div class="coupon-card down">' +
+                return '<div class="coupon-card down' + (c.image_url ? ' has-img' : '') + '">' +
+                    (c.image_url ? '<button type="button" class="cc-img" data-cpget="' + esc(c.id) + '"><img src="' + esc(c.image_url) + '" alt="' + esc(c.title) + '" loading="lazy"></button>' : '') +
                     '<div class="cc-val">' + couponValueText(c) + '</div>' +
                     '<div class="cc-body"><strong>' + esc(c.title) + '</strong>' +
                     '<span>' + esc(couponMetaText(c)) + '</span></div>' +
@@ -915,27 +916,48 @@
         }).catch(function () {});
     }
 
+    function couponKindOf(c) {
+        return c.kind || (c.auto_grant ? 'auto' : (c.code ? 'code' : (c.downloadable ? 'image' : 'code')));
+    }
+    function couponKindLabel(c) {
+        var k = couponKindOf(c);
+        return k === 'auto' ? '가입 자동지급' : k === 'image' ? '이미지 다운로드' : '코드입력';
+    }
+    var _adminCouponKind = 'all';
+    var _adminCouponCache = [];
+    function paintAdminCoupons() {
+        var el = $('#adminCouponList');
+        if (!el) return;
+        var list = _adminCouponCache.filter(function (c) {
+            return _adminCouponKind === 'all' || couponKindOf(c) === _adminCouponKind;
+        });
+        el.innerHTML = list.length ? list.map(function (c) {
+            return '<div class="admin-list-item cpadm-item">' +
+                '<span class="av-main"><span class="cpadm-kind k-' + couponKindOf(c) + '">' + couponKindLabel(c) + '</span> ' +
+                    esc(c.title) + ' · ' + couponValueText(c) +
+                    (c.code ? ' · 코드 ' + esc(c.code) : '') + (c.active ? '' : ' · 비활성') + '</span>' +
+                '<span class="av-acct">' + esc(couponMetaText(c)) + '</span>' +
+                '<span class="av-btns">' +
+                '<button type="button" data-cpedit="' + esc(c.id) + '">수정</button>' +
+                '<button type="button" data-cptoggle="' + esc(c.id) + '" data-on="' + (c.active ? '1' : '0') + '">' + (c.active ? '비활성화' : '활성화') + '</button>' +
+                '<button type="button" data-cpdel="' + esc(c.id) + '">삭제</button>' +
+                '</span></div>';
+        }).join('') : '<div class="admin-list-item"><span>쿠폰이 없습니다.</span></div>';
+    }
     function renderAdminCoupons() {
         var el = $('#adminCouponList');
         if (!el || !NWBackend.listCoupons) return;
         NWBackend.listCoupons().then(function (list) {
-            el.innerHTML = list.length ? list.map(function (c) {
-                return '<div class="admin-list-item">' +
-                    '<span class="av-main">' + esc(c.title) + ' · ' + couponValueText(c) +
-                    (c.code ? ' · 코드 ' + esc(c.code) : '') + (c.active ? '' : ' · 비활성') +
-                    (c.downloadable ? ' · 다운로드' : '') + '</span>' +
-                    '<span class="av-acct">' + esc(couponMetaText(c)) + '</span>' +
-                    '<span class="av-btns">' +
-                    '<button type="button" data-cptoggle="' + esc(c.id) + '" data-on="' + (c.active ? '1' : '0') + '">' + (c.active ? '비활성화' : '활성화') + '</button>' +
-                    '<button type="button" data-cpdel="' + esc(c.id) + '">삭제</button>' +
-                    '</span></div>';
-            }).join('') : '<div class="admin-list-item"><span>쿠폰이 없습니다.</span></div>';
+            _adminCouponCache = list || [];
+            paintAdminCoupons();
         }).catch(function () {});
     }
 
     function initCoupons() {
         if (!backendOn() || !NWBackend.onAuthChange) return;
         window.belloreRefreshCoupons = renderMyCoupons;
+        var cpEditId = null;
+        var _pendingCouponLink = null;
 
         // 코드 등록(마이페이지)
         var codeBtn = $('#couponCodeBtn');
@@ -956,7 +978,11 @@
             var get = e.target.closest('[data-cpget]');
             var del = e.target.closest('[data-cpdel]');
             var tg = e.target.closest('[data-cptoggle]');
-            if (get) {
+            var ed = e.target.closest('[data-cpedit]');
+            if (ed) {
+                NWBackend.getCoupon(ed.dataset.cpedit).then(openCouponPage)
+                    .catch(function (err) { alert('불러오기 실패: ' + (err && err.message || err)); });
+            } else if (get) {
                 get.disabled = true;
                 NWBackend.claimCoupon(get.dataset.cpget).then(function () {
                     alert('쿠폰을 받았습니다.'); renderMyCoupons();
@@ -972,45 +998,139 @@
             }
         });
 
-        // 쿠폰 만들기 모달
+        // ===== 쿠폰 만들기/수정 페이지 (관리자) =====
+        var cpPage = $('#couponPage');
+        function cpShareUrl(id) { return location.origin + location.pathname + '?coupon=' + id; }
+        function cpSelectedKind() {
+            var r = cpPage ? cpPage.querySelector('input[name="cp_kind"]:checked') : null;
+            return r ? r.value : 'code';
+        }
+        function cpUpdateImgPreview() {
+            var inp = $('#cpImageUrl'); var url = (inp && inp.value || '').trim();
+            var wrap = $('#cpImgPreview'), img = $('#cpImgPreviewImg');
+            if (wrap && img) { if (url) { img.src = url; wrap.hidden = false; } else { wrap.hidden = true; } }
+        }
+        function cpApplyKindUI() {
+            if (!cpPage) return;
+            var k = cpSelectedKind();
+            var codeRow = cpPage.querySelector('.cp-row-code');
+            var imgRow = cpPage.querySelector('.cp-row-image');
+            if (codeRow) codeRow.style.display = (k === 'code') ? '' : 'none';
+            if (imgRow) imgRow.style.display = (k === 'image') ? '' : 'none';
+            var shareWrap = $('#cpShareWrap');
+            if (shareWrap) shareWrap.hidden = !(k === 'image' && cpEditId);
+        }
+        function closeCouponPage() { if (cpPage) { cpPage.hidden = true; document.body.style.overflow = ''; } }
+        window.openCouponPage = function (c) {
+            if (!cpPage) return;
+            cpEditId = c ? c.id : null;
+            $('#cpPageTitle').textContent = c ? '쿠폰 수정' : '쿠폰 만들기';
+            $('#cpSave').textContent = c ? '수정 저장' : '쿠폰 저장';
+            var kind = c ? couponKindOf(c) : 'code';
+            var kr = cpPage.querySelector('input[name="cp_kind"][value="' + kind + '"]');
+            if (kr) kr.checked = true;
+            $('#cpTitle').value = c ? (c.title || '') : '';
+            $('#cpType').value = c ? (c.discount_type || 'amount') : 'amount';
+            $('#cpValue').value = c ? (c.discount_value || '') : '';
+            $('#cpMax').value = c && c.max_discount ? c.max_discount : '';
+            $('#cpMin').value = c && c.min_order ? c.min_order : '';
+            $('#cpApply').value = c ? (c.apply_to || 'both') : 'both';
+            $('#cpCode').value = c ? (c.code || '') : '';
+            $('#cpImageUrl').value = c ? (c.image_url || '') : '';
+            $('#cpPerUser').value = c ? (c.per_user_limit || 1) : 1;
+            $('#cpLimit').value = c && c.usage_limit ? c.usage_limit : '';
+            $('#cpExpires').value = c && c.expires_at ? String(c.expires_at).slice(0, 10) : '';
+            if (cpEditId) { var sl = $('#cpShareLink'); if (sl) sl.value = cpShareUrl(cpEditId); }
+            cpUpdateImgPreview();
+            cpApplyKindUI();
+            cpPage.hidden = false; document.body.style.overflow = 'hidden';
+            var sc = cpPage.querySelector('.pp-scroll'); if (sc) sc.scrollTop = 0;
+        };
+
         var addBtn = $('#adminAddCouponBtn');
-        var cpModal = $('#couponModal');
-        if (addBtn && cpModal) {
-            addBtn.addEventListener('click', function () {
-                cpModal.hidden = false; document.body.style.overflow = 'hidden';
-            });
-            cpModal.addEventListener('click', function (e) {
-                if (e.target.closest('[data-cpclose]')) { cpModal.hidden = true; document.body.style.overflow = ''; }
+        if (addBtn) addBtn.addEventListener('click', function () { window.openCouponPage(null); });
+
+        // 쿠폰 종류 탭
+        var cpTabs = $('#cpAdmTabs');
+        if (cpTabs) cpTabs.addEventListener('click', function (e) {
+            var t = e.target.closest('[data-cpkind]'); if (!t) return;
+            _adminCouponKind = t.dataset.cpkind;
+            Array.prototype.forEach.call(cpTabs.querySelectorAll('.cpadm-tab'), function (b) { b.classList.toggle('on', b === t); });
+            paintAdminCoupons();
+        });
+
+        if (cpPage) {
+            cpPage.addEventListener('click', function (e) { if (e.target.closest('[data-cpclose]')) closeCouponPage(); });
+            cpPage.addEventListener('change', function (e) { if (e.target.name === 'cp_kind') cpApplyKindUI(); });
+            var imgInp = $('#cpImageUrl'); if (imgInp) imgInp.addEventListener('input', cpUpdateImgPreview);
+            var copyBtn = $('#cpCopyLink');
+            if (copyBtn) copyBtn.addEventListener('click', function () {
+                var t = $('#cpShareLink'); if (!t) return;
+                t.select();
+                if (navigator.clipboard) { navigator.clipboard.writeText(t.value).catch(function () {}); }
+                else { try { document.execCommand('copy'); } catch (e) {} }
+                copyBtn.textContent = '복사됨'; setTimeout(function () { copyBtn.textContent = '복사'; }, 1500);
             });
             var saveBtn = $('#cpSave');
             if (saveBtn) saveBtn.addEventListener('click', function () {
                 var title = ($('#cpTitle').value || '').trim();
                 var value = parseInt($('#cpValue').value, 10) || 0;
+                var kind = cpSelectedKind();
                 if (!title || value <= 0) { alert('쿠폰 이름과 할인 값을 입력해 주세요.'); return; }
-                saveBtn.disabled = true;
-                NWBackend.createCoupon({
+                if (kind === 'code' && !($('#cpCode').value || '').trim()) { alert('코드입력 쿠폰은 쿠폰 코드를 입력해 주세요.'); return; }
+                if (kind === 'image' && !($('#cpImageUrl').value || '').trim()) { alert('이미지 다운로드 쿠폰은 이미지 URL을 입력해 주세요.'); return; }
+                var payload = {
                     title: title,
                     discountType: $('#cpType').value,
                     discountValue: value,
                     maxDiscount: parseInt($('#cpMax').value, 10) || null,
                     minOrder: parseInt($('#cpMin').value, 10) || 0,
                     applyTo: $('#cpApply').value,
-                    code: ($('#cpCode').value || '').trim() || null,
-                    downloadable: $('#cpDownloadable').checked,
+                    kind: kind,
+                    code: kind === 'code' ? (($('#cpCode').value || '').trim() || null) : null,
+                    imageUrl: kind === 'image' ? (($('#cpImageUrl').value || '').trim() || null) : null,
+                    downloadable: kind === 'image',
+                    autoGrant: kind === 'auto',
                     perUserLimit: parseInt($('#cpPerUser').value, 10) || 1,
                     usageLimit: parseInt($('#cpLimit').value, 10) || null,
                     expiresAt: $('#cpExpires').value ? new Date($('#cpExpires').value + 'T23:59:59').toISOString() : null
-                }).then(function () {
-                    cpModal.hidden = true; document.body.style.overflow = '';
-                    ['cpTitle', 'cpValue', 'cpMax', 'cpMin', 'cpCode', 'cpLimit', 'cpExpires'].forEach(function (id) { var n = $('#' + id); if (n) n.value = ''; });
-                    $('#cpDownloadable').checked = false; $('#cpPerUser').value = '1';
-                    alert('쿠폰을 생성했습니다.'); renderAdminCoupons(); renderMyCoupons();
-                }).catch(function (err) { alert('생성 실패: ' + (err && err.message || err)); })
+                };
+                saveBtn.disabled = true;
+                var op = cpEditId ? NWBackend.updateCoupon(cpEditId, payload) : NWBackend.createCoupon(payload);
+                op.then(function () {
+                    closeCouponPage();
+                    alert(cpEditId ? '쿠폰을 수정했습니다.' : '쿠폰을 생성했습니다.');
+                    renderAdminCoupons(); renderMyCoupons();
+                }).catch(function (err) { alert('저장 실패: ' + (err && err.message || err)); })
                     .then(function () { saveBtn.disabled = false; });
             });
         }
 
+        // ===== 이미지 쿠폰 링크(?coupon=ID) 자동 다운로드 =====
+        function cleanCouponParam() {
+            try {
+                var s = location.search.replace(/([?&])coupon=[^&]*/, '$1').replace(/[?&]+$/, '').replace(/[?&]&/, '?');
+                history.replaceState(null, '', location.pathname + (s && s !== '?' ? s : '') + location.hash);
+            } catch (e) {}
+        }
+        var cm = /[?&]coupon=([^&#]+)/.exec(location.search);
+        if (cm) _pendingCouponLink = decodeURIComponent(cm[1]);
+        window._belloreClaimPendingCoupon = function (user) {
+            if (!_pendingCouponLink) return;
+            if (user) {
+                var pid = _pendingCouponLink; _pendingCouponLink = null;
+                NWBackend.claimCoupon(pid).then(function () {
+                    alert('쿠폰이 발급되었습니다. 마이페이지 > 내 쿠폰에서 확인하세요.');
+                    renderMyCoupons();
+                }).catch(function (e) { alert(couponClaimErr(e)); }).then(cleanCouponParam);
+            } else {
+                alert('로그인 후 쿠폰을 받을 수 있어요. 로그인해 주세요.');
+                openLoginModal();
+            }
+        };
+
         NWBackend.onAuthChange(function (user, info) {
+            if (window._belloreClaimPendingCoupon) window._belloreClaimPendingCoupon(user);
             var adminBox = $('#adminCouponBox');
             if (adminBox) {
                 var isAdmin = !!(info && info.isAdmin);
