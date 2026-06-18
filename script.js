@@ -4015,12 +4015,10 @@
             }
             var html = row('브랜드', d.brand) +
                 row('모델', d.model) +
-                row('사이즈', d.size_mm ? (d.size_mm + 'mm') : '') +
                 row('컨디션', d.condition) +
-                row('구성', d.pack || d.accessories) +
-                row('스탬핑', d.stamping) +
-                row('미리수', d.misu) +
-                row('구매년도', d.purchase_year);
+                row('구성', d.accessories || d.pack) +
+                row('스탬핑 / 연식', d.stamping || d.purchase_year) +
+                row('미리수', d.misu);
             box.innerHTML = html || '<div class="pp-spec-row"><span>정보</span><strong>등록된 상세 정보가 없습니다.</strong></div>';
         }
         // 제품 상태 (신품/중고 배지 + 설명글)
@@ -4032,8 +4030,9 @@
             badge.textContent = isNew ? '미착용 (신품급) 상품입니다.' : '착용 이력이 있는 중고 상품입니다.';
             badge.classList.toggle('is-new', isNew);
             var lines = [];
-            if (d.purchase_year) lines.push('구매년도 : ' + esc(String(d.purchase_year)));
-            if (d.pack) lines.push('상품구성 : ' + esc(String(d.pack)));
+            var yr = d.stamping || d.purchase_year;
+            if (yr) lines.push('스탬핑 / 연식 : ' + esc(String(yr)));
+            if (d.accessories || d.pack) lines.push('상품구성 : ' + esc(String(d.accessories || d.pack)));
             if (String(d.detail_desc || '').trim()) lines.push(esc(String(d.detail_desc).trim()).replace(/\n/g, '<br>'));
             if (String(d.special_note || '').trim()) lines.push('<b>특이사항</b> : ' + esc(String(d.special_note).trim()));
             lines.push('<span class="pp-state-note">본 상품은 판매자가 입력한 정보이며, 구매 완료 시 벨로르 정밀 검수 후 출고됩니다. 중고 상품 특성상 스크래치·찍힘 및 사용감이 있을 수 있는 점 참고 부탁드립니다.</span>');
@@ -4052,7 +4051,7 @@
             $('#pmNo').textContent = pno;
             var no2 = $('#pmNo2'); if (no2) no2.textContent = pno;
             var sm = $('#pmSaleMethod'); if (sm) sm.textContent = d.sale_method || '벨로르 직접 검수 판매';
-            var ship = $('#pmShip'); if (ship) ship.textContent = d.ship_info || '진단 후 배송 · 7~9일 후 배송/쇼룸 픽업';
+            var ship = $('#pmShip'); if (ship) ship.textContent = d.ship_info || '결제 후 2~4일 이내 발송';
             $('#pmPoint').textContent = d.price ? (fmt(Math.round(d.price * 0.01)) + 'P 적립 (1%)') : '-';
             paintAcc(d);
             paintChips(d);

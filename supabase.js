@@ -787,7 +787,7 @@
       if (data.detail_desc != null) patch.detail_desc = data.detail_desc;
       if (data.components != null) patch.components = data.components;
       if (data.sale_method != null) patch.sale_method = data.sale_method;
-      if (data.product_no != null) patch.product_no = data.product_no;
+      if (data.product_no) patch.product_no = data.product_no;  // 비우면 기존 자동번호 유지
       if (data.ship_info != null) patch.ship_info = data.ship_info;
       var existing = data.existingPhotos || [];
       if (newUrls.length || data.existingPhotos) {

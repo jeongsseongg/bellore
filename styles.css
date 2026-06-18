@@ -6428,17 +6428,18 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
     font-size: 10px; font-weight: 800; color: var(--text-3);
     cursor: pointer; vertical-align: middle;
 }
+/* 툴팁: 아래·오른쪽 정렬로 펼쳐 화면 밖으로 잘리지 않도록 함 */
 .pp-tip-box {
-    position: absolute; bottom: calc(100% + 8px); right: -8px;
-    width: 230px; padding: 10px 12px;
+    position: absolute; top: calc(100% + 8px); right: 0; left: auto;
+    width: max-content; max-width: min(260px, calc(100vw - 40px)); padding: 10px 12px;
     background: #222; color: #fff; font-size: 11.5px; font-weight: 500; line-height: 1.5;
     border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.25);
-    opacity: 0; visibility: hidden; transition: opacity .15s; z-index: 5;
-    text-shadow: none; white-space: normal;
+    opacity: 0; visibility: hidden; transition: opacity .15s; z-index: 20;
+    text-shadow: none; white-space: normal; text-align: left;
 }
 .pp-tip-box::after {
-    content: ""; position: absolute; top: 100%; right: 12px;
-    border: 6px solid transparent; border-top-color: #222;
+    content: ""; position: absolute; bottom: 100%; right: 10px;
+    border: 6px solid transparent; border-bottom-color: #222;
 }
 .pp-tip:hover .pp-tip-box, .pp-tip:focus .pp-tip-box { opacity: 1; visibility: visible; }
 
