@@ -25,7 +25,20 @@ create table if not exists public.notifications (
 create index if not exists idx_notifications_user on public.notifications(user_id, created_at desc);
 
 -- 0-1) 알림 클릭 시 해당 견적으로 바로 이동하기 위한 참조 ID (견적 id 등)
-alter table public.notifications add column if not exists ref_id bigint;
+--   ⚠️ quote_requests.id 는 uuid, listings.id 는 bigint 라 둘 다 담으려면 text 여야 함.
+--      과거 bigint 로 만들어진 환경은 자동으로 text 로 변환한다.
+--      (bigint 컬럼에 uuid 를 넣어 "column ref_id is of type bigint" 오류가 나던 문제 수정)
+alter table public.notifications add column if not exists ref_id text;
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+     where table_schema = 'public' and table_name = 'notifications'
+       and column_name = 'ref_id' and data_type <> 'text'
+  ) then
+    alter table public.notifications alter column ref_id type text using ref_id::text;
+  end if;
+end $$;
 
 -- 1) 트리거 함수: open 전환 시 승인업체 전체에게 알림 insert
 create or replace function public.notify_vendors_on_open()
@@ -43,7 +56,7 @@ begin
            'quote_open',
            '새 비교견적이 등록되었어요',
            label || ' 견적 요청이 들어왔습니다. 지금 입찰해 보세요.',
-           new.id
+           new.id::text
       from public.profiles p
      where p.role = 'vendor'
        and p.approved = true;

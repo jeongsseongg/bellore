@@ -28,7 +28,7 @@ begin
            'quote_open',
            '새 비교견적이 등록되었어요',
            label || ' 견적 요청이 들어왔습니다. 지금 입찰해 보세요.',
-           new.id
+           new.id::text
       from public.profiles p
      where p.role = 'vendor'
        and p.approved = true
