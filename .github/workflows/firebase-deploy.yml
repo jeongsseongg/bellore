@@ -14,6 +14,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 인사이트 글(Supabase) → 정적 HTML + sitemap.xml + rss.xml 생성.
+      # 실패해도 커밋된 sitemap/rss 가 폴백이라 배포는 계속된다.
+      - name: Generate SEO pages (insight + sitemap + rss)
+        run: node tools/generate-seo.mjs
+
       - name: Deploy to Firebase Hosting (live)
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
