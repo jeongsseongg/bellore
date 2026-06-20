@@ -2141,6 +2141,14 @@
                         <span>회원 계정</span>
                         <span class="amr-right"><span class="amr-arrow">›</span></span>
                     </button>
+                    <button type="button" class="admin-menu-row" data-apv="orders">
+                        <span>주문 · 배송 관리</span>
+                        <span class="amr-right"><span class="amr-badge" id="amrOrders" hidden>0</span><span class="amr-arrow">›</span></span>
+                    </button>
+                    <button type="button" class="admin-menu-row" data-apv="returns">
+                        <span>교환 · 반품 관리</span>
+                        <span class="amr-right"><span class="amr-badge" id="amrReturns" hidden>0</span><span class="amr-arrow">›</span></span>
+                    </button>
                     <button type="button" class="admin-menu-row" data-apv="coupons">
                         <span>쿠폰 관리</span>
                         <span class="amr-right"><span class="amr-arrow">›</span></span>
@@ -2520,6 +2528,33 @@
                 </div>
             </section>
 
+            <!-- 배송지 (전액 결제 시 노출) -->
+            <section class="co-sec" id="coShipSec" hidden>
+                <h3 class="co-sec-title">배송지</h3>
+                <div class="co-field">
+                    <label>받는 분</label>
+                    <input type="text" id="coShipName" placeholder="수령인 이름">
+                </div>
+                <div class="co-field">
+                    <label>받는 분 연락처</label>
+                    <input type="tel" id="coShipPhone" placeholder="010-0000-0000">
+                </div>
+                <div class="co-field">
+                    <label>주소</label>
+                    <div class="co-addr-row">
+                        <input type="text" id="coPostcode" placeholder="우편번호" readonly>
+                        <button type="button" class="co-addr-btn" id="coFindAddr">주소 찾기</button>
+                    </div>
+                    <input type="text" id="coAddr1" placeholder="기본 주소" readonly>
+                    <input type="text" id="coAddr2" placeholder="상세 주소 (동·호수 등)">
+                </div>
+                <div class="co-field">
+                    <label>배송 요청사항</label>
+                    <input type="text" id="coShipReq" placeholder="예) 부재 시 경비실에 맡겨주세요">
+                </div>
+                <p class="co-ship-note">결제 후 2~4일 이내 발송됩니다.</p>
+            </section>
+
             <!-- 쿠폰 -->
             <section class="co-sec" id="coCouponSec">
                 <h3 class="co-sec-title">쿠폰</h3>
@@ -2584,6 +2619,21 @@
                 </div>
                 <button type="button" class="mypage-btn" id="adminAddCouponBtn">+ 새 쿠폰 만들기</button>
                 <div id="adminCouponList" class="admin-list cpadm-list"></div>
+            </section>
+            <section class="admin-panel-view" data-apv="orders" hidden>
+                <div class="cpadm-tabs aord-tabs" id="aordTabs">
+                    <button type="button" class="cpadm-tab on" data-aord="">전체</button>
+                    <button type="button" class="cpadm-tab" data-aord="paid">결제완료</button>
+                    <button type="button" class="cpadm-tab" data-aord="inspecting">검수중</button>
+                    <button type="button" class="cpadm-tab" data-aord="preparing">준비중</button>
+                    <button type="button" class="cpadm-tab" data-aord="shipping">배송중</button>
+                    <button type="button" class="cpadm-tab" data-aord="delivered">배송완료</button>
+                    <button type="button" class="cpadm-tab" data-aord="cancel_req">취소요청</button>
+                </div>
+                <div id="adminOrderList" class="admin-list aord-list"></div>
+            </section>
+            <section class="admin-panel-view" data-apv="returns" hidden>
+                <div id="adminReturnList" class="admin-list aord-list"></div>
             </section>
             <section class="admin-panel-view" data-apv="listings" hidden>
                 <button type="button" class="mypage-btn" id="adminAddListingBtn">+ 판매시계 등록</button>
@@ -2662,6 +2712,71 @@
         </div>
     </div>
 
+    <!-- 주문 상세 페이지 (고객) -->
+    <div class="cp-page op-page" id="orderPage" hidden>
+        <header class="pp-topbar">
+            <button class="pp-back" type="button" data-opclose aria-label="닫기">‹</button>
+            <span class="pp-topbar-title">주문 상세</span>
+            <span class="pp-topbar-spacer"></span>
+        </header>
+        <div class="pp-scroll" id="orderPageBody"></div>
+        <div class="pp-bottom op-actions" id="orderPageActions"></div>
+    </div>
+
+    <!-- 교환/반품 신청 페이지 (고객) -->
+    <div class="cp-page rp-page" id="returnPage" hidden>
+        <header class="pp-topbar">
+            <button class="pp-back" type="button" data-rpclose aria-label="닫기">‹</button>
+            <span class="pp-topbar-title" id="returnPageTitle">교환 · 반품 신청</span>
+            <span class="pp-topbar-spacer"></span>
+        </header>
+        <div class="pp-scroll">
+            <div class="rp-order" id="rpOrderInfo"></div>
+            <div class="cp-kindpick rp-typepick" id="rpTypePick">
+                <label class="cp-kindopt"><input type="radio" name="rp_type" value="return" checked>
+                    <span class="cp-kindbox"><b>반품 (환불)</b><em>상품을 반품하고 환불받습니다</em></span></label>
+                <label class="cp-kindopt"><input type="radio" name="rp_type" value="exchange">
+                    <span class="cp-kindbox"><b>교환</b><em>동일/다른 상품으로 교환합니다</em></span></label>
+            </div>
+            <div class="cp-field">
+                <label>사유</label>
+                <select id="rpReason">
+                    <option value="단순변심">단순 변심</option>
+                    <option value="상품불량">상품 불량 / 하자</option>
+                    <option value="오배송">오배송 / 다른 상품</option>
+                    <option value="상품설명상이">상품 설명과 다름</option>
+                    <option value="기타">기타</option>
+                </select>
+            </div>
+            <div class="cp-field">
+                <label>상세 내용</label>
+                <textarea id="rpDetail" rows="4" placeholder="상태/사유를 자세히 적어주세요. (회수·검수에 참고됩니다)"></textarea>
+            </div>
+            <div class="cp-field">
+                <label>사진 첨부 (선택, 최대 5장)</label>
+                <input type="file" id="rpPhotos" accept="image/*" multiple>
+                <div class="rp-thumbs" id="rpThumbs"></div>
+            </div>
+            <p class="rp-note">접수 후 관리자 확인 → 회수 안내가 진행됩니다. 단순변심 반품 배송비는 고객 부담일 수 있습니다.</p>
+        </div>
+        <div class="pp-bottom">
+            <button class="co-pay-btn" id="rpSubmit">신청하기</button>
+        </div>
+    </div>
+
+    <!-- 주문 관리 페이지 (관리자) -->
+    <div class="cp-page aop-page" id="adminOrderPage" hidden>
+        <header class="pp-topbar">
+            <button class="pp-back" type="button" data-aopclose aria-label="닫기">‹</button>
+            <span class="pp-topbar-title">주문 관리</span>
+            <span class="pp-topbar-spacer"></span>
+        </header>
+        <div class="pp-scroll" id="adminOrderBody"></div>
+        <div class="pp-bottom">
+            <button class="co-pay-btn" id="aopSave">저장</button>
+        </div>
+    </div>
+
     <!-- 인사이트 게시글 모달 -->
     <div class="post-modal" id="postModal" hidden>
         <div class="post-modal-backdrop" data-close></div>
@@ -2706,6 +2821,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://js.tosspayments.com/v2/standard"></script>
+    <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
     <script src="supabase-config.js"></script>
     <script src="brands.js"></script>
     <script src="supabase.js"></script>

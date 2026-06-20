@@ -1197,6 +1197,24 @@
       receiptUrl: o.receipt_url || '',
       buyerName: o.buyer_name || '',
       buyerPhone: o.buyer_phone || '',
+      // 배송
+      shipRecipient: o.ship_recipient || '',
+      shipPhone: o.ship_phone || '',
+      shipPostcode: o.ship_postcode || '',
+      shipAddr1: o.ship_addr1 || '',
+      shipAddr2: o.ship_addr2 || '',
+      shipRequest: o.ship_request || '',
+      courier: o.courier || '',
+      trackingNo: o.tracking_no || '',
+      cancelReason: o.cancel_reason || '',
+      adminMemo: o.admin_memo || '',
+      memo: o.memo || '',
+      discount: o.discount || 0,
+      shippedAt: o.shipped_at ? tsObj(o.shipped_at) : null,
+      deliveredAt: o.delivered_at ? tsObj(o.delivered_at) : null,
+      confirmedAt: o.confirmed_at ? tsObj(o.confirmed_at) : null,
+      canceledAt: o.canceled_at ? tsObj(o.canceled_at) : null,
+      refundedAt: o.refunded_at ? tsObj(o.refunded_at) : null,
       createdAt: tsObj(o.created_at),
       paidAt: o.paid_at ? tsObj(o.paid_at) : null
     };
@@ -1221,6 +1239,13 @@
       discount: data.discount || 0,
       buyer_name: data.buyerName || (profile && profile.name) || null,
       buyer_phone: data.buyerPhone || (profile && profile.phone) || null,
+      // 배송지
+      ship_recipient: data.shipRecipient || data.buyerName || null,
+      ship_phone: data.shipPhone || data.buyerPhone || null,
+      ship_postcode: data.shipPostcode || null,
+      ship_addr1: data.shipAddr1 || null,
+      ship_addr2: data.shipAddr2 || null,
+      ship_request: data.shipRequest || null,
       memo: data.memo || null,
       status: 'pending'
     }).select().single().then(function (res) {
@@ -1263,6 +1288,136 @@
     return unsub;
   };
 
+  // 주문 1건 조회(주문번호) — 상세 페이지/타임라인용
+  Backend.getOrder = function (orderNo) {
+    return sb.from('orders').select('*').eq('order_no', orderNo).single()
+      .then(function (res) { if (res.error) throw res.error; return mapOrder(res.data); });
+  };
+
+  // 주문 상태 이력(타임라인)
+  Backend.getOrderHistory = function (orderId) {
+    return sb.from('order_status_history').select('*')
+      .eq('order_id', orderId).order('created_at', { ascending: true })
+      .then(function (res) {
+        return (res.data || []).map(function (h) {
+          return { id: h.id, from: h.from_status, to: h.to_status, note: h.note, at: tsObj(h.created_at) };
+        });
+      });
+  };
+
+  // 고객: 구매확정 / 주문취소 요청
+  Backend.confirmReceipt = function (orderNo) {
+    return sb.rpc('order_confirm_receipt', { p_order_no: orderNo }).then(rpcOut);
+  };
+  Backend.requestCancel = function (orderNo, reason) {
+    return sb.rpc('order_request_cancel', { p_order_no: orderNo, p_reason: reason || null }).then(rpcOut);
+  };
+
+  // 사진 업로드(교환/반품 첨부 등) → 공개 URL 배열
+  Backend.uploadPhotos = function (items, max) { return uploadPhotos(items, max || 5); };
+
+  // 고객: 교환/반품 신청
+  Backend.createReturn = function (data) {
+    return sb.rpc('order_create_return', {
+      p_order_no: data.orderNo,
+      p_type: data.type || 'return',
+      p_reason: data.reason || null,
+      p_detail: data.detail || null,
+      p_photos: data.photos || null
+    }).then(rpcOut);
+  };
+
+  function mapReturn(r) {
+    return {
+      id: r.id, orderId: r.order_id, customerId: r.customer_id,
+      rtype: r.rtype || 'return', reason: r.reason || '', detail: r.detail || '',
+      photos: r.photos || [], status: r.status || 'requested', adminMemo: r.admin_memo || '',
+      createdAt: tsObj(r.created_at), resolvedAt: r.resolved_at ? tsObj(r.resolved_at) : null
+    };
+  }
+  Backend.subscribeMyReturns = function (cb) {
+    if (!rawUser) { cb([]); return function () {}; }
+    var uid = rawUser.id;
+    function load() {
+      sb.from('return_requests').select('*').eq('customer_id', uid)
+        .order('created_at', { ascending: false })
+        .then(function (res) { cb((res.data || []).map(mapReturn)); });
+    }
+    load();
+    return channelRefetch('myreturns', ['return_requests'], load);
+  };
+
+  /* ----- 관리자: 주문/배송/교환반품 관리 ----- */
+  Backend.adminSubscribeOrders = function (filter, cb) {
+    if (!Backend.isAdmin()) { cb([]); return function () {}; }
+    function load() {
+      var q = sb.from('orders').select('*').order('created_at', { ascending: false }).limit(300);
+      if (filter) q = q.eq('status', filter);
+      q.then(function (res) { cb((res.data || []).map(mapOrder)); });
+    }
+    load();
+    return channelRefetch('adminorders' + (filter || 'all'), ['orders'], load);
+  };
+
+  // 상태 변경 (관리자 RLS 로 직접 update)
+  Backend.adminSetOrderStatus = function (orderId, status) {
+    return sb.from('orders').update({ status: status }).eq('id', orderId)
+      .then(function (res) { if (res.error) throw res.error; return true; });
+  };
+
+  // 운송장 입력(택배사+번호 저장). 상태 전환은 호출측에서 별도 처리.
+  Backend.adminSetTracking = function (orderId, courier, trackingNo) {
+    return sb.from('orders').update({ courier: courier || null, tracking_no: trackingNo || null }).eq('id', orderId)
+      .then(function (res) { if (res.error) throw res.error; return true; });
+  };
+
+  Backend.adminSetOrderMemo = function (orderId, memo) {
+    return sb.from('orders').update({ admin_memo: memo || null }).eq('id', orderId)
+      .then(function (res) { if (res.error) throw res.error; return true; });
+  };
+
+  // 환불 — Edge Function(cancel-payment)으로 토스 취소 + DB 갱신. 미배포 시 DB만 갱신.
+  Backend.adminRefund = function (order, reason) {
+    var PAY = window.BELLORE_PAYMENTS || {};
+    if (!PAY.cancelUrl) {
+      return sb.from('orders').update({
+        status: 'refunded', refund_amount: order.amount, cancel_reason: reason || order.cancelReason || null
+      }).eq('id', order.id).then(function (res) {
+        if (res.error) throw res.error; return { ok: true, demo: true };
+      });
+    }
+    return sb.auth.getSession().then(function (s) {
+      var token = (s && s.data && s.data.session && s.data.session.access_token) || CFG.anonKey;
+      return fetch(PAY.cancelUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token,
+          'apikey': CFG.anonKey
+        },
+        body: JSON.stringify({ orderNo: order.orderNo, reason: reason || '관리자 환불' })
+      }).then(function (r) { return r.json(); });
+    });
+  };
+
+  // 교환/반품 목록(관리자)
+  Backend.adminSubscribeReturns = function (cb) {
+    if (!Backend.isAdmin()) { cb([]); return function () {}; }
+    function load() {
+      sb.from('return_requests').select('*').order('created_at', { ascending: false }).limit(300)
+        .then(function (res) { cb((res.data || []).map(mapReturn)); });
+    }
+    load();
+    return channelRefetch('adminreturns', ['return_requests'], load);
+  };
+  Backend.adminResolveReturn = function (id, status, memo) {
+    var patch = { status: status };
+    if (memo != null) patch.admin_memo = memo;
+    if (status === 'done' || status === 'rejected') patch.resolved_at = new Date().toISOString();
+    return sb.from('return_requests').update(patch).eq('id', id)
+      .then(function (res) { if (res.error) throw res.error; return true; });
+  };
+
   // 관리자 마이페이지 현황 요약
   Backend.adminSummary = function () {
     function c(q) { return q.then(function (r) { return r.count || 0; }, function () { return 0; }); }
@@ -1272,9 +1427,13 @@
       c(sb.from('listings').select('*', { count: 'exact', head: true })),
       c(sb.from('community_posts').select('*', { count: 'exact', head: true })),
       c(sb.from('reviews').select('*', { count: 'exact', head: true })),
-      c(sb.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'vendor').eq('approved', false))
+      c(sb.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'vendor').eq('approved', false)),
+      // 처리 대기 주문(검수/준비/취소요청)
+      c(sb.from('orders').select('*', { count: 'exact', head: true }).in('status', ['paid', 'inspecting', 'preparing', 'cancel_req'])),
+      // 미처리 교환/반품
+      c(sb.from('return_requests').select('*', { count: 'exact', head: true }).in('status', ['requested', 'approved', 'collecting']))
     ]).then(function (r) {
-      return { pending: r[0], open: r[1], listings: r[2], posts: r[3], reviews: r[4], vendorsPending: r[5] };
+      return { pending: r[0], open: r[1], listings: r[2], posts: r[3], reviews: r[4], vendorsPending: r[5], ordersPending: r[6], returnsPending: r[7] };
     });
   };
 

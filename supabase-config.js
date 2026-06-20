@@ -40,6 +40,8 @@ window.BELLORE_PAYMENTS = {
   clientKey: "test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm",
   // 결제 승인 검증 Edge Function (배포 후 활성화). 비워두면 데모 승인.
   confirmUrl: "https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/confirm-payment",
+  // 결제 취소/환불 Edge Function (배포 후 활성화). 비워두면 DB 상태만 변경.
+  cancelUrl: "https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/cancel-payment",
   // 예약금(계약금) 비율 — 상품가의 몇 %를 선결제로 받을지
   depositRate: 0.10,
   // 예약금 최소/최대 한도(원)

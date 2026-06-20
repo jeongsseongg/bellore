@@ -59,6 +59,8 @@
         initReveal();
         initParallax();
         initCoupons();
+        initOrderUI();
+        initAdminOrderUI();
         initAdminDashboard();
         initBackendSync();
         initInstallPrompt();
@@ -260,7 +262,34 @@
     var myOrdersUnsub = null;
     var myOrdersCache = [];
     var ordersFilter = '';
-    var O_LABEL = { pending: '결제대기', paid: '결제완료', preparing: '상품준비중', shipping: '배송중', delivered: '배송완료', cancelled: '주문취소', refunded: '환불완료' };
+    var O_LABEL = {
+        pending: '결제대기', paid: '결제완료', inspecting: '정품검수', preparing: '상품준비중',
+        shipping: '배송중', delivered: '배송완료', confirmed: '구매확정',
+        cancel_req: '취소요청', canceled: '주문취소', cancelled: '주문취소', refunded: '환불완료',
+        return_req: '반품요청', exchange_req: '교환요청', returning: '회수중'
+    };
+    // 정상 진행 단계(타임라인)
+    var O_FLOW = ['paid', 'inspecting', 'preparing', 'shipping', 'delivered', 'confirmed'];
+    var O_FLOW_LABEL = { paid: '결제완료', inspecting: '정품검수', preparing: '상품준비', shipping: '배송중', delivered: '배송완료', confirmed: '구매확정' };
+    // 택배사 배송조회 URL
+    var COURIERS = {
+        'CJ대한통운': 'https://trace.cjlogistics.com/next/tracking.html?wblNo=',
+        '한진택배': 'https://www.hanjin.com/kor/CMS/DeliveryMgr/WaybillResult.do?mCode=MN038&schLang=KR&wblnumText2=',
+        '롯데택배': 'https://www.lotteglogis.com/home/reservation/tracking/linkView?InvNo=',
+        '우체국택배': 'https://service.epost.go.kr/trace.RetrieveDomRigiTraceList.comm?sid1=',
+        '로젠택배': 'https://www.ilogen.com/web/personal/trace/'
+    };
+    function trackUrl(courier, no) {
+        var base = COURIERS[courier];
+        return base ? (base + encodeURIComponent(no || '')) : '';
+    }
+    function fmtDate(ts) {
+        var ms = ts && ts.seconds ? ts.seconds * 1000 : 0;
+        if (!ms) return '';
+        var d = new Date(ms);
+        function p(n) { return n < 10 ? '0' + n : '' + n; }
+        return d.getFullYear() + '.' + p(d.getMonth() + 1) + '.' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+    }
     function openOrdersList(status) {
         ordersFilter = status || '';
         var m = $('#ordersModal'); if (!m) return;
@@ -288,7 +317,7 @@
             var st = o.status || 'pending';
             var unpaid = st === 'pending'
                 ? '<button type="button" class="order-pay" data-opay="' + esc(o.orderNo) + '">입금 안내</button>' : '';
-            return '<div class="order-row">' +
+            return '<div class="order-row" data-oview="' + esc(o.orderNo) + '">' +
                 '<div class="order-thumb"><img src="' + esc(img) + '" alt=""></div>' +
                 '<div class="order-main">' +
                     (o.productBrand ? '<p class="order-brand">' + esc(o.productBrand) + '</p>' : '') +
@@ -363,9 +392,13 @@
                 if (tab) { openOrdersList(tab.dataset.ofilter || ''); return; }
                 var pay = e.target.closest('[data-opay]');
                 if (pay) {
+                    e.stopPropagation();
                     alert('입금 안내\n\n주문번호 ' + pay.dataset.opay + '\n결제/입금은 카카오톡 상담으로 도와드립니다.');
                     window.open('https://open.kakao.com/o/sMuCaAFh', '_blank');
+                    return;
                 }
+                var view = e.target.closest('[data-oview]');
+                if (view) { openOrderDetail(view.dataset.oview); return; }
             });
         }
     }
@@ -1158,6 +1191,314 @@
         });
     }
 
+    /* ============ 주문 상세 (고객) ============ */
+    var _orderCache = null;        // 현재 보고 있는 주문
+    var _returnOrder = null;       // 교환/반품 대상 주문
+    var _orderBound = false;
+
+    function setBodyScrollLock(on) { document.body.style.overflow = on ? 'hidden' : ''; }
+
+    function orderTimelineHtml(o) {
+        var stamp = { paid: o.paidAt, shipping: o.shippedAt, delivered: o.deliveredAt, confirmed: o.confirmedAt };
+        var idx = O_FLOW.indexOf(o.status);
+        // 비정상 상태(취소/반품 등)는 진행바 대신 안내만
+        var abnormal = idx < 0;
+        return '<ol class="op-timeline' + (abnormal ? ' op-timeline--off' : '') + '">' +
+            O_FLOW.map(function (st, i) {
+                var done = !abnormal && i <= idx;
+                var dt = stamp[st] ? fmtDate(stamp[st]) : '';
+                return '<li class="' + (done ? 'on' : '') + '"><span class="op-dot"></span>' +
+                    '<span class="op-step">' + O_FLOW_LABEL[st] + (dt ? '<em>' + dt + '</em>' : '') + '</span></li>';
+            }).join('') + '</ol>';
+    }
+
+    function orderActionsHtml(o) {
+        var btns = [];
+        if (o.status === 'delivered') btns.push('<button class="op-btn op-btn--main" data-oconfirm>구매확정</button>');
+        if (['delivered', 'confirmed'].indexOf(o.status) >= 0) btns.push('<button class="op-btn" data-oreturn>교환 · 반품</button>');
+        if (['pending', 'paid', 'inspecting', 'preparing'].indexOf(o.status) >= 0) btns.push('<button class="op-btn op-btn--danger" data-ocancel>주문취소</button>');
+        return btns.join('');
+    }
+
+    function renderOrderDetail(o) {
+        _orderCache = o;
+        var body = $('#orderPageBody'); if (!body) return;
+        var img = o.productImage || 'assets/images.jpg';
+        var st = o.status || 'pending';
+        var addr = o.shipAddr1 ? (esc(o.shipAddr1) + ' ' + esc(o.shipAddr2 || '')) : '';
+        var track = (o.courier && o.trackingNo) ? trackUrl(o.courier, o.trackingNo) : '';
+
+        var html = '' +
+            '<div class="op-head">' +
+                '<div class="op-thumb"><img src="' + esc(img) + '" alt=""></div>' +
+                '<div class="op-headinfo">' +
+                    (o.productBrand ? '<p class="op-brand">' + esc(o.productBrand) + '</p>' : '') +
+                    '<p class="op-name">' + esc(o.productName || '상품') + '</p>' +
+                    '<span class="order-badge order-badge--' + st + '">' + (O_LABEL[st] || st) + '</span>' +
+                '</div>' +
+            '</div>' +
+            orderTimelineHtml(o) +
+            '<div class="op-sec"><h4>결제 정보</h4>' +
+                '<div class="op-row"><span>주문번호</span><b>' + esc(o.orderNo) + '</b></div>' +
+                '<div class="op-row"><span>주문일시</span><b>' + (fmtDate(o.createdAt) || '-') + '</b></div>' +
+                '<div class="op-row"><span>결제방식</span><b>' + (o.payType === 'full' ? '전액 결제' : '예약금 결제') + '</b></div>' +
+                (o.discount ? '<div class="op-row"><span>쿠폰할인</span><b>-' + fmt(o.discount) + '원</b></div>' : '') +
+                '<div class="op-row op-row--total"><span>결제금액</span><b>' + fmt(o.amount) + '원</b></div>' +
+                (o.receiptUrl ? '<a class="op-receipt" href="' + esc(o.receiptUrl) + '" target="_blank" rel="noopener">영수증 보기</a>' : '') +
+            '</div>' +
+            (addr ?
+            '<div class="op-sec"><h4>배송지</h4>' +
+                '<div class="op-row"><span>받는 분</span><b>' + esc(o.shipRecipient || o.buyerName || '') + '</b></div>' +
+                '<div class="op-row"><span>연락처</span><b>' + esc(o.shipPhone || o.buyerPhone || '') + '</b></div>' +
+                '<div class="op-row"><span>주소</span><b>(' + esc(o.shipPostcode || '') + ') ' + addr + '</b></div>' +
+                (o.shipRequest ? '<div class="op-row"><span>요청사항</span><b>' + esc(o.shipRequest) + '</b></div>' : '') +
+            '</div>' : '') +
+            ((o.courier || o.trackingNo) ?
+            '<div class="op-sec"><h4>배송 조회</h4>' +
+                '<div class="op-row"><span>택배사</span><b>' + esc(o.courier || '-') + '</b></div>' +
+                '<div class="op-row"><span>운송장</span><b>' + esc(o.trackingNo || '-') + '</b></div>' +
+                (track ? '<a class="op-track" href="' + track + '" target="_blank" rel="noopener">배송 조회하기</a>' :
+                    (o.trackingNo ? '<p class="op-track-note">' + esc(o.courier || '') + ' 고객센터로 조회해 주세요.</p>' : '')) +
+            '</div>' : '') +
+            (o.cancelReason ? '<div class="op-sec"><h4>취소/반품 사유</h4><p class="op-memo">' + esc(o.cancelReason) + '</p></div>' : '');
+
+        body.innerHTML = html;
+        var act = $('#orderPageActions');
+        if (act) act.innerHTML = orderActionsHtml(o);
+    }
+
+    function openOrderDetail(orderNo) {
+        var pg = $('#orderPage'); if (!pg) return;
+        var cached = myOrdersCache.filter(function (x) { return x.orderNo === orderNo; })[0];
+        if (cached) renderOrderDetail(cached);
+        pg.hidden = false; setBodyScrollLock(true);
+        var sc = pg.querySelector('.pp-scroll'); if (sc) sc.scrollTop = 0;
+        // 최신 데이터로 갱신
+        if (backendOn() && NWBackend.getOrder) {
+            NWBackend.getOrder(orderNo).then(renderOrderDetail).catch(function () {});
+        }
+    }
+    function closeOrderDetail() { var pg = $('#orderPage'); if (pg) pg.hidden = true; setBodyScrollLock(true); }
+
+    /* ============ 교환/반품 신청 (고객) ============ */
+    var _rpFiles = [];
+    function openReturnPage(o) {
+        _returnOrder = o; _rpFiles = [];
+        var pg = $('#returnPage'); if (!pg) return;
+        var info = $('#rpOrderInfo');
+        if (info) info.innerHTML = '<p class="rp-pn">' + esc(o.productName || '상품') + '</p>' +
+            '<p class="rp-on">' + esc(o.orderNo) + ' · ' + fmt(o.amount) + '원</p>';
+        var rd = $('#rpDetail'); if (rd) rd.value = '';
+        var th = $('#rpThumbs'); if (th) th.innerHTML = '';
+        var fp = $('#rpPhotos'); if (fp) fp.value = '';
+        var rt = pg.querySelector('input[name="rp_type"][value="return"]'); if (rt) rt.checked = true;
+        pg.hidden = false; setBodyScrollLock(true);
+        var sc = pg.querySelector('.pp-scroll'); if (sc) sc.scrollTop = 0;
+    }
+    function closeReturnPage() { var pg = $('#returnPage'); if (pg) pg.hidden = true; setBodyScrollLock(true); }
+
+    function initOrderUI() {
+        if (_orderBound) return; _orderBound = true;
+        document.addEventListener('click', function (e) {
+            if (e.target.closest('[data-opclose]')) { closeOrderDetail(); return; }
+            if (e.target.closest('[data-rpclose]')) { closeReturnPage(); return; }
+            // 구매확정
+            if (e.target.closest('[data-oconfirm]')) {
+                if (!_orderCache) return;
+                if (!confirm('구매를 확정하시겠어요? 확정 후에는 교환/반품이 제한될 수 있습니다.')) return;
+                NWBackend.confirmReceipt(_orderCache.orderNo).then(function () {
+                    alert('구매가 확정되었습니다.'); return NWBackend.getOrder(_orderCache.orderNo).then(renderOrderDetail);
+                }).catch(function () { alert('처리에 실패했습니다. 잠시 후 다시 시도해 주세요.'); });
+                return;
+            }
+            // 주문취소
+            if (e.target.closest('[data-ocancel]')) {
+                if (!_orderCache) return;
+                var reason = prompt('주문을 취소합니다. 사유를 입력해 주세요.', '단순 변심');
+                if (reason === null) return;
+                NWBackend.requestCancel(_orderCache.orderNo, reason).then(function (newSt) {
+                    alert(newSt === 'canceled' ? '주문이 취소되었습니다.' : '취소 요청이 접수되었습니다. 환불은 확인 후 진행됩니다.');
+                    return NWBackend.getOrder(_orderCache.orderNo).then(renderOrderDetail);
+                }).catch(function (err) {
+                    var m = (err && (err.message || err.code)) || '';
+                    alert(/BAD_STATE/.test(m) ? '현재 단계에서는 취소할 수 없습니다. 교환·반품을 이용해 주세요.' : '취소에 실패했습니다.');
+                });
+                return;
+            }
+            // 교환/반품 열기
+            if (e.target.closest('[data-oreturn]')) {
+                if (_orderCache) openReturnPage(_orderCache);
+                return;
+            }
+        });
+
+        // 반품 사진 선택
+        var fp = $('#rpPhotos');
+        if (fp) fp.addEventListener('change', function () {
+            _rpFiles = Array.prototype.slice.call(fp.files || []).slice(0, 5);
+            var th = $('#rpThumbs');
+            if (th) th.innerHTML = _rpFiles.map(function (f) {
+                return '<span class="rp-thumb">' + esc(f.name) + '</span>';
+            }).join('');
+        });
+
+        // 반품 제출
+        var sub = $('#rpSubmit');
+        if (sub) sub.addEventListener('click', function () {
+            if (!_returnOrder) return;
+            var pg = $('#returnPage');
+            var type = (pg.querySelector('input[name="rp_type"]:checked') || {}).value || 'return';
+            var reason = ($('#rpReason').value) || '';
+            var detail = ($('#rpDetail').value || '').trim();
+            sub.disabled = true; sub.textContent = '접수 중...';
+            var up = (_rpFiles.length && NWBackend.uploadPhotos)
+                ? NWBackend.uploadPhotos(_rpFiles, 5) : Promise.resolve([]);
+            up.then(function (photos) {
+                return NWBackend.createReturn({ orderNo: _returnOrder.orderNo, type: type, reason: reason, detail: detail, photos: photos });
+            }).then(function () {
+                alert('접수되었습니다. 확인 후 회수 안내를 드리겠습니다.');
+                closeReturnPage();
+                if (_orderCache) NWBackend.getOrder(_orderCache.orderNo).then(renderOrderDetail).catch(function () {});
+            }).catch(function (err) {
+                var m = (err && (err.message || err.code)) || '';
+                alert(/BAD_STATE/.test(m) ? '배송완료 후에만 신청할 수 있습니다.' : '접수에 실패했습니다. 다시 시도해 주세요.');
+            }).then(function () { sub.disabled = false; sub.textContent = '신청하기'; });
+        });
+    }
+
+    /* ============ 관리자: 주문/배송 관리 ============ */
+    var _aOrdersUnsub = null, _aOrdersCache = [], _aOrderFilter = '';
+    var _aReturnsUnsub = null, _aReturnsCache = [];
+    var _aOrderEditing = null, _adminOrderBound = false;
+    var ADMIN_STATUSES = ['paid', 'inspecting', 'preparing', 'shipping', 'delivered', 'confirmed', 'cancel_req', 'canceled', 'refunded'];
+
+    function renderAdminOrders() {
+        var box = $('#adminOrderList'); if (!box) return;
+        var rows = _aOrderFilter ? _aOrdersCache.filter(function (o) { return o.status === _aOrderFilter; }) : _aOrdersCache;
+        if (!rows.length) { box.innerHTML = '<p class="admin-empty">해당 주문이 없습니다.</p>'; return; }
+        box.innerHTML = rows.map(function (o) {
+            var st = o.status || 'pending';
+            return '<button type="button" class="aord-card" data-aoedit="' + esc(o.orderNo) + '">' +
+                '<div class="aord-main"><b>' + esc(o.productName || '상품') + '</b>' +
+                '<span>' + esc(o.orderNo) + ' · ' + (fmtDate(o.createdAt) || '') + '</span>' +
+                '<span>' + esc(o.buyerName || '') + ' · ' + fmt(o.amount) + '원</span></div>' +
+                '<span class="order-badge order-badge--' + st + '">' + (O_LABEL[st] || st) + '</span>' +
+                '</button>';
+        }).join('');
+    }
+
+    function renderAdminOrderEditor(o) {
+        _aOrderEditing = o;
+        var body = $('#adminOrderBody'); if (!body) return;
+        var addr = o.shipAddr1 ? ('(' + esc(o.shipPostcode || '') + ') ' + esc(o.shipAddr1) + ' ' + esc(o.shipAddr2 || '')) : '미입력';
+        body.innerHTML = '' +
+            '<div class="op-sec"><h4>' + esc(o.productName || '상품') + '</h4>' +
+                '<div class="op-row"><span>주문번호</span><b>' + esc(o.orderNo) + '</b></div>' +
+                '<div class="op-row"><span>주문자</span><b>' + esc(o.buyerName || '') + ' / ' + esc(o.buyerPhone || '') + '</b></div>' +
+                '<div class="op-row"><span>결제금액</span><b>' + fmt(o.amount) + '원 (' + (o.payType === 'full' ? '전액' : '예약금') + ')</b></div>' +
+                '<div class="op-row"><span>배송지</span><b>' + addr + '</b></div>' +
+                (o.shipRequest ? '<div class="op-row"><span>요청</span><b>' + esc(o.shipRequest) + '</b></div>' : '') +
+            '</div>' +
+            '<div class="cp-field"><label>주문 상태</label><select id="aopStatus">' +
+                ADMIN_STATUSES.map(function (s) { return '<option value="' + s + '"' + (s === o.status ? ' selected' : '') + '>' + (O_LABEL[s] || s) + '</option>'; }).join('') +
+            '</select></div>' +
+            '<div class="cp-field"><label>택배사</label><select id="aopCourier">' +
+                '<option value="">선택</option>' +
+                Object.keys(COURIERS).map(function (c) { return '<option value="' + c + '"' + (c === o.courier ? ' selected' : '') + '>' + c + '</option>'; }).join('') +
+            '</select></div>' +
+            '<div class="cp-field"><label>운송장번호 <em class="cp-hint">입력 시 자동으로 배송중 처리</em></label>' +
+                '<input type="text" id="aopTracking" value="' + esc(o.trackingNo || '') + '" placeholder="숫자만"></div>' +
+            '<div class="cp-field"><label>관리자 메모</label><textarea id="aopMemo" rows="2">' + esc(o.adminMemo || '') + '</textarea></div>' +
+            '<button type="button" class="cp-del-btn" id="aopRefund">결제 취소 / 환불</button>';
+    }
+
+    function openAdminOrderPage(orderNo) {
+        var o = _aOrdersCache.filter(function (x) { return x.orderNo === orderNo; })[0];
+        if (!o) return;
+        renderAdminOrderEditor(o);
+        var pg = $('#adminOrderPage'); if (!pg) return;
+        pg.hidden = false; setBodyScrollLock(true);
+        var sc = pg.querySelector('.pp-scroll'); if (sc) sc.scrollTop = 0;
+    }
+    function closeAdminOrderPage() { var pg = $('#adminOrderPage'); if (pg) pg.hidden = true; setBodyScrollLock(true); }
+
+    var RR_LABEL = { requested: '접수', approved: '승인', rejected: '거절', collecting: '회수중', done: '완료' };
+    function renderAdminReturns() {
+        var box = $('#adminReturnList'); if (!box) return;
+        if (!_aReturnsCache.length) { box.innerHTML = '<p class="admin-empty">교환/반품 요청이 없습니다.</p>'; return; }
+        box.innerHTML = _aReturnsCache.map(function (r) {
+            var ord = _aOrdersCache.filter(function (o) { return o.id === r.orderId; })[0];
+            var photos = (r.photos || []).map(function (u) { return '<a href="' + esc(u) + '" target="_blank" rel="noopener" class="rr-ph"><img src="' + esc(u) + '"></a>'; }).join('');
+            return '<div class="rr-card" data-rr="' + esc(r.id) + '">' +
+                '<div class="rr-top"><b>' + (r.rtype === 'exchange' ? '교환' : '반품') + '</b>' +
+                '<span class="rr-st rr-st--' + r.status + '">' + (RR_LABEL[r.status] || r.status) + '</span></div>' +
+                '<p class="rr-pn">' + esc(ord ? ord.productName : '') + '</p>' +
+                '<p class="rr-reason">' + esc(r.reason || '') + (r.detail ? ' · ' + esc(r.detail) : '') + '</p>' +
+                (photos ? '<div class="rr-photos">' + photos + '</div>' : '') +
+                '<div class="rr-acts">' +
+                    '<button type="button" data-rract="approved" data-rrid="' + esc(r.id) + '">승인</button>' +
+                    '<button type="button" data-rract="collecting" data-rrid="' + esc(r.id) + '">회수중</button>' +
+                    '<button type="button" data-rract="done" data-rrid="' + esc(r.id) + '">완료</button>' +
+                    '<button type="button" class="rr-rej" data-rract="rejected" data-rrid="' + esc(r.id) + '">거절</button>' +
+                '</div></div>';
+        }).join('');
+    }
+
+    function initAdminOrderUI() {
+        if (_adminOrderBound) return; _adminOrderBound = true;
+        // 주문 카드 클릭 → 편집 / 상태탭 / 저장 / 환불
+        document.addEventListener('click', function (e) {
+            if (e.target.closest('[data-aopclose]')) { closeAdminOrderPage(); return; }
+            var card = e.target.closest('[data-aoedit]');
+            if (card) { openAdminOrderPage(card.dataset.aoedit); return; }
+            var tab = e.target.closest('#aordTabs [data-aord]');
+            if (tab) {
+                _aOrderFilter = tab.dataset.aord || '';
+                $$('#aordTabs .cpadm-tab').forEach(function (t) { t.classList.toggle('on', t === tab); });
+                renderAdminOrders(); return;
+            }
+            if (e.target.closest('#aopRefund')) {
+                if (!_aOrderEditing) return;
+                if (!confirm('이 주문을 환불 처리할까요? 토스 결제건은 실제 취소가 진행됩니다.')) return;
+                NWBackend.adminRefund(_aOrderEditing, '관리자 환불').then(function (res) {
+                    if (res && (res.ok || res.alreadyRefunded)) { alert('환불 처리되었습니다.'); closeAdminOrderPage(); }
+                    else alert('환불 실패: ' + ((res && res.error) || '알 수 없는 오류'));
+                }).catch(function () { alert('환불 처리 중 오류가 발생했습니다.'); });
+                return;
+            }
+            // 교환/반품 처리
+            var rract = e.target.closest('[data-rract]');
+            if (rract) {
+                var id = rract.dataset.rrid, act = rract.dataset.rract;
+                var memo = (act === 'rejected') ? prompt('거절 사유(선택)', '') : null;
+                NWBackend.adminResolveReturn(id, act, memo).catch(function () { alert('처리 실패'); });
+                return;
+            }
+        });
+        // 저장(상태/운송장/메모)
+        var save = $('#aopSave');
+        if (save) save.addEventListener('click', function () {
+            if (!_aOrderEditing) return;
+            var o = _aOrderEditing, id = o.id;
+            var status = $('#aopStatus').value;
+            var courier = $('#aopCourier').value;
+            var tracking = ($('#aopTracking').value || '').trim();
+            var memo = ($('#aopMemo').value || '').trim();
+            // 운송장을 새로 넣었는데 상태를 안 바꿨고 아직 배송 전이면 자동으로 배송중 처리
+            if (tracking && status === o.status && ['shipping', 'delivered', 'confirmed'].indexOf(status) < 0) {
+                status = 'shipping';
+            }
+            save.disabled = true; save.textContent = '저장 중...';
+            // 순차 처리: 메모 → 운송장 → 상태(상태가 마지막에 적용되어 우선)
+            var p = NWBackend.adminSetOrderMemo(id, memo);
+            p = p.then(function () { return NWBackend.adminSetTracking(id, courier, tracking); });
+            p = p.then(function () { return NWBackend.adminSetOrderStatus(id, status); });
+            p.then(function () { alert('저장되었습니다.'); closeAdminOrderPage(); })
+             .catch(function () { alert('저장에 실패했습니다.'); })
+             .then(function () { save.disabled = false; save.textContent = '저장'; });
+        });
+    }
+
     /* ============ 관리자 대시보드 / 관리 패널 ============ */
     var _adminCache = { pending: [], vendors: [] };
     function renderAdminDash() {
@@ -1181,6 +1522,8 @@
         NWBackend.adminSummary().then(function (s) {
             setBadge('#amrQuotes', s.pending);
             setBadge('#amrVendors', s.vendorsPending);
+            setBadge('#amrOrders', s.ordersPending);
+            setBadge('#amrReturns', s.returnsPending);
         }).catch(function () {});
     }
     function setBadge(sel, n) {
@@ -1193,13 +1536,31 @@
         var p = $('#adminPanel');
         if (!p) return;
         $$('.admin-panel-view', p).forEach(function (sec) { sec.hidden = sec.dataset.apv !== view; });
-        var titles = { quotes: '비교견적 승인', vendors: '업체 승인', accounts: '회원 계정', coupons: '쿠폰 관리', listings: '판매시계 관리' };
+        var titles = { quotes: '비교견적 승인', vendors: '업체 승인', accounts: '회원 계정', coupons: '쿠폰 관리', listings: '판매시계 관리', orders: '주문 · 배송 관리', returns: '교환 · 반품 관리' };
         var t = $('#adminPanelTitle'); if (t) t.textContent = titles[view] || '관리';
         // 패널을 열 때 항목을 즉시 다시 그려, 첫 진입에서 빈 화면이 보이지 않게 한다
         // (구독이 비동기로 들어오는 사이 들어와도 캐시로 바로 채움)
         if (view === 'quotes') renderAdminPending(_adminCache.pending);
         else if (view === 'vendors') renderVendorList(_adminCache.vendors);
         else if (view === 'coupons') renderAdminCoupons();
+        else if (view === 'orders') {
+            renderAdminOrders();
+            if (backendOn() && NWBackend.adminSubscribeOrders) {
+                if (_aOrdersUnsub) { try { _aOrdersUnsub(); } catch (e) {} }
+                _aOrdersUnsub = NWBackend.adminSubscribeOrders('', function (list) { _aOrdersCache = list || []; renderAdminOrders(); });
+            }
+        }
+        else if (view === 'returns') {
+            renderAdminReturns();
+            if (backendOn() && NWBackend.adminSubscribeReturns) {
+                if (_aReturnsUnsub) { try { _aReturnsUnsub(); } catch (e) {} }
+                _aReturnsUnsub = NWBackend.adminSubscribeReturns(function (list) { _aReturnsCache = list || []; renderAdminReturns(); });
+                // 반품 카드에 상품명을 보여주려면 주문 캐시도 필요
+                if (NWBackend.adminSubscribeOrders && !_aOrdersCache.length) {
+                    NWBackend.adminSubscribeOrders('', function (list) { _aOrdersCache = list || []; renderAdminReturns(); });
+                }
+            }
+        }
         p.hidden = false; document.body.style.overflow = 'hidden';
         var sc = $('.admin-panel-scroll', p); if (sc) sc.scrollTop = 0;
     }

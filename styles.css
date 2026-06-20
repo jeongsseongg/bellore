@@ -7171,8 +7171,90 @@ body.is-searching .tabbar { display: none !important; }
 .order-badge--preparing { background: #efeaff; color: #6a45c8; }
 .order-badge--shipping { background: #e6f6ee; color: #1b8f5a; }
 .order-badge--delivered { background: #eaeaea; color: #555; }
-.order-badge--cancelled, .order-badge--refunded { background: #fdecec; color: #c0392b; }
+.order-badge--cancelled, .order-badge--canceled, .order-badge--refunded, .order-badge--cancel_req,
+.order-badge--return_req, .order-badge--exchange_req, .order-badge--returning { background: #fdecec; color: #c0392b; }
+.order-badge--inspecting { background: #fff3da; color: #9a6b00; }
+.order-badge--confirmed { background: #e6f6ee; color: #157a4c; }
 .order-amt { font-size: 13.5px; font-weight: 900; color: var(--text, #161616); }
+
+/* ===== 체크아웃: 배송지 ===== */
+.co-addr-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.co-addr-row input { flex: 1; }
+.co-addr-btn { flex: 0 0 auto; background: #161616; color: #fff; border: none; border-radius: 10px; padding: 0 14px; font-size: 13px; font-weight: 800; cursor: pointer; font-family: inherit; }
+#coAddr1 { margin-bottom: 8px; }
+.co-ship-note { margin: 8px 0 0; font-size: 12px; color: var(--text-2, #777); }
+
+/* ===== 주문 상세 (고객) ===== */
+.op-page .pp-scroll { padding: 16px; }
+.op-head { display: flex; gap: 12px; align-items: center; margin-bottom: 18px; }
+.op-thumb { width: 72px; height: 72px; border-radius: 12px; overflow: hidden; flex: 0 0 auto; background: #f3f1ec; }
+.op-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.op-brand { font-size: 12px; color: var(--text-2, #888); margin: 0 0 2px; }
+.op-name { font-size: 15px; font-weight: 800; margin: 0 0 6px; line-height: 1.3; }
+.op-timeline { list-style: none; margin: 0 0 18px; padding: 14px 4px; display: flex; justify-content: space-between; position: relative; }
+.op-timeline::before { content: ''; position: absolute; left: 22px; right: 22px; top: 20px; height: 2px; background: #e8e6df; }
+.op-timeline li { position: relative; flex: 1; text-align: center; z-index: 1; }
+.op-dot { display: block; width: 12px; height: 12px; border-radius: 50%; background: #e0ddd4; margin: 0 auto 8px; border: 2px solid #fff; }
+.op-timeline li.on .op-dot { background: #161616; }
+.op-step { font-size: 10.5px; color: var(--text-2, #999); line-height: 1.3; }
+.op-timeline li.on .op-step { color: var(--text, #161616); font-weight: 700; }
+.op-step em { display: block; font-style: normal; font-size: 9px; color: #aaa; margin-top: 2px; }
+.op-timeline--off { opacity: .45; }
+.op-sec { border-top: 1px solid #efece5; padding: 16px 0; }
+.op-sec:first-of-type { border-top: none; }
+.op-sec h4 { font-size: 13px; font-weight: 800; margin: 0 0 10px; }
+.op-row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; margin-bottom: 7px; }
+.op-row span { color: var(--text-2, #888); flex: 0 0 auto; }
+.op-row b { text-align: right; font-weight: 600; }
+.op-row--total b { font-size: 15px; font-weight: 900; }
+.op-receipt, .op-track { display: inline-block; margin-top: 6px; font-size: 12.5px; font-weight: 800; color: #1b5fc4; text-decoration: underline; }
+.op-track { margin-top: 10px; background: #161616; color: #fff; border-radius: 10px; padding: 9px 14px; text-decoration: none; }
+.op-track-note, .op-memo { font-size: 12.5px; color: var(--text-2, #777); margin: 4px 0 0; }
+.op-actions { display: flex; gap: 8px; }
+.op-btn { flex: 1; padding: 13px; border-radius: 12px; border: 1px solid #ddd9d0; background: #fff; font-size: 14px; font-weight: 800; cursor: pointer; font-family: inherit; }
+.op-btn--main { background: #161616; color: #fff; border-color: #161616; }
+.op-btn--danger { color: #c0392b; border-color: #f0c7c2; }
+
+/* ===== 교환/반품 신청 ===== */
+.rp-order { background: #f7f5f0; border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; }
+.rp-pn { font-size: 14px; font-weight: 800; margin: 0 0 3px; }
+.rp-on { font-size: 12px; color: var(--text-2, #888); margin: 0; }
+.rp-typepick { margin-bottom: 16px; }
+.rp-note { font-size: 12px; color: var(--text-2, #888); line-height: 1.5; margin-top: 12px; }
+.rp-thumbs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.rp-thumb { font-size: 11px; background: #f1efe9; border-radius: 6px; padding: 3px 8px; color: var(--text-2, #777); }
+
+/* ===== 관리자: 주문/배송 ===== */
+.aord-tabs { overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+.aord-list { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.aord-card { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: #fff; border: 1px solid #ece9e2; border-radius: 12px; padding: 12px 14px; cursor: pointer; font-family: inherit; }
+.aord-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.aord-main b { font-size: 14px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aord-main span { font-size: 11.5px; color: var(--text-2, #888); }
+.admin-empty { text-align: center; color: var(--text-2, #999); font-size: 13px; padding: 40px 0; }
+.cp-hint { font-style: normal; font-weight: 500; font-size: 11px; color: var(--text-2, #999); }
+.cp-field { margin-bottom: 14px; }
+.cp-field > label { display: block; font-size: 13px; color: var(--text-2, #555); margin-bottom: 6px; font-weight: 600; }
+.rp-page select, .rp-page input, .rp-page textarea,
+.aop-page select, .aop-page input, .aop-page textarea { width: 100%; border: 1px solid #ddd9d0; border-radius: 10px; padding: 11px 12px; font-size: 14px; font-family: inherit; box-sizing: border-box; background: #fff; }
+.rp-page .pp-scroll, .aop-page .pp-scroll { padding: 16px; }
+
+/* 교환/반품 카드 */
+.rr-card { background: #fff; border: 1px solid #ece9e2; border-radius: 12px; padding: 14px; }
+.rr-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.rr-top b { font-size: 14px; font-weight: 900; }
+.rr-st { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; background: #f1efe9; color: #555; }
+.rr-st--requested { background: #fdeccf; color: #9a6b00; }
+.rr-st--approved, .rr-st--collecting { background: #e7f0ff; color: #1b5fc4; }
+.rr-st--done { background: #e6f6ee; color: #157a4c; }
+.rr-st--rejected { background: #fdecec; color: #c0392b; }
+.rr-pn { font-size: 13px; font-weight: 700; margin: 0 0 3px; }
+.rr-reason { font-size: 12.5px; color: var(--text-2, #777); margin: 0 0 8px; }
+.rr-photos { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.rr-ph img { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; }
+.rr-acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.rr-acts button { flex: 1; min-width: 60px; padding: 8px; border-radius: 9px; border: 1px solid #ddd9d0; background: #fff; font-size: 12px; font-weight: 800; cursor: pointer; font-family: inherit; }
+.rr-acts .rr-rej { color: #c0392b; border-color: #f0c7c2; }
 .order-pay { margin-top: 2px; background: #161616; color: #fff; border: none; border-radius: 999px; padding: 5px 11px; font-size: 11px; font-weight: 800; cursor: pointer; font-family: inherit; }
 .pocket-status .ps-cell { background: none; border: none; cursor: pointer; font-family: inherit; padding: 4px 2px; text-align: center; border-radius: 10px; transition: background .15s; }
 .pocket-status .ps-cell:active { background: var(--bg-soft, #f1efe9); }

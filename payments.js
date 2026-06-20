@@ -55,7 +55,25 @@
     Array.prototype.forEach.call(btns, function (b) {
       b.classList.toggle('active', b.dataset.pt === t);
     });
+    // 전액 결제일 때만 배송지 입력 노출(예약금은 매장 방문)
+    var ship = $('#coShipSec');
+    if (ship) ship.hidden = (t !== 'full');
     updateAmount();
+  }
+
+  function openPostcode() {
+    if (!window.daum || !window.daum.Postcode) {
+      alert('주소 검색을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
+      return;
+    }
+    new window.daum.Postcode({
+      oncomplete: function (data) {
+        var addr = data.roadAddress || data.jibunAddress || '';
+        if ($('#coPostcode')) $('#coPostcode').value = data.zonecode || '';
+        if ($('#coAddr1')) $('#coAddr1').value = addr;
+        var d = $('#coAddr2'); if (d) d.focus();
+      }
+    }).open();
   }
 
   /* ---------------- 쿠폰 ---------------- */
@@ -220,6 +238,18 @@
     var name = $('#coName').value.trim();
     var phone = $('#coPhone').value.trim();
     if (!name || !phone) { alert('이름과 연락처를 입력해 주세요.'); return; }
+
+    // 전액 결제(배송)면 배송지 필수
+    var ship = {};
+    if (payType === 'full') {
+      ship.recipient = ($('#coShipName').value || '').trim() || name;
+      ship.phone = ($('#coShipPhone').value || '').trim() || phone;
+      ship.postcode = ($('#coPostcode').value || '').trim();
+      ship.addr1 = ($('#coAddr1').value || '').trim();
+      ship.addr2 = ($('#coAddr2').value || '').trim();
+      ship.request = ($('#coShipReq').value || '').trim();
+      if (!ship.postcode || !ship.addr1) { alert('배송 주소를 입력해 주세요.'); return; }
+    }
     if (!tossWidgets) {
       alert('결제 모듈을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
       ensureWidgets().then(updateAmount).catch(function () {});
@@ -251,7 +281,13 @@
           couponUserId: uc ? uc.id : null,
           discount: discount,
           buyerName: name,
-          buyerPhone: phone
+          buyerPhone: phone,
+          shipRecipient: ship.recipient || null,
+          shipPhone: ship.phone || null,
+          shipPostcode: ship.postcode || null,
+          shipAddr1: ship.addr1 || null,
+          shipAddr2: ship.addr2 || null,
+          shipRequest: ship.request || null
         })
       : Promise.resolve({ orderNo: 'DEMO' + Date.now().toString(36).toUpperCase() });
 
@@ -353,6 +389,9 @@
 
     var payBtn = $('#coPayBtn');
     if (payBtn) payBtn.addEventListener('click', requestPay);
+
+    var findAddr = $('#coFindAddr');
+    if (findAddr) findAddr.addEventListener('click', openPostcode);
 
     // 쿠폰 선택 변경 → 금액 재계산
     var cSel = $('#coCouponSelect');
