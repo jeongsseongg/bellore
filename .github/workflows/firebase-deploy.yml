@@ -7,12 +7,25 @@ on:
   push:
     branches: [main]
   workflow_dispatch: {}
+  # 상품/글이 추가·품절돼도 자동 반영되도록 6시간마다 재생성 후 재배포.
+  schedule:
+    - cron: '0 */6 * * *'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Supabase(인사이트·판매상품) → 정적 페이지 + sitemap/rss
+      #   + 구글 머천트 피드 + 상품 CSV 생성.
+      # 실패해도 커밋된 sitemap/rss 가 폴백이라 배포는 계속된다.
+      - name: Generate SEO pages & feeds (insight + products)
+        run: node tools/generate-seo.mjs
 
       - name: Deploy to Firebase Hosting (live)
         uses: FirebaseExtended/action-hosting-deploy@v0

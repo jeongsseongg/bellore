@@ -26,3 +26,8 @@ build/
 # Temp
 *.tmp
 *.bak
+
+# 생성물(SEO): 배포 CI가 Supabase에서 만들어 올림
+/insight/
+/product/
+/feed/
