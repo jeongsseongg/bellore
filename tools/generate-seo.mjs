@@ -2,15 +2,26 @@
    벨로르(BELLORE) · SEO 정적 페이지 생성기
    ------------------------------------------------------------
    배포(GitHub Actions) 때 실행됩니다. Supabase 의 인사이트 글
-   (community_posts)을 읽어 검색엔진이 실제로 읽을 수 있는
-   "정적 HTML 글 페이지 + 허브 + sitemap.xml + rss.xml" 을 만듭니다.
+   (community_posts)과 판매상품(listings)을 읽어, 검색엔진이 실제로
+   읽을 수 있는 정적 페이지/피드를 만듭니다.
 
-   - 앱은 해시(#) 단일 페이지라 글이 검색에 안 잡힙니다.
-     이 스크립트가 글마다 고유 URL(/insight/슬러그.html)을 만들어
-     색인이 되게 합니다.
+   생성물:
+   - /insight/슬러그.html  : 인사이트 글 (Article 구조화데이터)
+   - /product/슬러그.html  : 판매상품 (Product/Offer 구조화데이터)  ← A
+   - /insight/ , /product/ : 허브 목록
+   - sitemap.xml , rss.xml : 통합 사이트맵·피드
+   - feed/google-merchant.xml : 구글 머천트센터 상품 피드          ← C
+   - feed/products.csv        : 네이버 스마트스토어 등 마켓 공통 export
+
+   배경:
+   - 앱은 해시(#) 단일 페이지라 글/상품이 검색에 안 잡힙니다.
+     이 스크립트가 항목마다 고유 URL 을 만들어 색인되게 합니다.
+   - 매 실행 시 DB 전체를 새로 읽으므로, 새로 등록되는 상품/글도
+     다음 생성(배포 또는 스케줄) 때 자동 반영됩니다.                ← B
+   - 품절(status=hidden)·삭제된 상품은 다음 생성 때 빠지며,
+     배포가 전체 스냅샷이라 해당 페이지는 사라집니다(404).
    - Supabase url/anonKey 는 supabase-config.js 한 곳에서만 읽습니다.
-   - 네트워크 실패 등으로 글을 못 받으면, 기존에 커밋된
-     sitemap.xml / rss.xml 을 그대로 두고 종료(배포는 계속).
+   - 네트워크 실패 시 기존 커밋된 sitemap/rss 폴백(배포는 계속).
 
    실행: node tools/generate-seo.mjs
    ============================================================ */
@@ -95,6 +106,48 @@ async function fetchPosts({ url, key }) {
     });
 }
 
+/* ---------- 판매상품(listings) 가져오기 ---------- */
+const KAKAO = 'https://pf.kakao.com/_Uzxixen';
+const TEL = '+821062936668';
+const krw = (n) => Number(n || 0).toLocaleString('ko-KR') + '원';
+const isNewCond = (s) => /미사용|신품|new/i.test(String(s || ''));
+
+async function fetchListings({ url, key }) {
+  const endpoint = `${url}/rest/v1/listings`
+    + '?select=id,title,description,price,sale_price,category,status,condition,'
+    + 'has_warranty,accessories,components,stamping,product_no,detail_desc,'
+    + 'special_note,ship_info,image_url,image_urls,created_at,updated_at'
+    + '&status=neq.hidden&order=created_at.desc';
+  const res = await fetch(endpoint, { headers: { apikey: key, Authorization: `Bearer ${key}` } });
+  if (!res.ok) throw new Error(`Supabase listings ${res.status}: ${await res.text()}`);
+  const rows = await res.json();
+  return rows
+    .filter((l) => l && l.title && (l.price || l.sale_price) && l.status !== 'hidden')
+    .map((l) => {
+      const brand = l.title || '';
+      const model = l.description || '';
+      const price = Number(l.price || 0);
+      const sale = l.sale_price ? Number(l.sale_price) : null;
+      const now = sale && sale < price ? sale : price; // 실제 판매가
+      const photos = (Array.isArray(l.image_urls) && l.image_urls.length)
+        ? l.image_urls : (l.image_url ? [l.image_url] : []);
+      const slug = slugify(`${brand} ${model} ${l.product_no || ''}`, l.id);
+      return {
+        id: l.id, brand, model,
+        name: [brand, model].filter(Boolean).join(' ').trim() || '명품시계',
+        price, sale, now,
+        condition: l.condition || '', components: l.components || l.accessories || '',
+        hasWarranty: !!l.has_warranty, productNo: l.product_no || '',
+        desc: l.detail_desc || l.special_note || '',
+        ship: l.ship_info || '결제 후 2~4일 이내 발송',
+        photos, image: photos[0] || DEFAULT_IMG,
+        slug, path: `/product/${slug}.html`, url: `${SITE}/product/${slug}.html`,
+        when: l.created_at || Date.now(), mod: l.updated_at || l.created_at || Date.now(),
+        isNew: isNewCond(l.condition),
+      };
+    });
+}
+
 /* ---------- 공통 스타일/레이아웃 ---------- */
 const PAGE_CSS = `
 :root{--ink:#111;--mut:#777;--line:#e9e9e9;--gold:#a9874e}
@@ -128,6 +181,20 @@ article p{margin:0 0 1.15em;font-size:17px}
 .list h3 a{text-decoration:none}
 .list .ex{color:var(--mut);font-size:14px;margin:0}
 .list .d{color:#aaa;font-size:12px;margin-top:6px}
+.gallery{display:flex;gap:8px;overflow-x:auto;margin:6px 0 20px;padding-bottom:4px}
+.gallery img{height:300px;width:auto;border-radius:12px;flex:0 0 auto;object-fit:cover}
+.price{font-size:28px;font-weight:800;margin:6px 0 2px}
+.price .was{font-size:16px;color:#bbb;text-decoration:line-through;font-weight:500;margin-right:8px}
+.price .off{font-size:15px;color:#d23;font-weight:700;margin-left:8px}
+.spec{width:100%;border-collapse:collapse;margin:18px 0 6px;font-size:14px}
+.spec th{text-align:left;color:var(--mut);font-weight:600;width:120px;padding:9px 0;vertical-align:top;border-bottom:1px solid var(--line)}
+.spec td{padding:9px 0;border-bottom:1px solid var(--line)}
+.pcard{display:block;text-decoration:none}
+.pcard .th{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:12px;background:#f3f3f3}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin:18px 0 0}
+.grid .nm{font-size:14px;margin:8px 0 2px;line-height:1.4}
+.grid .pr{font-weight:800;font-size:15px}
+@media(min-width:560px){.grid{grid-template-columns:repeat(3,1fr)}}
 `;
 
 function header() {
@@ -270,14 +337,193 @@ ${footer()}
 </html>`;
 }
 
+/* ---------- 상품 페이지 ---------- */
+function productHtml(p) {
+  const desc = excerpt(p.desc || `${p.name} ${p.condition} ${p.components}`, 155);
+  const ld = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: p.name,
+    image: p.photos.length ? p.photos : [p.image],
+    description: desc,
+    sku: p.productNo || String(p.id),
+    brand: { '@type': 'Brand', name: p.brand || '벨로르' },
+    itemCondition: p.isNew ? 'https://schema.org/NewCondition' : 'https://schema.org/UsedCondition',
+    offers: {
+      '@type': 'Offer',
+      url: p.url,
+      priceCurrency: 'KRW',
+      price: String(p.now),
+      availability: 'https://schema.org/InStock',
+      itemCondition: p.isNew ? 'https://schema.org/NewCondition' : 'https://schema.org/UsedCondition',
+      seller: { '@type': 'Organization', name: '벨로르 BELLORE' },
+    },
+  };
+  const crumbLd = {
+    '@context': 'https://schema.org', '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: '홈', item: SITE + '/' },
+      { '@type': 'ListItem', position: 2, name: '판매시계', item: SITE + '/product/' },
+      { '@type': 'ListItem', position: 3, name: p.name, item: p.url },
+    ],
+  };
+  const gallery = p.photos.length
+    ? `<div class="gallery">${p.photos.map((u) => `<img src="${esc(u)}" alt="${esc(p.name)}" loading="lazy">`).join('')}</div>` : '';
+  const priceBlock = (p.sale && p.sale < p.price)
+    ? `<div class="price"><span class="was">${krw(p.price)}</span>${krw(p.now)}<span class="off">${Math.round((1 - p.now / p.price) * 100)}%↓</span></div>`
+    : `<div class="price">${krw(p.now)}</div>`;
+  const rows = [
+    p.productNo && ['상품번호', p.productNo],
+    p.brand && ['브랜드', p.brand],
+    p.model && ['모델', p.model],
+    p.condition && ['상태', p.condition + (p.isNew ? ' (미사용/신품)' : '')],
+    p.components && ['구성품', p.components],
+    ['보증서', p.hasWarranty ? '있음' : '문의'],
+    p.ship && ['배송', p.ship],
+  ].filter(Boolean).map(([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join('');
+
+  return `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${esc(p.name)}${p.productNo ? ' ' + esc(p.productNo) : ''} | 벨로르 BELLORE</title>
+<meta name="description" content="${esc(p.name)} ${krw(p.now)} · ${esc(desc)}">
+<link rel="canonical" href="${p.url}">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="product">
+<meta property="og:site_name" content="BELLORE">
+<meta property="og:title" content="${esc(p.name)}">
+<meta property="og:description" content="${krw(p.now)} · ${esc(desc)}">
+<meta property="og:url" content="${p.url}">
+<meta property="og:image" content="${esc(p.image)}">
+<meta property="product:price:amount" content="${p.now}">
+<meta property="product:price:currency" content="KRW">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" href="${SITE}/assets/icons/favicon-32.png">
+<script type="application/ld+json">${jsonLd(ld)}</script>
+<script type="application/ld+json">${jsonLd(crumbLd)}</script>
+<style>${PAGE_CSS}</style>
+</head>
+<body>
+${header()}
+<div class="wrap">
+  <p class="crumb"><a href="${SITE}/">홈</a> › <a href="${SITE}/product/">판매시계</a> › ${esc(p.name)}</p>
+  <article>
+    <span class="cat">${p.isNew ? '미사용/신품' : '정품 중고'}</span>
+    <h1>${esc(p.name)}</h1>
+    ${priceBlock}
+    ${gallery}
+    <table class="spec">${rows}</table>
+    ${p.desc ? bodyToHtml(p.desc) : ''}
+  </article>
+  <div class="cta">
+    <h2>이 시계, 지금 문의하세요</h2>
+    <p>벨로르 인증 · 안전거래. 정품 보장, 사진 추가요청 가능합니다.</p>
+    <a class="btn" href="${KAKAO}">카카오톡 문의</a>
+    <a class="btn ghost" href="tel:${TEL}">전화 상담</a>
+    <a class="btn ghost" href="${SITE}/product/">전체 매물 보기</a>
+  </div>
+</div>
+${footer()}
+</body>
+</html>`;
+}
+
+/* ---------- 상품 허브(목록) ---------- */
+function productIndexHtml(products) {
+  const cards = products.map((p) => `  <a class="pcard" href="${p.path}">
+    <img class="th" src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy">
+    <p class="nm">${esc(p.name)}</p>
+    <p class="pr">${krw(p.now)}</p>
+  </a>`).join('\n');
+
+  return `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>판매 중인 명품시계 | 벨로르 BELLORE</title>
+<meta name="description" content="롤렉스·파텍필립·오데마피게 등 정품 명품시계 판매. 벨로르 인증 안전거래, 실시간 비교견적.">
+<link rel="canonical" href="${SITE}/product/">
+<meta name="robots" content="index, follow">
+<meta property="og:title" content="판매 중인 명품시계 · 벨로르 BELLORE">
+<meta property="og:url" content="${SITE}/product/">
+<meta property="og:image" content="${DEFAULT_IMG}">
+<link rel="icon" type="image/png" href="${SITE}/assets/icons/favicon-32.png">
+<style>${PAGE_CSS}</style>
+</head>
+<body>
+${header()}
+<div class="wrap">
+  <p class="crumb"><a href="${SITE}/">홈</a> › 판매시계</p>
+  <article>
+    <span class="cat">COLLECTION</span>
+    <h1>판매 중인 명품시계</h1>
+    <p class="meta">정품 보장 · 벨로르 인증 안전거래 · 총 ${products.length}점</p>
+  </article>
+  <div class="grid">
+${cards || '<p>현재 등록된 상품이 없습니다.</p>'}
+  </div>
+</div>
+${footer()}
+</body>
+</html>`;
+}
+
+/* ---------- 구글 머천트센터 상품 피드 ---------- */
+function googleMerchantFeed(products) {
+  const items = products.map((p) => {
+    const saleTag = (p.sale && p.sale < p.price)
+      ? `\n      <g:sale_price>${p.now} KRW</g:sale_price>` : '';
+    return `    <item>
+      <g:id>${esc(p.productNo || p.id)}</g:id>
+      <g:title>${esc(p.name)}</g:title>
+      <g:description>${esc(excerpt(p.desc || p.name, 4000))}</g:description>
+      <g:link>${p.url}</g:link>
+      <g:image_link>${esc(p.image)}</g:image_link>${p.photos.slice(1, 11).map((u) => `\n      <g:additional_image_link>${esc(u)}</g:additional_image_link>`).join('')}
+      <g:availability>in_stock</g:availability>
+      <g:price>${p.price} KRW</g:price>${saleTag}
+      <g:condition>${p.isNew ? 'new' : 'used'}</g:condition>
+      <g:brand>${esc(p.brand || '벨로르')}</g:brand>
+      <g:identifier_exists>no</g:identifier_exists>
+      <g:google_product_category>Apparel &amp; Accessories &gt; Jewelry &gt; Watches</g:google_product_category>
+    </item>`;
+  }).join('\n');
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
+  <channel>
+    <title>벨로르 BELLORE · 판매시계</title>
+    <link>${SITE}/product/</link>
+    <description>롤렉스·파텍필립·오데마피게 등 정품 명품시계 판매</description>
+${items}
+  </channel>
+</rss>
+`;
+}
+
+/* ---------- 네이버 스마트스토어/마켓 공통 상품 CSV ---------- */
+function productsCsv(products) {
+  const head = ['상품번호', '상품명', '브랜드', '모델', '정상가', '판매가', '상태', '구성품', '보증서', '이미지URL', '상세링크', '설명'];
+  const cell = (v) => `"${String(v ?? '').replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`;
+  const lines = products.map((p) => [
+    p.productNo || p.id, p.name, p.brand, p.model, p.price, p.now,
+    p.isNew ? '미사용' : '중고', p.components, p.hasWarranty ? '있음' : '문의',
+    p.image, p.url, excerpt(p.desc || p.name, 500),
+  ].map(cell).join(','));
+  return '﻿' + [head.map(cell).join(','), ...lines].join('\r\n') + '\r\n';
+}
+
 /* ---------- sitemap / rss ---------- */
-function sitemapXml(posts) {
+function sitemapXml(posts, products) {
   const today = isoDay();
   const urls = [
     { loc: `${SITE}/`, mod: today, freq: 'daily', pri: '1.0' },
-    { loc: `${SITE}/insight/`, mod: today, freq: 'weekly', pri: '0.8' },
-    ...posts.map((p) => ({ loc: p.url, mod: isoDay(p.mod), freq: 'monthly', pri: '0.7' })),
   ];
+  if (products.length) urls.push({ loc: `${SITE}/product/`, mod: today, freq: 'daily', pri: '0.9' });
+  if (posts.length) urls.push({ loc: `${SITE}/insight/`, mod: today, freq: 'weekly', pri: '0.8' });
+  for (const p of products) urls.push({ loc: p.url, mod: isoDay(p.mod), freq: 'weekly', pri: '0.8' });
+  for (const p of posts) urls.push({ loc: p.url, mod: isoDay(p.mod), freq: 'monthly', pri: '0.7' });
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls.map((u) => `  <url>
@@ -316,21 +562,46 @@ ${items}
 }
 
 /* ---------- 실행 ---------- */
+async function safe(label, fn) {
+  try { return await fn(); }
+  catch (e) { console.error(`⚠️ ${label} 실패:`, e.message); return []; }
+}
+
 async function main() {
   const cfg = await readSupabaseConfig();
-  const posts = await fetchPosts(cfg);
-  if (!posts.length) {
-    console.warn('⚠️ 인사이트 글이 0건입니다. sitemap/rss 는 변경하지 않고 종료합니다.');
+  const [posts, products] = await Promise.all([
+    safe('인사이트 로드', () => fetchPosts(cfg)),
+    safe('상품 로드', () => fetchListings(cfg)),
+  ]);
+
+  if (!posts.length && !products.length) {
+    console.warn('⚠️ 인사이트·상품 모두 0건. sitemap/rss 는 변경하지 않고 종료합니다.');
     return;
   }
-  await mkdir(join(ROOT, 'insight'), { recursive: true });
-  for (const p of posts) {
-    await writeFile(join(ROOT, 'insight', `${p.slug}.html`), articleHtml(p));
+
+  // 인사이트 글 페이지
+  if (posts.length) {
+    await mkdir(join(ROOT, 'insight'), { recursive: true });
+    for (const p of posts) await writeFile(join(ROOT, 'insight', `${p.slug}.html`), articleHtml(p));
+    await writeFile(join(ROOT, 'insight', 'index.html'), indexHtml(posts));
+    await writeFile(join(ROOT, 'rss.xml'), rssXml(posts));
   }
-  await writeFile(join(ROOT, 'insight', 'index.html'), indexHtml(posts));
-  await writeFile(join(ROOT, 'sitemap.xml'), sitemapXml(posts));
-  await writeFile(join(ROOT, 'rss.xml'), rssXml(posts));
-  console.log(`✅ 생성 완료: 글 ${posts.length}개 + insight/index.html + sitemap.xml + rss.xml`);
+
+  // 상품 페이지 + 피드 (A, C)
+  if (products.length) {
+    await mkdir(join(ROOT, 'product'), { recursive: true });
+    for (const p of products) await writeFile(join(ROOT, 'product', `${p.slug}.html`), productHtml(p));
+    await writeFile(join(ROOT, 'product', 'index.html'), productIndexHtml(products));
+    await mkdir(join(ROOT, 'feed'), { recursive: true });
+    await writeFile(join(ROOT, 'feed', 'google-merchant.xml'), googleMerchantFeed(products));
+    await writeFile(join(ROOT, 'feed', 'products.csv'), productsCsv(products));
+  }
+
+  // 통합 sitemap (상품 + 인사이트)
+  await writeFile(join(ROOT, 'sitemap.xml'), sitemapXml(posts, products));
+
+  console.log(`✅ 생성 완료: 인사이트 ${posts.length}개 · 상품 ${products.length}개`
+    + ` + sitemap.xml/rss.xml + 구글 머천트 피드 + 상품 CSV`);
 }
 
 main().catch((err) => {
