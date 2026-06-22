@@ -45,8 +45,8 @@ jobs:
           set -euo pipefail
           STAMP=$(date -u +%Y%m%d-%H%M%S)
           FILE="bellore-${STAMP}.sql.gz"
-          # pg_dump 버전 일치를 위해 postgres:16 컨테이너 사용(상위 버전이 하위 DB 덤프 가능)
-          docker run --rm -e PGCONN="$DB_URL" postgres:16 \
+          # pg_dump 버전 일치를 위해 postgres:17 컨테이너 사용(Supabase 서버 버전 17.x)
+          docker run --rm -e PGCONN="$DB_URL" postgres:17 \
             sh -c 'pg_dump --no-owner --no-privileges "$PGCONN"' \
             | gzip -9 > "$FILE"
           gpg --batch --yes --symmetric --cipher-algo AES256 \
