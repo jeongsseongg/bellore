@@ -5727,6 +5727,44 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
     margin-bottom: 2px;
 }
 .footer-cs-info { border-left: 1px solid rgba(255,255,255,.1); padding-left: 24px; }
+/* 클릭하면 펼쳐지는 사업자정보(평소엔 대표자명·주소 숨김) */
+.footer-bizinfo { margin-top: 6px; }
+.footer-bizinfo > summary {
+    cursor: pointer;
+    list-style: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: rgba(255,255,255,.5);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    width: fit-content;
+}
+.footer-bizinfo > summary::-webkit-details-marker { display: none; }
+.footer-bizinfo > summary::after { content: "▾"; font-size: 10px; }
+.footer-bizinfo[open] > summary::after { content: "▴"; }
+.footer-bizinfo .bizinfo-list {
+    margin: 8px 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.footer-bizinfo .bizinfo-list > div {
+    display: flex;
+    gap: 8px;
+    font-size: 12px;
+    line-height: 1.6;
+}
+.footer-bizinfo .bizinfo-list dt {
+    flex: 0 0 84px;
+    color: rgba(255,255,255,.4);
+    margin: 0;
+}
+.footer-bizinfo .bizinfo-list dd {
+    margin: 0;
+    color: rgba(255,255,255,.6);
+}
 .footer-tel-link {
     color: #c9a96e;
     font-size: 14px;
