@@ -3387,8 +3387,8 @@
             $('#postModalMeta').innerHTML = metaEl ? metaEl.innerHTML : '';
 
             var body = row.dataset.body ? row.dataset.body : (DUMMY_BODIES[cat] || '본문 내용 준비 중입니다.');
-            var lead = pEl ? '<p><strong>' + pEl.textContent + '</strong></p>' : '';
-            var paragraphs = body.split('\n\n').map(function (t) { return '<p>' + t + '</p>'; }).join('');
+            var lead = pEl ? '<p><strong>' + esc(pEl.textContent) + '</strong></p>' : '';
+            var paragraphs = body.split('\n\n').map(function (t) { return '<p>' + esc(t).replace(/\n/g, '<br>') + '</p>'; }).join('');
             $('#postModalText').innerHTML = lead + paragraphs;
 
             modal.hidden = false;

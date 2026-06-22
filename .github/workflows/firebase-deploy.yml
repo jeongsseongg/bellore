@@ -11,6 +11,10 @@ on:
   schedule:
     - cron: '0 */6 * * *'
 
+# GITHUB_TOKEN 권한 최소화(공급망/탈취 대비). 배포에는 읽기 권한이면 충분.
+permissions:
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
