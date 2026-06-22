@@ -1723,6 +1723,38 @@
       .then(function (res) { if (res.error) throw res.error; });
   };
 
+  /* ---------------- 소식받기 / 기다리는 시계 (watch_alerts) — 계정별 ---------------- */
+  function alertKey(it) {
+    return String((((it.brand || '') + '|' + (it.model || '') + '|' + (it.q || ''))).trim());
+  }
+  function mapAlert(a) {
+    return {
+      brand: a.brand || '', model: a.model || '', q: a.q || '',
+      ts: a.created_at ? (Date.parse(a.created_at) || Date.now()) : Date.now()
+    };
+  }
+  Backend.listAlerts = function () {
+    if (!rawUser) return Promise.resolve([]);
+    return sb.from('watch_alerts').select('*')
+      .eq('user_id', rawUser.id)
+      .order('created_at', { ascending: false })
+      .then(function (res) { if (res.error) throw res.error; return (res.data || []).map(mapAlert); });
+  };
+  Backend.addAlert = function (it) {
+    if (!rawUser) return Promise.reject(new Error('NOT_LOGGED_IN'));
+    return sb.from('watch_alerts').upsert({
+      user_id: rawUser.id, item_key: alertKey(it),
+      brand: it.brand || null, model: it.model || null, q: it.q || null
+    }, { onConflict: 'user_id,item_key' })
+      .then(function (res) { if (res.error) throw res.error; });
+  };
+  Backend.removeAlert = function (key) {
+    if (!rawUser) return Promise.resolve();
+    return sb.from('watch_alerts').delete()
+      .eq('user_id', rawUser.id).eq('item_key', String(key))
+      .then(function (res) { if (res.error) throw res.error; });
+  };
+
   /* ---------------- 부트스트랩 ---------------- */
   Backend.enabled = true;
 

@@ -5727,44 +5727,59 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
     margin-bottom: 2px;
 }
 .footer-cs-info { border-left: 1px solid rgba(255,255,255,.1); padding-left: 24px; }
-/* 클릭하면 펼쳐지는 사업자정보(평소엔 대표자명·주소 숨김) */
-.footer-bizinfo { margin-top: 6px; }
-.footer-bizinfo > summary {
+/* 사업자정보 확인 버튼(평소엔 대표자명·주소 숨김, 클릭 시 모달) */
+.footer-bizinfo-btn {
+    margin-top: 6px;
+    background: none;
+    border: none;
+    padding: 0;
     cursor: pointer;
-    list-style: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
     font-size: 12px;
     color: rgba(255,255,255,.5);
     text-decoration: underline;
     text-underline-offset: 2px;
     width: fit-content;
 }
-.footer-bizinfo > summary::-webkit-details-marker { display: none; }
-.footer-bizinfo > summary::after { content: "▾"; font-size: 10px; }
-.footer-bizinfo[open] > summary::after { content: "▴"; }
-.footer-bizinfo .bizinfo-list {
-    margin: 8px 0 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+.footer-bizinfo-btn:hover { color: rgba(255,255,255,.8); }
+
+/* 사업자정보 모달(벨로르 스타일) */
+.bizinfo-modal[hidden] { display: none; }
+.bizinfo-modal {
+    position: fixed; inset: 0; z-index: 1200;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
 }
-.footer-bizinfo .bizinfo-list > div {
-    display: flex;
-    gap: 8px;
-    font-size: 12px;
-    line-height: 1.6;
+.bizinfo-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,.62);
+    -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
 }
-.footer-bizinfo .bizinfo-list dt {
-    flex: 0 0 84px;
-    color: rgba(255,255,255,.4);
-    margin: 0;
+.bizinfo-sheet {
+    position: relative;
+    width: 100%; max-width: 360px;
+    background: #161616;
+    color: #fff;
+    border: 1px solid rgba(201,169,110,.35);
+    border-radius: 16px;
+    padding: 28px 24px 24px;
+    box-shadow: 0 24px 70px rgba(0,0,0,.55);
+    animation: bizinfoIn .18s ease-out;
 }
-.footer-bizinfo .bizinfo-list dd {
-    margin: 0;
-    color: rgba(255,255,255,.6);
+@keyframes bizinfoIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.bizinfo-close {
+    position: absolute; top: 10px; right: 14px;
+    background: none; border: none; cursor: pointer;
+    color: rgba(255,255,255,.55); font-size: 24px; line-height: 1;
 }
+.bizinfo-close:hover { color: #fff; }
+.bizinfo-eyebrow {
+    margin: 0 0 4px; font-size: 11px; letter-spacing: .22em; color: #c9a96e;
+}
+.bizinfo-title { margin: 0 0 18px; font-size: 19px; font-weight: 700; color: #fff; }
+.bizinfo-modal .bizinfo-list { margin: 0; display: flex; flex-direction: column; gap: 11px; }
+.bizinfo-modal .bizinfo-list > div { display: flex; gap: 10px; font-size: 13px; line-height: 1.5; }
+.bizinfo-modal .bizinfo-list dt { flex: 0 0 96px; margin: 0; color: rgba(255,255,255,.45); }
+.bizinfo-modal .bizinfo-list dd { margin: 0; color: rgba(255,255,255,.88); }
 .footer-tel-link {
     color: #c9a96e;
     font-size: 14px;
