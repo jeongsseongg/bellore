@@ -48,14 +48,14 @@ begin
   exception when others then
     r := 'customer';
   end;
-  if r = 'admin' then r := 'customer'; end if;   -- ★ 권한상승 차단
+  if r::text = 'admin' then r := 'customer'; end if;   -- ★ 권한상승 차단
 
   insert into public.profiles (id, role, display_name, company_name, approved, email)
   values (
     new.id, r,
     coalesce(new.raw_user_meta_data->>'display_name', split_part(new.email, '@', 1)),
     new.raw_user_meta_data->>'company_name',
-    (r not in ('vendor','partner')),     -- 업체/제휴사는 승인 대기(false), 고객은 자동승인
+    (r::text not in ('vendor','partner')),  -- 업체/제휴사는 승인 대기(false), 고객은 자동승인
     new.email
   )
   on conflict (id) do nothing;
