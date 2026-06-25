@@ -50,7 +50,20 @@
     verifyPhoneOtp: function () { return Promise.reject(new Error('NOT_CONFIGURED')); },
     submitVendorAccount: function () { return Promise.reject(new Error('NOT_CONFIGURED')); },
     verifyAccountAuto: function () { return Promise.reject(new Error('AUTO_VERIFY_NOT_CONFIGURED')); },
-    setAccountVerified: function () { return Promise.reject(new Error('NOT_CONFIGURED')); }
+    setAccountVerified: function () { return Promise.reject(new Error('NOT_CONFIGURED')); },
+    isPartner: function () { return false; },
+    isApprovedPartner: function () { return false; },
+    bizVerified: function () { return false; },
+    emailVerified: function () { return false; },
+    submitBusiness: function () { return Promise.reject(new Error('NOT_CONFIGURED')); },
+    verifyBusiness: function () { return Promise.reject(new Error('NOT_CONFIGURED')); },
+    setBizVerified: function () { return Promise.reject(new Error('NOT_CONFIGURED')); },
+    resendEmailConfirm: function () { return Promise.reject(new Error('NOT_CONFIGURED')); },
+    listMySettlements: function () { return Promise.resolve([]); },
+    listAllSettlements: function () { return Promise.resolve([]); },
+    setSettlementStatus: function () { return Promise.reject(new Error('NOT_CONFIGURED')); },
+    listPartners: function () { return Promise.resolve([]); },
+    setPartnerCommission: function () { return Promise.reject(new Error('NOT_CONFIGURED')); }
   };
   window.NWBackend = Backend;
 
@@ -141,6 +154,15 @@
   Backend.isAdmin = function () { return !!(profile && profile.role === 'admin'); };
   Backend.isVendor = function () { return Backend.role() === 'vendor'; };
   Backend.isApprovedVendor = function () { return Backend.isVendor() && !!(profile && profile.approved); };
+  // 제휴사(직영 판매사)
+  Backend.isPartner = function () { return Backend.role() === 'partner'; };
+  Backend.isApprovedPartner = function () { return Backend.isPartner() && !!(profile && profile.approved); };
+  // 사업자 진위확인 통과 여부
+  Backend.bizVerified = function () { return !!(profile && profile.biz_verified); };
+  // 이메일 인증 여부: auth의 email_confirmed_at 또는 profiles.email_verified
+  Backend.emailVerified = function () {
+    return !!(rawUser && rawUser.email_confirmed_at) || !!(profile && profile.email_verified);
+  };
   // 휴대폰 인증 여부: auth의 phone_confirmed_at 또는 profiles.phone_verified
   Backend.phoneVerified = function () {
     return !!(rawUser && rawUser.phone_confirmed_at) || !!(profile && profile.phone_verified);
@@ -160,6 +182,14 @@
       phoneVerified: Backend.phoneVerified(),
       accountVerified: Backend.accountVerified(),
       accountSubmitted: Backend.accountSubmitted(),
+      isPartner: Backend.isPartner(),
+      isApprovedPartner: Backend.isApprovedPartner(),
+      bizVerified: Backend.bizVerified(),
+      emailVerified: Backend.emailVerified(),
+      businessNo: (profile && profile.business_no) || '',
+      ceoName: (profile && profile.ceo_name) || '',
+      bizName: (profile && profile.biz_name) || (profile && profile.company_name) || '',
+      commissionRate: (profile && profile.commission_rate != null) ? profile.commission_rate : 0.10,
       phone: (profile && profile.phone) || (rawUser && rawUser.phone) || '',
       notifyQuotes: !(profile && profile.notify_quotes === false), // 기본 켜짐
       vip: !!(profile && profile.vip),
@@ -184,7 +214,7 @@
   };
 
   Backend.signUp = function (data) {
-    var role = data.role === 'vendor' ? 'vendor' : 'customer';
+    var role = (data.role === 'vendor' || data.role === 'partner') ? data.role : 'customer';
     var uname = (data.username || '').trim();
     // 아이디 중복 사전 검사
     var pre = uname
@@ -213,6 +243,14 @@
         var patch = {};
         if (data.phone) patch.phone = data.phone;
         if (uname) patch.username = uname;
+        // 제휴사 가입: 사업자 정보 저장(인증은 별도 단계)
+        if (role === 'partner') {
+          if (data.bizName) patch.biz_name = String(data.bizName).trim();
+          if (data.businessNo) patch.business_no = String(data.businessNo).replace(/[^0-9]/g, '');
+          if (data.ceoName) patch.ceo_name = String(data.ceoName).trim();
+          if (data.bizOpenDate) patch.biz_open_date = String(data.bizOpenDate).replace(/[^0-9]/g, '');
+          if (data.company) patch.company_name = String(data.company).trim();
+        }
         if (Object.keys(patch).length) {
           sb.from('profiles').update(patch)
             .eq('id', res.data.user.id).then(function () {}, function () {});
@@ -343,6 +381,127 @@
         if (ok) Backend.createNotification({ uid: id, type: 'account', text: '계좌 인증이 완료되었습니다.' });
         refreshVendors();
       });
+  };
+
+  /* ---------------- 제휴사: 사업자/이메일 인증 ---------------- */
+  // 사업자 정보 저장(가입 후 추가 입력/수정)
+  Backend.submitBusiness = function (data) {
+    if (!rawUser) return Promise.reject(new Error('NOT_LOGGED_IN'));
+    var patch = {};
+    if (data.bizName != null) patch.biz_name = String(data.bizName).trim();
+    if (data.businessNo != null) patch.business_no = String(data.businessNo).replace(/[^0-9]/g, '');
+    if (data.ceoName != null) patch.ceo_name = String(data.ceoName).trim();
+    if (data.bizOpenDate != null) patch.biz_open_date = String(data.bizOpenDate).replace(/[^0-9]/g, '');
+    return sb.from('profiles').update(patch).eq('id', rawUser.id)
+      .then(function (r) {
+        if (r.error) throw r.error;
+        return loadProfile().then(notifyAuth, notifyAuth);
+      });
+  };
+  // 국세청 진위확인 Edge Function 호출 → 통과 시 biz_verified=true
+  //  (Edge Function 'verify-business' + data.go.kr 서비스키 필요. 미배포면 NOT_CONFIGURED)
+  Backend.verifyBusiness = function (data) {
+    if (!rawUser) return Promise.reject(new Error('NOT_LOGGED_IN'));
+    var body = {
+      b_no: String((data && data.businessNo) || (profile && profile.business_no) || '').replace(/[^0-9]/g, ''),
+      start_dt: String((data && data.bizOpenDate) || (profile && profile.biz_open_date) || '').replace(/[^0-9]/g, ''),
+      p_nm: String((data && data.ceoName) || (profile && profile.ceo_name) || '').trim()
+    };
+    if (!body.b_no) return Promise.reject(new Error('NO_BUSINESS_NO'));
+    return sb.functions.invoke('verify-business', { body: body }).then(function (res) {
+      if (res.error) throw res.error;
+      var ok = res.data && (res.data.valid === true || res.data.ok === true);
+      if (!ok) throw new Error((res.data && res.data.message) || 'BIZ_VERIFY_FAILED');
+      // 통과: 진위확인은 신뢰된 서버(Edge Function)가 검증했지만, biz_verified 플래그는
+      // 트리거상 일반사용자가 못 바꾸므로 Edge Function 측에서 service_role 로 set 하는 것을 권장.
+      // 여기서는 우선 로컬 갱신 후 프로필 재로딩.
+      return loadProfile().then(function () { notifyAuth(); return res.data; }, function () { return res.data; });
+    });
+  };
+  // 관리자 수동 사업자 인증 승인/취소
+  Backend.setBizVerified = function (id, ok) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    var patch = { biz_verified: !!ok, biz_verified_at: ok ? new Date().toISOString() : null };
+    return sb.from('profiles').update(patch).eq('id', id)
+      .then(function (r) {
+        if (r.error) throw r.error;
+        if (ok) Backend.createNotification({ uid: id, type: 'business', text: '사업자 인증이 완료되었습니다.' });
+        refreshVendors();
+      });
+  };
+  // 이메일 인증 메일 재전송(Authentication > Email "Confirm email" 활성화 시 동작)
+  Backend.resendEmailConfirm = function (email) {
+    var addr = (email || (rawUser && rawUser.email) || '').trim();
+    if (!addr) return Promise.reject(new Error('NO_EMAIL'));
+    return sb.auth.resend({ type: 'signup', email: addr })
+      .then(function (res) { if (res.error) throw res.error; return true; });
+  };
+
+  /* ---------------- 정산(settlements) ---------------- */
+  function mapSettlement(r) {
+    return {
+      id: r.id, orderId: r.order_id, listingId: r.listing_id,
+      sellerId: r.seller_id, sellerRole: r.seller_role,
+      productName: r.product_name,
+      gross: r.gross_amount || 0, feeRate: r.fee_rate || 0,
+      fee: r.fee_amount || 0, net: r.net_amount || 0,
+      holder: r.payee_holder || '', bank: r.payee_bank || '', account: r.payee_account || '',
+      status: r.status || 'pending', memo: r.memo || '',
+      createdAt: r.created_at, paidAt: r.paid_at
+    };
+  }
+  // 내 정산내역(제휴사/판매자 본인)
+  Backend.listMySettlements = function () {
+    if (!rawUser) return Promise.resolve([]);
+    return sb.from('settlements').select('*').eq('seller_id', rawUser.id)
+      .order('created_at', { ascending: false })
+      .then(function (r) { if (r.error) throw r.error; return (r.data || []).map(mapSettlement); })
+      .catch(function () { return []; });
+  };
+  // 전체 정산내역(관리자)
+  Backend.listAllSettlements = function (opts) {
+    if (!Backend.isAdmin()) return Promise.resolve([]);
+    var q = sb.from('settlements').select('*').order('created_at', { ascending: false });
+    if (opts && opts.status) q = q.eq('status', opts.status);
+    return q.then(function (r) { if (r.error) throw r.error; return (r.data || []).map(mapSettlement); })
+      .catch(function () { return []; });
+  };
+  // 정산 상태 변경(관리자): pending → paid(입금완료) 등
+  Backend.setSettlementStatus = function (id, status, memo) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    var patch = { status: status };
+    if (status === 'paid') patch.paid_at = new Date().toISOString();
+    if (memo != null) patch.memo = memo;
+    return sb.from('settlements').update(patch).eq('id', id)
+      .then(function (r) {
+        if (r.error) throw r.error;
+        if (status === 'paid') {
+          sb.from('settlements').select('seller_id,net_amount').eq('id', id).single()
+            .then(function (s) {
+              if (s.data && s.data.seller_id) {
+                Backend.createNotification({ uid: s.data.seller_id, type: 'settlement',
+                  text: '정산금 ' + (s.data.net_amount || 0).toLocaleString('ko-KR') + '원이 입금 처리되었습니다.' });
+              }
+            }, function () {});
+        }
+        return true;
+      });
+  };
+  // 제휴사 목록(관리자)
+  Backend.listPartners = function () {
+    if (!Backend.isAdmin()) return Promise.resolve([]);
+    return sb.from('profiles').select('*').eq('role', 'partner')
+      .order('created_at', { ascending: true })
+      .then(function (r) { if (r.error) throw r.error; return r.data || []; })
+      .catch(function () { return []; });
+  };
+  // 제휴사 수수료율 변경(관리자)
+  Backend.setPartnerCommission = function (id, rate) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    var v = Number(rate);
+    if (!(v >= 0 && v <= 1)) return Promise.reject(new Error('INVALID_RATE'));
+    return sb.from('profiles').update({ commission_rate: v }).eq('id', id)
+      .then(function (r) { if (r.error) throw r.error; return true; });
   };
 
   /* ---------------- 비교견적 (quote_requests + bids) ---------------- */
