@@ -461,14 +461,16 @@
             var aw = e.target.closest('[data-award]');
             if (!aw) return;
             e.preventDefault();
-            if (!confirm('이 입찰을 채택하시겠어요? 채택하면 견적이 마감됩니다.')) return;
-            NWBackend.awardBid(aw.dataset.quote, aw.dataset.award, aw.dataset.vendor)
-                .then(function () {
-                    var cm = document.getElementById('cqDetailModal');
-                    if (cm) { cm.hidden = true; document.body.style.overflow = ''; }
-                    alert('이 견적으로 판매를 진행합니다. 업체에서 곧 연락드립니다.');
-                })
-                .catch(function (err) { alert('채택 실패: ' + (err && err.message || err)); });
+            bellConfirm('이 입찰을 채택하시겠어요? 채택하면 견적이 마감됩니다.').then(function (ok) {
+                if (!ok) return;
+                NWBackend.awardBid(aw.dataset.quote, aw.dataset.award, aw.dataset.vendor)
+                    .then(function () {
+                        var cm = document.getElementById('cqDetailModal');
+                        if (cm) { cm.hidden = true; document.body.style.overflow = ''; }
+                        alert('이 견적으로 판매를 진행합니다. 업체에서 곧 연락드립니다.');
+                    })
+                    .catch(function (err) { alert('채택 실패: ' + (err && err.message || err)); });
+            });
         });
 
         // 마이페이지 모달 닫기
@@ -521,15 +523,17 @@
         if (chPw) {
             chPw.addEventListener('click', function () {
                 if (!backendOn() || !NWBackend.updatePassword) { alert('로그인 후 이용해 주세요.'); return; }
-                var p1 = prompt('새 비밀번호를 입력하세요 (6자 이상)');
-                if (p1 == null) return;
-                if (p1.length < 6) { alert('비밀번호는 6자 이상이어야 합니다.'); return; }
-                var p2 = prompt('확인을 위해 새 비밀번호를 한 번 더 입력하세요');
-                if (p2 == null) return;
-                if (p1 !== p2) { alert('비밀번호가 일치하지 않습니다.'); return; }
-                NWBackend.updatePassword(p1)
-                    .then(function () { alert('비밀번호가 변경되었습니다.'); })
-                    .catch(function (err) { alert('변경 실패: ' + (err && err.message || err)); });
+                bellPrompt('새 비밀번호를 입력하세요 (6자 이상)').then(function (p1) {
+                    if (p1 == null) return;
+                    if (p1.length < 6) { alert('비밀번호는 6자 이상이어야 합니다.'); return; }
+                    bellPrompt('확인을 위해 새 비밀번호를 한 번 더 입력하세요').then(function (p2) {
+                        if (p2 == null) return;
+                        if (p1 !== p2) { alert('비밀번호가 일치하지 않습니다.'); return; }
+                        NWBackend.updatePassword(p1)
+                            .then(function () { alert('비밀번호가 변경되었습니다.'); })
+                            .catch(function (err) { alert('변경 실패: ' + (err && err.message || err)); });
+                    });
+                });
             });
         }
         // 로그아웃
@@ -551,10 +555,11 @@
                     .then(function () { alert('업체를 승인했습니다.'); })
                     .catch(function (err) { alert('승인 실패: ' + (err && err.message || err)); });
             } else if (cn) {
-                if (confirm('이 업체의 승인을 취소할까요?')) {
+                bellConfirm('이 업체의 승인을 취소할까요?').then(function (ok) {
+                    if (!ok) return;
                     NWBackend.setVendorApproved(cn.dataset.vcancel, false)
                         .catch(function (err) { alert('취소 실패: ' + (err && err.message || err)); });
-                }
+                });
             }
             // 계좌 인증 승인/취소 (관리자)
             var an = e.target.closest('[data-accton]');
@@ -564,10 +569,11 @@
                     .then(function () { alert('계좌 인증을 승인했습니다.'); })
                     .catch(function (err) { alert('승인 실패: ' + (err && err.message || err)); });
             } else if (ao) {
-                if (confirm('계좌 인증을 취소할까요?')) {
+                bellConfirm('계좌 인증을 취소할까요?').then(function (ok) {
+                    if (!ok) return;
                     NWBackend.setAccountVerified(ao.dataset.acctoff, false)
                         .catch(function (err) { alert('취소 실패: ' + (err && err.message || err)); });
-                }
+                });
             }
             // VIP 지정/해제 (관리자)
             var von = e.target.closest('[data-vipon]');
@@ -664,10 +670,11 @@
                 if (window.belloreEditListing) window.belloreEditListing(ed.dataset.pedit);
             } else if (dl) {
                 e.preventDefault(); e.stopPropagation();
-                if (confirm('이 상품을 삭제할까요?')) {
+                bellConfirm('이 상품을 삭제할까요?').then(function (ok) {
+                    if (!ok) return;
                     NWBackend.deleteProduct(dl.dataset.pdel)
                         .catch(function (err) { alert('삭제 실패: ' + (err && err.message || err)); });
-                }
+                });
             }
         });
 
@@ -1019,10 +1026,11 @@
                     alert('쿠폰을 받았습니다.'); renderMyCoupons();
                 }).catch(function (err) { alert(couponClaimErr(err)); get.disabled = false; });
             } else if (del) {
-                if (confirm('이 쿠폰을 삭제할까요?')) {
+                bellConfirm('이 쿠폰을 삭제할까요?').then(function (ok) {
+                    if (!ok) return;
                     NWBackend.deleteCoupon(del.dataset.cpdel)
                         .then(renderAdminCoupons).catch(function (err) { alert('삭제 실패: ' + (err && err.message || err)); });
-                }
+                });
             } else if (tg) {
                 NWBackend.setCouponActive(tg.dataset.cptoggle, tg.dataset.on !== '1')
                     .then(renderAdminCoupons).catch(function (err) { alert('변경 실패: ' + (err && err.message || err)); });
@@ -1141,12 +1149,14 @@
             var delBtn = $('#cpDelete');
             if (delBtn) delBtn.addEventListener('click', function () {
                 if (!cpEditId) return;
-                if (!confirm('이 쿠폰을 삭제할까요? 되돌릴 수 없습니다.')) return;
-                delBtn.disabled = true;
-                NWBackend.deleteCoupon(cpEditId).then(function () {
-                    closeCouponPage(); alert('쿠폰을 삭제했습니다.'); renderAdminCoupons(); renderMyCoupons();
-                }).catch(function (err) { alert('삭제 실패: ' + (err && err.message || err)); })
-                    .then(function () { delBtn.disabled = false; });
+                bellConfirm('이 쿠폰을 삭제할까요? 되돌릴 수 없습니다.').then(function (ok) {
+                    if (!ok) return;
+                    delBtn.disabled = true;
+                    NWBackend.deleteCoupon(cpEditId).then(function () {
+                        closeCouponPage(); alert('쿠폰을 삭제했습니다.'); renderAdminCoupons(); renderMyCoupons();
+                    }).catch(function (err) { alert('삭제 실패: ' + (err && err.message || err)); })
+                        .then(function () { delBtn.disabled = false; });
+                });
             });
         }
 
@@ -2302,7 +2312,8 @@
             }
 
             if (action === 'approve') {
-                if (confirm(name + ' 매물을 승인하시겠습니까?\n승인 후 고객 판매 마켓에 게시됩니다.')) {
+                bellConfirm(name + ' 매물을 승인하시겠습니까?\n승인 후 고객 판매 마켓에 게시됩니다.').then(function (ok) {
+                    if (!ok) return;
                     if (backendOn() && listingId) {
                         NWBackend.approveListing(listingId)
                             .then(function () { notify(label + ' 매물이 승인되어 마켓에 게시됐어요.'); alert('승인되었습니다.'); })
@@ -2313,9 +2324,10 @@
                     item.style.opacity = '0';
                     setTimeout(function () { item.remove(); }, 400);
                     alert('승인되었습니다.');
-                }
+                });
             } else if (action === 'reject') {
-                if (confirm(name + ' 매물을 거부하시겠습니까?')) {
+                bellConfirm(name + ' 매물을 거부하시겠습니까?').then(function (ok) {
+                    if (!ok) return;
                     if (backendOn() && listingId) {
                         NWBackend.rejectListing(listingId)
                             .then(function () { notify(label + ' 매물 등록이 거부되었어요. 자세한 사유는 상담을 통해 안내드려요.'); alert('거부되었습니다. 고객에게 사유가 전송됩니다.'); })
@@ -2326,7 +2338,7 @@
                     item.style.opacity = '0';
                     setTimeout(function () { item.remove(); }, 400);
                     alert('거부되었습니다. 고객에게 사유가 전송됩니다.');
-                }
+                });
             } else if (action === 'bid') {
                 if (!backendOn() || !listingId) { alert('백엔드 연결이 필요합니다.'); return; }
                 // 입찰 전 인증 확인: 휴대폰 인증 + (업체) 계좌 인증 필수. 관리자는 통과.
@@ -2342,13 +2354,14 @@
                         return;
                     }
                 }
-                var amt = prompt(label + ' 매물 입찰가 (숫자만, 예: 15000000)');
-                if (!amt) return;
-                var amount = parseInt(String(amt).replace(/[^0-9]/g, ''), 10) || 0;
-                if (!amount) { alert('금액을 숫자로 입력해주세요.'); return; }
-                NWBackend.placeBid({ id: listingId, uid: uid, brand: item.dataset.brand, model: item.dataset.model }, amount)
-                    .then(function () { alert(fmt(amount) + '원으로 입찰했습니다. 고객에게 알림이 전송됩니다.'); })
-                    .catch(function (err) { alert('입찰 실패: ' + (err && err.message || err)); });
+                bellPrompt(label + ' 매물 입찰가 (숫자만, 예: 15000000)').then(function (amt) {
+                    if (!amt) return;
+                    var amount = parseInt(String(amt).replace(/[^0-9]/g, ''), 10) || 0;
+                    if (!amount) { alert('금액을 숫자로 입력해주세요.'); return; }
+                    NWBackend.placeBid({ id: listingId, uid: uid, brand: item.dataset.brand, model: item.dataset.model }, amount)
+                        .then(function () { alert(fmt(amount) + '원으로 입찰했습니다. 고객에게 알림이 전송됩니다.'); })
+                        .catch(function (err) { alert('입찰 실패: ' + (err && err.message || err)); });
+                });
             }
         });
 

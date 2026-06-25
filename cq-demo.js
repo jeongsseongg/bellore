@@ -1405,13 +1405,15 @@
       var vendorId = aw.getAttribute('data-cqd-vendor');
       var amt = Number(aw.getAttribute('data-cqd-amt'));
       var qa = findIn(cust.watches, qid); if (!qa) return;
-      if (!confirm(won(amt) + ' 견적으로 판매를 확정할까요?\n확정 후 해당 업체 정보가 공개되며, 관리자에게 전송됩니다.')) return;
-      B.awardBid(qid, bidId, vendorId).then(function () {
-        var vp = awardedVendorCache[qid];
-        emailAdmin(qa, { amount: amt, id: bidId }, vp && (vp.company_name || vp.display_name));
-        alert('판매가 확정되었습니다. 관리자(' + ADMIN_EMAIL + ')에게 선택 내역을 전송했습니다.');
-        go('c-offer', qid + '|' + bidId, true);
-      }).catch(function (err) { alert('확정 실패: ' + msg(err)); });
+      bellConfirm(won(amt) + ' 견적으로 판매를 확정할까요?\n확정 후 해당 업체 정보가 공개되며, 관리자에게 전송됩니다.').then(function (ok) {
+        if (!ok) return;
+        B.awardBid(qid, bidId, vendorId).then(function () {
+          var vp = awardedVendorCache[qid];
+          emailAdmin(qa, { amount: amt, id: bidId }, vp && (vp.company_name || vp.display_name));
+          alert('판매가 확정되었습니다. 관리자(' + ADMIN_EMAIL + ')에게 선택 내역을 전송했습니다.');
+          go('c-offer', qid + '|' + bidId, true);
+        }).catch(function (err) { alert('확정 실패: ' + msg(err)); });
+      });
       return;
     }
 
@@ -1452,31 +1454,31 @@
     var ap = e.target.closest('[data-cqd-approve]');
     if (ap) { B.approveListing(ap.getAttribute('data-cqd-approve')).then(function(){ alert('승인했습니다. 업체 입찰이 시작됩니다.'); }).catch(function (err) { alert('실패: ' + msg(err)); }); return; }
     var rj = e.target.closest('[data-cqd-reject]');
-    if (rj) { if (confirm('이 견적을 거부할까요?')) B.rejectListing(rj.getAttribute('data-cqd-reject')).then(function(){ go('a-dash', null, true); }).catch(function (err) { alert('실패: ' + msg(err)); }); return; }
+    if (rj) { bellConfirm('이 견적을 거부할까요?').then(function (ok) { if (ok) B.rejectListing(rj.getAttribute('data-cqd-reject')).then(function(){ go('a-dash', null, true); }).catch(function (err) { alert('실패: ' + msg(err)); }); }); return; }
     var sq = e.target.closest('[data-cqd-suspendq]');
-    if (sq) { if (confirm('이 견적을 정지할까요?')) B.suspendQuote(sq.getAttribute('data-cqd-suspendq')).catch(function (err) { alert('실패: ' + msg(err)); }); return; }
+    if (sq) { bellConfirm('이 견적을 정지할까요?').then(function (ok) { if (ok) B.suspendQuote(sq.getAttribute('data-cqd-suspendq')).catch(function (err) { alert('실패: ' + msg(err)); }); }); return; }
     var usq = e.target.closest('[data-cqd-unsuspendq]');
     if (usq) { B.unsuspendQuote(usq.getAttribute('data-cqd-unsuspendq')).catch(function (err) { alert('실패: ' + msg(err)); }); return; }
     var dq = e.target.closest('[data-cqd-delq]');
-    if (dq) { if (confirm('이 견적을 삭제할까요? 되돌릴 수 없습니다.')) B.deleteQuote(dq.getAttribute('data-cqd-delq')).then(function(){ go('a-dash', null, true); }).catch(function (err) { alert('실패: ' + msg(err)); }); return; }
+    if (dq) { bellConfirm('이 견적을 삭제할까요? 되돌릴 수 없습니다.').then(function (ok) { if (ok) B.deleteQuote(dq.getAttribute('data-cqd-delq')).then(function(){ go('a-dash', null, true); }).catch(function (err) { alert('실패: ' + msg(err)); }); }); return; }
 
     /* 관리자: 업체 승인/VIP/정지/삭제 */
     var apv = e.target.closest('[data-cqd-approvev]');
     if (apv) { B.setVendorApproved(apv.getAttribute('data-cqd-approvev'), true).catch(function (err) { alert('실패: ' + msg(err)); }); return; }
     var uapv = e.target.closest('[data-cqd-unapprovev]');
-    if (uapv) { if (confirm('승인을 취소할까요?')) B.setVendorApproved(uapv.getAttribute('data-cqd-unapprovev'), false).catch(function (err) { alert('실패: ' + msg(err)); }); return; }
+    if (uapv) { bellConfirm('승인을 취소할까요?').then(function (ok) { if (ok) B.setVendorApproved(uapv.getAttribute('data-cqd-unapprovev'), false).catch(function (err) { alert('실패: ' + msg(err)); }); }); return; }
     var vip = e.target.closest('[data-cqd-vipv]');
     if (vip) { B.setVip(vip.getAttribute('data-cqd-vipv'), true).catch(function (err) { alert('실패: ' + msg(err)); }); return; }
     var uvip = e.target.closest('[data-cqd-unvipv]');
     if (uvip) { B.setVip(uvip.getAttribute('data-cqd-unvipv'), false).catch(function (err) { alert('실패: ' + msg(err)); }); return; }
     var sv = e.target.closest('[data-cqd-suspendv]');
-    if (sv) { if (confirm('이 업체를 사용정지할까요?')) B.setVendorSuspended(sv.getAttribute('data-cqd-suspendv'), true).catch(function (err) { alert('실패: ' + msg(err)); }); return; }
+    if (sv) { bellConfirm('이 업체를 사용정지할까요?').then(function (ok) { if (ok) B.setVendorSuspended(sv.getAttribute('data-cqd-suspendv'), true).catch(function (err) { alert('실패: ' + msg(err)); }); }); return; }
     var usv = e.target.closest('[data-cqd-unsuspendv]');
     if (usv) { B.setVendorSuspended(usv.getAttribute('data-cqd-unsuspendv'), false).catch(function (err) { alert('실패: ' + msg(err)); }); return; }
     var dv = e.target.closest('[data-cqd-delv]');
-    if (dv) { if (confirm('이 업체를 삭제할까요? (Auth 계정 완전 삭제는 콘솔에서)')) B.deleteAccount(dv.getAttribute('data-cqd-delv')).then(function(){ go('a-vendors', null, true); }).catch(function (err) { alert('실패: ' + msg(err)); }); return; }
+    if (dv) { bellConfirm('이 업체를 삭제할까요? (Auth 계정 완전 삭제는 콘솔에서)').then(function (ok) { if (ok) B.deleteAccount(dv.getAttribute('data-cqd-delv')).then(function(){ go('a-vendors', null, true); }).catch(function (err) { alert('실패: ' + msg(err)); }); }); return; }
     var dc = e.target.closest('[data-cqd-delc]');
-    if (dc) { if (confirm('이 고객 계정을 삭제할까요?')) B.deleteAccount(dc.getAttribute('data-cqd-delc')).catch(function (err) { alert('실패: ' + msg(err)); }); return; }
+    if (dc) { bellConfirm('이 고객 계정을 삭제할까요?').then(function (ok) { if (ok) B.deleteAccount(dc.getAttribute('data-cqd-delc')).catch(function (err) { alert('실패: ' + msg(err)); }); }); return; }
     /* data-resetpw 는 전역 핸들러(bellore-features.js)가 처리 */
   }
 
@@ -1603,22 +1605,24 @@
     var photos = editPhotos.concat(newPhotos);
     if (!photos.length) { alert('시계 사진을 1장 이상 등록해주세요.'); return; }
     if (!B.updateListing) { alert('수정 기능을 사용할 수 없습니다.'); return; }
-    if (!confirm('수정하면 다시 정·가품 감정 승인(재승인) 절차를 거칩니다.\n그동안 받은 입찰은 초기화됩니다. 계속할까요?')) return;
-    btn.disabled = true; btn.textContent = '수정 중…';
-    B.updateListing(editId, {
-      photos: photos,
-      brand: d.brand, model: d.model, ref: d.ref, stamping: d.stamping,
-      year: d.year, grade: d.grade, parts: d.parts,
-      memo: d.memo, name: d.name, phone: d.phone
-    })
-      .then(function () {
-        emailAdminSubmit(d, true);
-        newPhotos = []; editPhotos = []; editId = null; newData = {};
-        alert('수정되었습니다. 재승인 후 비교견적이 다시 시작됩니다.\n관리자에게 재승인 요청 메일을 전송했습니다.');
-        go('c-watches', null, true);
+    bellConfirm('수정하면 다시 정·가품 감정 승인(재승인) 절차를 거칩니다.\n그동안 받은 입찰은 초기화됩니다. 계속할까요?').then(function (ok) {
+      if (!ok) return;
+      btn.disabled = true; btn.textContent = '수정 중…';
+      B.updateListing(editId, {
+        photos: photos,
+        brand: d.brand, model: d.model, ref: d.ref, stamping: d.stamping,
+        year: d.year, grade: d.grade, parts: d.parts,
+        memo: d.memo, name: d.name, phone: d.phone
       })
-      .catch(function (err) { alert('수정 실패: ' + msg(err)); })
-      .then(function () { btn.disabled = false; btn.textContent = '수정 후 재승인 요청'; });
+        .then(function () {
+          emailAdminSubmit(d, true);
+          newPhotos = []; editPhotos = []; editId = null; newData = {};
+          alert('수정되었습니다. 재승인 후 비교견적이 다시 시작됩니다.\n관리자에게 재승인 요청 메일을 전송했습니다.');
+          go('c-watches', null, true);
+        })
+        .catch(function (err) { alert('수정 실패: ' + msg(err)); })
+        .then(function () { btn.disabled = false; btn.textContent = '수정 후 재승인 요청'; });
+    });
   }
   function valOf(sel) {
     var el = overlay && overlay.querySelector(sel);

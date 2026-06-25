@@ -133,7 +133,7 @@
   // 찜페이지의 담기/삭제
   document.addEventListener('click', function (e) {
     var rm = e.target.closest('.wish-remove'), ac = e.target.closest('.wish-addcart');
-    if (rm) { e.preventDefault(); if (!window.confirm('이 항목을 삭제할까요?')) return; removeFromStore(rm.dataset.kind === 'cart' ? 'cart' : 'wish', rm.dataset.id); return; }
+    if (rm) { e.preventDefault(); bellConfirm('이 항목을 삭제할까요?').then(function (ok) { if (!ok) return; removeFromStore(rm.dataset.kind === 'cart' ? 'cart' : 'wish', rm.dataset.id); }); return; }
     if (ac) {
       e.preventDefault();
       var it = findById(getWish(), ac.dataset.id);

@@ -559,9 +559,11 @@
           if (it) bannerEditView(it);
         });
       } else if (dl) {
-        if (!confirm('이 배너를 삭제할까요?')) return;
-        B.deleteBanner(dl.dataset.bndel).then(bannerListView)
-          .catch(function (err) { alert('삭제 실패: ' + errMsg(err)); });
+        bellConfirm('이 배너를 삭제할까요?').then(function (ok) {
+          if (!ok) return;
+          B.deleteBanner(dl.dataset.bndel).then(bannerListView)
+            .catch(function (err) { alert('삭제 실패: ' + errMsg(err)); });
+        });
       }
     });
 
@@ -738,9 +740,11 @@
       } else if (dl && /^(post|review):/.test(dl.dataset.del)) {
         e.preventDefault(); e.stopImmediatePropagation();
         var pd = dl.dataset.del.split(':'); var k2 = pd[0], id2 = pd[1];
-        if (!confirm('삭제하시겠어요?')) return;
-        (k2 === 'post' ? B.deletePost(id2) : B.deleteReview(id2))
-          .catch(function (err) { alert('삭제 실패: ' + (err && err.message || err)); });
+        bellConfirm('삭제하시겠어요?').then(function (ok) {
+          if (!ok) return;
+          (k2 === 'post' ? B.deletePost(id2) : B.deleteReview(id2))
+            .catch(function (err) { alert('삭제 실패: ' + (err && err.message || err)); });
+        });
       }
     });
 
@@ -850,20 +854,23 @@
       var rb = e.target.closest('[data-resetpw]');
       if (!rb) return;
       var email = rb.dataset.resetpw;
-      if (!confirm(email + ' 주소로 비밀번호 재설정 메일을 보낼까요?')) return;
-      B.resetPassword(email)
-        .then(function () { alert('재설정 메일을 보냈습니다. 받은편지함을 확인하도록 안내하세요.'); })
-        .catch(function (err) { alert('발송 실패: ' + (err && err.message || err)); });
+      bellConfirm(email + ' 주소로 비밀번호 재설정 메일을 보낼까요?').then(function (ok) {
+        if (!ok) return;
+        B.resetPassword(email)
+          .then(function () { alert('재설정 메일을 보냈습니다. 받은편지함을 확인하도록 안내하세요.'); })
+          .catch(function (err) { alert('발송 실패: ' + (err && err.message || err)); });
+      });
     });
     // 로그인 화면: 아이디/비밀번호 찾기
     var findPw = $('#findPw');
     if (findPw) findPw.addEventListener('click', function () {
       alert('아이디는 가입 시 사용한 이메일 주소입니다.\n비밀번호는 재설정 메일로 변경할 수 있어요.');
-      var email = prompt('가입한 이메일을 입력하면 비밀번호 재설정 메일을 보내드립니다.');
-      if (!email || email.indexOf('@') === -1) return;
-      B.resetPassword(email)
-        .then(function () { alert('재설정 메일을 보냈습니다. 받은편지함을 확인해주세요.'); })
-        .catch(function (err) { alert('발송 실패: ' + (err && err.message || err)); });
+      bellPrompt('가입한 이메일을 입력하면 비밀번호 재설정 메일을 보내드립니다.').then(function (email) {
+        if (!email || email.indexOf('@') === -1) return;
+        B.resetPassword(email)
+          .then(function () { alert('재설정 메일을 보냈습니다. 받은편지함을 확인해주세요.'); })
+          .catch(function (err) { alert('발송 실패: ' + (err && err.message || err)); });
+      });
     });
     // 마이페이지 모달이 열릴 때 현황 새로고침
     var myModal = $('#myPageModal');
