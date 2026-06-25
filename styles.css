@@ -6772,6 +6772,61 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 .vf-msg { font-size: 13px; min-height: 18px; margin-top: 4px; white-space: pre-line; }
 .vf-msg.err { color: #c0392b; }
 .vf-msg.ok { color: var(--dark-green); }
+.vf-field > input {
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px 14px; font-size: 15px; background: #fafafa;
+}
+.vf-field > input:focus { border-color: var(--dark-green); background: #fff; }
+
+/* ===== 제휴사 인증센터 ===== */
+.pc-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 14px 0; border-bottom: 1px solid var(--border);
+}
+.pc-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pc-info > b { font-size: 14.5px; }
+.pc-info > em { font-size: 12px; color: var(--text-2); font-style: normal; }
+.pc-state { font-size: 12px; font-weight: 700; }
+.pc-state.ok { color: var(--dark-green); }
+.pc-state.no { color: #c0392b; }
+.pc-btn {
+    flex: 0 0 auto; padding: 9px 14px; border-radius: 10px; background: var(--dark-green);
+    color: #fff; font-size: 13px; font-weight: 700; white-space: nowrap;
+}
+.pc-result { margin-top: 16px; }
+.pc-ok { color: var(--dark-green); font-weight: 700; font-size: 14px; }
+.pc-wait { color: var(--text-2); font-size: 13px; line-height: 1.6; }
+
+/* 가입폼 제휴사 안내 */
+.signup-partner-note { font-size: 12px; color: var(--text-2); line-height: 1.6; margin: 4px 0 0; }
+
+/* ===== 정산내역 ===== */
+.stl-row { padding: 12px 0; border-bottom: 1px solid var(--border); }
+.stl-main { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.stl-main > b { font-size: 14px; }
+.stl-amt { font-weight: 800; color: var(--dark-green); white-space: nowrap; }
+.stl-sub { font-size: 12px; color: var(--text-2); margin-top: 4px; }
+.stl-paid { color: var(--dark-green); font-weight: 700; }
+.stl-pending { color: #c08400; font-weight: 700; }
+.stl-hold { color: #c0392b; font-weight: 700; }
+.stl-act { margin-left: 6px; padding: 4px 10px; border-radius: 8px; background: var(--dark-green); color: #fff; font-size: 12px; font-weight: 700; }
+.stl-act.ghost { background: #eee; color: var(--text-1); }
+.stl-adm .stl-main { margin-bottom: 2px; }
+
+/* 제휴사 관리 카드 */
+.partner-adm { display: block; }
+.pa-head { display: flex; align-items: center; gap: 8px; }
+.pa-head > b { font-size: 14.5px; }
+.pa-state { font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+.pa-state.ok { background: #e6f4ea; color: var(--dark-green); }
+.pa-state.no { background: #fdecea; color: #c0392b; }
+.pa-sub { font-size: 12.5px; color: var(--text-2); margin-top: 4px; }
+.pa-sub.small { font-size: 11.5px; }
+.pa-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.pchip { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: #f1f1f1; color: #999; }
+.pchip.on { background: #e6f4ea; color: var(--dark-green); }
+.pa-acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.pa-acts .stl-act { margin-left: 0; }
 
 .admin-vendor-item { flex-wrap: wrap; align-items: flex-start; gap: 4px 10px; }
 .admin-vendor-item .av-main { font-weight: 700; flex: 1 1 100%; }

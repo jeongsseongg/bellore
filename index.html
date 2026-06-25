@@ -2060,12 +2060,28 @@
                         <select name="role" id="signupRole">
                             <option value="customer">일반 회원 (비교견적 신청)</option>
                             <option value="vendor">업체 회원 (승인 후 입찰 참여)</option>
+                            <option value="partner">제휴사 (직영 판매·정산)</option>
                         </select>
                     </label>
                     <label class="signup-vendor-only" id="signupCompanyField" style="display:none">
-                        <span>업체 상호</span>
+                        <span id="signupCompanyLabel">업체 상호</span>
                         <input type="text" name="company" placeholder="예: 강남워치">
                     </label>
+                    <div class="signup-partner-only" id="signupPartnerFields" style="display:none">
+                        <label>
+                            <span>사업자등록번호</span>
+                            <input type="text" name="businessNo" placeholder="000-00-00000" inputmode="numeric">
+                        </label>
+                        <label>
+                            <span>대표자명</span>
+                            <input type="text" name="ceoName" placeholder="대표자 실명">
+                        </label>
+                        <label>
+                            <span>개업일</span>
+                            <input type="text" name="bizOpenDate" placeholder="YYYYMMDD (예: 20200101)" inputmode="numeric">
+                        </label>
+                        <p class="signup-partner-note">가입 후 사업자·휴대폰·계좌·이메일 인증을 마치면 관리자 승인 후 직접 상품을 등록·판매할 수 있어요. 판매대금은 수수료를 제외하고 등록하신 계좌로 정산됩니다.</p>
+                    </div>
                     <label>
                         <span>이름</span>
                         <input type="text" name="name" placeholder="홍길동" required>
@@ -2188,6 +2204,14 @@
                         <span>판매시계 관리</span>
                         <span class="amr-right"><span class="amr-arrow">›</span></span>
                     </button>
+                    <button type="button" class="admin-menu-row" data-apv="partners">
+                        <span>제휴사 관리</span>
+                        <span class="amr-right"><span class="amr-badge" id="amrPartners" hidden>0</span><span class="amr-arrow">›</span></span>
+                    </button>
+                    <button type="button" class="admin-menu-row" data-apv="settlements">
+                        <span>정산 관리</span>
+                        <span class="amr-right"><span class="amr-badge" id="amrSettlements" hidden>0</span><span class="amr-arrow">›</span></span>
+                    </button>
                 </div>
             </div>
 
@@ -2279,6 +2303,22 @@
                     <span class="mypage-noti-state" id="notifyQuotesState">켜짐</span>
                 </button>
                 <p class="mypage-security" id="vendorVipNote" hidden>⭐ VIP 업체로 지정되어 있어요. 새 견적 시 카톡 알림톡도 함께 받습니다.</p>
+            </div>
+
+            <!-- 제휴사 전용: 인증센터 · 상품등록 · 정산내역 -->
+            <div class="mypage-section partner-only" hidden id="partnerBox">
+                <h4>제휴사 센터</h4>
+                <p class="mypage-security" id="partnerStateNote">인증을 완료하면 관리자 승인 후 상품을 등록·판매할 수 있어요.</p>
+                <button type="button" class="mypage-noti" id="btnPartnerCenter">
+                    <span class="mypage-noti-left">인증센터 (사업자·휴대폰·계좌·이메일)</span>
+                    <span class="mypage-noti-state" id="partnerVerifyState">확인</span>
+                </button>
+                <button type="button" class="mypage-noti" id="btnPartnerNewListing" hidden>
+                    <span class="mypage-noti-left">＋ 상품 등록하기</span>
+                    <span class="mypage-noti-state">등록</span>
+                </button>
+                <h4 style="margin-top:18px">내 정산내역 <b id="myStlCount">0</b></h4>
+                <div id="myStlList"></div>
             </div>
 
             <!-- 내 쿠폰 -->
@@ -2640,6 +2680,18 @@
             <section class="admin-panel-view" data-apv="accounts" hidden>
                 <div id="adminAccounts" class="admin-list"></div>
                 <p class="mypage-security">보안상 비밀번호는 어디에서도 조회할 수 없습니다(암호화 저장). 필요 시 "재설정 메일"로 변경하세요.</p>
+            </section>
+            <section class="admin-panel-view" data-apv="partners" hidden>
+                <div id="adminPartners" class="admin-list"></div>
+                <p class="mypage-security">제휴사 인증(사업자·휴대폰·계좌·이메일)을 확인하고 승인하면 해당 제휴사가 상품을 등록·판매할 수 있습니다. 수수료율은 제휴사별로 조정할 수 있어요.</p>
+            </section>
+            <section class="admin-panel-view" data-apv="settlements" hidden>
+                <div class="cpadm-tabs" id="stlTabs">
+                    <button type="button" class="cpadm-tab on" data-stl="">전체</button>
+                    <button type="button" class="cpadm-tab" data-stl="pending">정산대기</button>
+                    <button type="button" class="cpadm-tab" data-stl="paid">입금완료</button>
+                </div>
+                <div id="adminSettlements" class="admin-list"></div>
             </section>
             <section class="admin-panel-view" data-apv="coupons" hidden>
                 <div class="cpadm-tabs" id="cpAdmTabs">

@@ -400,6 +400,8 @@
       B.getListing(id).then(function (item) { openListing(item); })
         .catch(function (err) { alert('불러오기 실패: ' + (err && err.message || err)); });
     };
+    // 새 상품 등록 폼 열기(관리자/승인 제휴사 공용)
+    window.belloreNewListing = function (cat) { openListing(null, cat || listingCats.brand); };
 
     // (구) 흩어진 등록 버튼은 제거하고, 우측 상단 "+" 하나로 통합 (하단 adminFab)
 
@@ -814,6 +816,7 @@
       if (!info) return '';
       if (info.isAdmin) return '관리자';
       if (info.role === 'vendor') return '업체회원 · ' + (info.approved ? '승인됨' : '승인 대기');
+      if (info.role === 'partner') return '제휴사 · ' + (info.approved ? '승인됨' : '승인 대기');
       return '일반회원';
     }
     function applyMyPageRole(info) {
@@ -841,7 +844,7 @@
           if (!rows.length) { box.innerHTML = '<div class="admin-list-item"><span>회원이 없습니다.</span></div>'; return; }
           box.innerHTML = rows.map(function (p) {
             var name = esc(p.company_name || p.display_name || '(이름 없음)');
-            var role = p.role === 'admin' ? '관리자' : (p.role === 'vendor' ? ('업체' + (p.approved ? '·승인' : '·대기')) : '일반');
+            var role = p.role === 'admin' ? '관리자' : (p.role === 'vendor' ? ('업체' + (p.approved ? '·승인' : '·대기')) : (p.role === 'partner' ? ('제휴사' + (p.approved ? '·승인' : '·대기')) : '일반'));
             var email = p.email ? esc(p.email) : '(이메일 표시하려면 account_admin.sql 실행)';
             var reset = p.email ? '<button type="button" data-resetpw="' + esc(p.email) + '">재설정 메일</button>' : '';
             return '<div class="admin-list-item"><span><b>' + name + '</b> · ' + role + '<br><small>' + email + '</small></span>' + reset + '</div>';
@@ -1083,6 +1086,103 @@
       openModal(acctModal);
     };
 
+    /* ===== 사업자등록 진위확인 ===== */
+    var bizModal = null;
+    window.belloreVerifyBusiness = function (opts) {
+      opts = opts || {};
+      if (!bizModal) bizModal = makeModal('bizVerifyModal', 'VERIFY', '사업자 인증');
+      var box = bizModal.querySelector('.modal-body');
+      var info = lastInfo || {};
+      box.innerHTML =
+        '<p class="vf-desc">국세청 진위확인으로 사업자등록을 인증합니다. 사업자번호·개업일·대표자명이 모두 일치해야 합니다.</p>' +
+        '<div class="vf-field"><span>사업자등록번호</span>' +
+          '<input type="text" id="bzNo" inputmode="numeric" placeholder="000-00-00000" value="' + esc(info.businessNo || '') + '"></div>' +
+        '<div class="vf-field"><span>개업일 (YYYYMMDD)</span>' +
+          '<input type="text" id="bzDate" inputmode="numeric" placeholder="예: 20200101"></div>' +
+        '<div class="vf-field"><span>대표자명</span>' +
+          '<input type="text" id="bzCeo" placeholder="대표자 실명" value="' + esc(info.ceoName || '') + '"></div>' +
+        '<p class="vf-msg" id="bzMsg"></p>' +
+        '<button type="button" class="vf-send" id="bzGo" style="width:100%">사업자 인증하기</button>';
+      var msg = box.querySelector('#bzMsg');
+      function setMsg(t, ok) { msg.textContent = t || ''; msg.className = 'vf-msg' + (ok ? ' ok' : t ? ' err' : ''); }
+      box.querySelector('#bzGo').addEventListener('click', function () {
+        var bno = box.querySelector('#bzNo').value.replace(/[^0-9]/g, '');
+        var sdt = box.querySelector('#bzDate').value.replace(/[^0-9]/g, '');
+        var ceo = box.querySelector('#bzCeo').value.trim();
+        if (bno.length !== 10) { setMsg('사업자등록번호 10자리를 확인하세요.'); return; }
+        if (!ceo) { setMsg('대표자명을 입력하세요.'); return; }
+        var btn = this; btn.disabled = true; btn.textContent = '확인 중…';
+        // 입력값 저장 후 진위확인 호출
+        B.submitBusiness({ businessNo: bno, bizOpenDate: sdt, ceoName: ceo }).catch(function () {});
+        B.verifyBusiness({ businessNo: bno, bizOpenDate: sdt, ceoName: ceo })
+          .then(function () {
+            setMsg('사업자 인증이 완료되었습니다.', true);
+            setTimeout(function () { closeModal(bizModal); if (opts.onDone) opts.onDone(); }, 800);
+          })
+          .catch(function (err) {
+            btn.disabled = false; btn.textContent = '사업자 인증하기';
+            var m = (err && err.message) || String(err || '');
+            if (/NOT_CONFIGURED|Edge Function|Failed to send|FunctionsFetchError|not found/i.test(m)) {
+              setMsg('자동 진위확인이 아직 연결되지 않았습니다. 입력하신 정보는 저장됐으며, 관리자 확인 후 인증 처리됩니다.', true);
+              setTimeout(function () { closeModal(bizModal); if (opts.onDone) opts.onDone(); }, 1500);
+            } else if (/MISMATCH|일치/i.test(m)) {
+              setMsg('사업자번호·개업일·대표자명이 일치하지 않습니다. 다시 확인해주세요.');
+            } else {
+              setMsg('인증 실패: ' + m);
+            }
+          });
+      });
+      openModal(bizModal);
+    };
+
+    /* ===== 제휴사 인증센터 (이메일/휴대폰/사업자/계좌 한 화면) ===== */
+    var pcModal = null;
+    window.bellorePartnerCenter = function (opts) {
+      opts = opts || {};
+      if (!pcModal) pcModal = makeModal('partnerCenterModal', 'PARTNER', '제휴사 인증센터');
+      var box = pcModal.querySelector('.modal-body');
+      function row(label, done, hint, btnId, btnTxt) {
+        return '<div class="pc-row">' +
+          '<div class="pc-info"><b>' + esc(label) + '</b>' +
+            '<span class="pc-state ' + (done ? 'ok' : 'no') + '">' + (done ? '✓ 인증완료' : '미인증') + '</span>' +
+            (hint ? '<em>' + esc(hint) + '</em>' : '') + '</div>' +
+          (done ? '' : '<button type="button" class="pc-btn" id="' + btnId + '">' + esc(btnTxt) + '</button>') +
+        '</div>';
+      }
+      function render() {
+        var info = lastInfo || {};
+        var approved = !!info.isApprovedPartner;
+        box.innerHTML =
+          '<p class="vf-desc">아래 4가지 인증을 모두 마치면 관리자 승인 후 상품을 직접 등록·판매할 수 있어요. 판매대금은 수수료(' +
+            Math.round((info.commissionRate != null ? info.commissionRate : 0.1) * 100) + '%)를 제외하고 등록 계좌로 정산됩니다.</p>' +
+          row('이메일 인증', info.emailVerified, '가입 메일의 인증 링크를 클릭하세요.', 'pcEmail', '인증메일 재전송') +
+          row('휴대폰 인증', info.phoneVerified, '본인 명의 휴대폰', 'pcPhone', '휴대폰 인증') +
+          row('사업자 인증', info.bizVerified, '국세청 진위확인', 'pcBiz', '사업자 인증') +
+          row('계좌 인증(정산 입금)', info.accountVerified, info.accountSubmitted ? '제출됨 · 관리자 승인 대기' : '통장사본 제출 후 승인', 'pcAcct', '계좌 등록') +
+          '<div class="pc-result">' +
+            (approved ? '<p class="pc-ok">✓ 제휴사 승인 완료 — 상품 등록이 가능합니다.</p>'
+                      : '<p class="pc-wait">모든 인증 완료 후 관리자가 승인하면 상품 등록이 열립니다.</p>') +
+          '</div>';
+        var e1 = box.querySelector('#pcEmail');
+        if (e1) e1.addEventListener('click', function () {
+          this.disabled = true; var b = this;
+          B.resendEmailConfirm().then(function () { belloreAlert('인증메일을 다시 보냈습니다. 받은편지함을 확인하세요.'); }, function (err) {
+            b.disabled = false;
+            var m = (err && err.message) || '';
+            belloreAlert(/Confirm|disabled|not allowed|signup/i.test(m) ? '이메일 인증은 관리자가 Supabase에서 "Confirm email"을 켜면 활성화됩니다.' : '재전송 실패: ' + m);
+          });
+        });
+        var p1 = box.querySelector('#pcPhone');
+        if (p1) p1.addEventListener('click', function () { window.belloreVerifyPhone({ onDone: render }); });
+        var b1 = box.querySelector('#pcBiz');
+        if (b1) b1.addEventListener('click', function () { window.belloreVerifyBusiness({ onDone: render }); });
+        var a1 = box.querySelector('#pcAcct');
+        if (a1) a1.addEventListener('click', function () { window.belloreVendorAccount({ onDone: render }); });
+      }
+      render();
+      openModal(pcModal);
+    };
+
     // 로그인/가입 후 인증 안내 (소셜 포함). 세션당 한 번만 띄움.
     var _verifyPrompted = false;
     window.belloreMaybePromptVerify = function (info) {
@@ -1091,6 +1191,13 @@
       if (!B.currentUser || !B.currentUser()) return;
       if (info.isAdmin) return;
       if (_verifyPrompted) return;
+      // 제휴사: 인증센터로 안내(미완료 항목이 하나라도 있으면)
+      if (info.role === 'partner' &&
+          !(info.emailVerified && info.phoneVerified && info.bizVerified && info.accountVerified)) {
+        _verifyPrompted = true;
+        window.bellorePartnerCenter({});
+        return;
+      }
       if (!info.phoneVerified) {
         _verifyPrompted = true;
         window.belloreVerifyPhone({ onDone: function () {

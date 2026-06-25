@@ -604,14 +604,28 @@
                 .then(function () { notifyBtn.disabled = false; });
         });
 
-        // 회원가입: 업체 선택 시 상호 입력칸 표시
+        // 회원가입: 업체/제휴사 선택 시 추가 입력칸 표시
         var roleSel = $('#signupRole');
         var companyField = $('#signupCompanyField');
         if (roleSel && companyField) {
             roleSel.addEventListener('change', function () {
-                companyField.style.display = roleSel.value === 'vendor' ? '' : 'none';
+                var v = roleSel.value;
+                companyField.style.display = (v === 'vendor' || v === 'partner') ? '' : 'none';
+                var lab = $('#signupCompanyLabel'); if (lab) lab.textContent = v === 'partner' ? '상호(회사명)' : '업체 상호';
+                var pf = $('#signupPartnerFields'); if (pf) pf.style.display = v === 'partner' ? '' : 'none';
             });
         }
+
+        // 제휴사 센터 버튼
+        var pcBtn = $('#btnPartnerCenter');
+        if (pcBtn) pcBtn.addEventListener('click', function () {
+            if (window.bellorePartnerCenter) window.bellorePartnerCenter({});
+        });
+        var pnBtn = $('#btnPartnerNewListing');
+        if (pnBtn) pnBtn.addEventListener('click', function () {
+            if (window.belloreNewListing) window.belloreNewListing();
+            else alert('상품 등록 기능을 불러오지 못했습니다.');
+        });
 
         // 알림 모달 (마이페이지 내부 #btnNoti + 상단 헤더 #btnNotiTop 둘 다 연동)
         var btnNoti = $('#btnNoti');
@@ -749,7 +763,47 @@
                     if (vipNote) vipNote.hidden = !(info && info.vip);
                 }
             }
+
+            // 제휴사 전용: 인증센터 · 상품등록 · 정산내역
+            var pBox = $('#partnerBox');
+            if (pBox) {
+                var isPartner = info && info.role === 'partner';
+                pBox.hidden = !isPartner;
+                if (isPartner) {
+                    var allVerified = info.emailVerified && info.phoneVerified && info.bizVerified && info.accountVerified;
+                    var vState = $('#partnerVerifyState');
+                    if (vState) vState.textContent = allVerified ? '완료' : '필요';
+                    var note = $('#partnerStateNote');
+                    if (note) {
+                        note.textContent = info.isApprovedPartner
+                            ? '✓ 제휴사 승인 완료 — 상품을 등록·판매할 수 있어요. 판매대금은 수수료 제외 후 등록 계좌로 정산됩니다.'
+                            : (allVerified ? '인증 완료 — 관리자 승인을 기다리는 중입니다.' : '사업자·휴대폰·계좌·이메일 인증을 완료해 주세요.');
+                    }
+                    var newBtn = $('#btnPartnerNewListing');
+                    if (newBtn) newBtn.hidden = !info.isApprovedPartner;
+                    renderMySettlements();
+                }
+            }
         });
+    }
+
+    // 제휴사: 내 정산내역 렌더
+    function renderMySettlements() {
+        var box = $('#myStlList'); if (!box || !backendOn() || !NWBackend.listMySettlements) return;
+        NWBackend.listMySettlements().then(function (rows) {
+            var cnt = $('#myStlCount'); if (cnt) cnt.textContent = rows.length;
+            if (!rows.length) { box.innerHTML = '<p class="mypage-prodrow-empty">정산 내역이 없습니다.</p>'; return; }
+            box.innerHTML = rows.map(function (s) {
+                var label = s.status === 'paid' ? '입금완료' : (s.status === 'hold' ? '보류' : '정산대기');
+                var cls = s.status === 'paid' ? 'stl-paid' : (s.status === 'hold' ? 'stl-hold' : 'stl-pending');
+                return '<div class="stl-row">' +
+                    '<div class="stl-main"><b>' + esc(s.productName || '상품') + '</b>' +
+                    '<span class="stl-amt">정산 ' + fmt(s.net) + '원</span></div>' +
+                    '<div class="stl-sub">판매가 ' + fmt(s.gross) + '원 · 수수료 ' + fmt(s.fee) + '원(' + Math.round((s.feeRate || 0) * 100) + '%)' +
+                    ' · <span class="' + cls + '">' + label + '</span></div>' +
+                    '</div>';
+            }).join('');
+        }).catch(function () {});
     }
 
     function updateNotiBadge(n) {
@@ -1556,7 +1610,7 @@
         var p = $('#adminPanel');
         if (!p) return;
         $$('.admin-panel-view', p).forEach(function (sec) { sec.hidden = sec.dataset.apv !== view; });
-        var titles = { quotes: '비교견적 승인', vendors: '업체 승인', accounts: '회원 계정', coupons: '쿠폰 관리', listings: '판매시계 관리', orders: '주문 · 배송 관리', returns: '교환 · 반품 관리' };
+        var titles = { quotes: '비교견적 승인', vendors: '업체 승인', accounts: '회원 계정', coupons: '쿠폰 관리', listings: '판매시계 관리', orders: '주문 · 배송 관리', returns: '교환 · 반품 관리', partners: '제휴사 관리', settlements: '정산 관리' };
         var t = $('#adminPanelTitle'); if (t) t.textContent = titles[view] || '관리';
         // 패널을 열 때 항목을 즉시 다시 그려, 첫 진입에서 빈 화면이 보이지 않게 한다
         // (구독이 비동기로 들어오는 사이 들어와도 캐시로 바로 채움)
@@ -1581,6 +1635,8 @@
                 }
             }
         }
+        else if (view === 'partners') renderAdminPartners();
+        else if (view === 'settlements') renderAdminSettlements(_stlFilter);
         p.hidden = false; document.body.style.overflow = 'hidden';
         var sc = $('.admin-panel-scroll', p); if (sc) sc.scrollTop = 0;
     }
@@ -1588,6 +1644,109 @@
         var p = $('#adminPanel');
         if (p) { p.hidden = true; document.body.style.overflow = 'hidden'; } // 마이페이지가 여전히 떠 있음
     }
+
+    /* ===== 관리자: 제휴사 관리 ===== */
+    function renderAdminPartners() {
+        var box = $('#adminPartners'); if (!box || !backendOn() || !NWBackend.listPartners) return;
+        box.innerHTML = '<div class="admin-list-item"><span>불러오는 중…</span></div>';
+        NWBackend.listPartners().then(function (rows) {
+            setBadge('#amrPartners', rows.filter(function (p) { return !p.approved; }).length);
+            if (!rows.length) { box.innerHTML = '<div class="admin-list-item"><span>제휴사가 없습니다.</span></div>'; return; }
+            box.innerHTML = rows.map(function (p) {
+                var name = esc(p.biz_name || p.company_name || p.display_name || '(이름 없음)');
+                var rate = Math.round((p.commission_rate != null ? p.commission_rate : 0.1) * 100);
+                function chip(ok, label) { return '<span class="pchip ' + (ok ? 'on' : 'off') + '">' + label + (ok ? ' ✓' : '') + '</span>'; }
+                var emailOk = !!p.email_verified;
+                return '<div class="admin-list-item partner-adm" data-pid="' + esc(p.id) + '">' +
+                    '<div class="pa-head"><b>' + name + '</b>' +
+                        '<span class="pa-state ' + (p.approved ? 'ok' : 'no') + '">' + (p.approved ? '승인됨' : '승인 대기') + '</span></div>' +
+                    '<div class="pa-sub">대표 ' + esc(p.ceo_name || '-') + ' · 사업자 ' + esc(p.business_no || '-') + ' · 수수료 ' + rate + '%</div>' +
+                    '<div class="pa-sub small">' + esc(p.email || '') + (p.bank_account ? (' · ' + esc(p.bank_name || '') + ' ' + esc(p.bank_account) + ' (' + esc(p.bank_holder || '') + ')') : '') + '</div>' +
+                    '<div class="pa-chips">' + chip(emailOk, '이메일') + chip(!!p.phone_verified, '휴대폰') + chip(!!p.biz_verified, '사업자') + chip(!!p.account_verified, '계좌') + '</div>' +
+                    '<div class="pa-acts">' +
+                        '<button type="button" class="stl-act" data-pbiz="' + esc(p.id) + '" data-on="' + (p.biz_verified ? '0' : '1') + '">' + (p.biz_verified ? '사업자해제' : '사업자승인') + '</button>' +
+                        '<button type="button" class="stl-act" data-pacct="' + esc(p.id) + '" data-on="' + (p.account_verified ? '0' : '1') + '">' + (p.account_verified ? '계좌해제' : '계좌승인') + '</button>' +
+                        '<button type="button" class="stl-act" data-prate="' + esc(p.id) + '" data-rate="' + rate + '">수수료변경</button>' +
+                        '<button type="button" class="stl-act' + (p.approved ? ' ghost' : '') + '" data-papprove="' + esc(p.id) + '" data-on="' + (p.approved ? '0' : '1') + '">' + (p.approved ? '승인취소' : '제휴사 승인') + '</button>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        }).catch(function () { box.innerHTML = '<div class="admin-list-item"><span>불러오기 실패 (partner.sql 실행 여부 확인)</span></div>'; });
+    }
+
+    /* ===== 관리자: 정산 관리 ===== */
+    var _stlFilter = '';
+    function renderAdminSettlements(filter) {
+        _stlFilter = filter || '';
+        var box = $('#adminSettlements'); if (!box || !backendOn() || !NWBackend.listAllSettlements) return;
+        box.innerHTML = '<div class="admin-list-item"><span>불러오는 중…</span></div>';
+        NWBackend.listAllSettlements(_stlFilter ? { status: _stlFilter } : {}).then(function (rows) {
+            var pendCnt = rows.filter(function (s) { return s.status === 'pending'; }).length;
+            if (!_stlFilter) setBadge('#amrSettlements', pendCnt);
+            if (!rows.length) { box.innerHTML = '<div class="admin-list-item"><span>정산 내역이 없습니다.</span></div>'; return; }
+            box.innerHTML = rows.map(function (s) {
+                var label = s.status === 'paid' ? '입금완료' : (s.status === 'hold' ? '보류' : '정산대기');
+                var cls = s.status === 'paid' ? 'stl-paid' : (s.status === 'hold' ? 'stl-hold' : 'stl-pending');
+                var payee = s.sellerRole === 'admin'
+                    ? '벨로르(직접판매)'
+                    : (esc(s.bank || '') + ' ' + esc(s.account || '') + ' (' + esc(s.holder || '') + ')');
+                var btns = '';
+                if (s.sellerRole !== 'admin') {
+                    if (s.status !== 'paid') btns += '<button type="button" class="stl-act" data-stlpaid="' + esc(s.id) + '">입금완료 처리</button>';
+                    else btns += '<button type="button" class="stl-act ghost" data-stlpending="' + esc(s.id) + '">대기로 되돌리기</button>';
+                }
+                return '<div class="admin-list-item stl-adm">' +
+                    '<div class="stl-main"><b>' + esc(s.productName || '상품') + '</b><span class="stl-amt">정산 ' + fmt(s.net) + '원</span></div>' +
+                    '<div class="stl-sub">판매가 ' + fmt(s.gross) + '원 · 수수료 ' + fmt(s.fee) + '원(' + Math.round((s.feeRate || 0) * 100) + '%) · <span class="' + cls + '">' + label + '</span></div>' +
+                    '<div class="stl-sub small">정산대상: ' + payee + '</div>' +
+                    (btns ? '<div class="pa-acts">' + btns + '</div>' : '') +
+                '</div>';
+            }).join('');
+        }).catch(function () { box.innerHTML = '<div class="admin-list-item"><span>불러오기 실패 (partner.sql 실행 여부 확인)</span></div>'; });
+    }
+
+    // 제휴사/정산 액션 + 정산 탭
+    document.addEventListener('click', function (e) {
+        var t = e.target;
+        var pb = t.closest('[data-pbiz]'), pa = t.closest('[data-pacct]'), pr = t.closest('[data-prate]'), pap = t.closest('[data-papprove]');
+        var sp = t.closest('[data-stlpaid]'), spd = t.closest('[data-stlpending]');
+        var stlTab = t.closest('#stlTabs [data-stl]');
+        if (!backendOn()) { if (pb||pa||pr||pap||sp||spd) alert('백엔드 연결이 필요합니다.'); }
+        if (pb) {
+            NWBackend.setBizVerified(pb.dataset.pbiz, pb.dataset.on === '1')
+                .then(renderAdminPartners).catch(function (err) { alert('실패: ' + (err && err.message || err)); });
+        } else if (pa) {
+            NWBackend.setAccountVerified(pa.dataset.pacct, pa.dataset.on === '1')
+                .then(renderAdminPartners).catch(function (err) { alert('실패: ' + (err && err.message || err)); });
+        } else if (pr) {
+            bellPrompt('수수료율(%)을 입력하세요. 예: 10', pr.dataset.rate).then(function (v) {
+                if (v == null) return;
+                var rate = parseFloat(String(v).replace(/[^0-9.]/g, ''));
+                if (!(rate >= 0 && rate <= 100)) { alert('0~100 사이 숫자를 입력하세요.'); return; }
+                NWBackend.setPartnerCommission(pr.dataset.prate, rate / 100)
+                    .then(renderAdminPartners).catch(function (err) { alert('실패: ' + (err && err.message || err)); });
+            });
+        } else if (pap) {
+            var on = pap.dataset.on === '1';
+            bellConfirm(on ? '이 제휴사를 승인할까요? 승인하면 상품 등록·판매가 가능합니다.' : '제휴사 승인을 취소할까요?').then(function (ok) {
+                if (!ok) return;
+                NWBackend.setPartnerApproved(pap.dataset.papprove, on)
+                    .then(renderAdminPartners).catch(function (err) { alert('실패: ' + (err && err.message || err)); });
+            });
+        } else if (sp) {
+            bellConfirm('이 정산을 입금완료로 처리할까요? 제휴사에게 알림이 전송됩니다.').then(function (ok) {
+                if (!ok) return;
+                NWBackend.setSettlementStatus(sp.dataset.stlpaid, 'paid')
+                    .then(function () { renderAdminSettlements(_stlFilter); }).catch(function (err) { alert('실패: ' + (err && err.message || err)); });
+            });
+        } else if (spd) {
+            NWBackend.setSettlementStatus(spd.dataset.stlpending, 'pending')
+                .then(function () { renderAdminSettlements(_stlFilter); }).catch(function (err) { alert('실패: ' + (err && err.message || err)); });
+        } else if (stlTab) {
+            $$('#stlTabs .cpadm-tab').forEach(function (b) { b.classList.toggle('on', b === stlTab); });
+            renderAdminSettlements(stlTab.dataset.stl || '');
+        }
+    });
 
     function initAdminDashboard() {
         // 클릭 바인딩은 백엔드 설정과 무관하게 항상 연결(메뉴 → 패널 열기)
@@ -3103,6 +3262,9 @@
                 var pw2 = fd.get('pw2');
                 var role = fd.get('role') || 'customer';
                 var company = fd.get('company') || '';
+                var businessNo = String(fd.get('businessNo') || '').replace(/[^0-9]/g, '');
+                var ceoName = String(fd.get('ceoName') || '').trim();
+                var bizOpenDate = String(fd.get('bizOpenDate') || '').replace(/[^0-9]/g, '');
                 if (!name || !username || !phone || !email || !pw) {
                     alert('필수 항목을 모두 입력해주세요.');
                     return;
@@ -3110,6 +3272,11 @@
                 if (role === 'vendor' && !company) {
                     alert('업체 회원은 업체 상호를 입력해주세요.');
                     return;
+                }
+                if (role === 'partner') {
+                    if (!company) { alert('제휴사는 상호(회사명)를 입력해주세요.'); return; }
+                    if (businessNo.length !== 10) { alert('사업자등록번호 10자리를 정확히 입력해주세요.'); return; }
+                    if (!ceoName) { alert('대표자명을 입력해주세요.'); return; }
                 }
                 if (!/^[A-Za-z0-9_]{4,}$/.test(username)) {
                     alert('아이디는 영문·숫자·밑줄(_) 4자 이상으로 입력해주세요.');
@@ -3125,13 +3292,17 @@
                 }
 
                 if (backendOn()) {
-                    NWBackend.signUp({ name: name, username: username, phone: phone, email: email, password: pw, role: role, company: company })
+                    NWBackend.signUp({ name: name, username: username, phone: phone, email: email, password: pw, role: role, company: company,
+                        businessNo: businessNo, ceoName: ceoName, bizOpenDate: bizOpenDate, bizName: company })
                         .then(function () {
                             signupForm.reset();
                             var cf = $('#signupCompanyField'); if (cf) cf.style.display = 'none';
+                            var pf = $('#signupPartnerFields'); if (pf) pf.style.display = 'none';
                             closeLoginModal();
                             if (role === 'vendor') {
                                 alert(name + '님, 업체 회원가입이 접수되었습니다.\n관리자 승인 후 입찰 기능을 이용하실 수 있습니다.');
+                            } else if (role === 'partner') {
+                                alert(name + '님, 제휴사 가입이 접수되었습니다.\n마이페이지에서 사업자·휴대폰·계좌·이메일 인증을 완료하면 관리자 승인 후 상품 등록·판매가 가능합니다.');
                             } else {
                                 alert(name + '님, 회원가입이 완료되었습니다.\n이메일 인증이 필요한 경우 메일을 확인해주세요.');
                             }

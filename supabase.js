@@ -63,7 +63,8 @@
     listAllSettlements: function () { return Promise.resolve([]); },
     setSettlementStatus: function () { return Promise.reject(new Error('NOT_CONFIGURED')); },
     listPartners: function () { return Promise.resolve([]); },
-    setPartnerCommission: function () { return Promise.reject(new Error('NOT_CONFIGURED')); }
+    setPartnerCommission: function () { return Promise.reject(new Error('NOT_CONFIGURED')); },
+    setPartnerApproved: function () { return Promise.reject(new Error('NOT_CONFIGURED')); }
   };
   window.NWBackend = Backend;
 
@@ -1069,6 +1070,17 @@
       .then(function (res) {
         if (res.error) throw res.error;
         if (approved) Backend.createNotification({ uid: id, type: 'approved', text: '업체 승인이 완료되었습니다. 이제 비교견적 입찰에 참여할 수 있어요.' });
+        refreshVendors(); refreshAccounts();
+      });
+  };
+
+  // 제휴사 승인/취소 (관리자)
+  Backend.setPartnerApproved = function (id, approved) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    return sb.from('profiles').update({ approved: approved }).eq('id', id)
+      .then(function (res) {
+        if (res.error) throw res.error;
+        if (approved) Backend.createNotification({ uid: id, type: 'approved', text: '제휴사 승인이 완료되었습니다. 이제 상품을 등록·판매할 수 있어요.' });
         refreshVendors(); refreshAccounts();
       });
   };
