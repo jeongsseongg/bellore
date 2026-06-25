@@ -1305,23 +1305,26 @@
             // 구매확정
             if (e.target.closest('[data-oconfirm]')) {
                 if (!_orderCache) return;
-                if (!confirm('구매를 확정하시겠어요? 확정 후에는 교환/반품이 제한될 수 있습니다.')) return;
-                NWBackend.confirmReceipt(_orderCache.orderNo).then(function () {
-                    alert('구매가 확정되었습니다.'); return NWBackend.getOrder(_orderCache.orderNo).then(renderOrderDetail);
-                }).catch(function () { alert('처리에 실패했습니다. 잠시 후 다시 시도해 주세요.'); });
+                bellConfirm('구매를 확정하시겠어요? 확정 후에는 교환/반품이 제한될 수 있습니다.').then(function (ok) {
+                    if (!ok) return;
+                    NWBackend.confirmReceipt(_orderCache.orderNo).then(function () {
+                        alert('구매가 확정되었습니다.'); return NWBackend.getOrder(_orderCache.orderNo).then(renderOrderDetail);
+                    }).catch(function () { alert('처리에 실패했습니다. 잠시 후 다시 시도해 주세요.'); });
+                });
                 return;
             }
             // 주문취소
             if (e.target.closest('[data-ocancel]')) {
                 if (!_orderCache) return;
-                var reason = prompt('주문을 취소합니다. 사유를 입력해 주세요.', '단순 변심');
-                if (reason === null) return;
-                NWBackend.requestCancel(_orderCache.orderNo, reason).then(function (newSt) {
-                    alert(newSt === 'canceled' ? '주문이 취소되었습니다.' : '취소 요청이 접수되었습니다. 환불은 확인 후 진행됩니다.');
-                    return NWBackend.getOrder(_orderCache.orderNo).then(renderOrderDetail);
-                }).catch(function (err) {
-                    var m = (err && (err.message || err.code)) || '';
-                    alert(/BAD_STATE/.test(m) ? '현재 단계에서는 취소할 수 없습니다. 교환·반품을 이용해 주세요.' : '취소에 실패했습니다.');
+                bellPrompt('주문을 취소합니다. 사유를 입력해 주세요.', '단순 변심').then(function (reason) {
+                    if (reason === null) return;
+                    NWBackend.requestCancel(_orderCache.orderNo, reason).then(function (newSt) {
+                        alert(newSt === 'canceled' ? '주문이 취소되었습니다.' : '취소 요청이 접수되었습니다. 환불은 확인 후 진행됩니다.');
+                        return NWBackend.getOrder(_orderCache.orderNo).then(renderOrderDetail);
+                    }).catch(function (err) {
+                        var m = (err && (err.message || err.code)) || '';
+                        alert(/BAD_STATE/.test(m) ? '현재 단계에서는 취소할 수 없습니다. 교환·반품을 이용해 주세요.' : '취소에 실패했습니다.');
+                    });
                 });
                 return;
             }
@@ -1459,19 +1462,26 @@
             }
             if (e.target.closest('#aopRefund')) {
                 if (!_aOrderEditing) return;
-                if (!confirm('이 주문을 환불 처리할까요? 토스 결제건은 실제 취소가 진행됩니다.')) return;
-                NWBackend.adminRefund(_aOrderEditing, '관리자 환불').then(function (res) {
-                    if (res && (res.ok || res.alreadyRefunded)) { alert('환불 처리되었습니다.'); closeAdminOrderPage(); }
-                    else alert('환불 실패: ' + ((res && res.error) || '알 수 없는 오류'));
-                }).catch(function () { alert('환불 처리 중 오류가 발생했습니다.'); });
+                bellConfirm('이 주문을 환불 처리할까요? 토스 결제건은 실제 취소가 진행됩니다.').then(function (ok) {
+                    if (!ok) return;
+                    NWBackend.adminRefund(_aOrderEditing, '관리자 환불').then(function (res) {
+                        if (res && (res.ok || res.alreadyRefunded)) { alert('환불 처리되었습니다.'); closeAdminOrderPage(); }
+                        else alert('환불 실패: ' + ((res && res.error) || '알 수 없는 오류'));
+                    }).catch(function () { alert('환불 처리 중 오류가 발생했습니다.'); });
+                });
                 return;
             }
             // 교환/반품 처리
             var rract = e.target.closest('[data-rract]');
             if (rract) {
                 var id = rract.dataset.rrid, act = rract.dataset.rract;
-                var memo = (act === 'rejected') ? prompt('거절 사유(선택)', '') : null;
-                NWBackend.adminResolveReturn(id, act, memo).catch(function () { alert('처리 실패'); });
+                if (act === 'rejected') {
+                    bellPrompt('거절 사유(선택)', '').then(function (memo) {
+                        NWBackend.adminResolveReturn(id, act, memo).catch(function () { alert('처리 실패'); });
+                    });
+                } else {
+                    NWBackend.adminResolveReturn(id, act, null).catch(function () { alert('처리 실패'); });
+                }
                 return;
             }
         });

@@ -5780,6 +5780,61 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .bizinfo-modal .bizinfo-list > div { display: flex; gap: 10px; font-size: 13px; line-height: 1.5; }
 .bizinfo-modal .bizinfo-list dt { flex: 0 0 96px; margin: 0; color: rgba(255,255,255,.45); }
 .bizinfo-modal .bizinfo-list dd { margin: 0; color: rgba(255,255,255,.88); }
+
+/* ===== 공통 다이얼로그(ui-dialog.js): alert/confirm/prompt 대체 ===== */
+.bld-modal[hidden] { display: none; }
+.bld-modal {
+    position: fixed; inset: 0; z-index: 3000;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+}
+.bld-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,.55);
+    -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+}
+.bld-sheet {
+    position: relative;
+    width: 100%; max-width: 340px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px 22px 18px;
+    box-shadow: 0 24px 70px rgba(0,0,0,.35);
+    animation: bldIn .16s ease-out;
+}
+@keyframes bldIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.bld-title { margin: 0 0 8px; font-size: 16px; font-weight: 700; color: #1a1a1a; }
+.bld-msg { margin: 0 0 16px; font-size: 14px; line-height: 1.6; color: #444; word-break: break-word; }
+.bld-inwrap { margin: 0 0 16px; }
+.bld-input {
+    width: 100%; box-sizing: border-box;
+    padding: 11px 12px; font-size: 14px;
+    border: 1px solid #ddd; border-radius: 10px; outline: none;
+}
+.bld-input:focus { border-color: #c9a96e; }
+.bld-btns { display: flex; gap: 8px; }
+.bld-btns button {
+    flex: 1; padding: 12px; font-size: 14px; font-weight: 600;
+    border: none; border-radius: 10px; cursor: pointer;
+}
+.bld-cancel { background: #f1f1f1; color: #555; }
+.bld-cancel:hover { background: #e7e7e7; }
+.bld-cancel[hidden] { display: none; }
+.bld-ok { background: #1a1a1a; color: #fff; }
+.bld-ok:hover { background: #000; }
+
+/* 토스트 */
+.bld-toast {
+    position: fixed; left: 50%; bottom: 88px; transform: translateX(-50%) translateY(10px);
+    z-index: 3100;
+    background: rgba(20,20,20,.94); color: #fff;
+    padding: 12px 18px; border-radius: 24px; font-size: 13.5px;
+    max-width: 88%; text-align: center;
+    opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+}
+.bld-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .footer-tel-link {
     color: #c9a96e;
     font-size: 14px;
