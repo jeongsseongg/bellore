@@ -2144,62 +2144,89 @@
                 <button type="button" class="mp-sub-back" id="mpSubBack" aria-label="뒤로">‹</button>
                 <span class="mp-sub-title" id="mpSubTitle"></span>
             </div>
-            <!-- 통합 검정 박스: 닉네임+설정 · 알림(인라인) · 와이드 · 원형 카테고리 -->
-            <div class="mp-hub" id="mpHub">
-                <div class="mp-hub-head">
-                    <div class="mp-hub-id">
-                        <h2 class="mpa-name" id="myPageName">마이페이지</h2>
-                        <button type="button" class="mp-hub-gear" id="btnEditProfile" aria-label="회원정보 수정">
-                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                        </button>
-                    </div>
-                    <p class="mpa-id" id="myPageEmail"></p>
-                </div>
-                <div class="mp-hub-top">
-                    <button type="button" class="mp-hub-noti" id="btnNoti" aria-expanded="false" aria-label="알림">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
-                        <span>알림</span>
+            <!-- ===== 마이페이지 통합 헤더: 프로필(아바타·이름) · 알림 · 설정 ===== -->
+            <div class="mp-head">
+                <div class="mp-head-bar">
+                    <button type="button" class="mp-head-ic" id="btnNoti" aria-expanded="false" aria-label="알림">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
                         <span class="noti-badge" id="notiBadge" hidden>0</span>
                     </button>
-                    <div class="mp-hub-wide pc-only-setting">
-                        <span>와이드 모드</span>
-                        <button type="button" class="switch" id="toggleWide" role="switch" aria-checked="false" aria-label="와이드 모드 전환"><span class="switch-knob"></span></button>
+                    <button type="button" class="mp-head-ic" id="btnSettings" aria-label="설정">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    </button>
+                </div>
+                <div class="mp-profile" id="mpProfile">
+                    <button type="button" class="mp-avatar" id="mpAvatar" aria-label="프로필 사진 변경">
+                        <img class="mp-avatar-img" id="mpAvatarImg" alt="" hidden>
+                        <svg class="mp-avatar-ph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+                        <span class="mp-avatar-cam"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>
+                    </button>
+                    <div class="mp-profile-meta">
+                        <button type="button" class="mp-name-row" id="mpNameEdit">
+                            <span class="mpa-name" id="myPageName">마이페이지</span>
+                            <svg class="mp-name-pen" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+                        </button>
+                        <p class="mpa-id" id="myPageEmail"></p>
+                        <span class="mp-role-pill" id="myPageRole" hidden></span>
                     </div>
                 </div>
-                <!-- 알림 목록 (검정 박스 안에 인라인으로 펼침) -->
+                <!-- 알림 목록 (헤더 아래 인라인으로 펼침 — 홈 알림과 연동) -->
                 <div class="mp-hub-noti-inline" id="notiInline" hidden>
                     <div id="notiList" class="noti-list"></div>
                 </div>
-                <div class="pocket-links mp-hub-cats customer-only" id="mpHubCats">
-                    <button type="button" class="pl-item" data-myjump="#myCouponSection">
-                        <span class="pl-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"/><path d="M12 6v12" stroke-dasharray="2 2"/></svg></span>
-                        <span class="pl-label">쿠폰</span>
-                        <span class="pl-badge" id="pocketCoupon" hidden>0</span>
-                    </button>
-                    <button type="button" class="pl-item" data-nav="wishlist">
-                        <span class="pl-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 0 0-7.1 7.1L12 21l8.8-8.3a5 5 0 0 0 0-7.1z"/></svg></span>
-                        <span class="pl-label">관심</span>
-                    </button>
-                    <button type="button" class="pl-item" data-cqd-open>
-                        <span class="pl-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6a1 1 0 0 1 1 1v1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h1V5a1 1 0 0 1 1-1z"/><path d="M9 12h6M9 16h4"/></svg></span>
-                        <span class="pl-label">내시계팔기</span>
-                    </button>
-                    <button type="button" class="pl-item" data-myjump="#myAlertsSection">
-                        <span class="pl-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
-                        <span class="pl-label">소식시계</span>
-                        <span class="pl-badge" id="pocketAlerts" hidden>0</span>
-                    </button>
-                    <button type="button" class="pl-item" data-cqd-cs-open>
-                        <span class="pl-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 9 9 0 0 1-3.8-.8L3 21l1.9-4.7A8.4 8.4 0 0 1 4 11.5 8.5 8.5 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/></svg></span>
-                        <span class="pl-label">고객센터</span>
-                    </button>
-                </div>
             </div>
 
-            <!-- 소식 기다리는 시계 (허브 '소식시계' 카테고리에서 서브페이지로 진입) -->
-            <div class="mypage-section customer-only" id="myAlertsSection" hidden>
+            <!-- ===== 원형 카테고리 (5) ===== -->
+            <div class="mp-cats customer-only" id="mpHubCats">
+                <button type="button" class="pl-item" data-myjump="#myCouponSection">
+                    <span class="pl-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"/><path d="M12 6v12" stroke-dasharray="2 2"/></svg></span>
+                    <span class="pl-label">포인트/쿠폰</span>
+                    <span class="pl-badge" id="pocketCoupon" hidden>0</span>
+                </button>
+                <button type="button" class="pl-item" data-cqd-open>
+                    <span class="pl-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6a1 1 0 0 1 1 1v1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h1V5a1 1 0 0 1 1-1z"/><path d="M9 12h6M9 16h4"/></svg></span>
+                    <span class="pl-label">내 시계팔기</span>
+                </button>
+                <button type="button" class="pl-item" data-myjump="#myInterestSection">
+                    <span class="pl-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 0 0-7.1 7.1L12 21l8.8-8.3a5 5 0 0 0 0-7.1z"/></svg></span>
+                    <span class="pl-label">내 관심</span>
+                    <span class="pl-badge" id="pocketInterest" hidden>0</span>
+                </button>
+                <button type="button" class="pl-item" data-myjump="#myRecentSection">
+                    <span class="pl-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+                    <span class="pl-label">최근 본 상품</span>
+                </button>
+                <button type="button" class="pl-item" data-myact="cart">
+                    <span class="pl-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.6"/><circle cx="18" cy="21" r="1.6"/><path d="M2.5 3h2.2l2.3 12.3a1.6 1.6 0 0 0 1.6 1.3h8.8a1.6 1.6 0 0 0 1.6-1.3L21.5 7H6"/></svg></span>
+                    <span class="pl-label">장바구니</span>
+                    <span class="pl-badge" id="pocketCart" hidden>0</span>
+                </button>
+            </div>
+
+            <!-- ===== 광고 배너 (관리자 편집 · placement=mypage) ===== -->
+            <div class="mp-banner customer-only" id="mpBanner" hidden>
+                <div class="mp-banner-track" id="mpBannerTrack"></div>
+                <div class="mp-banner-dots" id="mpBannerDots"></div>
+            </div>
+
+            <!-- ===== 역할별 하단 메뉴 (일반/업체/제휴) ===== -->
+            <nav class="mp-menu customer-only" id="mpMenuList"></nav>
+
+            <!-- ===== 서브페이지(원형 진입 시 전체화면 전환) — 평소 숨김 ===== -->
+            <!-- 포인트/쿠폰 -->
+            <div class="mypage-section mp-subsec customer-only" id="myInterestSection" hidden>
                 <h4>소식 기다리는 시계 <b id="myAlertCount">0</b></h4>
                 <div id="myAlerts"></div>
+                <h4 class="mp-subsec-h2">찜한 상품 <b id="myWishCount">0</b></h4>
+                <div class="mypage-prodrow" id="myWishRow"></div>
+                <p class="mypage-prodrow-empty" id="myWishEmpty">찜한 상품이 없습니다.</p>
+            </div>
+
+            <!-- 최근 본 상품 -->
+            <div class="mypage-section mp-subsec customer-only" id="myRecentSection" hidden>
+                <h4>최근 본 상품</h4>
+                <div class="mypage-prodrow" id="myRecentRow"></div>
+                <p class="mypage-prodrow-empty" id="myRecentEmpty">최근 본 상품이 없습니다.</p>
             </div>
 
             <!-- 관리자 전용: 오늘 현황 대시보드 -->
@@ -2279,59 +2306,13 @@
                 </div>
             </div>
 
-            <!-- 일반 고객: 마이포켓 (원형 퀵메뉴는 위 허브로 이동) -->
-            <div class="pocket customer-only" id="pocketBox">
-                <!-- (구) 내 시계팔기 카드 목록은 '내 시계팔기' 아이콘 → 전체화면 페이지로 통합되었습니다. -->
+            <!-- (구) 내 시계팔기 카드 목록 홀더 — 렌더 폴백용(평소 숨김) -->
+            <div class="pocket customer-only" id="pocketBox" hidden>
                 <div id="myItemsSection" hidden><div id="myPageListings"></div></div>
-
-                <!-- 나의쇼핑 -->
-                <div class="pocket-shop">
-                    <div class="pocket-shop-head">
-                        <h4>나의 주문</h4>
-                        <button type="button" class="pocket-shop-all" id="pocketOrders">주문전체보기 ›</button>
-                    </div>
-                    <div class="pocket-status">
-                        <button type="button" class="ps-cell" data-ostatus="pending"><b id="psWait">0</b><span>결제대기</span></button>
-                        <button type="button" class="ps-cell" data-ostatus="paid"><b id="psPaid">0</b><span>결제완료</span></button>
-                        <button type="button" class="ps-cell" data-ostatus="preparing"><b id="psPrep">0</b><span>상품준비중</span></button>
-                        <button type="button" class="ps-cell" data-ostatus="shipping"><b id="psShip">0</b><span>배송중</span></button>
-                        <button type="button" class="ps-cell" data-ostatus="delivered"><b id="psDone">0</b><span>배송완료</span></button>
-                    </div>
-                </div>
-
-                <!-- 장바구니 (최근 본 상품 위) -->
-                <div class="pocket-shop mypage-cart customer-only">
-                    <div class="pocket-shop-head">
-                        <h4>장바구니 <b id="myCartCount">0</b></h4>
-                        <button type="button" class="pocket-shop-all" data-myact="cart">장바구니 전체보기 ›</button>
-                    </div>
-                    <div class="mypage-prodrow" id="myCartRow"></div>
-                    <p class="mypage-prodrow-empty" id="myCartEmpty">장바구니가 비어 있습니다.</p>
-                </div>
-
-                <!-- 최근 본 상품 -->
-                <div class="pocket-shop mypage-recent">
-                    <div class="pocket-shop-head">
-                        <h4>최근 본 상품</h4>
-                    </div>
-                    <div class="mypage-prodrow" id="myRecentRow"></div>
-                    <p class="mypage-prodrow-empty" id="myRecentEmpty">최근 본 상품이 없습니다.</p>
-                </div>
             </div>
 
-            <!-- 업체 전용: 새 견적 알림 설정 -->
-            <div class="mypage-section vendor-only" hidden id="vendorNotifyBox">
-                <h4>알림 설정</h4>
-                <button type="button" class="mypage-noti" id="btnNotifyQuotes" aria-pressed="true">
-                    <span class="mypage-noti-left">새 비교견적 알림 받기</span>
-                    <span class="mypage-noti-state" id="notifyQuotesState">켜짐</span>
-                </button>
-                <p class="mypage-security" id="vendorVipNote" hidden>⭐ VIP 업체로 지정되어 있어요. 새 견적 시 카톡 알림톡도 함께 받습니다.</p>
-            </div>
-
-            <!-- 제휴사 전용: 인증센터 · 상품등록 · 정산내역 -->
-            <div class="mypage-section partner-only" hidden id="partnerBox">
-                <h4>제휴사 센터</h4>
+            <!-- 제휴사 전용: 인증센터 · 상품등록 · 정산내역 (메뉴 '판매내역'에서 서브페이지로 진입) -->
+            <div class="mypage-section mp-subsec partner-only" hidden id="partnerBox">
                 <p class="mypage-security" id="partnerStateNote">인증을 완료하면 관리자 승인 후 상품을 등록·판매할 수 있어요.</p>
                 <button type="button" class="mypage-noti" id="btnPartnerCenter">
                     <span class="mypage-noti-left">인증센터 (사업자·휴대폰·계좌·이메일)</span>
@@ -2345,8 +2326,13 @@
                 <div id="myStlList"></div>
             </div>
 
-            <!-- 내 쿠폰 (인라인 숨김 — 허브 '쿠폰' 카테고리에서 서브페이지로 진입) -->
-            <div class="mypage-section" id="myCouponSection" hidden>
+            <!-- 포인트/쿠폰 (원형 '포인트/쿠폰'에서 서브페이지로 진입) -->
+            <div class="mypage-section mp-subsec" id="myCouponSection" hidden>
+                <div class="mp-point-card">
+                    <span class="mp-point-label">보유 포인트</span>
+                    <strong class="mp-point-val"><b id="myPointVal">0</b> P</strong>
+                    <span class="mp-point-hint">상품 결제 시 자동 적립됩니다.</span>
+                </div>
                 <h4>내 쿠폰 <b id="myCouponCount">0</b></h4>
                 <div class="coupon-redeem">
                     <input type="text" id="couponCodeInput" placeholder="쿠폰 코드 입력">
@@ -2355,8 +2341,6 @@
                 <div id="myCouponList"></div>
                 <div id="downloadableCoupons"></div>
             </div>
-
-            <button type="button" class="login-btn login-default" id="btnLogout">로그아웃</button>
         </div>
     </div>
 
@@ -2971,6 +2955,51 @@
             </section>
         </div>
         <div class="pp-bottom"><button type="button" class="pp-buy" id="profNext">다음</button></div>
+    </div>
+
+    <!-- 설정 (마이페이지 상단 ⚙️ — 회원정보·정산계좌·알림·약관·로그아웃) -->
+    <div class="cp-page profile-page" id="settingsPage" hidden>
+        <header class="pp-topbar">
+            <button class="pp-back" type="button" id="setBack" aria-label="뒤로">‹</button>
+            <span class="pp-topbar-title" id="setTitle">설정</span>
+            <span class="pp-topbar-spacer"></span>
+        </header>
+        <div class="pp-scroll">
+            <!-- 설정 홈 -->
+            <section class="set-step" data-sstep="home">
+                <button type="button" class="prof-row" data-sgo="profile">
+                    <span class="prof-row-l">회원정보 수정</span><span class="prof-row-a">›</span>
+                </button>
+                <button type="button" class="prof-row" data-sgo="account">
+                    <span class="prof-row-l">정산계좌 변경</span><span class="prof-row-a">›</span>
+                </button>
+                <button type="button" class="prof-row" data-sgo="noti">
+                    <span class="prof-row-l">알림 설정</span><span class="prof-row-a">›</span>
+                </button>
+                <div class="set-gap"></div>
+                <button type="button" class="prof-row" data-legal-open="terms">
+                    <span class="prof-row-l">이용약관</span><span class="prof-row-a">›</span>
+                </button>
+                <button type="button" class="prof-row" data-legal-open="privacy">
+                    <span class="prof-row-l">개인정보 처리방침</span><span class="prof-row-a">›</span>
+                </button>
+                <div class="set-gap"></div>
+                <button type="button" class="prof-row set-logout" id="btnLogout">
+                    <span class="prof-row-l">로그아웃</span><span class="prof-row-a">›</span>
+                </button>
+            </section>
+
+            <!-- 알림 설정 -->
+            <section class="set-step" data-sstep="noti" hidden>
+                <h3 class="prof-q">알림 설정</h3>
+                <div class="set-toggle-row vendor-only" id="setVendorNotify" hidden>
+                    <div class="set-toggle-meta"><b>새 비교견적 알림</b><em id="vendorVipNote">새 견적이 등록되면 알림을 받습니다.</em></div>
+                    <button type="button" class="switch" id="btnNotifyQuotes" role="switch" aria-checked="true" aria-label="비교견적 알림"><span class="switch-knob"></span></button>
+                    <span id="notifyQuotesState" hidden>켜짐</span>
+                </div>
+                <p class="prof-hint">기기 푸시 알림은 브라우저/휴대폰 설정에서 켤 수 있어요.</p>
+            </section>
+        </div>
     </div>
 
     <!-- 인사이트 게시글 모달 -->

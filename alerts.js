@@ -68,7 +68,9 @@
     });
     var c1 = $('#wishAlertCount'); if (c1) c1.textContent = items.length;
     var c2 = $('#myAlertCount'); if (c2) c2.textContent = items.length;
-    var c3 = $('#pocketAlerts'); if (c3) { c3.textContent = items.length; c3.hidden = items.length === 0; }
+    // 내 관심 원형 배지 = 소식시계 + 찜
+    var wishN = (window.BELLOREWishlist && window.BELLOREWishlist.getWish) ? (window.BELLOREWishlist.getWish() || []).length : 0;
+    var c3 = $('#pocketInterest'); if (c3) { var tot = items.length + wishN; c3.textContent = tot; c3.hidden = tot === 0; }
   }
 
   // DB → 캐시 동기화. 실패하면 localStorage 폴백.

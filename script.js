@@ -367,6 +367,7 @@
                 set('#psShip', cnt('shipping'));
                 set('#psDone', cnt('delivered'));
                 var pq = $('#pqUnpaid'); if (pq) pq.textContent = wait + '건';
+                if (typeof renderMpMenu === 'function') renderMpMenu(_lastAuthInfo); // 주문 건수 갱신
                 var om = $('#ordersModal');
                 if (om && !om.hidden) renderOrdersList();   // 열려 있으면 실시간 갱신
             });
@@ -415,15 +416,19 @@
     window.BELLORE_openMyPage = openMyPage;
 
     // 마이페이지 서브페이지(쿠폰·소식시계 등): 스크롤 대신 해당 화면으로 전환
-    var MP_SUB_TITLE = { myCouponSection: '내 쿠폰', myAlertsSection: '소식 기다리는 시계' };
+    var MP_SUB_TITLE = { myCouponSection: '포인트/쿠폰', myInterestSection: '내 관심', myRecentSection: '최근 본 상품', partnerBox: '판매내역' };
     function openMpSub(id) {
         var mc = document.querySelector('#myPageModal .login-content');
         var sec = mc && mc.querySelector('#' + id);
         if (!mc || !sec) return false;
+        // 진입 직전 최신 데이터로 갱신
+        if (id === 'myInterestSection' || id === 'myRecentSection') renderMyShortcuts();
+        if (id === 'partnerBox' && typeof renderMySettlements === 'function') renderMySettlements();
         mc.setAttribute('data-mpsub', id);
         mc.classList.add('mp-sub');
         var t = $('#mpSubTitle'); if (t) t.textContent = MP_SUB_TITLE[id] || '';
         mc.scrollTop = 0;
+        try { window.scrollTo(0, 0); } catch (e) {}
         return true;
     }
     function closeMpSub() {
@@ -510,6 +515,16 @@
                 // 원형 퀵메뉴: 알림 열기
                 if (e.target.closest('[data-myact="noti"]')) {
                     var nb = $('#btnNoti'); if (nb) nb.click();
+                    return;
+                }
+                // 역할별 하단 메뉴 (주문내역/입찰내역/판매내역/고객센터)
+                var menuRow = e.target.closest('[data-mpmenu]');
+                if (menuRow) {
+                    var act = menuRow.getAttribute('data-mpmenu');
+                    if (act === 'orders') { openOrdersList(''); return; }
+                    if (act === 'bids') { if (window.CQDemo && window.CQDemo.open) window.CQDemo.open(); return; }
+                    if (act === 'sales') { openMpSub('partnerBox'); return; }
+                    if (act === 'cs') { if (window.CQDemo && window.CQDemo.open) window.CQDemo.open({ screen: 'c-chat' }); return; }
                     return;
                 }
                 // 장바구니 전체보기 → 찜/장바구니 페이지 장바구니 탭
@@ -651,6 +666,7 @@
         if (logout) {
             logout.addEventListener('click', function () {
                 NWBackend.signOut().then(function () {
+                    var sp = $('#settingsPage'); if (sp) sp.hidden = true;
                     closeMyPage();
                     alert('로그아웃되었습니다.');
                 });
@@ -698,20 +714,112 @@
             }
         });
 
-        // 업체: 새 견적 알림 받기 ON/OFF
+        // 업체: 새 견적 알림 받기 ON/OFF (설정 → 알림 설정의 스위치)
         var notifyBtn = $('#btnNotifyQuotes');
         if (notifyBtn) notifyBtn.addEventListener('click', function () {
             if (!backendOn() || !NWBackend.setNotifyQuotes) return;
-            var on = notifyBtn.getAttribute('aria-pressed') !== 'true'; // 토글
+            var on = notifyBtn.getAttribute('aria-checked') !== 'true'; // 토글
             notifyBtn.disabled = true;
             NWBackend.setNotifyQuotes(on)
                 .then(function () {
-                    notifyBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+                    notifyBtn.setAttribute('aria-checked', on ? 'true' : 'false');
                     var st = $('#notifyQuotesState');
                     if (st) st.textContent = on ? '켜짐' : '꺼짐';
                 })
                 .catch(function (err) { alert('설정 변경 실패: ' + (err && err.message || err)); })
                 .then(function () { notifyBtn.disabled = false; });
+        });
+
+        // ===== 설정 페이지 (마이페이지 상단 ⚙️) =====
+        var settingsPage = $('#settingsPage');
+        if (settingsPage) {
+            function setStep(step) {
+                $$('.set-step', settingsPage).forEach(function (s) { s.hidden = s.dataset.sstep !== step; });
+                var t = $('#setTitle'); if (t) t.textContent = step === 'noti' ? '알림 설정' : '설정';
+                var sc = settingsPage.querySelector('.pp-scroll'); if (sc) sc.scrollTop = 0;
+                settingsPage.dataset.cur = step;
+            }
+            function openSettings() {
+                if (!backendOn() || !NWBackend.currentUser || !NWBackend.currentUser()) { alert('로그인 후 이용해 주세요.'); return; }
+                setStep('home');
+                settingsPage.hidden = false; document.body.style.overflow = 'hidden';
+            }
+            function closeSettings() {
+                settingsPage.hidden = true;
+                var mp = $('#myPageModal');
+                document.body.style.overflow = (mp && !mp.hidden) ? 'hidden' : '';
+            }
+            window.BELLORE_openSettings = openSettings;
+            var btnSettings = $('#btnSettings');
+            if (btnSettings) btnSettings.addEventListener('click', openSettings);
+            var setBack = $('#setBack');
+            if (setBack) setBack.addEventListener('click', function () {
+                if (settingsPage.dataset.cur === 'noti') setStep('home');
+                else closeSettings();
+            });
+            settingsPage.addEventListener('click', function (e) {
+                var row = e.target.closest('[data-sgo]');
+                if (!row) return;
+                var go = row.getAttribute('data-sgo');
+                if (go === 'noti') { setStep('noti'); return; }
+                // 회원정보 수정 / 정산계좌 변경 → 회원정보 페이지
+                closeSettings();
+                if (window.BELLORE_openProfile) window.BELLORE_openProfile(go === 'account' ? 'account' : 'home');
+            });
+        }
+
+        // ===== 프로필 아바타 업로드 =====
+        var mpAvatar = $('#mpAvatar');
+        if (mpAvatar && backendOn() && NWBackend.uploadAvatar) {
+            mpAvatar.addEventListener('click', function () {
+                if (!NWBackend.currentUser || !NWBackend.currentUser()) { alert('로그인 후 이용해 주세요.'); return; }
+                var inp = document.createElement('input');
+                inp.type = 'file'; inp.accept = 'image/*';
+                inp.addEventListener('change', function () {
+                    var f = inp.files && inp.files[0]; if (!f) return;
+                    mpAvatar.classList.add('is-loading');
+                    NWBackend.uploadAvatar(f)
+                        .then(function (url) { applyAvatar(url); })
+                        .catch(function (err) { alert('사진 업로드 실패: ' + (err && err.message || err)); })
+                        .then(function () { mpAvatar.classList.remove('is-loading'); });
+                });
+                inp.click();
+            });
+        }
+
+        // ===== 닉네임 인라인 수정 =====
+        var mpNameEdit = $('#mpNameEdit');
+        if (mpNameEdit && backendOn() && NWBackend.updateDisplayName) {
+            mpNameEdit.addEventListener('click', function () {
+                var u = (NWBackend.currentUser && NWBackend.currentUser()) || null;
+                if (!u) { alert('로그인 후 이용해 주세요.'); return; }
+                var cur = u.displayName || '';
+                var nm = window.prompt('새 닉네임을 입력하세요.', cur);
+                if (nm == null) return;
+                nm = nm.trim();
+                if (!nm || nm === cur) return;
+                NWBackend.updateDisplayName(nm)
+                    .then(function () {
+                        var ne = $('#myPageName'); if (ne) ne.textContent = nm + '님';
+                    })
+                    .catch(function (err) { alert('닉네임 변경 실패: ' + (err && err.message || err)); });
+            });
+        }
+
+        // ===== 약관·개인정보·사업자정보 모달 (설정/푸터 공용) =====
+        document.addEventListener('click', function (e) {
+            var op = e.target.closest('[data-legal-open]');
+            if (op) {
+                var k = op.getAttribute('data-legal-open');
+                var id = k === 'terms' ? 'termsModal' : k === 'privacy' ? 'privacyModal' : 'bizInfoModal';
+                var m = $('#' + id); if (m) { m.hidden = false; document.body.style.overflow = 'hidden'; }
+                return;
+            }
+            if (e.target.closest('[data-bizclose]')) {
+                ['bizInfoModal', 'termsModal', 'privacyModal'].forEach(function (mid) { var mm = $('#' + mid); if (mm) mm.hidden = true; });
+                var sp = $('#settingsPage'), mp = $('#myPageModal');
+                document.body.style.overflow = ((sp && !sp.hidden) || (mp && !mp.hidden)) ? 'hidden' : '';
+            }
         });
 
         // (회원가입 유형별 UI는 initSignup의 _applyRole에서 처리)
@@ -814,14 +922,14 @@
                 }
             }
 
-            // 마이포켓 헤더(고객명 · 등급 · 포인트) — 실제 프로필 데이터
-            var pname = $('#pocketName');
-            if (pname) pname.textContent = user ? ((user.displayName || '회원') + '님') : '고객님';
-            var GRADE_LABEL = { family: 'Family', silver: 'Silver', gold: 'Gold', vip: 'VIP' };
-            var gradeEl = $('#pocketGrade');
-            if (gradeEl) gradeEl.textContent = (info && GRADE_LABEL[info.grade]) || 'Family';
-            var pointEl = $('#pocketPoint');
-            if (pointEl) pointEl.textContent = ((info && info.points) || 0).toLocaleString('ko-KR') + 'P';
+            // 프로필 아바타
+            applyAvatar(user ? (user.avatarUrl || '') : '');
+            // 보유 포인트 (포인트/쿠폰 서브페이지)
+            var pv = $('#myPointVal');
+            if (pv) pv.textContent = ((info && info.points) || 0).toLocaleString('ko-KR');
+            // 역할별 하단 메뉴
+            _lastAuthInfo = user ? info : null;
+            renderMpMenu(_lastAuthInfo);
 
             // 알림 벨
             var bell = $('#btnNoti');
@@ -851,27 +959,29 @@
                 adminBox.hidden = true;
             }
 
-            // 업체 전용: 새 견적 알림 설정
-            var vNotifyBox = $('#vendorNotifyBox');
-            if (vNotifyBox) {
+            // 업체 전용: 새 견적 알림 설정 (설정 → 알림 설정 스위치)
+            var vNotifyRow = $('#setVendorNotify');
+            if (vNotifyRow) {
                 var isVendor = info && info.role === 'vendor';
-                vNotifyBox.hidden = !isVendor;
+                vNotifyRow.hidden = !isVendor;
                 if (isVendor) {
                     var on = !(info && info.notifyQuotes === false);
                     var btn = $('#btnNotifyQuotes');
                     var st = $('#notifyQuotesState');
-                    if (btn) btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+                    if (btn) btn.setAttribute('aria-checked', on ? 'true' : 'false');
                     if (st) st.textContent = on ? '켜짐' : '꺼짐';
                     var vipNote = $('#vendorVipNote');
-                    if (vipNote) vipNote.hidden = !(info && info.vip);
+                    if (vipNote) vipNote.textContent = (info && info.vip)
+                        ? '⭐ VIP 업체 — 새 견적 시 카톡 알림톡도 함께 받습니다.'
+                        : '새 견적이 등록되면 알림을 받습니다.';
                 }
             }
 
-            // 제휴사 전용: 인증센터 · 상품등록 · 정산내역
+            // 제휴사 전용: 인증센터 · 상품등록 · 정산내역 (메뉴 '판매내역' 서브페이지로만 노출)
             var pBox = $('#partnerBox');
             if (pBox) {
                 var isPartner = info && info.role === 'partner';
-                pBox.hidden = !isPartner;
+                pBox.hidden = true; // 평소 숨김 — 서브페이지에서만 표시
                 if (isPartner) {
                     var allVerified = info.emailVerified && info.phoneVerified && info.bizVerified && info.accountVerified;
                     var vState = $('#partnerVerifyState');
@@ -1114,18 +1224,93 @@
         '</button>';
     }
     function renderMyShortcuts() {
-        // 장바구니
-        var cart = (window.BELLOREWishlist && window.BELLOREWishlist.getCart) ? (window.BELLOREWishlist.getCart() || []) : [];
-        var cRow = $('#myCartRow'), cEmpty = $('#myCartEmpty'), cCnt = $('#myCartCount');
-        if (cCnt) { cCnt.textContent = cart.length; cCnt.hidden = cart.length === 0; }
-        if (cRow) cRow.innerHTML = cart.map(miniProdCard).join('');
-        if (cEmpty) cEmpty.hidden = cart.length > 0;
+        var WL = window.BELLOREWishlist || {};
+        // 장바구니 (원형 배지)
+        var cart = (WL.getCart ? (WL.getCart() || []) : []);
+        var cBadge = $('#pocketCart');
+        if (cBadge) { cBadge.textContent = cart.length; cBadge.hidden = cart.length === 0; }
+        // 내 관심: 찜 목록
+        var wish = (WL.getWish ? (WL.getWish() || []) : []);
+        var wRow = $('#myWishRow'), wEmpty = $('#myWishEmpty'), wCnt = $('#myWishCount');
+        if (wCnt) wCnt.textContent = wish.length;
+        if (wRow) wRow.innerHTML = wish.map(miniProdCard).join('');
+        if (wEmpty) wEmpty.hidden = wish.length > 0;
+        // 내 관심 원형 배지 = 찜 + 소식시계
+        var alertN = parseInt(($('#myAlertCount') && $('#myAlertCount').textContent) || '0', 10) || 0;
+        var iBadge = $('#pocketInterest'), iTotal = wish.length + alertN;
+        if (iBadge) { iBadge.textContent = iTotal; iBadge.hidden = iTotal === 0; }
         // 최근 본 상품
         var recent = (window.BELLORE_getViewed && window.BELLORE_getViewed()) || [];
         var rRow = $('#myRecentRow'), rEmpty = $('#myRecentEmpty');
         if (rRow) rRow.innerHTML = recent.map(miniProdCard).join('');
         if (rEmpty) rEmpty.hidden = recent.length > 0;
     }
+    // 아바타 이미지 적용
+    function applyAvatar(url) {
+        var img = $('#mpAvatarImg'); if (!img) return;
+        if (url) { img.src = url; img.hidden = false; }
+        else { img.removeAttribute('src'); img.hidden = true; }
+    }
+    window.BELLORE_applyAvatar = applyAvatar;
+
+    // 역할별 마이페이지 하단 메뉴 렌더 (일반/업체/제휴)
+    var _lastAuthInfo = null;
+    function renderMpMenu(info) {
+        var box = $('#mpMenuList'); if (!box) return;
+        if (!info || info.isAdmin) { box.innerHTML = ''; return; } // 관리자는 관리 메뉴 박스 사용
+        var role = info.role || 'customer';
+        var orderN = (typeof myOrdersCache !== 'undefined' && myOrdersCache) ? myOrdersCache.length : 0;
+        var rows = [];
+        rows.push({ act: 'orders', label: '주문내역', count: orderN });
+        if (role === 'vendor' || role === 'partner') rows.push({ act: 'bids', label: '입찰내역' });
+        if (role === 'partner') rows.push({ act: 'sales', label: '판매내역' });
+        rows.push({ act: 'cs', label: '고객센터' });
+        box.innerHTML = rows.map(function (r) {
+            return '<button type="button" class="mp-menu-row" data-mpmenu="' + r.act + '">' +
+                '<span class="mr-label">' + r.label + '</span>' +
+                (typeof r.count === 'number' ? '<span class="mr-count">' + r.count + '건</span>' : '') +
+                '<span class="mr-arrow">›</span></button>';
+        }).join('');
+    }
+    window.BELLORE_renderMpMenu = renderMpMenu;
+
+    // ===== 마이페이지 광고 배너 (관리자 편집 · placement=mypage) =====
+    var _mpBn = [], _mpBnRaw = [], _mpBnIdx = 0, _mpBnTimer = null;
+    function mpBannerImg(b) { return (b && (b.image || b.imageWide || b.imagePc || b.image_url)) || ''; }
+    function mpBnStop() { if (_mpBnTimer) { clearInterval(_mpBnTimer); _mpBnTimer = null; } }
+    function mpBnGo(i) {
+        if (!_mpBn.length) return;
+        _mpBnIdx = (i + _mpBn.length) % _mpBn.length;
+        var track = $('#mpBannerTrack'); if (track) track.style.transform = 'translateX(-' + (_mpBnIdx * 100) + '%)';
+        $$('#mpBannerDots .mpb-dot').forEach(function (d, k) { d.classList.toggle('on', k === _mpBnIdx); });
+    }
+    function mpBnAuto() { mpBnStop(); if (_mpBn.length > 1) _mpBnTimer = setInterval(function () { mpBnGo(_mpBnIdx + 1); }, 5000); }
+    window.belloreSetMypageBanners = function (list) {
+        var box = $('#mpBanner'), track = $('#mpBannerTrack'), dots = $('#mpBannerDots');
+        if (!box || !track) return;
+        _mpBnRaw = list || [];
+        _mpBn = _mpBnRaw.filter(function (b) { return mpBannerImg(b); });
+        if (window.BELLORE_isAdmin || !_mpBn.length) {
+            box.hidden = true; track.innerHTML = ''; if (dots) dots.innerHTML = ''; mpBnStop(); return;
+        }
+        box.hidden = false;
+        track.innerHTML = _mpBn.map(function (b) {
+            var tag = b.link ? 'a' : 'div';
+            var href = b.link ? (' href="' + esc(b.link) + '"') : '';
+            var txt = b.title ? ('<span class="mpb-text"><span class="mpb-title">' + esc(b.title) + '</span>' +
+                (b.subtitle ? '<span class="mpb-sub">' + esc(b.subtitle) + '</span>' : '') + '</span>') : '';
+            return '<' + tag + ' class="mp-banner-slide"' + href + ' style="background-image:url(\'' + esc(mpBannerImg(b)) + '\')">' + txt + '</' + tag + '>';
+        }).join('');
+        if (dots) dots.innerHTML = _mpBn.length > 1
+            ? _mpBn.map(function (_, k) { return '<button type="button" class="mpb-dot' + (k === 0 ? ' on' : '') + '" data-mpbdot="' + k + '"></button>'; }).join('')
+            : '';
+        _mpBnIdx = 0; mpBnGo(0); mpBnAuto();
+    };
+    // 배너 점 클릭
+    document.addEventListener('click', function (e) {
+        var d = e.target.closest('[data-mpbdot]'); if (!d) return;
+        mpBnGo(parseInt(d.getAttribute('data-mpbdot'), 10) || 0); mpBnAuto();
+    });
 
     function renderMyCoupons() {
         var sec = $('#myCouponSection');
@@ -2037,13 +2222,15 @@
 
         NWBackend.onAuthChange(function (user, info) {
             var isAdmin = !!(info && info.isAdmin);
+            window.BELLORE_isAdmin = isAdmin;
+            if (window.belloreSetMypageBanners) window.belloreSetMypageBanners(_mpBnRaw);
             ['adminDashBox', 'adminMenuBox'].forEach(function (id) { var el = $('#' + id); if (el) el.hidden = !isAdmin; });
-            // 관리자에겐 고객용 영역 숨김(포인트/장바구니/원형 카테고리)
-            // ※ myAlertsSection(소식 기다리는 시계)은 허브 '소식시계' 서브페이지로만 노출하므로
-            //    여기서 다시 켜지 않는다(본문 중복 표시 방지).
-            ['pocketBox', 'myCartLink', 'mpHubCats'].forEach(function (id) {
+            // 관리자에겐 고객용 영역 숨김(원형 카테고리·역할 메뉴)
+            ['mpHubCats', 'mpMenuList'].forEach(function (id) {
                 var el = $('#' + id); if (el) el.hidden = isAdmin;
             });
+            // 광고 배너: 관리자는 숨김(고객은 배너 렌더가 표시 여부 결정)
+            if (isAdmin) { var mb = $('#mpBanner'); if (mb) mb.hidden = true; }
             if (!isAdmin) { var p = $('#adminPanel'); if (p) p.hidden = true; }
             if (isAdmin) { renderAdminDash(); refreshAdminBadges(); }
         });

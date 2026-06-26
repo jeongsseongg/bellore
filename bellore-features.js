@@ -406,11 +406,17 @@
     // (구) 흩어진 등록 버튼은 제거하고, 우측 상단 "+" 하나로 통합 (하단 adminFab)
 
     /* ========== 히어로 배너 ========== */
-    // 방문자: 활성 배너를 캐러셀에 주입
+    // 방문자: 활성 배너를 캐러셀에 주입 (홈)
     if (typeof B.subscribeBanners === 'function') {
       B.subscribeBanners(function (list) {
         try { localStorage.setItem('bellore_banners', JSON.stringify(list || [])); } catch (e) {}
         if (window.belloreSetBanners) window.belloreSetBanners(list);
+      });
+    }
+    // 마이페이지 광고 배너 주입 (placement=mypage)
+    if (typeof B.subscribeMypageBanners === 'function') {
+      B.subscribeMypageBanners(function (list) {
+        if (window.belloreSetMypageBanners) window.belloreSetMypageBanners(list);
       });
     }
 
@@ -435,7 +441,7 @@
             '<span class="banner-drag" aria-hidden="true" title="드래그하여 순서 변경">⠿</span>' +
             '<span class="banner-thumb"' + (b.image ? ' style="background-image:url(\'' + esc(b.image) + '\')"' : '') + '></span>' +
             '<span class="banner-meta"><b>' + (esc(b.title) || '(제목 없음)') + '</b>' +
-            '<small>' + (b.active ? '노출중' : '숨김') + '</small></span>' +
+            '<small>' + (b.placement === 'mypage' ? '마이페이지' : '홈') + ' · ' + (b.active ? '노출중' : '숨김') + '</small></span>' +
             '<span class="banner-acts">' +
             '<button type="button" class="bn-move" data-bnup="' + esc(b.id) + '" title="위로">▲</button>' +
             '<button type="button" class="bn-move" data-bndown="' + esc(b.id) + '" title="아래로">▼</button>' +
@@ -457,7 +463,11 @@
         '<label><span>부제목</span><input name="subtitle" value="' + esc(item ? item.subtitle : '') + '" placeholder="예: 소장가치 100% 라인업"></label>' +
         '<label><span>클릭 시 이동(선택)</span><input name="link" value="' + esc(item ? item.link : '') + '" placeholder="예: #compare 또는 https://..."></label>' +
         '<label><span>노출 순서(숫자, 작을수록 먼저)</span><input name="sort_order" type="number" value="' + (item ? item.sort_order : 0) + '"></label>' +
-        '<label class="banner-active-row"><input type="checkbox" name="active"' + (!item || item.active ? ' checked' : '') + '> <span>홈에 노출</span></label>' +
+        '<label><span>노출 위치</span><select name="placement">' +
+          '<option value="home"' + (!item || item.placement !== 'mypage' ? ' selected' : '') + '>홈 상단</option>' +
+          '<option value="mypage"' + (item && item.placement === 'mypage' ? ' selected' : '') + '>마이페이지</option>' +
+        '</select></label>' +
+        '<label class="banner-active-row"><input type="checkbox" name="active"' + (!item || item.active ? ' checked' : '') + '> <span>노출하기</span></label>' +
         '<div class="banner-img-slot"><label><span>① 모바일 이미지 *</span></label>' +
         '<p class="muted small">휴대폰 화면용 · 권장 <b>1220 × 1480px</b> · 어떤 비율이든 잘리지 않습니다</p>' +
         '<div class="banner-slot-body"><div class="banner-slot-pick" id="bannerPhoto"></div>' +
@@ -489,6 +499,7 @@
           link: String(fd.get('link') || '').trim(),
           sort_order: parseInt(fd.get('sort_order'), 10) || 0,
           active: !!fd.get('active'),
+          placement: String(fd.get('placement') || 'home'),
           photos: bnPicker.files,
           photosWide: bnPickerWide.files,
           photosPc: bnPickerPc.files

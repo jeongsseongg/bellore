@@ -148,7 +148,8 @@
       bankAccount: (profile && profile.bank_account) || '',
       bankHolder: (profile && profile.bank_holder) || '',
       phoneVerified: !!(profile && profile.phone_verified),
-      accountVerified: !!(profile && profile.account_verified)
+      accountVerified: !!(profile && profile.account_verified),
+      avatarUrl: (profile && profile.avatar_url) || meta.avatar_url || ''
     };
   }
 
@@ -409,6 +410,30 @@
     }).then(function () {
       if (profile) profile.display_name = nm;
       return loadProfile().then(notifyAuth, notifyAuth);
+    });
+  };
+
+  // 프로필 사진(아바타) 업로드 — photos 버킷 저장 후 profiles.avatar_url + auth 메타 갱신
+  Backend.uploadAvatar = function (file) {
+    if (!rawUser) return Promise.reject(new Error('NOT_LOGGED_IN'));
+    if (!file) return Promise.reject(new Error('파일이 없습니다.'));
+    return uploadPhotos([file], 1).then(function (url0) {
+      var url = url0 && url0[0];
+      if (!url) throw new Error('업로드 실패');
+      // 1) auth 메타에 저장(컬럼 없어도 동작하는 폴백 — mapUser 가 meta.avatar_url 도 읽음)
+      return sb.auth.updateUser({ data: { avatar_url: url } })
+        .then(function () {
+          // 2) profiles.avatar_url 갱신 시도(컬럼 없으면 조용히 무시)
+          return sb.from('profiles').update({ avatar_url: url }).eq('id', rawUser.id)
+            .then(function (res) {
+              if (res.error && !/avatar_url|column/.test(res.error.message || '')) throw res.error;
+            });
+        })
+        .then(function () {
+          if (profile) profile.avatar_url = url;
+          return loadProfile().then(notifyAuth, notifyAuth);
+        })
+        .then(function () { return url; });
     });
   };
 
@@ -2017,25 +2042,31 @@
       imagePc: b.image_pc || '',
       link: b.link || '',
       sort_order: b.sort_order || 0,
-      active: b.active !== false
+      active: b.active !== false,
+      placement: b.placement || 'home'
     };
   }
   var bannerRefreshers = [];
-  Backend.subscribeBanners = function (cb) {
+  // placement: 'home'(기본) | 'mypage'. placement 컬럼이 없으면 모두 'home' 으로 간주(클라 필터).
+  Backend.subscribeBanners = function (cb, placement) {
+    var want = placement || 'home';
     function load() {
       sb.from('banners').select('*').eq('active', true)
         .order('sort_order', { ascending: true })
         .order('created_at', { ascending: true })
-        .limit(10)
+        .limit(30)
         .then(function (res) {
           if (res.error) { console.warn('[BELLORE] banners 로드 실패:', res.error.message); cb([]); return; }
-          cb((res.data || []).map(mapBanner));
+          var rows = (res.data || []).map(mapBanner).filter(function (b) { return b.placement === want; });
+          cb(rows.slice(0, 10));
         });
     }
     load();
     bannerRefreshers.push(load);
     return function () { removeFrom(bannerRefreshers, load); };
   };
+  // 마이페이지 전용 배너 구독
+  Backend.subscribeMypageBanners = function (cb) { return Backend.subscribeBanners(cb, 'mypage'); };
   function refreshBanners() { bannerRefreshers.slice().forEach(function (fn) { try { fn(); } catch (e) {} }); }
 
   // 관리자: 전체 배너(비활성 포함) 조회 — 관리 목록용
@@ -2052,8 +2083,8 @@
       .then(function (r) { return { mobile: r[0], wide: r[1], pc: r[2] }; });
   }
   // image_wide/image_pc 컬럼이 아직 없는 환경에서도 안전하게(컬럼 미존재면 빼고 재시도)
-  function isMissingColErr(err) { return err && /image_wide|image_pc|column/.test(err.message || ''); }
-  function stripBannerCols(row) { var c = {}; for (var k in row) { if (k !== 'image_wide' && k !== 'image_pc') c[k] = row[k]; } return c; }
+  function isMissingColErr(err) { return err && /image_wide|image_pc|placement|column/.test(err.message || ''); }
+  function stripBannerCols(row) { var c = {}; for (var k in row) { if (k !== 'image_wide' && k !== 'image_pc' && k !== 'placement') c[k] = row[k]; } return c; }
   function bannerWrite(builder, row) {
     return builder(row).then(function (res) {
       if (res.error && isMissingColErr(res.error)) return builder(stripBannerCols(row)).then(function (r2) { if (r2.error) throw r2.error; });
@@ -2072,7 +2103,8 @@
         image_pc: img.pc || null,
         link: data.link || null,
         sort_order: data.sort_order || 0,
-        active: data.active !== false
+        active: data.active !== false,
+        placement: data.placement || 'home'
       };
       return bannerWrite(function (r) { return sb.from('banners').insert(r); }, row);
     });
@@ -2087,6 +2119,7 @@
       if (data.link != null) patch.link = data.link;
       if (data.sort_order != null) patch.sort_order = data.sort_order;
       if (data.active != null) patch.active = data.active;
+      if (data.placement != null) patch.placement = data.placement;
       // 픽커에 기존 URL을 다시 채워 보내므로 항상 명시적으로 갱신(비우면 null=해제)
       patch.image_url = img.mobile || data.image || null;
       patch.image_wide = img.wide || null;

@@ -30,6 +30,8 @@ const DEPOSIT_RATE = Number(Deno.env.get("DEPOSIT_RATE") ?? "0.10");
 const DEPOSIT_MIN = Number(Deno.env.get("DEPOSIT_MIN") ?? "500000");
 const DEPOSIT_MAX = Number(Deno.env.get("DEPOSIT_MAX") ?? "5000000");
 const SHIPPING_FEE = Number(Deno.env.get("SHIPPING_FEE") ?? "35000");
+// 포인트 적립률 — 결제 확정 금액의 1%(기본). secrets 로 조정 가능. 0 이면 적립 안 함.
+const POINT_EARN_RATE = Number(Deno.env.get("POINT_EARN_RATE") ?? "0.01");
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -203,7 +205,33 @@ Deno.serve(async (req) => {
         .eq("status", "active");
     }
 
-    return json({ ok: true, order: updated, payment });
+    // 8) 포인트 적립 (결제 확정 금액의 POINT_EARN_RATE) — 실패해도 결제는 성공 처리
+    //    profiles.points 를 올리고 point_ledger 에 내역을 남긴다(service_role = RLS 우회).
+    let earnedPoints = 0;
+    try {
+      if (POINT_EARN_RATE > 0 && order.customer_id) {
+        earnedPoints = Math.floor(expected * POINT_EARN_RATE);
+        if (earnedPoints > 0) {
+          const { data: prof } = await admin
+            .from("profiles")
+            .select("points")
+            .eq("id", order.customer_id)
+            .single();
+          const cur = Number(prof?.points) || 0;
+          const next = cur + earnedPoints;
+          await admin.from("profiles").update({ points: next }).eq("id", order.customer_id);
+          await admin.from("point_ledger").insert({
+            user_id: order.customer_id,
+            delta: earnedPoints,
+            balance_after: next,
+            reason: "order_earn",
+            order_id: order.id,
+          });
+        }
+      }
+    } catch (_e) { /* 포인트 적립 실패는 결제 확정에 영향 주지 않음 */ }
+
+    return json({ ok: true, order: updated, payment, earnedPoints });
   } catch (e) {
     return json({ error: "server_error", detail: String(e) }, 500);
   }
