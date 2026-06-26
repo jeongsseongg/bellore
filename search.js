@@ -102,7 +102,7 @@
     '<nav class="sp-tabs">' +
       '<button type="button" class="sp-tab active" data-sptab="word">검색어</button>' +
       '<button type="button" class="sp-tab" data-sptab="cat">카테고리</button>' +
-      '<button type="button" class="sp-tab" data-sptab="price">내 시세</button>' +
+      '<button type="button" class="sp-tab" data-spgo="compare">내시계팔기</button>' +
     '</nav>' +
     '<div class="sp-scroll">' +
       '<section class="sp-panel" data-sppanel="word"></section>' +
@@ -349,6 +349,14 @@
   page.addEventListener('click', function (e) {
     var ai = e.target.closest('.sp-auto-item'); if (ai) { runQuery(ai.dataset.q); return; }
     if (e.target.closest('[data-spclose]')) { closePage(); return; }
+    // '내시계팔기' 탭 — 패널 전환 대신 바로 내시계팔기로 이동
+    var go = e.target.closest('[data-spgo]');
+    if (go) {
+      closePage();
+      var navEl = document.querySelector('.tab-item[data-nav="' + go.dataset.spgo + '"]') || document.querySelector('[data-nav="' + go.dataset.spgo + '"]');
+      if (navEl) navEl.click(); else location.hash = '#' + go.dataset.spgo;
+      return;
+    }
     var tab = e.target.closest('[data-sptab]'); if (tab) { switchTab(tab.dataset.sptab); return; }
 
     // 최근검색어 삭제

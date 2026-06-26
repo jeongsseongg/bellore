@@ -27,8 +27,8 @@
     --app-w: 100vw;
     --container: 100vw;
     --app-bg: #e8e8e8;        /* 앱 컨테이너 바깥(좌우 여백) 배경 */
-    /* 로고(하이컨트라스트 세리프) 톤의 영문/브랜드 디스플레이용 — 영문만 세리프, 한글은 산세리프(Pretendard)로 폴백해 명조/궁서로 안 떨어지게 함 */
-    --serif: 'Cormorant Garamond', 'Playfair Display', Georgia, 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
+    /* 글꼴 전체 통일(Pretendard). 로고는 이미지라 영향 없음. (DESIGN.md §2) */
+    --serif: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
 }
 
 /* PC(넓은 화면)에서는 앱 컨테이너 폭을 660px로 확대 */
@@ -8629,9 +8629,12 @@ body.is-searching .tabbar { display: none !important; }
 .prof-fld input { width: 100%; height: 50px; padding: 0 14px; border: 1px solid var(--border); border-radius: 12px; font-size: 16px; background: var(--white); }
 .prof-fld input:focus { outline: none; border-color: var(--green-bright); }
 .prof-hint { font-size: 12px; color: var(--text-3); line-height: 1.5; margin: -6px 2px 0; }
-.pw-wrap { display: flex; gap: 8px; }
-.pw-wrap input { flex: 1 1 auto; min-width: 0; }
-.pw-eye { flex: none; padding: 0 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-soft); font-size: 13px; font-weight: 700; color: var(--text-2); cursor: pointer; }
+/* 비밀번호 표시 = 박스 안 오른쪽 끝 눈 아이콘 (DESIGN.md §3) */
+.pw-wrap { position: relative; display: block; }
+.pw-wrap input { width: 100%; min-width: 0; padding-right: 46px; }
+.pw-eye { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 8px; background: none; color: #9a9a9a; cursor: pointer; }
+.pw-eye:hover { background: var(--bg-soft); color: #111; }
+.pw-eye.on { color: #111; }
 .prof-pick { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
 .prof-pick-opt { display: flex; flex-direction: column; gap: 4px; padding: 16px; border: 1.5px solid var(--border); border-radius: 12px; background: var(--white); cursor: pointer; text-align: left; }
 .prof-pick-opt.on { border-color: var(--green-bright); background: #f3fbf6; }
@@ -8642,19 +8645,20 @@ body.is-searching .tabbar { display: none !important; }
    토스식 입력 디자인 시스템 (로그인·회원가입·회원정보 공통)
    - 그린 액센트 폐기 → 토스 블루로 통일
    ============================================================ */
-:root { --toss-blue: #3182f6; --toss-blue-soft: #e8f1fe; }
+/* 모노크롬 전환: 기존 'toss-blue' 토큰을 검정/연회색으로 재정의 → 모든 사용처 일괄 변경 (DESIGN.md §1) */
+:root { --toss-blue: #111; --toss-blue-soft: #f3f1ec; }
 
 .ti-form { display: flex; flex-direction: column; gap: 14px; }
 .ti-fld { display: block; }
 .ti-fld > span { display: block; font-size: 13px; font-weight: 700; color: var(--text-2); margin-bottom: 8px; letter-spacing: -.2px; }
 .ti-fld input { width: 100%; height: 52px; padding: 0 16px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 16px; background: var(--white); color: var(--text); transition: border-color .15s, box-shadow .15s; }
-.ti-fld input:focus { outline: none; border-color: var(--toss-blue); box-shadow: 0 0 0 3px rgba(49,130,246,.15); }
+.ti-fld input:focus { outline: none; border-color: var(--toss-blue); box-shadow: 0 0 0 3px rgba(0,0,0,.08); }
 .ti-fld input::placeholder { color: #b5b0a7; }
 .ti-fld .pw-wrap input { height: 52px; }
 
 /* 토스 블루 풀폭 CTA */
 .login-btn.ti-cta, .ti-cta { background: var(--toss-blue) !important; color: #fff !important; height: 54px; border-radius: 13px; font-size: 16px; font-weight: 800; }
-.ti-cta:disabled { background: #a9c8f8 !important; cursor: default; }
+.ti-cta:disabled { background: #cfccc5 !important; color: #fff !important; cursor: default; }
 
 /* 텍스트형 ‹ 이전 */
 .lp-back { display: inline-flex; align-items: center; align-self: flex-start; background: none; border: 0; color: var(--text-2); font-size: 15px; font-weight: 600; padding: 2px 0 12px; cursor: pointer; }
@@ -8674,7 +8678,7 @@ body.is-searching .tabbar { display: none !important; }
 .vrow-opt { background: var(--bg-soft); color: var(--text-3); }
 
 /* 회원정보 수정 페이지도 토스 블루로 통일 */
-.prof-fld input:focus { border-color: var(--toss-blue); box-shadow: 0 0 0 3px rgba(49,130,246,.15); }
+.prof-fld input:focus { border-color: var(--toss-blue); box-shadow: 0 0 0 3px rgba(0,0,0,.08); }
 .prof-pick-opt.on { border-color: var(--toss-blue); background: var(--toss-blue-soft); }
 .profile-page .pp-buy { background: var(--toss-blue); }
 
@@ -8698,3 +8702,41 @@ body.is-searching .tabbar { display: none !important; }
   /* 모바일: 와이드모드는 숨김(.pc-only-setting) → 알림만 좌측 정렬 */
   .mp-hub-top { justify-content: flex-start; }
 }
+
+/* ============================================================
+   마이페이지 통합 검정 박스 헤드(닉네임+설정) · 알림 인라인 · 중앙정렬 · 윈도우 스크롤
+   (DESIGN.md — 모노크롬/정렬/여백)
+   ============================================================ */
+.mp-hub-head { display: flex; flex-direction: column; gap: 4px; padding: 2px 2px 12px; }
+.mp-hub-id { display: flex; align-items: center; gap: 8px; }
+.mp-hub-head .mpa-name { font-size: 19px; font-weight: 800; color: #111; margin: 0; line-height: 1.2; }
+.mp-hub-head .mpa-id { font-size: 12.5px; color: var(--text-2); margin: 0; word-break: break-all; }
+.mp-hub-gear { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 9px; color: #111; background: none; border: 0; cursor: pointer; flex: none; }
+.mp-hub-gear:hover { background: var(--bg-soft); }
+
+/* 알림 목록(검정 박스 안 인라인) */
+.mp-hub-noti-inline { margin: 0 0 16px; padding: 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-soft); }
+.mp-hub-noti-inline[hidden] { display: none; }
+.mp-hub-noti-inline .noti-list { max-height: 46vh; overflow-y: auto; gap: 8px; }
+.mp-hub-noti[aria-expanded="true"] { color: #111; }
+.mp-hub-noti[aria-expanded="true"] svg { transform: none; }
+
+/* #9 좌우 여백 + 가운데 정렬: 내부 콘텐츠 폭 제한 */
+#myPageModal .mp-hub,
+#myPageModal .mypage-section,
+#myPageModal .pocket,
+#myPageModal #btnLogout { width: 100%; max-width: 600px; margin-left: auto; margin-right: auto; }
+
+/* #11 PC 포함 — 모달 내부 자체 스크롤 제거, 윈도우(페이지) 스크롤 사용 */
+#myPageModal { position: absolute; top: 0; bottom: auto; height: auto; min-height: 100%; }
+#myPageModal .login-content { height: auto; min-height: 100dvh; overflow: visible; -webkit-overflow-scrolling: auto; }
+
+/* #3 관리자 회원관리 — 빨간 글씨 금지, 모노크롬으로 보기 편하게 */
+.mem-role,
+.mem-role--vendor,
+.mem-role--partner,
+.mem-role--admin { background: var(--bg-soft); color: var(--text-2); }
+.mem-item .stl-act,
+.pa-acts .stl-act { background: #fff; color: #111; border: 1px solid var(--border); font-weight: 700; }
+.mem-item .stl-act:hover,
+.pa-acts .stl-act:hover { background: var(--bg-soft); }

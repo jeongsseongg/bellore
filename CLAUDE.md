@@ -1,5 +1,9 @@
 # BELLORE 작업 지침 (Claude 자동 로드)
 
+> ⚠️ **디자인은 반드시 `DESIGN.md`(디자인 표준)를 따른다. 절대 벗어나지 말 것.**
+> 모노크롬(검정·흰·회색) · Pretendard 전체 통일 · 라벨+박스+우측아이콘 입력 ·
+> 풀폭 검정 CTA · 좌우 여백+중앙 정렬 · 규격/정렬 픽셀 일관성. (사장님 확정)
+
 벨로르(bellore.co.kr) — 명품시계 거래 PWA. Firebase 호스팅(`newyork-watch`) + Supabase 백엔드 + 토스페이먼츠.
 정적 앱: `index.html` / `script.js` / `supabase.js` / `payments.js` / `bellore-features.js` / `styles.css`. DB 변경은 루트의 `*.sql` 파일로 관리(사용자가 Supabase SQL Editor에 직접 실행).
 

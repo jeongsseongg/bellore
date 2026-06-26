@@ -336,7 +336,9 @@
         var m = $('#myPageModal');
         if (!m) return;
         m.hidden = false;
-        document.body.style.overflow = 'hidden';
+        // 마이페이지는 모달 내부 스크롤 대신 '윈도우(페이지) 스크롤'을 쓴다(PC 포함).
+        document.body.style.overflow = '';
+        try { window.scrollTo(0, 0); } catch (e) {}
         renderMyItemsBackend(myListingsCache); // 현재 캐시로 즉시 렌더
         renderMyShortcuts(); // 장바구니 · 최근 본 상품
 
@@ -407,6 +409,7 @@
         if (m) { m.hidden = true; document.body.style.overflow = ''; }
         closeMpSub();
     }
+    window.BELLORE_openMyPage = openMyPage;
 
     // 마이페이지 서브페이지(쿠폰·소식시계 등): 스크롤 대신 해당 화면으로 전환
     var MP_SUB_TITLE = { myCouponSection: '내 쿠폰', myAlertsSection: '소식 기다리는 시계' };
@@ -712,42 +715,29 @@
             else alert('상품 등록 기능을 불러오지 못했습니다.');
         });
 
-        // 알림 모달 (마이페이지 내부 #btnNoti + 상단 헤더 #btnNotiTop 둘 다 연동)
+        // 알림 — 마이페이지 검정 박스 안에서 인라인으로 펼침(별도 모달 폐지)
         var btnNoti = $('#btnNoti');
         var btnNotiTop = $('#btnNotiTop');
-        var notiModal = $('#notiModal');
-        if (notiModal) {
-            function openNotiModal() {
-                notiModal.hidden = false;
-                document.body.style.overflow = 'hidden';
+        function toggleNotiInline(forceOpen) {
+            var box = $('#notiInline'); if (!box) return;
+            var willOpen = (forceOpen === true) ? true : box.hidden;
+            box.hidden = !willOpen;
+            if (btnNoti) btnNoti.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+            if (willOpen) {
                 renderNotiList(notiCache);
                 // 열람 시 읽지 않은 알림 읽음 처리
                 notiCache.forEach(function (n) {
                     if (!n.read && backendOn() && NWBackend.markNotificationRead) NWBackend.markNotificationRead(n.id).catch(function () {});
                 });
+                updateNotiBadge(0);
             }
-            if (btnNoti) btnNoti.addEventListener('click', openNotiModal);
-            if (btnNotiTop) btnNotiTop.addEventListener('click', openNotiModal);
-            notiModal.addEventListener('click', function (e) {
-                if (e.target.closest('[data-noticlose]')) {
-                    notiModal.hidden = true;
-                    document.body.style.overflow = '';
-                }
-            });
         }
-
-        // 상단 공유 아이콘 — 사이트 공유(Web Share API + 링크복사 폴백)
-        var btnShareTop = $('#btnShareTop');
-        if (btnShareTop) btnShareTop.addEventListener('click', function () {
-            var data = {
-                title: '벨로르 BELLORE',
-                text: '명품시계 비교견적·매입·판매는 벨로르에서 — 여러 업체 견적을 한눈에 비교하세요.',
-                url: (function () { try { return location.origin + location.pathname; } catch (e) { return 'https://bellore.co.kr'; } })()
-            };
-            if (navigator.share) { navigator.share(data).catch(function () {}); return; }
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(data.url).then(function () { alert('링크를 복사했습니다.'); }, function () {});
-            } else { alert(data.url); }
+        if (btnNoti) btnNoti.addEventListener('click', function () { toggleNotiInline(); });
+        // 상단 헤더 알림 벨 → 마이페이지 열고 알림 펼치기
+        if (btnNotiTop) btnNotiTop.addEventListener('click', function () {
+            if (window.BELLORE_openMyPage) window.BELLORE_openMyPage();
+            else { var mm = $('#myPageModal'); if (mm) mm.hidden = false; }
+            setTimeout(function () { toggleNotiInline(true); }, 60);
         });
 
         // 상단 장바구니 아이콘 — 찜/장바구니 페이지의 '장바구니' 탭으로 이동
@@ -826,7 +816,7 @@
                     notiCache = rows;
                     var unread = rows.filter(function (n) { return !n.read; }).length;
                     updateNotiBadge(unread);
-                    if (notiModal && !notiModal.hidden) renderNotiList(rows);
+                    var niBox = $('#notiInline'); if (niBox && !niBox.hidden) renderNotiList(rows);
                 });
             } else {
                 if (bell) bell.hidden = true;
@@ -3499,7 +3489,8 @@
             var inp = document.getElementById(eye.dataset.eye); if (!inp) return;
             var show = inp.type === 'password';
             inp.type = show ? 'text' : 'password';
-            eye.textContent = show ? '숨김' : '표시';
+            eye.classList.toggle('on', show);
+            eye.setAttribute('aria-label', show ? '비밀번호 숨김' : '비밀번호 표시');
         });
         // 유형 카드 → 역할 지정 후 회원가입 폼으로
         $$('[data-signup-role]').forEach(function (card) {
@@ -3843,7 +3834,7 @@
     }
 
     /* ============ 1. 라우팅 ============ */
-    var VALID = ['home', 'compare', 'collection', 'insight', 'brand', 'about', 'contact', 'sell', 'buy', 'repair', 'cat-update', 'cat-sale', 'cat-new', 'cat-today', 'appraisal', 'wishlist'];
+    var VALID = ['home', 'compare', 'collection', 'insight', 'brand', 'about', 'contact', 'sell', 'buy', 'repair', 'cat-update', 'cat-sale', 'cat-new', 'cat-today', 'wishlist'];
 
     function applyPage(target) {
         if (VALID.indexOf(target) === -1) target = 'home';
