@@ -7395,7 +7395,7 @@ body.is-searching .tabbar { display: none !important; }
 
 /* 항목5 — 주문 전체보기 모달 */
 .orders-content { max-width: 460px; }
-.orders-tabs { display: flex; gap: 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 0 12px; margin: 4px 0 4px; scrollbar-width: none; }
+.orders-tabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 0 12px; margin: 4px 0 4px; }
 .orders-tabs::-webkit-scrollbar { display: none; }
 .orders-tab {
     flex: 0 0 auto; background: var(--bg-soft, #f5f3ee); border: 1px solid var(--border, #e6e1d8);
@@ -7476,7 +7476,7 @@ body.is-searching .tabbar { display: none !important; }
 .rp-thumb { font-size: 11px; background: #f1efe9; border-radius: 6px; padding: 3px 8px; color: var(--text-2, #777); }
 
 /* ===== 관리자: 주문/배송 ===== */
-.aord-tabs { overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+.aord-tabs { flex-wrap: wrap; }
 .aord-list { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
 .aord-card { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: #fff; border: 1px solid #ece9e2; border-radius: 12px; padding: 12px 14px; cursor: pointer; font-family: inherit; }
 .aord-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -7740,7 +7740,7 @@ body.is-searching .tabbar { display: none !important; }
 .cp-copy { flex-shrink: 0; padding: 0 16px; border: 1px solid #111; border-radius: 10px; background: #111; color: #fff; font-size: 13px; font-weight: 700; }
 
 /* ===== 관리자 쿠폰 목록(탭/배지) ===== */
-.cpadm-tabs { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.cpadm-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .cpadm-tab {
     flex-shrink: 0; padding: 8px 13px; border: 1px solid var(--border); border-radius: 999px;
     background: var(--white); color: var(--text-2); font-size: 12.5px; font-weight: 600;
@@ -8258,7 +8258,7 @@ body.is-searching .tabbar { display: none !important; }
 #myPageModal .pocket,
 #myPageModal .mypage-cart-link,
 #myPageModal #btnLogout,
-#myPageModal #btnChangePw { width: 100%; max-width: 720px; margin-left: auto; margin-right: auto; }
+#myPageModal #btnEditProfile { width: 100%; max-width: 720px; margin-left: auto; margin-right: auto; }
 #myPageModal .login-close { top: calc(12px + env(safe-area-inset-top)); right: 14px; z-index: 5; }
 
 /* 관리 패널(z 3200) 위에서 열리는 화면들은 더 위로 올려 가린 채로 뜨지 않게 한다
@@ -8599,3 +8599,39 @@ body.is-searching .tabbar { display: none !important; }
 .an-who { flex: none; max-width: 38%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-3); font-weight: 700; }
 .an-who.member { color: var(--green-bright); }
 @media (max-width: 480px) { .an-grid { grid-template-columns: repeat(3, 1fr); } }
+
+/* ===== 관리자 메뉴 구분/회원관리 통합 ===== */
+.admin-menu-cap { margin: 16px 2px 6px; font-size: 12px; font-weight: 800; color: var(--text-3); letter-spacing: .02em; }
+.amr-sub { display: block; margin-top: 2px; font-size: 11px; font-weight: 600; color: var(--text-3); font-style: normal; }
+.mpc-sub { display: block; margin-top: 2px; font-size: 11px; color: var(--text-3); font-style: normal; }
+.mem-pane { margin-top: 4px; }
+.mem-item { display: flex; flex-direction: column; gap: 3px; }
+.mem-top { display: flex; align-items: center; gap: 8px; }
+.mem-top b { font-size: 14px; font-weight: 800; color: var(--text); }
+.mem-role { flex: none; font-size: 10.5px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--bg-soft); color: var(--text-2); }
+.mem-role--vendor { background: #e7f0ff; color: #2563c9; }
+.mem-role--partner { background: #eafaf0; color: var(--dark-green); }
+.mem-role--admin { background: #fdeaea; color: #c0392b; }
+.mem-sub { font-size: 12px; color: var(--text-3); line-height: 1.4; }
+
+/* ===== 회원정보 수정 (토스식 단계 페이지) ===== */
+.prof-lead { font-size: 13px; color: var(--text-2); margin: 4px 2px 14px; line-height: 1.5; }
+.prof-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 16px 14px; margin-bottom: 8px; background: var(--white); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; text-align: left; }
+.prof-row:hover { border-color: var(--text-3); }
+.prof-row-l { flex: none; font-size: 14px; font-weight: 700; color: var(--text); }
+.prof-row-v { flex: 1 1 auto; min-width: 0; text-align: right; font-size: 13px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prof-row-a { flex: none; color: var(--text-3); font-size: 18px; }
+.prof-q { font-size: 22px; font-weight: 800; line-height: 1.35; color: var(--text); margin: 6px 2px 22px; }
+.prof-fld { display: block; margin-bottom: 16px; }
+.prof-fld > span { display: block; font-size: 12.5px; font-weight: 700; color: var(--text-2); margin-bottom: 7px; }
+.prof-fld input { width: 100%; height: 50px; padding: 0 14px; border: 1px solid var(--border); border-radius: 12px; font-size: 16px; background: var(--white); }
+.prof-fld input:focus { outline: none; border-color: var(--green-bright); }
+.prof-hint { font-size: 12px; color: var(--text-3); line-height: 1.5; margin: -6px 2px 0; }
+.pw-wrap { display: flex; gap: 8px; }
+.pw-wrap input { flex: 1 1 auto; min-width: 0; }
+.pw-eye { flex: none; padding: 0 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-soft); font-size: 13px; font-weight: 700; color: var(--text-2); cursor: pointer; }
+.prof-pick { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.prof-pick-opt { display: flex; flex-direction: column; gap: 4px; padding: 16px; border: 1.5px solid var(--border); border-radius: 12px; background: var(--white); cursor: pointer; text-align: left; }
+.prof-pick-opt.on { border-color: var(--green-bright); background: #f3fbf6; }
+.prof-pick-opt b { font-size: 15px; font-weight: 800; color: var(--text); }
+.prof-pick-opt em { font-size: 12.5px; color: var(--text-3); font-style: normal; }

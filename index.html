@@ -2313,22 +2313,46 @@
                         <span>비교견적 승인</span>
                         <span class="amr-right"><span class="amr-badge" id="amrQuotes" hidden>0</span><span class="amr-arrow">›</span></span>
                     </button>
-                    <button type="button" class="admin-menu-row" data-apv="vendors">
-                        <span>업체 승인</span>
-                        <span class="amr-right"><span class="amr-badge" id="amrVendors" hidden>0</span><span class="amr-arrow">›</span></span>
+                    <button type="button" class="admin-menu-row" data-apv="members">
+                        <span>회원관리 <em class="amr-sub">일반·업체·제휴사</em></span>
+                        <span class="amr-right"><span class="amr-badge" id="amrMembers" hidden>0</span><span class="amr-arrow">›</span></span>
                     </button>
-                    <button type="button" class="admin-menu-row" data-apv="accounts">
-                        <span>회원 계정</span>
-                        <span class="amr-right"><span class="amr-arrow">›</span></span>
+                </div>
+
+                <p class="admin-menu-cap">주문</p>
+                <div class="admin-menu">
+                    <button type="button" class="admin-menu-row" data-apv="orders" data-ofilter="today">
+                        <span>오늘 주문</span>
+                        <span class="amr-right"><span class="amr-badge" id="amrOToday" hidden>0</span><span class="amr-arrow">›</span></span>
                     </button>
-                    <button type="button" class="admin-menu-row" data-apv="orders">
-                        <span>주문 · 배송 관리</span>
+                    <button type="button" class="admin-menu-row" data-apv="orders" data-ofilter="pending">
+                        <span>결제 대기</span>
                         <span class="amr-right"><span class="amr-badge" id="amrOrders" hidden>0</span><span class="amr-arrow">›</span></span>
                     </button>
+                    <button type="button" class="admin-menu-row" data-apv="orders" data-ofilter="paid">
+                        <span>결제 완료 (배송 준비)</span>
+                        <span class="amr-right"><span class="amr-badge" id="amrOPaid" hidden>0</span><span class="amr-arrow">›</span></span>
+                    </button>
+                    <button type="button" class="admin-menu-row" data-apv="orders" data-ofilter="shipping">
+                        <span>배송 중</span>
+                        <span class="amr-right"><span class="amr-arrow">›</span></span>
+                    </button>
+                    <button type="button" class="admin-menu-row" data-apv="orders" data-ofilter="delivered">
+                        <span>배송 완료</span>
+                        <span class="amr-right"><span class="amr-arrow">›</span></span>
+                    </button>
+                    <button type="button" class="admin-menu-row" data-apv="orders" data-ofilter="">
+                        <span>전체 주문</span>
+                        <span class="amr-right"><span class="amr-arrow">›</span></span>
+                    </button>
                     <button type="button" class="admin-menu-row" data-apv="returns">
-                        <span>교환 · 반품 관리</span>
+                        <span>교환 · 반품</span>
                         <span class="amr-right"><span class="amr-badge" id="amrReturns" hidden>0</span><span class="amr-arrow">›</span></span>
                     </button>
+                </div>
+
+                <p class="admin-menu-cap">운영</p>
+                <div class="admin-menu">
                     <button type="button" class="admin-menu-row" data-apv="coupons">
                         <span>쿠폰 관리</span>
                         <span class="amr-right"><span class="amr-arrow">›</span></span>
@@ -2337,16 +2361,12 @@
                         <span>판매시계 관리</span>
                         <span class="amr-right"><span class="amr-arrow">›</span></span>
                     </button>
-                    <button type="button" class="admin-menu-row" data-apv="partners">
-                        <span>제휴사 관리</span>
-                        <span class="amr-right"><span class="amr-badge" id="amrPartners" hidden>0</span><span class="amr-arrow">›</span></span>
-                    </button>
                     <button type="button" class="admin-menu-row" data-apv="settlements">
                         <span>정산 관리</span>
                         <span class="amr-right"><span class="amr-badge" id="amrSettlements" hidden>0</span><span class="amr-arrow">›</span></span>
                     </button>
                     <button type="button" class="admin-menu-row" data-apv="analytics">
-                        <span>방문 · 조회 분석</span>
+                        <span>활동 로그 <em class="amr-sub">방문·조회·활동</em></span>
                         <span class="amr-right"><span class="amr-arrow">›</span></span>
                     </button>
                 </div>
@@ -2477,8 +2497,8 @@
 
             <!-- 일반 고객: 내 비교견적 → 마이포켓 내부로 이동 -->
 
-            <button type="button" class="mypage-cart-link" id="btnChangePw">
-                <span>비밀번호 변경</span>
+            <button type="button" class="mypage-cart-link" id="btnEditProfile">
+                <span>회원정보 수정 <em class="mpc-sub">닉네임·이메일·휴대폰·계좌·비밀번호</em></span>
                 <span aria-hidden="true">›</span>
             </button>
 
@@ -2814,16 +2834,20 @@
             <section class="admin-panel-view" data-apv="quotes" hidden>
                 <div class="admin-pending" id="adminPending"></div>
             </section>
-            <section class="admin-panel-view" data-apv="vendors" hidden>
-                <div id="adminList" class="admin-list"></div>
-            </section>
-            <section class="admin-panel-view" data-apv="accounts" hidden>
-                <div id="adminAccounts" class="admin-list"></div>
-                <p class="mypage-security">보안상 비밀번호는 어디에서도 조회할 수 없습니다(암호화 저장). 필요 시 "재설정 메일"로 변경하세요.</p>
-            </section>
-            <section class="admin-panel-view" data-apv="partners" hidden>
-                <div id="adminPartners" class="admin-list"></div>
-                <p class="mypage-security">제휴사 인증(사업자·휴대폰·계좌·이메일)을 확인하고 승인하면 해당 제휴사가 상품을 등록·판매할 수 있습니다. 수수료율은 제휴사별로 조정할 수 있어요.</p>
+            <section class="admin-panel-view" data-apv="members" hidden>
+                <div class="cpadm-tabs mem-tabs" id="memTabs">
+                    <button type="button" class="cpadm-tab on" data-mem="all">전체</button>
+                    <button type="button" class="cpadm-tab" data-mem="customer">일반회원</button>
+                    <button type="button" class="cpadm-tab" data-mem="vendor">업체</button>
+                    <button type="button" class="cpadm-tab" data-mem="partner">제휴사</button>
+                </div>
+                <div id="memPaneList" class="mem-pane"><div id="adminMembers" class="admin-list"></div></div>
+                <div id="memPaneVendor" class="mem-pane" hidden><div id="adminList" class="admin-list"></div></div>
+                <div id="memPanePartner" class="mem-pane" hidden>
+                    <div id="adminPartners" class="admin-list"></div>
+                    <p class="mypage-security">제휴사 인증(사업자·휴대폰·계좌·이메일)을 확인하고 승인하면 해당 제휴사가 상품을 등록·판매할 수 있습니다. 수수료율은 제휴사별로 조정할 수 있어요.</p>
+                </div>
+                <p class="mypage-security">보안상 비밀번호는 조회할 수 없습니다(암호화 저장). 회원은 마이페이지 &gt; 회원정보 수정에서 본인인증 후 직접 변경할 수 있어요.</p>
             </section>
             <section class="admin-panel-view" data-apv="settlements" hidden>
                 <div class="cpadm-tabs" id="stlTabs">
@@ -2844,7 +2868,7 @@
                 <div id="adminCouponList" class="admin-list cpadm-list"></div>
             </section>
             <section class="admin-panel-view" data-apv="orders" hidden>
-                <div class="cpadm-tabs aord-tabs" id="aordTabs">
+                <div class="cpadm-tabs aord-tabs" id="aordTabs" hidden>
                     <button type="button" class="cpadm-tab on" data-aord="">전체</button>
                     <button type="button" class="cpadm-tab" data-aord="pending">결제대기</button>
                     <button type="button" class="cpadm-tab" data-aord="paid">결제완료</button>
@@ -3002,6 +3026,109 @@
         <div class="pp-bottom">
             <button class="co-pay-btn" id="aopSave">저장</button>
         </div>
+    </div>
+
+    <!-- 회원정보 수정 (토스식 단계 페이지) -->
+    <div class="cp-page profile-page" id="profilePage" hidden>
+        <header class="pp-topbar">
+            <button class="pp-back" type="button" id="profBack" aria-label="뒤로">‹</button>
+            <span class="pp-topbar-title" id="profTitle">회원정보 수정</span>
+            <span class="pp-topbar-spacer"></span>
+        </header>
+        <div class="pp-scroll">
+            <!-- 홈: 항목 목록 (로그인 정보 자동 연동) -->
+            <section class="prof-step" data-pstep="home">
+                <p class="prof-lead">변경할 항목을 선택하세요. 가입·로그인 정보가 자동으로 연동됩니다.</p>
+                <button type="button" class="prof-row" data-pgo="name">
+                    <span class="prof-row-l">닉네임</span><span class="prof-row-v" id="pvName">-</span><span class="prof-row-a">›</span>
+                </button>
+                <button type="button" class="prof-row" data-pgo="email">
+                    <span class="prof-row-l">이메일(아이디)</span><span class="prof-row-v" id="pvEmail">-</span><span class="prof-row-a">›</span>
+                </button>
+                <button type="button" class="prof-row" data-pgo="phone">
+                    <span class="prof-row-l">휴대폰</span><span class="prof-row-v" id="pvPhone">-</span><span class="prof-row-a">›</span>
+                </button>
+                <button type="button" class="prof-row" data-pgo="account">
+                    <span class="prof-row-l">정산·환불 계좌</span><span class="prof-row-v" id="pvAccount">-</span><span class="prof-row-a">›</span>
+                </button>
+                <button type="button" class="prof-row" data-pgo="pw1">
+                    <span class="prof-row-l">비밀번호 변경</span><span class="prof-row-v">본인인증 필요</span><span class="prof-row-a">›</span>
+                </button>
+            </section>
+
+            <!-- 닉네임 -->
+            <section class="prof-step" data-pstep="name" hidden>
+                <h3 class="prof-q">어떤 닉네임으로<br>바꿀까요?</h3>
+                <label class="prof-fld"><span>닉네임</span><input type="text" id="pfName" placeholder="닉네임" autocomplete="nickname"></label>
+            </section>
+
+            <!-- 이메일 -->
+            <section class="prof-step" data-pstep="email" hidden>
+                <h3 class="prof-q">새 이메일을<br>입력해 주세요.</h3>
+                <label class="prof-fld"><span>이메일(아이디)</span><input type="email" id="pfEmail" placeholder="name@example.com" autocomplete="email"></label>
+                <p class="prof-hint">변경하려면 새 이메일로 발송되는 확인 메일의 링크를 눌러야 최종 반영됩니다.</p>
+            </section>
+
+            <!-- 휴대폰 -->
+            <section class="prof-step" data-pstep="phone" hidden>
+                <h3 class="prof-q">휴대폰 번호를<br>입력해 주세요.</h3>
+                <div class="vrow">
+                    <div class="vrow-input">
+                        <input type="tel" id="pfPhone" placeholder="010-0000-0000" autocomplete="tel">
+                        <button type="button" class="vrow-btn" id="pfPhoneSend">본인인증</button>
+                    </div>
+                    <div class="vrow-code" id="pfPhoneCodeRow" hidden>
+                        <input type="text" id="pfPhoneCode" placeholder="인증번호" inputmode="numeric">
+                        <button type="button" class="vrow-btn" id="pfPhoneConfirm">확인</button>
+                    </div>
+                    <span class="vrow-state" id="pfPhoneState"></span>
+                </div>
+            </section>
+
+            <!-- 계좌 -->
+            <section class="prof-step" data-pstep="account" hidden>
+                <h3 class="prof-q">정산·환불 계좌를<br>입력해 주세요.</h3>
+                <label class="prof-fld"><span>은행</span><input type="text" id="pfBank" placeholder="예: 국민은행"></label>
+                <label class="prof-fld"><span>계좌번호</span><input type="text" id="pfAccount" placeholder="- 없이 숫자" inputmode="numeric"></label>
+                <label class="prof-fld"><span>예금주</span><input type="text" id="pfHolder" placeholder="예금주명"></label>
+            </section>
+
+            <!-- 비번 1: 현재 비밀번호 -->
+            <section class="prof-step" data-pstep="pw1" hidden>
+                <h3 class="prof-q">현재 비밀번호를<br>입력해 주세요.</h3>
+                <label class="prof-fld pw-fld"><span>현재 비밀번호</span>
+                    <span class="pw-wrap"><input type="password" id="pfCurPw" placeholder="현재 비밀번호" autocomplete="current-password"><button type="button" class="pw-eye" data-eye="pfCurPw" aria-label="비밀번호 표시">표시</button></span>
+                </label>
+            </section>
+
+            <!-- 비번 2: 본인인증 방법 -->
+            <section class="prof-step" data-pstep="pw2" hidden>
+                <h3 class="prof-q">본인인증 방법을<br>선택해 주세요.</h3>
+                <div class="prof-pick">
+                    <button type="button" class="prof-pick-opt" data-pwverify="phone"><b>휴대폰 인증</b><em id="pwvPhoneNo">-</em></button>
+                    <button type="button" class="prof-pick-opt" data-pwverify="email"><b>이메일 인증</b><em id="pwvEmailAddr">-</em></button>
+                </div>
+                <div class="vrow" id="pwvCodeRow" hidden>
+                    <div class="vrow-code">
+                        <input type="text" id="pwvCode" placeholder="인증번호" inputmode="numeric">
+                        <button type="button" class="vrow-btn" id="pwvConfirm">확인</button>
+                    </div>
+                    <span class="vrow-state" id="pwvState"></span>
+                </div>
+            </section>
+
+            <!-- 비번 3: 새 비밀번호 -->
+            <section class="prof-step" data-pstep="pw3" hidden>
+                <h3 class="prof-q">새 비밀번호를<br>설정해 주세요.</h3>
+                <label class="prof-fld pw-fld"><span>새 비밀번호 (6자 이상)</span>
+                    <span class="pw-wrap"><input type="password" id="pfNewPw" placeholder="새 비밀번호" autocomplete="new-password"><button type="button" class="pw-eye" data-eye="pfNewPw" aria-label="비밀번호 표시">표시</button></span>
+                </label>
+                <label class="prof-fld pw-fld"><span>새 비밀번호 확인</span>
+                    <span class="pw-wrap"><input type="password" id="pfNewPw2" placeholder="한 번 더 입력" autocomplete="new-password"><button type="button" class="pw-eye" data-eye="pfNewPw2" aria-label="비밀번호 표시">표시</button></span>
+                </label>
+            </section>
+        </div>
+        <div class="pp-bottom"><button type="button" class="pp-buy" id="profNext">다음</button></div>
     </div>
 
     <!-- 인사이트 게시글 모달 -->

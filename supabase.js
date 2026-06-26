@@ -142,7 +142,13 @@
       phone: (profile && profile.phone) || meta.phone || '',
       postcode: (profile && profile.postcode) || '',
       addr1: (profile && profile.addr1) || '',
-      addr2: (profile && profile.addr2) || ''
+      addr2: (profile && profile.addr2) || '',
+      role: (profile && profile.role) || meta.role || 'customer',
+      bankName: (profile && profile.bank_name) || '',
+      bankAccount: (profile && profile.bank_account) || '',
+      bankHolder: (profile && profile.bank_holder) || '',
+      phoneVerified: !!(profile && profile.phone_verified),
+      accountVerified: !!(profile && profile.account_verified)
     };
   }
 
@@ -358,6 +364,75 @@
     if (!newPw || String(newPw).length < 6) return Promise.reject(new Error('비밀번호는 6자 이상이어야 합니다.'));
     return sb.auth.updateUser({ password: newPw })
       .then(function (res) { if (res.error) throw res.error; return true; });
+  };
+
+  // 현재 비밀번호 확인 — 동일 이메일로 재로그인 시도(세션 유지). 틀리면 reject.
+  Backend.verifyCurrentPassword = function (pw) {
+    if (!rawUser || !rawUser.email) return Promise.reject(new Error('NOT_LOGGED_IN'));
+    if (!pw) return Promise.reject(new Error('비밀번호를 입력하세요.'));
+    return sb.auth.signInWithPassword({ email: rawUser.email, password: String(pw) })
+      .then(function (res) { if (res.error) throw new Error('비밀번호가 일치하지 않습니다.'); return true; });
+  };
+
+  // 휴대폰 번호만 프로필에 저장(표시용). 실제 SMS 본인인증은 sendPhoneOtp/verifyPhoneOtp 사용.
+  Backend.updatePhoneNumber = function (phone) {
+    if (!rawUser) return Promise.reject(new Error('NOT_LOGGED_IN'));
+    var p = String(phone || '').trim();
+    if (p.replace(/[^0-9]/g, '').length < 9) return Promise.reject(new Error('휴대폰 번호를 정확히 입력하세요.'));
+    return sb.from('profiles').update({ phone: p }).eq('id', rawUser.id).then(function (r) {
+      if (r.error) throw r.error;
+      if (profile) profile.phone = p;
+      return loadProfile().then(notifyAuth, notifyAuth);
+    });
+  };
+
+  // 닉네임(표시 이름) 변경 — auth 메타 + profiles 동시 갱신
+  Backend.updateDisplayName = function (name) {
+    if (!rawUser) return Promise.reject(new Error('NOT_LOGGED_IN'));
+    var nm = String(name || '').trim();
+    if (!nm) return Promise.reject(new Error('이름을 입력하세요.'));
+    return sb.auth.updateUser({ data: { display_name: nm } }).then(function (res) {
+      if (res.error) throw res.error;
+      return sb.from('profiles').update({ display_name: nm }).eq('id', rawUser.id);
+    }).then(function () {
+      if (profile) profile.display_name = nm;
+      return loadProfile().then(notifyAuth, notifyAuth);
+    });
+  };
+
+  // 이메일(아이디) 변경 — 새 이메일로 확인메일 발송(확인해야 최종 반영)
+  Backend.updateEmail = function (email) {
+    if (!rawUser) return Promise.reject(new Error('NOT_LOGGED_IN'));
+    var em = String(email || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return Promise.reject(new Error('이메일 형식이 올바르지 않습니다.'));
+    return sb.auth.updateUser({ email: em }).then(function (res) {
+      if (res.error) throw res.error; return true;
+    });
+  };
+
+  // 정산/환불 계좌 저장(모든 회원) — 통장사본 없이 계좌정보만 갱신
+  Backend.updateBankAccount = function (data) {
+    if (!rawUser) return Promise.reject(new Error('NOT_LOGGED_IN'));
+    var patch = {
+      bank_name: String((data && data.bank) || '').trim(),
+      bank_account: String((data && data.account) || '').replace(/[^0-9-]/g, ''),
+      bank_holder: String((data && data.holder) || '').trim(),
+      account_submitted_at: new Date().toISOString()
+    };
+    if (!patch.bank_name || !patch.bank_account || !patch.bank_holder) return Promise.reject(new Error('은행·계좌번호·예금주를 모두 입력하세요.'));
+    return sb.from('profiles').update(patch).eq('id', rawUser.id).then(function (r) {
+      if (r.error) throw r.error;
+      if (profile) { profile.bank_name = patch.bank_name; profile.bank_account = patch.bank_account; profile.bank_holder = patch.bank_holder; }
+      return loadProfile().then(notifyAuth, notifyAuth);
+    });
+  };
+
+  // 전체 회원 목록(관리자) — 회원관리 통합 화면용
+  Backend.listAllMembers = function () {
+    if (!Backend.isAdmin()) return Promise.resolve([]);
+    return sb.from('profiles').select('*').order('created_at', { ascending: false })
+      .then(function (r) { if (r.error) throw r.error; return r.data || []; })
+      .catch(function () { return []; });
   };
 
   /* ---------------- 휴대폰(SMS OTP) 인증 ----------------

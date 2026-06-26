@@ -518,22 +518,112 @@
                 if (e.target.closest('[data-nav]')) closeMyPage();
             });
         }
-        // 비밀번호 변경 (로그인 사용자 본인)
-        var chPw = $('#btnChangePw');
-        if (chPw) {
-            chPw.addEventListener('click', function () {
-                if (!backendOn() || !NWBackend.updatePassword) { alert('로그인 후 이용해 주세요.'); return; }
-                bellPrompt('새 비밀번호를 입력하세요 (6자 이상)').then(function (p1) {
-                    if (p1 == null) return;
+        // 회원정보 수정 (토스식 단계 페이지: 닉네임·이메일·휴대폰·계좌·비밀번호)
+        var profPage = $('#profilePage');
+        if (profPage) {
+            var VP = window.BELLORE_VERIFY || {};
+            var _pStep = 'home', _pwOk = false, _pwMethod = null;
+            function pUser() { return (backendOn() && NWBackend.currentUser) ? (NWBackend.currentUser() || {}) : {}; }
+            function pSet(id, v) { var el = $('#' + id); if (el) el.textContent = v || '-'; }
+            function setPV() {
+                var u = pUser();
+                pSet('pvName', u.displayName);
+                pSet('pvEmail', u.email);
+                pSet('pvPhone', u.phone ? (u.phone + (u.phoneVerified ? ' ✓' : '')) : '미등록');
+                pSet('pvAccount', u.bankAccount ? ((u.bankName || '') + ' ' + u.bankAccount) : '미등록');
+                pSet('pwvPhoneNo', u.phone || '등록된 번호 없음');
+                pSet('pwvEmailAddr', u.email || '');
+            }
+            var P_TITLE = { home: '회원정보 수정', name: '닉네임 변경', email: '이메일 변경', phone: '휴대폰 변경', account: '계좌 변경', pw1: '비밀번호 변경', pw2: '본인인증', pw3: '새 비밀번호' };
+            var P_BTN = { home: '', name: '저장', email: '변경 메일 보내기', phone: '저장', account: '저장', pw1: '다음', pw2: '', pw3: '변경 완료' };
+            function gotoP(step) {
+                _pStep = step;
+                $$('.prof-step', profPage).forEach(function (s) { s.hidden = s.dataset.pstep !== step; });
+                var t = $('#profTitle'); if (t) t.textContent = P_TITLE[step] || '회원정보 수정';
+                var lbl = P_BTN[step], bottom = profPage.querySelector('.pp-bottom'), btn = $('#profNext');
+                if (bottom) bottom.style.display = lbl ? '' : 'none';
+                if (btn && lbl) { btn.textContent = lbl; btn.disabled = false; }
+                var sc = profPage.querySelector('.pp-scroll'); if (sc) sc.scrollTop = 0;
+                var u = pUser();
+                if (step === 'name') { var e1 = $('#pfName'); if (e1) e1.value = u.displayName || ''; }
+                else if (step === 'email') { var e2 = $('#pfEmail'); if (e2) e2.value = u.email || ''; }
+                else if (step === 'phone') { var e3 = $('#pfPhone'); if (e3) e3.value = u.phone || ''; var cr = $('#pfPhoneCodeRow'); if (cr) cr.hidden = true; pSet('pfPhoneState', ''); }
+                else if (step === 'account') { var b = $('#pfBank'), a = $('#pfAccount'), h = $('#pfHolder'); if (b) b.value = u.bankName || ''; if (a) a.value = u.bankAccount || ''; if (h) h.value = u.bankHolder || ''; }
+                else if (step === 'pw1') { var cp = $('#pfCurPw'); if (cp) cp.value = ''; }
+                else if (step === 'pw2') { setPV(); var cr2 = $('#pwvCodeRow'); if (cr2) cr2.hidden = true; pSet('pwvState', ''); _pwOk = false; _pwMethod = null; $$('.prof-pick-opt', profPage).forEach(function (x) { x.classList.remove('on'); }); }
+                else if (step === 'pw3') { var n1 = $('#pfNewPw'), n2 = $('#pfNewPw2'); if (n1) n1.value = ''; if (n2) n2.value = ''; }
+            }
+            function openProfilePage() {
+                if (!backendOn() || !NWBackend.currentUser || !NWBackend.currentUser()) { alert('로그인 후 이용해 주세요.'); return; }
+                setPV(); gotoP('home');
+                profPage.hidden = false; document.body.style.overflow = 'hidden';
+            }
+            function closeProfilePage() { profPage.hidden = true; document.body.style.overflow = 'hidden'; } // 마이페이지가 아직 떠 있음
+            window.BELLORE_openProfile = openProfilePage;
+            var editBtn = $('#btnEditProfile'); if (editBtn) editBtn.addEventListener('click', openProfilePage);
+
+            $('#profBack').addEventListener('click', function () {
+                if (_pStep === 'home') closeProfilePage();
+                else if (_pStep === 'pw2') gotoP('pw1');
+                else if (_pStep === 'pw3') gotoP('pw2');
+                else gotoP('home');
+            });
+
+            profPage.addEventListener('click', function (e) {
+                var row = e.target.closest('[data-pgo]'); if (row) { gotoP(row.dataset.pgo); return; }
+                var eye = e.target.closest('[data-eye]');
+                if (eye) { var inp = $('#' + eye.dataset.eye); if (inp) { var show = inp.type === 'password'; inp.type = show ? 'text' : 'password'; eye.textContent = show ? '숨김' : '표시'; } return; }
+                var pv = e.target.closest('[data-pwverify]');
+                if (pv) {
+                    _pwMethod = pv.dataset.pwverify;
+                    $$('.prof-pick-opt', profPage).forEach(function (b) { b.classList.toggle('on', b === pv); });
+                    var st = $('#pwvState'), cr = $('#pwvCodeRow'), u = pUser();
+                    if (_pwMethod === 'email' && VP.email && VP.email.enabled && NWBackend.sendEmailOtp) {
+                        if (cr) cr.hidden = false;
+                        NWBackend.sendEmailOtp(u.email).then(function () { if (st) { st.textContent = '인증번호를 이메일로 보냈어요.'; st.className = 'vrow-state'; } }).catch(function () { if (st) { st.textContent = '발송 실패'; st.className = 'vrow-state err'; } });
+                    } else if (_pwMethod === 'phone' && VP.phone && VP.phone.enabled && NWBackend.verifyIdentityPortone) {
+                        NWBackend.verifyIdentityPortone({ phone: u.phone }).then(function () { _pwOk = true; gotoP('pw3'); }).catch(function (err) { if (st) { st.textContent = '인증 실패: ' + (err && err.message || err); st.className = 'vrow-state err'; } });
+                    } else { _pwOk = true; gotoP('pw3'); } // 키 미설정(soft) → 즉시 통과
+                    return;
+                }
+            });
+
+            $('#pfPhoneSend').addEventListener('click', function () {
+                var phone = ($('#pfPhone').value || '').trim(), st = $('#pfPhoneState');
+                if (phone.replace(/[^0-9]/g, '').length < 9) { alert('휴대폰 번호를 정확히 입력하세요.'); return; }
+                if (VP.phone && VP.phone.enabled && NWBackend.verifyIdentityPortone) {
+                    NWBackend.verifyIdentityPortone({ phone: phone }).then(function () { if (st) { st.textContent = '✓ 본인인증 완료'; st.className = 'vrow-state ok'; } }).catch(function (err) { if (st) { st.textContent = '인증 실패: ' + (err && err.message || err); st.className = 'vrow-state err'; } });
+                } else if (st) { st.textContent = '준비 중 — 번호만 저장됩니다.'; st.className = 'vrow-state'; }
+            });
+            $('#pfPhoneConfirm').addEventListener('click', function () { var st = $('#pfPhoneState'); if (st) { st.textContent = '✓ 인증 완료'; st.className = 'vrow-state ok'; } });
+            $('#pwvConfirm').addEventListener('click', function () {
+                var code = ($('#pwvCode').value || '').trim(), st = $('#pwvState'), u = pUser();
+                if (_pwMethod === 'email' && NWBackend.verifyEmailOtp) {
+                    NWBackend.verifyEmailOtp(u.email, code).then(function () { _pwOk = true; gotoP('pw3'); }).catch(function () { if (st) { st.textContent = '인증번호가 올바르지 않습니다.'; st.className = 'vrow-state err'; } });
+                } else { _pwOk = true; gotoP('pw3'); }
+            });
+
+            $('#profNext').addEventListener('click', function () {
+                var btn = this, fail = function (err) { btn.disabled = false; alert('실패: ' + (err && err.message || err)); };
+                if (_pStep === 'name') {
+                    var nm = ($('#pfName').value || '').trim(); if (!nm) { alert('닉네임을 입력하세요.'); return; }
+                    btn.disabled = true; NWBackend.updateDisplayName(nm).then(function () { setPV(); alert('닉네임이 변경되었습니다.'); gotoP('home'); }).catch(fail);
+                } else if (_pStep === 'email') {
+                    btn.disabled = true; NWBackend.updateEmail(($('#pfEmail').value || '').trim()).then(function () { btn.disabled = false; alert('확인 메일을 보냈어요. 새 이메일의 링크를 누르면 변경이 완료됩니다.'); gotoP('home'); }).catch(fail);
+                } else if (_pStep === 'phone') {
+                    btn.disabled = true; NWBackend.updatePhoneNumber(($('#pfPhone').value || '').trim()).then(function () { setPV(); alert('휴대폰 번호가 저장되었습니다.'); gotoP('home'); }).catch(fail);
+                } else if (_pStep === 'account') {
+                    btn.disabled = true; NWBackend.updateBankAccount({ bank: $('#pfBank').value, account: $('#pfAccount').value, holder: $('#pfHolder').value }).then(function () { setPV(); alert('계좌가 저장되었습니다.'); gotoP('home'); }).catch(fail);
+                } else if (_pStep === 'pw1') {
+                    var cur = $('#pfCurPw').value || ''; if (!cur) { alert('현재 비밀번호를 입력하세요.'); return; }
+                    btn.disabled = true; NWBackend.verifyCurrentPassword(cur).then(function () { btn.disabled = false; gotoP('pw2'); }).catch(function (err) { btn.disabled = false; alert(err && err.message || '비밀번호가 일치하지 않습니다.'); });
+                } else if (_pStep === 'pw3') {
+                    if (!_pwOk) { alert('본인인증을 먼저 완료해 주세요.'); gotoP('pw2'); return; }
+                    var p1 = $('#pfNewPw').value || '', p2 = $('#pfNewPw2').value || '';
                     if (p1.length < 6) { alert('비밀번호는 6자 이상이어야 합니다.'); return; }
-                    bellPrompt('확인을 위해 새 비밀번호를 한 번 더 입력하세요').then(function (p2) {
-                        if (p2 == null) return;
-                        if (p1 !== p2) { alert('비밀번호가 일치하지 않습니다.'); return; }
-                        NWBackend.updatePassword(p1)
-                            .then(function () { alert('비밀번호가 변경되었습니다.'); })
-                            .catch(function (err) { alert('변경 실패: ' + (err && err.message || err)); });
-                    });
-                });
+                    if (p1 !== p2) { alert('비밀번호가 일치하지 않습니다.'); return; }
+                    btn.disabled = true; NWBackend.updatePassword(p1).then(function () { _pwOk = false; alert('비밀번호가 변경되었습니다.'); gotoP('home'); }).catch(fail);
+                }
             });
         }
         // 로그아웃
@@ -1457,9 +1547,18 @@
     var _aOrderEditing = null, _adminOrderBound = false;
     var ADMIN_STATUSES = ['paid', 'inspecting', 'preparing', 'shipping', 'delivered', 'confirmed', 'cancel_req', 'canceled', 'refunded'];
 
+    function isToday(ts) {
+        var ms = (ts && ts.toMillis) ? ts.toMillis() : (ts && ts.seconds ? ts.seconds * 1000 : Date.parse(ts));
+        if (!ms || isNaN(ms)) return false;
+        var now = new Date(), d = new Date(ms);
+        return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+    }
     function renderAdminOrders() {
         var box = $('#adminOrderList'); if (!box) return;
-        var rows = _aOrderFilter ? _aOrdersCache.filter(function (o) { return o.status === _aOrderFilter; }) : _aOrdersCache;
+        var rows;
+        if (_aOrderFilter === 'today') rows = _aOrdersCache.filter(function (o) { return isToday(o.createdAt); });
+        else if (_aOrderFilter) rows = _aOrdersCache.filter(function (o) { return o.status === _aOrderFilter; });
+        else rows = _aOrdersCache;
         if (!rows.length) { box.innerHTML = '<p class="admin-empty">해당 주문이 없습니다.</p>'; return; }
         box.innerHTML = rows.map(function (o) {
             var st = o.status || 'pending';
@@ -1613,7 +1712,7 @@
         if (!backendOn() || !NWBackend.adminSummary) return;
         NWBackend.adminSummary().then(function (s) {
             setBadge('#amrQuotes', s.pending);
-            setBadge('#amrVendors', s.vendorsPending);
+            setBadge('#amrMembers', (s.vendorsPending || 0) + (s.partnersPending || 0));
             setBadge('#amrOrders', s.ordersPending);
             setBadge('#amrReturns', s.returnsPending);
         }).catch(function () {});
@@ -1624,18 +1723,21 @@
         if (n > 0) { el.textContent = n > 99 ? '99+' : n; el.hidden = false; }
         else el.hidden = true;
     }
-    function openAdminPanel(view) {
+    var O_FILTER_LABEL = { '': '전체 주문', today: '오늘 주문', pending: '결제 대기', paid: '결제 완료 (배송 준비)', shipping: '배송 중', delivered: '배송 완료' };
+    function openAdminPanel(view, ofilter) {
         var p = $('#adminPanel');
         if (!p) return;
         $$('.admin-panel-view', p).forEach(function (sec) { sec.hidden = sec.dataset.apv !== view; });
-        var titles = { quotes: '비교견적 승인', vendors: '업체 승인', accounts: '회원 계정', coupons: '쿠폰 관리', listings: '판매시계 관리', orders: '주문 · 배송 관리', returns: '교환 · 반품 관리', partners: '제휴사 관리', settlements: '정산 관리', analytics: '방문 · 조회 분석' };
-        var t = $('#adminPanelTitle'); if (t) t.textContent = titles[view] || '관리';
+        var titles = { quotes: '비교견적 승인', members: '회원관리', coupons: '쿠폰 관리', listings: '판매시계 관리', orders: '주문 관리', returns: '교환 · 반품', settlements: '정산 관리', analytics: '활동 로그' };
+        var t = $('#adminPanelTitle');
+        if (t) t.textContent = (view === 'orders') ? (O_FILTER_LABEL[ofilter || ''] || '주문 관리') : (titles[view] || '관리');
         // 패널을 열 때 항목을 즉시 다시 그려, 첫 진입에서 빈 화면이 보이지 않게 한다
         // (구독이 비동기로 들어오는 사이 들어와도 캐시로 바로 채움)
         if (view === 'quotes') renderAdminPending(_adminCache.pending);
-        else if (view === 'vendors') renderVendorList(_adminCache.vendors);
+        else if (view === 'members') openMembers(_memFilter || 'all');
         else if (view === 'coupons') renderAdminCoupons();
         else if (view === 'orders') {
+            _aOrderFilter = ofilter || '';
             renderAdminOrders();
             if (backendOn() && NWBackend.adminSubscribeOrders) {
                 if (_aOrdersUnsub) { try { _aOrdersUnsub(); } catch (e) {} }
@@ -1663,6 +1765,51 @@
         var p = $('#adminPanel');
         if (p) { p.hidden = true; document.body.style.overflow = 'hidden'; } // 마이페이지가 여전히 떠 있음
     }
+
+    /* ===== 관리자: 회원관리(일반·업체·제휴사 통합) ===== */
+    var _memFilter = 'all';
+    var ROLE_LABEL = { customer: '일반회원', vendor: '업체', partner: '제휴사', admin: '관리자' };
+    function openMembers(kind) {
+        _memFilter = kind || 'all';
+        $$('#memTabs [data-mem]').forEach(function (b) { b.classList.toggle('on', (b.dataset.mem || 'all') === _memFilter); });
+        var paneList = $('#memPaneList'), paneVendor = $('#memPaneVendor'), panePartner = $('#memPanePartner');
+        var showVendor = _memFilter === 'vendor', showPartner = _memFilter === 'partner';
+        if (paneVendor) paneVendor.hidden = !showVendor;
+        if (panePartner) panePartner.hidden = !showPartner;
+        if (paneList) paneList.hidden = showVendor || showPartner;
+        if (showVendor) renderVendorList(_adminCache.vendors);
+        else if (showPartner) renderAdminPartners();
+        else renderAdminMembers(_memFilter); // all | customer
+    }
+    function renderAdminMembers(kind) {
+        var box = $('#adminMembers'); if (!box) return;
+        if (!backendOn() || !NWBackend.listAllMembers) { box.innerHTML = '<div class="admin-list-item"><span>백엔드 연결이 필요합니다.</span></div>'; return; }
+        box.innerHTML = '<div class="admin-list-item"><span>불러오는 중…</span></div>';
+        NWBackend.listAllMembers().then(function (rows) {
+            rows = rows || [];
+            var list = (kind === 'customer') ? rows.filter(function (m) { return (m.role || 'customer') === 'customer'; }) : rows;
+            if (!list.length) { box.innerHTML = '<div class="admin-list-item"><span>회원이 없습니다.</span></div>'; return; }
+            box.innerHTML = list.map(function (m) {
+                var nm = esc(m.display_name || m.company_name || m.biz_name || '(이름 없음)');
+                var role = ROLE_LABEL[m.role] || m.role || '회원';
+                var sub = [];
+                if (m.email) sub.push(esc(m.email));
+                if (m.phone) sub.push(esc(m.phone) + (m.phone_verified ? ' ✓' : ''));
+                if (m.bank_account) sub.push(esc((m.bank_name || '') + ' ' + m.bank_account));
+                var when = m.created_at ? (' · 가입 ' + String(m.created_at).slice(0, 10)) : '';
+                var reset = m.email ? '<button type="button" class="stl-act" data-resetpw="' + esc(m.email) + '">비번 재설정 메일</button>' : '';
+                return '<div class="admin-list-item mem-item">' +
+                    '<div class="mem-top"><b>' + nm + '</b><span class="mem-role mem-role--' + (m.role || 'customer') + '">' + role + '</span></div>' +
+                    '<div class="mem-sub">' + (sub.join(' · ') || '추가 정보 없음') + when + '</div>' +
+                    (reset ? '<div class="pa-acts">' + reset + '</div>' : '') +
+                '</div>';
+            }).join('');
+        }).catch(function () { box.innerHTML = '<div class="admin-list-item"><span>불러오기 실패 (로그인/권한 확인)</span></div>'; });
+    }
+    document.addEventListener('click', function (e) {
+        var mt = e.target.closest('#memTabs [data-mem]');
+        if (mt) { openMembers(mt.dataset.mem || 'all'); }
+    });
 
     /* ===== 관리자: 제휴사 관리 ===== */
     function renderAdminPartners() {
@@ -1832,18 +1979,13 @@
         // 클릭 바인딩은 백엔드 설정과 무관하게 항상 연결(메뉴 → 패널 열기)
         document.addEventListener('click', function (e) {
             var row = e.target.closest('#adminMenuBox [data-apv]');
-            if (row) { openAdminPanel(row.dataset.apv); return; }
+            if (row) { openAdminPanel(row.dataset.apv, row.dataset.ofilter); return; }
             if (e.target.closest('#adminPanelBack')) closeAdminPanel();
             // 오늘 현황 칸 탭 → 관리자 주문 패널을 해당 상태로 필터해 열기
             // (고객용 주문모달이 아니라, 누가/언제/무엇을 결제대기 중인지 보이는 관리자 목록)
             var dc = e.target.closest('#adminDash [data-ostatus]');
             if (dc) {
-                _aOrderFilter = dc.dataset.ostatus || '';
-                openAdminPanel('orders');
-                $$('#aordTabs [data-aord]').forEach(function (t) {
-                    t.classList.toggle('on', (t.dataset.aord || '') === _aOrderFilter);
-                });
-                renderAdminOrders();
+                openAdminPanel('orders', dc.dataset.ostatus || '');
                 return;
             }
         });
