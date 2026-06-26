@@ -815,22 +815,24 @@
     }
 
     var NOTI_LABEL = {
-        quote_open: '비교견적', quote_new: '비교견적 등록', bid_new: '입찰 도착', awarded: '입찰 채택', approved: '업체 승인',
-        account: '계좌 인증', listing: '판매 매물',
+        quote_open: '비교견적', quote_new: '비교견적 등록', bid_new: '입찰 도착', awarded: '입찰 채택', approved: '승인 완료',
+        account: '계좌 인증', business: '사업자 인증', listing: '판매 매물', settlement: '정산',
         support_new: '고객센터 문의', support_reply: '고객센터 답변', info: '알림'
     };
     // 알림 종류별 색상 카테고리(비교견적/판매/고객센터)
     function notiCat(type) {
         if (type === 'quote_open' || type === 'quote_new' || type === 'bid_new' || type === 'awarded' || type === 'approved') return 'quote';
-        if (type === 'listing') return 'sale';
+        if (type === 'listing' || type === 'settlement') return 'sale';
         if (type === 'support_new' || type === 'support_reply') return 'support';
         return 'info';
     }
     // 알림 종류별로 눌렀을 때 이동할 화면
     function notiTarget(type) {
         if (type === 'quote_open' || type === 'quote_new' || type === 'bid_new' || type === 'awarded' || type === 'approved' ||
-            type === 'account' || type === 'support_new' || type === 'support_reply') return 'cq';
+            type === 'support_new' || type === 'support_reply') return 'cq';
         if (type === 'listing') return 'collection';
+        if (type === 'settlement') return 'settlement';
+        if (type === 'account' || type === 'business') return 'mypage';
         return '';
     }
     function renderNotiList(rows) {
@@ -840,11 +842,19 @@
         el.innerHTML = rows.map(function (n) {
             var label = NOTI_LABEL[n.type] || '알림';
             var go = notiTarget(n.type) ? ' has-go' : '';
+            // 제목/본문 분리 표시: 제목이 있고 본문과 다르면 제목은 굵게, 본문은 보조로.
+            var title = (n.title && n.title !== '알림') ? n.title : '';
+            var body = n.text || '';
+            if (title && body && title === body) body = '';
+            var main = title
+                ? '<span class="noti-title">' + esc(title) + '</span>' +
+                  (body ? '<span class="noti-text">' + esc(body) + '</span>' : '')
+                : '<span class="noti-text">' + esc(body || label) + '</span>';
             return '<button type="button" class="noti-item' + (n.read ? '' : ' unread') + go + '" data-nid="' + esc(n.id) +
                 '" data-ntype="' + esc(n.type || '') + '" data-nref="' + esc(n.refId || '') + '">' +
-                '<span class="noti-tag cat-' + notiCat(n.type) + '">' + esc(label) + '</span>' +
-                '<span class="noti-text">' + esc(n.text) + '</span>' +
-                '<time>' + relTime(n.createdAt) + '</time>' +
+                '<span class="noti-head"><span class="noti-tag cat-' + notiCat(n.type) + '">' + esc(label) + '</span>' +
+                '<time>' + relTime(n.createdAt) + '</time></span>' +
+                main +
                 (notiTarget(n.type) ? '<span class="noti-arrow">바로가기 ›</span>' : '') +
                 '</button>';
         }).join('');
@@ -880,6 +890,12 @@
                 window.CQDemo.open(opts);
             }
         } else if (tgt === 'collection') { closeMyPage(); location.hash = '#collection'; }
+        else if (tgt === 'settlement') {
+            // 정산 알림 → 마이페이지의 내 정산내역으로 스크롤
+            var stl = $('#myStlList') || $('#partnerBox');
+            if (stl && typeof stl.scrollIntoView === 'function') setTimeout(function () { stl.scrollIntoView({ behavior: 'smooth' }); }, 120);
+        }
+        // tgt === 'mypage' 는 알림 모달만 닫으면 마이페이지가 그대로 보임(별도 이동 불필요)
     });
 
     function renderVendorList(vendors) {
@@ -1610,7 +1626,7 @@
         var p = $('#adminPanel');
         if (!p) return;
         $$('.admin-panel-view', p).forEach(function (sec) { sec.hidden = sec.dataset.apv !== view; });
-        var titles = { quotes: '비교견적 승인', vendors: '업체 승인', accounts: '회원 계정', coupons: '쿠폰 관리', listings: '판매시계 관리', orders: '주문 · 배송 관리', returns: '교환 · 반품 관리', partners: '제휴사 관리', settlements: '정산 관리' };
+        var titles = { quotes: '비교견적 승인', vendors: '업체 승인', accounts: '회원 계정', coupons: '쿠폰 관리', listings: '판매시계 관리', orders: '주문 · 배송 관리', returns: '교환 · 반품 관리', partners: '제휴사 관리', settlements: '정산 관리', analytics: '방문 · 조회 분석' };
         var t = $('#adminPanelTitle'); if (t) t.textContent = titles[view] || '관리';
         // 패널을 열 때 항목을 즉시 다시 그려, 첫 진입에서 빈 화면이 보이지 않게 한다
         // (구독이 비동기로 들어오는 사이 들어와도 캐시로 바로 채움)
@@ -1637,6 +1653,7 @@
         }
         else if (view === 'partners') renderAdminPartners();
         else if (view === 'settlements') renderAdminSettlements(_stlFilter);
+        else if (view === 'analytics') renderAdminAnalytics();
         p.hidden = false; document.body.style.overflow = 'hidden';
         var sc = $('.admin-panel-scroll', p); if (sc) sc.scrollTop = 0;
     }
@@ -1672,6 +1689,67 @@
                 '</div>';
             }).join('');
         }).catch(function () { box.innerHTML = '<div class="admin-list-item"><span>불러오기 실패 (partner.sql 실행 여부 확인)</span></div>'; });
+    }
+
+    /* ===== 관리자: 방문 · 조회 분석 ===== */
+    function aTime(iso) {
+        var ms = Date.parse(iso); if (isNaN(ms)) return '';
+        var d = new Date(ms), diff = (Date.now() - ms) / 1000;
+        if (diff < 60) return '방금';
+        if (diff < 3600) return Math.floor(diff / 60) + '분 전';
+        if (diff < 86400) return Math.floor(diff / 3600) + '시간 전';
+        return (d.getMonth() + 1) + '/' + d.getDate() + ' ' +
+            ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+    }
+    function renderAdminAnalytics() {
+        var box = $('#adminAnalytics'); if (!box) return;
+        if (!backendOn() || !NWBackend.analyticsOverview) {
+            box.innerHTML = '<p class="admin-empty">분석 기능을 사용하려면 analytics.sql 을 실행하세요.</p>';
+            return;
+        }
+        box.innerHTML = '<p class="admin-empty">불러오는 중…</p>';
+        function card(v, l) { return '<div class="an-card"><b>' + v + '</b><span>' + l + '</span></div>'; }
+        var failHTML = '<p class="admin-empty">불러오기 실패 — analytics.sql 실행 여부를 확인하세요.<br>(관리자 계정으로 로그인되어 있어야 합니다.)</p>';
+        NWBackend.analyticsOverview().then(function (o) {
+            o = o || {};
+            var html = '<div class="an-grid">' +
+                card((o.visitsToday || 0), '오늘 방문') +
+                card((o.visitorsToday || 0), '오늘 방문자') +
+                card((o.viewsToday || 0), '오늘 시계조회') +
+                card((o.membersViews || 0), '회원 조회') +
+                card((o.visits7d || 0), '7일 방문') +
+                card((o.views7d || 0), '7일 조회') +
+                '</div>' +
+                '<h4 class="an-h">인기 시계 TOP <span class="an-mut">(최근 7일)</span></h4>' +
+                '<div id="anPopular" class="an-list"><p class="admin-empty">집계 중…</p></div>' +
+                '<h4 class="an-h">최근 조회 <span class="an-mut">(누가 어떤 시계를)</span></h4>' +
+                '<div id="anRecent" class="an-list"><p class="admin-empty">집계 중…</p></div>';
+            box.innerHTML = html;
+
+            if (NWBackend.popularProducts) NWBackend.popularProducts(7, 12).then(function (rows) {
+                var el = $('#anPopular'); if (!el) return;
+                if (!rows || !rows.length) { el.innerHTML = '<p class="admin-empty">아직 조회 데이터가 없습니다.</p>'; return; }
+                el.innerHTML = rows.map(function (r, i) {
+                    var name = ((r.brand || '') + ' ' + (r.model || '')).trim() || '(상품)';
+                    return '<div class="an-row"><span class="an-rank">' + (i + 1) + '</span>' +
+                        '<span class="an-name">' + esc(name) + '</span>' +
+                        '<span class="an-num">' + r.views + '회 · ' + r.viewers + '명</span></div>';
+                }).join('');
+            }).catch(function () { var el = $('#anPopular'); if (el) el.innerHTML = ''; });
+
+            if (NWBackend.recentProductViews) NWBackend.recentProductViews(40).then(function (rows) {
+                var el = $('#anRecent'); if (!el) return;
+                if (!rows || !rows.length) { el.innerHTML = '<p class="admin-empty">아직 조회 데이터가 없습니다.</p>'; return; }
+                el.innerHTML = rows.map(function (r) {
+                    var name = ((r.brand || '') + ' ' + (r.model || '')).trim() || '(상품)';
+                    var who = r.is_member ? esc(r.viewer_name || r.viewer_email || '회원') : '비회원';
+                    var whoCls = r.is_member ? 'an-who member' : 'an-who';
+                    return '<div class="an-row"><span class="' + whoCls + '">' + who + '</span>' +
+                        '<span class="an-name">' + esc(name) + '</span>' +
+                        '<span class="an-num">' + aTime(r.created_at) + '</span></div>';
+                }).join('');
+            }).catch(function () { var el = $('#anRecent'); if (el) el.innerHTML = ''; });
+        }).catch(function () { box.innerHTML = failHTML; });
     }
 
     /* ===== 관리자: 정산 관리 ===== */
@@ -1754,9 +1832,18 @@
             var row = e.target.closest('#adminMenuBox [data-apv]');
             if (row) { openAdminPanel(row.dataset.apv); return; }
             if (e.target.closest('#adminPanelBack')) closeAdminPanel();
-            // 오늘 현황 칸 탭 → 해당 상태 주문 목록 열기
+            // 오늘 현황 칸 탭 → 관리자 주문 패널을 해당 상태로 필터해 열기
+            // (고객용 주문모달이 아니라, 누가/언제/무엇을 결제대기 중인지 보이는 관리자 목록)
             var dc = e.target.closest('#adminDash [data-ostatus]');
-            if (dc) { openOrdersList(dc.dataset.ostatus || ''); return; }
+            if (dc) {
+                _aOrderFilter = dc.dataset.ostatus || '';
+                openAdminPanel('orders');
+                $$('#aordTabs [data-aord]').forEach(function (t) {
+                    t.classList.toggle('on', (t.dataset.aord || '') === _aOrderFilter);
+                });
+                renderAdminOrders();
+                return;
+            }
         });
 
         if (!backendOn() || !NWBackend.onAuthChange) return;
@@ -3411,6 +3498,18 @@
         }
         window.scrollTo(0, 0);
         setTimeout(refreshReveals, 50);
+        logPageView('#' + target);
+    }
+
+    // 방문 추적(누가/언제/어떤 화면) — analytics.sql 미설치 시 자동 무시
+    var _lastLoggedPath = '', _pvTimer = null;
+    function logPageView(path) {
+        if (path === _lastLoggedPath) return;
+        _lastLoggedPath = path;
+        clearTimeout(_pvTimer);
+        _pvTimer = setTimeout(function () {
+            if (window.NWBackend && NWBackend.logPageView) NWBackend.logPageView(path);
+        }, 300);
     }
 
     function navigate(target) {
@@ -4801,6 +4900,13 @@
             document.body.style.overflow = 'hidden';
             // 새로고침해도 보던 상품이 유지되도록 기록(DB 매물만)
             try { if (pid) sessionStorage.setItem('bellore_view_product', pid); } catch (e) {}
+            // 조회 추적(누가 어떤 시계를 봤는지) — analytics.sql 미설치 시 자동 무시
+            if (window.NWBackend && NWBackend.logProductView) {
+                NWBackend.logProductView(pid || null, {
+                    brand: brand ? brand.textContent : (card.dataset.brand || ''),
+                    model: model ? model.textContent : (card.dataset.model || '')
+                });
+            }
 
             // DB 매물이면 전체 사진/상세 보강
             if (pid && backendOn() && NWBackend.getListing) {
@@ -4866,6 +4972,9 @@
                 $$('.pp-panel', modal).forEach(function (p) { p.hidden = p.dataset.pppanel !== 'info'; });
                 document.body.style.overflow = 'hidden';
                 try { sessionStorage.setItem('bellore_view_product', it.id); } catch (e) {}
+                if (window.NWBackend && NWBackend.logProductView) {
+                    NWBackend.logProductView(it.id, { brand: it.brand, model: it.model });
+                }
             }).catch(function () {});
         }
 

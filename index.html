@@ -2212,6 +2212,10 @@
                         <span>정산 관리</span>
                         <span class="amr-right"><span class="amr-badge" id="amrSettlements" hidden>0</span><span class="amr-arrow">›</span></span>
                     </button>
+                    <button type="button" class="admin-menu-row" data-apv="analytics">
+                        <span>방문 · 조회 분석</span>
+                        <span class="amr-right"><span class="amr-arrow">›</span></span>
+                    </button>
                 </div>
             </div>
 
@@ -2706,6 +2710,7 @@
             <section class="admin-panel-view" data-apv="orders" hidden>
                 <div class="cpadm-tabs aord-tabs" id="aordTabs">
                     <button type="button" class="cpadm-tab on" data-aord="">전체</button>
+                    <button type="button" class="cpadm-tab" data-aord="pending">결제대기</button>
                     <button type="button" class="cpadm-tab" data-aord="paid">결제완료</button>
                     <button type="button" class="cpadm-tab" data-aord="inspecting">검수중</button>
                     <button type="button" class="cpadm-tab" data-aord="preparing">준비중</button>
@@ -2720,6 +2725,9 @@
             </section>
             <section class="admin-panel-view" data-apv="listings" hidden>
                 <button type="button" class="mypage-btn" id="adminAddListingBtn">+ 판매시계 등록</button>
+            </section>
+            <section class="admin-panel-view" data-apv="analytics" hidden>
+                <div id="adminAnalytics" class="admin-analytics"></div>
             </section>
         </div>
     </div>

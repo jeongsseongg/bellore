@@ -1016,6 +1016,53 @@
     });
   };
 
+  /* ---------------- 접속/조회 추적(데이터 분석) ---------------- */
+  // 기기별 방문자 식별(익명 포함). localStorage 영구 보관.
+  function visitorId() {
+    try {
+      var k = 'bellore_vid', v = localStorage.getItem(k);
+      if (!v) { v = uuid(); localStorage.setItem(k, v); }
+      return v;
+    } catch (e) { return null; }
+  }
+  // 페이지 방문 적재(실패해도 무시). analytics.sql 미실행 시 자동 무시.
+  Backend.logPageView = function (path) {
+    return sb.from('page_views').insert({
+      path: String(path || location.hash || '/').slice(0, 200),
+      visitor_id: visitorId(),
+      user_id: rawUser ? rawUser.id : null,
+      referrer: (document.referrer || '').slice(0, 300),
+      ua: (navigator.userAgent || '').slice(0, 300)
+    }).then(function () {}, function () {});
+  };
+  // 상품(시계) 조회 적재(실패해도 무시).
+  Backend.logProductView = function (listingId, meta) {
+    meta = meta || {};
+    return sb.from('product_views').insert({
+      listing_id: (listingId != null ? String(listingId) : null),
+      brand: (meta.brand || '').slice(0, 80),
+      model: (meta.model || '').slice(0, 120),
+      visitor_id: visitorId(),
+      user_id: rawUser ? rawUser.id : null
+    }).then(function () {}, function () {});
+  };
+  // 관리자 분석 요약/인기상품/최근조회/방문추이(RPC). 미설치/비관리자 시 reject.
+  Backend.analyticsOverview = function () {
+    return sb.rpc('analytics_overview').then(function (r) { if (r.error) throw r.error; return r.data || {}; });
+  };
+  Backend.popularProducts = function (days, lim) {
+    return sb.rpc('popular_products', { days: days || 7, lim: lim || 12 })
+      .then(function (r) { if (r.error) throw r.error; return r.data || []; });
+  };
+  Backend.recentProductViews = function (lim) {
+    return sb.rpc('recent_product_views', { lim: lim || 40 })
+      .then(function (r) { if (r.error) throw r.error; return r.data || []; });
+  };
+  Backend.visitsByDay = function (days) {
+    return sb.rpc('visits_by_day', { days: days || 14 })
+      .then(function (r) { if (r.error) throw r.error; return r.data || []; });
+  };
+
   /* ---------------- 사이트 콘텐츠(관리자 인앱 편집: 매입 랜딩 · 벨로르 소개) ---------------- */
   Backend.getSiteContent = function (key) {
     return sb.from('site_content').select('*').eq('key', key).maybeSingle()
@@ -1250,6 +1297,7 @@
             return {
               id: n.id,
               read: n.is_read,
+              title: n.title || '',
               text: n.body || n.title || '',
               type: n.type,
               refId: (n.ref_id != null ? String(n.ref_id) : ''),
