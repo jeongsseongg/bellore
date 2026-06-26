@@ -5784,6 +5784,27 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .bizinfo-modal .bizinfo-list dt { flex: 0 0 96px; margin: 0; color: rgba(255,255,255,.45); }
 .bizinfo-modal .bizinfo-list dd { margin: 0; color: rgba(255,255,255,.88); }
 
+/* 약관/개인정보처리방침 모달 (긴 글 스크롤) */
+.legal-modal .legal-sheet { max-width: 560px; max-height: 82vh; display: flex; flex-direction: column; }
+.legal-modal .legal-body { margin-top: 14px; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-right: 6px; }
+.legal-modal .legal-body h4 { margin: 16px 0 5px; font-size: 13.5px; color: var(--gold, #c9a96e); font-weight: 700; }
+.legal-modal .legal-body h4:first-child { margin-top: 0; }
+.legal-modal .legal-body p { margin: 0; font-size: 12.5px; line-height: 1.7; color: rgba(255,255,255,.8); }
+.legal-modal .legal-body .legal-meta { margin-top: 18px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.12); font-size: 11.5px; color: rgba(255,255,255,.45); }
+
+/* 푸터 약관 링크 */
+.footer-legal-row { display: flex; align-items: center; gap: 8px; padding: 14px 0 4px; border-top: 1px solid rgba(255,255,255,.08); flex-wrap: wrap; }
+.footer-legal-link { background: none; border: none; padding: 0; cursor: pointer; font-size: 12.5px; color: rgba(255,255,255,.6); text-decoration: underline; text-underline-offset: 2px; }
+.footer-legal-link.strong { color: rgba(255,255,255,.92); font-weight: 700; }
+.footer-legal-link:hover { color: #fff; }
+.footer-legal-sep { color: rgba(255,255,255,.3); font-size: 12px; }
+.footer-copy { margin: 10px 0 0; font-size: 11.5px; color: rgba(255,255,255,.4); }
+
+/* 회원가입 약관 보기 링크 */
+.signup-legal-links { margin: -4px 0 4px; font-size: 12px; color: var(--text-2); }
+.signup-legal-links .footer-legal-link { color: var(--text-2); }
+.signup-legal-links .footer-legal-link:hover { color: var(--text); }
+
 /* ===== 공통 다이얼로그(ui-dialog.js): alert/confirm/prompt 대체 ===== */
 .bld-modal[hidden] { display: none; }
 .bld-modal {
@@ -5937,6 +5958,18 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
     transition: opacity .15s;
 }
 .co-pay-btn:disabled { opacity: .5; }
+
+/* 결제 수단(포트원) 선택 */
+.co-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.co-method {
+    text-align: center; padding: 14px 10px; border-radius: 12px;
+    border: 1.5px solid var(--border); background: var(--white);
+    font-size: 14px; font-weight: 600; color: var(--text); transition: all .15s; cursor: pointer;
+}
+.co-method.active { border-color: var(--text); background: #faf9f7; box-shadow: 0 0 0 1px var(--text) inset; font-weight: 700; }
+.co-methods-empty { grid-column: 1 / -1; font-size: 13px; color: var(--text-3); line-height: 1.6; margin: 0; text-align: center; padding: 10px 0; }
+.co-agree { display: flex; align-items: flex-start; gap: 8px; margin-top: 14px; font-size: 12.5px; color: var(--text-2); line-height: 1.5; cursor: pointer; }
+.co-agree input { margin-top: 2px; flex: none; }
 
 /* 결제 결과 */
 .pay-result {

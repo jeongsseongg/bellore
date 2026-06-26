@@ -24,21 +24,34 @@ window.NW_ADMIN_EMAILS = [
 ];
 
 /* ============================================================
-   토스페이먼츠 결제 설정
+   포트원(PortOne V2) 결제 설정
    ------------------------------------------------------------
-   - clientKey 는 공개되어도 안전합니다(프런트 전용).
-   - secretKey 는 절대 여기에 넣지 마세요! → Supabase Edge Function
-     환경변수(TOSS_SECRET_KEY)로만 보관합니다.
-   - 아래는 토스 공개 "테스트 키" 입니다. 실제 정산을 받으려면
-     토스페이먼츠 가입·심사 후 발급받은 라이브 clientKey 로 교체하세요.
-   - confirmUrl: 서버 결제 승인(검증)용 Edge Function 주소.
-     supabase/functions/confirm-payment 를 배포하면 자동 동작합니다.
+   - storeId / channelKey 는 공개되어도 안전합니다(프런트 전용).
+   - API Secret 은 절대 여기에 넣지 마세요! → Supabase Edge Function
+     환경변수(PORTONE_API_SECRET)로만 보관합니다.
+   - 채우는 곳(포트원 콘솔 https://admin.portone.io):
+       · storeId        : 결제연동 > 상점 정보 의 "Store ID" (store-xxxxxxxx)
+       · 각 channelKey   : 결제연동 > 연동 정보 > 채널 관리 에서 결제수단별 "채널 키" 복사
+   - 심사 통과(연동 완료)된 결제수단만 channels 에 두세요. 미입력(빈 값)이면
+     해당 버튼은 자동으로 숨겨집니다. 결제수단을 추가하려면 항목만 채우면 됩니다.
+   - confirmUrl: 서버 결제 검증용 Edge Function 주소(배포 후 자동 동작).
    ============================================================ */
 window.BELLORE_PAYMENTS = {
-  provider: "toss",
-  // 토스 공개 테스트 clientKey (그대로 두면 테스트 결제가 동작)
-  clientKey: "test_gck_docs_Ovk5rk1EwkEbP0W43n07xlzm",
-  // 결제 승인 검증 Edge Function (배포 후 활성화). 비워두면 데모 승인.
+  provider: "portone",
+  // 포트원 상점 ID (예: store-00000000-0000-0000-0000-000000000000)
+  storeId: "",
+  // 결제수단 목록 — 각 항목의 channelKey 를 포트원 콘솔에서 복사해 채우세요.
+  //   payMethod: 'CARD'(카드) | 'EASY_PAY'(간편결제) | 'TRANSFER'(계좌이체) | 'VIRTUAL_ACCOUNT'(가상계좌)
+  //   easyPayProvider: 간편결제일 때 지정(아래 값 참고). 비우면 PG 기본 선택창.
+  channels: [
+    { id: "card",     label: "신용·체크카드", payMethod: "CARD",     channelKey: "" },
+    { id: "kakaopay", label: "카카오페이",   payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_KAKAOPAY" },
+    { id: "naverpay", label: "네이버페이",   payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_NAVERPAY" },
+    { id: "tosspay",  label: "토스페이",     payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_TOSSPAY" },
+    { id: "payco",    label: "페이코",       payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_PAYCO" },
+    { id: "smilepay", label: "스마일페이",   payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_SMILEPAY" }
+  ],
+  // 결제 검증 Edge Function (배포 후 활성화). 비워두면 데모 승인.
   confirmUrl: "https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/confirm-payment",
   // 결제 취소/환불 Edge Function (배포 후 활성화). 비워두면 DB 상태만 변경.
   cancelUrl: "https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/cancel-payment",

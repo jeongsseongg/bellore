@@ -1532,9 +1532,8 @@
         'apikey': CFG.anonKey
       },
       body: JSON.stringify({
-        paymentKey: params.paymentKey,
-        orderId: params.orderId,
-        amount: params.amount
+        // 포트원: paymentId(=order_no) 만 보내고 금액/상태는 서버가 포트원 API로 검증
+        paymentId: params.paymentId || params.orderId
       })
     }).then(function (r) { return r.json(); });
   };

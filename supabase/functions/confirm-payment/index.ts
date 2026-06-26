@@ -1,22 +1,26 @@
 // ============================================================
-// 벨로르(BELLORE) · 토스페이먼츠 결제 승인(검증) Edge Function
+// 벨로르(BELLORE) · 포트원(PortOne V2) 결제 검증 Edge Function
 // ------------------------------------------------------------
 // 배포:
-//   1) Supabase CLI 설치 후
-//   2) supabase secrets set TOSS_SECRET_KEY=live_gsk_xxx   (라이브 시크릿키)
+//   1) Supabase CLI 또는 대시보드로
+//   2) PORTONE_API_SECRET 시크릿 등록 (포트원 콘솔 > 결제연동 > API Keys 의 "V2 API Secret")
+//        supabase secrets set PORTONE_API_SECRET=xxxxxxxx
 //      (선택) supabase secrets set DEPOSIT_RATE=0.10 DEPOSIT_MIN=500000 \
 //             DEPOSIT_MAX=5000000 SHIPPING_FEE=35000
 //   3) supabase functions deploy confirm-payment --no-verify-jwt
 //
 // 보안 핵심(억대 거래 필수):
-//   - 결제금액(amount)·상품가(product_price)는 프런트가 보낸 값이라 신뢰하지 않는다.
+//   - 결제금액·상품가는 프런트가 보낸 값이라 신뢰하지 않는다.
 //   - order.listing_id 로 DB의 진짜 시세(listings)를 직접 조회해
-//     예약금/전액/배송비/쿠폰할인을 "서버에서 다시 계산"한 뒤 결제금액과 대조한다.
+//     예약금/전액/배송비/쿠폰할인을 "서버에서 다시 계산"한다.
+//   - 포트원 API로 실제 결제건(paymentId)을 조회해 status=PAID 이고
+//     결제금액이 서버 재계산값과 정확히 일치할 때만 주문을 확정한다.
 //   - 이렇게 해야 "1억 시계를 1,000원에 결제" 같은 금액 위·변조를 차단한다.
 // ============================================================
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const TOSS_SECRET_KEY = Deno.env.get("TOSS_SECRET_KEY") ?? "";
+const PORTONE_API_SECRET = Deno.env.get("PORTONE_API_SECRET") ?? "";
+const PORTONE_API_BASE = Deno.env.get("PORTONE_API_BASE") ?? "https://api.portone.io";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
@@ -72,10 +76,11 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   try {
-    const { paymentKey, orderId, amount } = await req.json();
-    if (!paymentKey || !orderId || !amount) {
-      return json({ error: "missing_params" }, 400);
-    }
+    const body = await req.json();
+    // 포트원: paymentId(=order_no) 로 검증. (구버전 orderId 도 허용)
+    const paymentId: string = body.paymentId || body.orderId || "";
+    if (!paymentId) return json({ error: "missing_params" }, 400);
+    if (!PORTONE_API_SECRET) return json({ error: "not_configured" }, 400);
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
@@ -83,7 +88,7 @@ Deno.serve(async (req) => {
     const { data: order, error: selErr } = await admin
       .from("orders")
       .select("*")
-      .eq("order_no", orderId)
+      .eq("order_no", paymentId)
       .single();
 
     if (selErr || !order) return json({ error: "order_not_found" }, 404);
@@ -130,41 +135,45 @@ Deno.serve(async (req) => {
 
     const expected = Math.max(0, base - serverDiscount);
 
-    // 4) 결제금액이 서버 재계산값과 일치하는지 확인
-    if (Number(amount) !== expected) {
-      return json(
-        {
-          error: "amount_mismatch",
-          expected,
-          got: Number(amount),
-        },
-        400,
-      );
+    // 4) 포트원 API로 실제 결제건 조회 (결제금액·상태는 포트원이 진실의 원천)
+    const pres = await fetch(
+      `${PORTONE_API_BASE}/payments/${encodeURIComponent(paymentId)}`,
+      { headers: { Authorization: `PortOne ${PORTONE_API_SECRET}` } },
+    );
+    const payment = await pres.json();
+
+    if (!pres.ok) {
+      return json({ error: "portone_lookup_failed", detail: payment }, 400);
     }
 
-    // 5) 토스 결제 승인 (실제 결제금액도 토스가 한 번 더 검증)
-    const auth = btoa(`${TOSS_SECRET_KEY}:`);
-    const tossRes = await fetch(
-      "https://api.tosspayments.com/v1/payments/confirm",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${auth}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ paymentKey, orderId, amount: expected }),
-      },
-    );
-    const toss = await tossRes.json();
-
-    if (!tossRes.ok) {
+    // 5) 상태/금액 대조 — PAID 이고 실제 결제금액이 서버 재계산값과 일치해야 함
+    const paidAmount = Number(payment?.amount?.total ?? payment?.amount ?? -1);
+    if (payment?.status !== "PAID") {
       await admin.from("orders").update({ status: "failed" }).eq("id", order.id);
-      return json({ error: "toss_confirm_failed", detail: toss }, 400);
+      return json({ error: "not_paid", status: payment?.status }, 400);
+    }
+    if (paidAmount !== expected) {
+      // 금액 위·변조 의심 → 결제 취소 시도 후 실패 처리
+      try {
+        await fetch(
+          `${PORTONE_API_BASE}/payments/${encodeURIComponent(paymentId)}/cancel`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `PortOne ${PORTONE_API_SECRET}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ reason: "amount_mismatch_auto_cancel" }),
+          },
+        );
+      } catch (_e) { /* 취소 실패해도 주문은 확정하지 않음 */ }
+      await admin.from("orders").update({ status: "failed" }).eq("id", order.id);
+      return json({ error: "amount_mismatch", expected, got: paidAmount }, 400);
     }
 
     // 6) 주문 확정 (서버 재계산값으로 amount/discount 를 정정 저장)
-    const method = toss.method ?? null;
-    const receiptUrl = toss.receipt?.url ?? null;
+    const method = payment?.method?.type ?? payment?.method?.provider ?? null;
+    const receiptUrl = payment?.receiptUrl ?? null;
     const { data: updated } = await admin
       .from("orders")
       .update({
@@ -172,7 +181,7 @@ Deno.serve(async (req) => {
         amount: expected,
         discount: serverDiscount,
         method,
-        payment_key: paymentKey,
+        payment_key: paymentId,
         receipt_url: receiptUrl,
         paid_at: new Date().toISOString(),
       })
@@ -194,7 +203,7 @@ Deno.serve(async (req) => {
         .eq("status", "active");
     }
 
-    return json({ ok: true, order: updated, payment: toss });
+    return json({ ok: true, order: updated, payment });
   } catch (e) {
     return json({ error: "server_error", detail: String(e) }, 500);
   }

@@ -1,9 +1,10 @@
 /* ============================================================
-   벨로르(BELLORE) · 결제(토스페이먼츠) 연동
+   벨로르(BELLORE) · 결제(포트원 PortOne V2) 연동
    ------------------------------------------------------------
-   - 상품 상세의 "바로구매" → 체크아웃 모달 → 토스 결제위젯
+   - 상품 상세의 "바로구매" → 체크아웃 모달 → 결제수단 선택 → 포트원 결제
    - 예약금/전액 선택, 구매자 정보 입력, 주문 DB 기록
-   - 결제 후 successUrl 로 복귀하면 Edge Function 으로 승인 검증
+   - 카드 + 간편결제(카카오/네이버/토스/페이코/스마일페이) 지원
+   - 결제 후 Edge Function(confirm-payment)이 포트원 API로 금액·상태 검증
    ============================================================ */
 (function () {
   'use strict';
@@ -31,23 +32,45 @@
     return price + (PAY.shippingFee || 0);
   }
 
-  // 고객 식별키 (위젯 필수) — 로그인 uid 우선, 없으면 로컬 저장
-  function customerKey() {
-    var u = currentUser();
-    if (u && u.uid) return 'ck_' + u.uid;
-    var k = localStorage.getItem('bellore_ck');
-    if (!k) {
-      k = 'ck_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
-      localStorage.setItem('bellore_ck', k);
-    }
-    return k;
-  }
-
   /* ---------------- 체크아웃 모달 ---------------- */
   var modal, product, payType = 'deposit';
-  var tossWidgets = null, widgetsReady = null;
+  var selectedChannel = null;   // 선택된 결제수단(config.channels 의 한 항목)
 
   function getModal() { return $('#checkoutModal'); }
+
+  // 설정에 채워진(=channelKey 가 있는) 결제수단만 사용
+  function activeChannels() {
+    var list = (PAY.channels || []).filter(function (c) { return c && c.channelKey; });
+    return list;
+  }
+  function portoneReady() {
+    return !!(window.PortOne && PAY.storeId && activeChannels().length);
+  }
+
+  // 결제수단 버튼 렌더
+  function renderMethods() {
+    var box = $('#coMethods');
+    if (!box) return;
+    var chans = activeChannels();
+    if (!portoneReady()) {
+      box.innerHTML = '<p class="co-methods-empty">결제 수단을 준비 중입니다. 잠시 후 다시 시도하거나 카카오톡 상담으로 문의해 주세요.</p>';
+      selectedChannel = null;
+      return;
+    }
+    if (!selectedChannel || chans.indexOf(selectedChannel) === -1) selectedChannel = chans[0];
+    box.innerHTML = chans.map(function (c) {
+      var on = (c === selectedChannel);
+      return '<button type="button" class="co-method' + (on ? ' active' : '') +
+        '" data-ch="' + escLite(c.id) + '">' + escLite(c.label) + '</button>';
+    }).join('');
+  }
+  function selectChannel(id) {
+    var chans = activeChannels();
+    for (var i = 0; i < chans.length; i++) {
+      if (chans[i].id === id) { selectedChannel = chans[i]; break; }
+    }
+    renderMethods();
+  }
 
   function setPayType(t) {
     payType = t;
@@ -148,9 +171,6 @@
     if (dEl) dEl.textContent = '-' + fmt(disc) + '원';
     var totalEl = $('#coTotal');
     if (totalEl) totalEl.textContent = fmt(amt) + '원';
-    if (tossWidgets && amt > 0) {
-      try { tossWidgets.setAmount({ currency: 'KRW', value: amt }); } catch (e) {}
-    }
   }
 
   function renderProduct() {
@@ -167,27 +187,6 @@
     if (u) {
       if (!$('#coName').value) $('#coName').value = u.displayName || '';
     }
-  }
-
-  // 토스 위젯 초기화/렌더
-  function ensureWidgets() {
-    if (widgetsReady) return widgetsReady;
-    if (!window.TossPayments || !PAY.clientKey) {
-      widgetsReady = Promise.reject(new Error('TOSS_SDK_MISSING'));
-      return widgetsReady;
-    }
-    widgetsReady = (function () {
-      var toss = window.TossPayments(PAY.clientKey);
-      tossWidgets = toss.widgets({ customerKey: customerKey() });
-      return tossWidgets.setAmount({ currency: 'KRW', value: currentAmount() || 1000 })
-        .then(function () {
-          return Promise.all([
-            tossWidgets.renderPaymentMethods({ selector: '#payment-method', variantKey: 'DEFAULT' }),
-            tossWidgets.renderAgreement({ selector: '#agreement', variantKey: 'AGREEMENT' })
-          ]);
-        });
-    })();
-    return widgetsReady;
   }
 
   function openCheckout(p) {
@@ -217,14 +216,15 @@
     var cCode = $('#coCouponCode'); if (cCode) cCode.value = '';
     setCouponMsg('', true);
     loadCoupons();
+    // 결제수단 초기화 + 동의 체크 해제
+    selectedChannel = null;
+    renderMethods();
+    var ag = $('#coAgree'); if (ag) ag.checked = false;
     modal.hidden = false;
     document.body.style.overflow = 'hidden';
     var sc = modal.querySelector('.co-scroll');
     if (sc) sc.scrollTop = 0;
-
-    ensureWidgets().then(updateAmount).catch(function (e) {
-      console.warn('[BELLORE] 토스 위젯 로드 실패:', e);
-    });
+    updateAmount();
   }
   window.BELLORE_openCheckout = openCheckout;
 
@@ -250,11 +250,14 @@
       ship.request = ($('#coShipReq').value || '').trim();
       if (!ship.postcode || !ship.addr1) { alert('배송 주소를 입력해 주세요.'); return; }
     }
-    if (!tossWidgets) {
-      alert('결제 모듈을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
-      ensureWidgets().then(updateAmount).catch(function () {});
+    if (!portoneReady()) {
+      alert('결제 모듈을 불러오지 못했습니다. 잠시 후 다시 시도하거나 카카오톡 상담으로 문의해 주세요.');
+      renderMethods();
       return;
     }
+    if (!selectedChannel) { alert('결제 수단을 선택해 주세요.'); return; }
+    var agree = $('#coAgree');
+    if (agree && !agree.checked) { alert('결제 진행에 동의해 주세요.'); return; }
 
     var uc = getSelectedCoupon();
     var base = baseAmount();
@@ -299,21 +302,72 @@
         }));
       } catch (e) {}
 
-      return tossWidgets.requestPayment({
-        orderId: order.orderNo,
+      payBtn.textContent = '결제 진행 중...';
+      var u = currentUser();
+      var req = {
+        storeId: PAY.storeId,
+        channelKey: selectedChannel.channelKey,
+        paymentId: order.orderNo,
         orderName: orderName.slice(0, 100),
-        successUrl: location.origin + location.pathname + '?pay=success',
-        failUrl: location.origin + location.pathname + '?pay=fail',
-        customerName: name,
-        customerMobilePhone: phone.replace(/[^0-9]/g, '')
+        totalAmount: amount,
+        currency: 'CURRENCY_KRW',
+        payMethod: selectedChannel.payMethod || 'CARD',
+        customer: {
+          fullName: name,
+          phoneNumber: phone.replace(/[^0-9]/g, ''),
+          email: (u && u.email) || undefined
+        },
+        // 모바일은 이 주소로 복귀하며 포트원이 결과 파라미터를 덧붙인다.
+        redirectUrl: location.origin + location.pathname + '?pay=portone'
+      };
+      if (selectedChannel.easyPayProvider) {
+        req.easyPay = { easyPayProvider: selectedChannel.easyPayProvider };
+      }
+
+      return window.PortOne.requestPayment(req).then(function (resp) {
+        // 데스크톱: 여기로 결과가 돌아온다(모바일은 redirectUrl 로 이동).
+        payBtn.disabled = false;
+        payBtn.textContent = '결제하기';
+        if (resp && resp.code != null) {
+          // 사용자 취소 등 실패
+          if (!/CANCEL/i.test(resp.code || '')) {
+            showResult(false, '결제 실패', resp.message || '결제가 취소되었거나 실패했습니다.');
+          }
+          return;
+        }
+        // 성공 → 서버 검증
+        verifyPayment(resp ? resp.paymentId : order.orderNo);
       });
     }).catch(function (e) {
       console.warn('[BELLORE] 결제 요청 실패:', e);
       payBtn.disabled = false;
       payBtn.textContent = '결제하기';
-      if (e && e.code && e.code !== 'USER_CANCEL') {
+      if (e && e.code && !/CANCEL/i.test(e.code)) {
         alert('결제를 시작할 수 없습니다: ' + (e.message || e.code));
       }
+    });
+  }
+
+  // 결제 성공 후 서버(Edge Function) 검증
+  function verifyPayment(paymentId) {
+    showResult(true, '결제 승인 처리 중...', '잠시만 기다려 주세요.');
+    var doConfirm = (backendOn() && window.NWBackend.confirmOrder)
+      ? window.NWBackend.confirmOrder({ paymentId: paymentId })
+      : Promise.resolve({ ok: true, demo: true });
+    doConfirm.then(function (res) {
+      if (res && (res.ok || res.alreadyPaid)) {
+        if (window.belloreRefreshCoupons) window.belloreRefreshCoupons();
+        showResult(true, '결제가 완료되었습니다',
+          '주문번호 ' + (paymentId || '') + '\n마이페이지에서 주문 내역을 확인하실 수 있습니다.');
+      } else if (res && res.demo) {
+        showResult(true, '결제 완료 (데모)',
+          '서버 검증(Edge Function) 미배포 상태입니다.\n주문번호 ' + (paymentId || ''));
+      } else {
+        showResult(false, '결제 승인 실패',
+          (res && res.error) ? res.error : '결제 검증 중 문제가 발생했습니다. 고객센터로 문의해 주세요.');
+      }
+    }).catch(function () {
+      showResult(false, '결제 승인 오류', '네트워크 오류로 승인을 확인하지 못했습니다.');
     });
   }
 
@@ -331,49 +385,23 @@
 
   function handleReturn() {
     var q = new URLSearchParams(location.search);
-    var pay = q.get('pay');
-    if (!pay) return;
+    // 포트원 모바일 복귀: redirectUrl(?pay=portone) 뒤에 paymentId/code/message 가 붙는다.
+    var paymentId = q.get('paymentId');
+    if (q.get('pay') !== 'portone' && !paymentId) return;
 
-    // URL 정리
     function cleanUrl() {
       history.replaceState({}, '', location.pathname + location.hash);
     }
+    var code = q.get('code');   // 성공이면 없음
+    cleanUrl();
 
-    if (pay === 'fail') {
-      cleanUrl();
-      var msg = q.get('message') || '결제가 취소되었거나 실패했습니다.';
-      showResult(false, '결제 실패', msg);
+    if (!paymentId) return; // pay=portone 만 있고 결과 없음(취소 등) → 조용히 종료
+
+    if (code) {
+      showResult(false, '결제 실패', q.get('message') || '결제가 취소되었거나 실패했습니다.');
       return;
     }
-
-    if (pay === 'success') {
-      var paymentKey = q.get('paymentKey');
-      var orderId = q.get('orderId');
-      var amount = parseInt(q.get('amount'), 10);
-      cleanUrl();
-
-      showResult(true, '결제 승인 처리 중...', '잠시만 기다려 주세요.');
-
-      var doConfirm = (backendOn() && window.NWBackend.confirmOrder)
-        ? window.NWBackend.confirmOrder({ paymentKey: paymentKey, orderId: orderId, amount: amount })
-        : Promise.resolve({ ok: true, demo: true });
-
-      doConfirm.then(function (res) {
-        if (res && (res.ok || res.alreadyPaid)) {
-          if (window.belloreRefreshCoupons) window.belloreRefreshCoupons();
-          showResult(true, '결제가 완료되었습니다',
-            '주문번호 ' + (orderId || '') + '\n마이페이지에서 주문 내역을 확인하실 수 있습니다.');
-        } else if (res && res.demo) {
-          showResult(true, '결제 완료 (데모)',
-            '서버 승인(Edge Function) 미배포 상태입니다.\n주문번호 ' + (orderId || ''));
-        } else {
-          showResult(false, '결제 승인 실패',
-            (res && res.error) ? res.error : '결제 승인 중 문제가 발생했습니다. 고객센터로 문의해 주세요.');
-        }
-      }).catch(function () {
-        showResult(false, '결제 승인 오류', '네트워크 오류로 승인을 확인하지 못했습니다.');
-      });
-    }
+    verifyPayment(paymentId);
   }
 
   /* ---------------- 이벤트 바인딩 ---------------- */
@@ -389,6 +417,12 @@
 
     var payBtn = $('#coPayBtn');
     if (payBtn) payBtn.addEventListener('click', requestPay);
+
+    var methodsBox = $('#coMethods');
+    if (methodsBox) methodsBox.addEventListener('click', function (e) {
+      var btn = e.target.closest('.co-method');
+      if (btn) selectChannel(btn.dataset.ch);
+    });
 
     var findAddr = $('#coFindAddr');
     if (findAddr) findAddr.addEventListener('click', openPostcode);
