@@ -478,6 +478,22 @@
             });
         }
 
+        // 네이버 로그인 (제공자 미설정 시 안내)
+        var nv = $('#loginNaver');
+        if (nv) {
+            nv.addEventListener('click', function () {
+                if (!NWBackend.signInWithNaver) { alert('네이버 로그인은 준비 중입니다.'); return; }
+                try { sessionStorage.setItem('bellore_social_pending', '1'); } catch (e) {}
+                NWBackend.signInWithNaver()
+                    .then(function () { closeLoginModal(); })
+                    .catch(function (err) {
+                        var m = (err && err.message) || '';
+                        if (/provider|not enabled|unsupported|validation/i.test(m)) alert('네이버 로그인은 현재 준비 중입니다.');
+                        else alert('네이버 로그인 실패: ' + authErrorMsg(err));
+                    });
+            });
+        }
+
         // 비교견적 입찰 채택 (고객)
         document.addEventListener('click', function (e) {
             var aw = e.target.closest('[data-award]');
@@ -2891,6 +2907,9 @@
         }
         if (btnPartnership) btnPartnership.addEventListener('click', function () { openInquiry('partner'); });
         if (btnAd) btnAd.addEventListener('click', function () { openInquiry('ad'); });
+        // 로그인 화면 '제휴 문의하기' (소셜 4번째 버튼)
+        var loginPartner = $('#loginPartner');
+        if (loginPartner) loginPartner.addEventListener('click', function () { openInquiry('partner'); });
 
         if (inquiryModal) {
             inquiryModal.addEventListener('click', function (e) {
@@ -3715,14 +3734,36 @@
         if (loginForm) {
             var rememberId = $('#loginRememberId');
             var autoLogin = $('#loginAutoLogin');
-            // 저장된 아이디/설정 불러오기(아이디 기억하기 · 자동 로그인)
+            // 아이디박스 우측 체크 = 3단계 토글: 0(끔) → 1(아이디 기억) → 2(자동 로그인) → 0
+            var remBtn = $('#loginRemember');
+            var remTip = $('#loginRememberTip');
+            var remTipTimer = null;
+            function setRem(state, showTip) {
+                state = ((state % 3) + 3) % 3;
+                if (remBtn) { remBtn.dataset.rem = String(state); remBtn.classList.toggle('on', state >= 1); remBtn.classList.toggle('auto', state === 2); }
+                if (rememberId) rememberId.checked = state >= 1;
+                if (autoLogin) autoLogin.checked = state === 2;
+                if (remBtn) remBtn.setAttribute('aria-label', state === 2 ? '자동 로그인' : state === 1 ? '아이디 기억하기' : '아이디 기억 해제');
+                if (remTip) {
+                    if (remTipTimer) { clearTimeout(remTipTimer); remTipTimer = null; }
+                    if (showTip && state === 1) {
+                        remTip.hidden = false;
+                        remTipTimer = setTimeout(function () { remTip.hidden = true; }, 2000);
+                    } else { remTip.hidden = true; }
+                }
+            }
+            // 저장된 아이디/설정 불러오기(아이디 기억 · 자동 로그인)
             try {
                 var savedId = localStorage.getItem('bellore_saved_id');
                 var idInp = loginForm.querySelector('[name="id"]');
-                if (savedId && idInp) { idInp.value = savedId; if (rememberId) rememberId.checked = true; }
-                else if (rememberId) rememberId.checked = false;
-                if (autoLogin) autoLogin.checked = localStorage.getItem('bellore_autologin') !== '0';
+                var autoSaved = localStorage.getItem('bellore_autologin') === '1';
+                if (savedId && idInp) idInp.value = savedId;
+                setRem(savedId ? (autoSaved ? 2 : 1) : 0, false);
             } catch (e) {}
+            if (remBtn) remBtn.addEventListener('click', function () {
+                var cur = parseInt(remBtn.dataset.rem || '0', 10) || 0;
+                setRem(cur + 1, true);
+            });
 
             loginForm.addEventListener('submit', function (e) {
                 e.preventDefault();
@@ -3747,6 +3788,25 @@
                 }).catch(function (err) {
                     alert('로그인 실패: ' + authErrorMsg(err));
                 });
+            });
+
+            // 비밀번호 찾기 — 가입 이메일로 재설정 메일 발송
+            var findPwBtn = $('#findPw');
+            if (findPwBtn) findPwBtn.addEventListener('click', function () {
+                if (!backendOn() || !NWBackend.resetPassword) { alert('비밀번호 찾기는 잠시 후 다시 시도해주세요.'); return; }
+                var email = prompt('가입하신 이메일 주소를 입력하시면\n비밀번호 재설정 메일을 보내드립니다.');
+                if (email == null) return;
+                email = String(email).trim();
+                if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { alert('이메일 형식을 확인해주세요.'); return; }
+                NWBackend.resetPassword(email)
+                    .then(function () { alert('재설정 메일을 보냈습니다. 메일함을 확인해주세요.'); })
+                    .catch(function (err) { alert('발송 실패: ' + authErrorMsg(err)); });
+            });
+
+            // 아이디 찾기 — 별도 조회 API가 없어 안내(아이디=가입 이메일/휴대폰 문의)
+            var findIdBtn = $('#findId');
+            if (findIdBtn) findIdBtn.addEventListener('click', function () {
+                alert('아이디는 가입 시 설정한 아이디 또는 이메일입니다.\n기억나지 않으시면 가입 이메일로 "비밀번호 찾기"를 진행하시거나,\n고객센터로 문의해주세요.');
             });
         }
 
@@ -3870,7 +3930,11 @@
                 var panel = $('#loginPanelSignup'); if (panel) panel.scrollTop = 0;
             }
             signupForm._gotoStep = gotoStep;
-            signupForm._resetVerify = function () { ['phone','email','biz','account'].forEach(resetV); };
+            signupForm._resetVerify = function () {
+                ['phone','email','biz','account'].forEach(resetV);
+                if (typeof suHelp === 'function') { suHelp('suIdHelp','',''); suHelp('suPw2Help','',''); }
+                if (typeof idChecked !== 'undefined') { idChecked.ok = false; idChecked.name = ''; }
+            };
             // 유형(일반/업체/제휴사)에 맞춰 사업자·계좌 블록·문구·버튼 라벨 조정
             signupForm._applyRole = function (role) {
                 var biz = role === 'vendor' || role === 'partner';
@@ -3881,7 +3945,7 @@
                     : '휴대폰 인증은 필수, 이메일 인증은 선택입니다.';
                 var sub = $('#signupSubmitBtn'); if (sub) sub.textContent = biz ? '가입 신청' : '가입 완료';
                 var ttl = $('#signupStep1Title');
-                if (ttl) ttl.innerHTML = (role === 'vendor' ? '업체 회원' : role === 'partner' ? '제휴사' : '기본 정보를') + '<br>입력해 주세요.';
+                if (ttl) ttl.textContent = (role === 'vendor' ? '업체 회원 정보' : role === 'partner' ? '제휴사 정보' : '기본 정보');
             };
             var nextBtn = $('#signupNext');
             if (nextBtn) nextBtn.addEventListener('click', function () {
@@ -3892,6 +3956,7 @@
                 var postcode = String(fd.get('postcode') || '').trim(), addr1 = String(fd.get('addr1') || '').trim();
                 if (!name) { alert('이름을 입력해주세요.'); return; }
                 if (!/^[A-Za-z0-9_]{4,}$/.test(username)) { alert('아이디는 영문·숫자·밑줄(_) 4자 이상으로 입력해주세요.'); return; }
+                if (signupForm._isIdChecked && !signupForm._isIdChecked()) { alert('아이디 중복확인을 진행해주세요.'); return; }
                 if (!postcode || !addr1) { alert('주소를 입력해주세요. ("주소 찾기" 버튼)'); return; }
                 if (pw.length < 8) { alert('비밀번호는 8자 이상이어야 합니다.'); return; }
                 if (pw !== pw2) { alert('비밀번호가 일치하지 않습니다.'); return; }
@@ -3917,6 +3982,59 @@
                     }
                 }).open();
             });
+
+            // ===== 구구스식 헬퍼: 아이디 중복확인 · 지우기 · 비밀번호 일치 =====
+            function suHelp(id, cls, msg) {
+                var el = $('#' + id); if (!el) return;
+                el.textContent = msg || '';
+                el.className = 'su-help' + (cls ? ' ' + cls : '');
+            }
+            var idChecked = { name: '', ok: false };
+            var idInput = $('#suUsername');
+            var idClear = signupForm.querySelector('[data-suclear="suUsername"]');
+            function syncIdClear() { if (idClear) idClear.hidden = !(idInput && idInput.value); }
+            if (idInput) {
+                idInput.addEventListener('input', function () {
+                    idChecked.ok = false; idChecked.name = '';
+                    syncIdClear();
+                    var v = idInput.value.trim();
+                    if (!v) { suHelp('suIdHelp', '', ''); return; }
+                    if (!/^[A-Za-z0-9_]{4,}$/.test(v)) suHelp('suIdHelp', 'err', '✕ 영문·숫자·밑줄(_) 4자 이상');
+                    else suHelp('suIdHelp', '', '중복확인을 눌러주세요.');
+                });
+            }
+            if (idClear) idClear.addEventListener('click', function () {
+                if (idInput) { idInput.value = ''; idInput.focus(); }
+                idChecked.ok = false; idChecked.name = ''; syncIdClear(); suHelp('suIdHelp', '', '');
+            });
+            var idCheckBtn = $('#suIdCheck');
+            if (idCheckBtn) idCheckBtn.addEventListener('click', function () {
+                var v = (idInput && idInput.value || '').trim();
+                if (!/^[A-Za-z0-9_]{4,}$/.test(v)) { suHelp('suIdHelp', 'err', '✕ 영문·숫자·밑줄(_) 4자 이상'); return; }
+                if (!backendOn() || !NWBackend.checkUsername) { idChecked = { name: v, ok: true }; suHelp('suIdHelp', 'ok', '✓ 사용 가능한 아이디입니다.'); return; }
+                idCheckBtn.disabled = true; suHelp('suIdHelp', '', '확인 중…');
+                NWBackend.checkUsername(v)
+                    .then(function (available) {
+                        if (available) { idChecked = { name: v, ok: true }; suHelp('suIdHelp', 'ok', '✓ 사용 가능한 아이디입니다.'); }
+                        else { idChecked = { name: v, ok: false }; suHelp('suIdHelp', 'err', '✕ 이미 사용 중인 아이디입니다.'); }
+                    })
+                    .catch(function () { idChecked = { name: v, ok: true }; suHelp('suIdHelp', 'ok', '✓ 사용 가능한 아이디입니다.'); })
+                    .then(function () { idCheckBtn.disabled = false; });
+            });
+            signupForm._idChecked = idChecked;
+            signupForm._isIdChecked = function () { var v = (idInput && idInput.value || '').trim(); return idChecked.ok && idChecked.name === v; };
+
+            // 비밀번호 일치 헬퍼
+            var pwI = $('#suPw'), pw2I = $('#suPw2');
+            function checkPwMatch() {
+                if (!pw2I) return;
+                var a = pwI ? pwI.value : '', b = pw2I.value;
+                if (!b) { suHelp('suPw2Help', '', ''); return; }
+                if (a === b) suHelp('suPw2Help', 'ok', '✓ 비밀번호가 일치합니다.');
+                else suHelp('suPw2Help', 'err', '✕ 비밀번호가 일치하지 않습니다.');
+            }
+            if (pwI) pwI.addEventListener('input', checkPwMatch);
+            if (pw2I) pw2I.addEventListener('input', checkPwMatch);
 
             signupForm.addEventListener('submit', function (e) {
                 e.preventDefault();

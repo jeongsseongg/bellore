@@ -1956,41 +1956,52 @@
         <div class="login-content">
             <button class="login-close" data-mclose aria-label="닫기">×</button>
 
-            <!-- 로그인 패널 (기본 화면) -->
+            <!-- 로그인 패널 (기본 화면) — 전체페이지 -->
             <div class="login-panel active" id="loginPanelLogin">
-                <div class="login-head">
-                    <p class="login-eyebrow">BELLORE</p>
-                    <h2>로그인하고<br>기다리던 <strong>가격</strong>을 만나보세요</h2>
-                </div>
-                <button class="login-btn login-google" id="loginGoogle" type="button">
-                    <img class="login-icon-img" src="assets/social/login-google.png" alt="">
-                    구글로 시작하기
-                </button>
-                <button class="login-btn login-kakao" id="loginKakao" type="button">
-                    <img class="login-icon-img" src="assets/social/login-kakao.png" alt="">
-                    카카오로 시작하기
-                </button>
-                <div class="login-divider"><span>또는</span></div>
-                <form class="login-form ti-form" id="loginForm">
-                    <label class="ti-fld"><span>아이디</span>
-                        <input type="text" name="id" placeholder="아이디 또는 이메일" required>
-                    </label>
-                    <label class="ti-fld pw-fld"><span>비밀번호</span>
-                        <span class="pw-wrap"><input type="password" name="pw" id="loginPw" placeholder="비밀번호" autocomplete="current-password" required><button type="button" class="pw-eye" data-eye="loginPw" aria-label="비밀번호 표시"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button></span>
-                    </label>
-                    <div class="login-remember">
-                        <label class="lr-check"><input type="checkbox" id="loginAutoLogin" checked><span>자동 로그인</span></label>
-                        <label class="lr-check"><input type="checkbox" id="loginRememberId" checked><span>아이디 기억하기</span></label>
+                <div class="login-logo"><img src="assets/logo-bellore.png" alt="BELLORE"></div>
+                <form class="login-form lf-viber" id="loginForm">
+                    <div class="lf-fld">
+                        <input type="text" name="id" id="loginId" placeholder="아이디 또는 이메일" autocomplete="username" required>
+                        <button type="button" class="lf-remember" id="loginRemember" data-rem="0" aria-label="아이디 기억하기">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        </button>
+                        <span class="lf-remember-tip" id="loginRememberTip" hidden>한 번 더 누르면 자동로그인됩니다</span>
                     </div>
-                    <button type="submit" class="login-btn login-default ti-cta">로그인</button>
+                    <div class="lf-fld">
+                        <input type="password" name="pw" id="loginPw" placeholder="비밀번호" autocomplete="current-password" required>
+                        <button type="button" class="pw-eye" data-eye="loginPw" aria-label="비밀번호 표시"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                    </div>
+                    <!-- 상태 보관(기존 로직 호환) -->
+                    <input type="checkbox" id="loginRememberId" hidden>
+                    <input type="checkbox" id="loginAutoLogin" hidden>
+                    <button type="submit" class="login-btn login-default ti-cta">로그인하기</button>
                 </form>
-                <p class="login-switch">
-                    아직 회원이 아니세요?
-                    <button type="button" class="link-switch" data-lpanel="type">회원가입</button>
-                </p>
-                <p class="login-switch">
-                    <button type="button" class="link-switch" id="findPw">아이디 / 비밀번호 찾기</button>
-                </p>
+                <div class="login-links">
+                    <button type="button" data-lpanel="type">회원가입</button>
+                    <i class="ll-div"></i>
+                    <button type="button" id="findId">아이디 찾기</button>
+                    <i class="ll-div"></i>
+                    <button type="button" id="findPw">비밀번호 찾기</button>
+                </div>
+                <div class="login-sep"></div>
+                <div class="login-socials">
+                    <button class="social-btn social-naver" id="loginNaver" type="button">
+                        <img class="social-ic-img" src="assets/social/naver.png" alt="">
+                        <span>네이버로 시작하기</span>
+                    </button>
+                    <button class="social-btn social-kakao" id="loginKakao" type="button">
+                        <img class="social-ic-img" src="assets/social/login-kakao.png" alt="">
+                        <span>카카오로 시작하기</span>
+                    </button>
+                    <button class="social-btn social-google" id="loginGoogle" type="button">
+                        <img class="social-ic-img" src="assets/social/login-google.png" alt="">
+                        <span>구글로 시작하기</span>
+                    </button>
+                    <button class="social-btn social-partner" id="loginPartner" type="button">
+                        <span class="social-ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-4-4 2.5-2.5L11 12l4.5-4.5L18 10z"/><path d="M4 7l4-3 4 2 4-2 4 3v10l-4 3-4-2-4 2-4-3z"/></svg></span>
+                        <span>제휴 문의하기</span>
+                    </button>
+                </div>
             </div>
 
             <!-- 회원가입 유형 선택 (토스식 카드) -->
@@ -2023,26 +2034,31 @@
                     <!-- ===== 1단계: 기본 정보 ===== -->
                     <div class="signup-step active" id="signupStep1">
                         <button type="button" class="lp-back" data-lpanel="type">‹ 이전</button>
-                        <div class="login-head"><h2 id="signupStep1Title">기본 정보를<br>입력해 주세요.</h2></div>
-                        <label class="ti-fld"><span>이름</span>
-                            <input type="text" name="name" placeholder="홍길동" required>
+                        <h3 class="su-section" id="signupStep1Title">기본 정보</h3>
+                        <label class="su-fld"><span class="su-label">이름 <i class="su-req"></i></span>
+                            <span class="su-input"><input type="text" name="name" id="suName" placeholder="홍길동" required></span>
                         </label>
-                        <label class="ti-fld"><span>아이디</span>
-                            <input type="text" name="username" placeholder="영문·숫자 4자 이상" autocomplete="username" minlength="4" required>
-                        </label>
-                        <label class="ti-fld pw-fld"><span>비밀번호 (8자 이상)</span>
-                            <span class="pw-wrap"><input type="password" name="pw" id="suPw" placeholder="8자 이상" autocomplete="new-password" minlength="8" required><button type="button" class="pw-eye" data-eye="suPw" aria-label="비밀번호 표시"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button></span>
-                        </label>
-                        <label class="ti-fld pw-fld"><span>비밀번호 확인</span>
-                            <span class="pw-wrap"><input type="password" name="pw2" id="suPw2" placeholder="비밀번호를 다시 입력" autocomplete="new-password" minlength="8" required><button type="button" class="pw-eye" data-eye="suPw2" aria-label="비밀번호 표시"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button></span>
-                        </label>
-                        <label class="ti-fld"><span>주소</span>
-                            <div class="signup-addr-row">
-                                <input type="text" name="postcode" id="signupPostcode" placeholder="우편번호" readonly required>
-                                <button type="button" class="signup-addr-btn" id="signupFindAddr">주소 찾기</button>
+                        <div class="su-fld"><span class="su-label">아이디 <i class="su-req"></i></span>
+                            <div class="su-id-row">
+                                <span class="su-input"><input type="text" name="username" id="suUsername" placeholder="영문·숫자 4자 이상" autocomplete="username" minlength="4" required><button type="button" class="su-clear" data-suclear="suUsername" aria-label="지우기" hidden>✕</button></span>
+                                <button type="button" class="su-dupbtn" id="suIdCheck">중복확인</button>
                             </div>
-                            <input type="text" name="addr1" id="signupAddr1" class="signup-addr-line" placeholder="기본 주소" readonly required>
-                            <input type="text" name="addr2" id="signupAddr2" class="signup-addr-line" placeholder="상세 주소 (동·호수 등)">
+                            <small class="su-help" id="suIdHelp"></small>
+                        </div>
+                        <label class="su-fld"><span class="su-label">비밀번호 <i class="su-req"></i></span>
+                            <span class="su-input"><input type="password" name="pw" id="suPw" placeholder="8자 이상" autocomplete="new-password" minlength="8" required><button type="button" class="pw-eye" data-eye="suPw" aria-label="비밀번호 표시"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button></span>
+                        </label>
+                        <label class="su-fld"><span class="su-label">비밀번호 확인 <i class="su-req"></i></span>
+                            <span class="su-input"><input type="password" name="pw2" id="suPw2" placeholder="비밀번호를 다시 입력" autocomplete="new-password" minlength="8" required><button type="button" class="pw-eye" data-eye="suPw2" aria-label="비밀번호 표시"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button></span>
+                            <small class="su-help" id="suPw2Help"></small>
+                        </label>
+                        <label class="su-fld"><span class="su-label">주소 <i class="su-req"></i></span>
+                            <div class="su-id-row">
+                                <span class="su-input"><input type="text" name="postcode" id="signupPostcode" placeholder="우편번호" readonly required></span>
+                                <button type="button" class="su-dupbtn" id="signupFindAddr">주소 찾기</button>
+                            </div>
+                            <span class="su-input su-mt"><input type="text" name="addr1" id="signupAddr1" placeholder="기본 주소" readonly required></span>
+                            <span class="su-input su-mt"><input type="text" name="addr2" id="signupAddr2" placeholder="상세 주소 (동·호수 등)"></span>
                         </label>
                         <label class="signup-check">
                             <input type="checkbox" id="signupAgree">
@@ -2121,17 +2137,6 @@
                 </p>
             </div>
 
-            <!-- 추가 메뉴 -->
-            <div class="login-extra">
-                <button class="extra-link" id="btnPartnership">
-                    <span class="extra-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 6a3 3 0 0 1 0 6M19 20a5 5 0 0 0-3-4.6"/></svg></span>
-                    <span>업체 제휴 문의</span>
-                </button>
-                <button class="extra-link" id="btnAdInquiry">
-                    <span class="extra-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h3l4 4V6L7 10H4a1 1 0 0 0-1 1z"/><path d="M16 8a4 4 0 0 1 0 8"/></svg></span>
-                    <span>광고 문의</span>
-                </button>
-            </div>
         </div>
     </div>
 

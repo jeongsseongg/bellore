@@ -362,6 +362,26 @@
     });
   };
 
+  Backend.signInWithNaver = function () {
+    return sb.auth.signInWithOAuth({
+      provider: 'naver',
+      options: { redirectTo: location.origin + location.pathname }
+    }).then(function (res) {
+      if (res.error) throw res.error;
+      return { displayName: '' };
+    });
+  };
+
+  // 아이디(username) 사용 가능 여부 — email_for_username RPC 가 이메일을 돌려주면 이미 사용 중.
+  Backend.checkUsername = function (uname) {
+    uname = (uname || '').trim();
+    if (!uname) return Promise.resolve(false);
+    return sb.rpc('email_for_username', { uname: uname }).then(function (r) {
+      if (r.error) throw r.error;
+      return !r.data; // 데이터 없음 = 사용 가능
+    });
+  };
+
   Backend.signOut = function () { return sb.auth.signOut(); };
 
   // 비밀번호 재설정 메일 발송 (아이디=이메일)

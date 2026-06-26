@@ -8856,3 +8856,129 @@ body.mypage-open > #header { display: none !important; }
 .pa-acts .stl-act { background: #fff; color: #111; border: 1px solid var(--border); font-weight: 700; }
 .mem-item .stl-act:hover,
 .pa-acts .stl-act:hover { background: var(--bg-soft); }
+
+/* ============================================================
+   로그인 전체페이지 (바이버풍) — DESIGN.md 모노크롬 준수
+   ============================================================ */
+#loginModal { padding: 0; align-items: stretch; justify-content: center; background: var(--white); }
+#loginModal .login-backdrop { background: var(--white); backdrop-filter: none; animation: none; }
+#loginModal .login-content {
+    max-width: 460px; width: 100%; max-height: none; height: 100%; min-height: 100dvh;
+    border-radius: 0; box-shadow: none; margin: 0 auto;
+    padding: calc(18px + env(safe-area-inset-top)) 24px calc(28px + env(safe-area-inset-bottom));
+    animation: none; overflow-y: auto;
+}
+#loginModal .login-close { background: transparent; font-size: 28px; top: calc(8px + env(safe-area-inset-top)); left: 10px; right: auto; }
+
+.login-logo { display: flex; justify-content: center; margin: 44px 0 38px; }
+.login-logo img { height: 30px; width: auto; object-fit: contain; }
+
+/* 로그인 입력칸 (라운드 박스 + 우측 인라인 아이콘) */
+.lf-viber { display: flex; flex-direction: column; gap: 12px; }
+.lf-fld { position: relative; }
+.lf-fld > input {
+    width: 100%; height: 56px; padding: 0 52px 0 18px; border: 1px solid var(--border);
+    border-radius: 12px; font-size: 16px; color: var(--text); background: var(--white); -webkit-appearance: none;
+}
+.lf-fld > input:focus { outline: none; border-color: var(--text); }
+.lf-fld > input::placeholder { color: var(--text-3); }
+.lf-fld .pw-eye, .lf-remember {
+    position: absolute; top: 50%; right: 14px; transform: translateY(-50%);
+    width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+    color: var(--text-3); background: transparent; border: 0; cursor: pointer; padding: 0;
+}
+/* 아이디 기억 3단계 체크: 끔 → 아이디기억 → 자동로그인(진한 체크) */
+.lf-remember { color: #d2cfc8; }
+.lf-remember svg { display: block; }
+.lf-remember.on { color: #8a8a8a; }
+.lf-remember.auto { color: #111; }
+.lf-remember.auto svg { stroke-width: 3.4; }
+.lf-remember-tip {
+    position: absolute; right: 6px; top: -36px; z-index: 4;
+    background: #111; color: #fff; font-size: 12px; font-weight: 600;
+    padding: 7px 11px; border-radius: 9px; white-space: nowrap; box-shadow: 0 6px 18px rgba(0,0,0,.18);
+}
+.lf-remember-tip::after { content: ''; position: absolute; right: 18px; bottom: -5px; width: 10px; height: 10px; background: #111; transform: rotate(45deg); }
+.lf-remember-tip[hidden] { display: none; }
+
+/* 비밀번호 눈 — 가릴 때 빗금(안보이는 눈), 표시하면 빗금 제거 */
+.pw-eye { position: relative; }
+.pw-eye::after { content: ''; position: absolute; left: 4px; right: 4px; top: 50%; height: 1.8px; background: currentColor; border-radius: 2px; transform: translateY(-50%) rotate(-22deg); transition: opacity .15s; pointer-events: none; }
+.pw-eye.on::after { opacity: 0; }
+
+#loginModal .ti-cta { margin-top: 6px; }
+
+/* 링크줄: 회원가입 | 아이디 찾기 | 비밀번호 찾기 */
+.login-links { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 16px 0 4px; }
+.login-links button { background: none; border: 0; color: var(--text-2); font-size: 14px; cursor: pointer; padding: 5px 2px; }
+.login-links button:hover { color: var(--text); }
+.login-links .ll-div { width: 1px; height: 12px; background: var(--border); flex: none; }
+
+.login-sep { height: 1px; background: var(--border); margin: 24px 0; }
+
+/* 소셜 4종 (행 버튼) */
+.login-socials { display: flex; flex-direction: column; gap: 11px; }
+.social-btn {
+    width: 100%; height: 56px; border-radius: 12px; border: 1px solid var(--border);
+    background: var(--white); display: flex; align-items: center; justify-content: center;
+    position: relative; font-size: 16px; font-weight: 700; color: var(--text); cursor: pointer;
+}
+.social-btn:hover { background: var(--bg-soft); }
+.social-btn .social-ic-img, .social-btn .social-ic {
+    position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
+    width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+}
+.social-btn .social-ic-img { object-fit: contain; }
+.social-kakao { background: #FEE500; border-color: #FEE500; color: #111; }
+.social-kakao:hover { background: #f5dc00; }
+
+/* ============================================================
+   회원가입 — 구구스풍 (라벨+필수점+박스+헬퍼) · 모노크롬
+   ============================================================ */
+.login-eyebrow { color: var(--text-3); }
+#loginPanelType .login-head, #loginPanelSignup .login-head { margin-top: 8px; }
+
+/* 로그인 패널: X 닫기만 / 유형·회원가입 패널: ‹이전 뒤로만 (겹침 방지) */
+.login-content:has(#loginPanelType.active) .login-close,
+.login-content:has(#loginPanelSignup.active) .login-close { display: none; }
+
+/* 유형 선택 3박스 */
+.type-cards { gap: 12px; }
+.type-card { display: block; text-align: left; border-radius: 14px; padding: 20px 18px; }
+.type-card b { display: block; text-decoration: none; margin-bottom: 6px; font-size: 16px; }
+.type-card em { display: block; }
+.type-card:hover { background: var(--bg-soft); border-color: var(--text); }
+
+/* 섹션 제목 */
+.su-section { font-size: 24px; font-weight: 800; color: var(--text); margin: 6px 0 22px; }
+
+/* 필드 */
+.su-fld { display: block; margin-bottom: 18px; }
+.su-label { display: block; font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 9px; }
+.su-req { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #9a9a9a; vertical-align: 6px; margin-left: 1px; }
+.su-input { position: relative; display: block; }
+.su-input > input {
+    width: 100%; height: 52px; padding: 0 16px; border: 1px solid var(--border); border-radius: 12px;
+    font-size: 16px; color: var(--text); background: var(--white); -webkit-appearance: none;
+}
+.su-input > input:focus { outline: none; border-color: var(--text); }
+.su-input > input::placeholder { color: var(--text-3); }
+.su-input > input[readonly] { background: var(--bg-soft); color: var(--text-2); }
+.su-input.su-mt { margin-top: 8px; }
+.su-input .pw-eye, .su-input .su-clear {
+    position: absolute; top: 50%; right: 12px; transform: translateY(-50%);
+    width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+    background: transparent; border: 0; color: var(--text-3); cursor: pointer; padding: 0; font-size: 13px;
+}
+.su-input .su-clear { background: #eceae6; border-radius: 50%; width: 22px; height: 22px; right: 14px; color: #777; }
+.su-id-row { display: flex; gap: 8px; align-items: flex-start; }
+.su-id-row .su-input { flex: 1; }
+.su-dupbtn {
+    flex: none; height: 52px; padding: 0 16px; border: 1px solid var(--text); border-radius: 12px;
+    background: #fff; color: var(--text); font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+.su-dupbtn:hover { background: var(--bg-soft); }
+.su-dupbtn:disabled { opacity: .5; cursor: default; }
+.su-help { display: block; font-size: 12.5px; margin-top: 7px; color: var(--text-3); min-height: 1px; }
+.su-help.ok { color: #1f1f1f; font-weight: 600; }
+.su-help.err { color: #1f1f1f; font-weight: 600; }
