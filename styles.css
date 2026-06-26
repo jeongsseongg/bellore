@@ -6856,6 +6856,38 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 }
 .signup-addr-line { margin-top: 8px; }
 
+/* 회원가입 2단계 위저드 */
+.signup-step { display: none; }
+.signup-step.active { display: block; }
+.signup-step[hidden] { display: none !important; }
+.signup-step-bar { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-3); margin: 0 0 14px; }
+.signup-step-bar span { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; border-radius: 50%; background: #eee; color: var(--text-3); font-weight: 700; font-size: 11px; padding: 0 4px; }
+.signup-step-bar span.on { background: var(--text); color: #fff; }
+.signup-step-div { color: var(--text-3); }
+.signup-step-hint { font-size: 12.5px; color: var(--text-2); margin: 0 0 14px; line-height: 1.5; }
+.signup-step-actions { display: flex; gap: 10px; margin-top: 8px; }
+.signup-step-actions .signup-prev { flex: 0 0 90px; background: #f0eee9; color: var(--text); }
+.signup-step-actions .login-default { flex: 1; }
+
+/* 인증 행(vrow) */
+.vrow { padding: 12px 0; border-bottom: 1px solid var(--border); }
+.vrow:first-of-type { padding-top: 0; }
+.vrow-label { display: block; font-size: 12.5px; color: var(--text-2); margin-bottom: 6px; font-weight: 600; }
+.vrow-input { display: flex; gap: 8px; }
+.vrow-input input { flex: 1; min-width: 0; }
+.vrow-code { display: flex; gap: 8px; margin-top: 8px; }
+.vrow-code input { flex: 1; min-width: 0; }
+.vrow-line { width: 100%; margin-bottom: 8px; }
+.vrow-btn {
+    flex: none; padding: 0 14px; height: 46px; border-radius: 10px; border: 1px solid var(--text);
+    background: var(--text); color: #fff; font-size: 13px; font-weight: 700; white-space: nowrap; cursor: pointer;
+}
+.vrow-btn.full { width: 100%; height: 44px; margin-top: 2px; }
+.vrow-btn:disabled { opacity: .55; cursor: default; }
+.vrow-state { display: block; margin-top: 7px; font-size: 12px; line-height: 1.5; color: var(--text-2); }
+.vrow-state.ok { color: var(--dark-green); font-weight: 700; }
+.vrow-state.err { color: #c0392b; font-weight: 600; }
+
 /* ===== 정산내역 ===== */
 .stl-row { padding: 12px 0; border-bottom: 1px solid var(--border); }
 .stl-main { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }

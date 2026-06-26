@@ -2136,81 +2136,114 @@
                     <h2>회원가입하고<br><strong>특별한 혜택</strong>을 받아보세요</h2>
                 </div>
                 <form class="signup-form" id="signupForm">
-                    <label>
-                        <span>가입 유형</span>
-                        <select name="role" id="signupRole">
-                            <option value="customer">일반 회원 (비교견적 신청)</option>
-                            <option value="vendor">업체 회원 (승인 후 입찰 참여)</option>
-                            <option value="partner">제휴사 (직영 판매·정산)</option>
-                        </select>
-                    </label>
-                    <label class="signup-vendor-only" id="signupCompanyField" style="display:none">
-                        <span id="signupCompanyLabel">업체 상호</span>
-                        <input type="text" name="company" placeholder="예: 강남워치">
-                    </label>
-                    <div class="signup-partner-only" id="signupPartnerFields" style="display:none">
+                    <!-- ===== 1단계: 기본 정보 ===== -->
+                    <div class="signup-step active" id="signupStep1">
+                        <p class="signup-step-bar"><span class="on">1</span> 기본 정보 <span class="signup-step-div">›</span> <span>2</span> 인증</p>
                         <label>
-                            <span>사업자등록번호</span>
-                            <input type="text" name="businessNo" placeholder="000-00-00000" inputmode="numeric">
+                            <span>가입 유형</span>
+                            <select name="role" id="signupRole">
+                                <option value="customer">일반 회원 (비교견적 신청)</option>
+                                <option value="vendor">업체 회원 (승인 후 입찰 참여)</option>
+                                <option value="partner">제휴사 (직영 판매·정산)</option>
+                            </select>
                         </label>
                         <label>
-                            <span>대표자명</span>
-                            <input type="text" name="ceoName" placeholder="대표자 실명">
+                            <span>이름</span>
+                            <input type="text" name="name" placeholder="홍길동" required>
                         </label>
                         <label>
-                            <span>개업일</span>
-                            <input type="text" name="bizOpenDate" placeholder="YYYYMMDD (예: 20200101)" inputmode="numeric">
+                            <span>아이디</span>
+                            <input type="text" name="username" placeholder="영문·숫자 4자 이상" autocomplete="username" minlength="4" required>
                         </label>
-                        <div class="signup-bizverify">
-                            <button type="button" class="signup-verify-btn" id="signupBizVerifyBtn">사업자 인증</button>
-                            <span class="signup-verify-state" id="signupBizVerifyState">상호·사업자등록번호·대표자·개업일을 입력하고 인증을 눌러주세요.</span>
-                        </div>
-                        <p class="signup-partner-note">국세청 진위확인으로 사업자 인증 후 가입하면, 이메일 인증과 관리자 승인을 거쳐 직접 상품을 등록·판매할 수 있어요. 판매대금은 수수료를 제외하고 등록하신 계좌로 정산됩니다.</p>
+                        <label>
+                            <span>주소</span>
+                            <div class="signup-addr-row">
+                                <input type="text" name="postcode" id="signupPostcode" placeholder="우편번호" readonly required>
+                                <button type="button" class="signup-addr-btn" id="signupFindAddr">주소 찾기</button>
+                            </div>
+                            <input type="text" name="addr1" id="signupAddr1" class="signup-addr-line" placeholder="기본 주소" readonly required>
+                            <input type="text" name="addr2" id="signupAddr2" class="signup-addr-line" placeholder="상세 주소 (동·호수 등)">
+                        </label>
+                        <label>
+                            <span>비밀번호</span>
+                            <input type="password" name="pw" placeholder="8자 이상" autocomplete="new-password" minlength="8" required>
+                        </label>
+                        <label>
+                            <span>비밀번호 확인</span>
+                            <input type="password" name="pw2" placeholder="비밀번호를 다시 입력" autocomplete="new-password" minlength="8" required>
+                        </label>
+                        <label class="signup-check">
+                            <input type="checkbox" id="signupAgree">
+                            <span>아래 약관에 동의합니다</span>
+                        </label>
+                        <p class="signup-legal-links">
+                            <button type="button" class="footer-legal-link" data-legal-open="terms">이용약관</button>
+                            ·
+                            <button type="button" class="footer-legal-link" data-legal-open="privacy">개인정보처리방침</button>
+                            보기
+                        </p>
+                        <button type="button" class="login-btn login-default" id="signupNext">다음</button>
                     </div>
-                    <label>
-                        <span>이름</span>
-                        <input type="text" name="name" placeholder="홍길동" required>
-                    </label>
-                    <label>
-                        <span>아이디</span>
-                        <input type="text" name="username" placeholder="영문·숫자 4자 이상" autocomplete="username" minlength="4" required>
-                    </label>
-                    <label>
-                        <span>휴대폰 번호</span>
-                        <input type="tel" name="phone" placeholder="010-0000-0000" required>
-                    </label>
-                    <label>
-                        <span>이메일</span>
-                        <input type="email" name="email" placeholder="email@example.com" required>
-                    </label>
-                    <label>
-                        <span>주소</span>
-                        <div class="signup-addr-row">
-                            <input type="text" name="postcode" id="signupPostcode" placeholder="우편번호" readonly required>
-                            <button type="button" class="signup-addr-btn" id="signupFindAddr">주소 찾기</button>
+
+                    <!-- ===== 2단계: 인증 ===== -->
+                    <div class="signup-step" id="signupStep2" hidden>
+                        <p class="signup-step-bar"><span>1</span> 기본 정보 <span class="signup-step-div">›</span> <span class="on">2</span> 인증</p>
+                        <p class="signup-step-hint" id="signupStep2Hint">휴대폰·이메일 인증 후 가입을 완료해 주세요.</p>
+
+                        <!-- 휴대폰 -->
+                        <div class="vrow" data-v="phone">
+                            <span class="vrow-label">휴대폰 번호</span>
+                            <div class="vrow-input">
+                                <input type="tel" name="phone" id="suPhone" placeholder="010-0000-0000">
+                                <button type="button" class="vrow-btn" data-vsend="phone">본인인증</button>
+                            </div>
+                            <div class="vrow-code" hidden>
+                                <input type="text" inputmode="numeric" id="suPhoneCode" placeholder="인증번호 6자리">
+                                <button type="button" class="vrow-btn" data-vconfirm="phone">확인</button>
+                            </div>
+                            <span class="vrow-state" data-vstate="phone"></span>
                         </div>
-                        <input type="text" name="addr1" id="signupAddr1" class="signup-addr-line" placeholder="기본 주소" readonly required>
-                        <input type="text" name="addr2" id="signupAddr2" class="signup-addr-line" placeholder="상세 주소 (동·호수 등)">
-                    </label>
-                    <label>
-                        <span>비밀번호</span>
-                        <input type="password" name="pw" placeholder="8자 이상" autocomplete="new-password" minlength="8" required>
-                    </label>
-                    <label>
-                        <span>비밀번호 확인</span>
-                        <input type="password" name="pw2" placeholder="비밀번호를 다시 입력" autocomplete="new-password" minlength="8" required>
-                    </label>
-                    <label class="signup-check">
-                        <input type="checkbox" required>
-                        <span>아래 약관에 동의합니다</span>
-                    </label>
-                    <p class="signup-legal-links">
-                        <button type="button" class="footer-legal-link" data-legal-open="terms">이용약관</button>
-                        ·
-                        <button type="button" class="footer-legal-link" data-legal-open="privacy">개인정보처리방침</button>
-                        보기
-                    </p>
-                    <button type="submit" class="login-btn login-default">회원가입 완료</button>
+
+                        <!-- 이메일 -->
+                        <div class="vrow" data-v="email">
+                            <span class="vrow-label">이메일</span>
+                            <div class="vrow-input">
+                                <input type="email" name="email" id="suEmail" placeholder="email@example.com">
+                                <button type="button" class="vrow-btn" data-vsend="email">인증번호 발송</button>
+                            </div>
+                            <div class="vrow-code" hidden>
+                                <input type="text" inputmode="numeric" id="suEmailCode" placeholder="인증번호 6자리">
+                                <button type="button" class="vrow-btn" data-vconfirm="email">확인</button>
+                            </div>
+                            <span class="vrow-state" data-vstate="email"></span>
+                        </div>
+
+                        <!-- 업체/제휴사: 사업자 + 계좌 -->
+                        <div id="suBizBlock" hidden>
+                            <div class="vrow vrow-multi" data-v="biz">
+                                <span class="vrow-label">사업자 정보</span>
+                                <input type="text" name="company" id="suCompany" class="vrow-line" placeholder="상호 (예: 강남워치)">
+                                <input type="text" name="businessNo" id="suBizNo" class="vrow-line" placeholder="사업자등록번호 000-00-00000" inputmode="numeric">
+                                <input type="text" name="ceoName" id="suCeo" class="vrow-line" placeholder="대표자 실명">
+                                <input type="text" name="bizOpenDate" id="suBizOpen" class="vrow-line" placeholder="개업일 YYYYMMDD (예: 20200101)" inputmode="numeric">
+                                <button type="button" class="vrow-btn full" data-vsend="biz">사업자 인증</button>
+                                <span class="vrow-state" data-vstate="biz"></span>
+                            </div>
+                            <div class="vrow vrow-multi" data-v="account">
+                                <span class="vrow-label">정산 계좌</span>
+                                <input type="text" name="bank" id="suBank" class="vrow-line" placeholder="은행명 (예: 국민은행)">
+                                <input type="text" name="account" id="suAccount" class="vrow-line" placeholder="계좌번호 (- 없이 숫자만)" inputmode="numeric">
+                                <input type="text" name="holder" id="suHolder" class="vrow-line" placeholder="예금주">
+                                <button type="button" class="vrow-btn full" data-vsend="account">계좌 인증</button>
+                                <span class="vrow-state" data-vstate="account"></span>
+                            </div>
+                        </div>
+
+                        <div class="signup-step-actions">
+                            <button type="button" class="login-btn signup-prev" id="signupPrev">이전</button>
+                            <button type="submit" class="login-btn login-default" id="signupSubmitBtn">가입 완료</button>
+                        </div>
+                    </div>
                 </form>
                 <p class="login-switch">
                     이미 회원이세요?

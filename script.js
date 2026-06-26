@@ -604,15 +604,17 @@
                 .then(function () { notifyBtn.disabled = false; });
         });
 
-        // 회원가입: 업체/제휴사 선택 시 추가 입력칸 표시
+        // 회원가입: 업체/제휴사 선택 시 2단계에 사업자·계좌 인증 블록 노출
         var roleSel = $('#signupRole');
-        var companyField = $('#signupCompanyField');
-        if (roleSel && companyField) {
+        if (roleSel) {
             roleSel.addEventListener('change', function () {
-                var v = roleSel.value;
-                companyField.style.display = (v === 'vendor' || v === 'partner') ? '' : 'none';
-                var lab = $('#signupCompanyLabel'); if (lab) lab.textContent = v === 'partner' ? '상호(회사명)' : '업체 상호';
-                var pf = $('#signupPartnerFields'); if (pf) pf.style.display = v === 'partner' ? '' : 'none';
+                var biz = roleSel.value === 'vendor' || roleSel.value === 'partner';
+                var blk = $('#suBizBlock'); if (blk) blk.hidden = !biz;
+                var hint = $('#signupStep2Hint');
+                if (hint) hint.textContent = biz
+                    ? '휴대폰·이메일·사업자·계좌 인증 후 가입을 신청해 주세요.'
+                    : '휴대폰·이메일 인증 후 가입을 완료해 주세요.';
+                var sub = $('#signupSubmitBtn'); if (sub) sub.textContent = biz ? '가입 신청' : '가입 완료';
             });
         }
 
@@ -3309,6 +3311,11 @@
                 $$('.login-panel').forEach(function (p) { p.classList.remove('active'); });
                 var panel = document.getElementById('loginPanel' + (t.charAt(0).toUpperCase() + t.slice(1)));
                 if (panel) panel.classList.add('active');
+                // 회원가입 탭은 항상 1단계부터
+                if (t === 'signup') {
+                    var sf = $('#signupForm');
+                    if (sf && sf._gotoStep) sf._gotoStep(1);
+                }
             });
         });
 
@@ -3338,56 +3345,141 @@
         // 회원가입 폼
         var signupForm = $('#signupForm');
         if (signupForm) {
-            // 제휴사 사업자 인증(가입 단계, 국세청 진위확인) — 통과 시 인증 상태 보관
-            var _signupBizOk = false;
-            var bizVerifyBtn = $('#signupBizVerifyBtn');
-            var bizVerifyState = $('#signupBizVerifyState');
-            function setBizState(cls, msg) {
-                if (bizVerifyState) {
-                    bizVerifyState.textContent = msg;
-                    bizVerifyState.className = 'signup-verify-state' + (cls ? ' ' + cls : '');
-                }
+            // ===== 회원가입 2단계 위저드 + 4종 인라인 인증 =====
+            var VERIFY = window.BELLORE_VERIFY || {};
+            // 인증 상태: ok=가입 진행 가능, real=실제 인증 통과, nc=해당 인증 미배포(준비 중)
+            var vSt = { phone:{ok:false,real:false,nc:false}, email:{ok:false,real:false,nc:false,sent:false},
+                        biz:{ok:false,real:false,nc:false}, account:{ok:false,real:false,nc:false} };
+            function isLive(k){ var c = VERIFY[k==='biz'?'business':k]; return !!(c && c.enabled); }
+
+            function setVState(kind, cls, msg) {
+                var s = signupForm.querySelector('[data-vstate="' + kind + '"]');
+                if (s) { s.textContent = msg || ''; s.className = 'vrow-state' + (cls ? ' ' + cls : ''); }
             }
-            // 입력값이 바뀌면 인증 무효화
-            ['businessNo', 'ceoName', 'bizOpenDate'].forEach(function (n) {
-                var el = signupForm.querySelector('[name="' + n + '"]');
+            function showCode(kind, on) {
+                var row = signupForm.querySelector('[data-v="' + kind + '"]');
+                if (row) { var c = row.querySelector('.vrow-code'); if (c) c.hidden = !on; }
+            }
+            function resetV(kind) { vSt[kind] = {ok:false,real:false,nc:false,sent:false}; setVState(kind,'',''); if(kind==='phone'||kind==='email') showCode(kind,false); }
+            var SOFT = '준비 중 — 입력만으로 가입 진행됩니다.';
+
+            // 입력이 바뀌면 해당 인증 무효화
+            var fieldKind = { suPhone:'phone', suEmail:'email', suCompany:'biz', suBizNo:'biz', suCeo:'biz', suBizOpen:'biz', suBank:'account', suAccount:'account', suHolder:'account' };
+            Object.keys(fieldKind).forEach(function (id) {
+                var el = $('#' + id);
                 if (el) el.addEventListener('input', function () {
-                    if (_signupBizOk) { _signupBizOk = false; setBizState('', '정보가 변경되어 다시 인증이 필요합니다.'); }
+                    var k = fieldKind[id];
+                    if (vSt[k] && (vSt[k].ok || vSt[k].real)) resetV(k);
                 });
             });
-            if (bizVerifyBtn) bizVerifyBtn.addEventListener('click', function () {
+
+            // 인증 버튼(발송/인증)
+            function vSend(kind, btn) {
                 var fd = new FormData(signupForm);
-                var businessNo = String(fd.get('businessNo') || '').replace(/[^0-9]/g, '');
-                var ceoName = String(fd.get('ceoName') || '').trim();
-                var bizOpenDate = String(fd.get('bizOpenDate') || '').replace(/[^0-9]/g, '');
-                if (businessNo.length !== 10) { setBizState('err', '사업자등록번호 10자리를 정확히 입력해주세요.'); return; }
-                if (!ceoName) { setBizState('err', '대표자명을 입력해주세요.'); return; }
-                if (bizOpenDate.length !== 8) { setBizState('err', '개업일을 YYYYMMDD 형식으로 입력해주세요.'); return; }
-                if (!backendOn() || !NWBackend.verifyBusinessData) { setBizState('err', '백엔드 연결이 필요합니다.'); return; }
-                bizVerifyBtn.disabled = true;
-                setBizState('', '국세청 진위확인 중…');
-                NWBackend.verifyBusinessData({ businessNo: businessNo, ceoName: ceoName, bizOpenDate: bizOpenDate })
-                    .then(function () {
-                        _signupBizOk = true;
-                        setBizState('ok', '✓ 인증되었습니다');
-                    })
-                    .catch(function (err) {
-                        _signupBizOk = false;
-                        var code = (err && err.message) || '';
-                        if (code === 'NOT_CONFIGURED') {
-                            // 진위확인 API 미배포 → 가입은 진행하되 관리자 수동 승인으로 처리
-                            _signupBizOk = true;
-                            setBizState('ok', '확인 접수됨 — 가입 후 관리자 승인으로 처리됩니다.');
-                        } else if (code === 'BAD_BNO') {
-                            setBizState('err', '사업자등록번호 10자리를 정확히 입력해주세요.');
-                        } else {
-                            setBizState('err', '인증 실패 — 상호·사업자번호·대표자·개업일을 다시 확인해주세요.');
-                        }
-                    })
-                    .then(function () { bizVerifyBtn.disabled = false; });
+                btn.disabled = true;
+                var done = function () { btn.disabled = false; };
+                if (kind === 'phone') {
+                    var phone = String(fd.get('phone') || '').replace(/[^0-9]/g, '');
+                    if (phone.length < 10) { setVState('phone','err','휴대폰 번호를 정확히 입력해주세요.'); done(); return; }
+                    if (isLive('phone') && NWBackend.verifyIdentityPortone) {
+                        setVState('phone','','본인인증 진행 중…');
+                        NWBackend.verifyIdentityPortone({ phone: phone })
+                            .then(function(){ vSt.phone={ok:true,real:true,nc:false}; setVState('phone','ok','✓ 본인인증 완료'); })
+                            .catch(function(err){ if((err&&err.message)==='NOT_CONFIGURED'){ vSt.phone={ok:true,real:false,nc:true}; setVState('phone','ok',SOFT);} else { setVState('phone','err','본인인증에 실패했습니다. 다시 시도해주세요.'); } })
+                            .then(done);
+                    } else { vSt.phone={ok:true,real:false,nc:true}; setVState('phone','ok',SOFT); done(); }
+                    return;
+                }
+                if (kind === 'email') {
+                    var email = String(fd.get('email') || '').trim();
+                    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { setVState('email','err','이메일 형식을 확인해주세요.'); done(); return; }
+                    if (isLive('email') && NWBackend.sendEmailOtp) {
+                        setVState('email','','인증번호 발송 중…');
+                        NWBackend.sendEmailOtp(email)
+                            .then(function(){ vSt.email.sent=true; showCode('email',true); setVState('email','','메일로 받은 인증번호를 입력하세요.'); })
+                            .catch(function(){ setVState('email','err','발송에 실패했습니다. 잠시 후 다시 시도해주세요.'); })
+                            .then(done);
+                    } else { vSt.email={ok:true,real:false,nc:true,sent:false}; setVState('email','ok',SOFT); done(); }
+                    return;
+                }
+                if (kind === 'biz') {
+                    var bno = String(fd.get('businessNo') || '').replace(/[^0-9]/g, '');
+                    var ceo = String(fd.get('ceoName') || '').trim();
+                    var open = String(fd.get('bizOpenDate') || '').replace(/[^0-9]/g, '');
+                    if (!String(fd.get('company')||'').trim()) { setVState('biz','err','상호를 입력해주세요.'); done(); return; }
+                    if (bno.length !== 10) { setVState('biz','err','사업자등록번호 10자리를 입력해주세요.'); done(); return; }
+                    if (!ceo) { setVState('biz','err','대표자명을 입력해주세요.'); done(); return; }
+                    if (open.length !== 8) { setVState('biz','err','개업일을 YYYYMMDD로 입력해주세요.'); done(); return; }
+                    if (!NWBackend.verifyBusinessData) { vSt.biz={ok:true,real:false,nc:true}; setVState('biz','ok',SOFT); done(); return; }
+                    setVState('biz','','국세청 진위확인 중…');
+                    NWBackend.verifyBusinessData({ businessNo: bno, ceoName: ceo, bizOpenDate: open })
+                        .then(function(){ vSt.biz={ok:true,real:true,nc:false}; setVState('biz','ok','✓ 사업자 인증 완료'); })
+                        .catch(function(err){ var c=(err&&err.message)||''; if(c==='NOT_CONFIGURED'){ vSt.biz={ok:true,real:false,nc:true}; setVState('biz','ok','확인 접수 — 가입 후 관리자 승인으로 처리됩니다.'); } else { setVState('biz','err','인증 실패 — 상호·사업자번호·대표자·개업일을 확인해주세요.'); } })
+                        .then(done);
+                    return;
+                }
+                if (kind === 'account') {
+                    var bank = String(fd.get('bank')||'').trim();
+                    var acc = String(fd.get('account')||'').replace(/[^0-9]/g,'');
+                    var holder = String(fd.get('holder')||'').trim();
+                    if (!bank || !acc || !holder) { setVState('account','err','은행·계좌번호·예금주를 입력해주세요.'); done(); return; }
+                    if (isLive('account') && NWBackend.verifyAccountData) {
+                        setVState('account','','계좌 실명조회 중…');
+                        NWBackend.verifyAccountData({ bank: bank, account: acc, holder: holder })
+                            .then(function(){ vSt.account={ok:true,real:true,nc:false}; setVState('account','ok','✓ 계좌 인증 완료'); })
+                            .catch(function(err){ if((err&&err.message)==='NOT_CONFIGURED'){ vSt.account={ok:true,real:false,nc:true}; setVState('account','ok',SOFT);} else { setVState('account','err','예금주가 일치하지 않습니다. 다시 확인해주세요.'); } })
+                            .then(done);
+                    } else { vSt.account={ok:true,real:false,nc:true}; setVState('account','ok',SOFT); done(); }
+                    return;
+                }
+            }
+            function vConfirm(kind, btn) {
+                if (kind === 'email') {
+                    var fd = new FormData(signupForm);
+                    var email = String(fd.get('email') || '').trim();
+                    var code = String(($('#suEmailCode')||{}).value || '').trim();
+                    if (!code) { setVState('email','err','인증번호를 입력해주세요.'); return; }
+                    if (!NWBackend.verifyEmailOtp) { setVState('email','err','인증을 사용할 수 없습니다.'); return; }
+                    btn.disabled = true;
+                    setVState('email','','인증번호 확인 중…');
+                    NWBackend.verifyEmailOtp(email, code)
+                        .then(function(){ vSt.email={ok:true,real:true,nc:false,sent:true}; showCode('email',false); setVState('email','ok','✓ 이메일 인증 완료'); })
+                        .catch(function(){ setVState('email','err','인증번호가 올바르지 않습니다.'); })
+                        .then(function(){ btn.disabled=false; });
+                }
+            }
+            signupForm.addEventListener('click', function (e) {
+                var s = e.target.closest('[data-vsend]'), c = e.target.closest('[data-vconfirm]');
+                if (s) { e.preventDefault(); vSend(s.getAttribute('data-vsend'), s); }
+                else if (c) { e.preventDefault(); vConfirm(c.getAttribute('data-vconfirm'), c); }
             });
-            signupForm._isBizVerified = function () { return _signupBizOk; };
-            signupForm._resetBiz = function () { _signupBizOk = false; setBizState('', '상호·사업자등록번호·대표자·개업일을 입력하고 인증을 눌러주세요.'); };
+
+            // 단계 전환
+            var step1 = $('#signupStep1'), step2 = $('#signupStep2');
+            function gotoStep(n) {
+                if (step1) { step1.hidden = n !== 1; step1.classList.toggle('active', n === 1); }
+                if (step2) { step2.hidden = n !== 2; step2.classList.toggle('active', n === 2); }
+                var panel = $('#loginPanelSignup'); if (panel) panel.scrollTop = 0;
+            }
+            signupForm._gotoStep = gotoStep;
+            signupForm._resetVerify = function () { ['phone','email','biz','account'].forEach(resetV); };
+            var nextBtn = $('#signupNext');
+            if (nextBtn) nextBtn.addEventListener('click', function () {
+                var fd = new FormData(signupForm);
+                var name = String(fd.get('name') || '').trim();
+                var username = String(fd.get('username') || '').trim();
+                var pw = String(fd.get('pw') || ''), pw2 = String(fd.get('pw2') || '');
+                var postcode = String(fd.get('postcode') || '').trim(), addr1 = String(fd.get('addr1') || '').trim();
+                if (!name) { alert('이름을 입력해주세요.'); return; }
+                if (!/^[A-Za-z0-9_]{4,}$/.test(username)) { alert('아이디는 영문·숫자·밑줄(_) 4자 이상으로 입력해주세요.'); return; }
+                if (!postcode || !addr1) { alert('주소를 입력해주세요. ("주소 찾기" 버튼)'); return; }
+                if (pw.length < 8) { alert('비밀번호는 8자 이상이어야 합니다.'); return; }
+                if (pw !== pw2) { alert('비밀번호가 일치하지 않습니다.'); return; }
+                var ag = $('#signupAgree'); if (ag && !ag.checked) { alert('이용약관·개인정보처리방침에 동의해주세요.'); return; }
+                gotoStep(2);
+            });
+            var prevBtn = $('#signupPrev');
+            if (prevBtn) prevBtn.addEventListener('click', function () { gotoStep(1); });
 
             // 주소 검색(다음 우편번호)
             var addrBtn = $('#signupFindAddr');
@@ -3408,78 +3500,65 @@
 
             signupForm.addEventListener('submit', function (e) {
                 e.preventDefault();
+                // 1단계에서 엔터로 제출되면 '다음'으로 처리
+                if (step2 && step2.hidden) { if (nextBtn) nextBtn.click(); return; }
                 var fd = new FormData(signupForm);
-                var name = fd.get('name');
-                var username = String(fd.get('username') || '').trim();
-                var phone = fd.get('phone');
-                var email = fd.get('email');
-                var pw = fd.get('pw');
-                var pw2 = fd.get('pw2');
                 var role = fd.get('role') || 'customer';
-                var company = fd.get('company') || '';
-                var businessNo = String(fd.get('businessNo') || '').replace(/[^0-9]/g, '');
-                var ceoName = String(fd.get('ceoName') || '').trim();
-                var bizOpenDate = String(fd.get('bizOpenDate') || '').replace(/[^0-9]/g, '');
-                var postcode = String(fd.get('postcode') || '').trim();
-                var addr1 = String(fd.get('addr1') || '').trim();
-                var addr2 = String(fd.get('addr2') || '').trim();
-                if (!name || !username || !phone || !email || !pw) {
-                    alert('필수 항목을 모두 입력해주세요.');
-                    return;
-                }
-                if (!postcode || !addr1) {
-                    alert('주소를 입력해주세요. ("주소 찾기" 버튼)');
-                    return;
-                }
-                if (role === 'vendor' && !company) {
-                    alert('업체 회원은 업체 상호를 입력해주세요.');
-                    return;
-                }
-                if (role === 'partner') {
-                    if (!company) { alert('제휴사는 상호(회사명)를 입력해주세요.'); return; }
-                    if (businessNo.length !== 10) { alert('사업자등록번호 10자리를 정확히 입력해주세요.'); return; }
-                    if (!ceoName) { alert('대표자명을 입력해주세요.'); return; }
-                    if (signupForm._isBizVerified && !signupForm._isBizVerified()) {
-                        alert('사업자 인증을 먼저 완료해주세요. ("사업자 인증" 버튼)');
-                        return;
-                    }
-                }
-                if (!/^[A-Za-z0-9_]{4,}$/.test(username)) {
-                    alert('아이디는 영문·숫자·밑줄(_) 4자 이상으로 입력해주세요.');
-                    return;
-                }
-                if (pw.length < 8) {
-                    alert('비밀번호는 8자 이상이어야 합니다.');
-                    return;
-                }
-                if (pw !== pw2) {
-                    alert('비밀번호가 일치하지 않습니다.');
-                    return;
+                var bizRole = (role === 'vendor' || role === 'partner');
+                var d = {
+                    name: String(fd.get('name') || '').trim(),
+                    username: String(fd.get('username') || '').trim(),
+                    phone: String(fd.get('phone') || '').trim(),
+                    email: String(fd.get('email') || '').trim(),
+                    password: String(fd.get('pw') || ''),
+                    role: role,
+                    postcode: String(fd.get('postcode') || '').trim(),
+                    addr1: String(fd.get('addr1') || '').trim(),
+                    addr2: String(fd.get('addr2') || '').trim(),
+                    company: String(fd.get('company') || '').trim(),
+                    businessNo: String(fd.get('businessNo') || '').replace(/[^0-9]/g, ''),
+                    ceoName: String(fd.get('ceoName') || '').trim(),
+                    bizOpenDate: String(fd.get('bizOpenDate') || '').replace(/[^0-9]/g, ''),
+                    bank: String(fd.get('bank') || '').trim(),
+                    account: String(fd.get('account') || '').replace(/[^0-9]/g, ''),
+                    holder: String(fd.get('holder') || '').trim()
+                };
+                d.bizName = d.company;
+
+                // 2단계 필수: 휴대폰·이메일
+                if (!d.phone) { alert('휴대폰 번호를 입력해주세요.'); return; }
+                if (!d.email) { alert('이메일을 입력해주세요.'); return; }
+                // "라이브"로 켜진 인증은 실제 통과해야 가입. 준비 중(소프트)은 입력만으로 진행.
+                if (isLive('phone') && !vSt.phone.real && !vSt.phone.nc) { alert('휴대폰 본인인증을 완료해주세요.'); return; }
+                if (isLive('email') && !vSt.email.real && !vSt.email.nc) { alert('이메일 인증을 완료해주세요.'); return; }
+
+                if (bizRole) {
+                    if (!d.company) { alert('상호(회사명)를 입력해주세요.'); return; }
+                    if (d.businessNo.length !== 10) { alert('사업자등록번호 10자리를 입력해주세요.'); return; }
+                    if (!d.ceoName) { alert('대표자명을 입력해주세요.'); return; }
+                    if (!d.bank || !d.account || !d.holder) { alert('정산 계좌(은행·계좌번호·예금주)를 입력해주세요.'); return; }
+                    if (isLive('business') && !vSt.biz.real && !vSt.biz.nc) { alert('사업자 인증을 완료해주세요.'); return; }
+                    if (isLive('account') && !vSt.account.real && !vSt.account.nc) { alert('계좌 인증을 완료해주세요.'); return; }
                 }
 
-                if (backendOn()) {
-                    NWBackend.signUp({ name: name, username: username, phone: phone, email: email, password: pw, role: role, company: company,
-                        businessNo: businessNo, ceoName: ceoName, bizOpenDate: bizOpenDate, bizName: company,
-                        postcode: postcode, addr1: addr1, addr2: addr2 })
-                        .then(function () {
-                            signupForm.reset();
-                            if (signupForm._resetBiz) signupForm._resetBiz();
-                            var cf = $('#signupCompanyField'); if (cf) cf.style.display = 'none';
-                            var pf = $('#signupPartnerFields'); if (pf) pf.style.display = 'none';
-                            closeLoginModal();
-                            if (role === 'vendor') {
-                                alert(name + '님, 업체 회원가입이 접수되었습니다.\n메일함의 이메일 인증 링크를 확인해주세요.\n이메일 인증 + 관리자 승인 후 입찰 기능을 이용하실 수 있습니다.');
-                            } else if (role === 'partner') {
-                                alert(name + '님, 제휴사 가입이 접수되었습니다.\n사업자 인증은 완료되었고, 메일함의 이메일 인증 링크를 확인해주세요.\n이메일 인증 + 관리자 승인 후 상품 등록·판매가 가능합니다.');
-                            } else {
-                                alert(name + '님, 회원가입이 접수되었습니다.\n메일함의 이메일 인증 링크를 확인하시면 가입이 완료됩니다.');
-                            }
-                        })
-                        .catch(function (err) {
-                            alert('회원가입 실패: ' + authErrorMsg(err));
-                        });
-                    return;
-                }
+                if (!backendOn()) { alert('백엔드 연결이 필요합니다.'); return; }
+                var sub = $('#signupSubmitBtn');
+                if (sub) { sub.disabled = true; sub.textContent = '처리 중...'; }
+                NWBackend.signUp(d)
+                    .then(function () {
+                        signupForm.reset();
+                        signupForm._resetVerify();
+                        var blk = $('#suBizBlock'); if (blk) blk.hidden = true;
+                        gotoStep(1);
+                        closeLoginModal();
+                        if (bizRole) {
+                            alert(d.name + '님, 가입 신청이 접수되었습니다.\n관리자 승인 후 ' + (role === 'partner' ? '상품 등록·판매' : '입찰 기능') + '을 이용하실 수 있습니다.');
+                        } else {
+                            alert(d.name + '님, 회원가입이 완료되었습니다. 바로 이용하실 수 있어요.');
+                        }
+                    })
+                    .catch(function (err) { alert('회원가입 실패: ' + authErrorMsg(err)); })
+                    .then(function () { if (sub) { sub.disabled = false; sub.textContent = bizRole ? '가입 신청' : '가입 완료'; } });
             });
         }
     }

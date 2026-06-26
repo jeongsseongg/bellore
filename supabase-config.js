@@ -64,6 +64,25 @@ window.BELLORE_PAYMENTS = {
   shippingFee: 35000
 };
 
+/* ============================================================
+   회원가입 인증 설정 (4종)
+   ------------------------------------------------------------
+   - enabled:false 면 해당 인증은 "준비 중"으로 표시되고, 인증 없이도
+     입력만으로 가입/가입신청이 됩니다. 키가 준비되면 enabled:true 로 켜세요.
+   - 켜는 순간 그 항목은 "실제 인증 통과"가 있어야 가입됩니다.
+   ============================================================ */
+window.BELLORE_VERIFY = {
+  // 휴대폰: 포트원 본인인증(PASS). 포트원 콘솔 > 본인인증 채널의 채널키를 넣고 enabled:true
+  phone:    { enabled: false, channelKey: "" },
+  // 이메일: Supabase 이메일 OTP(인증번호). 이메일 템플릿에 {{ .Token }} 추가 후 enabled:true
+  email:    { enabled: false },
+  // 계좌: 자동 실명조회(Edge Function verify-account). 키/계약 준비되면 enabled:true
+  account:  { enabled: false },
+  // 사업자: 국세청 진위확인(Edge Function verify-business). 배포 확인되면 enabled:true
+  //  (false 라도 '사업자 인증' 버튼은 국세청 조회를 시도하고, 통과 못 해도 가입은 진행됩니다)
+  business: { enabled: false }
+};
+
 /* 카테고리 정의 (디자인의 탭/필터와 매핑) */
 window.BELLORE_CATEGORIES = {
   // 판매시계 마켓

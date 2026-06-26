@@ -257,13 +257,17 @@
       addr1: data.addr1 || null,
       addr2: data.addr2 || null
     };
-    // 제휴사: 사업자정보는 metadata 로 전달 → 트리거가 프로필에 저장(세션 없어도 보존).
-    //  단, biz_verified 플래그 자체는 클라이언트가 정하지 못함(보안). 첫 로그인 시 서버 재확인으로 확정.
-    if (role === 'partner') {
+    // 업체/제휴사: 사업자·계좌 정보는 metadata 로 전달 → 트리거가 프로필에 저장(세션 없어도 보존).
+    //  단, biz_verified/account_verified 플래그는 클라이언트가 정하지 못함(보안).
+    //  실제 인증(국세청/실명조회/본인인증)을 통과해야만 서버가 켠다.
+    if (role === 'partner' || role === 'vendor') {
       if (data.bizName) meta.biz_name = String(data.bizName).trim();
       if (data.businessNo) meta.business_no = String(data.businessNo).replace(/[^0-9]/g, '');
       if (data.ceoName) meta.ceo_name = String(data.ceoName).trim();
       if (data.bizOpenDate) meta.biz_open_date = String(data.bizOpenDate).replace(/[^0-9]/g, '');
+      if (data.bank) meta.bank_name = String(data.bank).trim();
+      if (data.account) meta.bank_account = String(data.account).replace(/[^0-9-]/g, '');
+      if (data.holder) meta.bank_holder = String(data.holder).trim();
     }
     return pre.then(function () {
       return sb.auth.signUp({
@@ -281,13 +285,16 @@
         if (data.postcode) patch.postcode = data.postcode;
         if (data.addr1) patch.addr1 = data.addr1;
         if (data.addr2) patch.addr2 = data.addr2;
-        // 제휴사 가입: 사업자 정보 저장(인증은 별도 단계)
-        if (role === 'partner') {
+        // 업체/제휴사 가입: 사업자·계좌 정보 저장(인증은 별도 단계)
+        if (role === 'partner' || role === 'vendor') {
           if (data.bizName) patch.biz_name = String(data.bizName).trim();
           if (data.businessNo) patch.business_no = String(data.businessNo).replace(/[^0-9]/g, '');
           if (data.ceoName) patch.ceo_name = String(data.ceoName).trim();
           if (data.bizOpenDate) patch.biz_open_date = String(data.bizOpenDate).replace(/[^0-9]/g, '');
           if (data.company) patch.company_name = String(data.company).trim();
+          if (data.bank) patch.bank_name = String(data.bank).trim();
+          if (data.account) patch.bank_account = String(data.account).replace(/[^0-9-]/g, '');
+          if (data.holder) { patch.bank_holder = String(data.holder).trim(); patch.account_submitted_at = new Date().toISOString(); }
         }
         if (Object.keys(patch).length) {
           sb.from('profiles').update(patch)
@@ -404,10 +411,53 @@
         });
     });
   };
-  // 자동 계좌 실명조회(1원 인증 등) — 외부 핀테크 API 연동 자리.
-  // 키/계약 준비되면 아래에 실제 호출(Edge Function 권장)을 연결하세요.
-  Backend.verifyAccountAuto = function (/* data */) {
-    return Promise.reject(new Error('AUTO_VERIFY_NOT_CONFIGURED'));
+  // 자동 계좌 실명조회 — Edge Function(verify-account)로 예금주 대조.
+  //  설정(BELLORE_VERIFY.account.enabled)이 켜지고 함수가 배포돼야 실제 동작.
+  Backend.verifyAccountData = function (data) {
+    var body = {
+      bank: String((data && data.bank) || '').trim(),
+      account: String((data && data.account) || '').replace(/[^0-9]/g, ''),
+      holder: String((data && data.holder) || '').trim()
+    };
+    if (!body.bank || !body.account || !body.holder) return Promise.reject(new Error('MISSING'));
+    return sb.functions.invoke('verify-account', { body: body }).then(function (res) {
+      if (res.error) throw res.error;
+      if (res.data && res.data.code === 'NOT_CONFIGURED') throw new Error('NOT_CONFIGURED');
+      if (!(res.data && res.data.valid === true)) throw new Error((res.data && res.data.message) || 'ACCOUNT_VERIFY_FAILED');
+      return res.data;
+    });
+  };
+  Backend.verifyAccountAuto = Backend.verifyAccountData;
+
+  // 회원가입 단계 이메일 OTP(인증번호) — Supabase Auth.
+  //  ※ 이메일 템플릿(Confirm signup/Magic Link)에 {{ .Token }} 가 있어야 코드가 메일로 갑니다.
+  Backend.sendEmailOtp = function (email) {
+    var addr = String(email || '').trim();
+    if (!addr) return Promise.reject(new Error('NO_EMAIL'));
+    return sb.auth.signInWithOtp({ email: addr, options: { shouldCreateUser: true } })
+      .then(function (res) { if (res.error) throw res.error; return true; });
+  };
+  Backend.verifyEmailOtp = function (email, token) {
+    var addr = String(email || '').trim();
+    return sb.auth.verifyOtp({ email: addr, token: String(token || '').trim(), type: 'email' })
+      .then(function (res) { if (res.error) throw res.error; return true; });
+  };
+
+  // 휴대폰 본인인증(포트원 PASS) — 설정(BELLORE_VERIFY.phone)이 켜져야 동작.
+  //  성공 시 검증된 휴대폰번호를 반환. 서버 확정은 가입 후 verify-identity 로 연결 가능.
+  Backend.verifyIdentityPortone = function (data) {
+    var V = (window.BELLORE_VERIFY && window.BELLORE_VERIFY.phone) || {};
+    var P = window.BELLORE_PAYMENTS || {};
+    if (!(window.PortOne && P.storeId && V.channelKey)) return Promise.reject(new Error('NOT_CONFIGURED'));
+    var id = 'idv_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    return window.PortOne.requestIdentityVerification({
+      storeId: P.storeId,
+      identityVerificationId: id,
+      channelKey: V.channelKey
+    }).then(function (resp) {
+      if (resp && resp.code != null) throw new Error(resp.message || 'IDENTITY_FAILED');
+      return { identityVerificationId: id, phone: (data && data.phone) || '' };
+    });
   };
   // 관리자 수동 계좌 승인/취소
   Backend.setAccountVerified = function (id, ok) {
