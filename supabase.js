@@ -1496,6 +1496,13 @@
     return sb.from('notifications').update({ is_read: true }).eq('id', id);
   };
 
+  // 알림 삭제 (스와이프 삭제) — 본인 알림만 RLS로 허용
+  Backend.deleteNotification = function (id) {
+    return sb.from('notifications').delete().eq('id', id).then(function (res) {
+      if (res && res.error) throw res.error;
+    });
+  };
+
   // RLS상 클라이언트 insert가 막혀 있을 수 있으므로 best-effort.
   // (핵심 알림은 DB 트리거가 security definer로 생성)
   Backend.createNotification = function (data) {

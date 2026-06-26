@@ -435,6 +435,7 @@
         var g = $('#loginGoogle');
         if (g) {
             g.addEventListener('click', function () {
+                try { sessionStorage.setItem('bellore_social_pending', '1'); } catch (e) {}
                 NWBackend.signInWithGoogle()
                     .then(function (user) {
                         closeLoginModal();
@@ -450,6 +451,7 @@
         var k = $('#loginKakao');
         if (k && NWBackend.signInWithKakao) {
             k.addEventListener('click', function () {
+                try { sessionStorage.setItem('bellore_social_pending', '1'); } catch (e) {}
                 NWBackend.signInWithKakao()
                     .then(function () { closeLoginModal(); })
                     .catch(function (err) { alert('카카오 로그인 실패: ' + authErrorMsg(err)); });
@@ -553,12 +555,17 @@
                 else if (step === 'pw2') { setPV(); var cr2 = $('#pwvCodeRow'); if (cr2) cr2.hidden = true; pSet('pwvState', ''); _pwOk = false; _pwMethod = null; $$('.prof-pick-opt', profPage).forEach(function (x) { x.classList.remove('on'); }); }
                 else if (step === 'pw3') { var n1 = $('#pfNewPw'), n2 = $('#pfNewPw2'); if (n1) n1.value = ''; if (n2) n2.value = ''; }
             }
-            function openProfilePage() {
+            function openProfilePage(step) {
                 if (!backendOn() || !NWBackend.currentUser || !NWBackend.currentUser()) { alert('로그인 후 이용해 주세요.'); return; }
-                setPV(); gotoP('home');
+                setPV(); gotoP(typeof step === 'string' ? step : 'home');
                 profPage.hidden = false; document.body.style.overflow = 'hidden';
             }
-            function closeProfilePage() { profPage.hidden = true; document.body.style.overflow = 'hidden'; } // 마이페이지가 아직 떠 있음
+            function closeProfilePage() {
+                profPage.hidden = true;
+                // 마이페이지가 뒤에 떠 있으면 스크롤 잠금 유지, 아니면 해제
+                var mp = $('#myPageModal');
+                document.body.style.overflow = (mp && !mp.hidden) ? 'hidden' : '';
+            }
             window.BELLORE_openProfile = openProfilePage;
             var editBtn = $('#btnEditProfile'); if (editBtn) editBtn.addEventListener('click', openProfilePage);
 
@@ -571,8 +578,6 @@
 
             profPage.addEventListener('click', function (e) {
                 var row = e.target.closest('[data-pgo]'); if (row) { gotoP(row.dataset.pgo); return; }
-                var eye = e.target.closest('[data-eye]');
-                if (eye) { var inp = $('#' + eye.dataset.eye); if (inp) { var show = inp.type === 'password'; inp.type = show ? 'text' : 'password'; eye.textContent = show ? '숨김' : '표시'; } return; }
                 var pv = e.target.closest('[data-pwverify]');
                 if (pv) {
                     _pwMethod = pv.dataset.pwverify;
@@ -694,19 +699,7 @@
                 .then(function () { notifyBtn.disabled = false; });
         });
 
-        // 회원가입: 업체/제휴사 선택 시 2단계에 사업자·계좌 인증 블록 노출
-        var roleSel = $('#signupRole');
-        if (roleSel) {
-            roleSel.addEventListener('change', function () {
-                var biz = roleSel.value === 'vendor' || roleSel.value === 'partner';
-                var blk = $('#suBizBlock'); if (blk) blk.hidden = !biz;
-                var hint = $('#signupStep2Hint');
-                if (hint) hint.textContent = biz
-                    ? '휴대폰·이메일·사업자·계좌 인증 후 가입을 신청해 주세요.'
-                    : '휴대폰·이메일 인증 후 가입을 완료해 주세요.';
-                var sub = $('#signupSubmitBtn'); if (sub) sub.textContent = biz ? '가입 신청' : '가입 완료';
-            });
-        }
+        // (회원가입 유형별 UI는 initSignup의 _applyRole에서 처리)
 
         // 제휴사 센터 버튼
         var pcBtn = $('#btnPartnerCenter');
@@ -788,6 +781,18 @@
         var unsubNoti = null;
         var unsubAdmins = null;
         NWBackend.onAuthChange(function (user, info) {
+            // 소셜 로그인(구글·카카오) 직후 휴대폰 미등록이면 본인인증 단계로 강제
+            if (user && !(info && info.isAdmin)) {
+                var pend = false; try { pend = sessionStorage.getItem('bellore_social_pending') === '1'; } catch (e) {}
+                if (pend && !user.phone) {
+                    try { sessionStorage.removeItem('bellore_social_pending'); } catch (e) {}
+                    closeLoginModal();
+                    setTimeout(function () {
+                        alert('서비스 이용을 위해 휴대폰 인증이 필요합니다.');
+                        if (window.BELLORE_openProfile) window.BELLORE_openProfile('phone');
+                    }, 300);
+                } else if (pend) { try { sessionStorage.removeItem('bellore_social_pending'); } catch (e) {} }
+            }
             // 마이페이지 헤더
             var nameEl = $('#myPageName');
             var emailEl = $('#myPageEmail');
@@ -950,11 +955,40 @@
                 (notiTarget(n.type) ? '<span class="noti-arrow">바로가기 ›</span>' : '') +
                 '</button>';
         }).join('');
+        attachNotiSwipe();
+    }
+    // 알림 스와이프 삭제 (왼쪽으로 밀면 삭제)
+    var _notiSwallowClick = false;
+    function attachNotiSwipe() {
+        var list = $('#notiList'); if (!list) return;
+        $$('.noti-item', list).forEach(function (it) {
+            if (it._swipeBound) return; it._swipeBound = true;
+            var startX = 0, dx = 0, dragging = false;
+            function move(x) { dx = Math.min(0, x - startX); it.style.transform = 'translateX(' + dx + 'px)'; if (dx < -10) it.classList.add('swiping'); }
+            function end() {
+                if (!dragging) return; dragging = false; it.style.transition = '';
+                if (dx < -80) {
+                    _notiSwallowClick = true;
+                    var id = it.getAttribute('data-nid');
+                    it.style.transform = 'translateX(-110%)'; it.style.opacity = '0';
+                    setTimeout(function () {
+                        notiCache = notiCache.filter(function (n) { return String(n.id) !== String(id); });
+                        if (id && backendOn() && NWBackend.deleteNotification) NWBackend.deleteNotification(id).catch(function () {});
+                        renderNotiList(notiCache);
+                        updateNotiBadge(notiCache.filter(function (n) { return !n.read; }).length);
+                    }, 180);
+                } else { it.style.transform = ''; it.classList.remove('swiping'); }
+            }
+            it.addEventListener('touchstart', function (e) { startX = e.touches[0].clientX; dx = 0; dragging = true; it.style.transition = 'none'; }, { passive: true });
+            it.addEventListener('touchmove', function (e) { if (dragging) move(e.touches[0].clientX); }, { passive: true });
+            it.addEventListener('touchend', function () { if (Math.abs(dx) > 10) _notiSwallowClick = true; end(); });
+        });
     }
     // 알림 클릭 → 읽음 처리 + 해당 화면으로 이동
     document.addEventListener('click', function (e) {
         var it = e.target.closest('#notiList .noti-item');
         if (!it) return;
+        if (_notiSwallowClick) { _notiSwallowClick = false; e.preventDefault(); e.stopPropagation(); return; }
         var id = it.getAttribute('data-nid');
         var type = it.getAttribute('data-ntype');
         var ref = it.getAttribute('data-nref') || '';
@@ -1073,7 +1107,7 @@
         // 장바구니
         var cart = (window.BELLOREWishlist && window.BELLOREWishlist.getCart) ? (window.BELLOREWishlist.getCart() || []) : [];
         var cRow = $('#myCartRow'), cEmpty = $('#myCartEmpty'), cCnt = $('#myCartCount');
-        if (cCnt) cCnt.textContent = cart.length;
+        if (cCnt) { cCnt.textContent = cart.length; cCnt.hidden = cart.length === 0; }
         if (cRow) cRow.innerHTML = cart.map(miniProdCard).join('');
         if (cEmpty) cEmpty.hidden = cart.length > 0;
         // 최근 본 상품
@@ -1090,7 +1124,7 @@
             var ownedIds = list.map(function (u) { return u.couponId; });
             var active = list.filter(function (u) { return u.status === 'active' && u.coupon && !couponExpired(u.coupon); });
             var cnt = $('#myCouponCount'); if (cnt) cnt.textContent = active.length;
-            var pcoup = $('#pocketCoupon'); if (pcoup) pcoup.textContent = active.length;
+            var pcoup = $('#pocketCoupon'); if (pcoup) { pcoup.textContent = active.length; pcoup.hidden = active.length === 0; }
             var el = $('#myCouponList');
             if (el) {
                 el.innerHTML = list.length
@@ -1996,7 +2030,7 @@
             var isAdmin = !!(info && info.isAdmin);
             ['adminDashBox', 'adminMenuBox'].forEach(function (id) { var el = $('#' + id); if (el) el.hidden = !isAdmin; });
             // 관리자에겐 고객용 영역 숨김(포인트/내쿠폰/소식 시계)
-            ['pocketBox', 'myCouponSection', 'myAlertsSection', 'myCartLink'].forEach(function (id) {
+            ['pocketBox', 'myAlertsSection', 'myCartLink', 'mpHubCats'].forEach(function (id) {
                 var el = $('#' + id); if (el) el.hidden = isAdmin;
             });
             if (!isAdmin) { var p = $('#adminPanel'); if (p) p.hidden = true; }
@@ -2782,6 +2816,8 @@
     function openLoginModal() {
         var lm = $('#loginModal');
         if (lm) { lm.hidden = false; document.body.style.overflow = 'hidden'; }
+        // 항상 로그인 화면부터
+        if (window.BELLORE_showLoginPanel) window.BELLORE_showLoginPanel('login');
     }
 
     /* ============ 백엔드(Firebase) 데이터 동기화 ============
@@ -3443,21 +3479,35 @@
 
     /* ============ 회원가입 + 로그인 폼 ============ */
     function initSignup() {
-        // 탭 전환
-        $$('[data-ltab]').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                var t = btn.dataset.ltab;
-                $$('.login-tab').forEach(function (x) {
-                    x.classList.toggle('active', x.dataset.ltab === t);
-                });
-                $$('.login-panel').forEach(function (p) { p.classList.remove('active'); });
-                var panel = document.getElementById('loginPanel' + (t.charAt(0).toUpperCase() + t.slice(1)));
-                if (panel) panel.classList.add('active');
-                // 회원가입 탭은 항상 1단계부터
-                if (t === 'signup') {
-                    var sf = $('#signupForm');
-                    if (sf && sf._gotoStep) sf._gotoStep(1);
-                }
+        // 패널 전환 (로그인 ↔ 유형선택 ↔ 회원가입)
+        function showLoginPanel(name) {
+            $$('.login-panel').forEach(function (p) { p.classList.remove('active'); });
+            var panel = document.getElementById('loginPanel' + (name.charAt(0).toUpperCase() + name.slice(1)));
+            if (panel) { panel.classList.add('active'); }
+            var lc = document.querySelector('#loginModal .login-content'); if (lc) lc.scrollTop = 0;
+            if (name === 'signup') { var sf = $('#signupForm'); if (sf && sf._gotoStep) sf._gotoStep(1); }
+        }
+        window.BELLORE_showLoginPanel = showLoginPanel;
+        document.addEventListener('click', function (e) {
+            var b = e.target.closest('[data-lpanel]');
+            if (b && b.closest('#loginModal')) { e.preventDefault(); showLoginPanel(b.dataset.lpanel); }
+        });
+        // 비밀번호 표시/숨김 토글 (로그인·회원가입·회원정보 어디서나)
+        document.addEventListener('click', function (e) {
+            var eye = e.target.closest('[data-eye]'); if (!eye) return;
+            e.preventDefault();
+            var inp = document.getElementById(eye.dataset.eye); if (!inp) return;
+            var show = inp.type === 'password';
+            inp.type = show ? 'text' : 'password';
+            eye.textContent = show ? '숨김' : '표시';
+        });
+        // 유형 카드 → 역할 지정 후 회원가입 폼으로
+        $$('[data-signup-role]').forEach(function (card) {
+            card.addEventListener('click', function () {
+                var role = card.dataset.signupRole || 'customer';
+                var rs = $('#signupRole'); if (rs) rs.value = role;
+                if ($('#signupForm') && $('#signupForm')._applyRole) $('#signupForm')._applyRole(role);
+                showLoginPanel('signup');
             });
         });
 
@@ -3605,6 +3655,18 @@
             }
             signupForm._gotoStep = gotoStep;
             signupForm._resetVerify = function () { ['phone','email','biz','account'].forEach(resetV); };
+            // 유형(일반/업체/제휴사)에 맞춰 사업자·계좌 블록·문구·버튼 라벨 조정
+            signupForm._applyRole = function (role) {
+                var biz = role === 'vendor' || role === 'partner';
+                var blk = $('#suBizBlock'); if (blk) blk.hidden = !biz;
+                var hint = $('#signupStep2Hint');
+                if (hint) hint.textContent = biz
+                    ? '휴대폰·사업자·계좌 인증은 필수, 이메일은 선택입니다.'
+                    : '휴대폰 인증은 필수, 이메일 인증은 선택입니다.';
+                var sub = $('#signupSubmitBtn'); if (sub) sub.textContent = biz ? '가입 신청' : '가입 완료';
+                var ttl = $('#signupStep1Title');
+                if (ttl) ttl.innerHTML = (role === 'vendor' ? '업체 회원' : role === 'partner' ? '제휴사' : '기본 정보를') + '<br>입력해 주세요.';
+            };
             var nextBtn = $('#signupNext');
             if (nextBtn) nextBtn.addEventListener('click', function () {
                 var fd = new FormData(signupForm);
@@ -3667,12 +3729,12 @@
                 };
                 d.bizName = d.company;
 
-                // 2단계 필수: 휴대폰·이메일
-                if (!d.phone) { alert('휴대폰 번호를 입력해주세요.'); return; }
-                if (!d.email) { alert('이메일을 입력해주세요.'); return; }
+                // 2단계 필수: 휴대폰(필수) / 이메일(선택)
+                if (!d.phone) { alert('휴대폰 번호를 입력해주세요. (필수)'); return; }
                 // "라이브"로 켜진 인증은 실제 통과해야 가입. 준비 중(소프트)은 입력만으로 진행.
                 if (isLive('phone') && !vSt.phone.real && !vSt.phone.nc) { alert('휴대폰 본인인증을 완료해주세요.'); return; }
-                if (isLive('email') && !vSt.email.real && !vSt.email.nc) { alert('이메일 인증을 완료해주세요.'); return; }
+                // 이메일은 선택 — 입력했고 라이브 인증이 켜져 있으면 통과 필요
+                if (d.email && isLive('email') && !vSt.email.real && !vSt.email.nc) { alert('이메일 인증을 완료하거나 이메일을 비워주세요.'); return; }
 
                 if (bizRole) {
                     if (!d.company) { alert('상호(회사명)를 입력해주세요.'); return; }
@@ -4294,8 +4356,7 @@
             localStorage.setItem('bellore_compare_pending', JSON.stringify({ brand: p.brand, model: p.model, at: Date.now() }));
         } catch (e) {}
         openLoginModal();
-        var sTab = document.querySelector('#loginModal .login-tab[data-ltab="signup"]');
-        if (sTab) sTab.click();
+        if (window.BELLORE_showLoginPanel) window.BELLORE_showLoginPanel('type');
     }
 
     function renderMyItems() {
