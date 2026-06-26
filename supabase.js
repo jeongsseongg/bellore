@@ -145,8 +145,27 @@
   function loadProfile() {
     if (!rawUser) { profile = null; return Promise.resolve(); }
     return sb.from('profiles').select('*').eq('id', rawUser.id).single()
-      .then(function (res) { profile = res.data || null; })
+      .then(function (res) { profile = res.data || null; maybeAutoVerifyBiz(); })
       .catch(function () { profile = null; });
+  }
+
+  // 제휴사가 가입 시 사업자정보는 넣었으나(트리거가 저장) biz_verified 가 아직이면,
+  //  첫 로그인 시 서버(Edge Function, service_role)로 한 번 자동 진위확인 → 확정.
+  //  (클라이언트는 biz_verified 를 직접 못 바꾸므로 보안상 안전)
+  var _bizAutoTried = false;
+  function maybeAutoVerifyBiz() {
+    if (_bizAutoTried) return;
+    if (!profile || profile.role !== 'partner') return;
+    if (profile.biz_verified) return;
+    if (!profile.business_no || !profile.biz_open_date || !profile.ceo_name) return;
+    _bizAutoTried = true;
+    sb.functions.invoke('verify-business', {
+      body: { b_no: profile.business_no, start_dt: profile.biz_open_date, p_nm: profile.ceo_name }
+    }).then(function (res) {
+      if (res && res.data && res.data.valid === true) {
+        loadProfile().then(notifyAuth, function () {});
+      }
+    }, function () {});
   }
 
   Backend.currentUser = function () { return authUser; };
@@ -223,19 +242,26 @@
           if (r.data) throw new Error('USERNAME_TAKEN');
         })
       : Promise.resolve();
+    var meta = {
+      display_name: data.name || '',
+      username: uname || null,
+      role: role,
+      company_name: data.company || null,
+      phone: data.phone || null
+    };
+    // 제휴사: 사업자정보는 metadata 로 전달 → 트리거가 프로필에 저장(세션 없어도 보존).
+    //  단, biz_verified 플래그 자체는 클라이언트가 정하지 못함(보안). 첫 로그인 시 서버 재확인으로 확정.
+    if (role === 'partner') {
+      if (data.bizName) meta.biz_name = String(data.bizName).trim();
+      if (data.businessNo) meta.business_no = String(data.businessNo).replace(/[^0-9]/g, '');
+      if (data.ceoName) meta.ceo_name = String(data.ceoName).trim();
+      if (data.bizOpenDate) meta.biz_open_date = String(data.bizOpenDate).replace(/[^0-9]/g, '');
+    }
     return pre.then(function () {
       return sb.auth.signUp({
         email: data.email,
         password: data.password,
-        options: {
-          data: {
-            display_name: data.name || '',
-            username: uname || null,
-            role: role,
-            company_name: data.company || null,
-            phone: data.phone || null
-          }
-        }
+        options: { data: meta }
       });
     }).then(function (res) {
       if (res.error) throw res.error;
@@ -417,6 +443,25 @@
       // 트리거상 일반사용자가 못 바꾸므로 Edge Function 측에서 service_role 로 set 하는 것을 권장.
       // 여기서는 우선 로컬 갱신 후 프로필 재로딩.
       return loadProfile().then(function () { notifyAuth(); return res.data; }, function () { return res.data; });
+    });
+  };
+  // 회원가입 단계(로그인 전) 사업자 진위확인 — 국세청 대조만 수행, 프로필 기록 X.
+  //  통과 시 가입 시 metadata 로 사업자정보가 저장되고, 첫 로그인 시 자동으로 biz_verified 가 확정됨.
+  Backend.verifyBusinessData = function (data) {
+    var body = {
+      b_no: String((data && data.businessNo) || '').replace(/[^0-9]/g, ''),
+      start_dt: String((data && data.bizOpenDate) || '').replace(/[^0-9]/g, ''),
+      p_nm: String((data && data.ceoName) || '').trim()
+    };
+    if (body.b_no.length !== 10) return Promise.reject(new Error('BAD_BNO'));
+    if (!body.start_dt) return Promise.reject(new Error('NO_OPEN_DATE'));
+    if (!body.p_nm) return Promise.reject(new Error('NO_CEO'));
+    return sb.functions.invoke('verify-business', { body: body }).then(function (res) {
+      if (res.error) throw res.error;
+      if (res.data && res.data.code === 'NOT_CONFIGURED') throw new Error('NOT_CONFIGURED');
+      var ok = res.data && res.data.valid === true;
+      if (!ok) throw new Error((res.data && res.data.message) || 'BIZ_VERIFY_FAILED');
+      return res.data;
     });
   };
   // 관리자 수동 사업자 인증 승인/취소

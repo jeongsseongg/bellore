@@ -6803,6 +6803,17 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 /* 가입폼 제휴사 안내 */
 .signup-partner-note { font-size: 12px; color: var(--text-2); line-height: 1.6; margin: 4px 0 0; }
 
+/* 회원가입 사업자 인증 */
+.signup-bizverify { display: flex; align-items: center; gap: 10px; margin: 8px 0 2px; flex-wrap: wrap; }
+.signup-verify-btn {
+    flex: none; padding: 9px 16px; border-radius: 9px; border: 1px solid var(--text);
+    background: var(--text); color: var(--white); font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.signup-verify-btn:disabled { opacity: .55; cursor: default; }
+.signup-verify-state { flex: 1; min-width: 140px; font-size: 12px; color: var(--text-2); line-height: 1.5; }
+.signup-verify-state.ok { color: var(--dark-green); font-weight: 700; }
+.signup-verify-state.err { color: #c0392b; font-weight: 600; }
+
 /* ===== 정산내역 ===== */
 .stl-row { padding: 12px 0; border-bottom: 1px solid var(--border); }
 .stl-main { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }

@@ -3338,6 +3338,57 @@
         // 회원가입 폼
         var signupForm = $('#signupForm');
         if (signupForm) {
+            // 제휴사 사업자 인증(가입 단계, 국세청 진위확인) — 통과 시 인증 상태 보관
+            var _signupBizOk = false;
+            var bizVerifyBtn = $('#signupBizVerifyBtn');
+            var bizVerifyState = $('#signupBizVerifyState');
+            function setBizState(cls, msg) {
+                if (bizVerifyState) {
+                    bizVerifyState.textContent = msg;
+                    bizVerifyState.className = 'signup-verify-state' + (cls ? ' ' + cls : '');
+                }
+            }
+            // 입력값이 바뀌면 인증 무효화
+            ['businessNo', 'ceoName', 'bizOpenDate'].forEach(function (n) {
+                var el = signupForm.querySelector('[name="' + n + '"]');
+                if (el) el.addEventListener('input', function () {
+                    if (_signupBizOk) { _signupBizOk = false; setBizState('', '정보가 변경되어 다시 인증이 필요합니다.'); }
+                });
+            });
+            if (bizVerifyBtn) bizVerifyBtn.addEventListener('click', function () {
+                var fd = new FormData(signupForm);
+                var businessNo = String(fd.get('businessNo') || '').replace(/[^0-9]/g, '');
+                var ceoName = String(fd.get('ceoName') || '').trim();
+                var bizOpenDate = String(fd.get('bizOpenDate') || '').replace(/[^0-9]/g, '');
+                if (businessNo.length !== 10) { setBizState('err', '사업자등록번호 10자리를 정확히 입력해주세요.'); return; }
+                if (!ceoName) { setBizState('err', '대표자명을 입력해주세요.'); return; }
+                if (bizOpenDate.length !== 8) { setBizState('err', '개업일을 YYYYMMDD 형식으로 입력해주세요.'); return; }
+                if (!backendOn() || !NWBackend.verifyBusinessData) { setBizState('err', '백엔드 연결이 필요합니다.'); return; }
+                bizVerifyBtn.disabled = true;
+                setBizState('', '국세청 진위확인 중…');
+                NWBackend.verifyBusinessData({ businessNo: businessNo, ceoName: ceoName, bizOpenDate: bizOpenDate })
+                    .then(function () {
+                        _signupBizOk = true;
+                        setBizState('ok', '✓ 인증되었습니다');
+                    })
+                    .catch(function (err) {
+                        _signupBizOk = false;
+                        var code = (err && err.message) || '';
+                        if (code === 'NOT_CONFIGURED') {
+                            // 진위확인 API 미배포 → 가입은 진행하되 관리자 수동 승인으로 처리
+                            _signupBizOk = true;
+                            setBizState('ok', '확인 접수됨 — 가입 후 관리자 승인으로 처리됩니다.');
+                        } else if (code === 'BAD_BNO') {
+                            setBizState('err', '사업자등록번호 10자리를 정확히 입력해주세요.');
+                        } else {
+                            setBizState('err', '인증 실패 — 상호·사업자번호·대표자·개업일을 다시 확인해주세요.');
+                        }
+                    })
+                    .then(function () { bizVerifyBtn.disabled = false; });
+            });
+            signupForm._isBizVerified = function () { return _signupBizOk; };
+            signupForm._resetBiz = function () { _signupBizOk = false; setBizState('', '상호·사업자등록번호·대표자·개업일을 입력하고 인증을 눌러주세요.'); };
+
             signupForm.addEventListener('submit', function (e) {
                 e.preventDefault();
                 var fd = new FormData(signupForm);
@@ -3364,6 +3415,10 @@
                     if (!company) { alert('제휴사는 상호(회사명)를 입력해주세요.'); return; }
                     if (businessNo.length !== 10) { alert('사업자등록번호 10자리를 정확히 입력해주세요.'); return; }
                     if (!ceoName) { alert('대표자명을 입력해주세요.'); return; }
+                    if (signupForm._isBizVerified && !signupForm._isBizVerified()) {
+                        alert('사업자 인증을 먼저 완료해주세요. ("사업자 인증" 버튼)');
+                        return;
+                    }
                 }
                 if (!/^[A-Za-z0-9_]{4,}$/.test(username)) {
                     alert('아이디는 영문·숫자·밑줄(_) 4자 이상으로 입력해주세요.');
@@ -3383,15 +3438,16 @@
                         businessNo: businessNo, ceoName: ceoName, bizOpenDate: bizOpenDate, bizName: company })
                         .then(function () {
                             signupForm.reset();
+                            if (signupForm._resetBiz) signupForm._resetBiz();
                             var cf = $('#signupCompanyField'); if (cf) cf.style.display = 'none';
                             var pf = $('#signupPartnerFields'); if (pf) pf.style.display = 'none';
                             closeLoginModal();
                             if (role === 'vendor') {
-                                alert(name + '님, 업체 회원가입이 접수되었습니다.\n관리자 승인 후 입찰 기능을 이용하실 수 있습니다.');
+                                alert(name + '님, 업체 회원가입이 접수되었습니다.\n메일함의 이메일 인증 링크를 확인해주세요.\n이메일 인증 + 관리자 승인 후 입찰 기능을 이용하실 수 있습니다.');
                             } else if (role === 'partner') {
-                                alert(name + '님, 제휴사 가입이 접수되었습니다.\n마이페이지에서 사업자·휴대폰·계좌·이메일 인증을 완료하면 관리자 승인 후 상품 등록·판매가 가능합니다.');
+                                alert(name + '님, 제휴사 가입이 접수되었습니다.\n사업자 인증은 완료되었고, 메일함의 이메일 인증 링크를 확인해주세요.\n이메일 인증 + 관리자 승인 후 상품 등록·판매가 가능합니다.');
                             } else {
-                                alert(name + '님, 회원가입이 완료되었습니다.\n이메일 인증이 필요한 경우 메일을 확인해주세요.');
+                                alert(name + '님, 회원가입이 접수되었습니다.\n메일함의 이메일 인증 링크를 확인하시면 가입이 완료됩니다.');
                             }
                         })
                         .catch(function (err) {
