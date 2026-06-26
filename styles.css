@@ -6872,23 +6872,30 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 .signup-step-actions .login-default { flex: 1; }
 
 /* 인증 행(vrow) */
-.vrow { padding: 12px 0; border-bottom: 1px solid var(--border); }
-.vrow:first-of-type { padding-top: 0; }
-.vrow-label { display: block; font-size: 12.5px; color: var(--text-2); margin-bottom: 6px; font-weight: 600; }
-.vrow-input { display: flex; gap: 8px; }
-.vrow-input input { flex: 1; min-width: 0; }
-.vrow-code { display: flex; gap: 8px; margin-top: 8px; }
-.vrow-code input { flex: 1; min-width: 0; }
-.vrow-line { width: 100%; margin-bottom: 8px; }
-.vrow-btn {
-    flex: none; padding: 0 16px; height: 52px; border-radius: 12px; border: 1px solid var(--toss-blue);
-    background: var(--toss-blue-soft); color: var(--toss-blue); font-size: 13.5px; font-weight: 800; white-space: nowrap; cursor: pointer;
+/* 인증(휴대폰·사업자·계좌) 행 — 기본정보(su-fld) 와 동일한 UI 로 통일 */
+.vrow { display: block; padding: 0 0 18px; border-bottom: 0; }
+.vrow-label { display: block; font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 9px; }
+.vrow-input, .vrow-code { display: flex; gap: 8px; align-items: flex-start; }
+.vrow-code { margin-top: 8px; }
+.vrow-code[hidden], .vrow[hidden], .vrow-input[hidden] { display: none; }
+.vrow-input input, .vrow-code input, .vrow-line {
+    flex: 1; min-width: 0; width: 100%; height: 52px; padding: 0 16px;
+    border: 1px solid var(--border); border-radius: 12px; font-size: 16px;
+    color: var(--text); background: var(--white); -webkit-appearance: none;
 }
-.vrow-btn.full { width: 100%; height: 52px; margin-top: 4px; }
+.vrow-input input:focus, .vrow-code input:focus, .vrow-line:focus { outline: none; border-color: var(--text); }
+.vrow-input input::placeholder, .vrow-code input::placeholder, .vrow-line::placeholder { color: var(--text-3); }
+.vrow-line { display: block; margin-bottom: 8px; }
+.vrow-btn {
+    flex: none; padding: 0 16px; height: 52px; border-radius: 12px; border: 1px solid var(--text);
+    background: #fff; color: var(--text); font-size: 14px; font-weight: 700; white-space: nowrap; cursor: pointer;
+}
+.vrow-btn:hover { background: var(--bg-soft); }
+.vrow-btn.full { width: 100%; height: 52px; margin-top: 8px; }
 .vrow-btn:disabled { opacity: .55; cursor: default; }
-.vrow-state { display: block; margin-top: 7px; font-size: 12px; line-height: 1.5; color: var(--text-2); }
-.vrow-state.ok { color: var(--dark-green); font-weight: 700; }
-.vrow-state.err { color: #c0392b; font-weight: 600; }
+.vrow-state { display: block; margin-top: 7px; font-size: 12.5px; line-height: 1.5; color: var(--text-3); }
+.vrow-state.ok { color: #1f1f1f; font-weight: 700; }
+.vrow-state.err { color: #1f1f1f; font-weight: 600; }
 
 /* ===== 정산내역 ===== */
 .stl-row { padding: 12px 0; border-bottom: 1px solid var(--border); }
@@ -8519,7 +8526,9 @@ body.mypage-open .tabbar { z-index: 2550; }
   background: #f1efe9; border: 0; padding: 0; cursor: pointer; overflow: visible;
   display: inline-flex; align-items: center; justify-content: center; color: #b7b2a6; }
 .mp-avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
-.mp-avatar-ph { width: 34px; height: 34px; }
+/* 바이버 기본 이미지처럼: 회색 원 + 큰 사람 실루엣 */
+.mp-avatar { background: #e9e7e1; color: #b3aea2; }
+.mp-avatar-ph { width: 42px; height: 42px; }
 .mp-avatar-img:not([hidden]) + .mp-avatar-ph { display: none; }
 .mp-avatar-cam { position: absolute; right: -2px; bottom: -2px; width: 22px; height: 22px; border-radius: 50%;
   background: #111; color: #fff; display: inline-flex; align-items: center; justify-content: center;
@@ -8536,8 +8545,8 @@ body.mypage-open .tabbar { z-index: 2550; }
 .mp-role-pill[hidden] { display: none; }
 
 /* 원형 카테고리 5 */
-.mp-cats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px 2px; margin: 0 0 18px;
-  padding: 16px 6px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.mp-cats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px 2px; margin: 0 0 18px;
+  padding: 18px 6px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 .mp-cats .pl-item { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px;
   background: none; border: 0; cursor: pointer; padding: 0; }
 .mp-cats .pl-ic { width: 52px; height: 52px; border-radius: 50%; background: #f2f3f5; color: #111;
@@ -8753,6 +8762,20 @@ body.mypage-open .tabbar { z-index: 2550; }
 .prof-pick-opt b { font-size: 15px; font-weight: 800; color: var(--text); }
 .prof-pick-opt em { font-size: 12.5px; color: var(--text-3); font-style: normal; }
 
+/* 프로필 수정: 사진(추가/삭제) 에디터 — 큰 사람 실루엣 기본 이미지 */
+.prof-avatar-edit { display: flex; flex-direction: column; align-items: center; gap: 14px; margin: 4px 0 24px; }
+.prof-avatar { position: relative; width: 96px; height: 96px; border-radius: 50%; background: #e9e7e1;
+  color: #b3aea2; display: inline-flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; }
+.prof-avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+.prof-avatar-ph { width: 64px; height: 64px; }
+.prof-avatar-img:not([hidden]) + .prof-avatar-ph { display: none; }
+.prof-avatar.is-loading { opacity: .55; }
+.prof-avatar-acts { display: flex; gap: 8px; }
+.prof-avatar-btn { height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--text);
+  background: #fff; color: var(--text); font-size: 13.5px; font-weight: 700; cursor: pointer; }
+.prof-avatar-btn:hover { background: var(--bg-soft); }
+.prof-avatar-btn.ghost { border-color: var(--border); color: var(--text-2); }
+
 /* ============================================================
    토스식 입력 디자인 시스템 (로그인·회원가입·회원정보 공통)
    - 그린 액센트 폐기 → 토스 블루로 통일
@@ -8786,7 +8809,7 @@ body.mypage-open .tabbar { z-index: 2550; }
 
 /* 필수/선택 배지 */
 .vrow-req, .vrow-opt { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 999px; margin-left: 6px; vertical-align: middle; font-style: normal; }
-.vrow-req { background: var(--toss-blue-soft); color: var(--toss-blue); }
+.vrow-req { background: var(--bg-soft); color: var(--text-2); }
 .vrow-opt { background: var(--bg-soft); color: var(--text-3); }
 
 /* 회원정보 수정 페이지도 토스 블루로 통일 */
@@ -8882,6 +8905,15 @@ body.mypage-open > #header { display: none !important; }
     animation: none; overflow-y: auto;
 }
 #loginModal .login-close { background: transparent; font-size: 28px; top: calc(8px + env(safe-area-inset-top)); left: 10px; right: auto; }
+
+/* 로그인/회원가입: 모달 내부 스크롤 대신 '윈도우(페이지) 스크롤' 사용 — PC 이중 스크롤바 제거.
+   (마이페이지와 동일 방식: 본문/헤더/푸터를 숨기고 페이지 자체를 스크롤) */
+body.login-open > main,
+body.login-open > footer.footer,
+body.login-open > #header { display: none !important; }
+body.login-open .tabbar { display: none; }
+#loginModal { position: absolute; top: 0; bottom: auto; height: auto; min-height: 100%; }
+#loginModal .login-content { height: auto; min-height: 100dvh; overflow: visible; -webkit-overflow-scrolling: auto; }
 
 .login-logo { display: flex; justify-content: center; margin: 44px 0 38px; }
 .login-logo img { height: 30px; width: auto; object-fit: contain; }

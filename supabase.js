@@ -265,7 +265,9 @@
       // 주소(모든 회원) — 트리거가 프로필에 저장
       postcode: data.postcode || null,
       addr1: data.addr1 || null,
-      addr2: data.addr2 || null
+      addr2: data.addr2 || null,
+      // 광고성 정보 수신 동의(선택) — 컬럼 없어도 auth 메타에는 항상 보존
+      marketing_consent: !!data.adConsent
     };
     // 업체/제휴사: 사업자·계좌 정보는 metadata 로 전달 → 트리거가 프로필에 저장(세션 없어도 보존).
     //  단, biz_verified/account_verified 플래그는 클라이언트가 정하지 못함(보안).
@@ -455,6 +457,23 @@
         })
         .then(function () { return url; });
     });
+  };
+
+  // 프로필 사진 삭제 — auth 메타 + profiles.avatar_url 비우기
+  Backend.removeAvatar = function () {
+    if (!rawUser) return Promise.reject(new Error('NOT_LOGGED_IN'));
+    return sb.auth.updateUser({ data: { avatar_url: '' } })
+      .then(function () {
+        return sb.from('profiles').update({ avatar_url: null }).eq('id', rawUser.id)
+          .then(function (res) {
+            if (res.error && !/avatar_url|column/.test(res.error.message || '')) throw res.error;
+          });
+      })
+      .then(function () {
+        if (profile) profile.avatar_url = '';
+        return loadProfile().then(notifyAuth, notifyAuth);
+      })
+      .then(function () { return true; });
   };
 
   // 이메일(아이디) 변경 — 새 이메일로 확인메일 발송(확인해야 최종 반영)

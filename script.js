@@ -336,6 +336,10 @@
         var m = $('#myPageModal');
         if (!m) return;
         m.hidden = false;
+        // 하단 탭에서 '마이페이지'를 활성 표시(다른 탭 active 해제) — tabMy 는 data-nav 가 없어
+        // applyPage 가 칠해주지 못하므로 여기서 직접 처리한다.
+        var tm = $('#tabMy');
+        if (tm) { $$('.tab-item').forEach(function (t) { t.classList.remove('active'); }); tm.classList.add('active'); }
         // 마이페이지는 모달 내부 스크롤 대신 '윈도우(페이지) 스크롤'을 쓴다(PC 포함).
         // 뒤 페이지(판매시계 목록 등)가 아래로 비치지 않도록 본문을 숨긴다.
         document.body.classList.add('mypage-open');
@@ -582,7 +586,7 @@
                 pSet('pwvPhoneNo', u.phone || '등록된 번호 없음');
                 pSet('pwvEmailAddr', u.email || '');
             }
-            var P_TITLE = { home: '회원정보 수정', name: '닉네임 변경', email: '이메일 변경', phone: '휴대폰 변경', account: '계좌 변경', pw1: '비밀번호 변경', pw2: '본인인증', pw3: '새 비밀번호' };
+            var P_TITLE = { home: '회원정보 수정', name: '프로필 수정', email: '이메일 변경', phone: '휴대폰 변경', account: '계좌 변경', pw1: '비밀번호 변경', pw2: '본인인증', pw3: '새 비밀번호' };
             var P_BTN = { home: '', name: '저장', email: '변경 메일 보내기', phone: '저장', account: '저장', pw1: '다음', pw2: '', pw3: '변경 완료' };
             function gotoP(step) {
                 _pStep = step;
@@ -593,7 +597,7 @@
                 if (btn && lbl) { btn.textContent = lbl; btn.disabled = false; }
                 var sc = profPage.querySelector('.pp-scroll'); if (sc) sc.scrollTop = 0;
                 var u = pUser();
-                if (step === 'name') { var e1 = $('#pfName'); if (e1) e1.value = u.displayName || ''; }
+                if (step === 'name') { var e1 = $('#pfName'); if (e1) e1.value = u.displayName || ''; if (typeof applyAvatar === 'function') applyAvatar(u.avatarUrl || ''); }
                 else if (step === 'email') { var e2 = $('#pfEmail'); if (e2) e2.value = u.email || ''; }
                 else if (step === 'phone') { var e3 = $('#pfPhone'); if (e3) e3.value = u.phone || ''; var cr = $('#pfPhoneCodeRow'); if (cr) cr.hidden = true; pSet('pfPhoneState', ''); }
                 else if (step === 'account') { var b = $('#pfBank'), a = $('#pfAccount'), h = $('#pfHolder'); if (b) b.value = u.bankName || ''; if (a) a.value = u.bankAccount || ''; if (h) h.value = u.bankHolder || ''; }
@@ -621,6 +625,34 @@
             }
             window.BELLORE_openProfile = openProfilePage;
             var editBtn = $('#btnEditProfile'); if (editBtn) editBtn.addEventListener('click', openProfilePage);
+
+            // 프로필 사진 변경/삭제 (연필 → 프로필 수정 페이지 안에서 처리)
+            var pfAvChange = $('#pfAvatarChange'), pfAvDelete = $('#pfAvatarDelete'), pfAvBox = $('#pfAvatar');
+            function pickAvatar() {
+                if (!backendOn() || !NWBackend.uploadAvatar) { alert('사진 업로드 기능을 사용할 수 없습니다.'); return; }
+                var inp = document.createElement('input');
+                inp.type = 'file'; inp.accept = 'image/*';
+                inp.addEventListener('change', function () {
+                    var f = inp.files && inp.files[0]; if (!f) return;
+                    if (pfAvBox) pfAvBox.classList.add('is-loading');
+                    NWBackend.uploadAvatar(f)
+                        .then(function (url) { applyAvatar(url); })
+                        .catch(function (err) { alert('사진 업로드 실패: ' + (err && err.message || err)); })
+                        .then(function () { if (pfAvBox) pfAvBox.classList.remove('is-loading'); });
+                });
+                inp.click();
+            }
+            if (pfAvChange) pfAvChange.addEventListener('click', pickAvatar);
+            if (pfAvBox) pfAvBox.addEventListener('click', pickAvatar);
+            if (pfAvDelete) pfAvDelete.addEventListener('click', function () {
+                var u = pUser(); if (!u.avatarUrl) { applyAvatar(''); return; }
+                if (!NWBackend.removeAvatar) { alert('사진 삭제 기능을 사용할 수 없습니다.'); return; }
+                if (pfAvBox) pfAvBox.classList.add('is-loading');
+                NWBackend.removeAvatar()
+                    .then(function () { applyAvatar(''); })
+                    .catch(function (err) { alert('사진 삭제 실패: ' + (err && err.message || err)); })
+                    .then(function () { if (pfAvBox) pfAvBox.classList.remove('is-loading'); });
+            });
 
             $('#profBack').addEventListener('click', function () {
                 if (_pStep === 'home') closeProfilePage();
@@ -665,7 +697,11 @@
                 var btn = this, fail = function (err) { btn.disabled = false; alert('실패: ' + (err && err.message || err)); };
                 if (_pStep === 'name') {
                     var nm = ($('#pfName').value || '').trim(); if (!nm) { alert('닉네임을 입력하세요.'); return; }
-                    btn.disabled = true; NWBackend.updateDisplayName(nm).then(function () { setPV(); alert('닉네임이 변경되었습니다.'); gotoP('home'); }).catch(fail);
+                    btn.disabled = true; NWBackend.updateDisplayName(nm).then(function () {
+                        setPV(); alert('프로필이 저장되었습니다.');
+                        if (profPage.dataset.from === 'mypage') { profPage.dataset.from = ''; closeProfilePage(); }
+                        else gotoP('home');
+                    }).catch(fail);
                 } else if (_pStep === 'email') {
                     btn.disabled = true; NWBackend.updateEmail(($('#pfEmail').value || '').trim()).then(function () { btn.disabled = false; alert('확인 메일을 보냈어요. 새 이메일의 링크를 누르면 변경이 완료됩니다.'); gotoP('home'); }).catch(fail);
                 } else if (_pStep === 'phone') {
@@ -810,22 +846,12 @@
             });
         }
 
-        // ===== 닉네임 인라인 수정 =====
+        // ===== 프로필 수정(사진+닉네임): 이름 옆 연필 → 프로필 페이지 'name' 단계 =====
         var mpNameEdit = $('#mpNameEdit');
-        if (mpNameEdit && backendOn() && NWBackend.updateDisplayName) {
+        if (mpNameEdit) {
             mpNameEdit.addEventListener('click', function () {
-                var u = (NWBackend.currentUser && NWBackend.currentUser()) || null;
-                if (!u) { alert('로그인 후 이용해 주세요.'); return; }
-                var cur = u.displayName || '';
-                var nm = window.prompt('새 닉네임을 입력하세요.', cur);
-                if (nm == null) return;
-                nm = nm.trim();
-                if (!nm || nm === cur) return;
-                NWBackend.updateDisplayName(nm)
-                    .then(function () {
-                        var ne = $('#myPageName'); if (ne) ne.textContent = nm + '님';
-                    })
-                    .catch(function (err) { alert('닉네임 변경 실패: ' + (err && err.message || err)); });
+                if (!backendOn() || !NWBackend.currentUser || !NWBackend.currentUser()) { alert('로그인 후 이용해 주세요.'); return; }
+                if (window.BELLORE_openProfile) window.BELLORE_openProfile('name', 'mypage');
             });
         }
 
@@ -1268,11 +1294,13 @@
         if (rRow) rRow.innerHTML = recent.map(miniProdCard).join('');
         if (rEmpty) rEmpty.hidden = recent.length > 0;
     }
-    // 아바타 이미지 적용
+    // 아바타 이미지 적용 (마이페이지 헤더 + 프로필 수정 페이지 모두 갱신)
     function applyAvatar(url) {
-        var img = $('#mpAvatarImg'); if (!img) return;
-        if (url) { img.src = url; img.hidden = false; }
-        else { img.removeAttribute('src'); img.hidden = true; }
+        ['#mpAvatarImg', '#pfAvatarImg'].forEach(function (sel) {
+            var img = $(sel); if (!img) return;
+            if (url) { img.src = url; img.hidden = false; }
+            else { img.removeAttribute('src'); img.hidden = true; }
+        });
     }
     window.BELLORE_applyAvatar = applyAvatar;
 
@@ -3035,11 +3063,12 @@
     function closeLoginModal() {
         var lm = $('#loginModal');
         if (lm) { lm.hidden = true; document.body.style.overflow = ''; }
+        document.body.classList.remove('login-open');
     }
 
     function openLoginModal() {
         var lm = $('#loginModal');
-        if (lm) { lm.hidden = false; document.body.style.overflow = 'hidden'; }
+        if (lm) { lm.hidden = false; document.body.classList.add('login-open'); document.body.style.overflow = ''; try { window.scrollTo(0, 0); } catch (e) {} }
         // 항상 로그인 화면부터
         if (window.BELLORE_showLoginPanel) window.BELLORE_showLoginPanel('login');
     }
@@ -3948,8 +3977,8 @@
                 var blk = $('#suBizBlock'); if (blk) blk.hidden = !biz;
                 var hint = $('#signupStep2Hint');
                 if (hint) hint.textContent = biz
-                    ? '휴대폰·사업자·계좌 인증은 필수, 이메일은 선택입니다.'
-                    : '휴대폰 인증은 필수, 이메일 인증은 선택입니다.';
+                    ? '휴대폰·사업자·계좌 인증을 진행해 주세요.'
+                    : '휴대폰 본인인증을 진행해 주세요.';
                 var sub = $('#signupSubmitBtn'); if (sub) sub.textContent = biz ? '가입 신청' : '가입 완료';
                 var ttl = $('#signupStep1Title');
                 if (ttl) ttl.textContent = (role === 'vendor' ? '업체 회원 정보' : role === 'partner' ? '제휴사 정보' : '기본 정보');
@@ -4066,7 +4095,8 @@
                     bizOpenDate: String(fd.get('bizOpenDate') || '').replace(/[^0-9]/g, ''),
                     bank: String(fd.get('bank') || '').trim(),
                     account: String(fd.get('account') || '').replace(/[^0-9]/g, ''),
-                    holder: String(fd.get('holder') || '').trim()
+                    holder: String(fd.get('holder') || '').trim(),
+                    adConsent: !!($('#signupAdConsent') && $('#signupAdConsent').checked)
                 };
                 d.bizName = d.company;
 
@@ -5056,7 +5086,9 @@
             // 로그인 상태면 마이페이지, 아니면 로그인 모달
             if (backendOn() && NWBackend.currentUser()) { openMyPage(); return; }
             modal.hidden = false;
-            document.body.style.overflow = 'hidden';
+            document.body.classList.add('login-open');
+            document.body.style.overflow = '';
+            try { window.scrollTo(0, 0); } catch (e) {}
         }
         if (btnMy) btnMy.addEventListener('click', openMyOrLogin);
         var tabMy = $('#tabMy');
@@ -5066,6 +5098,7 @@
             if (e.target.closest('[data-mclose]')) {
                 modal.hidden = true;
                 document.body.style.overflow = '';
+                document.body.classList.remove('login-open');
             }
         });
 
@@ -5073,6 +5106,7 @@
             if (e.key === 'Escape' && !modal.hidden) {
                 modal.hidden = true;
                 document.body.style.overflow = '';
+                document.body.classList.remove('login-open');
             }
         });
 

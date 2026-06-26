@@ -1952,7 +1952,7 @@
 
     <!-- 로그인 / 회원가입 모달 -->
     <div class="login-modal" id="loginModal" hidden>
-        <div class="login-backdrop" data-mclose></div>
+        <div class="login-backdrop"></div>
         <div class="login-content">
             <button class="login-close" data-mclose aria-label="닫기">×</button>
 
@@ -2060,6 +2060,14 @@
                             <span class="su-input su-mt"><input type="text" name="addr1" id="signupAddr1" placeholder="기본 주소" readonly required></span>
                             <span class="su-input su-mt"><input type="text" name="addr2" id="signupAddr2" placeholder="상세 주소 (동·호수 등)"></span>
                         </label>
+                        <label class="su-fld"><span class="su-label">이메일</span>
+                            <span class="su-input"><input type="email" name="email" id="suEmail" placeholder="email@example.com" autocomplete="email"></span>
+                            <small class="su-help">주문·배송 안내와 비밀번호 찾기에 사용됩니다. (선택)</small>
+                        </label>
+                        <label class="signup-check su-adcheck">
+                            <input type="checkbox" id="signupAdConsent">
+                            <span>광고성 정보(혜택·이벤트) 수신에 동의합니다. (선택)</span>
+                        </label>
                         <label class="signup-check">
                             <input type="checkbox" id="signupAgree">
                             <span>아래 약관에 동의합니다</span>
@@ -2077,7 +2085,7 @@
                     <div class="signup-step" id="signupStep2" hidden>
                         <button type="button" class="lp-back" id="signupPrev">‹ 이전</button>
                         <div class="login-head"><h2>본인인증을<br>진행해 주세요.</h2></div>
-                        <p class="signup-step-hint" id="signupStep2Hint">휴대폰 인증은 필수, 이메일 인증은 선택입니다.</p>
+                        <p class="signup-step-hint" id="signupStep2Hint">휴대폰 본인인증을 진행해 주세요.</p>
 
                         <!-- 휴대폰 (필수) -->
                         <div class="vrow" data-v="phone">
@@ -2091,20 +2099,6 @@
                                 <button type="button" class="vrow-btn" data-vconfirm="phone">확인</button>
                             </div>
                             <span class="vrow-state" data-vstate="phone"></span>
-                        </div>
-
-                        <!-- 이메일 (선택) -->
-                        <div class="vrow" data-v="email">
-                            <span class="vrow-label">이메일 <i class="vrow-opt">선택</i></span>
-                            <div class="vrow-input">
-                                <input type="email" name="email" id="suEmail" placeholder="email@example.com">
-                                <button type="button" class="vrow-btn" data-vsend="email">인증번호 발송</button>
-                            </div>
-                            <div class="vrow-code" hidden>
-                                <input type="text" inputmode="numeric" id="suEmailCode" placeholder="인증번호 6자리">
-                                <button type="button" class="vrow-btn" data-vconfirm="email">확인</button>
-                            </div>
-                            <span class="vrow-state" data-vstate="email"></span>
                         </div>
 
                         <!-- 업체/제휴사: 사업자 + 계좌 (필수) -->
@@ -2257,40 +2251,16 @@
                     </button>
                 </div>
 
-                <p class="admin-menu-cap">주문</p>
+                <p class="admin-menu-cap">운영</p>
                 <div class="admin-menu">
-                    <button type="button" class="admin-menu-row" data-apv="orders" data-ofilter="today">
-                        <span>오늘 주문</span>
-                        <span class="amr-right"><span class="amr-badge" id="amrOToday" hidden>0</span><span class="amr-arrow">›</span></span>
-                    </button>
-                    <button type="button" class="admin-menu-row" data-apv="orders" data-ofilter="pending">
-                        <span>결제 대기</span>
-                        <span class="amr-right"><span class="amr-badge" id="amrOrders" hidden>0</span><span class="amr-arrow">›</span></span>
-                    </button>
-                    <button type="button" class="admin-menu-row" data-apv="orders" data-ofilter="paid">
-                        <span>결제 완료 (배송 준비)</span>
-                        <span class="amr-right"><span class="amr-badge" id="amrOPaid" hidden>0</span><span class="amr-arrow">›</span></span>
-                    </button>
-                    <button type="button" class="admin-menu-row" data-apv="orders" data-ofilter="shipping">
-                        <span>배송 중</span>
-                        <span class="amr-right"><span class="amr-arrow">›</span></span>
-                    </button>
-                    <button type="button" class="admin-menu-row" data-apv="orders" data-ofilter="delivered">
-                        <span>배송 완료</span>
-                        <span class="amr-right"><span class="amr-arrow">›</span></span>
-                    </button>
                     <button type="button" class="admin-menu-row" data-apv="orders" data-ofilter="">
-                        <span>전체 주문</span>
-                        <span class="amr-right"><span class="amr-arrow">›</span></span>
+                        <span>주문 관리 <em class="amr-sub">대기·결제·배송·전체</em></span>
+                        <span class="amr-right"><span class="amr-badge" id="amrOrders" hidden>0</span><span class="amr-arrow">›</span></span>
                     </button>
                     <button type="button" class="admin-menu-row" data-apv="returns">
                         <span>교환 · 반품</span>
                         <span class="amr-right"><span class="amr-badge" id="amrReturns" hidden>0</span><span class="amr-arrow">›</span></span>
                     </button>
-                </div>
-
-                <p class="admin-menu-cap">운영</p>
-                <div class="admin-menu">
                     <button type="button" class="admin-menu-row" data-apv="coupons">
                         <span>쿠폰 관리</span>
                         <span class="amr-right"><span class="amr-arrow">›</span></span>
@@ -2886,9 +2856,19 @@
                 </button>
             </section>
 
-            <!-- 닉네임 -->
+            <!-- 프로필(사진+닉네임) -->
             <section class="prof-step" data-pstep="name" hidden>
-                <h3 class="prof-q">어떤 닉네임으로<br>바꿀까요?</h3>
+                <h3 class="prof-q">프로필을<br>수정해 주세요.</h3>
+                <div class="prof-avatar-edit">
+                    <span class="prof-avatar" id="pfAvatar">
+                        <img class="prof-avatar-img" id="pfAvatarImg" alt="" hidden>
+                        <svg class="prof-avatar-ph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+                    </span>
+                    <div class="prof-avatar-acts">
+                        <button type="button" class="prof-avatar-btn" id="pfAvatarChange">사진 변경</button>
+                        <button type="button" class="prof-avatar-btn ghost" id="pfAvatarDelete">사진 삭제</button>
+                    </div>
+                </div>
                 <label class="prof-fld"><span>닉네임</span><input type="text" id="pfName" placeholder="닉네임" autocomplete="nickname"></label>
             </section>
 
