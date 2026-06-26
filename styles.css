@@ -8234,7 +8234,7 @@ body.is-searching .tabbar { display: none !important; }
 
 /* 마이페이지: '새창' 느낌 제거 — 화면을 꽉 채우는 앱 내 페이지처럼 표시
    (떠있는 카드/딤 배경 대신 전체화면, PC/모바일/와이드 반응형) */
-#myPageModal { padding: 0; align-items: stretch; justify-content: stretch; background: #f4f1ea;
+#myPageModal { padding: 0; align-items: stretch; justify-content: stretch; background: #fff;
   left: 50%; right: auto; transform: translateX(-50%); width: 100%; max-width: var(--app-w);
   box-shadow: 0 0 80px rgba(0,0,0,.18); }
 #myPageModal .login-backdrop { display: none; }
@@ -8247,7 +8247,7 @@ body.is-searching .tabbar { display: none !important; }
   min-height: 100dvh;
   border-radius: 0;
   box-shadow: none;
-  background: #f4f1ea;
+  background: #fff;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding: calc(20px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom));
@@ -8259,8 +8259,7 @@ body.is-searching .tabbar { display: none !important; }
 #myPageModal .mypage-noti,
 #myPageModal .pocket,
 #myPageModal .mypage-cart-link,
-#myPageModal #btnLogout,
-#myPageModal #btnEditProfile { width: 100%; max-width: 720px; margin-left: auto; margin-right: auto; }
+#myPageModal #btnLogout { width: 100%; max-width: 720px; margin-left: auto; margin-right: auto; }
 #myPageModal .login-close { top: calc(12px + env(safe-area-inset-top)); right: 14px; z-index: 5; }
 
 /* 관리 패널(z 3200) 위에서 열리는 화면들은 더 위로 올려 가린 채로 뜨지 않게 한다
@@ -8730,6 +8729,23 @@ body.is-searching .tabbar { display: none !important; }
 /* #11 PC 포함 — 모달 내부 자체 스크롤 제거, 윈도우(페이지) 스크롤 사용 */
 #myPageModal { position: absolute; top: 0; bottom: auto; height: auto; min-height: 100%; }
 #myPageModal .login-content { height: auto; min-height: 100dvh; overflow: visible; -webkit-overflow-scrolling: auto; }
+
+/* 마이페이지가 윈도우 스크롤을 쓰는 동안 뒤 페이지(판매시계 목록 등)가 아래로 비치지 않게 본문을 숨김 */
+body.mypage-open > main,
+body.mypage-open > footer.footer,
+body.mypage-open > #header { display: none !important; }
+
+/* 회원정보 수정 단계 화면: 좌우 여백 + 가운데 정렬(DESIGN.md §0/§7) */
+.profile-page .prof-step { padding-left: 22px; padding-right: 22px; max-width: 600px; margin-left: auto; margin-right: auto; }
+.profile-page .pp-bottom { padding-left: 22px; padding-right: 22px; }
+.profile-page .pp-bottom .pp-buy { max-width: 556px; margin-left: auto; margin-right: auto; }
+/* 관리자 편집(쿠폰 등) 폼도 동일한 좌우 여백 + 가운데 정렬 */
+.cp-page .cp-form2 { max-width: 600px; margin-left: auto; margin-right: auto; padding-left: 22px; padding-right: 22px; }
+
+/* #3 로그인 — 자동 로그인 · 아이디 기억하기 체크 */
+.login-remember { display: flex; align-items: center; gap: 18px; margin: 2px 2px 14px; }
+.login-remember .lr-check { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text-2); cursor: pointer; }
+.login-remember .lr-check input { width: 16px; height: 16px; accent-color: #111; cursor: pointer; }
 
 /* #3 관리자 회원관리 — 빨간 글씨 금지, 모노크롬으로 보기 편하게 */
 .mem-role,

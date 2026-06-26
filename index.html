@@ -1978,6 +1978,10 @@
                     <label class="ti-fld pw-fld"><span>비밀번호</span>
                         <span class="pw-wrap"><input type="password" name="pw" id="loginPw" placeholder="비밀번호" autocomplete="current-password" required><button type="button" class="pw-eye" data-eye="loginPw" aria-label="비밀번호 표시"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg></button></span>
                     </label>
+                    <div class="login-remember">
+                        <label class="lr-check"><input type="checkbox" id="loginAutoLogin" checked><span>자동 로그인</span></label>
+                        <label class="lr-check"><input type="checkbox" id="loginRememberId" checked><span>아이디 기억하기</span></label>
+                    </div>
                     <button type="submit" class="login-btn login-default ti-cta">로그인</button>
                 </form>
                 <p class="login-switch">
@@ -2283,7 +2287,7 @@
                 <!-- 나의쇼핑 -->
                 <div class="pocket-shop">
                     <div class="pocket-shop-head">
-                        <h4>나의 주문 (My Orders)</h4>
+                        <h4>나의 주문</h4>
                         <button type="button" class="pocket-shop-all" id="pocketOrders">주문전체보기 ›</button>
                     </div>
                     <div class="pocket-status">
@@ -2362,7 +2366,6 @@
         <div class="login-content orders-content">
             <button class="login-close" data-ordclose aria-label="닫기">×</button>
             <div class="login-head">
-                <p class="login-eyebrow">MY ORDERS</p>
                 <h2>나의 주문</h2>
             </div>
             <div class="orders-tabs" id="ordersTabs">

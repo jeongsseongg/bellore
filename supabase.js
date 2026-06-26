@@ -246,6 +246,9 @@
   Backend.signUp = function (data) {
     var role = (data.role === 'vendor' || data.role === 'partner') ? data.role : 'customer';
     var uname = (data.username || '').trim();
+    // 이메일 인증 없이 가입 가능: 이메일을 비우면 아이디 기반 합성 이메일을 자동 생성.
+    // (아이디 로그인은 email_for_username RPC가 이 이메일을 되돌려 주므로 그대로 동작.)
+    var signupEmail = (data.email && data.email.trim()) || (uname ? (uname.toLowerCase() + '@id.bellore.co.kr') : null);
     // 아이디 중복 사전 검사
     var pre = uname
       ? sb.rpc('email_for_username', { uname: uname }).then(function (r) {
@@ -277,14 +280,16 @@
     }
     return pre.then(function () {
       return sb.auth.signUp({
-        email: data.email,
+        email: signupEmail,
         password: data.password,
         options: { data: meta }
       });
     }).then(function (res) {
       if (res.error) throw res.error;
-      // 트리거가 채우지 않는 항목은 세션이 있으면 보강
-      if (res.data && res.data.session) {
+      var user = res.data && res.data.user;
+      // 트리거가 채우지 않는 항목을 세션 확보 후 보강
+      function patchProfile() {
+        if (!user) return Promise.resolve();
         var patch = {};
         if (data.phone) patch.phone = data.phone;
         if (uname) patch.username = uname;
@@ -302,12 +307,19 @@
           if (data.account) patch.bank_account = String(data.account).replace(/[^0-9-]/g, '');
           if (data.holder) { patch.bank_holder = String(data.holder).trim(); patch.account_submitted_at = new Date().toISOString(); }
         }
-        if (Object.keys(patch).length) {
-          sb.from('profiles').update(patch)
-            .eq('id', res.data.user.id).then(function () {}, function () {});
-        }
+        if (!Object.keys(patch).length) return Promise.resolve();
+        return sb.from('profiles').update(patch).eq('id', user.id).then(function () {}, function () {});
       }
-      return res.data.user;
+      // 이미 세션이 있으면(이메일 확인 비활성) 바로 보강 후 반환 = 자동 로그인
+      if (res.data && res.data.session) {
+        return patchProfile().then(function () { return user; });
+      }
+      // 세션이 없으면 비밀번호로 즉시 로그인 시도 → 이메일 인증 없이 바로 로그인 상태로.
+      return sb.auth.signInWithPassword({ email: signupEmail, password: data.password })
+        .then(function (r2) {
+          if (!r2.error) return patchProfile().then(function () { return user; });
+          return user; // 자동 로그인 실패해도 가입 자체는 성공으로 처리
+        }, function () { return user; });
     });
   };
 

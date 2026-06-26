@@ -337,6 +337,8 @@
         if (!m) return;
         m.hidden = false;
         // 마이페이지는 모달 내부 스크롤 대신 '윈도우(페이지) 스크롤'을 쓴다(PC 포함).
+        // 뒤 페이지(판매시계 목록 등)가 아래로 비치지 않도록 본문을 숨긴다.
+        document.body.classList.add('mypage-open');
         document.body.style.overflow = '';
         try { window.scrollTo(0, 0); } catch (e) {}
         renderMyItemsBackend(myListingsCache); // 현재 캐시로 즉시 렌더
@@ -407,6 +409,7 @@
     function closeMyPage() {
         var m = $('#myPageModal');
         if (m) { m.hidden = true; document.body.style.overflow = ''; }
+        document.body.classList.remove('mypage-open');
         closeMpSub();
     }
     window.BELLORE_openMyPage = openMyPage;
@@ -433,6 +436,15 @@
     var notiCache = [];
     function initAccountUI() {
         if (!backendOn()) return;
+
+        // 자동 로그인 OFF: 브라우저를 새로 연 세션이면 저장된 로그인을 해제한다.
+        // (체크 시엔 Supabase 기본 동작대로 세션이 유지되어 자동 로그인됨)
+        try {
+            if (localStorage.getItem('bellore_autologin') === '0' && !sessionStorage.getItem('bellore_sess_alive')) {
+                if (NWBackend.signOut) NWBackend.signOut();
+            }
+            sessionStorage.setItem('bellore_sess_alive', '1');
+        } catch (e) {}
 
         // 구글 로그인
         var g = $('#loginGoogle');
@@ -733,8 +745,12 @@
             }
         }
         if (btnNoti) btnNoti.addEventListener('click', function () { toggleNotiInline(); });
-        // 상단 헤더 알림 벨 → 마이페이지 열고 알림 펼치기
+        // 상단 헤더 알림 벨 → 마이페이지 열고 알림 펼치기(로그인 안 했으면 로그인 모달)
         if (btnNotiTop) btnNotiTop.addEventListener('click', function () {
+            if (backendOn() && NWBackend.currentUser && !NWBackend.currentUser()) {
+                var lm = $('#loginModal'); if (lm) { lm.hidden = false; document.body.style.overflow = 'hidden'; }
+                return;
+            }
             if (window.BELLORE_openMyPage) window.BELLORE_openMyPage();
             else { var mm = $('#myPageModal'); if (mm) mm.hidden = false; }
             setTimeout(function () { toggleNotiInline(true); }, 60);
@@ -986,6 +1002,10 @@
             NWBackend.markNotificationRead(id).then(function () {}, function () {});
         }
         it.classList.remove('unread');
+        // 읽음을 즉시 반영해 홈 헤더 배지(#notiBadgeTop)와 마이페이지 배지(#notiBadge)를 함께 동기화
+        // (실시간 구독이 아직 안 켜진 환경에서도 바로 줄어들도록 하는 클라이언트 폴백)
+        notiCache.forEach(function (n) { if (String(n.id) === String(id)) n.read = true; });
+        updateNotiBadge(notiCache.filter(function (n) { return !n.read; }).length);
         var tgt = notiTarget(type);
         var nm = $('#notiModal'); if (nm) { nm.hidden = true; document.body.style.overflow = ''; }
         if (tgt === 'cq') {
@@ -1377,8 +1397,7 @@
                 adminBox.hidden = !isAdmin;
                 if (isAdmin) renderAdminCoupons();
             }
-            var mySec = $('#myCouponSection');
-            if (mySec) mySec.hidden = !user;
+            // 내 쿠폰은 허브 '쿠폰' 카테고리 서브페이지로만 노출(본문에 중복 표시하지 않음)
             if (user) renderMyCoupons();
             else {
                 var el = $('#myCouponList'); if (el) el.innerHTML = '';
@@ -2019,8 +2038,10 @@
         NWBackend.onAuthChange(function (user, info) {
             var isAdmin = !!(info && info.isAdmin);
             ['adminDashBox', 'adminMenuBox'].forEach(function (id) { var el = $('#' + id); if (el) el.hidden = !isAdmin; });
-            // 관리자에겐 고객용 영역 숨김(포인트/내쿠폰/소식 시계)
-            ['pocketBox', 'myAlertsSection', 'myCartLink', 'mpHubCats'].forEach(function (id) {
+            // 관리자에겐 고객용 영역 숨김(포인트/장바구니/원형 카테고리)
+            // ※ myAlertsSection(소식 기다리는 시계)은 허브 '소식시계' 서브페이지로만 노출하므로
+            //    여기서 다시 켜지 않는다(본문 중복 표시 방지).
+            ['pocketBox', 'myCartLink', 'mpHubCats'].forEach(function (id) {
                 var el = $('#' + id); if (el) el.hidden = isAdmin;
             });
             if (!isAdmin) { var p = $('#adminPanel'); if (p) p.hidden = true; }
@@ -3505,6 +3526,17 @@
         // 로그인 폼
         var loginForm = $('#loginForm');
         if (loginForm) {
+            var rememberId = $('#loginRememberId');
+            var autoLogin = $('#loginAutoLogin');
+            // 저장된 아이디/설정 불러오기(아이디 기억하기 · 자동 로그인)
+            try {
+                var savedId = localStorage.getItem('bellore_saved_id');
+                var idInp = loginForm.querySelector('[name="id"]');
+                if (savedId && idInp) { idInp.value = savedId; if (rememberId) rememberId.checked = true; }
+                else if (rememberId) rememberId.checked = false;
+                if (autoLogin) autoLogin.checked = localStorage.getItem('bellore_autologin') !== '0';
+            } catch (e) {}
+
             loginForm.addEventListener('submit', function (e) {
                 e.preventDefault();
                 if (!backendOn()) { return; }
@@ -3515,6 +3547,12 @@
                     alert('아이디(또는 이메일)와 비밀번호를 입력해주세요.');
                     return;
                 }
+                // 아이디 기억하기 · 자동 로그인 설정 저장
+                try {
+                    if (rememberId && rememberId.checked) localStorage.setItem('bellore_saved_id', idOrEmail);
+                    else localStorage.removeItem('bellore_saved_id');
+                    if (autoLogin) localStorage.setItem('bellore_autologin', autoLogin.checked ? '1' : '0');
+                } catch (e2) {}
                 NWBackend.signIn({ idOrEmail: idOrEmail, password: pw }).then(function (user) {
                     loginForm.reset();
                     closeLoginModal();
