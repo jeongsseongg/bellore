@@ -8982,3 +8982,83 @@ body.mypage-open > #header { display: none !important; }
 .su-help { display: block; font-size: 12.5px; margin-top: 7px; color: var(--text-3); min-height: 1px; }
 .su-help.ok { color: #1f1f1f; font-weight: 600; }
 .su-help.err { color: #1f1f1f; font-weight: 600; }
+
+/* ============================================================
+   마이페이지/설정/구매내역 재개편 (바이버 레퍼런스 기준)
+   - 상단 X 제거, 큰 ← 뒤로가기, 큰 제목, 풀폭 구분선
+   - 구매내역 풀페이지화, PC 좌우 여백 통일
+   ============================================================ */
+
+/* 공통 큰 뒤로가기(바이버식 긴 ←) */
+.fp-back { width: 44px; height: 44px; min-width: 44px; padding: 0; margin-left: -8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: none; border: 0; border-radius: 50%; color: #111; cursor: pointer; box-shadow: none; }
+.fp-back svg { width: 26px; height: 26px; display: block; }
+.fp-back:active { background: rgba(0,0,0,.05); }
+
+/* 풀페이지 상단바: 큰 제목 */
+.pp-topbar { height: 60px; padding: 0 10px; gap: 2px; }
+.pp-topbar-title { font-size: 20px; font-weight: 800; color: #111; }
+.pp-topbar-spacer { display: none; }
+
+/* 마이페이지 서브바 / 구매내역 상단바 */
+.mp-sub-bar { display: none; align-items: center; gap: 2px;
+  margin: -10px -16px 10px; padding: 4px 10px; height: 56px; }
+.login-content.mp-sub > .mp-sub-bar,
+.orders-content .mp-sub-bar { display: flex; }
+.mp-sub-back { width: 44px; height: 44px; box-shadow: none; background: none; border-radius: 50%;
+  color: #111; }
+.mp-sub-title { font-size: 20px; font-weight: 800; color: #111; }
+
+/* 역할 메뉴 리스트(구매/판매 내역 등): 큰 제목 + 회색 카운트 + 풀폭 구분선 */
+.mp-menu-row { padding: 19px 2px; gap: 10px; }
+.mp-menu-row .mr-label { font-size: 17px; font-weight: 800; color: #111; }
+.mp-menu-row .mr-count { font-size: 15px; font-weight: 700; color: #b0a99c; }
+.mp-menu-row .mr-arrow { font-size: 20px; color: #c4beb2; }
+
+/* 설정·회원정보 home 리스트: 박스 카드 → 평평한 줄 + 풀폭 구분선 */
+#settingsPage .prof-row,
+#profilePage .prof-step[data-pstep="home"] .prof-row {
+  margin: 0; padding: 18px 2px; background: none; border: 0;
+  border-bottom: 1px solid var(--border); border-radius: 0; }
+#settingsPage .prof-row:hover,
+#profilePage .prof-step[data-pstep="home"] .prof-row:hover { border-color: var(--border); }
+#settingsPage .prof-row:active,
+#profilePage .prof-step[data-pstep="home"] .prof-row:active { background: var(--bg-soft, #f7f5f0); }
+#settingsPage .prof-row-l,
+#profilePage .prof-step[data-pstep="home"] .prof-row-l { font-size: 16px; font-weight: 700; }
+#settingsPage .prof-row-a,
+#profilePage .prof-step[data-pstep="home"] .prof-row-a { font-size: 20px; color: #c4beb2; }
+#profilePage .prof-step[data-pstep="home"] .prof-lead { padding: 6px 2px 12px; margin: 0; }
+/* 설정 그룹 구분: 연한 회색 띠(레퍼런스의 그룹 간격) */
+#settingsPage .set-gap { height: 10px; margin: 8px -22px; background: var(--bg-soft, #f4f2ec);
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+
+/* 설정/회원정보 본문 좌우 여백·컬럼 통일(PC 포함) */
+.profile-page .set-step { padding-left: 22px; padding-right: 22px;
+  max-width: 600px; margin-left: auto; margin-right: auto; }
+
+/* 구매내역 풀페이지화(팝업 → 전체화면) */
+#ordersModal { padding: 0; align-items: stretch; justify-content: stretch; background: #fff;
+  left: 50%; right: auto; transform: translateX(-50%); width: 100%; max-width: var(--app-w);
+  box-shadow: 0 0 80px rgba(0,0,0,.18); }
+#ordersModal .login-backdrop { display: none; }
+#ordersModal .login-content.orders-content {
+  max-width: 100%; width: 100%; max-height: none; height: 100%;
+  min-height: 100vh; min-height: 100dvh; border-radius: 0; box-shadow: none; background: #fff;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: calc(8px + env(safe-area-inset-top)) 16px calc(80px + env(safe-area-inset-bottom));
+  animation: none; }
+#ordersModal .orders-tabs { padding: 6px 0 12px; }
+#ordersModal .orders-list { max-height: none; overflow: visible; }
+
+/* PC(>=700) 좌우 여백 통일 */
+@media (min-width: 700px) {
+  #myPageModal .login-content,
+  #ordersModal .login-content.orders-content { padding-left: 22px; padding-right: 22px; }
+  #myPageModal .mp-head,
+  #myPageModal .mp-cats,
+  #myPageModal .mp-banner,
+  #myPageModal .mp-menu,
+  #myPageModal .mp-subsec { max-width: 600px; margin-left: auto; margin-right: auto; }
+}

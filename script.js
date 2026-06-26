@@ -601,13 +601,20 @@
                 else if (step === 'pw2') { setPV(); var cr2 = $('#pwvCodeRow'); if (cr2) cr2.hidden = true; pSet('pwvState', ''); _pwOk = false; _pwMethod = null; $$('.prof-pick-opt', profPage).forEach(function (x) { x.classList.remove('on'); }); }
                 else if (step === 'pw3') { var n1 = $('#pfNewPw'), n2 = $('#pfNewPw2'); if (n1) n1.value = ''; if (n2) n2.value = ''; }
             }
-            function openProfilePage(step) {
+            function openProfilePage(step, from) {
                 if (!backendOn() || !NWBackend.currentUser || !NWBackend.currentUser()) { alert('로그인 후 이용해 주세요.'); return; }
+                profPage.dataset.from = from || '';
                 setPV(); gotoP(typeof step === 'string' ? step : 'home');
                 profPage.hidden = false; document.body.style.overflow = 'hidden';
             }
             function closeProfilePage() {
                 profPage.hidden = true;
+                // 설정에서 진입했으면 뒤로 시 설정으로 복귀
+                if (profPage.dataset.from === 'settings' && window.BELLORE_openSettings) {
+                    profPage.dataset.from = '';
+                    window.BELLORE_openSettings();
+                    return;
+                }
                 // 마이페이지가 뒤에 떠 있으면 스크롤 잠금 유지, 아니면 해제
                 var mp = $('#myPageModal');
                 document.body.style.overflow = (mp && !mp.hidden) ? 'hidden' : '';
@@ -778,9 +785,9 @@
                 if (!row) return;
                 var go = row.getAttribute('data-sgo');
                 if (go === 'noti') { setStep('noti'); return; }
-                // 회원정보 수정 / 정산계좌 변경 → 회원정보 페이지
+                // 회원정보 수정 / 정산계좌 변경 → 회원정보 페이지 (뒤로 시 설정 복귀)
                 closeSettings();
-                if (window.BELLORE_openProfile) window.BELLORE_openProfile(go === 'account' ? 'account' : 'home');
+                if (window.BELLORE_openProfile) window.BELLORE_openProfile(go === 'account' ? 'account' : 'home', 'settings');
             });
         }
 
@@ -4179,8 +4186,21 @@
     /* ============ 1. 라우팅 ============ */
     var VALID = ['home', 'compare', 'collection', 'insight', 'brand', 'about', 'contact', 'sell', 'buy', 'repair', 'cat-update', 'cat-sale', 'cat-new', 'cat-today', 'wishlist'];
 
+    // 하단 탭/네비게이션으로 이동하면 마이페이지 계열 풀스크린 오버레이를 모두 닫는다.
+    // (마이페이지가 모달처럼 위에 남아 화면 이동이 안 되던 문제 해결 — X 없이 자연 이탈)
+    function closeMyOverlays() {
+        ['#myPageModal', '#settingsPage', '#profilePage', '#ordersModal'].forEach(function (sel) {
+            var el = document.querySelector(sel);
+            if (el && !el.hidden) el.hidden = true;
+        });
+        try { if (typeof closeMpSub === 'function') closeMpSub(); } catch (e) {}
+        document.body.classList.remove('mypage-open');
+        document.body.style.overflow = '';
+    }
+
     function applyPage(target) {
         if (VALID.indexOf(target) === -1) target = 'home';
+        closeMyOverlays();
 
         $$('.page').forEach(function (p) {
             p.classList.toggle('active', p.id === target);

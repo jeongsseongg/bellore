@@ -2144,9 +2144,8 @@
     <div class="login-modal" id="myPageModal" hidden>
         <div class="login-backdrop" data-myclose></div>
         <div class="login-content">
-            <button class="login-close" data-myclose aria-label="닫기">×</button>
             <div class="mp-sub-bar" id="mpSubBar">
-                <button type="button" class="mp-sub-back" id="mpSubBack" aria-label="뒤로">‹</button>
+                <button type="button" class="mp-sub-back fp-back" id="mpSubBack" aria-label="뒤로"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
                 <span class="mp-sub-title" id="mpSubTitle"></span>
             </div>
             <!-- ===== 마이페이지 통합 헤더: 프로필(아바타·이름) · 알림 · 설정 ===== -->
@@ -2353,9 +2352,9 @@
     <div class="login-modal" id="ordersModal" hidden>
         <div class="login-backdrop" data-ordclose></div>
         <div class="login-content orders-content">
-            <button class="login-close" data-ordclose aria-label="닫기">×</button>
-            <div class="login-head">
-                <h2>나의 주문</h2>
+            <div class="mp-sub-bar">
+                <button type="button" class="mp-sub-back fp-back" data-ordclose aria-label="뒤로"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
+                <span class="mp-sub-title">구매 내역</span>
             </div>
             <div class="orders-tabs" id="ordersTabs">
                 <button type="button" class="orders-tab active" data-ofilter="">전체</button>
@@ -2862,7 +2861,7 @@
     <!-- 회원정보 수정 (토스식 단계 페이지) -->
     <div class="cp-page profile-page" id="profilePage" hidden>
         <header class="pp-topbar">
-            <button class="pp-back" type="button" id="profBack" aria-label="뒤로">‹</button>
+            <button class="pp-back fp-back" type="button" id="profBack" aria-label="뒤로"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
             <span class="pp-topbar-title" id="profTitle">회원정보 수정</span>
             <span class="pp-topbar-spacer"></span>
         </header>
@@ -2965,7 +2964,7 @@
     <!-- 설정 (마이페이지 상단 ⚙️ — 회원정보·정산계좌·알림·약관·로그아웃) -->
     <div class="cp-page profile-page" id="settingsPage" hidden>
         <header class="pp-topbar">
-            <button class="pp-back" type="button" id="setBack" aria-label="뒤로">‹</button>
+            <button class="pp-back fp-back" type="button" id="setBack" aria-label="뒤로"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
             <span class="pp-topbar-title" id="setTitle">설정</span>
             <span class="pp-topbar-spacer"></span>
         </header>
