@@ -3389,6 +3389,23 @@
             signupForm._isBizVerified = function () { return _signupBizOk; };
             signupForm._resetBiz = function () { _signupBizOk = false; setBizState('', '상호·사업자등록번호·대표자·개업일을 입력하고 인증을 눌러주세요.'); };
 
+            // 주소 검색(다음 우편번호)
+            var addrBtn = $('#signupFindAddr');
+            if (addrBtn) addrBtn.addEventListener('click', function () {
+                if (!(window.daum && window.daum.Postcode)) {
+                    alert('주소 검색을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
+                    return;
+                }
+                new window.daum.Postcode({
+                    oncomplete: function (data) {
+                        var addr = data.roadAddress || data.jibunAddress || '';
+                        var pc = $('#signupPostcode'); if (pc) pc.value = data.zonecode || '';
+                        var a1 = $('#signupAddr1'); if (a1) a1.value = addr;
+                        var a2 = $('#signupAddr2'); if (a2) a2.focus();
+                    }
+                }).open();
+            });
+
             signupForm.addEventListener('submit', function (e) {
                 e.preventDefault();
                 var fd = new FormData(signupForm);
@@ -3403,8 +3420,15 @@
                 var businessNo = String(fd.get('businessNo') || '').replace(/[^0-9]/g, '');
                 var ceoName = String(fd.get('ceoName') || '').trim();
                 var bizOpenDate = String(fd.get('bizOpenDate') || '').replace(/[^0-9]/g, '');
+                var postcode = String(fd.get('postcode') || '').trim();
+                var addr1 = String(fd.get('addr1') || '').trim();
+                var addr2 = String(fd.get('addr2') || '').trim();
                 if (!name || !username || !phone || !email || !pw) {
                     alert('필수 항목을 모두 입력해주세요.');
+                    return;
+                }
+                if (!postcode || !addr1) {
+                    alert('주소를 입력해주세요. ("주소 찾기" 버튼)');
                     return;
                 }
                 if (role === 'vendor' && !company) {
@@ -3435,7 +3459,8 @@
 
                 if (backendOn()) {
                     NWBackend.signUp({ name: name, username: username, phone: phone, email: email, password: pw, role: role, company: company,
-                        businessNo: businessNo, ceoName: ceoName, bizOpenDate: bizOpenDate, bizName: company })
+                        businessNo: businessNo, ceoName: ceoName, bizOpenDate: bizOpenDate, bizName: company,
+                        postcode: postcode, addr1: addr1, addr2: addr2 })
                         .then(function () {
                             signupForm.reset();
                             if (signupForm._resetBiz) signupForm._resetBiz();

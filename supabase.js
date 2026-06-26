@@ -138,7 +138,11 @@
     authUser = {
       uid: rawUser.id,
       email: rawUser.email || '',
-      displayName: (profile && profile.display_name) || meta.display_name || (rawUser.email || '').split('@')[0]
+      displayName: (profile && profile.display_name) || meta.display_name || (rawUser.email || '').split('@')[0],
+      phone: (profile && profile.phone) || meta.phone || '',
+      postcode: (profile && profile.postcode) || '',
+      addr1: (profile && profile.addr1) || '',
+      addr2: (profile && profile.addr2) || ''
     };
   }
 
@@ -247,7 +251,11 @@
       username: uname || null,
       role: role,
       company_name: data.company || null,
-      phone: data.phone || null
+      phone: data.phone || null,
+      // 주소(모든 회원) — 트리거가 프로필에 저장
+      postcode: data.postcode || null,
+      addr1: data.addr1 || null,
+      addr2: data.addr2 || null
     };
     // 제휴사: 사업자정보는 metadata 로 전달 → 트리거가 프로필에 저장(세션 없어도 보존).
     //  단, biz_verified 플래그 자체는 클라이언트가 정하지 못함(보안). 첫 로그인 시 서버 재확인으로 확정.
@@ -270,6 +278,9 @@
         var patch = {};
         if (data.phone) patch.phone = data.phone;
         if (uname) patch.username = uname;
+        if (data.postcode) patch.postcode = data.postcode;
+        if (data.addr1) patch.addr1 = data.addr1;
+        if (data.addr2) patch.addr2 = data.addr2;
         // 제휴사 가입: 사업자 정보 저장(인증은 별도 단계)
         if (role === 'partner') {
           if (data.bizName) patch.biz_name = String(data.bizName).trim();

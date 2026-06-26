@@ -6847,6 +6847,15 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 .signup-verify-state.ok { color: var(--dark-green); font-weight: 700; }
 .signup-verify-state.err { color: #c0392b; font-weight: 600; }
 
+/* 회원가입 주소 입력 */
+.signup-addr-row { display: flex; gap: 8px; }
+.signup-addr-row input { flex: 1; min-width: 0; }
+.signup-addr-btn {
+    flex: none; padding: 0 14px; border-radius: 10px; border: 1px solid var(--text);
+    background: var(--text); color: var(--white); font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+.signup-addr-line { margin-top: 8px; }
+
 /* ===== 정산내역 ===== */
 .stl-row { padding: 12px 0; border-bottom: 1px solid var(--border); }
 .stl-main { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }

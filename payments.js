@@ -186,6 +186,15 @@
     var u = currentUser();
     if (u) {
       if (!$('#coName').value) $('#coName').value = u.displayName || '';
+      if (!$('#coPhone').value && u.phone) $('#coPhone').value = u.phone;
+      // 가입 시 저장한 주소를 배송지에 미리 채움(수정 가능)
+      if (u.postcode && $('#coPostcode') && !$('#coPostcode').value) {
+        $('#coPostcode').value = u.postcode;
+        if ($('#coAddr1')) $('#coAddr1').value = u.addr1 || '';
+        if ($('#coAddr2')) $('#coAddr2').value = u.addr2 || '';
+        if ($('#coShipName') && !$('#coShipName').value) $('#coShipName').value = u.displayName || '';
+        if ($('#coShipPhone') && !$('#coShipPhone').value) $('#coShipPhone').value = u.phone || '';
+      }
     }
   }
 

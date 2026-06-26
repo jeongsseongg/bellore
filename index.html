@@ -2184,6 +2184,15 @@
                         <input type="email" name="email" placeholder="email@example.com" required>
                     </label>
                     <label>
+                        <span>주소</span>
+                        <div class="signup-addr-row">
+                            <input type="text" name="postcode" id="signupPostcode" placeholder="우편번호" readonly required>
+                            <button type="button" class="signup-addr-btn" id="signupFindAddr">주소 찾기</button>
+                        </div>
+                        <input type="text" name="addr1" id="signupAddr1" class="signup-addr-line" placeholder="기본 주소" readonly required>
+                        <input type="text" name="addr2" id="signupAddr2" class="signup-addr-line" placeholder="상세 주소 (동·호수 등)">
+                    </label>
+                    <label>
                         <span>비밀번호</span>
                         <input type="password" name="pw" placeholder="8자 이상" autocomplete="new-password" minlength="8" required>
                     </label>

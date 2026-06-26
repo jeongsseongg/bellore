@@ -12,6 +12,12 @@
 -- ※ partner.sql 을 먼저 실행해 컬럼/역할이 있어야 합니다.
 -- ============================================================
 
+-- 0) 주소 컬럼(모든 회원) 보강
+alter table public.profiles
+  add column if not exists postcode text,
+  add column if not exists addr1    text,
+  add column if not exists addr2    text;
+
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 declare r user_role;
@@ -25,6 +31,7 @@ begin
 
   insert into public.profiles (
     id, role, display_name, company_name, approved, email,
+    phone, postcode, addr1, addr2,
     business_no, ceo_name, biz_open_date, biz_name
   )
   values (
@@ -33,6 +40,11 @@ begin
     new.raw_user_meta_data->>'company_name',
     (r::text not in ('vendor','partner')),  -- 업체/제휴사는 승인 대기(false)
     new.email,
+    -- 연락처·주소(모든 회원)
+    nullif(new.raw_user_meta_data->>'phone', ''),
+    nullif(new.raw_user_meta_data->>'postcode', ''),
+    nullif(new.raw_user_meta_data->>'addr1', ''),
+    nullif(new.raw_user_meta_data->>'addr2', ''),
     -- 제휴사일 때만 사업자정보 저장(나머지는 NULL)
     case when r::text = 'partner' then nullif(regexp_replace(coalesce(new.raw_user_meta_data->>'business_no',''), '[^0-9]', '', 'g'), '') end,
     case when r::text = 'partner' then nullif(new.raw_user_meta_data->>'ceo_name', '') end,
