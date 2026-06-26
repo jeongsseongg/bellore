@@ -8509,7 +8509,7 @@ body.mypage-open .tabbar { z-index: 2550; }
   display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; cursor: pointer; }
 .mp-head-ic:active { background: var(--bg-soft, #f1efe9); }
 .mp-head-ic .noti-badge { position: absolute; top: 4px; right: 4px; min-width: 17px; height: 17px;
-  line-height: 17px; padding: 0 4px; background: #111; color: #fff; border-radius: 999px;
+  line-height: 17px; padding: 0 4px; background: #f23645; color: #fff; border-radius: 999px;
   font-size: 10px; font-weight: 800; text-align: center; }
 .mp-head-ic .noti-badge[hidden] { display: none; }
 
@@ -8540,13 +8540,26 @@ body.mypage-open .tabbar { z-index: 2550; }
   padding: 16px 6px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
 .mp-cats .pl-item { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px;
   background: none; border: 0; cursor: pointer; padding: 0; }
-.mp-cats .pl-ic { width: 48px; height: 48px; border-radius: 50%; background: #f4f2ec; color: #111;
-  display: inline-flex; align-items: center; justify-content: center; transition: transform .12s, background .15s; }
-.mp-cats .pl-ic svg { width: 22px; height: 22px; }
+.mp-cats .pl-ic { width: 52px; height: 52px; border-radius: 50%; background: #f2f3f5; color: #111;
+  display: inline-flex; align-items: center; justify-content: center; transition: transform .12s; }
+.mp-cats .pl-ic svg { width: 24px; height: 24px; }
 .mp-cats .pl-item:active .pl-ic { transform: scale(.92); }
+/* 레퍼런스(바이버)처럼 카테고리별 컬러 아이콘 — 연회색 원 + 기능별 색 */
+.mp-cats .pl-item:nth-child(1) .pl-ic { color: #ff8a00; }  /* 포인트/쿠폰 */
+.mp-cats .pl-item:nth-child(2) .pl-ic { color: #16a34a; }  /* 내 시계팔기 */
+.mp-cats .pl-item:nth-child(3) .pl-ic { color: #14b8c4; }  /* 내 관심 */
+.mp-cats .pl-item:nth-child(4) .pl-ic { color: #2d7ff9; }  /* 최근 본 상품 */
+.mp-cats .pl-item:nth-child(5) .pl-ic { color: #7c5cfc; }  /* 장바구니 */
+/* 전역 .pl-item:hover(검정/골드) 가 카테고리 컬러를 덮지 않게 */
+.mp-cats .pl-item:hover .pl-ic { background: #f2f3f5; }
+.mp-cats .pl-item:nth-child(1):hover .pl-ic { color: #ff8a00; }
+.mp-cats .pl-item:nth-child(2):hover .pl-ic { color: #16a34a; }
+.mp-cats .pl-item:nth-child(3):hover .pl-ic { color: #14b8c4; }
+.mp-cats .pl-item:nth-child(4):hover .pl-ic { color: #2d7ff9; }
+.mp-cats .pl-item:nth-child(5):hover .pl-ic { color: #7c5cfc; }
 .mp-cats .pl-label { font-size: 11px; color: var(--text); white-space: nowrap; line-height: 1; font-weight: 600; }
 .mp-cats .pl-badge { position: absolute; top: -4px; left: 50%; transform: translateX(8px); min-width: 17px;
-  height: 17px; padding: 0 5px; border-radius: 999px; background: #111; color: #fff; font-size: 10px;
+  height: 17px; padding: 0 5px; border-radius: 999px; background: #f23645; color: #fff; font-size: 10px;
   font-weight: 800; line-height: 17px; text-align: center; }
 .mp-cats .pl-badge[hidden] { display: none; }
 
