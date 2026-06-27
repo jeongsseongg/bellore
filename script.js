@@ -1341,9 +1341,16 @@
         if (!box || !track) return;
         _mpBnRaw = list || [];
         _mpBn = _mpBnRaw.filter(function (b) { return mpBannerImg(b); });
-        if (window.BELLORE_isAdmin || !_mpBn.length) {
-            box.hidden = true; track.innerHTML = ''; if (dots) dots.innerHTML = ''; mpBnStop(); return;
+        if (window.BELLORE_isAdmin) {
+            // 관리자 본인 마이페이지에선 고객용 배너 영역 숨김(배너는 별도 편집화면에서 관리)
+            box.hidden = true; box.classList.remove('is-empty'); track.innerHTML = ''; if (dots) dots.innerHTML = ''; mpBnStop(); return;
         }
+        if (!_mpBn.length) {
+            // 등록된 배너가 없으면 바이버처럼 자리(테두리)만 유지
+            box.hidden = false; box.classList.add('is-empty');
+            track.innerHTML = ''; if (dots) dots.innerHTML = ''; mpBnStop(); return;
+        }
+        box.classList.remove('is-empty');
         box.hidden = false;
         track.innerHTML = _mpBn.map(function (b) {
             var tag = b.link ? 'a' : 'div';

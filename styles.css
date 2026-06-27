@@ -8586,6 +8586,11 @@ body.mypage-open .tabbar { z-index: 2550; }
 .mp-banner-dots { position: absolute; right: 10px; bottom: 8px; display: flex; gap: 5px; }
 .mp-banner-dots .mpb-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.55); }
 .mp-banner-dots .mpb-dot.on { background: #fff; width: 14px; border-radius: 4px; }
+/* 등록된 배너 없을 때: 바이버처럼 자리(테두리)만 유지 */
+.mp-banner.is-empty { background: transparent; border: 1.5px dashed var(--border); border-radius: 16px;
+  aspect-ratio: 32 / 9; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.mp-banner.is-empty::after { content: '이벤트·혜택 배너'; font-size: 12.5px; color: var(--text-3); font-weight: 600; }
+.mp-banner.is-empty .mp-banner-track, .mp-banner.is-empty .mp-banner-dots { display: none; }
 
 /* 역할별 하단 메뉴 (바이버 리스트형) */
 .mp-menu { display: block; margin: 0 0 8px; }
