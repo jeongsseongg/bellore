@@ -1069,6 +1069,9 @@
       condition: l.condition || '',
       pack: l.pack || '',
       size_mm: l.size_mm || null,
+      dial_color: l.dial_color || '',
+      material: l.material || '',
+      has_diamond: !!l.has_diamond,
       has_warranty: !!l.has_warranty,
       accessories: l.accessories || '',
       stamping: l.stamping || '',
@@ -1109,7 +1112,7 @@
   // 신규 컬럼(stamping·misu)이 아직 DB에 없을 때 발생하는 오류 감지
   function isMissingCol(err) {
     var m = (err && (err.message || err.hint || '')) + ' ' + (err && err.code || '');
-    return /stamping|misu|purchase_year|special_note|detail_desc|components|sale_method|product_no|ship_info|ref_id|schema cache|PGRST204|find the .* column/i.test(m);
+    return /stamping|misu|purchase_year|special_note|detail_desc|components|sale_method|product_no|ship_info|dial_color|material|has_diamond|ref_id|schema cache|PGRST204|find the .* column/i.test(m);
   }
   // 신규 속성 컬럼이 DB에 없을 때 제외하고 재시도하기 위한 목록
   function dropNewCols(o) {
@@ -1117,6 +1120,7 @@
     delete o.purchase_year; delete o.special_note; delete o.detail_desc;
     delete o.components; delete o.sale_method;
     delete o.product_no; delete o.ship_info;
+    delete o.dial_color; delete o.material; delete o.has_diamond;
   }
   // 상품번호 자동 생성: 00 + 등급(A/B/C/D) + YYMMDD(한국시간) + 그날 순번(3자리)
   function priceGrade(p) {
@@ -1159,6 +1163,9 @@
         sale_started_at: data.sale_started_at || null,
         pack: data.pack || null,
         size_mm: data.size_mm || null,
+        dial_color: data.dial_color || null,
+        material: data.material || null,
+        has_diamond: !!data.has_diamond,
         has_warranty: !!data.has_warranty,
         accessories: data.accessories || null,
         stamping: data.stamping || null,
@@ -1222,6 +1229,9 @@
       if (data.sale_started_at !== undefined) patch.sale_started_at = data.sale_started_at;
       if (data.pack != null) patch.pack = data.pack;
       if (data.size_mm != null) patch.size_mm = data.size_mm;
+      if (data.dial_color != null) patch.dial_color = data.dial_color;
+      if (data.material != null) patch.material = data.material;
+      if (data.has_diamond != null) patch.has_diamond = data.has_diamond;
       if (data.has_warranty != null) patch.has_warranty = data.has_warranty;
       if (data.accessories != null) patch.accessories = data.accessories;
       if (data.stamping != null) patch.stamping = data.stamping;

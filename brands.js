@@ -50,3 +50,7 @@ window.BELLORE_BRAND_BY_NAME = function (name) {
   for (var i = 0; i < list.length; i++) { if (list[i].name === n) return list[i]; }
   return null;
 };
+
+/* 필터검색·시계등록 공용 속성 목록 (바이버 레퍼런스 기준) */
+window.BELLORE_DIAL_COLORS = ['골드', '그린', '그레이', '레드', '브라운', '블루', '블랙', '오렌지', '옐로우', '퍼플', '핑크', '화이트', '실버'];
+window.BELLORE_MATERIALS = ['로즈골드', '화이트골드', '옐로우골드', '플래티넘', '스테인리스 스틸', '티타늄'];

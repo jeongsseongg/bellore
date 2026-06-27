@@ -6305,6 +6305,63 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 .cat-sort { font-size: 13px; color: var(--text-2); display: inline-flex; align-items: center; gap: 4px; }
 .cat-sort i { font-style: normal; font-size: 10px; }
 
+/* 판매시계 페이지: 상단 글로벌 헤더(로고·검색·알림·카테고리탭) 숨김 — 자체 검색바로 시작 */
+body[data-page="collection"] #header { display: none; }
+body[data-page="collection"] #collection .section-soft { padding-top: calc(14px + env(safe-area-inset-top)) !important; }
+
+/* ===== 판매시계 액션행: 상세검색 / 내시계팔기 / 필터검색 ===== */
+.cat-actions { display: flex; align-items: center; gap: 10px; padding: 14px 2px 12px; border-top: 1px solid var(--border); margin-top: 6px; }
+.cat-action { flex: 1 1 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 11px 8px; border: 1px solid var(--border); border-radius: 12px; background: var(--white);
+    font-size: 13px; font-weight: 700; color: var(--text); cursor: pointer; white-space: nowrap; }
+.cat-action svg { flex: none; }
+.cat-action:hover { background: var(--bg-soft); }
+.cat-action--filter { color: #fff; background: var(--text); border-color: var(--text); }
+.cat-action--filter:hover { background: #000; }
+
+/* ===== 빠른 칩 + 등급/정렬 메뉴 ===== */
+.qf-chips { display: flex; align-items: center; gap: 8px; overflow-x: auto; padding: 4px 2px 14px; scrollbar-width: none; }
+.qf-chips::-webkit-scrollbar { display: none; }
+.qf-chip { position: relative; flex: 0 0 auto; display: inline-flex; align-items: center; gap: 4px;
+    padding: 9px 15px; border: 1px solid var(--border); border-radius: 999px; background: var(--white);
+    font-size: 13px; font-weight: 600; color: var(--text-2); white-space: nowrap; cursor: pointer; }
+.qf-chip i { font-style: normal; font-size: 10px; color: var(--text-3); }
+.qf-chip.active { background: var(--text); border-color: var(--text); color: #fff; }
+.qf-chip.active i { color: #fff; }
+.qf-chip-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 30; min-width: 140px;
+    background: #fff; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.12);
+    padding: 6px; display: flex; flex-direction: column; }
+.qf-chip-menu[hidden] { display: none; }
+.qf-chip-menu button { text-align: left; padding: 10px 12px; border: 0; background: transparent; border-radius: 8px;
+    font-size: 13px; color: var(--text); cursor: pointer; font-family: inherit; }
+.qf-chip-menu button:hover { background: var(--bg-soft); }
+.qf-chip-menu button.on { font-weight: 800; color: var(--green-bright); }
+
+/* ===== 필터검색 전체 페이지 ===== */
+.cf-reset { border: 0; background: transparent; color: var(--text-2); font-size: 14px; font-weight: 600; cursor: pointer; }
+.cf-sec { padding: 20px 0; border-bottom: 1px solid var(--border); }
+.cf-sec:last-child { border-bottom: 0; }
+.cf-sec-t { font-size: 16px; font-weight: 800; color: var(--text); margin: 0 0 14px; }
+.cf-minmax { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 14px; }
+.cf-minmax label { flex: 1 1 0; display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; color: var(--text-3); position: relative; }
+.cf-minmax input { width: 100%; padding: 13px 36px 13px 14px; border: 1px solid var(--border); border-radius: 12px;
+    font-size: 15px; font-family: inherit; text-align: right; color: var(--text); background: #fff; }
+.cf-minmax input:focus { outline: none; border-color: var(--text); }
+.cf-minmax label span { position: absolute; right: 14px; bottom: 14px; font-size: 13px; color: var(--text-3); }
+.cf-minmax > em { font-style: normal; color: var(--text-3); padding-bottom: 13px; }
+.cf-chiprow { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.cf-chiprow::-webkit-scrollbar { display: none; }
+.cf-chip { flex: 0 0 auto; padding: 9px 16px; border: 1px solid var(--border); border-radius: 999px;
+    background: #fff; font-size: 13px; font-weight: 600; color: var(--text-2); white-space: nowrap; cursor: pointer; }
+.cf-chip.on { background: var(--text); border-color: var(--text); color: #fff; }
+.cf-radios { display: flex; align-items: center; gap: 22px; }
+.cf-radio { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; color: var(--text); cursor: pointer; }
+.cf-radio input { width: 20px; height: 20px; accent-color: var(--text); }
+.cf-checks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 8px; }
+.cf-check { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text); cursor: pointer; }
+.cf-check input { width: 18px; height: 18px; accent-color: var(--text); }
+#cfMaterials.cf-checks, #cfGrades.cf-checks { grid-template-columns: repeat(2, 1fr); }
+
 /* 마이페이지 알림 버튼 (헤더에서 이동) */
 .mypage-noti {
     width: 100%; display: flex; align-items: center; justify-content: space-between;

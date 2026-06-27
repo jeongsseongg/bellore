@@ -3262,6 +3262,11 @@
     function listingImg(it) {
         return (it.photos && it.photos[0]) ? it.photos[0] : 'assets/images.jpg';
     }
+    // 스탬핑 자유문구에서 4자리 연도(19xx/20xx) 추출 → 필터검색 '스탬핑' 범위 매칭용
+    function stampYear(s) {
+        var m = String(s || '').match(/(19|20)\d{2}/);
+        return m ? m[0] : '';
+    }
 
     // 깨진 카드 이미지는 깔끔한 시계 플레이스홀더로 대체(규격 유지)
     document.addEventListener('error', function (e) {
@@ -3400,6 +3405,15 @@
             card.dataset.sprice = it.sale_price || '';
             card.dataset.pack = it.pack || '';
             card.dataset.size = it.size_mm || '';
+            card.dataset.color = it.dial_color || '';
+            card.dataset.material = it.material || '';
+            card.dataset.diamond = it.has_diamond ? '1' : '';
+            card.dataset.warranty = it.has_warranty ? '1' : '';
+            card.dataset.cond = it.condition || '';
+            card.dataset.no = it.product_no || '';
+            card.dataset.new = ((it.tags || []).indexOf('new') !== -1 || /미착용/.test(it.condition || '')) ? '1' : '';
+            card.dataset.stampyear = stampYear(it.stamping);
+            card.dataset.created = it.created_at ? (Date.parse(it.created_at) || 0) : 0;
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
@@ -4445,6 +4459,7 @@
         $$('.tab-item').forEach(function (t) {
             t.classList.toggle('active', t.dataset.nav === target);
         });
+        document.body.setAttribute('data-page', target);  // 페이지별 CSS 훅(판매시계 헤더 숨김 등)
 
         var header = $('#header');
         if (header) {

@@ -244,6 +244,19 @@
         return '<option value="' + esc(c) + '"' + (cur === c ? ' selected' : '') + '>' + (c || '선택 안 함') + '</option>';
       }).join('');
     }
+    // 다이얼 컬러 / 소재 — 필터검색과 동일 목록(window 공유)
+    function dialColorOptions(cur) {
+      var list = (window.BELLORE_DIAL_COLORS || []);
+      return '<option value="">선택 안 함</option>' + list.map(function (c) {
+        return '<option value="' + esc(c) + '"' + (cur === c ? ' selected' : '') + '>' + esc(c) + '</option>';
+      }).join('');
+    }
+    function materialOptions(cur) {
+      var list = (window.BELLORE_MATERIALS || []);
+      return '<option value="">선택 안 함</option>' + list.map(function (c) {
+        return '<option value="' + esc(c) + '"' + (cur === c ? ' selected' : '') + '>' + esc(c) + '</option>';
+      }).join('');
+    }
     // 브랜드 선택 책자(32개) + 모델 추천 — brands.js와 연동
     function brandModels(name) {
       var b = window.BELLORE_BRAND_BY_NAME && window.BELLORE_BRAND_BY_NAME(name);
@@ -331,6 +344,9 @@
           '<label><span>컨디션</span><select name="condition">' + condOptions(item ? item.condition : '') + '</select></label>' +
           '<label><span>스탬핑 / 연식 (선택 — 비우면 카드에 “미표기”)</span><input name="stamping" placeholder="예: 2023년 스탬핑 / 2021" value="' + esc(item ? (item.stamping || item.purchase_year || '') : '') + '"></label>' +
           '<label><span>미리수 (선택 — 비우면 카드에 “미표기”)</span><input name="misu" placeholder="예: 미리수 / 정식수입(내수)" value="' + esc(item ? item.misu : '') + '"></label>' +
+          '<label><span>사이즈 (mm · 선택 — 필터검색에 사용)</span><input name="size_mm" type="number" inputmode="numeric" min="15" max="60" placeholder="예: 40" value="' + esc(item && item.size_mm ? item.size_mm : '') + '"></label>' +
+          '<label><span>다이얼 컬러 (선택 — 필터검색에 사용)</span><select name="dial_color">' + dialColorOptions(item ? item.dial_color : '') + '</select></label>' +
+          '<label><span>소재 (선택 — 필터검색에 사용)</span><select name="material">' + materialOptions(item ? item.material : '') + '</select></label>' +
           '<label><span>판매 방식 (선택 — 비우면 “벨로르 직접 검수 판매”)</span><input name="sale_method" placeholder="예: 벨로르 직접 검수 판매 / 위탁 판매" value="' + esc(item ? item.sale_method : '') + '"></label>' +
           '<label><span>배송 예정일 (선택 — 비우면 “결제 후 2~4일 이내 발송”)</span><input name="ship_info" placeholder="예: 결제 후 3일 이내 발송 / 2024-07-15 발송 예정" value="' + esc(item ? item.ship_info : '') + '"></label>' +
           '<label><span>특이사항 (선택 — 상세페이지 “제품 상태”에 표시)</span><input name="special_note" placeholder="예: 베젤 미세 스크래치 있음" value="' + esc(item ? item.special_note : '') + '"></label>' +
@@ -340,6 +356,7 @@
             '<label class="lp-tag"><input type="checkbox" name="comp_case"' + (compOn(item, 'case') ? ' checked' : '') + '><span>케이스</span></label>' +
             '<label class="lp-tag"><input type="checkbox" name="comp_card"' + (compOn(item, 'card') ? ' checked' : '') + '><span>개런티카드</span></label>' +
             '<label class="lp-tag"><input type="checkbox" name="has_warranty"' + (item && item.has_warranty ? ' checked' : '') + '><span>보증서</span></label>' +
+            '<label class="lp-tag"><input type="checkbox" name="has_diamond"' + (item && item.has_diamond ? ' checked' : '') + '><span>다이아</span></label>' +
           '</div>' +
           '<div class="lp-tags"><span class="lp-tags-label">카테고리 노출 (상단 탭에 함께 표시)</span>' +
             '<label class="lp-tag"><input type="checkbox" name="tag_sale"' + ((tagOn(item, 'sale') && (!window.belloreSaleActive || window.belloreSaleActive(item))) ? ' checked' : '') + '><span>TIME SALE (할인 시작 · 72시간 후 자동 해제)</span></label>' +
@@ -380,7 +397,8 @@
         if (hasWarranty) accList.push('보증서');
         var accStr = accList.join('·');
         var packStr = accList.length >= 4 ? '풀세트' : (accList.length === 0 ? '단품(본체만)' : '일부 구성');
-        var payload = { brand: brand, model: model, price: price, sale_price: salePrice, category: fd.get('category'), status: fd.get('status'), tags: tags, condition: String(fd.get('condition') || ''), has_warranty: hasWarranty, accessories: accStr, stamping: String(fd.get('stamping') || '').trim(), misu: String(fd.get('misu') || '').trim(), pack: packStr, purchase_year: '', special_note: String(fd.get('special_note') || '').trim(), detail_desc: String(fd.get('detail_desc') || '').trim(), sale_method: String(fd.get('sale_method') || '').trim(), product_no: String(fd.get('product_no') || '').trim(), ship_info: String(fd.get('ship_info') || '').trim(), components: [compBox ? 'box' : '', compCase ? 'case' : '', compCard ? 'card' : ''].filter(Boolean).join(','), sale_started_at: saleStart, photos: lPicker.files };
+        var sizeMm = parseInt(String(fd.get('size_mm') || '').replace(/[^0-9]/g, ''), 10) || null;
+        var payload = { brand: brand, model: model, price: price, sale_price: salePrice, category: fd.get('category'), status: fd.get('status'), tags: tags, condition: String(fd.get('condition') || ''), has_warranty: hasWarranty, has_diamond: !!fd.get('has_diamond'), size_mm: sizeMm, dial_color: String(fd.get('dial_color') || ''), material: String(fd.get('material') || ''), accessories: accStr, stamping: String(fd.get('stamping') || '').trim(), misu: String(fd.get('misu') || '').trim(), pack: packStr, purchase_year: '', special_note: String(fd.get('special_note') || '').trim(), detail_desc: String(fd.get('detail_desc') || '').trim(), sale_method: String(fd.get('sale_method') || '').trim(), product_no: String(fd.get('product_no') || '').trim(), ship_info: String(fd.get('ship_info') || '').trim(), components: [compBox ? 'box' : '', compCase ? 'case' : '', compCard ? 'card' : ''].filter(Boolean).join(','), sale_started_at: saleStart, photos: lPicker.files };
         var btn = $('#lpSubmit', listingPage); btn.disabled = true; btn.textContent = '저장 중…';
         // 사진 picker가 기존 URL+새 사진을 모두 보유 → existingPhotos는 비우고 picker 결과로 통째 교체(삭제 반영)
         var p = lEditId
