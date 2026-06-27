@@ -8522,18 +8522,16 @@ body.mypage-open .tabbar { z-index: 2550; }
 
 /* 프로필: 아바타 + 이름(수정) */
 .mp-profile { display: flex; align-items: center; gap: 14px; padding: 4px 2px 18px; }
-.mp-avatar { position: relative; flex: 0 0 auto; width: 62px; height: 62px; border-radius: 50%;
-  background: #f1efe9; border: 0; padding: 0; cursor: pointer; overflow: visible;
+/* 마이페이지 아바타 = 표시 전용(원형 1.3배), 카메라 뱃지 없음. 편집은 연필에서만 */
+.mp-avatar { position: relative; flex: 0 0 auto; width: 81px; height: 81px; border-radius: 50%;
+  background: #f1efe9; border: 0; padding: 0; overflow: hidden;
   display: inline-flex; align-items: center; justify-content: center; color: #b7b2a6; }
 .mp-avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
 .mp-avatar-img[hidden] { display: none; }   /* 사진 없을 때 빈 img 가 자리 차지해 사람아이콘이 밀리던 버그 수정 */
 /* 바이버 기본 이미지처럼: 회색 원 + 큰 사람 실루엣 */
 .mp-avatar { background: #e9e7e1; color: #b3aea2; }
-.mp-avatar-ph { width: 42px; height: 42px; }
+.mp-avatar-ph { width: 55px; height: 55px; }
 .mp-avatar-img:not([hidden]) + .mp-avatar-ph { display: none; }
-.mp-avatar-cam { position: absolute; right: -2px; bottom: -2px; width: 22px; height: 22px; border-radius: 50%;
-  background: #111; color: #fff; display: inline-flex; align-items: center; justify-content: center;
-  border: 2px solid #fff; }
 .mp-profile-meta { min-width: 0; flex: 1; }
 .mp-name-row { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; padding: 0;
   cursor: pointer; max-width: 100%; }
@@ -8771,17 +8769,32 @@ body.mypage-open .tabbar { z-index: 2550; }
 /* 프로필 수정: 사진(추가/삭제) 에디터 — 큰 사람 실루엣 기본 이미지 */
 .prof-avatar-edit { display: flex; flex-direction: column; align-items: center; gap: 14px; margin: 4px 0 24px; }
 .prof-avatar { position: relative; width: 96px; height: 96px; border-radius: 50%; background: #e9e7e1;
-  color: #b3aea2; display: inline-flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; }
+  color: #b3aea2; display: inline-flex; align-items: center; justify-content: center; overflow: visible;
+  border: 0; padding: 0; cursor: pointer; }
 .prof-avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
 .prof-avatar-img[hidden] { display: none; }
 .prof-avatar-ph { width: 64px; height: 64px; }
 .prof-avatar-img:not([hidden]) + .prof-avatar-ph { display: none; }
 .prof-avatar.is-loading { opacity: .55; }
-.prof-avatar-acts { display: flex; gap: 8px; }
-.prof-avatar-btn { height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--text);
-  background: #fff; color: var(--text); font-size: 13.5px; font-weight: 700; cursor: pointer; }
-.prof-avatar-btn:hover { background: var(--bg-soft); }
-.prof-avatar-btn.ghost { border-color: var(--border); color: var(--text-2); }
+/* 우하단 편집 뱃지: 사진없음=⚙(설정), 사진있음=✕(삭제). overflow:hidden 영향 안 받게 살짝 안쪽 */
+.prof-avatar-act { position: absolute; right: 2px; bottom: 2px; width: 30px; height: 30px; border-radius: 50%;
+  background: #111; color: #fff; display: inline-flex; align-items: center; justify-content: center;
+  border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+.prof-avatar-act .pa-x { display: none; }
+.prof-avatar-act[data-mode="remove"] .pa-gear { display: none; }
+.prof-avatar-act[data-mode="remove"] .pa-x { display: inline; }
+.prof-avatar-act[data-mode="remove"] { background: #c0392b; }
+
+/* ===== 아이디/비밀번호 찾기 패널 (바이버풍) ===== */
+.fp-tabs { display: flex; gap: 8px; margin: 4px 0 18px; }
+.fp-tab { flex: 1; height: 44px; border-radius: 12px; border: 1.5px solid var(--border);
+  background: var(--white); color: var(--text-2); font-size: 14px; font-weight: 700; cursor: pointer; }
+.fp-tab.on { border-color: #111; background: #111; color: #fff; }
+.fp-result { margin-top: 18px; padding: 16px 14px; border-radius: 12px; background: var(--bg-soft);
+  font-size: 14px; line-height: 1.6; color: var(--text); }
+.fp-result b { font-weight: 800; word-break: break-all; }
+.fp-result small { display: inline-block; margin-top: 6px; font-size: 12px; color: var(--text-3); }
+.fp-newpw { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border); }
 
 /* ============================================================
    토스식 입력 디자인 시스템 (로그인·회원가입·회원정보 공통)
@@ -8992,7 +9005,9 @@ body.login-open .tabbar { display: none; }
 
 /* 로그인 패널: X 닫기만 / 유형·회원가입 패널: ‹이전 뒤로만 (겹침 방지) */
 .login-content:has(#loginPanelType.active) .login-close,
-.login-content:has(#loginPanelSignup.active) .login-close { display: none; }
+.login-content:has(#loginPanelSignup.active) .login-close,
+.login-content:has(#loginPanelFindId.active) .login-close,
+.login-content:has(#loginPanelFindPw.active) .login-close { display: none; }
 
 /* 유형 선택 3박스 */
 .type-cards { gap: 12px; }

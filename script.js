@@ -574,7 +574,7 @@
         var profPage = $('#profilePage');
         if (profPage) {
             var VP = window.BELLORE_VERIFY || {};
-            var _pStep = 'home', _pwOk = false, _pwMethod = null;
+            var _pStep = 'home', _pEntry = 'home', _pwOk = false, _pwMethod = null;
             function pUser() { return (backendOn() && NWBackend.currentUser) ? (NWBackend.currentUser() || {}) : {}; }
             function pSet(id, v) { var el = $('#' + id); if (el) el.textContent = v || '-'; }
             function setPV() {
@@ -608,7 +608,8 @@
             function openProfilePage(step, from) {
                 if (!backendOn() || !NWBackend.currentUser || !NWBackend.currentUser()) { alert('로그인 후 이용해 주세요.'); return; }
                 profPage.dataset.from = from || '';
-                setPV(); gotoP(typeof step === 'string' ? step : 'home');
+                _pEntry = (typeof step === 'string') ? step : 'home';
+                setPV(); gotoP(_pEntry);
                 profPage.hidden = false; document.body.style.overflow = 'hidden';
             }
             function closeProfilePage() {
@@ -626,8 +627,8 @@
             window.BELLORE_openProfile = openProfilePage;
             var editBtn = $('#btnEditProfile'); if (editBtn) editBtn.addEventListener('click', openProfilePage);
 
-            // 프로필 사진 변경/삭제 (연필 → 프로필 수정 페이지 안에서 처리)
-            var pfAvChange = $('#pfAvatarChange'), pfAvDelete = $('#pfAvatarDelete'), pfAvBox = $('#pfAvatar');
+            // 프로필 사진: 아바타 클릭=업로드, 우하단 뱃지=설정(⚙, 사진없음)/삭제(✕, 사진있음)
+            var pfAvBox = $('#pfAvatar'), pfAvAct = $('#pfAvatarAct');
             function pickAvatar() {
                 if (!backendOn() || !NWBackend.uploadAvatar) { alert('사진 업로드 기능을 사용할 수 없습니다.'); return; }
                 var inp = document.createElement('input');
@@ -642,9 +643,7 @@
                 });
                 inp.click();
             }
-            if (pfAvChange) pfAvChange.addEventListener('click', pickAvatar);
-            if (pfAvBox) pfAvBox.addEventListener('click', pickAvatar);
-            if (pfAvDelete) pfAvDelete.addEventListener('click', function () {
+            function removeAvatarNow() {
                 var u = pUser(); if (!u.avatarUrl) { applyAvatar(''); return; }
                 if (!NWBackend.removeAvatar) { alert('사진 삭제 기능을 사용할 수 없습니다.'); return; }
                 if (pfAvBox) pfAvBox.classList.add('is-loading');
@@ -652,10 +651,21 @@
                     .then(function () { applyAvatar(''); })
                     .catch(function (err) { alert('사진 삭제 실패: ' + (err && err.message || err)); })
                     .then(function () { if (pfAvBox) pfAvBox.classList.remove('is-loading'); });
+            }
+            if (pfAvBox) pfAvBox.addEventListener('click', function (e) {
+                // 뱃지(설정/삭제) 클릭은 별도 처리
+                if (pfAvAct && pfAvAct.contains(e.target)) {
+                    e.stopPropagation();
+                    if (pfAvAct.dataset.mode === 'remove') removeAvatarNow(); else pickAvatar();
+                    return;
+                }
+                pickAvatar();
             });
 
             $('#profBack').addEventListener('click', function () {
-                if (_pStep === 'home') closeProfilePage();
+                // 진입 단계에서 뒤로 → 페이지 자체를 닫는다(연필로 'name' 직행 시 마이페이지로 복귀)
+                if (_pStep === _pEntry) closeProfilePage();
+                else if (_pStep === 'home') closeProfilePage();
                 else if (_pStep === 'pw2') gotoP('pw1');
                 else if (_pStep === 'pw3') gotoP('pw2');
                 else gotoP('home');
@@ -827,24 +837,7 @@
             });
         }
 
-        // ===== 프로필 아바타 업로드 =====
-        var mpAvatar = $('#mpAvatar');
-        if (mpAvatar && backendOn() && NWBackend.uploadAvatar) {
-            mpAvatar.addEventListener('click', function () {
-                if (!NWBackend.currentUser || !NWBackend.currentUser()) { alert('로그인 후 이용해 주세요.'); return; }
-                var inp = document.createElement('input');
-                inp.type = 'file'; inp.accept = 'image/*';
-                inp.addEventListener('change', function () {
-                    var f = inp.files && inp.files[0]; if (!f) return;
-                    mpAvatar.classList.add('is-loading');
-                    NWBackend.uploadAvatar(f)
-                        .then(function (url) { applyAvatar(url); })
-                        .catch(function (err) { alert('사진 업로드 실패: ' + (err && err.message || err)); })
-                        .then(function () { mpAvatar.classList.remove('is-loading'); });
-                });
-                inp.click();
-            });
-        }
+        // ===== 마이페이지 아바타는 표시 전용 — 사진 편집은 연필(프로필 수정)에서만 =====
 
         // ===== 프로필 수정(사진+닉네임): 이름 옆 연필 → 프로필 페이지 'name' 단계 =====
         var mpNameEdit = $('#mpNameEdit');
@@ -961,15 +954,6 @@
             var emailEl = $('#myPageEmail');
             if (nameEl) nameEl.textContent = user ? ((user.displayName || '회원') + '님') : '마이페이지';
             if (emailEl) emailEl.textContent = user ? (user.email || '') : '';
-            // 계정유형(일반회원/업체/관리자)
-            var roleEl = $('#myPageRole');
-            if (roleEl) {
-                if (!user) { roleEl.hidden = true; }
-                else {
-                    var rt = (info && info.isAdmin) ? '관리자' : (info && info.role === 'vendor') ? '업체회원' : '일반회원';
-                    roleEl.textContent = rt; roleEl.hidden = false;
-                }
-            }
 
             // 프로필 아바타
             applyAvatar(user ? (user.avatarUrl || '') : '');
@@ -1301,6 +1285,9 @@
             if (url) { img.src = url; img.hidden = false; }
             else { img.removeAttribute('src'); img.hidden = true; }
         });
+        // 프로필 수정 아바타 뱃지: 사진 있으면 ✕(삭제), 없으면 ⚙(설정)
+        var act = $('#pfAvatarAct');
+        if (act) act.dataset.mode = url ? 'remove' : 'set';
     }
     window.BELLORE_applyAvatar = applyAvatar;
 
@@ -3752,6 +3739,146 @@
             var b = e.target.closest('[data-lpanel]');
             if (b && b.closest('#loginModal')) { e.preventDefault(); showLoginPanel(b.dataset.lpanel); }
         });
+
+        // ===== 아이디(이메일)/비밀번호 찾기 흐름 (바이버풍 패널) =====
+        function initFindFlows() {
+            var VF = window.BELLORE_VERIFY || {};
+            var emailLive = !!(VF.email && VF.email.enabled);   // 이메일 OTP(코드) 실가동 여부
+            var phoneLive = !!(VF.phone && VF.phone.enabled);   // 휴대폰 본인인증 실가동 여부
+            var reEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+            function setVS(el, msg, cls) { if (!el) return; el.textContent = msg || ''; el.className = 'vrow-state' + (cls ? (' ' + cls) : ''); }
+            function maskEmail(e) {
+                e = String(e || ''); var at = e.indexOf('@'); if (at < 1) return e;
+                var id = e.slice(0, at), dom = e.slice(at);
+                var keep = id.length <= 2 ? id.slice(0, 1) : id.slice(0, 2);
+                return keep + '****' + dom;
+            }
+            function curUser() { return (backendOn() && NWBackend.currentUser) ? (NWBackend.currentUser() || null) : null; }
+
+            // 메서드 탭 전환 (이메일 ↔ 휴대폰). base = 'fid' | 'fpw'
+            function bindTabs(panelSel, base) {
+                $$(panelSel + ' [data-' + base + '-method]').forEach(function (b) {
+                    b.addEventListener('click', function () {
+                        var m = b.getAttribute('data-' + base + '-method');
+                        $$(panelSel + ' .fp-tab').forEach(function (t) { t.classList.toggle('on', t === b); });
+                        $$(panelSel + ' [data-' + base + ']').forEach(function (row) { row.hidden = row.getAttribute('data-' + base) !== m; });
+                        var rs = $(panelSel + ' .fp-result'); if (rs) rs.hidden = true;
+                        if (base === 'fpw') { var nb = $('#fpwNewBox'); if (nb) nb.hidden = true; }
+                    });
+                });
+            }
+            bindTabs('#loginPanelFindId', 'fid');
+            bindTabs('#loginPanelFindPw', 'fpw');
+
+            /* ---------- 아이디 찾기 ---------- */
+            function showFidResult(html) { var r = $('#fidResult'); if (r) { r.hidden = false; r.innerHTML = html; } }
+            var fidES = $('#fidEmailSend');
+            if (fidES) fidES.addEventListener('click', function () {
+                var email = ($('#fidEmail').value || '').trim(), st = $('#fidEmailState');
+                if (!reEmail.test(email)) { setVS(st, '이메일 형식을 확인해 주세요.', 'err'); return; }
+                if (!backendOn() || !NWBackend.sendEmailOtp) { setVS(st, '잠시 후 다시 시도해 주세요.', 'err'); return; }
+                setVS(st, '인증번호를 보내는 중…', '');
+                NWBackend.sendEmailOtp(email).then(function () {
+                    $('#fidEmailCodeRow').hidden = false;
+                    setVS(st, '인증번호를 메일로 보냈어요. (메일에 링크만 있다면 그 링크로도 확인돼요)', '');
+                }).catch(function (err) { setVS(st, '발송 실패: ' + authErrorMsg(err), 'err'); });
+            });
+            var fidEC = $('#fidEmailConfirm');
+            if (fidEC) fidEC.addEventListener('click', function () {
+                var email = ($('#fidEmail').value || '').trim(), code = ($('#fidEmailCode').value || '').trim(), st = $('#fidEmailState');
+                if (!code) { setVS(st, '인증번호를 입력해 주세요.', 'err'); return; }
+                NWBackend.verifyEmailOtp(email, code).then(function () {
+                    setVS(st, '✓ 인증 완료', 'ok');
+                    var u = curUser();
+                    showFidResult('회원님의 로그인 아이디는<br><b>' + (u && u.email ? u.email : email) + '</b> 입니다.' +
+                        '<br><small>이 이메일로 로그인하시거나, 비밀번호 찾기를 진행하세요.</small>');
+                }).catch(function () { setVS(st, '인증번호가 올바르지 않습니다.', 'err'); });
+            });
+            var fidPS = $('#fidPhoneSend');
+            if (fidPS) fidPS.addEventListener('click', function () {
+                var phone = ($('#fidPhone').value || '').trim(), st = $('#fidPhoneState');
+                if (phone.replace(/[^0-9]/g, '').length < 10) { setVS(st, '휴대폰 번호를 확인해 주세요.', 'err'); return; }
+                if (!phoneLive || !NWBackend.verifyIdentityPortone) {
+                    setVS(st, '휴대폰 본인인증은 준비 중입니다(키 등록 후 활성화). 지금은 “이메일로 찾기”를 이용해 주세요.', 'err');
+                    return;
+                }
+                setVS(st, '본인인증을 진행 중…', '');
+                NWBackend.verifyIdentityPortone({ phone: phone }).then(function () {
+                    setVS(st, '✓ 본인인증 완료', 'ok');
+                    if (NWBackend.lookupLoginId) {
+                        NWBackend.lookupLoginId('phone', phone).then(function (acc) {
+                            showFidResult(acc && acc.email
+                                ? '회원님의 로그인 아이디는<br><b>' + maskEmail(acc.email) + '</b> 입니다.'
+                                : '일치하는 계정을 찾지 못했어요. 고객센터로 문의해 주세요.');
+                        }).catch(function () { showFidResult('계정 조회 기능 준비 중입니다. 이메일로 찾기를 이용해 주세요.'); });
+                    } else {
+                        showFidResult('계정 조회 기능 준비 중입니다. 이메일로 찾기를 이용해 주세요.');
+                    }
+                }).catch(function (err) { setVS(st, '인증 실패: ' + (err && err.message || err), 'err'); });
+            });
+
+            /* ---------- 비밀번호 찾기(재설정) ---------- */
+            var _fpwReady = false; // 인증 완료(세션 확보)되어 새 비번 설정 가능 상태
+            function showNewPw(show) { var b = $('#fpwNewBox'); if (b) b.hidden = !show; _fpwReady = !!show; }
+            var fpwES = $('#fpwEmailSend');
+            if (fpwES) fpwES.addEventListener('click', function () {
+                var email = ($('#fpwEmail').value || '').trim(), st = $('#fpwEmailState');
+                if (!reEmail.test(email)) { setVS(st, '이메일 형식을 확인해 주세요.', 'err'); return; }
+                if (!backendOn() || !NWBackend.sendEmailOtp) { setVS(st, '잠시 후 다시 시도해 주세요.', 'err'); return; }
+                setVS(st, '인증번호를 보내는 중…', '');
+                NWBackend.sendEmailOtp(email).then(function () {
+                    $('#fpwEmailCodeRow').hidden = false;
+                    setVS(st, '인증번호를 메일로 보냈어요.', '');
+                }).catch(function (err) {
+                    // 폴백: OTP 발송 실패 시 재설정 링크 메일
+                    if (NWBackend.resetPassword) {
+                        NWBackend.resetPassword(email)
+                            .then(function () { setVS(st, '재설정 메일을 보냈어요. 메일의 링크로 비밀번호를 바꿔주세요.', ''); })
+                            .catch(function (e2) { setVS(st, '발송 실패: ' + authErrorMsg(e2), 'err'); });
+                    } else { setVS(st, '발송 실패: ' + authErrorMsg(err), 'err'); }
+                });
+            });
+            var fpwEC = $('#fpwEmailConfirm');
+            if (fpwEC) fpwEC.addEventListener('click', function () {
+                var email = ($('#fpwEmail').value || '').trim(), code = ($('#fpwEmailCode').value || '').trim(), st = $('#fpwEmailState');
+                if (!code) { setVS(st, '인증번호를 입력해 주세요.', 'err'); return; }
+                NWBackend.verifyEmailOtp(email, code).then(function () {
+                    setVS(st, '✓ 인증 완료 — 새 비밀번호를 설정하세요.', 'ok');
+                    showNewPw(true);
+                }).catch(function () { setVS(st, '인증번호가 올바르지 않습니다.', 'err'); });
+            });
+            var fpwPS = $('#fpwPhoneSend');
+            if (fpwPS) fpwPS.addEventListener('click', function () {
+                var phone = ($('#fpwPhone').value || '').trim(), st = $('#fpwPhoneState');
+                if (phone.replace(/[^0-9]/g, '').length < 10) { setVS(st, '휴대폰 번호를 확인해 주세요.', 'err'); return; }
+                if (!phoneLive) {
+                    setVS(st, '휴대폰 인증은 준비 중입니다(SMS 키 등록 후 활성화). 지금은 “이메일로 인증”을 이용해 주세요.', 'err');
+                    return;
+                }
+                setVS(st, '본인인증을 진행 중…', '');
+                NWBackend.verifyIdentityPortone({ phone: phone }).then(function () {
+                    // 휴대폰 인증만으로는 클라이언트에서 세션을 만들 수 없어(서버 함수 필요) 이메일 재설정으로 안내
+                    setVS(st, '✓ 본인인증 완료 — 보안을 위해 가입 이메일로 재설정 링크를 보내드립니다.', 'ok');
+                }).catch(function (err) { setVS(st, '인증 실패: ' + (err && err.message || err), 'err'); });
+            });
+            var fpwSub = $('#fpwSubmit');
+            if (fpwSub) fpwSub.addEventListener('click', function () {
+                var st = $('#fpwEmailState');
+                if (!_fpwReady) { setVS(st, '먼저 본인인증을 완료해 주세요.', 'err'); return; }
+                var p1 = ($('#fpwNew1').value || ''), p2 = ($('#fpwNew2').value || '');
+                if (p1.length < 8) { setVS(st, '비밀번호는 8자 이상이어야 합니다.', 'err'); return; }
+                if (p1 !== p2) { setVS(st, '비밀번호가 일치하지 않습니다.', 'err'); return; }
+                if (!NWBackend.updatePassword) { setVS(st, '잠시 후 다시 시도해 주세요.', 'err'); return; }
+                fpwSub.disabled = true;
+                NWBackend.updatePassword(p1).then(function () {
+                    alert('비밀번호가 변경되었습니다. 새 비밀번호로 로그인되었습니다.');
+                    showLoginPanel('login');
+                    closeLoginModal();
+                }).catch(function (err) {
+                    setVS(st, '변경 실패: ' + authErrorMsg(err), 'err');
+                }).then(function () { fpwSub.disabled = false; });
+            });
+        }
         // 비밀번호 표시/숨김 토글 (로그인·회원가입·회원정보 어디서나)
         document.addEventListener('click', function (e) {
             var eye = e.target.closest('[data-eye]'); if (!eye) return;
@@ -3833,24 +3960,8 @@
                 });
             });
 
-            // 비밀번호 찾기 — 가입 이메일로 재설정 메일 발송
-            var findPwBtn = $('#findPw');
-            if (findPwBtn) findPwBtn.addEventListener('click', function () {
-                if (!backendOn() || !NWBackend.resetPassword) { alert('비밀번호 찾기는 잠시 후 다시 시도해주세요.'); return; }
-                var email = prompt('가입하신 이메일 주소를 입력하시면\n비밀번호 재설정 메일을 보내드립니다.');
-                if (email == null) return;
-                email = String(email).trim();
-                if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { alert('이메일 형식을 확인해주세요.'); return; }
-                NWBackend.resetPassword(email)
-                    .then(function () { alert('재설정 메일을 보냈습니다. 메일함을 확인해주세요.'); })
-                    .catch(function (err) { alert('발송 실패: ' + authErrorMsg(err)); });
-            });
-
-            // 아이디 찾기 — 별도 조회 API가 없어 안내(아이디=가입 이메일/휴대폰 문의)
-            var findIdBtn = $('#findId');
-            if (findIdBtn) findIdBtn.addEventListener('click', function () {
-                alert('아이디는 가입 시 설정한 아이디 또는 이메일입니다.\n기억나지 않으시면 가입 이메일로 "비밀번호 찾기"를 진행하시거나,\n고객센터로 문의해주세요.');
-            });
+            // ===== 아이디(이메일)/비밀번호 찾기 — 바이버풍 패널 =====
+            initFindFlows();
         }
 
         // 회원가입 폼

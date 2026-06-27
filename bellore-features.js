@@ -875,17 +875,7 @@
           .catch(function (err) { alert('발송 실패: ' + (err && err.message || err)); });
       });
     });
-    // 로그인 화면: 아이디/비밀번호 찾기
-    var findPw = $('#findPw');
-    if (findPw) findPw.addEventListener('click', function () {
-      alert('아이디는 가입 시 사용한 이메일 주소입니다.\n비밀번호는 재설정 메일로 변경할 수 있어요.');
-      bellPrompt('가입한 이메일을 입력하면 비밀번호 재설정 메일을 보내드립니다.').then(function (email) {
-        if (!email || email.indexOf('@') === -1) return;
-        B.resetPassword(email)
-          .then(function () { alert('재설정 메일을 보냈습니다. 받은편지함을 확인해주세요.'); })
-          .catch(function (err) { alert('발송 실패: ' + (err && err.message || err)); });
-      });
-    });
+    // 로그인 화면의 아이디/비밀번호 찾기는 script.js 의 전용 패널(loginPanelFindId/FindPw)이 처리.
     // 마이페이지 모달이 열릴 때 현황 새로고침
     var myModal = $('#myPageModal');
     if (myModal) {
