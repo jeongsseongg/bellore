@@ -298,9 +298,33 @@
         });
         m.hidden = false; document.body.style.overflow = 'hidden';
         renderOrdersList();
+        refreshMyOrders(); // 열 때 최신 상태 재조회(취소/변동 즉시 반영)
     }
     function closeOrdersList() {
         var m = $('#ordersModal'); if (m) { m.hidden = true; document.body.style.overflow = 'hidden'; }
+    }
+    // 주문 캐시 반영 + 현황/메뉴/목록 갱신 (구독 콜백 & 수동 폴백 공용)
+    function applyMyOrders(orders) {
+        myOrdersCache = orders || [];
+        function cnt(st) { return myOrdersCache.filter(function (o) { return o.status === st; }).length; }
+        var wait = cnt('pending');
+        var set = function (id, n) { var el = $(id); if (el) el.textContent = n; };
+        set('#psWait', wait);
+        set('#psPaid', cnt('paid'));
+        set('#psPrep', cnt('preparing'));
+        set('#psShip', cnt('shipping'));
+        set('#psDone', cnt('delivered'));
+        var pq = $('#pqUnpaid'); if (pq) pq.textContent = wait + '건';
+        if (typeof renderMpMenu === 'function') renderMpMenu(_lastAuthInfo); // 주문 건수 갱신
+        var om = $('#ordersModal');
+        if (om && !om.hidden) renderOrdersList();   // 열려 있으면 즉시 갱신
+    }
+    // realtime 미활성 환경 대비: 취소/확정/반품 후 즉시 목록 재조회(클라 폴백)
+    function refreshMyOrders() {
+        if (backendOn() && NWBackend.listMyOrders) {
+            return NWBackend.listMyOrders().then(applyMyOrders).catch(function () {});
+        }
+        return Promise.resolve();
     }
     function renderOrdersList() {
         var box = $('#ordersList'); if (!box) return;
@@ -360,21 +384,7 @@
         // 주문 현황(결제대기/결제완료) 실제 데이터 연동
         if (backendOn() && NWBackend.subscribeMyOrders) {
             if (myOrdersUnsub) { try { myOrdersUnsub(); } catch (e) {} }
-            myOrdersUnsub = NWBackend.subscribeMyOrders(function (orders) {
-                myOrdersCache = orders || [];
-                function cnt(st) { return myOrdersCache.filter(function (o) { return o.status === st; }).length; }
-                var wait = cnt('pending');
-                var set = function (id, n) { var el = $(id); if (el) el.textContent = n; };
-                set('#psWait', wait);
-                set('#psPaid', cnt('paid'));
-                set('#psPrep', cnt('preparing'));
-                set('#psShip', cnt('shipping'));
-                set('#psDone', cnt('delivered'));
-                var pq = $('#pqUnpaid'); if (pq) pq.textContent = wait + '건';
-                if (typeof renderMpMenu === 'function') renderMpMenu(_lastAuthInfo); // 주문 건수 갱신
-                var om = $('#ordersModal');
-                if (om && !om.hidden) renderOrdersList();   // 열려 있으면 실시간 갱신
-            });
+            myOrdersUnsub = NWBackend.subscribeMyOrders(applyMyOrders);
         }
 
         if (!pocketBound) {
@@ -877,33 +887,70 @@
             else alert('상품 등록 기능을 불러오지 못했습니다.');
         });
 
-        // 알림 — 마이페이지 검정 박스 안에서 인라인으로 펼침(별도 모달 폐지)
+        // 알림 — 구구스 스타일 전체 페이지(#notiPage)로 표시
         var btnNoti = $('#btnNoti');
         var btnNotiTop = $('#btnNotiTop');
-        function toggleNotiInline(forceOpen) {
-            var box = $('#notiInline'); if (!box) return;
-            var willOpen = (forceOpen === true) ? true : box.hidden;
-            box.hidden = !willOpen;
-            if (btnNoti) btnNoti.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
-            if (willOpen) {
-                renderNotiList(notiCache);
-                // 열람 시 읽지 않은 알림 읽음 처리
-                notiCache.forEach(function (n) {
-                    if (!n.read && backendOn() && NWBackend.markNotificationRead) NWBackend.markNotificationRead(n.id).catch(function () {});
-                });
-                updateNotiBadge(0);
-            }
+        function openNotiPage() {
+            var pg = $('#notiPage'); if (!pg) return;
+            renderNotiList(notiCache);
+            pg.hidden = false; document.body.style.overflow = 'hidden';
         }
-        if (btnNoti) btnNoti.addEventListener('click', function () { toggleNotiInline(); });
-        // 상단 헤더 알림 벨 → 마이페이지 열고 알림 펼치기(로그인 안 했으면 로그인 모달)
+        function closeNotiPage() {
+            var pg = $('#notiPage'); if (pg) pg.hidden = true;
+            document.body.style.overflow = '';
+        }
+        window.BELLORE_openNotiPage = openNotiPage;
+        if (btnNoti) btnNoti.addEventListener('click', function () { openNotiPage(); });
+        // 상단 헤더 알림 벨 → 알림 페이지 (로그인 안 했으면 로그인 모달)
         if (btnNotiTop) btnNotiTop.addEventListener('click', function () {
             if (backendOn() && NWBackend.currentUser && !NWBackend.currentUser()) {
                 var lm = $('#loginModal'); if (lm) { lm.hidden = false; document.body.style.overflow = 'hidden'; }
                 return;
             }
-            if (window.BELLORE_openMyPage) window.BELLORE_openMyPage();
-            else { var mm = $('#myPageModal'); if (mm) mm.hidden = false; }
-            setTimeout(function () { toggleNotiInline(true); }, 60);
+            openNotiPage();
+        });
+        // 닫기 / 모두읽음표시 / 모두삭제
+        document.addEventListener('click', function (e) {
+            if (e.target.closest('[data-noticlose]')) { closeNotiPage(); return; }
+            if (e.target.closest('#notiMarkAll')) {
+                notiCache.forEach(function (n) { n.read = true; });
+                if (backendOn() && NWBackend.markAllNotificationsRead) NWBackend.markAllNotificationsRead().catch(function () {});
+                renderNotiList(notiCache); updateNotiBadge(0);
+                return;
+            }
+            if (e.target.closest('#notiClearAll')) {
+                if (!notiCache.length) return;
+                bellConfirm('모든 알림을 삭제할까요?').then(function (ok) {
+                    if (!ok) return;
+                    notiCache = [];
+                    if (backendOn() && NWBackend.deleteAllNotifications) NWBackend.deleteAllNotifications().catch(function () {});
+                    renderNotiList(notiCache); updateNotiBadge(0);
+                });
+                return;
+            }
+            // 카드별 휴지통 삭제
+            var del = e.target.closest('.noti-del');
+            if (del) {
+                e.preventDefault(); e.stopPropagation();
+                var id = del.getAttribute('data-nid');
+                var wasUnread = notiCache.some(function (n) { return String(n.id) === String(id) && !n.read; });
+                notiCache = notiCache.filter(function (n) { return String(n.id) !== String(id); });
+                if (id && backendOn() && NWBackend.deleteNotification) NWBackend.deleteNotification(id).catch(function () {});
+                renderNotiList(notiCache);
+                updateNotiBadge(notiCache.filter(function (n) { return !n.read; }).length);
+                return;
+            }
+            // 펼치기/접기
+            var exp = e.target.closest('.noti-expand');
+            if (exp) {
+                e.preventDefault(); e.stopPropagation();
+                var item = exp.closest('.noti-item');
+                if (item) {
+                    var open = item.classList.toggle('expanded');
+                    exp.querySelector('span').textContent = open ? '접기' : '펼치기';
+                }
+                return;
+            }
         });
 
         // 상단 장바구니 아이콘 — 찜/장바구니 페이지의 '장바구니' 탭으로 이동
@@ -1081,8 +1128,11 @@
         if (type === 'account' || type === 'business') return 'mypage';
         return '';
     }
+    var BELL_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>';
+    var TRASH_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
     function renderNotiList(rows) {
         var el = $('#notiList');
+        var cntEl = $('#notiPageCount'); if (cntEl) cntEl.textContent = (rows || []).length;
         if (!el) return;
         if (!rows.length) { el.innerHTML = '<div class="noti-empty">알림이 없습니다.</div>'; return; }
         el.innerHTML = rows.map(function (n) {
@@ -1092,19 +1142,41 @@
             var title = (n.title && n.title !== '알림') ? n.title : '';
             var body = n.text || '';
             if (title && body && title === body) body = '';
-            var main = title
-                ? '<span class="noti-title">' + esc(title) + '</span>' +
-                  (body ? '<span class="noti-text">' + esc(body) + '</span>' : '')
-                : '<span class="noti-text">' + esc(body || label) + '</span>';
-            return '<button type="button" class="noti-item' + (n.read ? '' : ' unread') + go + '" data-nid="' + esc(n.id) +
+            if (!title) { title = label; }
+            var longBody = body && body.length > 38;
+            var bid = brandLogoFor(n);
+            var icon = bid
+                ? '<span class="noti-bell"><img src="' + esc(bid) + '" alt="" loading="lazy" onerror="this.remove()">' + (n.read ? '' : '<i class="noti-dot"></i>') + '</span>'
+                : '<span class="noti-bell">' + BELL_SVG + (n.read ? '' : '<i class="noti-dot"></i>') + '</span>';
+            return '<div class="noti-item' + (n.read ? '' : ' unread') + go + '" data-nid="' + esc(n.id) +
                 '" data-ntype="' + esc(n.type || '') + '" data-nref="' + esc(n.refId || '') + '">' +
-                '<span class="noti-head"><span class="noti-tag cat-' + notiCat(n.type) + '">' + esc(label) + '</span>' +
-                '<time>' + relTime(n.createdAt) + '</time></span>' +
-                main +
-                (notiTarget(n.type) ? '<span class="noti-arrow">바로가기 ›</span>' : '') +
-                '</button>';
+                '<div class="noti-item-top">' +
+                    '<time>' + esc(fmtDate(n.createdAt) || relTime(n.createdAt)) + '</time>' +
+                    '<button type="button" class="noti-del" data-nid="' + esc(n.id) + '" aria-label="삭제">' + TRASH_SVG + '</button>' +
+                '</div>' +
+                '<div class="noti-body-row">' +
+                    icon +
+                    '<div class="noti-main">' +
+                        '<span class="noti-tag cat-' + notiCat(n.type) + '">' + esc(label) + '</span>' +
+                        '<span class="noti-title">' + esc(title) + '</span>' +
+                        (body ? '<span class="noti-text">' + esc(body) + '</span>' : '') +
+                        (notiTarget(n.type) ? '<span class="noti-arrow">바로가기 ›</span>' : '') +
+                    '</div>' +
+                '</div>' +
+                (longBody ? '<button type="button" class="noti-expand"><span>펼치기</span> ▾</button>' : '') +
+                '</div>';
         }).join('');
-        attachNotiSwipe();
+    }
+    function brandLogoFor(n) {
+        try {
+            var t = (n.title || '') + ' ' + (n.text || '');
+            if (!window.BELLORE_BRANDS) return '';
+            for (var i = 0; i < window.BELLORE_BRANDS.length; i++) {
+                var b = window.BELLORE_BRANDS[i];
+                if (b.name && t.indexOf(b.name) > -1 && window.BELLORE_BRAND_LOGO) return window.BELLORE_BRAND_LOGO(b.slug);
+            }
+        } catch (e) {}
+        return '';
     }
     // 알림 스와이프 삭제 (왼쪽으로 밀면 삭제)
     var _notiSwallowClick = false;
@@ -1137,6 +1209,8 @@
     document.addEventListener('click', function (e) {
         var it = e.target.closest('#notiList .noti-item');
         if (!it) return;
+        // 휴지통/펼치기 버튼 클릭은 별도 핸들러가 처리 — 네비게이션 무시
+        if (e.target.closest('.noti-del') || e.target.closest('.noti-expand')) return;
         if (_notiSwallowClick) { _notiSwallowClick = false; e.preventDefault(); e.stopPropagation(); return; }
         var id = it.getAttribute('data-nid');
         var type = it.getAttribute('data-ntype');
@@ -1151,6 +1225,7 @@
         updateNotiBadge(notiCache.filter(function (n) { return !n.read; }).length);
         var tgt = notiTarget(type);
         var nm = $('#notiModal'); if (nm) { nm.hidden = true; document.body.style.overflow = ''; }
+        var np = $('#notiPage'); if (np && tgt) { np.hidden = true; document.body.style.overflow = ''; }
         if (tgt === 'cq') {
             if (window.CQDemo) {
                 // 알림 종류별로 해당 화면으로 바로 이동(딥링크)
@@ -1753,7 +1828,7 @@
                 bellConfirm('구매를 확정하시겠어요? 확정 후에는 교환/반품이 제한될 수 있습니다.').then(function (ok) {
                     if (!ok) return;
                     NWBackend.confirmReceipt(_orderCache.orderNo).then(function () {
-                        alert('구매가 확정되었습니다.'); return NWBackend.getOrder(_orderCache.orderNo).then(renderOrderDetail);
+                        alert('구매가 확정되었습니다.'); refreshMyOrders(); return NWBackend.getOrder(_orderCache.orderNo).then(renderOrderDetail);
                     }).catch(function () { alert('처리에 실패했습니다. 잠시 후 다시 시도해 주세요.'); });
                 });
                 return;
@@ -1765,6 +1840,7 @@
                     if (reason === null) return;
                     NWBackend.requestCancel(_orderCache.orderNo, reason).then(function (newSt) {
                         alert(newSt === 'canceled' ? '주문이 취소되었습니다.' : '취소 요청이 접수되었습니다. 환불은 확인 후 진행됩니다.');
+                        refreshMyOrders();
                         return NWBackend.getOrder(_orderCache.orderNo).then(renderOrderDetail);
                     }).catch(function (err) {
                         var m = (err && (err.message || err.code)) || '';
@@ -1806,6 +1882,7 @@
             }).then(function () {
                 alert('접수되었습니다. 확인 후 회수 안내를 드리겠습니다.');
                 closeReturnPage();
+                refreshMyOrders();
                 if (_orderCache) NWBackend.getOrder(_orderCache.orderNo).then(renderOrderDetail).catch(function () {});
             }).catch(function (err) {
                 var m = (err && (err.message || err.code)) || '';
@@ -1957,7 +2034,13 @@
             var p = NWBackend.adminSetOrderMemo(id, memo);
             p = p.then(function () { return NWBackend.adminSetTracking(id, courier, tracking); });
             p = p.then(function () { return NWBackend.adminSetOrderStatus(id, status); });
-            p.then(function () { alert('저장되었습니다.'); closeAdminOrderPage(); })
+            p.then(function () {
+                alert('저장되었습니다.'); closeAdminOrderPage();
+                // realtime 미활성 대비 즉시 목록 재조회(클라 폴백)
+                if (NWBackend.adminListOrders) NWBackend.adminListOrders('').then(function (list) {
+                    _aOrdersCache = list || []; renderAdminOrders();
+                }).catch(function () {});
+            })
              .catch(function () { alert('저장에 실패했습니다.'); })
              .then(function () { save.disabled = false; save.textContent = '저장'; });
         });
@@ -2253,6 +2336,12 @@
         document.addEventListener('click', function (e) {
             var row = e.target.closest('#adminMenuBox [data-apv]');
             if (row) { openAdminPanel(row.dataset.apv, row.dataset.ofilter); return; }
+            // 배너 관리 — bellore-features.js의 배너 모달 열기(마이페이지 배너 기본 선택)
+            if (e.target.closest('#adminBannerBtn')) {
+                if (window.belloreOpenBannerManager) window.belloreOpenBannerManager({ placement: 'mypage' });
+                else alert('배너 관리 기능을 불러오지 못했습니다.');
+                return;
+            }
             if (e.target.closest('#adminPanelBack')) closeAdminPanel();
             // 오늘 현황 칸 탭 → 관리자 주문 패널을 해당 상태로 필터해 열기
             // (고객용 주문모달이 아니라, 누가/언제/무엇을 결제대기 중인지 보이는 관리자 목록)

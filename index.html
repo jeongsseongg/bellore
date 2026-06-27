@@ -2250,10 +2250,6 @@
                         <p class="mpa-id" id="myPageEmail"></p>
                     </div>
                 </div>
-                <!-- 알림 목록 (헤더 아래 인라인으로 펼침 — 홈 알림과 연동) -->
-                <div class="mp-hub-noti-inline" id="notiInline" hidden>
-                    <div id="notiList" class="noti-list"></div>
-                </div>
             </div>
 
             <!-- ===== 원형 카테고리 (5) ===== -->
@@ -2349,6 +2345,10 @@
                     </button>
                     <button type="button" class="admin-menu-row" data-apv="listings">
                         <span>판매시계 관리</span>
+                        <span class="amr-right"><span class="amr-arrow">›</span></span>
+                    </button>
+                    <button type="button" class="admin-menu-row" id="adminBannerBtn">
+                        <span>배너 관리 <em class="amr-sub">홈·마이페이지 배너 수정</em></span>
                         <span class="amr-right"><span class="amr-arrow">›</span></span>
                     </button>
                     <button type="button" class="admin-menu-row" data-apv="settlements">
@@ -2833,6 +2833,26 @@
             </div>
         </div>
         <div class="pp-bottom"><button type="button" class="pp-buy" id="cpSave">쿠폰 저장</button></div>
+    </div>
+
+    <!-- 나의 알림 (전체 페이지 · 구구스 스타일) -->
+    <div class="cp-page noti-page" id="notiPage" hidden>
+        <header class="pp-topbar">
+            <button class="pp-back" type="button" data-noticlose aria-label="뒤로">‹</button>
+            <span class="pp-topbar-title">나의 알림</span>
+            <span class="pp-topbar-spacer"></span>
+        </header>
+        <div class="pp-scroll">
+            <p class="noti-page-note">· 최근 발송된 알림만 표시됩니다.</p>
+            <div class="noti-page-head">
+                <span class="noti-page-count">총 <b id="notiPageCount">0</b>건</span>
+                <div class="noti-page-acts">
+                    <button type="button" class="noti-page-btn" id="notiMarkAll">모두읽음표시</button>
+                    <button type="button" class="noti-page-btn" id="notiClearAll">모두삭제</button>
+                </div>
+            </div>
+            <div id="notiList" class="noti-list"></div>
+        </div>
     </div>
 
     <!-- 결제 결과 모달 -->

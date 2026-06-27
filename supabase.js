@@ -1579,6 +1579,23 @@
     });
   };
 
+  // 모두 읽음 처리 — 본인의 안 읽은 알림 전체
+  Backend.markAllNotificationsRead = function () {
+    if (!rawUser) return Promise.resolve();
+    return sb.from('notifications').update({ is_read: true })
+      .eq('user_id', rawUser.id).eq('is_read', false).then(function (res) {
+        if (res && res.error) throw res.error;
+      });
+  };
+
+  // 모두 삭제 — 본인 알림 전체
+  Backend.deleteAllNotifications = function () {
+    if (!rawUser) return Promise.resolve();
+    return sb.from('notifications').delete().eq('user_id', rawUser.id).then(function (res) {
+      if (res && res.error) throw res.error;
+    });
+  };
+
   // RLS상 클라이언트 insert가 막혀 있을 수 있으므로 best-effort.
   // (핵심 알림은 DB 트리거가 security definer로 생성)
   Backend.createNotification = function (data) {
@@ -1770,6 +1787,14 @@
     return unsub;
   };
 
+  // 주문 목록 1회 조회(폴백) — realtime 미활성 환경에서 취소/확정 후 즉시 갱신용
+  Backend.listMyOrders = function () {
+    if (!rawUser) return Promise.resolve([]);
+    return sb.from('orders').select('*').eq('customer_id', rawUser.id)
+      .order('created_at', { ascending: false })
+      .then(function (res) { return (res.data || []).map(mapOrder); });
+  };
+
   // 주문 1건 조회(주문번호) — 상세 페이지/타임라인용
   Backend.getOrder = function (orderNo) {
     return sb.from('orders').select('*').eq('order_no', orderNo).single()
@@ -1839,6 +1864,14 @@
     }
     load();
     return channelRefetch('adminorders' + (filter || 'all'), ['orders'], load);
+  };
+
+  // 관리자 주문 목록 1회 조회(폴백) — 상태 변경 후 즉시 갱신용
+  Backend.adminListOrders = function (filter) {
+    if (!Backend.isAdmin()) return Promise.resolve([]);
+    var q = sb.from('orders').select('*').order('created_at', { ascending: false }).limit(300);
+    if (filter) q = q.eq('status', filter);
+    return q.then(function (res) { return (res.data || []).map(mapOrder); });
   };
 
   // 상태 변경 (관리자 RLS 로 직접 update)

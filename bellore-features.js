@@ -423,7 +423,7 @@
     // 관리자: 배너 관리 모달
     var bannerModal = makeModal('bannerModal', 'BANNER', '배너 관리');
     var bnBody = $('.modal-body', bannerModal);
-    var bnPicker = null, bnPickerWide = null, bnPickerPc = null, bnEditId = null;
+    var bnPicker = null, bnPickerWide = null, bnPickerPc = null, bnEditId = null, bnDefaultPlacement = 'home';
 
     function bannerListView() {
       bnEditId = null;
@@ -464,8 +464,8 @@
         '<label><span>클릭 시 이동(선택)</span><input name="link" value="' + esc(item ? item.link : '') + '" placeholder="예: #compare 또는 https://..."></label>' +
         '<label><span>노출 순서(숫자, 작을수록 먼저)</span><input name="sort_order" type="number" value="' + (item ? item.sort_order : 0) + '"></label>' +
         '<label><span>노출 위치</span><select name="placement">' +
-          '<option value="home"' + (!item || item.placement !== 'mypage' ? ' selected' : '') + '>홈 상단</option>' +
-          '<option value="mypage"' + (item && item.placement === 'mypage' ? ' selected' : '') + '>마이페이지</option>' +
+          '<option value="home"' + ((item ? item.placement !== 'mypage' : bnDefaultPlacement !== 'mypage') ? ' selected' : '') + '>홈 상단</option>' +
+          '<option value="mypage"' + ((item ? item.placement === 'mypage' : bnDefaultPlacement === 'mypage') ? ' selected' : '') + '>마이페이지</option>' +
         '</select></label>' +
         '<label class="banner-active-row"><input type="checkbox" name="active"' + (!item || item.active ? ' checked' : '') + '> <span>노출하기</span></label>' +
         '<div class="banner-img-slot"><label><span>① 모바일 이미지 *</span></label>' +
@@ -584,6 +584,12 @@
     if (heroManageBtn) {
       heroManageBtn.addEventListener('click', function () { bannerListView(); openModal(bannerModal); });
     }
+    // 관리자 마이페이지 등 다른 위치에서도 배너 관리 모달을 열 수 있게 전역 노출
+    // opts.placement('home'|'mypage') 지정 시 '새 배너 추가'의 기본 노출 위치로 사용
+    window.belloreOpenBannerManager = function (opts) {
+      bnDefaultPlacement = (opts && opts.placement) || 'home';
+      bannerListView(); openModal(bannerModal);
+    };
 
     /* ========== 인사이트/후기 작성·수정 모달 ========== */
     var postModalEl = makeModal('insightEditModal', 'EDITOR', '글 작성');
