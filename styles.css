@@ -8526,6 +8526,7 @@ body.mypage-open .tabbar { z-index: 2550; }
   background: #f1efe9; border: 0; padding: 0; cursor: pointer; overflow: visible;
   display: inline-flex; align-items: center; justify-content: center; color: #b7b2a6; }
 .mp-avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+.mp-avatar-img[hidden] { display: none; }   /* 사진 없을 때 빈 img 가 자리 차지해 사람아이콘이 밀리던 버그 수정 */
 /* 바이버 기본 이미지처럼: 회색 원 + 큰 사람 실루엣 */
 .mp-avatar { background: #e9e7e1; color: #b3aea2; }
 .mp-avatar-ph { width: 42px; height: 42px; }
@@ -8767,6 +8768,7 @@ body.mypage-open .tabbar { z-index: 2550; }
 .prof-avatar { position: relative; width: 96px; height: 96px; border-radius: 50%; background: #e9e7e1;
   color: #b3aea2; display: inline-flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; }
 .prof-avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+.prof-avatar-img[hidden] { display: none; }
 .prof-avatar-ph { width: 64px; height: 64px; }
 .prof-avatar-img:not([hidden]) + .prof-avatar-ph { display: none; }
 .prof-avatar.is-loading { opacity: .55; }
