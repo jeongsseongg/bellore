@@ -326,9 +326,20 @@
         }
         return Promise.resolve();
     }
+    // 구매내역에서 '삭제'한(숨긴) 주문번호 — 결제취소/환불건만 숨김 가능. 클라 보관(서버 데이터는 보존).
+    var O_DELETABLE = ['canceled', 'cancelled', 'refunded'];
+    function hiddenOrders() {
+        try { return JSON.parse(localStorage.getItem('bellore_hidden_orders') || '[]'); } catch (e) { return []; }
+    }
+    function hideOrder(no) {
+        var h = hiddenOrders(); if (h.indexOf(no) < 0) h.push(no);
+        try { localStorage.setItem('bellore_hidden_orders', JSON.stringify(h)); } catch (e) {}
+    }
     function renderOrdersList() {
         var box = $('#ordersList'); if (!box) return;
-        var rows = ordersFilter ? myOrdersCache.filter(function (o) { return o.status === ordersFilter; }) : myOrdersCache;
+        var hid = hiddenOrders();
+        var base = myOrdersCache.filter(function (o) { return hid.indexOf(o.orderNo) < 0; });
+        var rows = ordersFilter ? base.filter(function (o) { return o.status === ordersFilter; }) : base;
         if (!rows.length) {
             box.innerHTML = '<div class="orders-empty"><p>' +
                 (ordersFilter ? (O_LABEL[ordersFilter] || '해당') + ' 상태의 주문이 없습니다.' : '아직 주문 내역이 없습니다.') +
@@ -341,6 +352,8 @@
             var st = o.status || 'pending';
             var unpaid = st === 'pending'
                 ? '<button type="button" class="order-pay" data-opay="' + esc(o.orderNo) + '">입금 안내</button>' : '';
+            var del = O_DELETABLE.indexOf(st) >= 0
+                ? '<button type="button" class="order-del" data-odel="' + esc(o.orderNo) + '">삭제</button>' : '';
             return '<div class="order-row" data-oview="' + esc(o.orderNo) + '">' +
                 '<div class="order-thumb"><img src="' + esc(img) + '" alt=""></div>' +
                 '<div class="order-main">' +
@@ -351,7 +364,7 @@
                 '<div class="order-side">' +
                     '<span class="order-badge order-badge--' + st + '">' + (O_LABEL[st] || st) + '</span>' +
                     '<span class="order-amt">' + (o.amount ? fmt(o.amount) + '원' : '-') + '</span>' +
-                    unpaid +
+                    unpaid + del +
                 '</div>' +
             '</div>';
         }).join('');
@@ -414,6 +427,16 @@
                     e.stopPropagation();
                     alert('입금 안내\n\n주문번호 ' + pay.dataset.opay + '\n결제/입금은 카카오톡 상담으로 도와드립니다.');
                     window.open('https://open.kakao.com/o/sMuCaAFh', '_blank');
+                    return;
+                }
+                var del = e.target.closest('[data-odel]');
+                if (del) {
+                    e.stopPropagation();
+                    bellConfirm('이 주문을 구매내역에서 삭제할까요?\n(취소·환불 완료된 주문만 숨겨지며, 정산/세금 기록은 보존됩니다.)').then(function (ok) {
+                        if (!ok) return;
+                        hideOrder(del.dataset.odel);
+                        renderOrdersList();
+                    });
                     return;
                 }
                 var view = e.target.closest('[data-oview]');
@@ -3588,7 +3611,7 @@
         }
 
         var emptyHtml = '<div class="empty-items"><p>아직 등록한 비교견적이 없습니다.</p>' +
-            '<p class="sub">내시계팔기에서 시계를 등록하면 업체 견적을 한눈에 비교할 수 있어요.</p></div>';
+            '<p class="sub">시계판매에서 시계를 등록하면 업체 견적을 한눈에 비교할 수 있어요.</p></div>';
 
         var html = rows.length ? rows.map(cardHtml).join('') : emptyHtml;
         var el = $('#myItems'); if (el) el.innerHTML = html;

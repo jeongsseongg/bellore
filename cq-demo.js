@@ -148,7 +148,7 @@
       '<div class="cqd-frame">' +
         '<header class="cqd-bar">' +
           '<button type="button" class="cqd-back" aria-label="뒤로" hidden>‹</button>' +
-          '<span class="cqd-title">내시계팔기</span>' +
+          '<span class="cqd-title">시계판매</span>' +
           '<button type="button" class="cqd-add" aria-label="시계 등록 추가" hidden>+</button>' +
           '<button type="button" class="cqd-close" aria-label="닫기">×</button>' +
         '</header>' +
@@ -263,7 +263,7 @@
   function emailAdmin(q, bid, vName) {
     try {
       var payload = {
-        _subject: '[벨로르] 내시계팔기 업체 선택 알림',
+        _subject: '[벨로르] 시계판매 업체 선택 알림',
         _template: 'table', _captcha: 'false',
         시계: (q.brand || '') + ' ' + (q.model || ''),
         선택금액: won(bid.amount),
@@ -1543,7 +1543,7 @@
   function emailAdminSubmit(d, isEdit) {
     try {
       var payload = {
-        _subject: '[벨로르] 내시계팔기 ' + (isEdit ? '견적 수정(재승인 요청)' : '신규 비교견적 신청'),
+        _subject: '[벨로르] 시계판매 ' + (isEdit ? '견적 수정(재승인 요청)' : '신규 비교견적 신청'),
         _template: 'table', _captcha: 'false',
         구분: isEdit ? '수정·재승인 요청' : '신규 신청',
         시계: (d.brand || '') + ' ' + (d.model || ''),

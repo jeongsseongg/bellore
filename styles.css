@@ -9270,12 +9270,42 @@ body.login-open .tabbar { display: none; }
 .cf-pill.on { background: var(--text, #161616); border-color: var(--text, #161616); color: #fff; font-weight: 700; }
 .filter-page .cf-radios { gap: 26px; }
 
-/* I. 비교견적 촬영 가이드: 실제 예시 사진 썸네일 */
+/* I. 비교견적 촬영 가이드: 실제 예시 사진 썸네일 (삐져나옴 방지: 셀=이미지, 외곽박스 제거) */
+.cqd-photo-ex { gap: 10px; }
+.cqd-photo-ex-cell {
+  aspect-ratio: auto !important; background: none !important; border: none !important;
+  padding: 0 !important; gap: 7px; min-width: 0;
+}
 .cqd-photo-ex-ic {
-  width: 100%; height: 86px; border-radius: 12px; overflow: hidden;
-  background: #f3efe6; border: 1px solid #ece7db; padding: 0;
-  display: flex; align-items: center; justify-content: center;
+  width: 100% !important; height: 94px !important; border-radius: 12px !important;
+  overflow: hidden; background: #f3efe6; border: 1px solid #ece7db; padding: 0;
+  display: block; box-sizing: border-box;
 }
 .cqd-photo-ex-ic img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.cqd-photo-ex-cell { gap: 7px; }
 .cqd-photo-ex-cell em { font-size: 12px; color: #4a463d; }
+
+/* 마이페이지 원형 카테고리: 레퍼런스 PNG 아이콘 연동 */
+.mp-cats .pl-ic.has-img { background: none !important; border: none; overflow: hidden; padding: 0; }
+.mp-cats .pl-item:hover .pl-ic.has-img,
+.pl-item:hover .pl-ic.has-img { background: none !important; color: inherit; }
+.mp-cats .pl-ic.has-img img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+
+/* 판매시계(검색) 원형 브랜드: 선택 시 체크 표시 */
+#catBrandPanel[hidden] { display: none; }
+.cat-brands .cat-brand { position: relative; }
+.cat-brands .brand-circle-img { position: relative; }
+.cat-brands .cat-brand.active .brand-circle-img::after {
+  content: "✓"; position: absolute; right: -2px; top: -2px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--text, #161616); color: #fff;
+  font-size: 12px; font-weight: 800; line-height: 20px; text-align: center;
+  box-shadow: 0 0 0 2px #fff; z-index: 2;
+}
+
+/* 구매내역: 결제취소/환불건 삭제 버튼 */
+.order-row { position: relative; }
+.order-del {
+  margin-top: 6px; border: 1px solid #e3ddd1; background: #fff; color: #9a948a;
+  font-size: 11.5px; font-family: inherit; padding: 5px 11px; border-radius: 8px; cursor: pointer;
+}
+.order-del:hover { border-color: #c0492f; color: #c0492f; }

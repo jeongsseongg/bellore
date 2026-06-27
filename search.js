@@ -102,7 +102,7 @@
     '<nav class="sp-tabs">' +
       '<button type="button" class="sp-tab active" data-sptab="word">검색어</button>' +
       '<button type="button" class="sp-tab" data-sptab="cat">카테고리</button>' +
-      '<button type="button" class="sp-tab" data-spgo="compare">내시계팔기</button>' +
+      '<button type="button" class="sp-tab" data-spgo="compare">시계판매</button>' +
     '</nav>' +
     '<div class="sp-scroll">' +
       '<section class="sp-panel" data-sppanel="word"></section>' +

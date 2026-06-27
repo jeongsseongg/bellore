@@ -210,7 +210,7 @@
             <a href="#cat-sale" class="cat-chip" data-nav="cat-sale">TIME SALE</a>
             <a href="#cat-new" class="cat-chip" data-nav="cat-new">미사용신품</a>
             <a href="#cat-today" class="cat-chip" data-nav="cat-today">오늘의시계</a>
-            <a href="#compare" class="cat-chip" data-nav="compare">내시계팔기</a>
+            <a href="#compare" class="cat-chip" data-nav="compare">시계판매</a>
         </nav>
     </header>
 
@@ -841,11 +841,13 @@
                         <!-- 연관검색어 / 인기검색어 제안 -->
                         <div class="cat-suggest" id="catSuggest" hidden></div>
                     </div>
+                    <!-- 원형 브랜드: 평소 숨김 → 빠른칩 '브랜드' 누르면 펼쳐서 선택(체크) -->
+                    <div id="catBrandPanel" hidden>
                     <div class="cat-brandbar">
                         <span class="cat-brandbar-count"><b id="catBrandCount">0</b>개의 브랜드</span>
                         <button type="button" class="cat-brandbar-more" id="catBrandMore">브랜드 더보기<span class="cat-brandbar-arrow">›</span></button>
                     </div>
-                    <div class="cat-brands brand-circle-scroll is-collapsed">
+                    <div class="cat-brands brand-circle-scroll show-all">
                         <button type="button" class="brand-circle cat-brand active" data-brand="all"><span class="brand-circle-img">ALL</span><span class="brand-circle-name">전체</span></button>
                         <button type="button" class="brand-circle cat-brand" data-brand="롤렉스"><span class="brand-circle-img"><img src="assets/brands/rolex.png" alt="롤렉스" loading="lazy"></span><span class="brand-circle-name">롤렉스</span></button>
                         <button type="button" class="brand-circle cat-brand" data-brand="파텍필립"><span class="brand-circle-img"><img src="assets/brands/patek.png" alt="파텍필립" loading="lazy"></span><span class="brand-circle-name">파텍필립</span></button>
@@ -880,6 +882,7 @@
                         <button type="button" class="brand-circle cat-brand" data-brand="해밀턴"><span class="brand-circle-img"><img src="assets/brands/hamilton.png" alt="해밀턴" loading="lazy"></span><span class="brand-circle-name">해밀턴</span></button>
                         <button type="button" class="brand-circle cat-brand" data-brand="프레드릭 콘스탄트"><span class="brand-circle-img"><img src="assets/brands/frederique.png" alt="프레드릭 콘스탄트" loading="lazy"></span><span class="brand-circle-name">프레드릭 콘스탄트</span></button>
                     </div>
+                    </div><!-- /catBrandPanel -->
 
                     <!-- 선택 브랜드의 모델 카테고리(브랜드 클릭 시 표시) -->
                     <div class="cat-models" id="catModels" hidden></div>
@@ -887,12 +890,12 @@
                     <!-- 액션 행: 인기검색어 · 내시계팔기 · 필터검색 -->
                     <div class="cat-actions">
                         <button type="button" class="cat-action" id="catPopular">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c.5 3-1.5 4.5-2.5 5.5C8 10 7 11.5 7 14a5 5 0 0 0 10 0c0-2-1-3.8-2.2-5.2C16 10 17 8 16.5 5.5 16 6.8 15 7.5 14 8c.2-2-.6-3.8-2-5z"/></svg>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>
                             인기검색어
                         </button>
                         <button type="button" class="cat-action" id="catSellMine">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6a1 1 0 0 1 1 1v1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h1V5a1 1 0 0 1 1-1z"/><path d="M9 12h6M9 16h4"/></svg>
-                            내시계팔기
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="12" r="5"/><path d="M7.5 7.3 7 4h7l-.5 3.3M7.5 16.7 7 20h7l-.5-3.3"/><path d="M10.5 12V9.6M10.5 12h2"/><path d="M19 15.5v-6m0 0-1.9 1.9M19 9.5l1.9 1.9"/></svg>
+                            시계판매
                         </button>
                         <button type="button" class="cat-action cat-action--filter" id="catFilterOpen">
                             필터검색
@@ -2268,25 +2271,25 @@
             <!-- ===== 원형 카테고리 (5) ===== -->
             <div class="mp-cats customer-only" id="mpHubCats">
                 <button type="button" class="pl-item" data-myjump="#myCouponSection">
-                    <span class="pl-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"/><path d="M12 6v12" stroke-dasharray="2 2"/></svg></span>
+                    <span class="pl-ic has-img"><img src="assets/mypage/coupon.png" alt="" loading="lazy"></span>
                     <span class="pl-label">포인트/쿠폰</span>
                     <span class="pl-badge" id="pocketCoupon" hidden>0</span>
                 </button>
                 <button type="button" class="pl-item" data-cqd-open>
-                    <span class="pl-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6a1 1 0 0 1 1 1v1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h1V5a1 1 0 0 1 1-1z"/><path d="M9 12h6M9 16h4"/></svg></span>
-                    <span class="pl-label">내 시계팔기</span>
+                    <span class="pl-ic has-img"><img src="assets/mypage/sell.png" alt="" loading="lazy"></span>
+                    <span class="pl-label">시계판매</span>
                 </button>
                 <button type="button" class="pl-item" data-myjump="#myInterestSection">
-                    <span class="pl-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 0 0-7.1 7.1L12 21l8.8-8.3a5 5 0 0 0 0-7.1z"/></svg></span>
+                    <span class="pl-ic has-img"><img src="assets/mypage/interest.png" alt="" loading="lazy"></span>
                     <span class="pl-label">내 관심</span>
                     <span class="pl-badge" id="pocketInterest" hidden>0</span>
                 </button>
                 <button type="button" class="pl-item" data-myjump="#myRecentSection">
-                    <span class="pl-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+                    <span class="pl-ic has-img"><img src="assets/mypage/recent.png" alt="" loading="lazy"></span>
                     <span class="pl-label">최근 본 상품</span>
                 </button>
                 <button type="button" class="pl-item" data-myact="cart">
-                    <span class="pl-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1.6"/><circle cx="18" cy="21" r="1.6"/><path d="M2.5 3h2.2l2.3 12.3a1.6 1.6 0 0 0 1.6 1.3h8.8a1.6 1.6 0 0 0 1.6-1.3L21.5 7H6"/></svg></span>
+                    <span class="pl-ic has-img"><img src="assets/mypage/cart.png" alt="" loading="lazy"></span>
                     <span class="pl-label">장바구니</span>
                     <span class="pl-badge" id="pocketCart" hidden>0</span>
                 </button>
@@ -2329,7 +2332,7 @@
                 <h4>관리</h4>
                 <div class="admin-menu">
                     <button type="button" class="admin-menu-row" data-cqd-open>
-                        <span>내시계팔기 (견적·업체·고객)</span>
+                        <span>시계판매 (견적·업체·고객)</span>
                         <span class="amr-right"><span class="amr-arrow">›</span></span>
                     </button>
                     <button type="button" class="admin-menu-row" data-apv="quotes">
@@ -3210,8 +3213,8 @@
             <span>홈</span>
         </button>
         <button class="tab-item" data-nav="collection">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-            <span>판매시계</span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
+            <span>검색</span>
         </button>
         <button class="tab-item tab-wish" data-nav="wishlist">
             <span class="tab-wish-ic">
@@ -3221,8 +3224,8 @@
             <span>찜</span>
         </button>
         <button class="tab-item" data-nav="compare">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.83 0l-7.17-7.17A2 2 0 0 1 2.8 12V4.8A2 2 0 0 1 4.8 2.8H12a2 2 0 0 1 1.43.6l7.17 7.17a2 2 0 0 1 0 2.83z"/><circle cx="7.6" cy="7.6" r="1.3"/></svg>
-            <span>내시계팔기</span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="12" r="5"/><path d="M7.5 7.3 7 4h7l-.5 3.3M7.5 16.7 7 20h7l-.5-3.3"/><path d="M10.5 12V9.6M10.5 12h2"/><path d="M19 15.5v-6m0 0-1.9 1.9M19 9.5l1.9 1.9"/></svg>
+            <span>시계판매</span>
         </button>
         <button class="tab-item" type="button" id="tabMy">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
@@ -3533,7 +3536,15 @@
                 if (k === 'sort') { toggleMenu('catSortMenu', chip); return; }
                 if (k === 'all') { resetQuick(); applyFilters(); return; }
                 if (k === 'new') { fNew = !fNew; chip.classList.toggle('active', fNew); syncAllChip(); applyFilters(); return; }
-                if (k === 'brand') { setBrandOpen(true); var bs = document.getElementById('catSearchWrap'); if (bs) bs.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); return; }
+                if (k === 'brand') {
+                    var panel = document.getElementById('catBrandPanel');
+                    if (panel) {
+                        panel.hidden = !panel.hidden;
+                        chip.classList.toggle('active', !panel.hidden);
+                        if (!panel.hidden) { setBrandOpen(true); panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+                    }
+                    return;
+                }
             });
             document.addEventListener('click', function (e) { if (!e.target.closest('.qf-chip')) closeMenus(); });
             window.addEventListener('scroll', closeMenus, true);
