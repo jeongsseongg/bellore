@@ -9205,3 +9205,77 @@ body.login-open .tabbar { display: none; }
   #myPageModal .mp-menu,
   #myPageModal .mp-subsec { max-width: 600px; margin-left: auto; margin-right: auto; }
 }
+
+/* ============================================================
+   Batch 9 — 판매시계 검색/필터 정리 (검색바 풀폭·연관검색어·드롭다운·필터 UI)
+   ============================================================ */
+/* A. 브랜드 검색바: 화면 최대폭 + 바이버풍 라운드 박스 */
+#collection .cat-search-wrap { position: relative; }
+#collection .cat-brand-search {
+  display: flex !important; align-items: center; gap: 9px;
+  max-width: none !important; width: 100%;
+  background: var(--bg-soft, #f5f3ee); border: 1px solid #e9e3d8;
+  border-radius: 14px; padding: 13px 15px; margin: 2px 0 10px !important;
+}
+#collection .cat-brand-search input { flex: 1; font-size: 15px; background: none; }
+.cat-search-clear {
+  flex: none; border: 0; background: #cfc8b9; color: #fff;
+  width: 19px; height: 19px; border-radius: 50%; font-size: 13px; line-height: 1;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
+}
+.cat-search-clear[hidden] { display: none; }
+
+/* B·E. 연관검색어 / 인기검색어 제안 드롭다운 */
+.cat-suggest {
+  position: absolute; top: calc(100% - 6px); left: 0; right: 0; z-index: 60;
+  background: #fff; border: 1px solid #ece7db; border-radius: 14px;
+  box-shadow: 0 14px 34px rgba(0,0,0,.12); padding: 6px; max-height: 340px; overflow-y: auto;
+}
+.cat-suggest[hidden] { display: none; }
+.cat-suggest-h { font-size: 11px; font-weight: 800; color: var(--text-3, #aaa); letter-spacing: .4px; margin: 7px 9px 5px; }
+.cat-suggest-item {
+  display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+  border: 0; background: transparent; padding: 11px 10px; border-radius: 10px;
+  font-size: 14px; color: var(--text, #222); cursor: pointer; font-family: inherit;
+}
+.cat-suggest-item:hover { background: var(--bg-soft, #f5f3ee); }
+.cat-suggest-item svg { flex: none; }
+.cat-suggest-item span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* D. 등급/최신순 드롭다운: overflow 컨테이너에 잘리지 않도록 fixed로 띄움 */
+.qf-chip-menu.cf-menu-open { position: fixed; z-index: 1300; }
+
+/* F. 필터검색: 좌우 폭 축소 · 뒤로가기 크게 · 박스 자연스럽게 */
+.filter-page .pp-scroll { width: 100%; max-width: 560px; margin: 0 auto; padding-left: 20px; padding-right: 20px; }
+.filter-page .pp-topbar { max-width: 560px; margin: 0 auto; width: 100%; }
+.filter-page .pp-back { font-size: 30px; width: 40px; height: 40px; line-height: 1; margin-left: -6px; }
+.filter-page .cf-minmax { gap: 12px; align-items: stretch; }
+.filter-page .cf-minmax label {
+  flex: 1 1 0; gap: 7px; font-size: 12px; font-weight: 600; color: var(--text-3, #9a948a);
+}
+.filter-page .cf-minmax input {
+  padding: 14px 38px 14px 14px; border: 1px solid #e6e0d4; border-radius: 12px;
+  background: #fff; font-size: 15px; text-align: right;
+}
+.filter-page .cf-minmax label span { bottom: 15px; }
+.filter-page .cf-minmax > em { align-self: center; padding-bottom: 0; }
+/* 선택형 펄(다이얼컬러·소재·등급) — 체크박스 대신 토글 칩 */
+.cf-pills { display: flex; flex-wrap: wrap; gap: 9px; }
+.cf-pill {
+  border: 1px solid #e0dacd; background: #fff; color: var(--text-2, #555);
+  font-size: 13.5px; font-family: inherit; padding: 10px 16px; border-radius: 999px; cursor: pointer;
+  transition: all .14s;
+}
+.cf-pill:hover { border-color: #bdb6a6; }
+.cf-pill.on { background: var(--text, #161616); border-color: var(--text, #161616); color: #fff; font-weight: 700; }
+.filter-page .cf-radios { gap: 26px; }
+
+/* I. 비교견적 촬영 가이드: 실제 예시 사진 썸네일 */
+.cqd-photo-ex-ic {
+  width: 100%; height: 86px; border-radius: 12px; overflow: hidden;
+  background: #f3efe6; border: 1px solid #ece7db; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.cqd-photo-ex-ic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cqd-photo-ex-cell { gap: 7px; }
+.cqd-photo-ex-cell em { font-size: 12px; color: #4a463d; }

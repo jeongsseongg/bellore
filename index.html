@@ -203,16 +203,7 @@
                 <svg class="header-search-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                 <input type="search" id="searchInput" placeholder="브랜드·모델 검색" autocomplete="off" enterkeyhint="search">
             </form>
-            <div class="header-actions">
-                <button class="header-icon" type="button" aria-label="장바구니" id="btnCartTop">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3h2.2l2.2 12.2a1.6 1.6 0 0 0 1.6 1.3h8.7a1.6 1.6 0 0 0 1.6-1.3L21.5 7H6"/></svg>
-                    <span class="noti-badge" id="cartBadgeTop" hidden>0</span>
-                </button>
-                <button class="header-icon" type="button" aria-label="알림" id="btnNotiTop">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
-                    <span class="noti-badge" id="notiBadgeTop" hidden>0</span>
-                </button>
-            </div>
+            <!-- 알림·장바구니는 마이페이지로 이동(상단에는 검색만 노출) -->
         </div>
         <nav class="cat-bar" id="catBar" aria-label="카테고리">
             <a href="#cat-update" class="cat-chip" data-nav="cat-update">UPDATE</a>
@@ -841,9 +832,14 @@
             <section class="section section-soft" style="padding-top: calc(var(--header-h) + 64px + env(safe-area-inset-top));">
                 <div class="container">
                     <!-- 대표 브랜드 — 브랜드 검색은 상시 노출, 원형 카테고리는 '브랜드 보기'로 펼침 -->
-                    <div class="cat-brand-search" id="catBrandSearch">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>
-                        <input type="text" id="catBrandQ" placeholder="모델명, 모델번호 검색" autocomplete="off">
+                    <div class="cat-search-wrap" id="catSearchWrap">
+                        <div class="cat-brand-search" id="catBrandSearch">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#9a948a" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>
+                            <input type="text" id="catBrandQ" placeholder="모델명, 모델번호 검색" autocomplete="off">
+                            <button type="button" class="cat-search-clear" id="catSearchClear" aria-label="지우기" hidden>×</button>
+                        </div>
+                        <!-- 연관검색어 / 인기검색어 제안 -->
+                        <div class="cat-suggest" id="catSuggest" hidden></div>
                     </div>
                     <div class="cat-brandbar">
                         <span class="cat-brandbar-count"><b id="catBrandCount">0</b>개의 브랜드</span>
@@ -888,11 +884,11 @@
                     <!-- 선택 브랜드의 모델 카테고리(브랜드 클릭 시 표시) -->
                     <div class="cat-models" id="catModels" hidden></div>
 
-                    <!-- 액션 행: 상세검색(메인검색으로) · 내시계팔기 · 필터검색 -->
+                    <!-- 액션 행: 인기검색어 · 내시계팔기 · 필터검색 -->
                     <div class="cat-actions">
-                        <button type="button" class="cat-action" id="catDetailSearch">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>
-                            상세검색
+                        <button type="button" class="cat-action" id="catPopular">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c.5 3-1.5 4.5-2.5 5.5C8 10 7 11.5 7 14a5 5 0 0 0 10 0c0-2-1-3.8-2.2-5.2C16 10 17 8 16.5 5.5 16 6.8 15 7.5 14 8c.2-2-.6-3.8-2-5z"/></svg>
+                            인기검색어
                         </button>
                         <button type="button" class="cat-action" id="catSellMine">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6a1 1 0 0 1 1 1v1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h1V5a1 1 0 0 1 1-1z"/><path d="M9 12h6M9 16h4"/></svg>
@@ -2921,18 +2917,18 @@
             </section>
             <section class="cf-sec">
                 <h3 class="cf-sec-t">다이얼 컬러</h3>
-                <div class="cf-checks" id="cfColors"></div>
+                <div class="cf-pills" id="cfColors"></div>
             </section>
             <section class="cf-sec">
                 <h3 class="cf-sec-t">소재</h3>
-                <div class="cf-checks" id="cfMaterials"></div>
+                <div class="cf-pills" id="cfMaterials"></div>
             </section>
             <section class="cf-sec">
                 <h3 class="cf-sec-t">등급</h3>
-                <div class="cf-checks" id="cfGrades">
-                    <label class="cf-check"><input type="checkbox" value="풀세트"><span>풀세트</span></label>
-                    <label class="cf-check"><input type="checkbox" value="보증서없음"><span>보증서 없음</span></label>
-                    <label class="cf-check"><input type="checkbox" value="단품"><span>단품</span></label>
+                <div class="cf-pills" id="cfGrades">
+                    <button type="button" class="cf-pill" data-val="풀세트">풀세트</button>
+                    <button type="button" class="cf-pill" data-val="보증서없음">보증서 없음</button>
+                    <button type="button" class="cf-pill" data-val="단품">단품</button>
                 </div>
             </section>
         </div>
@@ -3317,7 +3313,7 @@
                 var isNew = c.getAttribute('data-new') === '1';
                 if (fBrand && fBrand !== 'all' && bd.indexOf(fBrand.toUpperCase()) === -1) return false;
                 if (fModel && md.indexOf(fModel.toLowerCase()) === -1) return false;
-                if (fQuery) { var q = fQuery.toLowerCase(); if (bd.toLowerCase().indexOf(q) === -1 && md.indexOf(q) === -1 && no.indexOf(q) === -1) return false; }
+                if (fQuery) { var q = fQuery.toLowerCase(); var hay = (bd + ' ' + md + ' ' + no + ' ' + color + ' ' + mat + ' ' + pk).toLowerCase(); if (hay.indexOf(q) === -1) return false; }
                 if (fNew && !isNew) return false;
                 if (fGrade && pk !== fGrade) return false;
                 if (cf.sizeMin != null && !(sz >= cf.sizeMin)) return false;
@@ -3366,8 +3362,16 @@
                     fBrand = btn.dataset.brand; fModel = '';
                     renderModelChips(fBrand);
                     applyFilters();
+                    hideSuggest();
+                    // 선택한 브랜드의 결과(모델칩 + 그리드)가 하단에 보이도록 스크롤
+                    if (fBrand && fBrand !== 'all') scrollToResults();
                 });
             });
+            function scrollToResults() {
+                var anchor = document.getElementById('catModels');
+                if (!anchor || anchor.hidden) anchor = document.querySelector('#collection .cat-listhead') || document.getElementById('panel-ny');
+                if (anchor) setTimeout(function () { anchor.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
+            }
             var brandWrap = document.querySelector('#collection .cat-brands');
             function setBrandOpen(on) {
                 if (!brandWrap) return;
@@ -3376,25 +3380,95 @@
                 var more = document.getElementById('catBrandMore');
                 if (more) { more.classList.toggle('on', on); more.childNodes[0].nodeValue = on ? '접기' : '브랜드 더보기'; }
             }
+            /* ---- 검색 별칭(슬랭) · 인기검색어 · 연관검색어 제안 ---- */
+            // 흔한 줄임말/속어 → 실제 검색어(모델·소재·다이얼 컬러). 그리드는 모델·소재·컬러까지 매칭.
+            var SEARCH_ALIAS = {
+                '금통': '골드', '콤비': '골드', '로골': '로즈골드', '로즈콤비': '로즈골드',
+                '깡통': '스틸', '스틸': '스틸', '백판': '화이트', '화이트판': '화이트',
+                '흑판': '블랙', '블랙판': '블랙', '청판': '블루', '블루판': '블루',
+                '녹판': '그린', '그린판': '그린', '서브': '서브마리너', '서마': '서브마리너',
+                '데저': '데이트저스트', '디데이': '데이데이트', '데토나': '데이토나', '콤스텔': '컨스텔레이션',
+                '스피드': '스피드마스터', '씨마': '씨마스터', '노티': '노틸러스', '로크': '로얄오크',
+                '지엠티': 'GMT마스터', '짐티': 'GMT마스터', '오퍼': '오이스터 퍼페추얼'
+            };
+            var POPULAR_KEYS = ['서브마리너', '데이트저스트', '데이토나', 'GMT마스터', '노틸러스', '로얄오크', '스피드마스터', '콤비', '다이아', '미착용'];
+            function aliasExpand(v) { var k = String(v || '').trim().toLowerCase(); return SEARCH_ALIAS[k] || v; }
+            var suggestBox = document.getElementById('catSuggest');
+            function hideSuggest() { if (suggestBox) { suggestBox.hidden = true; suggestBox.innerHTML = ''; } }
+            function buildSuggest(v) {
+                var ql = String(v || '').trim().toLowerCase();
+                var eq = aliasExpand(v); var eql = eq.toLowerCase();
+                var bl = window.BELLORE_BRANDS || [], out = [], seen = {};
+                function push(label, q) { var key = label + '|' + q; if (seen[key]) return; seen[key] = 1; out.push({ label: label, q: q }); }
+                bl.forEach(function (b) {
+                    if (b.name.toLowerCase().indexOf(ql) > -1 || b.name.toLowerCase().indexOf(eql) > -1) push(b.name, b.name);
+                    (b.models || []).forEach(function (m) {
+                        var ml = m.toLowerCase();
+                        if (ml.indexOf(ql) > -1 || ml.indexOf(eql) > -1) push(b.name + ' ' + m, m);
+                    });
+                });
+                return out.slice(0, 8);
+            }
+            function renderSuggest(items, heading) {
+                if (!suggestBox) return;
+                if (!items.length) { hideSuggest(); return; }
+                suggestBox.innerHTML = (heading ? '<p class="cat-suggest-h">' + heading + '</p>' : '') +
+                    items.map(function (it) {
+                        return '<button type="button" class="cat-suggest-item" data-q="' + esc2(it.q) + '">' +
+                            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#b3ada1" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>' +
+                            '<span>' + esc2(it.label) + '</span></button>';
+                    }).join('');
+                suggestBox.hidden = false;
+            }
             (function () {
                 if (!brandWrap) return;
                 var circles = brandWrap.querySelectorAll('.cat-brand:not([data-brand="all"])');
                 var cnt = document.getElementById('catBrandCount'); if (cnt) cnt.textContent = circles.length;
                 var more = document.getElementById('catBrandMore');
                 var bq = document.getElementById('catBrandQ');
-                function filterBrands(v) {
+                var clearBtn = document.getElementById('catSearchClear');
+                window.__catFilterBrands = function (v) {
                     v = (v || '').trim().toLowerCase();
                     brandWrap.querySelectorAll('.cat-brand').forEach(function (b) {
                         if ((b.dataset.brand || '') === 'all') { b.style.display = ''; return; }
                         b.style.display = (!v || (b.dataset.brand || '').toLowerCase().indexOf(v) > -1) ? '' : 'none';
                     });
+                };
+                function runSearch(raw) {
+                    var v = (raw == null ? bq.value : raw).trim();
+                    window.__catFilterBrands(v);
+                    fQuery = v ? aliasExpand(v) : '';   // 그리드: 별칭 확장(금통→골드 등)
+                    if (clearBtn) clearBtn.hidden = !v;
+                    applyFilters();
                 }
                 if (more) more.addEventListener('click', function () { setBrandOpen(brandWrap.classList.contains('is-collapsed')); });
-                if (bq) bq.addEventListener('input', function () {
-                    var v = bq.value.trim();
-                    filterBrands(v);   // 브랜드 원형 좁히기
-                    fQuery = v;        // 그리드도 브랜드/모델명/모델번호로 검색
-                    applyFilters();
+                if (bq) {
+                    bq.addEventListener('input', function () {
+                        var v = bq.value.trim();
+                        runSearch(v);
+                        if (suggestBox) suggestBox.dataset.kind = 'assoc';
+                        if (v) renderSuggest(buildSuggest(v), '연관 검색어'); else hideSuggest();
+                    });
+                    bq.addEventListener('focus', function () { if (bq.value.trim()) renderSuggest(buildSuggest(bq.value), '연관 검색어'); });
+                }
+                if (clearBtn) clearBtn.addEventListener('click', function () { bq.value = ''; runSearch(''); hideSuggest(); bq.focus(); });
+                // 제안 클릭 → 검색어 적용
+                if (suggestBox) suggestBox.addEventListener('click', function (e) {
+                    var it = e.target.closest('.cat-suggest-item'); if (!it) return;
+                    var q = it.getAttribute('data-q') || '';
+                    bq.value = q; runSearch(q); hideSuggest(); scrollToResults();
+                });
+                // 인기검색어 버튼
+                var popBtn = document.getElementById('catPopular');
+                if (popBtn) popBtn.addEventListener('click', function () {
+                    if (suggestBox && !suggestBox.hidden && suggestBox.dataset.kind === 'popular') { hideSuggest(); return; }
+                    renderSuggest(POPULAR_KEYS.map(function (k) { return { label: k, q: k }; }), '인기 검색어');
+                    if (suggestBox) suggestBox.dataset.kind = 'popular';
+                    var wrap = document.getElementById('catSearchWrap'); if (wrap) wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                });
+                if (bq) bq.addEventListener('input', function () { if (suggestBox) suggestBox.dataset.kind = 'assoc'; });
+                document.addEventListener('click', function (e) {
+                    if (!e.target.closest('#catSearchWrap') && !e.target.closest('#catPopular')) hideSuggest();
                 });
             })();
             if (catModels) catModels.addEventListener('click', function (e) {
@@ -3405,12 +3479,36 @@
             });
 
             /* ---- 빠른 칩 + 등급/정렬 메뉴 ---- */
-            function closeMenus() { ['catGradeMenu', 'catSortMenu'].forEach(function (m) { var el = document.getElementById(m); if (el) el.hidden = true; }); }
-            function toggleMenu(id) { ['catGradeMenu', 'catSortMenu'].forEach(function (m) { var el = document.getElementById(m); if (el) el.hidden = (m === id) ? !el.hidden : true; }); }
+            /* 메뉴는 .qf-chips(가로 overflow:auto)에 잘리므로 position:fixed로 띄워 화면 위에 표시 */
+            function closeMenus() { ['catGradeMenu', 'catSortMenu'].forEach(function (m) { var el = document.getElementById(m); if (el) { el.hidden = true; el.classList.remove('cf-menu-open'); } }); }
+            function positionMenu(menu, anchor) {
+                var r = anchor.getBoundingClientRect();
+                menu.style.position = 'fixed';
+                menu.style.top = (r.bottom + 6) + 'px';
+                menu.style.left = r.left + 'px';
+                menu.style.right = 'auto';
+                requestAnimationFrame(function () {
+                    var mr = menu.getBoundingClientRect();
+                    if (mr.right > window.innerWidth - 8) menu.style.left = Math.max(8, window.innerWidth - 8 - mr.width) + 'px';
+                    if (mr.bottom > window.innerHeight - 8) menu.style.top = Math.max(8, r.top - mr.height - 6) + 'px';
+                });
+            }
+            function toggleMenu(id, anchor) {
+                var target = document.getElementById(id), willOpen = target && target.hidden;
+                closeMenus();
+                if (willOpen) { target.hidden = false; target.classList.add('cf-menu-open'); positionMenu(target, anchor); }
+            }
+            /* '전체' 칩은 다른 빠른필터(미착용·등급)와 동시에 켜질 수 없음 */
+            function syncAllChip() {
+                var allChip = document.querySelector('#catChips .qf-chip[data-chip="all"]');
+                if (allChip) allChip.classList.toggle('active', !fNew && !fGrade);
+            }
             function resetQuick() {
                 fNew = false; fGrade = '';
-                document.querySelectorAll('#catChips .qf-chip').forEach(function (c) { c.classList.toggle('active', c.dataset.chip === 'all'); });
-                var gc = document.querySelector('.qf-chip-grade'); if (gc) gc.childNodes[0].nodeValue = '등급 ';
+                document.querySelectorAll('#catChips .qf-chip').forEach(function (c) { c.classList.remove('active'); });
+                var nc = document.querySelector('#catChips .qf-chip[data-chip="new"]'); if (nc) nc.classList.remove('active');
+                var gc = document.querySelector('.qf-chip-grade'); if (gc) { gc.classList.remove('active'); gc.childNodes[0].nodeValue = '등급 '; }
+                syncAllChip();
             }
             var chips = document.getElementById('catChips');
             if (chips) chips.addEventListener('click', function (e) {
@@ -3420,7 +3518,7 @@
                         fGrade = menuBtn.getAttribute('data-grade') || '';
                         var gc = document.querySelector('.qf-chip-grade');
                         if (gc) { gc.classList.toggle('active', !!fGrade); gc.childNodes[0].nodeValue = (fGrade ? menuBtn.textContent : '등급') + ' '; }
-                        closeMenus(); applyFilters(); return;
+                        syncAllChip(); closeMenus(); applyFilters(); return;
                     }
                     if (menuBtn.hasAttribute('data-sort')) {
                         fSort = menuBtn.getAttribute('data-sort') || 'latest';
@@ -3431,17 +3529,17 @@
                 }
                 var chip = e.target.closest('.qf-chip'); if (!chip) return;
                 var k = chip.dataset.chip;
-                if (k === 'grade') { toggleMenu('catGradeMenu'); return; }
-                if (k === 'sort') { toggleMenu('catSortMenu'); return; }
+                if (k === 'grade') { toggleMenu('catGradeMenu', chip); return; }
+                if (k === 'sort') { toggleMenu('catSortMenu', chip); return; }
                 if (k === 'all') { resetQuick(); applyFilters(); return; }
-                if (k === 'new') { fNew = !fNew; chip.classList.toggle('active', fNew); applyFilters(); return; }
-                if (k === 'brand') { setBrandOpen(true); var bs = document.getElementById('catBrandSearch'); if (bs) bs.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); return; }
+                if (k === 'new') { fNew = !fNew; chip.classList.toggle('active', fNew); syncAllChip(); applyFilters(); return; }
+                if (k === 'brand') { setBrandOpen(true); var bs = document.getElementById('catSearchWrap'); if (bs) bs.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); return; }
             });
             document.addEventListener('click', function (e) { if (!e.target.closest('.qf-chip')) closeMenus(); });
+            window.addEventListener('scroll', closeMenus, true);
+            window.addEventListener('resize', closeMenus);
 
-            /* ---- 액션: 상세검색 / 내시계팔기 / 필터검색 ---- */
-            var dBtn = document.getElementById('catDetailSearch');
-            if (dBtn) dBtn.addEventListener('click', function () { if (window.BELLORE_openSearch) window.BELLORE_openSearch('word'); });
+            /* ---- 액션: 인기검색어(위 IIFE에서 바인딩) / 내시계팔기 / 필터검색 ---- */
             var sBtn = document.getElementById('catSellMine');
             if (sBtn) sBtn.addEventListener('click', function () {
                 var nav = document.querySelector('.tab-item[data-nav="compare"]') || document.querySelector('[data-nav="compare"]');
@@ -3456,10 +3554,10 @@
             function val(id) { var e = gid(id); return e ? e.value : ''; }
             function setv(id, v) { var e = gid(id); if (e) e.value = (v == null ? '' : v); }
             function radio(name) { var e = document.querySelector('input[name="' + name + '"]:checked'); return e ? e.value : ''; }
-            function checks(boxId) { var out = [], box = gid(boxId); if (box) box.querySelectorAll('input:checked').forEach(function (i) { out.push(i.value); }); return out; }
+            function checks(boxId) { var out = [], box = gid(boxId); if (box) box.querySelectorAll('.cf-pill.on').forEach(function (i) { out.push(i.dataset.val); }); return out; }
             function buildChecks(boxId, list) {
                 var box = gid(boxId); if (!box) return;
-                box.innerHTML = (list || []).map(function (v) { return '<label class="cf-check"><input type="checkbox" value="' + esc2(v) + '"><span>' + esc2(v) + '</span></label>'; }).join('');
+                box.innerHTML = (list || []).map(function (v) { return '<button type="button" class="cf-pill" data-val="' + esc2(v) + '">' + esc2(v) + '</button>'; }).join('');
             }
             function readFilterUI() {
                 cf.sizeMin = num(val('cfSizeMin')); cf.sizeMax = num(val('cfSizeMax'));
@@ -3475,7 +3573,7 @@
                 cf = { sizeMin: null, sizeMax: null, priceMin: null, priceMax: null, yearMin: null, yearMax: null, warranty: '', diamond: '', colors: [], materials: [], grades: [] };
                 ['cfSizeMin', 'cfSizeMax', 'cfPriceMin', 'cfPriceMax', 'cfYearMin', 'cfYearMax'].forEach(function (id) { setv(id, ''); });
                 var pg = gid('filterPage');
-                pg.querySelectorAll('input[type="checkbox"]').forEach(function (i) { i.checked = false; });
+                pg.querySelectorAll('.cf-pill.on').forEach(function (i) { i.classList.remove('on'); });
                 var w = pg.querySelector('input[name="cf_warranty"]'); if (w) w.checked = true;
                 var d = pg.querySelector('input[name="cf_diamond"]'); if (d) d.checked = true;
                 ['data-cf-sizechips', 'data-cf-pricechips', 'data-cf-yearchips'].forEach(function (s) {
@@ -3495,6 +3593,8 @@
                     if (pc) { chipPick(pc, 'data-cf-pricechips'); setv('cfPriceMin', pc.dataset.pmin ? Number(pc.dataset.pmin).toLocaleString('ko-KR') : ''); setv('cfPriceMax', pc.dataset.pmax ? Number(pc.dataset.pmax).toLocaleString('ko-KR') : ''); updateFilterCount(); return; }
                     var yc = e.target.closest('[data-cf-yearchips] .cf-chip');
                     if (yc) { chipPick(yc, 'data-cf-yearchips'); setv('cfYearMin', yc.dataset.ymin); setv('cfYearMax', yc.dataset.ymax); updateFilterCount(); return; }
+                    var pl = e.target.closest('.cf-pill');
+                    if (pl) { pl.classList.toggle('on'); updateFilterCount(); return; }
                 });
                 pg.addEventListener('input', function (e) {
                     if (e.target.classList.contains('cf-money')) { var dd = e.target.value.replace(/[^0-9]/g, ''); e.target.value = dd ? Number(dd).toLocaleString('ko-KR') : ''; }

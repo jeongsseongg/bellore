@@ -641,11 +641,20 @@
       '시리얼·일련번호가 그대로 노출되지 않게 가려주세요.',
       '시계와 무관하거나 흐릿한 사진은 반려될 수 있어요.'
     ];
-    var ex = ['앞면', '구성품', '뒷면', '좌측면', '우측면', '클라스프'];
+    var ex = [
+      { name: '앞면', img: 'assets/cq-guide/front.jpg' },
+      { name: '구성품', img: 'assets/cq-guide/parts.jpg' },
+      { name: '뒷면', img: 'assets/cq-guide/back.jpg' },
+      { name: '좌측면', img: 'assets/cq-guide/left.jpg' },
+      { name: '우측면', img: 'assets/cq-guide/right.jpg' },
+      { name: '클라스프', img: 'assets/cq-guide/clasp.jpg' }
+    ];
     return '<ul class="cqd-photo-tips">' + tips.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ul>' +
       '<p class="cqd-photo-ex-h">이렇게 찍어주시면 좋아요</p>' +
-      '<div class="cqd-photo-ex">' + ex.map(function (name) {
-        return '<div class="cqd-photo-ex-cell"><span class="cqd-photo-ex-ic">' + ICON_WATCH + '</span><em>' + name + '</em></div>';
+      '<div class="cqd-photo-ex">' + ex.map(function (e) {
+        return '<div class="cqd-photo-ex-cell"><span class="cqd-photo-ex-ic">' +
+          '<img src="' + e.img + '" alt="' + e.name + ' 예시" loading="lazy" onerror="this.style.display=\'none\'">' +
+          '</span><em>' + e.name + '</em></div>';
       }).join('') + '</div>';
   }
   function refreshPhotoGrid() {
