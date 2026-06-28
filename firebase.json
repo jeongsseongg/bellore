@@ -18,7 +18,9 @@
       "**/*.md",
       "*.sql",
       "supabase/**",
-      "tools/**"
+      "tools/**",
+      "design-refs/**",
+      ".github/**"
     ],
     "headers": [
       {

@@ -7,9 +7,10 @@ on:
   push:
     branches: [main]
   workflow_dispatch: {}
-  # 상품/글이 추가·품절돼도 자동 반영되도록 6시간마다 재생성 후 재배포.
+  # 상품/글이 추가·품절돼도 자동 반영되도록 하루 1회 재생성 후 재배포.
+  # (버전 누적으로 인한 호스팅 저장용량 초과를 막기 위해 6시간→1일로 축소)
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 18 * * *'   # 매일 03:00 KST
 
 # GITHUB_TOKEN 권한 최소화(공급망/탈취 대비). 배포에는 읽기 권한이면 충분.
 permissions:
@@ -30,6 +31,14 @@ jobs:
       # 실패해도 커밋된 sitemap/rss 가 폴백이라 배포는 계속된다.
       - name: Generate SEO pages & feeds (insight + products)
         run: node tools/generate-seo.mjs
+
+      # 배포 직전 옛 호스팅 버전 정리 → 저장용량 확보(429 RESOURCE_EXHAUSTED 방지).
+      # 실패해도 배포는 계속 시도한다.
+      - name: Prune old Hosting versions (free storage)
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node tools/prune-hosting.mjs
 
       - name: Deploy to Firebase Hosting (live)
         uses: FirebaseExtended/action-hosting-deploy@v0
