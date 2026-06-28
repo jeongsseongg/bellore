@@ -252,10 +252,12 @@
     '</svg>';
   }
   function priceTrendCard() {
-    return '<div class="cqd-watchcard slim cqd-trend">' +
-      '<div class="cqd-trend-head"><b>최근 시세 추이</b><span class="cqd-badge wait">데이터 준비중</span></div>' +
-      trendSvg() +
-      '<p class="cqd-chart-label">시세 데이터가 쌓이면 실제 그래프로 표시됩니다.</p>' +
+    // '예상 견적' 화면과 동일한 그린 차트로 통일(겹치는 워터마크 제거)
+    return '<div class="cqe-card cqe-chart-card cqd-trend">' +
+      '<div class="cqe-chart-head"><b>최근 시세 추이</b><span class="cqd-badge wait">데이터 준비중</span></div>' +
+      estimateChart() +
+      '<div class="cqe-chart-x"><span>1월</span><span>2월</span><span>3월</span><span>4월</span><span>5월</span><span>6월</span></div>' +
+      '<p class="cqe-chart-note">※ 시세 데이터가 쌓이면 실제 그래프로 표시됩니다.</p>' +
     '</div>';
   }
 
