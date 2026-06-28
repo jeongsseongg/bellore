@@ -232,23 +232,19 @@
       '<text class="cqd-chart-wm" x="160" y="62" text-anchor="middle">데이터 준비중</text>' +
     '</svg>';
   }
-  /* 예상견적 시세 차트(시안 2) — 그린 라인 + 도트 + y축 (디자인용) */
+  /* 예상견적 시세 차트 — 그린 직선(점 없음) + 가로 그리드라인 (레퍼런스 스타일) */
   function estimateChart() {
-    var pts = '10,26 58,38 106,30 154,50 202,44 250,66 300,60';
-    var arr = pts.split(' ');
-    var dots = '';
-    for (var i = 0; i < arr.length; i++) {
-      var xy = arr[i].split(',');
-      dots += '<circle cx="' + xy[0] + '" cy="' + xy[1] + '" r="3.4"></circle>';
-    }
+    var pts = '6,22 56,34 106,27 156,46 206,40 256,60 314,55';
     return '<svg class="cqe-chart" viewBox="0 0 320 96" preserveAspectRatio="none" aria-hidden="true">' +
       '<defs><linearGradient id="cqeFill" x1="0" y1="0" x2="0" y2="1">' +
-        '<stop offset="0" stop-color="#1f7a4d" stop-opacity=".18"></stop>' +
+        '<stop offset="0" stop-color="#1f7a4d" stop-opacity=".15"></stop>' +
         '<stop offset="1" stop-color="#1f7a4d" stop-opacity="0"></stop>' +
       '</linearGradient></defs>' +
-      '<polygon class="cqe-chart-area" points="10,26 58,38 106,30 154,50 202,44 250,66 300,60 300,96 10,96"></polygon>' +
-      '<polyline class="cqe-chart-line" points="' + pts + '"></polyline>' +
-      '<g class="cqe-chart-dots">' + dots + '</g>' +
+      '<line class="cqe-grid" x1="0" y1="20" x2="320" y2="20" vector-effect="non-scaling-stroke"></line>' +
+      '<line class="cqe-grid" x1="0" y1="48" x2="320" y2="48" vector-effect="non-scaling-stroke"></line>' +
+      '<line class="cqe-grid" x1="0" y1="76" x2="320" y2="76" vector-effect="non-scaling-stroke"></line>' +
+      '<polygon class="cqe-chart-area" points="6,22 56,34 106,27 156,46 206,40 256,60 314,55 314,96 6,96"></polygon>' +
+      '<polyline class="cqe-chart-line" points="' + pts + '" vector-effect="non-scaling-stroke"></polyline>' +
     '</svg>';
   }
   function priceTrendCard() {
@@ -867,18 +863,20 @@
         '<p class="cqe-bm-name">BELLORE</p>' +
         '<p class="cqe-bm-sub">L &nbsp; O &nbsp; R &nbsp; E</p>' +
       '</div>' +
-      '<p class="cqe-section">선택 조회 결과</p>' +
-      quoteSpecCard(pseudo, false) +
-      '<div class="cqe-card cqe-price">' +
-        '<p class="cqe-price-label">예상 견적가</p>' +
+      '<p class="cqe-section">견적 조회 결과</p>' +
+      quoteSpecCard(pseudo, true) +
+      '<div class="cqe-price">' +
+        '<div class="cqe-price-head"><span class="cqe-price-label">예상 견적가</span>' +
+          (d.grade ? '<span class="cqe-price-badge">' + esc((gradeShort(pseudo) || d.grade)) + ' 기준</span>' : '') +
+        '</div>' +
         '<p class="cqe-price-val">데이터 수집중</p>' +
         '<p class="cqe-price-sub">현재 모델은 시세 데이터를 수집중입니다.<br>비교견적을 시작하면 실제 업체들이 금액을 제시합니다.</p>' +
       '</div>' +
       '<div class="cqe-card cqe-chart-card">' +
-        '<div class="cqe-chart-head"><b>수집 시세</b><span>최근 6개월</span></div>' +
+        '<div class="cqe-chart-head"><b>6개월 시세 추이</b><span>단위: 원</span></div>' +
         estimateChart() +
         '<div class="cqe-chart-x"><span>1월</span><span>2월</span><span>3월</span><span>4월</span><span>5월</span><span>6월</span></div>' +
-        '<p class="cqe-chart-note">※ 시세 데이터가 쌓이면 실제 그래프로 표시됩니다.</p>' +
+        '<p class="cqe-chart-note">시세는 시장 상황에 따라 변동될 수 있습니다.</p>' +
       '</div>' +
       '<button type="button" class="cqe-start" data-cqd-start>내 시계 비교견적 시작하기</button>' +
       '<button type="button" class="cqd-cta ghost" data-cqd-go="c-new">‹ 정보 수정</button>' +
@@ -935,7 +933,7 @@
       '<button type="button" class="cqd-cta ghost half" data-cqd-inquire="' + esc(q.id) + '">' + ICON_CHAT + '이 시계 문의</button>' +
       '<button type="button" class="cqd-cta ghost half" data-cqd-share="' + esc(q.id) + '">' + ICON_SHARE + '공유하기</button>' +
     '</div>';
-    btns += '<button type="button" class="cqd-cta ghost" data-cqd-go="c-watches">‹ 목록으로</button>';
+    btns += '<button type="button" class="cqd-cta link" data-cqd-go="c-watches">‹ 목록으로</button>';
 
     return '<div class="cqd-screen cqe">' + card + info + priceTrendCard() + btns + '</div>';
   };

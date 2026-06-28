@@ -9309,3 +9309,29 @@ body.login-open .tabbar { display: none; }
   font-size: 11.5px; font-family: inherit; padding: 5px 11px; border-radius: 8px; cursor: pointer;
 }
 .order-del:hover { border-color: #c0492f; color: #c0492f; }
+
+/* ===== 비교견적 리파인(레퍼런스: 바이버/구구스) ===== */
+/* 시세 차트: 그린 직선 + 가로 그리드(점 없음) */
+.cqe-grid { stroke: #ece7db; }
+.cqe-chart-line { stroke: #1f7a4d; stroke-width: 2.4; fill: none; stroke-linejoin: round; stroke-linecap: round; }
+.cqe-chart { height: 120px; }
+.cqe-chart-card { padding-top: 18px; }
+.cqe-chart-head b { font-size: 15.5px; }
+.cqe-chart-note { display: flex; align-items: center; gap: 6px; color: #a39c8c; margin-top: 12px; }
+.cqe-chart-note::before { content: "ⓘ"; font-size: 12px; color: #c0b9a7; }
+
+/* 예상 견적가 — 회색 박스 + 등급 배지(레퍼런스) */
+.cqe-price { background: #f4f2ed; border: 1px solid #ebe7dd; border-radius: 16px; padding: 18px; margin-bottom: 12px; }
+.cqe-price-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cqe-price-badge { font-size: 11px; font-weight: 800; color: #6f6a5e; background: #fff; border: 1px solid #e3ddcf;
+  padding: 4px 11px; border-radius: 999px; white-space: nowrap; }
+.cqe-price .cqe-price-val { font-size: 28px; margin: 10px 0 6px; }
+
+/* 하단 버튼 — 외곽선 버튼 / 텍스트 링크로 정돈 */
+.cqd-cta.ghost { background: #fff; color: #2a2a2a; border: 1px solid #e2ddd0; padding: 14px;
+  font-weight: 700; font-size: 14.5px; border-radius: 13px; transition: background .12s ease; }
+.cqd-cta.ghost:active { background: #f5f2ea; }
+.cqd-cta.ghost.half { padding: 13px; }
+.cqd-cta.ghost.half svg { width: 17px; height: 17px; }
+.cqd-cta.link { background: transparent; border: 0; color: #9a9384; font-weight: 700; font-size: 13.5px; padding: 10px; margin-top: 4px; }
+.cqd-cta.link:active { color: #6f6a5e; }
