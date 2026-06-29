@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v127";
+const VERSION = "bellore-v128";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -19,6 +19,8 @@ const SHELL_ASSETS = [
   './wishlist.js',
   './alerts.js',
   './search.js',
+  './ai-advisor.js',
+  './ai-advisor-admin.js',
   './manifest.json',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
