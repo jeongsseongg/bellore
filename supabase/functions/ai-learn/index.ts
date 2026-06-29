@@ -1,0 +1,229 @@
+// ============================================================
+// 벨로르(BELLORE) · AI 학습/요약 Edge Function (실제 AI 연결 지점)
+// ------------------------------------------------------------
+// "누적 학습"의 의미(중요):
+//   고객별로 신경망을 재학습(fine-tune)하지 않는다. 그건 비싸고 불필요하다.
+//   대신 ① 매 상호작용마다 구조화된 "기억"을 쌓고(customer_ai_profiles /
+//   customer_watch_interests / customer_events / ai_conversations),
+//   ② 이 함수가 주기적으로/요청 시 그 누적 데이터를 LLM 으로 "해석·요약"해
+//   고품질 프로필 요약(ai_summary)과 장기 메모리(ai_customer_memories)를 만든다.
+//   = Retrieval + Summarization 기반의 "고객 메모리" 아키텍처.
+//
+// 이 함수는 클라이언트의 RuleBasedAIProvider 를 대체하는 서버측 Provider 다.
+//   - AI 키는 여기(서버 시크릿)에만 둔다. 절대 클라이언트/깃에 두지 않는다.
+//   - 키 미설정 시 규칙기반 폴백(요약 생성을 건너뛰고 ok:skipped 반환).
+//
+// 호출(관리자/크론):
+//   POST /functions/v1/ai-learn  { "action": "summarize_profile", "profile_id": "..." }
+//   POST /functions/v1/ai-learn  { "action": "summarize_all", "limit": 50 }
+//   POST /functions/v1/ai-learn  { "action": "extract_knowledge", "limit": 30 }
+//
+// 배포:
+//   supabase secrets set AI_PROVIDER=anthropic            # or openai
+//   supabase secrets set ANTHROPIC_API_KEY=sk-ant-...     # (anthropic 일 때)
+//   supabase secrets set OPENAI_API_KEY=sk-...            # (openai 일 때)
+//   supabase secrets set AI_MODEL=claude-haiku-4-5-20251001   # 비용 절감용 기본
+//   supabase functions deploy ai-learn
+//
+// 정기 학습(누적 → 재요약)은 Supabase Scheduled Functions(pg_cron)로 매일 1회
+//   summarize_all / extract_knowledge 를 호출하도록 등록하면 된다(아래 SQL 주석 참고).
+// ============================================================
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const PROVIDER = (Deno.env.get("AI_PROVIDER") ?? "anthropic").toLowerCase();
+const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
+const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY") ?? "";
+const MODEL = Deno.env.get("AI_MODEL") ??
+  (PROVIDER === "openai" ? "gpt-4o-mini" : "claude-haiku-4-5-20251001");
+
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+function json(b: unknown, s = 200) {
+  return new Response(JSON.stringify(b), { status: s, headers: { ...CORS, "Content-Type": "application/json" } });
+}
+function hasKey(): boolean {
+  return PROVIDER === "openai" ? !!OPENAI_KEY : !!ANTHROPIC_KEY;
+}
+
+// ── LLM 호출 어댑터(provider 무관 인터페이스) ──
+// system + user → 텍스트(가능하면 JSON) 반환. 실패 시 throw.
+async function llm(system: string, user: string, maxTokens = 700): Promise<string> {
+  if (PROVIDER === "openai") {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${OPENAI_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: maxTokens,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
+      }),
+    });
+    const out = await res.json();
+    if (!res.ok) throw new Error(out?.error?.message ?? "openai_failed");
+    return out.choices?.[0]?.message?.content ?? "";
+  }
+  // 기본: Anthropic Messages API
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": ANTHROPIC_KEY,
+      "anthropic-version": "2023-06-01",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: maxTokens,
+      system,
+      messages: [{ role: "user", content: user }],
+    }),
+  });
+  const out = await res.json();
+  if (!res.ok) throw new Error(out?.error?.message ?? "anthropic_failed");
+  return (out.content ?? []).map((c: { text?: string }) => c.text ?? "").join("");
+}
+
+function safeJson(text: string): any {
+  try { return JSON.parse(text); } catch (_e) {}
+  // 모델이 설명을 덧붙였을 때 객체/배열 본문만 추출
+  const obj = text.match(/\{[\s\S]*\}/);
+  const arr = text.match(/\[[\s\S]*\]/);
+  for (const m of [arr, obj]) {
+    if (m) { try { return JSON.parse(m[0]); } catch (_e) {} }
+  }
+  return null;
+}
+
+type SB = ReturnType<typeof createClient>;
+
+// ── action 1: 한 고객 프로필 요약 + 장기 메모리 추출 ──
+async function summarizeProfile(admin: SB, profileId: string) {
+  const { data: p } = await admin.from("customer_ai_profiles").select("*").eq("id", profileId).single();
+  if (!p) return { profile_id: profileId, error: "not_found" };
+  const { data: convs } = await admin.from("ai_conversations")
+    .select("role,message,created_at").eq("profile_id", profileId)
+    .order("created_at", { ascending: true }).limit(60);
+  const { data: ints } = await admin.from("customer_watch_interests")
+    .select("brand,model,reference_number,interest_score").eq("profile_id", profileId)
+    .order("interest_score", { ascending: false }).limit(20);
+  const { data: evts } = await admin.from("customer_events")
+    .select("event_type,brand,model,reference_number,created_at").eq("profile_id", profileId)
+    .order("created_at", { ascending: false }).limit(40);
+
+  const facts = {
+    preferred_brands: p.preferred_brands, preferred_models: p.preferred_models,
+    preferred_references: p.preferred_references, budget_min: p.budget_min, budget_max: p.budget_max,
+    buying_stage: p.buying_stage, buy_probability: p.buy_probability,
+    scores: {
+      price_sensitivity: p.price_sensitivity, speed_preference: p.speed_preference,
+      detail_preference: p.detail_preference, resale_importance: p.resale_importance,
+      risk_tolerance: p.risk_tolerance,
+    },
+    interests: ints, recent_events: evts,
+    conversation: (convs ?? []).map((c) => `${c.role}: ${c.message}`).join("\n").slice(0, 6000),
+  };
+
+  const system =
+    "너는 명품시계 거래 플랫폼 벨로르의 고객 분석 전문가다. 주어진 고객의 누적 데이터(대화/관심/행동/점수)를 보고 " +
+    "①한국어 2~3문장 영업용 요약(ai_summary) ②핵심 장기메모리 배열(memories)을 만든다. " +
+    "추측은 confidence 를 낮춰라. 반드시 아래 JSON 만 출력: " +
+    '{"ai_summary":"...","customer_type":"value_seeker|collector|gift_buyer|investor|unknown",' +
+    '"memories":[{"memory_type":"preference|budget|personality|risk|brand_interest|buying_intent","content":"...","confidence":0-100}]}';
+  const user = "고객 누적 데이터:\n" + JSON.stringify(facts, null, 0);
+
+  const raw = await llm(system, user, 800);
+  const parsed = safeJson(raw);
+  if (!parsed) return { profile_id: profileId, error: "parse_failed", raw: raw.slice(0, 300) };
+
+  // 프로필 요약 갱신
+  await admin.from("customer_ai_profiles").update({
+    ai_summary: String(parsed.ai_summary ?? "").slice(0, 1000),
+    customer_type: parsed.customer_type ?? p.customer_type ?? null,
+  }).eq("id", profileId);
+
+  // 장기 메모리 저장. 재실행 시 누적 폭증을 막기 위해 이전 AI생성 메모리
+  // (이벤트/대화에 직접 연결되지 않은 = source_*_id 가 NULL 인 행)만 교체한다.
+  await admin.from("ai_customer_memories").delete()
+    .eq("profile_id", profileId).is("source_conversation_id", null).is("source_event_id", null);
+  const mems = Array.isArray(parsed.memories) ? parsed.memories.slice(0, 12) : [];
+  if (mems.length) {
+    await admin.from("ai_customer_memories").insert(mems.map((m: any) => ({
+      profile_id: profileId, user_id: p.user_id ?? null,
+      memory_type: String(m.memory_type ?? "preference"),
+      content: String(m.content ?? "").slice(0, 500),
+      confidence: Math.max(0, Math.min(100, Number(m.confidence) || 50)),
+    })));
+  }
+  return { profile_id: profileId, ai_summary: parsed.ai_summary, memories: mems.length };
+}
+
+// ── action 2: 팀 메시지 → 전문가 지식 추출 ──
+async function extractKnowledge(admin: SB, limit: number) {
+  const { data: msgs } = await admin.from("team_messages")
+    .select("id,platform,channel_name,message,created_at")
+    .order("created_at", { ascending: false }).limit(limit);
+  if (!msgs?.length) return { extracted: 0 };
+
+  const system =
+    "너는 명품시계 전문가다. 팀 내부 대화에서 '재사용 가능한 시계 지식'(시세 근거/감정 포인트/모델 특징/" +
+    "구성품 영향 등)만 골라 정리한다. 잡담/일정/개인정보는 제외. 반드시 JSON 배열만 출력: " +
+    '[{"brand":null,"model":null,"reference_number":null,"category":"시세|감정|모델|구성품|기타",' +
+    '"title":"...","content":"...","confidence":0-100}]';
+  const user = "팀 대화 목록:\n" + msgs.map((m) => `- ${m.message}`).join("\n").slice(0, 6000);
+
+  const raw = await llm(system, user, 1200);
+  const parsed = safeJson(raw);
+  const notes = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.notes) ? parsed.notes : []);
+  if (!notes.length) return { extracted: 0, raw: raw.slice(0, 200) };
+
+  const rows = notes.slice(0, 20).map((n: any) => ({
+    category: n.category ?? null, brand: n.brand ?? null, model: n.model ?? null,
+    reference_number: n.reference_number ?? null,
+    title: String(n.title ?? "지식").slice(0, 120),
+    content: String(n.content ?? "").slice(0, 2000),
+    source: "ai-learn:team", confidence: Math.max(0, Math.min(100, Number(n.confidence) || 60)),
+    status: "draft",
+  }));
+  await admin.from("expert_knowledge_notes").insert(rows);
+  return { extracted: rows.length };
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+
+  try {
+    const { action, profile_id, limit } = await req.json();
+    if (!hasKey()) {
+      return json({ ok: true, skipped: "ai_key_not_set", provider: PROVIDER,
+        hint: "ANTHROPIC_API_KEY 또는 OPENAI_API_KEY 시크릿을 설정하면 실제 학습이 켜집니다. 그 전까지는 클라이언트 RuleBasedAIProvider 가 동작합니다." });
+    }
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+
+    if (action === "summarize_profile") {
+      if (!profile_id) return json({ error: "missing_profile_id" }, 400);
+      return json({ ok: true, result: await summarizeProfile(admin, profile_id) });
+    }
+    if (action === "summarize_all") {
+      // 최근 업데이트된 프로필 N개 재요약(정기 학습용)
+      const { data: ps } = await admin.from("customer_ai_profiles")
+        .select("id").order("updated_at", { ascending: false }).limit(Math.min(Number(limit) || 30, 100));
+      const out = [];
+      for (const p of ps ?? []) out.push(await summarizeProfile(admin, p.id));
+      return json({ ok: true, count: out.length, results: out });
+    }
+    if (action === "extract_knowledge") {
+      return json({ ok: true, result: await extractKnowledge(admin, Math.min(Number(limit) || 30, 100)) });
+    }
+    return json({ error: "unknown_action" }, 400);
+  } catch (e) {
+    return json({ error: "server_error", detail: String(e) }, 500);
+  }
+});

@@ -179,7 +179,9 @@
     var who = [p.name, p.phone, p.email].filter(Boolean).join(' · ') || '익명 고객';
     var html = '<span class="aia-detail-back" data-act="back-profiles">‹ 목록으로</span>';
     html += '<div class="aia-card nohover"><div class="aia-name">' + esc(who) + '</div>' +
-      '<div class="aia-sub" style="margin-top:6px">' + esc(p.ai_summary || '요약 생성 전') + '</div></div>';
+      '<div class="aia-sub" style="margin-top:6px">' + esc(p.ai_summary || '요약 생성 전') + '</div>' +
+      '<div class="aia-btns"><button class="aia-btn pri" data-act="ai-summarize" data-id="' + esc(p.id) + '">AI 요약·메모리 생성</button></div>' +
+      '<div class="aia-meta">실제 AI(ai-learn) 미배포/키 미설정 시 규칙기반 요약이 유지됩니다.</div></div>';
 
     html += '<h5>선호 / 예산</h5><div class="aia-card nohover">' +
       '<div class="aia-sub">브랜드: ' + ((p.preferred_brands || []).map(esc).join(', ') || '-') + '</div>' +
@@ -299,6 +301,7 @@
         if (res.error) { bodyEl.innerHTML = sqlHint(res.error); return; }
         var rows = res.data || [];
         bodyEl.innerHTML = '<div class="aia-note">Discord/Slack 봇이 수집한 내부 대화. (연동 Edge Function: discord-ingest) 메시지에서 브랜드/레퍼런스를 태깅해 전문가 지식 후보로 보낼 수 있습니다.</div>' +
+          '<div class="aia-sec"><button class="aia-btn pri" data-act="ai-extract-knowledge">AI로 지식 일괄 추출 (ai-learn)</button></div>' +
           (rows.length ? rows.map(function (m) {
             var txt = m.message || '';
             var brand = (AI().rules && AI().rules.extractBrands(txt)[0]) || '';
@@ -327,6 +330,24 @@
       return;
     }
     if (act === 'team-to-knowledge') return teamToKnowledge(id);
+    if (act === 'ai-summarize') return callLearn(el, { action: 'summarize_profile', profile_id: id }, function () { renderProfileDetail(id); });
+    if (act === 'ai-extract-knowledge') return callLearn(el, { action: 'extract_knowledge', limit: 30 }, function () { setTab('knowledge'); });
+  }
+
+  // ai-learn Edge Function 호출(실제 AI). 미배포/키 미설정이면 skipped 안내.
+  function callLearn(btn, body, onDone) {
+    if (!sb() || !sb().functions) { alert('백엔드 함수 호출을 사용할 수 없습니다.'); return; }
+    var label = btn.textContent; btn.disabled = true; btn.textContent = '처리 중…';
+    sb().functions.invoke('ai-learn', { body: body }).then(function (res) {
+      btn.disabled = false; btn.textContent = label;
+      var d = res && res.data;
+      if (d && d.skipped) { alert('AI 키 미설정: ' + (d.hint || 'ANTHROPIC_API_KEY/OPENAI_API_KEY 시크릿을 설정하세요.')); return; }
+      if (res && res.error) { alert('AI 호출 실패: ' + (res.error.message || res.error)); return; }
+      if (onDone) onDone();
+    }).catch(function (e) {
+      btn.disabled = false; btn.textContent = label;
+      alert('AI 호출 오류: ' + (e && e.message ? e.message : e) + '\n(ai-learn Edge Function 배포 여부를 확인하세요.)');
+    });
   }
   function updateAlert(id, patch) {
     sb().from('ai_alert_candidates').update(patch).eq('id', id).then(function () {
