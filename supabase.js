@@ -1732,12 +1732,13 @@
 
   // 체크아웃: pending 주문 생성 → 토스에 넘길 order_no 반환
   Backend.createOrder = function (data) {
-    if (!rawUser) return Promise.reject(new Error('NOT_LOGGED_IN'));
+    // 비회원(rawUser 없음)도 구매 가능 — 네이버페이 주문형 요건.
+    // (orders.customer_id 는 NULL 허용. anon insert 는 guest_checkout.sql 의 RLS 정책 필요)
     var orderNo = 'BLR' + Date.now().toString(36).toUpperCase() +
       Math.random().toString(36).slice(2, 6).toUpperCase();
-    return sb.from('orders').insert({
+    var row = {
       order_no: orderNo,
-      customer_id: rawUser.id,
+      customer_id: rawUser ? rawUser.id : null,
       listing_id: data.listingId || null,
       product_name: data.productName || '상품',
       product_brand: data.productBrand || null,
@@ -1758,9 +1759,23 @@
       ship_request: data.shipRequest || null,
       memo: data.memo || null,
       status: 'pending'
-    }).select().single().then(function (res) {
-      if (res.error) throw res.error;
-      return mapOrder(res.data);
+    };
+    // 회원: RETURNING(본인 주문 select 정책)으로 행을 받아 매핑.
+    if (rawUser) {
+      return sb.from('orders').insert(row).select().single().then(function (res) {
+        if (res.error) throw res.error;
+        return mapOrder(res.data);
+      });
+    }
+    // 비회원: anon 에겐 select 권한이 없으므로 RETURNING 없이 insert 만 수행.
+    // 이후 단계는 order_no 만 사용한다(서버 confirm-payment 가 service_role 로 검증).
+    return sb.from('orders').insert(row).then(function (res) {
+      if (res.error) {
+        var ge = new Error('GUEST_CHECKOUT_DISABLED'); // guest_checkout.sql 미실행 등
+        ge.guest = true; ge.cause = res.error;
+        throw ge;
+      }
+      return { orderNo: orderNo, amount: data.amount, payType: data.payType || 'deposit' };
     });
   };
 

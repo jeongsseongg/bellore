@@ -199,13 +199,7 @@
   }
 
   function openCheckout(p) {
-    // 로그인 확인
-    if (backendOn() && !currentUser()) {
-      var lm = $('#loginModal');
-      if (lm) { lm.hidden = false; document.body.style.overflow = 'hidden'; }
-      alert('결제를 진행하려면 로그인이 필요합니다.');
-      return;
-    }
+    // 비회원도 구매 가능(네이버페이 주문형 요건). 주문 생성은 게스트 분기로 처리한다.
     product = p || window.BELLORE_currentProduct;
     if (!product || !product.price) {
       alert('가격 문의 상품입니다. 카카오톡 상담으로 안내드릴게요.');
@@ -351,6 +345,12 @@
       console.warn('[BELLORE] 결제 요청 실패:', e);
       payBtn.disabled = false;
       payBtn.textContent = '결제하기';
+      // 비회원 결제 RLS(guest_checkout.sql) 미설정 시 폴백: 기존처럼 로그인 안내
+      if (e && (e.message === 'GUEST_CHECKOUT_DISABLED' || e.guest)) {
+        alert('비회원 결제는 현재 준비 중입니다. 로그인 후 이용해 주세요.');
+        var lm = $('#loginModal'); if (lm) { lm.hidden = false; document.body.style.overflow = 'hidden'; }
+        return;
+      }
       if (e && e.code && !/CANCEL/i.test(e.code)) {
         alert('결제를 시작할 수 없습니다: ' + (e.message || e.code));
       }
