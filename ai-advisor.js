@@ -93,7 +93,11 @@
     // 영문 대표 모델 키워드 보강
     ['Submariner', 'Daytona', 'GMT', 'Datejust', 'Nautilus', 'Aquanaut', 'Royal Oak', 'Speedmaster']
       .forEach(function (m) { if (new RegExp(m, 'i').test(t)) out.push(m); });
-    return uniq(out);
+    out = uniq(out);
+    // 더 긴 모델명의 부분문자열(예: "스피드마스터" 안의 "마스터")은 제거
+    return out.filter(function (m) {
+      return !out.some(function (o) { return o !== m && o.indexOf(m) >= 0; });
+    });
   }
 
   // 자주 쓰는 레퍼런스 화이트리스트(정확도↑)
@@ -125,13 +129,14 @@
   // 예산 추출 → { min, max } (KRW). 못 찾으면 null.
   function extractBudget(text) {
     var t = String(text || '').replace(/,/g, '');
-    var values = [];
+    var unitVals = [];  // 단위(억/천만/만/원)가 붙은 금액
+    var bareVals = [];  // 단위 없는 맨숫자(레퍼런스일 수 있어 후순위)
     // 억/천만/백만/만 단위 한국어 금액 파싱
     var re = /(\d+(?:\.\d+)?)\s*(억|천만|천|백만|만)?\s*(원)?/g, m;
     while ((m = re.exec(t))) {
       var num = parseFloat(m[1]); var unit = m[2] || ''; var won = m[3] || '';
       if (isNaN(num)) continue;
-      var krw = null;
+      var krw = null, hasUnit = true;
       if (unit === '억') krw = num * 100000000;
       else if (unit === '천만') krw = num * 10000000;
       else if (unit === '백만') krw = num * 1000000;
@@ -140,17 +145,19 @@
       else if (won) krw = num;                             // "5000000원"
       else {
         // 단위 없는 맨숫자: 3~5자리는 만원 단위로 간주("1500 이하" = 1500만)
+        hasUnit = false;
         if (num >= 100 && num <= 99999) krw = num * 10000;
       }
-      if (krw && krw >= 100000) values.push({ krw: krw, idx: m.index });
+      if (krw && krw >= 100000) (hasUnit ? unitVals : bareVals).push(krw);
     }
+    // 단위 있는 금액이 하나라도 있으면 그것만 신뢰(레퍼런스 숫자 오인 방지).
+    var values = unitVals.length ? unitVals : bareVals;
     if (!values.length) return null;
     // "이하/까지/미만" → 상한, "이상/부터" → 하한 힌트
     var hasMax = /(이하|까지|미만|under|아래)/.test(t);
     var hasMin = /(이상|부터|넘는|초과)/.test(t);
-    var nums = values.map(function (v) { return v.krw; });
-    var lo = Math.min.apply(null, nums), hi = Math.max.apply(null, nums);
-    if (nums.length >= 2) return { min: lo, max: hi };
+    var lo = Math.min.apply(null, values), hi = Math.max.apply(null, values);
+    if (values.length >= 2) return { min: lo, max: hi };
     if (hasMax) return { min: null, max: hi };
     if (hasMin) return { min: lo, max: null };
     // 단일 금액 → ±15% 범위로 추정
