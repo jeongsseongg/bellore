@@ -72,7 +72,8 @@
     { k: 'conversations', t: '대화 로그' },
     { k: 'alerts', t: '알림 후보' },
     { k: 'knowledge', t: '전문가 지식' },
-    { k: 'team', t: '팀 메시지' }
+    { k: 'team', t: '팀 메시지' },
+    { k: 'guidelines', t: '응답 지침' }
   ];
   var panel, bodyEl, curTab = 'profiles';
 
@@ -120,6 +121,7 @@
     else if (k === 'alerts') renderAlerts();
     else if (k === 'knowledge') renderKnowledge();
     else if (k === 'team') renderTeam();
+    else if (k === 'guidelines') renderGuidelines();
   }
 
   function guard() {
@@ -317,6 +319,64 @@
       }).catch(function (e) { bodyEl.innerHTML = sqlHint(e); });
   }
 
+  /* ---------------- 7) 응답 지침(플레이북) ---------------- */
+  var GUIDE_CATS = ['tone', 'recommendation', 'pricing', 'objection', 'forbidden', 'general'];
+  function renderGuidelines() {
+    if (!guard()) return;
+    sb().from('ai_response_guidelines').select('*').order('priority', { ascending: true }).limit(200)
+      .then(function (res) {
+        if (res.error) { bodyEl.innerHTML = sqlHint(res.error) + '<div class="aia-note">ai_guidelines.sql 을 실행했는지 확인하세요.</div>'; return; }
+        var rows = res.data || [];
+        bodyEl.innerHTML =
+          '<div class="aia-note">AI 가 고객에게 "어떻게 답변할지" 지침입니다. 활성(active) 지침은 ai-learn 답변 생성 시 시스템 프롬프트로 사용됩니다. 우선순위 숫자가 작을수록 상위 규칙.</div>' +
+          '<div class="aia-sec"><button class="aia-btn pri" data-act="guide-new">+ 새 지침 작성</button></div>' +
+          (rows.length ? rows.map(guideCard).join('') : '<div class="aia-empty">등록된 지침이 없습니다.</div>');
+      }).catch(function (e) { bodyEl.innerHTML = sqlHint(e); });
+  }
+  function guideCard(g) {
+    return '<div class="aia-card nohover"><div class="aia-row">' +
+      '<span class="aia-tag ' + (g.is_active ? 'stage' : '') + '">' + (g.is_active ? 'active' : 'off') + '</span>' +
+      '<span class="aia-name" style="font-size:14px">' + esc(g.title) + '</span>' +
+      '<span class="aia-meta" style="margin-left:auto;margin-top:0">#' + (g.priority || 100) + ' · ' + esc(g.category || 'general') + '</span></div>' +
+      '<div class="aia-sub" style="margin-top:6px">' + esc(g.content) + '</div>' +
+      '<div class="aia-btns">' +
+        '<button class="aia-btn" data-act="guide-edit" data-id="' + esc(g.id) + '">수정</button>' +
+        '<button class="aia-btn" data-act="guide-toggle" data-id="' + esc(g.id) + '" data-on="' + (g.is_active ? '1' : '0') + '">' + (g.is_active ? '비활성화' : '활성화') + '</button>' +
+        '<button class="aia-btn dng" data-act="guide-del" data-id="' + esc(g.id) + '">삭제</button>' +
+      '</div></div>';
+  }
+  function guideEditor(g) {
+    g = g || { title: '', category: 'general', content: '', priority: 100, is_active: true };
+    var opts = GUIDE_CATS.map(function (c) { return '<option value="' + c + '"' + (g.category === c ? ' selected' : '') + '>' + c + '</option>'; }).join('');
+    bodyEl.innerHTML =
+      '<span class="aia-detail-back" data-act="guide-back">‹ 지침 목록</span>' +
+      '<div class="aia-card nohover">' +
+        '<div class="aia-sub">제목</div><input id="gTitle" class="aia-gin" value="' + esc(g.title) + '">' +
+        '<div class="aia-sub" style="margin-top:8px">분류</div><select id="gCat" class="aia-gin">' + opts + '</select>' +
+        '<div class="aia-sub" style="margin-top:8px">우선순위(작을수록 상위)</div><input id="gPri" class="aia-gin" type="number" value="' + (g.priority || 100) + '">' +
+        '<div class="aia-sub" style="margin-top:8px">지침 본문</div><textarea id="gContent" class="aia-gin" rows="6">' + esc(g.content) + '</textarea>' +
+        '<label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px"><input type="checkbox" id="gActive"' + (g.is_active ? ' checked' : '') + '> 활성화</label>' +
+        '<div class="aia-btns"><button class="aia-btn pri" data-act="guide-save" data-id="' + esc(g.id || '') + '">저장</button></div>' +
+      '</div>';
+    // 인라인 입력 스타일(최소)
+    if (!$('#aia-gin-style')) {
+      var s = document.createElement('style'); s.id = 'aia-gin-style';
+      s.textContent = '.aia-gin{width:100%;padding:9px 12px;border:1px solid #e5e3df;border-radius:10px;font:14px Pretendard;margin-top:3px;box-sizing:border-box}';
+      document.head.appendChild(s);
+    }
+  }
+  function saveGuideline(id) {
+    var row = {
+      title: ($('#gTitle').value || '').trim(),
+      category: $('#gCat').value, priority: parseInt($('#gPri').value, 10) || 100,
+      content: ($('#gContent').value || '').trim(), is_active: $('#gActive').checked
+    };
+    if (!row.title || !row.content) { alert('제목과 본문을 입력하세요.'); return; }
+    var q = id ? sb().from('ai_response_guidelines').update(row).eq('id', id)
+              : sb().from('ai_response_guidelines').insert(row);
+    q.then(function (r) { if (r.error) { alert('저장 실패: ' + r.error.message); return; } renderGuidelines(); });
+  }
+
   /* ---------------- 액션 핸들러 ---------------- */
   function handleAction(el) {
     var act = el.dataset.act, id = el.dataset.id;
@@ -332,6 +392,22 @@
     if (act === 'team-to-knowledge') return teamToKnowledge(id);
     if (act === 'ai-summarize') return callLearn(el, { action: 'summarize_profile', profile_id: id }, function () { renderProfileDetail(id); });
     if (act === 'ai-extract-knowledge') return callLearn(el, { action: 'extract_knowledge', limit: 30 }, function () { setTab('knowledge'); });
+    if (act === 'guide-new') { guideEditor(null); return; }
+    if (act === 'guide-back') { renderGuidelines(); return; }
+    if (act === 'guide-save') return saveGuideline(id || null);
+    if (act === 'guide-edit') {
+      sb().from('ai_response_guidelines').select('*').eq('id', id).single().then(function (r) { guideEditor(r.data); });
+      return;
+    }
+    if (act === 'guide-toggle') {
+      sb().from('ai_response_guidelines').update({ is_active: el.dataset.on !== '1' }).eq('id', id).then(function () { renderGuidelines(); });
+      return;
+    }
+    if (act === 'guide-del') {
+      if (!confirm('이 지침을 삭제할까요?')) return;
+      sb().from('ai_response_guidelines').delete().eq('id', id).then(function () { renderGuidelines(); });
+      return;
+    }
   }
 
   // ai-learn Edge Function 호출(실제 AI). 미배포/키 미설정이면 skipped 안내.

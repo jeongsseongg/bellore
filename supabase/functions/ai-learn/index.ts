@@ -103,6 +103,16 @@ function safeJson(text: string): any {
 
 type SB = ReturnType<typeof createClient>;
 
+// 활성 응답 지침(플레이북)을 우선순위 순으로 묶어 시스템 프롬프트 조각으로 반환
+async function guidelinesText(admin: SB): Promise<string> {
+  const { data } = await admin.from("ai_response_guidelines")
+    .select("title,category,content,priority").eq("is_active", true)
+    .order("priority", { ascending: true }).limit(30);
+  if (!data?.length) return "";
+  return "## 응답 지침(반드시 준수)\n" +
+    data.map((g) => `- [${g.category ?? "general"}] ${g.title}: ${g.content}`).join("\n");
+}
+
 // ── action 1: 한 고객 프로필 요약 + 장기 메모리 추출 ──
 async function summarizeProfile(admin: SB, profileId: string) {
   const { data: p } = await admin.from("customer_ai_profiles").select("*").eq("id", profileId).single();
@@ -195,12 +205,49 @@ async function extractKnowledge(admin: SB, limit: number) {
   return { extracted: rows.length };
 }
 
+// ── action 3: 지침 기반 답변 생성 (학습소 + 메모리 + 지침으로 응답) ──
+async function generateReply(admin: SB, profileId: string | null, message: string, candidates: unknown) {
+  const guide = await guidelinesText(admin);
+  let memo = "", facts = "";
+  if (profileId) {
+    const { data: p } = await admin.from("customer_ai_profiles").select("*").eq("id", profileId).single();
+    if (p) {
+      facts = `고객 관심:${(p.preferred_brands ?? []).join(",")} ${(p.preferred_references ?? []).join(",")} / 예산:${p.budget_min ?? "?"}~${p.budget_max ?? "?"} / 단계:${p.buying_stage}`;
+    }
+    const { data: mems } = await admin.from("ai_customer_memories")
+      .select("content").eq("profile_id", profileId).order("confidence", { ascending: false }).limit(8);
+    memo = (mems ?? []).map((m) => "- " + m.content).join("\n");
+  }
+  // 관심 브랜드/레퍼런스 관련 전문가 지식(승인본 우선)
+  const brand = (message.match(/롤렉스|오메가|파텍|오데마|까르띠에|튜더/) ?? [])[0] ?? null;
+  let knowledge = "";
+  if (brand) {
+    const { data: kn } = await admin.from("expert_knowledge_notes")
+      .select("title,content").eq("brand", brand).in("status", ["approved", "reviewed"]).limit(5);
+    knowledge = (kn ?? []).map((k) => `- ${k.title}: ${k.content}`).join("\n");
+  }
+  const system = [
+    "너는 명품시계 거래 플랫폼 벨로르의 AI 시계 전문비서다. 한국어 존댓말. 2~4문장으로 간결하게.",
+    guide,
+    knowledge ? ("## 참고 전문가 지식\n" + knowledge) : "",
+    memo ? ("## 이 고객 기억\n" + memo) : "",
+  ].filter(Boolean).join("\n\n");
+  const user = [
+    facts ? ("[" + facts + "]") : "",
+    candidates ? ("추천 후보(점수순): " + JSON.stringify(candidates).slice(0, 1500)) : "",
+    "고객 메시지: " + message,
+  ].filter(Boolean).join("\n");
+
+  const reply = await llm(system, user, 400);
+  return { reply: reply.trim() };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   try {
-    const { action, profile_id, limit } = await req.json();
+    const { action, profile_id, limit, message, candidates } = await req.json();
     if (!hasKey()) {
       return json({ ok: true, skipped: "ai_key_not_set", provider: PROVIDER,
         hint: "ANTHROPIC_API_KEY 또는 OPENAI_API_KEY 시크릿을 설정하면 실제 학습이 켜집니다. 그 전까지는 클라이언트 RuleBasedAIProvider 가 동작합니다." });
@@ -221,6 +268,10 @@ Deno.serve(async (req) => {
     }
     if (action === "extract_knowledge") {
       return json({ ok: true, result: await extractKnowledge(admin, Math.min(Number(limit) || 30, 100)) });
+    }
+    if (action === "generate_reply") {
+      if (!message) return json({ error: "missing_message" }, 400);
+      return json({ ok: true, result: await generateReply(admin, profile_id ?? null, String(message), candidates ?? null) });
     }
     return json({ error: "unknown_action" }, 400);
   } catch (e) {

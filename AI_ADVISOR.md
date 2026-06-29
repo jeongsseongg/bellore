@@ -95,6 +95,25 @@ select cron.schedule(
 );
 ```
 
+## 4-1) 학습소 2곳 + 통합 저장소
+- **학습소 ①: 고객과의 대화** → `ai_conversations`(모든 고객 메시지/응답 저장).
+- **학습소 ②: Discord 그룹톡** → `team_messages`(+첨부). 시계 지식 대화가 쌓이는 곳.
+- **정제 저장소**: 두 학습소에서 추출·승인된 지식 → `expert_knowledge_notes`
+  (draft→reviewed→approved). ai-learn 답변(generate_reply)이 이 승인 지식을 근거로 인용.
+- 즉 "모든 대화 저장소"는 `ai_conversations`(고객) + `team_messages`(디스코드)이고,
+  관리자 패널의 '대화 로그' / '팀 메시지' 탭에서 각각 열람한다.
+
+## 4-2) 응답 지침(플레이북) 업로드
+- SQL: `ai_guidelines.sql` 실행 → `ai_response_guidelines` 테이블 + 기본 지침 3종.
+- 관리자 패널 **'응답 지침'** 탭에서 "어떻게 답변할지"를 직접 작성/수정/활성화.
+- 활성 지침은 `ai-learn` 의 `generate_reply`·요약 시 **시스템 프롬프트**로 들어간다.
+
+## 4-3) 실제 시계 추천 (무료, 채팅에서 동작)
+- 고객이 "추천/예산/매물" 또는 브랜드·레퍼런스를 말하면, 클라이언트가 `listings`(판매시계)를
+  조회해 추천엔진(100점)으로 매칭하여 **상위 매물을 채팅에 바로 표시**한다(외부 AI 불필요).
+- AI 키를 켜고 `window.BELLORE_AI_REPLY = true` 로 두면, 답변 문장은 ai-learn(지침+기억+지식
+  기반)이 생성하고 추천 매물 목록은 그대로 붙는다. (기본값 off = 규칙기반, 비용 0)
+
 ## 5) AIProvider 교체 지점
 - 클라이언트: `ai-advisor.js` 의 `provider = RuleBasedAIProvider`(현재).
 - 서버(실제 AI): `ai-learn` Edge Function 의 `llm()` 어댑터(anthropic/openai 선택).

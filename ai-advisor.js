@@ -483,14 +483,48 @@
               : Promise.resolve();
           });
           return chain.then(function () {
-            var reply = provider.generateReply(message, p2, { analysis: a });
-            return logConversation(p2, 'assistant', reply).then(function () {
-              return { reply: reply, analysis: a, profile: p2 };
+            // 추천 의도(추천/예산/매물 키워드 또는 브랜드·레퍼런스 언급)면 실제 매물 추천
+            var wantReco = /추천|매물|예산|보여|찾아|있나|입고/.test(message) || a.references.length || a.brands.length;
+            var recoP = wantReco ? recommendProducts(p2, 3).catch(function () { return []; }) : Promise.resolve([]);
+            return recoP.then(function (recos) {
+              return composeReply(message, p2, a, recos).then(function (reply) {
+                return logConversation(p2, 'assistant', reply).then(function () {
+                  return { reply: reply, analysis: a, profile: p2, recommendations: recos };
+                });
+              });
             });
           });
         });
       });
     });
+  }
+
+  // 추천 결과를 사람이 읽는 줄글로
+  function recoLines(recos) {
+    if (!recos || !recos.length) return '';
+    var lines = recos.map(function (x, i) {
+      var p = x.product;
+      var name = [p.brand, p.model, p.reference_number].filter(Boolean).join(' ') || '매물';
+      return (i + 1) + '. ' + name + ' · ' + krwShort(p.price) + '원 (적합도 ' + x.score + '점)';
+    });
+    return '\n\n추천 매물:\n' + lines.join('\n');
+  }
+
+  // 답변 생성: AI 활성(window.BELLORE_AI_REPLY)이면 ai-learn 호출, 아니면 규칙기반.
+  // 어느 쪽이든 실제 추천 매물 줄글을 함께 붙인다(무료, 추천 동작 보장).
+  function composeReply(message, profile, a, recos) {
+    var base = provider.generateReply(message, profile, { analysis: a });
+    var withReco = base + recoLines(recos);
+    if (window.BELLORE_AI_REPLY === true && sb() && sb().functions) {
+      var cand = (recos || []).map(function (x) { return { name: [x.product.brand, x.product.model, x.product.reference_number].filter(Boolean).join(' '), price: x.product.price, score: x.score }; });
+      return sb().functions.invoke('ai-learn', { body: { action: 'generate_reply', profile_id: (profile && profile.id) || null, message: message, candidates: cand } })
+        .then(function (res) {
+          var r = res && res.data && res.data.result && res.data.result.reply;
+          if (r) return r + recoLines(recos);
+          return withReco; // skipped/실패 → 규칙기반
+        }).catch(function () { return withReco; });
+    }
+    return Promise.resolve(withReco);
   }
 
   function buildInterestItems(a) {
@@ -597,6 +631,35 @@
       if (rows.length) sb().from('ai_recommendation_logs').insert(rows).then(function (r) { if (r.error) console.warn('[BelloreAI] 추천로그 보류:', r.error.message); });
     }
     return ranked;
+  }
+
+  /* 벨로르 판매시계 1회성 조회(추천 소스). 캐시 60초. */
+  var _prodCache = null, _prodAt = 0;
+  function fetchProducts() {
+    if (_prodCache && (Date.now() - _prodAt) < 60000) return Promise.resolve(_prodCache);
+    if (!(B() && B().subscribeProducts)) return Promise.resolve([]);
+    return new Promise(function (resolve) {
+      var done = false, unsub = null;
+      try {
+        unsub = B().subscribeProducts(function (list) {
+          if (done) return; done = true;
+          _prodCache = (list || []).filter(function (p) { return (p.status || 'on') !== 'sold' && (p.status || 'on') !== 'hidden'; });
+          _prodAt = Date.now();
+          if (unsub) try { unsub(); } catch (e) {}
+          resolve(_prodCache);
+        });
+      } catch (e) { resolve([]); }
+      setTimeout(function () { if (!done) { done = true; resolve(_prodCache || []); } }, 2500);
+    });
+  }
+
+  // 프로필 기반 실제 매물 추천(규칙기반, 무료). 상위 N개 반환.
+  function recommendProducts(profile, limit) {
+    return fetchProducts().then(function (products) {
+      if (!products.length) return [];
+      var ranked = recommendForProfile(profile, products, [], [], { minScore: 20, persist: false });
+      return ranked.slice(0, limit || 3);
+    });
   }
 
   /* ============================================================
@@ -930,6 +993,8 @@
     normalizeListing: normalizeListing,
     calculateRecommendationScore: calculateRecommendationScore,
     recommendForProfile: recommendForProfile,
+    fetchProducts: fetchProducts,
+    recommendProducts: recommendProducts,
     generateAlertCandidates: generateAlertCandidates,
     buildAlertCandidates: buildAlertCandidates,
     krwShort: krwShort,
