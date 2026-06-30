@@ -905,9 +905,12 @@
 
                     <!-- 빠른 필터 칩 + 정렬 -->
                     <div class="qf-chips" id="catChips">
+                        <button type="button" class="qf-brandtoggle" id="catBrandToggle" aria-pressed="false" aria-label="브랜드 보기">
+                            <span class="qf-switch"><span class="qf-switch-knob"></span></span>브랜드
+                        </button>
+                        <span class="qf-brand-divider" aria-hidden="true"></span>
                         <button type="button" class="qf-chip active" data-chip="all">전체</button>
                         <button type="button" class="qf-chip" data-chip="new">미착용</button>
-                        <button type="button" class="qf-chip" data-chip="brand">브랜드</button>
                         <span class="qf-chip qf-chip-grade" data-chip="grade" role="button" tabindex="0">등급 <i>▾</i>
                             <span class="qf-chip-menu" id="catGradeMenu" hidden>
                                 <button type="button" data-grade="">등급 전체</button>
@@ -3551,15 +3554,17 @@
                 if (k === 'sort') { toggleMenu('catSortMenu', chip); return; }
                 if (k === 'all') { resetQuick(); applyFilters(); return; }
                 if (k === 'new') { fNew = !fNew; chip.classList.toggle('active', fNew); syncAllChip(); applyFilters(); return; }
-                if (k === 'brand') {
-                    var panel = document.getElementById('catBrandPanel');
-                    if (panel) {
-                        panel.hidden = !panel.hidden;
-                        chip.classList.toggle('active', !panel.hidden);
-                        if (!panel.hidden) { setBrandOpen(true); panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
-                    }
-                    return;
-                }
+            });
+            // 무신사식 '브랜드' 토글 스위치 — 켜면 원형 브랜드 패널이 펼쳐지고, 다시 누르면 닫힘
+            var brandToggle = document.getElementById('catBrandToggle');
+            if (brandToggle) brandToggle.addEventListener('click', function () {
+                var panel = document.getElementById('catBrandPanel');
+                if (!panel) return;
+                panel.hidden = !panel.hidden;
+                var on = !panel.hidden;
+                brandToggle.classList.toggle('on', on);
+                brandToggle.setAttribute('aria-pressed', String(on));
+                if (on) { setBrandOpen(true); panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
             });
             document.addEventListener('click', function (e) { if (!e.target.closest('.qf-chip')) closeMenus(); });
             window.addEventListener('scroll', closeMenus, true);
