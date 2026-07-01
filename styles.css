@@ -5832,7 +5832,7 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 /* ===== 공통 다이얼로그(ui-dialog.js): alert/confirm/prompt 대체 ===== */
 .bld-modal[hidden] { display: none; }
 .bld-modal {
-    position: fixed; inset: 0; z-index: 8000;
+    position: fixed; inset: 0; z-index: 3000;
     display: flex; align-items: center; justify-content: center;
     padding: 20px;
 }
@@ -5876,7 +5876,7 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 /* 토스트 */
 .bld-toast {
     position: fixed; left: 50%; bottom: 88px; transform: translateX(-50%) translateY(10px);
-    z-index: 9000;
+    z-index: 3100;
     background: rgba(20,20,20,.94); color: #fff;
     padding: 12px 18px; border-radius: 24px; font-size: 13.5px;
     max-width: 88%; text-align: center;
