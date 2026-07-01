@@ -39,12 +39,12 @@ window.NW_ADMIN_EMAILS = [
 window.BELLORE_PAYMENTS = {
   provider: "portone",
   // 포트원 상점 ID (예: store-00000000-0000-0000-0000-000000000000)
-  storeId: "",
+  storeId: "store-c0c1bc9e-60c2-4ac6-9bb1-80c0ee7337ef",
   // 결제수단 목록 — 각 항목의 channelKey 를 포트원 콘솔에서 복사해 채우세요.
   //   payMethod: 'CARD'(카드) | 'EASY_PAY'(간편결제) | 'TRANSFER'(계좌이체) | 'VIRTUAL_ACCOUNT'(가상계좌)
   //   easyPayProvider: 간편결제일 때 지정(아래 값 참고). 비우면 PG 기본 선택창.
   channels: [
-    { id: "card",     label: "신용·체크카드", payMethod: "CARD",     channelKey: "" },
+    { id: "card",     label: "신용·체크카드", payMethod: "CARD",     channelKey: "channel-key-87bd0acb-2cf9-4b05-9394-b332a099d658" },
     { id: "kakaopay", label: "카카오페이",   payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_KAKAOPAY" },
     { id: "naverpay", label: "네이버페이",   payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_NAVERPAY" },
     { id: "tosspay",  label: "토스페이",     payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_TOSSPAY" },
