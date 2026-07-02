@@ -33,7 +33,7 @@
   }
 
   /* ---------------- 체크아웃 모달 ---------------- */
-  var modal, product, payType = 'deposit';
+  var modal, product, payType = 'full';   // 예약금 폐지 — 전액결제 전용(네이버페이 지침)
   var selectedChannel = null;   // 선택된 결제수단(config.channels 의 한 항목)
 
   function getModal() { return $('#checkoutModal'); }
@@ -179,8 +179,6 @@
     $('#coBrand').textContent = product.brand || '';
     $('#coModel').textContent = product.model || '';
     $('#coListPrice').textContent = product.price ? (fmt(product.price) + '원') : '가격 문의';
-    $('#coPtDeposit').textContent = product.price ? (fmt(calcDeposit(product.price)) + '원') : '-';
-    $('#coPtFull').textContent = product.price ? (fmt(calcFull(product.price)) + '원') : '-';
 
     // 로그인 사용자 정보 채우기
     var u = currentUser();
@@ -211,8 +209,8 @@
     // 상품상세 모달이 떠 있으면 닫기(겹침 방지)
     var pm = $('#productModal');
     if (pm) pm.hidden = true;
-    payType = 'deposit';
-    setPayType('deposit');
+    payType = 'full';
+    setPayType('full');
     renderProduct();
     // 쿠폰 초기화 후 내 쿠폰 로드
     var cSel = $('#coCouponSelect'); if (cSel) cSel.value = '';
@@ -268,7 +266,6 @@
     var amount = Math.max(0, base - discount);
     if (amount < 100) { alert('쿠폰 할인 후 결제금액이 너무 적습니다. 다른 결제 방식을 선택해 주세요.'); return; }
     var orderName = (product.brand ? product.brand + ' ' : '') + (product.model || '상품');
-    if (payType === 'deposit') orderName += ' (예약금)';
 
     var payBtn = $('#coPayBtn');
     payBtn.disabled = true;
