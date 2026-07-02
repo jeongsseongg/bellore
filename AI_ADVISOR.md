@@ -76,15 +76,17 @@ supabase secrets set AI_MODEL=gemini-2.0-flash   # 생략 가능(기본값)
 supabase functions deploy ai-learn
 ```
 
-### (B) 무료 — Groq (OpenAI 호환, 무료·빠름)
-키 발급: https://console.groq.com/keys
+### (B) 무료 — Groq (OpenAI 호환, 무료·빠름, 제로 데이터 보존=학습 안 함) ★고객데이터 안전
+키 발급(카드 불필요): https://console.groq.com/keys
 ```bash
 supabase secrets set AI_PROVIDER=openai
 supabase secrets set AI_BASE_URL=https://api.groq.com/openai/v1
 supabase secrets set OPENAI_API_KEY=gsk_...       # Groq 무료 키
-supabase secrets set AI_MODEL=llama-3.3-70b-versatile
+supabase secrets set AI_MODEL=qwen/qwen3.6-27b    # 현재 Groq 최상급(한국어 강함). 대안: openai/gpt-oss-120b
 supabase functions deploy ai-learn
 ```
+> ⚠️ 모델 목록은 바뀝니다(llama-3.3-70b 등 구모델 폐기됨). 최신 모델ID는
+> https://console.groq.com/docs/models 에서 확인해 AI_MODEL 만 교체.
 
 ### (B-2) 무료 — Gemma (구글 오픈모델, Gemini 키 그대로)
 Gemma 는 Gemini 와 같은 키/엔드포인트로 돌아간다. 모델명만 바꾸면 됨.
