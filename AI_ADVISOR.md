@@ -96,15 +96,17 @@ supabase functions deploy ai-learn
 ```
 (Gemma 는 system 역할 미지원 → 함수가 자동으로 지침을 프롬프트 앞에 합쳐서 처리)
 
-### (B-3) 무료 — GLM (Zhipu, OpenAI 호환)
-키 발급: https://open.bigmodel.cn/  (해외: https://z.ai)
+### (B-3) GLM (Zhipu / Z.ai, OpenAI 호환)
+키 발급: https://z.ai  (중국: https://open.bigmodel.cn)
 ```bash
 supabase secrets set AI_PROVIDER=openai
-supabase secrets set AI_BASE_URL=https://open.bigmodel.cn/api/paas/v4   # z.ai면 https://api.z.ai/api/paas/v4
-supabase secrets set OPENAI_API_KEY=<GLM_API_KEY>
-supabase secrets set AI_MODEL=glm-4-flash            # 무료 모델
+supabase secrets set AI_BASE_URL=https://api.z.ai/api/paas/v4     # 중국내: https://open.bigmodel.cn/api/paas/v4
+supabase secrets set OPENAI_API_KEY=<Z.AI_API_KEY>
+supabase secrets set AI_MODEL=glm-5.2                # 최신 플래그십(유료/무료체험). 완전무료는 flash 계열
 supabase functions deploy ai-learn
 ```
+> 모델명은 언제든 교체 가능: 최고성능은 `glm-5.2`, 무료 위주면 `glm-*-flash` 계열이나
+> Gemini/Gemma 로 `AI_MODEL`(및 필요시 `AI_BASE_URL`)만 바꾸면 됨. 코드 수정 불필요.
 
 ### (C) 유료 — Anthropic / OpenAI
 ```bash
