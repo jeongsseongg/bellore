@@ -64,17 +64,20 @@ function hasKey(): boolean {
 // ── LLM 호출 어댑터(provider 무관 인터페이스) ──
 // system + user → 텍스트(가능하면 JSON) 반환. 실패 시 throw.
 async function llm(system: string, user: string, maxTokens = 700): Promise<string> {
-  // 무료: Google Gemini (AI 스튜디오 무료 티어)
+  // 무료: Google Gemini / Gemma (AI 스튜디오 무료 티어)
+  //   Gemma 모델은 system 역할을 지원하지 않으므로 system 을 user 앞에 합친다.
   if (PROVIDER === "gemini") {
+    const isGemma = /^gemma/i.test(MODEL);
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_KEY}`;
+    const payload: Record<string, unknown> = {
+      contents: [{ role: "user", parts: [{ text: isGemma ? (system + "\n\n" + user) : user }] }],
+      generationConfig: { maxOutputTokens: maxTokens },
+    };
+    if (!isGemma) payload.system_instruction = { parts: [{ text: system }] };
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: system }] },
-        contents: [{ role: "user", parts: [{ text: user }] }],
-        generationConfig: { maxOutputTokens: maxTokens },
-      }),
+      body: JSON.stringify(payload),
     });
     const out = await res.json();
     if (!res.ok) throw new Error(out?.error?.message ?? "gemini_failed");

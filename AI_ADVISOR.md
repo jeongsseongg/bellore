@@ -86,6 +86,26 @@ supabase secrets set AI_MODEL=llama-3.3-70b-versatile
 supabase functions deploy ai-learn
 ```
 
+### (B-2) 무료 — Gemma (구글 오픈모델, Gemini 키 그대로)
+Gemma 는 Gemini 와 같은 키/엔드포인트로 돌아간다. 모델명만 바꾸면 됨.
+```bash
+supabase secrets set AI_PROVIDER=gemini
+supabase secrets set GEMINI_API_KEY=AIza...          # aistudio.google.com/apikey
+supabase secrets set AI_MODEL=gemma-3-27b-it         # 또는 gemma-3-12b-it
+supabase functions deploy ai-learn
+```
+(Gemma 는 system 역할 미지원 → 함수가 자동으로 지침을 프롬프트 앞에 합쳐서 처리)
+
+### (B-3) 무료 — GLM (Zhipu, OpenAI 호환)
+키 발급: https://open.bigmodel.cn/  (해외: https://z.ai)
+```bash
+supabase secrets set AI_PROVIDER=openai
+supabase secrets set AI_BASE_URL=https://open.bigmodel.cn/api/paas/v4   # z.ai면 https://api.z.ai/api/paas/v4
+supabase secrets set OPENAI_API_KEY=<GLM_API_KEY>
+supabase secrets set AI_MODEL=glm-4-flash            # 무료 모델
+supabase functions deploy ai-learn
+```
+
 ### (C) 유료 — Anthropic / OpenAI
 ```bash
 supabase secrets set AI_PROVIDER=anthropic        # 또는 openai
