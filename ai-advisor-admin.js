@@ -68,14 +68,15 @@
 
   /* ---------------- 패널 골격 ---------------- */
   var TABS = [
+    { k: 'settings', t: 'AI 상담 설정' },
     { k: 'profiles', t: '고객 프로필' },
     { k: 'conversations', t: '대화 로그' },
     { k: 'alerts', t: '알림 후보' },
     { k: 'knowledge', t: '전문가 지식' },
     { k: 'team', t: '팀 메시지' },
-    { k: 'guidelines', t: '응답 지침' }
+    { k: 'guidelines', t: '답변 참고서' }
   ];
-  var panel, bodyEl, curTab = 'profiles';
+  var panel, bodyEl, curTab = 'settings';
 
   function buildPanel() {
     injectStyles();
@@ -87,7 +88,7 @@
         '<b>AI 고객비서</b>' +
       '</div>' +
       '<div class="aia-tabs">' +
-        TABS.map(function (x) { return '<button class="aia-tab' + (x.k === 'profiles' ? ' on' : '') + '" data-tab="' + x.k + '">' + x.t + '</button>'; }).join('') +
+        TABS.map(function (x) { return '<button class="aia-tab' + (x.k === curTab ? ' on' : '') + '" data-tab="' + x.k + '">' + x.t + '</button>'; }).join('') +
       '</div>' +
       '<div class="aia-body" id="aiaBody"></div>';
     document.body.appendChild(panel);
@@ -116,7 +117,8 @@
     $$('.aia-tab', panel).forEach(function (b) { b.classList.toggle('on', b.dataset.tab === k); });
     bodyEl.scrollTop = 0;
     bodyEl.innerHTML = '<div class="aia-empty">불러오는 중…</div>';
-    if (k === 'profiles') renderProfiles();
+    if (k === 'settings') renderSettings();
+    else if (k === 'profiles') renderProfiles();
     else if (k === 'conversations') renderConversations();
     else if (k === 'alerts') renderAlerts();
     else if (k === 'knowledge') renderKnowledge();
@@ -131,6 +133,86 @@
   function sqlHint(err) {
     return '<div class="aia-empty">데이터를 불러오지 못했습니다.<br><span style="font-size:12px">' +
       esc((err && err.message) || '') + '<br>ai_advisor.sql 을 Supabase SQL Editor 에 실행했는지 확인하세요.</span></div>';
+  }
+
+  /* ---------------- 0) AI 상담 설정 (수집 데이터 + 참고서 + 개선점) ---------------- */
+  function cnt(table, build) {
+    var q = sb().from(table).select('*', { count: 'exact', head: true });
+    if (build) q = build(q);
+    return q.then(function (r) { return r.count || 0; }).catch(function () { return 0; });
+  }
+  function renderSettings() {
+    if (!guard()) return;
+    bodyEl.innerHTML = '<div class="aia-empty">수집 현황 집계 중…</div>';
+    var stat = {};
+    Promise.all([
+      cnt('customer_ai_profiles'),
+      cnt('ai_conversations'),
+      cnt('customer_events'),
+      cnt('ai_response_guidelines', function (q) { return q.eq('is_active', true); }),
+      cnt('expert_knowledge_notes'),
+      cnt('team_messages'),
+      cnt('ai_alert_candidates', function (q) { return q.eq('status', 'pending'); })
+    ]).then(function (c) {
+      stat = { profiles: c[0], convs: c[1], events: c[2], guides: c[3], knowledge: c[4], team: c[5], alerts: c[6] };
+      // 관심 브랜드 Top / 단계 분포 (표본 조회)
+      return sb().from('customer_ai_profiles').select('preferred_brands,buying_stage').limit(500);
+    }).then(function (res) {
+      var rows = (res && res.data) || [];
+      var brandCnt = {}, stageCnt = {};
+      rows.forEach(function (p) {
+        (p.preferred_brands || []).forEach(function (b) { brandCnt[b] = (brandCnt[b] || 0) + 1; });
+        var s = p.buying_stage || 'unknown'; stageCnt[s] = (stageCnt[s] || 0) + 1;
+      });
+      var topBrands = Object.keys(brandCnt).sort(function (a, b) { return brandCnt[b] - brandCnt[a]; }).slice(0, 6);
+      paintSettings(stat, topBrands, brandCnt, stageCnt);
+    }).catch(function (e) { bodyEl.innerHTML = sqlHint(e); });
+  }
+  function statTile(label, val, sub) {
+    return '<div style="flex:1;min-width:96px;background:#fff;border:1px solid #e5e3df;border-radius:12px;padding:12px">' +
+      '<div style="font:700 22px Pretendard;color:#111">' + val + '</div>' +
+      '<div class="aia-sub" style="margin-top:2px">' + esc(label) + '</div>' + (sub ? ('<div class="aia-meta">' + esc(sub) + '</div>') : '') + '</div>';
+  }
+  function paintSettings(s, topBrands, brandCnt, stageCnt) {
+    var html = '<div class="aia-note">AI 상담의 두뇌 상태를 한눈에. 여기서 "지금까지 파악한 데이터"를 보고, "답변 참고서"를 관리하고, "개선이 필요한 질문"을 처리합니다.</div>';
+    // 수집 현황
+    html += '<h5>지금까지 수집·파악한 데이터</h5>';
+    html += '<div class="aia-sec" style="display:flex;gap:8px;flex-wrap:wrap">' +
+      statTile('고객 프로필', s.profiles) + statTile('대화', s.convs) + statTile('행동 로그', s.events) +
+      statTile('전문가 지식', s.knowledge) + statTile('Discord 수집', s.team) + '</div>';
+    // 관심 브랜드 Top
+    html += '<h5>고객 관심 브랜드 Top</h5><div class="aia-card nohover">' +
+      (topBrands.length ? topBrands.map(function (b) { return '<span class="aia-tag brand" style="margin:3px">' + esc(b) + ' ' + brandCnt[b] + '</span>'; }).join(' ') : '<span class="aia-sub">아직 데이터가 적습니다.</span>') + '</div>';
+    // 구매단계 분포
+    var stages = Object.keys(stageCnt);
+    html += '<h5>구매단계 분포</h5><div class="aia-card nohover">' +
+      (stages.length ? stages.map(function (k) { return '<div class="aia-sub">' + esc(STAGE[k] || k) + ': <b>' + stageCnt[k] + '</b></div>'; }).join('') : '<span class="aia-sub">-</span>') + '</div>';
+    // 답변 참고서 요약 + 바로가기
+    html += '<h5>답변 참고서(응답 지침)</h5><div class="aia-card nohover">' +
+      '<div class="aia-sub">활성 지침 <b>' + s.guides + '</b>개가 AI 답변에 적용 중입니다.</div>' +
+      '<div class="aia-btns"><button class="aia-btn pri" data-act="go-guidelines">참고서 관리</button>' +
+      '<button class="aia-btn" data-act="go-alerts">발송 대기 알림 ' + s.alerts + '건</button></div></div>';
+    // 개선 필요 질문
+    html += '<h5>개선이 필요한 질문 <span class="aia-meta" style="font-weight:400">(AI가 잘 대응 못한 질문)</span></h5>';
+    html += '<div id="aiaReview"><div class="aia-note">불러오는 중…</div></div>';
+    bodyEl.innerHTML = html;
+    loadReviewQuestions();
+  }
+  function loadReviewQuestions() {
+    var box = $('#aiaReview'); if (!box) return;
+    sb().from('ai_conversations').select('id,message,created_at')
+      .eq('role', 'user').filter('metadata->>needs_review', 'eq', 'true')
+      .order('created_at', { ascending: false }).limit(30)
+      .then(function (res) {
+        if (res.error) { box.innerHTML = '<div class="aia-note">개선 질문 조회 보류: ' + esc(res.error.message) + '</div>'; return; }
+        var rows = res.data || [];
+        box.innerHTML = rows.length ? rows.map(function (c) {
+          return '<div class="aia-card nohover"><div class="aia-sub">' + esc(c.message) + '</div>' +
+            '<div class="aia-btns"><button class="aia-btn pri" data-act="review-to-guide" data-msg="' + esc(c.message).replace(/"/g, '&quot;') + '">이 질문용 지침 추가</button>' +
+            '<button class="aia-btn" data-act="review-done" data-id="' + esc(c.id) + '">처리됨</button></div>' +
+            '<div class="aia-meta">' + fmtDate(c.created_at) + '</div></div>';
+        }).join('') : '<div class="aia-note">개선이 필요한 질문이 없습니다. (AI가 대응 못한 질문이 여기에 모여, 참고서 지침으로 보완하는 자리입니다.)</div>';
+      }).catch(function (e) { box.innerHTML = '<div class="aia-note">' + esc(String(e)) + '</div>'; });
   }
 
   /* ---------------- 1) 고객 프로필 목록 ---------------- */
@@ -392,6 +474,17 @@
     if (act === 'team-to-knowledge') return teamToKnowledge(id);
     if (act === 'ai-summarize') return callLearn(el, { action: 'summarize_profile', profile_id: id }, function () { renderProfileDetail(id); });
     if (act === 'ai-extract-knowledge') return callLearn(el, { action: 'extract_knowledge', limit: 30 }, function () { setTab('knowledge'); });
+    if (act === 'go-guidelines') { setTab('guidelines'); return; }
+    if (act === 'go-alerts') { setTab('alerts'); return; }
+    if (act === 'review-done') {
+      sb().from('ai_conversations').update({ metadata: { needs_review: false, resolved: true } }).eq('id', id).then(function () { loadReviewQuestions(); });
+      return;
+    }
+    if (act === 'review-to-guide') {
+      setTab('guidelines');
+      setTimeout(function () { guideEditor({ title: '자주 묻는 질문 대응', category: 'general', content: '고객 질문 예: "' + (el.dataset.msg || '') + '"\n→ 이렇게 답변한다: ', priority: 50, is_active: true }); }, 60);
+      return;
+    }
     if (act === 'guide-new') { guideEditor(null); return; }
     if (act === 'guide-back') { renderGuidelines(); return; }
     if (act === 'guide-save') return saveGuideline(id || null);

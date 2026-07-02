@@ -460,15 +460,16 @@
   /* ============================================================
      6) 대화 처리 파이프라인 (채팅 1턴)
      ============================================================ */
-  function logConversation(profile, role, message) {
+  function logConversation(profile, role, message, metadata) {
+    metadata = metadata || {};
     if (dbOn() && profile && profile.id) {
       return sb().from('ai_conversations').insert({
         profile_id: profile.id, user_id: profile.user_id || null,
-        role: role, message: message, channel: 'web'
+        role: role, message: message, channel: 'web', metadata: metadata
       }).then(function (r) { if (r.error) console.warn('[BelloreAI] 대화 저장 보류:', r.error.message); });
     }
     var buf = lsGet(LS_BUFFER, { conversations: [], events: [], interests: [] });
-    buf.conversations.push({ role: role, message: message, at: nowISO() }); lsSet(LS_BUFFER, buf);
+    buf.conversations.push({ role: role, message: message, metadata: metadata, at: nowISO() }); lsSet(LS_BUFFER, buf);
     return Promise.resolve();
   }
 
@@ -476,7 +477,7 @@
   function handleUserMessage(message) {
     var a = analyze(message);
     return ensureProfile().then(function (p) {
-      return logConversation(p, 'user', message).then(function () {
+      return Promise.resolve().then(function () {
         var p2 = applyAnalysis(p, a);
         return saveProfile(p2).then(function () {
           // 관심 점수: 브랜드/모델/레퍼런스 언급 → chat(+10)
@@ -494,9 +495,15 @@
             var wantReco = /추천|매물|예산|보여|찾아|있나|입고/.test(message) || a.references.length || a.brands.length;
             var recoP = wantReco ? recommendProducts(p2, 3).catch(function () { return []; }) : Promise.resolve([]);
             return recoP.then(function (recos) {
-              return composeReply(message, p2, a, recos).then(function (reply) {
-                return logConversation(p2, 'assistant', reply).then(function () {
-                  return { reply: reply, analysis: a, profile: p2, recommendations: recos };
+              // 개선 루프: 브랜드/레퍼런스도 못 잡고 추천도 못 준 질문 = "대응 어려움" → 표시
+              var handled = a.brands.length || a.references.length || (recos && recos.length) || a.buying_stage === 'sell_intent';
+              var userMeta = { analysis: { brands: a.brands, references: a.references, stage: a.buying_stage } };
+              if (!handled) userMeta.needs_review = true;
+              return logConversation(p2, 'user', message, userMeta.needs_review ? userMeta : null).then(function () {
+                return composeReply(message, p2, a, recos).then(function (reply) {
+                  return logConversation(p2, 'assistant', reply).then(function () {
+                    return { reply: reply, analysis: a, profile: p2, recommendations: recos, handled: !!handled };
+                  });
                 });
               });
             });
@@ -877,7 +884,26 @@
       '<div class="bai-menu">' +
         MENU.map(function (m) { return '<button class="bai-chip" type="button" data-q="' + esc(m.q) + '">' + esc(m.t) + '</button>'; }).join('') +
       '</div>';
-    addBot('안녕하세요, 벨로르 AI 시계 전문비서예요. 찾으시는 브랜드·모델·예산을 말씀해 주시면 취향을 분석해 매물을 찾아드릴게요.');
+    // 바이버원처럼 능동적으로: 기억이 있으면 분석 기반으로 "먼저" 추천/인사, 없으면 먼저 질문.
+    ensureProfile().then(function (p) {
+      var brands = (p && p.preferred_brands) || [];
+      if (brands.length || (p && (p.budget_max || (p.preferred_references || []).length))) {
+        var who = brands.slice(0, 2).join(', ');
+        addBot('다시 오셨네요' + (who ? (', ' + who) : '') + ' 관심 있으셨죠. 그새 들어온 매물을 확인해봤어요.');
+        // 분석 기반 선제 추천
+        recommendProducts(p, 3).then(function (recos) {
+          if (recos && recos.length) {
+            addBot('고객님 취향에 맞춰 이런 시계를 추천드려요:' + recoLines(recos) + '\n\n더 좁혀서 찾아드릴까요? 예산이나 모델을 말씀해 주세요.');
+          } else {
+            addBot('지금 딱 맞는 매물은 준비 중이에요. 원하시는 예산·모델을 알려주시면 입고되는 대로 가장 먼저 알려드릴게요.');
+          }
+        }).catch(function () {});
+      } else {
+        addBot('안녕하세요, 벨로르 AI 시계 전문비서예요. 어떤 시계를 찾고 계세요? 브랜드나 예산만 알려주셔도 딱 맞는 매물을 찾아드려요.');
+      }
+    }).catch(function () {
+      addBot('안녕하세요, 벨로르 AI 시계 전문비서예요. 어떤 시계를 찾고 계세요?');
+    });
   }
 
   function addMsg(role, text) {
