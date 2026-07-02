@@ -35,8 +35,17 @@ const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const PROVIDER = (Deno.env.get("AI_PROVIDER") ?? "anthropic").toLowerCase();
 const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
 const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY") ?? "";
-const MODEL = Deno.env.get("AI_MODEL") ??
-  (PROVIDER === "openai" ? "gpt-4o-mini" : "claude-haiku-4-5-20251001");
+const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
+// OpenAI 호환 무료 제공자(Groq/OpenRouter/Together 등)용 base URL 오버라이드.
+//   예) Groq:       AI_BASE_URL=https://api.groq.com/openai/v1
+//       OpenRouter: AI_BASE_URL=https://openrouter.ai/api/v1
+const OPENAI_BASE = (Deno.env.get("AI_BASE_URL") ?? "https://api.openai.com/v1").replace(/\/$/, "");
+const DEFAULT_MODEL: Record<string, string> = {
+  gemini: "gemini-2.0-flash",        // 무료 티어(구글 AI 스튜디오)
+  openai: "gpt-4o-mini",             // Groq 무료면 AI_MODEL=llama-3.3-70b-versatile 등으로
+  anthropic: "claude-haiku-4-5-20251001",
+};
+const MODEL = Deno.env.get("AI_MODEL") ?? DEFAULT_MODEL[PROVIDER] ?? DEFAULT_MODEL.anthropic;
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -47,14 +56,33 @@ function json(b: unknown, s = 200) {
   return new Response(JSON.stringify(b), { status: s, headers: { ...CORS, "Content-Type": "application/json" } });
 }
 function hasKey(): boolean {
-  return PROVIDER === "openai" ? !!OPENAI_KEY : !!ANTHROPIC_KEY;
+  if (PROVIDER === "openai") return !!OPENAI_KEY;
+  if (PROVIDER === "gemini") return !!GEMINI_KEY;
+  return !!ANTHROPIC_KEY;
 }
 
 // ── LLM 호출 어댑터(provider 무관 인터페이스) ──
 // system + user → 텍스트(가능하면 JSON) 반환. 실패 시 throw.
 async function llm(system: string, user: string, maxTokens = 700): Promise<string> {
+  // 무료: Google Gemini (AI 스튜디오 무료 티어)
+  if (PROVIDER === "gemini") {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_KEY}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: system }] },
+        contents: [{ role: "user", parts: [{ text: user }] }],
+        generationConfig: { maxOutputTokens: maxTokens },
+      }),
+    });
+    const out = await res.json();
+    if (!res.ok) throw new Error(out?.error?.message ?? "gemini_failed");
+    return (out.candidates?.[0]?.content?.parts ?? []).map((p: { text?: string }) => p.text ?? "").join("");
+  }
+  // OpenAI 및 OpenAI 호환 무료 제공자(Groq/OpenRouter/Together …) — AI_BASE_URL 로 전환
   if (PROVIDER === "openai") {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    const res = await fetch(OPENAI_BASE + "/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${OPENAI_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -250,7 +278,7 @@ Deno.serve(async (req) => {
     const { action, profile_id, limit, message, candidates } = await req.json();
     if (!hasKey()) {
       return json({ ok: true, skipped: "ai_key_not_set", provider: PROVIDER,
-        hint: "ANTHROPIC_API_KEY 또는 OPENAI_API_KEY 시크릿을 설정하면 실제 학습이 켜집니다. 그 전까지는 클라이언트 RuleBasedAIProvider 가 동작합니다." });
+        hint: "무료로 켜려면 AI_PROVIDER=gemini + GEMINI_API_KEY(구글 AI 스튜디오 무료). 또는 Groq 무료: AI_PROVIDER=openai + AI_BASE_URL=https://api.groq.com/openai/v1 + OPENAI_API_KEY. 미설정 시 규칙기반이 동작합니다." });
     }
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 

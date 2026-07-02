@@ -101,10 +101,12 @@ window.BELLORE_CATEGORIES = {
    AI 시계비서 설정
    ------------------------------------------------------------
    - 기본값(false): 외부 AI 미사용. 규칙기반으로 저장·분석·추천이 즉시 동작(무료).
-   - 실제 AI 답변을 켜려면:
-       1) Supabase 시크릿에 ANTHROPIC_API_KEY 등록
+   - 실제 AI 답변을 켜려면(무료 가능):
+       1) Supabase 시크릿에 AI 키 등록
+          · 무료 Gemini: AI_PROVIDER=gemini + GEMINI_API_KEY (aistudio.google.com/apikey)
+          · 무료 Groq  : AI_PROVIDER=openai + AI_BASE_URL=https://api.groq.com/openai/v1 + OPENAI_API_KEY
        2) ai-learn Edge Function 배포
-       3) 아래 aiReply 를 true 로 변경 후 사이트 재배포
+       3) 아래 값을 true 로 변경 후 사이트 재배포
      → 고객 답변 문장을 '답변 참고서(지침)+고객 기억+전문가 지식' 기반으로 생성.
        (추천 매물 목록은 aiReply 값과 무관하게 항상 규칙기반으로 함께 표시)
    ============================================================ */

@@ -66,13 +66,33 @@ Discord 는 채널 메시지를 임의 URL 로 자동 전송하지 않는다 →
 > 필요하면 "discord 봇 릴레이 코드 만들어줘"라고 하면 별도 파일로 추가한다.
 
 ## 4) 실제 AI 학습 켜기 (ai-learn)
+
+### (A) 무료 — Google Gemini (권장, 무료 티어)
+키 발급: https://aistudio.google.com/apikey
 ```bash
-supabase secrets set AI_PROVIDER=anthropic            # 또는 openai
-supabase secrets set ANTHROPIC_API_KEY=sk-ant-...     # anthropic 일 때
-# 또는: supabase secrets set OPENAI_API_KEY=sk-...     # openai 일 때
-supabase secrets set AI_MODEL=claude-haiku-4-5-20251001   # 비용 절감 기본(생략 가능)
+supabase secrets set AI_PROVIDER=gemini
+supabase secrets set GEMINI_API_KEY=AIza...      # 구글 AI 스튜디오 무료 키
+supabase secrets set AI_MODEL=gemini-2.0-flash   # 생략 가능(기본값)
 supabase functions deploy ai-learn
 ```
+
+### (B) 무료 — Groq (OpenAI 호환, 무료·빠름)
+키 발급: https://console.groq.com/keys
+```bash
+supabase secrets set AI_PROVIDER=openai
+supabase secrets set AI_BASE_URL=https://api.groq.com/openai/v1
+supabase secrets set OPENAI_API_KEY=gsk_...       # Groq 무료 키
+supabase secrets set AI_MODEL=llama-3.3-70b-versatile
+supabase functions deploy ai-learn
+```
+
+### (C) 유료 — Anthropic / OpenAI
+```bash
+supabase secrets set AI_PROVIDER=anthropic        # 또는 openai
+supabase secrets set ANTHROPIC_API_KEY=sk-ant-... # 또는 OPENAI_API_KEY=sk-...
+supabase functions deploy ai-learn
+```
+- 어느 경우든 **키 미설정 시 규칙기반 폴백**(skipped). 프런트 `window.BELLORE_AI_REPLY=true` 여야 답변 생성에 사용.
 - 키 **미설정 시** `ai-learn` 은 `skipped` 를 반환하고, 규칙기반 요약이 그대로 유지된다.
 - 관리자 패널 버튼:
   - 고객 상세 → **"AI 요약·메모리 생성"** → `summarize_profile`
