@@ -28,8 +28,14 @@
     d = Math.max(PAY.depositMin || 0, Math.min(d, PAY.depositMax || price));
     return Math.min(d, price); // 상품가보다 클 수 없음
   }
+  // 배송비: 기본 전국 무료. 단, 프리미엄배송 기준액(기본 500만원) 이상 고가 상품은
+  //          안전·보험 프리미엄배송(기본 35,000원) 필수 가산. (약관/배송정책 특약)
+  function shipFee(price) {
+    var th = PAY.premiumShipThreshold || 5000000;
+    return (Number(price) || 0) >= th ? (PAY.shippingFee || 0) : 0;
+  }
   function calcFull(price) {
-    return price + (PAY.shippingFee || 0);
+    return price + shipFee(price);
   }
 
   /* ---------------- 체크아웃 모달 ---------------- */

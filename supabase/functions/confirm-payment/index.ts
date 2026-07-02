@@ -30,6 +30,7 @@ const DEPOSIT_RATE = Number(Deno.env.get("DEPOSIT_RATE") ?? "0.10");
 const DEPOSIT_MIN = Number(Deno.env.get("DEPOSIT_MIN") ?? "500000");
 const DEPOSIT_MAX = Number(Deno.env.get("DEPOSIT_MAX") ?? "5000000");
 const SHIPPING_FEE = Number(Deno.env.get("SHIPPING_FEE") ?? "35000");
+const PREMIUM_SHIP_THRESHOLD = Number(Deno.env.get("PREMIUM_SHIP_THRESHOLD") ?? "5000000");
 // 포인트 적립률 — 결제 확정 금액의 1%(기본). secrets 로 조정 가능. 0 이면 적립 안 함.
 const POINT_EARN_RATE = Number(Deno.env.get("POINT_EARN_RATE") ?? "0.01");
 
@@ -54,7 +55,8 @@ function calcDeposit(price: number): number {
   return Math.min(d, price);
 }
 function calcFull(price: number): number {
-  return price + SHIPPING_FEE;
+  // 기본 무료배송. 프리미엄배송 기준액 이상 고가 상품만 프리미엄배송비 가산.
+  return price + (price >= PREMIUM_SHIP_THRESHOLD ? SHIPPING_FEE : 0);
 }
 
 // supabase.js couponDiscount 와 동일한 계산

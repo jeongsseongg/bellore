@@ -886,12 +886,13 @@
             var op = e.target.closest('[data-legal-open]');
             if (op) {
                 var k = op.getAttribute('data-legal-open');
-                var id = k === 'terms' ? 'termsModal' : k === 'privacy' ? 'privacyModal' : 'bizInfoModal';
+                var idMap = { terms: 'termsModal', privacy: 'privacyModal', refund: 'refundModal', guide: 'guideModal', biz: 'bizInfoModal' };
+                var id = idMap[k]; if (!id) return;
                 var m = $('#' + id); if (m) { m.hidden = false; document.body.style.overflow = 'hidden'; }
                 return;
             }
             if (e.target.closest('[data-bizclose]')) {
-                ['bizInfoModal', 'termsModal', 'privacyModal'].forEach(function (mid) { var mm = $('#' + mid); if (mm) mm.hidden = true; });
+                ['bizInfoModal', 'termsModal', 'privacyModal', 'refundModal', 'guideModal'].forEach(function (mid) { var mm = $('#' + mid); if (mm) mm.hidden = true; });
                 var sp = $('#settingsPage'), mp = $('#myPageModal');
                 document.body.style.overflow = ((sp && !sp.hidden) || (mp && !mp.hidden)) ? 'hidden' : '';
             }
