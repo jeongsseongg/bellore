@@ -52,10 +52,12 @@
 ## 배포 워크플로
 - 개발 브랜치: **`claude/great-hypatia-ltxsgl`**. 작업 후 `main`(배포)로 fast-forward 머지 + 양쪽 push.
 - 클라이언트(JS/HTML/CSS) 변경 시 **`sw.js` VERSION 올린다**(현재 **v135**). Edge Function .ts는 SW 캐시 대상 아님.
-- GitHub Actions `firebase-deploy.yml`가 main push 시 자동 배포(+ 옛 버전 prune으로 429 방지). **GitHub Pages는 안 씀**(실패 메일 오면 무시/설정에서 끄기).
+- ⚠️ **라이브 도메인 `bellore.co.kr`은 GitHub Pages(루트 `CNAME` 파일=bellore.co.kr)로 연결된다. `CNAME` 삭제·Pages 비활성화 시 도메인 즉시 404** (260703 사고로 확인). **CNAME·Pages 설정 절대 건드리지 말 것.** (firebase-deploy.yml도 있으나 라이브 도메인 연결의 핵심은 CNAME/Pages.)
+- Pages "pages build and deployment / deploy 실패" 메일은 배포 단계 실패일 뿐, 도메인 연결(CNAME)과 별개 → 사이트는 마지막 성공본으로 계속 서빙됨. **실패 메일 없앤다고 CNAME/Pages 끄면 사이트가 내려간다.**
 - PR은 명시 요청 시에만. 커밋/PR/코드/주석 등 산출물에 **모델 식별자 절대 미포함**.
 
 ## ⚠️ 위험 교훈 (반복 금지)
+- **🚨 `CNAME`/GitHub Pages 절대 삭제·비활성 금지.** bellore.co.kr은 Pages CNAME(루트 `CNAME`=bellore.co.kr)으로 서빙된다 → 제거하면 즉시 404(260703 사고, 내가 냈다). 도메인/Pages/CNAME 설정은 확신 없이 손대지 않는다. 복구=CNAME 원복 또는 Settings→Pages→Custom domain에 bellore.co.kr 재입력.
 - **전역 감시 + 자기가 감시대상 건드리기 금지.** `MutationObserver`로 `document.body` 전체(subtree) 감시하며 콜백에서 감시대상 속성을 바꾸면 초기화와 충돌 → **스플래시 멈춤(v131 사고)**. 오버레이는 각 요소만 개별 처리.
 - **대규모/전역 UI 변경은 실제 구동 확인 후 배포.** 부품 테스트만으로 올리지 말 것(샌드박스에서 앱 전체 구동이 어려우면 최소한 격리 렌더로라도 확인).
 - **잘림(오버플로우) 원인 = flex 자식 `min-width:auto` 기본값.** 입력칸+버튼 한 줄이면 입력칸에 `min-width:0`, 버튼에 `white-space:nowrap`.
@@ -67,5 +69,6 @@
 ### v260703 (2026-07-03)
 - **왜**: 네이버페이 주문형 재심사 보류(예약금·판매구조·약관) 대응 + 포트원 결제 실연동 + 반복된 UI 잘림/겹침 정리 + CLAUDE.md 최신화 요청.
 - **무엇**: 예약금 폐지(전액결제 전용) · 배송비 무료+프리미엄 특약 · 법적 문서 풀세트(약관/개인정보/반품·교환/이용안내) 푸터 5링크 · 비회원 결제 허용(guest_checkout.sql) · 포트원 카드 결제 연동(테스트) · 입력칸 잘림 min-width:0 · 오버레이 스택 사고(v131) 롤백.
+- **사고/교훈**: (1) v131 전역 MutationObserver → 스플래시 멈춤 → 롤백. (2) `CNAME` 삭제 → bellore.co.kr 즉시 404(도메인이 GitHub Pages로 서빙됨을 몰랐음) → CNAME 원복. **도메인/Pages/CNAME은 이제 절대 안 건드린다.**
 - **방향**: 네이버·토스·카카오 등 **모든 결제·사업에 통하는 법적/정책 기반**을 벨로르 스타일로 정비 → 심사 통과 & 신뢰. 결제는 테스트→PG계약→실연동 순.
 - **스타일**: 디테일 우선, 친근+실질, 레퍼런스(구구스/바이버/무신사/토스) 따라가기, 빠른 실행·캡처 피드백, 비개발자용 클릭 단위 안내.
