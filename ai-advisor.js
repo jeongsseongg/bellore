@@ -809,13 +809,19 @@
   function injectStyles() {
     if ($('#bellore-ai-style')) return;
     var css = ''
-      + '#belloreAiFab{position:fixed;right:18px;bottom:84px;z-index:1200;display:flex;align-items:center;gap:8px;height:52px;padding:0 18px 0 16px;border:none;border-radius:26px;background:#111;color:#fff;font:700 15px Pretendard,-apple-system,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.22);cursor:pointer}'
-      + '#belloreAiFab:active{transform:scale(.97)}'
-      + '#belloreAiFab .bai-dot{position:absolute;top:-2px;right:-2px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#e23b3b;color:#fff;font:700 11px Pretendard;display:none;align-items:center;justify-content:center}'
+      + '#belloreAiFab{position:fixed;right:calc(50vw - var(--app-w)/2 + 16px);bottom:88px;z-index:6100;width:54px;height:54px;padding:0;border:none;border-radius:50%;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(0,0,0,.28);cursor:pointer;animation:baiPulse 8s ease-in-out infinite}'
+      + '#belloreAiFab svg{width:26px;height:26px}'
+      + '#belloreAiFab:active{transform:scale(.95)}'
+      + '@keyframes baiPulse{0%,84%,100%{transform:scale(1)}87%{transform:scale(1.16)}90%{transform:scale(1)}93%{transform:scale(1.16)}96%{transform:scale(1)}}'
+      + '#belloreAiFab .bai-dot{position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#e23b3b;color:#fff;font:700 10px Pretendard;display:none;align-items:center;justify-content:center}'
+      + '#baiBubble{position:fixed;right:calc(50vw - var(--app-w)/2 + 16px);bottom:150px;z-index:6100;max-width:230px;padding:9px 13px;border:1px solid #e5e3df;border-radius:16px;border-bottom-right-radius:4px;background:#fff;color:#1a1a1a;font:600 13px Pretendard;box-shadow:0 6px 18px rgba(0,0,0,.14);opacity:0;transform:translateY(6px) scale(.96);pointer-events:none;transition:opacity .28s,transform .28s;display:flex;align-items:center;gap:6px;white-space:nowrap}'
+      + '#baiBubble.show{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}'
+      + '#baiBubble .bai-emoji{display:inline-block;font-size:15px;animation:baiWiggle .7s ease-in-out infinite;transform-origin:70% 70%}'
+      + '@keyframes baiWiggle{0%,100%{transform:rotate(0)}30%{transform:rotate(-14deg)}70%{transform:rotate(14deg)}}'
       + '.bai-panel{position:fixed;inset:0;z-index:6000;display:none;background:rgba(0,0,0,.38)}'
       + '.bai-panel.show{display:block}'
-      + '.bai-sheet{position:absolute;right:0;bottom:0;left:0;margin:0 auto;max-width:460px;height:86vh;background:#fff;border-radius:18px 18px 0 0;display:flex;flex-direction:column;overflow:hidden;font-family:Pretendard,-apple-system,sans-serif;box-shadow:0 -4px 24px rgba(0,0,0,.16)}'
-      + '@media(min-width:560px){.bai-sheet{left:0;right:0;margin:0 auto;bottom:18px;border-radius:18px;height:620px;max-height:86vh;box-shadow:0 10px 40px rgba(0,0,0,.22)}}'
+      + '.bai-sheet{position:absolute;right:0;bottom:0;left:0;margin:0 auto;max-width:var(--app-w);height:86vh;background:#fff;border-radius:18px 18px 0 0;display:flex;flex-direction:column;overflow:hidden;font-family:Pretendard,-apple-system,sans-serif;box-shadow:0 -4px 24px rgba(0,0,0,.16)}'
+      + '@media(min-width:560px){.bai-sheet{left:auto;right:calc(50vw - var(--app-w)/2 + 12px);margin:0;width:380px;max-width:calc(var(--app-w) - 24px);bottom:88px;border-radius:18px;height:560px;max-height:80vh;box-shadow:0 10px 40px rgba(0,0,0,.22)}}'
       + '.bai-head{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid #e5e3df}'
       + '.bai-head .bai-ic{width:34px;height:34px;border-radius:50%;background:#111;color:#fff;display:flex;align-items:center;justify-content:center}'
       + '.bai-head b{font-size:16px;font-weight:700;color:#1a1a1a}'
@@ -867,14 +873,36 @@
     { t: '상담사 연결', q: '__support__' }
   ];
 
-  var elFab, elPanel, elBody, elInput;
+  var elFab, elPanel, elBody, elInput, elBubble;
+
+  /* 프로액티브 말풍선: "어떤 시계 찾으세요?" 등을 2~4초 랜덤으로 잠깐 표시 */
+  var BUBBLE_MSGS = ['어떤 시계 찾으세요?', '시계 판매 도와드릴까요?', '예산만 알려주셔도 골라드려요'];
+  var bubbleIdx = 0, bubbleT = null;
+  function showBubble() {
+    if (!elBubble) return;
+    // 채팅 열려있으면 안 띄움
+    if (elPanel && elPanel.classList.contains('show')) { scheduleBubble(6000); return; }
+    elBubble.innerHTML = '<span class="bai-emoji">😊</span><span>' + esc(BUBBLE_MSGS[bubbleIdx % BUBBLE_MSGS.length]) + '</span>';
+    bubbleIdx++;
+    elBubble.classList.add('show');
+    var dur = 2000 + Math.floor(Math.random() * 2000); // 2~4초
+    setTimeout(function () { if (elBubble) elBubble.classList.remove('show'); }, dur);
+    scheduleBubble(dur + 5000 + Math.floor(Math.random() * 4000));
+  }
+  function scheduleBubble(ms) { clearTimeout(bubbleT); bubbleT = setTimeout(showBubble, ms); }
 
   function buildUI() {
     injectStyles();
     elFab = document.createElement('button');
     elFab.id = 'belloreAiFab'; elFab.type = 'button';
-    elFab.innerHTML = ROBOT + '<span>BELLORE AI</span><span class="bai-dot" id="baiDot"></span>';
+    elFab.innerHTML = ROBOT + '<span class="bai-dot" id="baiDot"></span>';
     document.body.appendChild(elFab);
+
+    // 프로액티브 말풍선 (FAB 옆에 잠깐 떴다 사라짐)
+    elBubble = document.createElement('button');
+    elBubble.id = 'baiBubble'; elBubble.type = 'button';
+    document.body.appendChild(elBubble);
+    elBubble.addEventListener('click', openPanel);
 
     elPanel = document.createElement('div');
     elPanel.className = 'bai-panel';
@@ -907,8 +935,12 @@
   }
 
   function openPanel() {
+    if (elPanel.classList.contains('show')) return;
     elPanel.classList.add('show');
+    if (elBubble) elBubble.classList.remove('show');
     var dot = $('#baiDot'); if (dot) dot.style.display = 'none';
+    // 브라우저/기기 뒤로가기로 닫히게 히스토리 상태 추가
+    try { history.pushState({ baiChat: 1 }, ''); } catch (e) {}
     if (!elBody.dataset.init) {
       elBody.dataset.init = '1';
       if (!consentGiven()) renderConsent();
@@ -916,7 +948,16 @@
     }
     setTimeout(function () { elInput && elInput.focus(); }, 100);
   }
-  function closePanel() { elPanel.classList.remove('show'); }
+  function closePanel(fromPop) {
+    if (!elPanel.classList.contains('show')) return;
+    elPanel.classList.remove('show');
+    // 사용자가 X/배경으로 닫으면 우리가 추가한 히스토리 항목을 되돌린다(뒤로가기와 상태 일치)
+    if (!fromPop) { try { if (history.state && history.state.baiChat) history.back(); } catch (e) {} }
+  }
+  // 뒤로가기(popstate) 시 열려있으면 닫기
+  window.addEventListener('popstate', function () {
+    if (elPanel && elPanel.classList.contains('show')) closePanel(true);
+  });
 
   function renderConsent() {
     elBody.innerHTML =
@@ -1141,6 +1182,8 @@
     }
     // 이미 로그인 상태면 버퍼 병합 시도
     setTimeout(function () { if (loggedIn()) flushBufferToDB(); }, 800);
+    // 프로액티브 말풍선 시작(첫 등장은 4초 뒤)
+    scheduleBubble(4000);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();

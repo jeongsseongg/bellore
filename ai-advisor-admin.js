@@ -32,7 +32,7 @@
   function injectStyles() {
     if ($('#bellore-aiadmin-style')) return;
     var css = ''
-      + '#aiAdminPanel{position:fixed;inset:0;z-index:6200;display:none;background:#fff;font-family:Pretendard,-apple-system,sans-serif}'
+      + '#aiAdminPanel{position:fixed;top:0;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:var(--app-w);z-index:6200;display:none;background:#fff;box-shadow:0 0 60px rgba(0,0,0,.28);font-family:Pretendard,-apple-system,sans-serif}'
       + '#aiAdminPanel.show{display:flex;flex-direction:column}'
       + '.aia-top{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid #e5e3df}'
       + '.aia-top .aia-back{background:none;border:none;font-size:24px;color:#1a1a1a;cursor:pointer;line-height:1}'
@@ -111,11 +111,20 @@
 
   function open() {
     if (!panel) buildPanel();
+    if (panel.classList.contains('show')) return;
     panel.classList.add('show');
     document.body.style.overflow = 'hidden';
+    try { history.pushState({ aiAdmin: 1 }, ''); } catch (e) {}
     setTab(curTab);
   }
-  function close() { if (panel) { panel.classList.remove('show'); document.body.style.overflow = ''; } }
+  function close(fromPop) {
+    if (!panel || !panel.classList.contains('show')) return;
+    panel.classList.remove('show'); document.body.style.overflow = '';
+    if (!fromPop) { try { if (history.state && history.state.aiAdmin) history.back(); } catch (e) {} }
+  }
+  window.addEventListener('popstate', function () {
+    if (panel && panel.classList.contains('show')) close(true);
+  });
 
   function setTab(k) {
     curTab = k;
@@ -193,12 +202,12 @@
     html += '<h5>구매단계 분포</h5><div class="aia-card nohover">' +
       (stages.length ? stages.map(function (k) { return '<div class="aia-sub">' + esc(STAGE[k] || k) + ': <b>' + stageCnt[k] + '</b></div>'; }).join('') : '<span class="aia-sub">-</span>') + '</div>';
     // 답변 참고서 요약 + 바로가기
-    html += '<h5>답변 참고서(응답 지침)</h5><div class="aia-card nohover">' +
-      '<div class="aia-sub">활성 지침 <b>' + s.guides + '</b>개가 AI 답변에 적용 중입니다.</div>' +
+    html += '<h5>답변 참고서</h5><div class="aia-card nohover">' +
+      '<div class="aia-sub">참고서 <b>' + s.guides + '</b>개를 AI가 학습해 답변에 반영 중이에요.</div>' +
       '<div class="aia-btns"><button class="aia-btn pri" data-act="go-guidelines">참고서 관리</button>' +
       '<button class="aia-btn" data-act="go-alerts">발송 대기 알림 ' + s.alerts + '건</button></div></div>';
-    // 개선 필요 질문
-    html += '<h5>개선이 필요한 질문 <span class="aia-meta" style="font-weight:400">(AI가 잘 대응 못한 질문)</span></h5>';
+    // 꼭 확인해주세요 (자주 묻거나 답이 어려웠던 질문)
+    html += '<h5>꼭 확인해주세요 <span class="aia-meta" style="font-weight:400">(자주 묻거나 답이 어려웠던 질문)</span></h5>';
     html += '<div id="aiaReview"><div class="aia-note">불러오는 중…</div></div>';
     bodyEl.innerHTML = html;
     loadReviewQuestions();
@@ -207,16 +216,25 @@
     var box = $('#aiaReview'); if (!box) return;
     sb().from('ai_conversations').select('id,message,created_at')
       .eq('role', 'user').filter('metadata->>needs_review', 'eq', 'true')
-      .order('created_at', { ascending: false }).limit(30)
+      .order('created_at', { ascending: false }).limit(60)
       .then(function (res) {
-        if (res.error) { box.innerHTML = '<div class="aia-note">개선 질문 조회 보류: ' + esc(res.error.message) + '</div>'; return; }
+        if (res.error) { box.innerHTML = '<div class="aia-note">질문 조회 보류: ' + esc(res.error.message) + '</div>'; return; }
         var rows = res.data || [];
-        box.innerHTML = rows.length ? rows.map(function (c) {
-          return '<div class="aia-card nohover"><div class="aia-sub">' + esc(c.message) + '</div>' +
-            '<div class="aia-btns"><button class="aia-btn pri" data-act="review-to-guide" data-msg="' + esc(c.message).replace(/"/g, '&quot;') + '">이 질문용 지침 추가</button>' +
-            '<button class="aia-btn" data-act="review-done" data-id="' + esc(c.id) + '">처리됨</button></div>' +
-            '<div class="aia-meta">' + fmtDate(c.created_at) + '</div></div>';
-        }).join('') : '<div class="aia-note">개선이 필요한 질문이 없습니다. (AI가 대응 못한 질문이 여기에 모여, 참고서 지침으로 보완하는 자리입니다.)</div>';
+        // 같은 질문이 여러 번이면 묶어서 "N번 물어봤어요" 로 — 자주 묻는 질문 파악
+        var groups = {}, order = [];
+        rows.forEach(function (c) {
+          var key = (c.message || '').trim().toLowerCase();
+          if (!groups[key]) { groups[key] = { msg: c.message, ids: [], last: c.created_at }; order.push(key); }
+          groups[key].ids.push(c.id);
+        });
+        box.innerHTML = order.length ? order.map(function (k) {
+          var g = groups[k]; var n = g.ids.length;
+          return '<div class="aia-card nohover"><div class="aia-row"><span class="aia-sub" style="flex:1">' + esc(g.msg) + '</span>' +
+            (n > 1 ? '<span class="aia-tag warn" style="margin-left:auto">' + n + '번 물음</span>' : '') + '</div>' +
+            '<div class="aia-btns"><button class="aia-btn pri" data-act="review-to-guide" data-msg="' + esc(g.msg).replace(/"/g, '&quot;') + '">이 질문 참고서에 추가</button>' +
+            '<button class="aia-btn" data-act="review-done" data-ids="' + esc(g.ids.join(',')) + '">확인했어요</button></div>' +
+            '<div class="aia-meta">' + fmtDate(g.last) + '</div></div>';
+        }).join('') : '<div class="aia-note">확인이 필요한 질문이 없어요. 고객이 물었는데 AI가 잘 못 답한 질문이 여기 모여요 → 참고서에 답을 넣어주면 다음부터 잘 답합니다.</div>';
       }).catch(function (e) { box.innerHTML = '<div class="aia-note">' + esc(String(e)) + '</div>'; });
   }
 
@@ -344,9 +362,10 @@
       ? '<div class="aia-btns"><button class="aia-btn pri" data-act="alert-approve" data-id="' + esc(a.id) + '">승인</button>' +
         '<button class="aia-btn" data-act="alert-dismiss" data-id="' + esc(a.id) + '">보류/삭제</button></div>'
       : (st === 'approved' ? '<div class="aia-btns"><button class="aia-btn" data-act="alert-sent" data-id="' + esc(a.id) + '">발송 처리</button></div>' : '');
+    var ST_KO = { pending: '발송 대기', approved: '승인됨', sent: '발송됨', dismissed: '보류' };
     return '<div class="aia-card nohover">' +
       '<div class="aia-row"><span class="aia-name" style="font-size:14px">' + esc(a.title) + '</span>' +
-        '<span class="aia-tag ' + stTag + '" style="margin-left:auto">' + esc(st) + '</span></div>' +
+        '<span class="aia-tag ' + stTag + '" style="margin-left:auto">' + esc(ST_KO[st] || st) + '</span></div>' +
       '<div class="aia-sub" style="margin-top:6px">' + esc(a.message) + '</div>' +
       '<div class="aia-meta">' + esc(a.alert_type) + ' · 매칭 ' + Math.round(a.match_score || 0) + '점 · ' + esc(a.reason || '') + '</div>' +
       acts + '</div>';
@@ -371,11 +390,12 @@
       .then(function (res) {
         if (res.error) { bodyEl.innerHTML = sqlHint(res.error); return; }
         var rows = res.data || [];
-        bodyEl.innerHTML = '<div class="aia-note">전문가 녹취/슬랙/디스코드에서 추출한 시계 지식. 상태를 눌러 draft→reviewed→approved 로 승격합니다.</div>' +
+        var KN_KO = { draft: '초안', reviewed: '검토중', approved: '승인', archived: '보관' };
+        bodyEl.innerHTML = '<div class="aia-note">전문가 녹취·디스코드에서 뽑은 시계 지식. 상태를 눌러 초안 → 검토중 → 승인 으로 올립니다.</div>' +
           (rows.length ? rows.map(function (k) {
             var tags = [k.brand, k.model, k.reference_number].filter(Boolean).map(function (x) { return '<span class="aia-tag brand">' + esc(x) + '</span>'; }).join(' ');
             return '<div class="aia-card nohover"><div class="aia-row"><span class="aia-name" style="font-size:14px">' + esc(k.title) + '</span>' +
-              '<button class="aia-btn" data-act="kn-cycle" data-id="' + esc(k.id) + '" data-st="' + esc(k.status) + '" style="margin-left:auto">' + esc(k.status) + ' →</button></div>' +
+              '<button class="aia-btn" data-act="kn-cycle" data-id="' + esc(k.id) + '" data-st="' + esc(k.status) + '" style="margin-left:auto">' + esc(KN_KO[k.status] || k.status) + ' →</button></div>' +
               '<div class="aia-sub" style="margin-top:6px">' + esc(k.content) + '</div>' +
               '<div class="aia-meta">' + tags + ' · 신뢰도 ' + (k.confidence || 0) + ' · ' + esc(k.source || '') + '</div></div>';
           }).join('') : '<div class="aia-empty">전문가 지식 노트가 없습니다.</div>');
@@ -407,7 +427,10 @@
   }
 
   /* ---------------- 7) 응답 지침(플레이북) ---------------- */
-  var GUIDE_CATS = ['tone', 'recommendation', 'pricing', 'objection', 'forbidden', 'general'];
+  var GUIDE_CATS = ['응대 톤', '추천 원칙', '가격 안내', '반론 대응', '금지 사항', '일반'];
+  // 예전 영어 분류값을 한글로 보여주기 위한 매핑
+  var CAT_KO = { tone: '응대 톤', recommendation: '추천 원칙', pricing: '가격 안내', objection: '반론 대응', forbidden: '금지 사항', general: '일반' };
+  function catKo(c) { return CAT_KO[c] || c || '일반'; }
   function renderGuidelines() {
     if (!guard()) return;
     sb().from('ai_response_guidelines').select('*').order('priority', { ascending: true }).limit(200)
@@ -422,30 +445,28 @@
   }
   function guideCard(g) {
     return '<div class="aia-card nohover"><div class="aia-row">' +
-      '<span class="aia-tag ' + (g.is_active ? 'stage' : '') + '">' + (g.is_active ? 'active' : 'off') + '</span>' +
+      '<span class="aia-tag ' + (g.is_active ? 'stage' : '') + '">' + (g.is_active ? '학습됨' : '보류') + '</span>' +
       '<span class="aia-name" style="font-size:14px">' + esc(g.title) + '</span>' +
-      '<span class="aia-meta" style="margin-left:auto;margin-top:0">#' + (g.priority || 100) + ' · ' + esc(g.category || 'general') + '</span></div>' +
+      '<span class="aia-meta" style="margin-left:auto;margin-top:0">' + esc(catKo(g.category)) + '</span></div>' +
       '<div class="aia-sub" style="margin-top:6px">' + esc(g.content) + '</div>' +
       '<div class="aia-btns">' +
         '<button class="aia-btn" data-act="guide-edit" data-id="' + esc(g.id) + '">수정</button>' +
-        '<button class="aia-btn" data-act="guide-toggle" data-id="' + esc(g.id) + '" data-on="' + (g.is_active ? '1' : '0') + '">' + (g.is_active ? '비활성화' : '활성화') + '</button>' +
+        '<button class="aia-btn" data-act="guide-toggle" data-id="' + esc(g.id) + '" data-on="' + (g.is_active ? '1' : '0') + '">' + (g.is_active ? '학습 끄기' : '학습 켜기') + '</button>' +
         '<button class="aia-btn dng" data-act="guide-del" data-id="' + esc(g.id) + '">삭제</button>' +
       '</div></div>';
   }
   function guideEditor(g) {
-    g = g || { title: '', category: 'general', content: '', priority: 100, is_active: true };
-    var opts = GUIDE_CATS.map(function (c) { return '<option value="' + c + '"' + (g.category === c ? ' selected' : '') + '>' + c + '</option>'; }).join('');
+    g = g || { title: '', category: '일반', content: '', is_active: true };
+    var opts = GUIDE_CATS.map(function (c) { return '<option value="' + c + '"' + (catKo(g.category) === c ? ' selected' : '') + '>' + c + '</option>'; }).join('');
     bodyEl.innerHTML =
-      '<span class="aia-detail-back" data-act="guide-back">‹ 지침 목록</span>' +
+      '<span class="aia-detail-back" data-act="guide-back">‹ 참고서 목록</span>' +
       '<div class="aia-card nohover">' +
-        '<div class="aia-sub">제목</div><input id="gTitle" class="aia-gin" value="' + esc(g.title) + '">' +
+        '<div class="aia-sub">제목 (예: 예물시계 문의 응대)</div><input id="gTitle" class="aia-gin" value="' + esc(g.title) + '">' +
         '<div class="aia-sub" style="margin-top:8px">분류</div><select id="gCat" class="aia-gin">' + opts + '</select>' +
-        '<div class="aia-sub" style="margin-top:8px">우선순위(작을수록 상위)</div><input id="gPri" class="aia-gin" type="number" value="' + (g.priority || 100) + '">' +
-        '<div class="aia-sub" style="margin-top:8px">지침 본문</div><textarea id="gContent" class="aia-gin" rows="6">' + esc(g.content) + '</textarea>' +
-        '<label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px"><input type="checkbox" id="gActive"' + (g.is_active ? ' checked' : '') + '> 활성화</label>' +
-        '<div class="aia-btns"><button class="aia-btn pri" data-act="guide-save" data-id="' + esc(g.id || '') + '">저장</button></div>' +
+        '<div class="aia-sub" style="margin-top:8px">이렇게 답변하세요 (지침 내용)</div><textarea id="gContent" class="aia-gin" rows="6" placeholder="예) 예물시계는 데이트저스트·탱크를 먼저 안내하고 예산을 여쭤본다.">' + esc(g.content) + '</textarea>' +
+        '<div class="aia-btns"><button class="aia-btn pri" data-act="guide-save" data-id="' + esc(g.id || '') + '">저장하고 AI에 반영</button></div>' +
+        '<div id="gFeedback"></div>' +
       '</div>';
-    // 인라인 입력 스타일(최소)
     if (!$('#aia-gin-style')) {
       var s = document.createElement('style'); s.id = 'aia-gin-style';
       s.textContent = '.aia-gin{width:100%;padding:9px 12px;border:1px solid #e5e3df;border-radius:10px;font:14px Pretendard;margin-top:3px;box-sizing:border-box}';
@@ -455,13 +476,20 @@
   function saveGuideline(id) {
     var row = {
       title: ($('#gTitle').value || '').trim(),
-      category: $('#gCat').value, priority: parseInt($('#gPri').value, 10) || 100,
-      content: ($('#gContent').value || '').trim(), is_active: $('#gActive').checked
+      category: $('#gCat').value,
+      content: ($('#gContent').value || '').trim(),
+      is_active: true   // 저장 = 학습에 반영(활성)
     };
-    if (!row.title || !row.content) { alert('제목과 본문을 입력하세요.'); return; }
+    if (!row.title || !row.content) { alert('제목과 내용을 입력하세요.'); return; }
     var q = id ? sb().from('ai_response_guidelines').update(row).eq('id', id)
               : sb().from('ai_response_guidelines').insert(row);
-    q.then(function (r) { if (r.error) { alert('저장 실패: ' + r.error.message); return; } renderGuidelines(); });
+    q.then(function (r) {
+      if (r.error) { alert('저장 실패: ' + r.error.message); return; }
+      // 저장 즉시 참고서에 반영됨을 알려줌(피드백)
+      var fb = $('#gFeedback');
+      if (fb) fb.innerHTML = '<div class="aia-note" style="color:#16a34a;margin-top:10px">✓ 참고서에 저장했어요. 이제 AI가 "' + esc(row.title) + '" 상황에서 이 지침대로 답변합니다.</div>';
+      setTimeout(renderGuidelines, 1200);
+    });
   }
 
   /* ---------------- 액션 핸들러 ---------------- */
@@ -482,12 +510,14 @@
     if (act === 'go-guidelines') { setTab('guidelines'); return; }
     if (act === 'go-alerts') { setTab('alerts'); return; }
     if (act === 'review-done') {
-      sb().from('ai_conversations').update({ metadata: { needs_review: false, resolved: true } }).eq('id', id).then(function () { loadReviewQuestions(); });
+      var ids = (el.dataset.ids || '').split(',').filter(Boolean);
+      if (!ids.length) return;
+      sb().from('ai_conversations').update({ metadata: { needs_review: false, resolved: true } }).in('id', ids).then(function () { loadReviewQuestions(); });
       return;
     }
     if (act === 'review-to-guide') {
       setTab('guidelines');
-      setTimeout(function () { guideEditor({ title: '자주 묻는 질문 대응', category: 'general', content: '고객 질문 예: "' + (el.dataset.msg || '') + '"\n→ 이렇게 답변한다: ', priority: 50, is_active: true }); }, 60);
+      setTimeout(function () { guideEditor({ title: '자주 묻는 질문 대응', category: '일반', content: '고객 질문 예: "' + (el.dataset.msg || '') + '"\n→ 이렇게 답변한다: ', is_active: true }); }, 60);
       return;
     }
     if (act === 'guide-new') { guideEditor(null); return; }
