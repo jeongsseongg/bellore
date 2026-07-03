@@ -517,8 +517,10 @@
           });
           return chain.then(function () {
             // 추천 의도(추천/예산/매물 키워드 또는 브랜드·레퍼런스 언급)면 실제 매물 추천
-            var wantReco = /추천|매물|예산|보여|찾아|있나|입고|예물|결혼|웨딩|선물|커플/.test(message) || a.references.length || a.brands.length;
-            var recoP = wantReco ? recommendProducts(p2, 10, a).catch(function () { return []; }) : Promise.resolve([]);
+            // 추천은 "고객이 요청"할 때만: 추천/매물/보여/찾아/얼마 등, 레퍼런스 지정, 또는 브랜드+예산 동시.
+            var wantReco = /추천|매물|보여|찾아|있나|있어|얼마|골라|예물|결혼|웨딩|선물|커플/.test(message)
+              || a.references.length || (a.brands.length && a.budget);
+            var recoP = wantReco ? recommendProducts(p2, 24, a).catch(function () { return []; }) : Promise.resolve([]);
             return recoP.then(function (recos) {
               // 개선 루프: 브랜드/레퍼런스도 못 잡고 추천도 못 준 질문 = "대응 어려움" → 표시
               var handled = a.brands.length || a.references.length || (recos && recos.length) || a.buying_stage === 'sell_intent';
@@ -557,7 +559,18 @@
     var m = t.lastIndexOf('</think>');
     if (m >= 0) t = t.slice(m + 8);             // 마지막 </think> 뒤만 = 실제 답
     t = t.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<\/?think>/gi, '').trim();
+    // 영문 사고과정 라인(태그 없이 새는 경우) 제거
+    t = t.replace(/^(?:okay|so|first|let me|i need|the user|here'?s|thinking|step\s*\d).*/gim, '').trim();
     return t;
+  }
+  // 한글 답변인지 판정(영어/사고과정이면 false → 규칙 답변으로 대체)
+  function looksKorean(t) {
+    t = String(t || '');
+    if (!t) return false;
+    if (/thinking process|here'?s a|the user|let me|i need to|i should|okay,|first,|analyze/i.test(t)) return false;
+    var ko = (t.match(/[가-힣]/g) || []).length;
+    var en = (t.match(/[A-Za-z]/g) || []).length;
+    return ko >= 2 && ko >= en;   // 한글이 영문 이상일 때만 인정
   }
 
   // 추천 매물은 카드(이미지+링크)로 별도 렌더하므로 답변 텍스트엔 붙이지 않는다.
@@ -573,7 +586,7 @@
           var d = res && res.data;
           if (d && d.skipped) { console.warn('[BelloreAI] ai-learn skipped:', d.hint); return base; }
           var r = cleanAIReply(d && d.result && d.result.reply);
-          return r ? r : base;   // AI 실패/빈응답 → 규칙기반
+          return looksKorean(r) ? r : base;   // 영어/사고과정이면 한국어 규칙 답변으로 대체
         }).catch(function (e) { console.warn('[BelloreAI] ai-learn invoke fail:', e); return base; });
     }
     return Promise.resolve(base);
@@ -866,8 +879,8 @@
       + '.bai-consent-fine{font-size:11px !important;color:#9a9a9a !important;margin:12px 0 0 !important}'
       + '.bai-consent-fine a{color:#6b6b6b;text-decoration:underline}'
       + '.bai-recos-wrap{position:relative;margin:2px 0 8px}'
-      + '.bai-recos-next{display:none}'
-      + '@media(min-width:560px){.bai-recos-next{display:flex;position:absolute;right:-2px;top:46%;transform:translateY(-50%);width:30px;height:30px;border-radius:50%;background:#fff;border:1px solid #e5e3df;box-shadow:0 2px 10px rgba(0,0,0,.18);align-items:center;justify-content:center;font-size:20px;color:#333;z-index:2;cursor:pointer}}'
+      + '.bai-recos-prev,.bai-recos-next{display:none}'
+      + '@media(min-width:560px){.bai-recos-prev,.bai-recos-next{display:flex;position:absolute;top:46%;transform:translateY(-50%);width:30px;height:30px;border-radius:50%;background:#fff;border:1px solid #e5e3df;box-shadow:0 2px 10px rgba(0,0,0,.18);align-items:center;justify-content:center;font-size:20px;color:#333;z-index:2;cursor:pointer}.bai-recos-prev{left:-2px}.bai-recos-next{right:-2px}}'
       + '.bai-reco-more{align-items:center;justify-content:center;gap:6px;color:#6b6b6b;background:#faf9f7}'
       + '.bai-reco-more .bai-more-ic{font-size:26px;line-height:1}'
       + '.bai-reco-more span{text-align:center;font-size:12px;font-weight:700;line-height:1.3}'
@@ -918,12 +931,12 @@
   var bubbleIdx = 0, bubbleT = null;
   function showBubble() {
     if (!elBubble) return;
-    // 채팅 열려있으면 안 띄움
-    if (elPanel && elPanel.classList.contains('show')) { scheduleBubble(6000); return; }
-    elBubble.innerHTML = '<span class="bai-emoji">😊</span><span>' + esc(BUBBLE_MSGS[bubbleIdx % BUBBLE_MSGS.length]) + '</span>';
+    // 채팅 열려있거나 버튼이 숨겨졌으면 안 띄움
+    if (fabHidden || (elPanel && elPanel.classList.contains('show'))) { scheduleBubble(6000); return; }
+    elBubble.textContent = BUBBLE_MSGS[bubbleIdx % BUBBLE_MSGS.length]; // 글씨만(이모지 제거)
     bubbleIdx++;
     elBubble.classList.add('show');
-    var dur = 2000 + Math.floor(Math.random() * 2000); // 2~4초
+    var dur = 3000 + Math.floor(Math.random() * 3000); // 3~6초
     setTimeout(function () { if (elBubble) elBubble.classList.remove('show'); }, dur);
     scheduleBubble(dur + 5000 + Math.floor(Math.random() * 4000));
   }
@@ -963,7 +976,7 @@
     elPanel.addEventListener('click', function (e) {
       if (e.target.classList.contains('bai-panel') || e.target.closest('.bai-x')) { closePanel(); return; }
       var reco = e.target.closest('.bai-reco');
-      if (reco) { if (reco.dataset.more) openMore(); else openReco(reco.dataset.pid); return; }
+      if (reco) { if (reco.dataset.more) revealMore(reco); else openReco(reco.dataset.pid); return; }
       var chip = e.target.closest('.bai-chip');
       if (chip) onMenu(chip.dataset.q);
     });
@@ -1077,26 +1090,14 @@
       '<div class="bai-menu">' +
         MENU.map(function (m) { return '<button class="bai-chip" type="button" data-q="' + esc(m.q) + '">' + esc(m.t) + '</button>'; }).join('') +
       '</div>';
-    // 바이버원처럼 능동적으로: 기억이 있으면 분석 기반으로 "먼저" 추천/인사, 없으면 먼저 질문.
+    // 친근한 인사만. 상품 추천은 "고객이 요청할 때만" 보여준다(먼저 들이밀지 않음).
     ensureProfile().then(function (p) {
       var brands = (p && p.preferred_brands) || [];
-      if (brands.length || (p && (p.budget_max || (p.preferred_references || []).length))) {
-        var who = brands.slice(0, 2).join(', ');
-        addBot('다시 오셨네요' + (who ? (', ' + who) : '') + ' 관심 있으셨죠. 그새 들어온 매물을 확인해봤어요.');
-        // 분석 기반 선제 추천
-        recommendProducts(p, 10).then(function (recos) {
-          if (recos && recos.length) {
-            addBot('고객님 취향에 맞춰 이런 시계를 추천드려요. 옆으로 넘겨 보시고, 카드를 누르면 바로 열려요.');
-            addCards(recos);
-          } else {
-            addBot('지금 딱 맞는 매물은 준비 중이에요. 원하시는 예산·모델을 알려주시면 입고되는 대로 가장 먼저 알려드릴게요.');
-          }
-        }).catch(function () {});
-      } else {
-        addBot('안녕하세요, 벨로르 AI 시계 전문비서예요. 어떤 시계를 찾고 계세요? 브랜드나 예산만 알려주셔도 딱 맞는 매물을 찾아드려요.');
-      }
+      var who = brands.slice(0, 2).join(', ');
+      if (who) addBot('다시 오셨네요! 지난번 ' + who + ' 보고 계셨죠. 오늘은 어떤 시계 도와드릴까요?');
+      else addBot('안녕하세요! 벨로르 AI 시계 비서예요. 편하게 말 걸어주세요. 어떤 시계 찾고 계세요?');
     }).catch(function () {
-      addBot('안녕하세요, 벨로르 AI 시계 전문비서예요. 어떤 시계를 찾고 계세요?');
+      addBot('안녕하세요! 벨로르 AI 시계 비서예요. 어떤 시계 찾고 계세요?');
     });
   }
 
@@ -1132,28 +1133,35 @@
     if (!recos || !recos.length) return;
     var wrap = document.createElement('div'); wrap.className = 'bai-recos-wrap';
     var scroller = document.createElement('div'); scroller.className = 'bai-recos';
-    scroller.innerHTML = recos.map(recoCardHTML).join('') +
-      '<button type="button" class="bai-reco bai-reco-more" data-more="1"><span class="bai-more-ic">＋</span><span>추천<br>더 보기</span></button>';
+    var first = recos.slice(0, 10), rest = recos.slice(10);
+    scroller.innerHTML = first.map(recoCardHTML).join('') +
+      (rest.length ? '<button type="button" class="bai-reco bai-reco-more" data-more="1"><span class="bai-more-ic">＋</span><span>추천 ' + rest.length + '개<br>더 보기</span></button>' : '');
     wrap.appendChild(scroller);
-    // PC 전용 오른쪽 화살표(더 보기 스크롤)
-    var arrow = document.createElement('button');
-    arrow.type = 'button'; arrow.className = 'bai-recos-next'; arrow.setAttribute('aria-label', '더 보기'); arrow.innerHTML = '›';
-    arrow.addEventListener('click', function () { scroller.scrollBy({ left: 300, behavior: 'smooth' }); });
-    wrap.appendChild(arrow);
+    wrap._rest = rest;
+    // 좌우 화살표(PC). 오른쪽 끝이면 처음으로 순환.
+    [['prev', '‹'], ['next', '›']].forEach(function (d) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'bai-recos-' + d[0]; b.innerHTML = d[1];
+      b.addEventListener('click', function () {
+        if (d[0] === 'prev') {
+          if (scroller.scrollLeft <= 4) scroller.scrollTo({ left: scroller.scrollWidth, behavior: 'smooth' });
+          else scroller.scrollBy({ left: -300, behavior: 'smooth' });
+        } else {
+          if (scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 6) scroller.scrollTo({ left: 0, behavior: 'smooth' });
+          else scroller.scrollBy({ left: 300, behavior: 'smooth' });
+        }
+      });
+      wrap.appendChild(b);
+    });
     elBody.appendChild(wrap);
     elBody.scrollTop = elBody.scrollHeight;
   }
-  // '더 보기' → 시계판매(전체 매물) 페이지로 이동(베스트에포트)
-  function openMore() {
-    closePanel();
-    setTimeout(function () {
-      var nav = document.querySelector('[data-nav="listing"],[data-nav="products"],[data-tab="listing"]');
-      if (!nav) {
-        var els = document.querySelectorAll('.tabbar a,.tabbar button,[data-nav]');
-        for (var i = 0; i < els.length; i++) { if (/시계판매/.test(els[i].textContent || '')) { nav = els[i]; break; } }
-      }
-      if (nav) nav.click();
-    }, 160);
+  // '더 보기' → 채팅 안에서 남은 추천을 이어붙임(페이지 이동 없음)
+  function revealMore(moreBtn) {
+    var scroller = moreBtn.parentNode, wrap = scroller.parentNode;
+    var rest = (wrap && wrap._rest) || [];
+    moreBtn.remove();
+    if (rest.length) scroller.insertAdjacentHTML('beforeend', rest.map(recoCardHTML).join(''));
+    if (wrap) wrap._rest = [];
   }
   function openReco(pid) {
     if (!pid) return;

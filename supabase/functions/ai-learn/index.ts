@@ -85,21 +85,28 @@ async function llm(system: string, user: string, maxTokens = 700): Promise<strin
   }
   // OpenAI 및 OpenAI 호환 무료 제공자(Groq/OpenRouter/Together …) — AI_BASE_URL 로 전환
   if (PROVIDER === "openai") {
+    const isGroq = /groq\.com/.test(OPENAI_BASE);
+    const reqBody: Record<string, unknown> = {
+      model: MODEL,
+      max_tokens: maxTokens,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+    };
+    // Groq 추론모델(qwen3/gpt-oss 등)의 사고과정이 답변에 새지 않도록 숨김
+    if (isGroq) reqBody.reasoning_format = "hidden";
     const res = await fetch(OPENAI_BASE + "/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${OPENAI_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: maxTokens,
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-      }),
+      body: JSON.stringify(reqBody),
     });
     const out = await res.json();
     if (!res.ok) throw new Error(out?.error?.message ?? "openai_failed");
-    return out.choices?.[0]?.message?.content ?? "";
+    // reasoning_format 미지원 모델이면 content 에 <think> 가 남을 수 있어 서버에서도 한번 제거
+    let txt = out.choices?.[0]?.message?.content ?? "";
+    txt = txt.replace(/<think>[\s\S]*?<\/think>/gi, "").replace(/<\/?think>/gi, "").trim();
+    return txt;
   }
   // 기본: Anthropic Messages API
   const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -258,7 +265,8 @@ async function generateReply(admin: SB, profileId: string | null, message: strin
     knowledge = (kn ?? []).map((k) => `- ${k.title}: ${k.content}`).join("\n");
   }
   const system = [
-    "너는 명품시계 거래 플랫폼 벨로르의 AI 시계 전문비서다. 한국어 존댓말. 2~4문장으로 간결하게.",
+    "너는 명품시계 거래 플랫폼 벨로르의 AI 시계 전문비서다. 반드시 한국어 존댓말로만 답하라. " +
+    "영어·사고과정·<think> 태그·설명 절대 출력 금지. 오직 고객에게 할 최종 답변만 2~4문장으로 간결하고 친근하게.",
     guide,
     knowledge ? ("## 참고 전문가 지식\n" + knowledge) : "",
     memo ? ("## 이 고객 기억\n" + memo) : "",
