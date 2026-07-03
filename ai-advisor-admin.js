@@ -16,7 +16,12 @@
   }
   function B() { return window.NWBackend; }
   function sb() { return window.sbClient || null; }
-  function isAdmin() { try { return !!(B() && B().isAdmin && B().isAdmin()); } catch (e) { return false; } }
+  function isAdmin() {
+    try {
+      if (window.BELLORE_isAdmin) return true; // script.js 가 판정한 값(부트스트랩 이메일 포함)
+      return !!(B() && B().isAdmin && B().isAdmin());
+    } catch (e) { return false; }
+  }
   function AI() { return window.BelloreAI || {}; }
   function krw(n) { return (AI().krwShort ? AI().krwShort(n) : (n == null ? '-' : Number(n).toLocaleString())); }
   function fmtDate(s) { var d = new Date(s); return isNaN(d) ? '-' : (d.getFullYear() + '.' + (d.getMonth() + 1) + '.' + d.getDate() + ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2)); }
@@ -541,31 +546,36 @@
 
   /* ---------------- 관리자 메뉴 주입 + 진입 ---------------- */
   function injectMenu() {
+    if (!isAdmin()) return;                 // 관리자만
+    if ($('#aiAdvisorMenuRow')) return;     // 이미 있으면 skip(멱등)
     var box = $('#adminMenuBox');
-    if (!box || $('#aiAdvisorMenuRow')) return;
-    // '관리' 그룹에 새 행 추가
-    var group = box.querySelector('.admin-menu');
+    var group = box && box.querySelector('.admin-menu');
     if (!group) return;
     var btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'admin-menu-row'; btn.id = 'aiAdvisorMenuRow';
-    btn.innerHTML = '<span>AI 고객비서 <em class="amr-sub">프로필·대화·관심·알림후보</em></span>' +
+    btn.innerHTML = '<span>AI 고객비서 <em class="amr-sub">상담설정·프로필·대화·알림</em></span>' +
       '<span class="amr-right"><span class="amr-arrow">›</span></span>';
     group.appendChild(btn);
     btn.addEventListener('click', open);
   }
 
-  // 관리자 박스가 비동기로 표시될 수 있어 폴링으로 주입 타이밍을 잡는다.
-  function watchAdmin() {
-    var tries = 0;
-    var t = setInterval(function () {
-      if (isAdmin() && $('#adminMenuBox')) { injectMenu(); }
-      if (++tries > 60) clearInterval(t);
-    }, 500);
+  // 여러 트리거로 확실하게 주입(로그인/마이페이지 진입 타이밍 무관).
+  function bindTriggers() {
+    // 1) 로그인/권한 변경 시
+    if (B() && B().onAuthChange) { try { B().onAuthChange(function () { setTimeout(injectMenu, 300); }); } catch (e) {} }
+    // 2) 마이페이지/프로필 진입 클릭 시 즉시 주입
+    document.addEventListener('click', function (e) {
+      if (e.target.closest('#myPageBtn,[data-nav="mypage"],#headerProfile,.js-mypage,[data-open="mypage"]')) {
+        setTimeout(injectMenu, 350);
+      }
+    }, true);
+    // 3) 초기 폴링(60초, 여유있게) — 관리자 박스가 늦게 떠도 잡힘
+    var n = 0, t = setInterval(function () { injectMenu(); if (++n > 120) clearInterval(t); }, 500);
   }
 
-  window.BelloreAIAdmin = { open: open, close: close, setTab: setTab };
+  window.BelloreAIAdmin = { open: open, close: close, setTab: setTab, injectMenu: injectMenu };
 
-  function init() { if (isAdmin()) injectMenu(); watchAdmin(); }
+  function init() { injectMenu(); bindTriggers(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
