@@ -8590,7 +8590,8 @@ body.mypage-open .tabbar { z-index: 2550; }
 
 /* 상단 바: 알림 · 설정 (우측 정렬) */
 .mp-head { margin: 0 0 6px; }
-.mp-head-bar { display: flex; justify-content: flex-end; align-items: center; gap: 4px; }
+/* 상단 아이콘 줄(알림·설정)은 오른쪽 정렬 → 왼쪽 공간을 프로필이 끌어올려 여백 제거 */
+.mp-head-bar { display: flex; justify-content: flex-end; align-items: center; gap: 4px; margin-bottom: -40px; position: relative; z-index: 1; }
 .mp-head-ic { position: relative; width: 40px; height: 40px; border: 0; background: none; color: #111;
   display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; cursor: pointer; }
 .mp-head-ic:active { background: var(--bg-soft, #f1efe9); }
@@ -8600,7 +8601,7 @@ body.mypage-open .tabbar { z-index: 2550; }
 .mp-head-ic .noti-badge[hidden] { display: none; }
 
 /* 프로필: 아바타 + 이름(수정) */
-.mp-profile { display: flex; align-items: center; gap: 14px; padding: 4px 2px 18px; }
+.mp-profile { display: flex; align-items: center; gap: 14px; padding: 0 90px 18px 2px; }
 /* 마이페이지 아바타 = 표시 전용(원형 1.3배), 카메라 뱃지 없음. 편집은 연필에서만 */
 .mp-avatar { position: relative; flex: 0 0 auto; width: 81px; height: 81px; border-radius: 50%;
   background: #f1efe9; border: 0; padding: 0; overflow: hidden;

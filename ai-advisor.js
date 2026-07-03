@@ -858,6 +858,7 @@
       + '.bai-head .bai-ic{width:34px;height:34px;border-radius:50%;background:#111;color:#fff;display:flex;align-items:center;justify-content:center}'
       + '.bai-head b{font-size:16px;font-weight:700;color:#1a1a1a}'
       + '.bai-head .bai-sub{font-size:12px;color:#6b6b6b;margin-top:1px}'
+      + '.bai-beta{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:8px;background:#e23b3b;color:#fff;font:700 10px Pretendard;vertical-align:middle}'
       + '.bai-x{margin-left:auto;background:none;border:none;font-size:24px;color:#9a9a9a;cursor:pointer;line-height:1}'
       + '.bai-body{flex:1;overflow:auto;padding:16px;background:#f7f6f3}'
       + '.bai-menu{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}'
@@ -960,7 +961,7 @@
     elPanel.innerHTML =
       '<div class="bai-sheet">' +
         '<div class="bai-head">' +
-          '<div><b>BELLORE AI</b><div class="bai-sub">명품시계 전문비서</div></div>' +
+          '<div><b>BELLORE AI <span class="bai-beta">BETA</span></b><div class="bai-sub">명품시계 전문비서 · 베타테스트 중</div></div>' +
           '<button class="bai-x" type="button" aria-label="닫기">×</button>' +
         '</div>' +
         '<div class="bai-body" id="baiBody"></div>' +
@@ -984,8 +985,15 @@
     elInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') sendCurrent(); });
   }
 
+  function openLogin() {
+    var lm = document.getElementById('loginModal');
+    if (lm) { lm.hidden = false; document.body.style.overflow = 'hidden'; }
+    else if (window.BELLORE_openMyPage) window.BELLORE_openMyPage();
+  }
   function openPanel() {
     if (elPanel.classList.contains('show')) return;
+    // 로그인해야 이용 가능
+    if (!loggedIn()) { toast('로그인 후 이용하실 수 있어요'); openLogin(); return; }
     elPanel.classList.add('show');
     if (elBubble) elBubble.classList.remove('show');
     if (elFab) elFab.style.display = 'none';   // 대화창 열리면 원형 버튼 숨김
@@ -1013,10 +1021,9 @@
 
   /* FAB: 탭=열기, 길게 눌러=이동(드래그), 길게 누르면 X 나와서 숨기기 */
   function setupFab() {
-    // 저장된 위치/숨김 복원
+    // 저장된 위치만 복원(숨김은 세션 한정 — 새로고침/로그인하면 다시 나옴)
     var pos = lsGet(FAB_POS_KEY, null);
     if (pos && pos.left) { elFab.style.left = pos.left; elFab.style.top = pos.top; elFab.style.right = 'auto'; elFab.style.bottom = 'auto'; }
-    if (lsGet(FAB_HIDE_KEY, false)) { fabHidden = true; elFab.style.display = 'none'; }
     // X 배지
     var xb = document.createElement('span');
     xb.className = 'bai-fab-x'; xb.textContent = '×';
@@ -1054,12 +1061,12 @@
     }, true);
   }
   function hideFab() {
-    fabHidden = true; lsSet(FAB_HIDE_KEY, true);
+    fabHidden = true;   // 세션 한정(저장 안 함) → 새로고침/로그인하면 복귀
     if (elFab) elFab.style.display = 'none';
-    toast('마이페이지에서 언제든 다시 불러낼 수 있어요!');
+    toast('새로고침하거나 마이페이지에 들어오면 다시 나타나요!');
   }
   function showFab() {
-    fabHidden = false; lsSet(FAB_HIDE_KEY, false);
+    fabHidden = false;
     if (elFab && !(elPanel && elPanel.classList.contains('show'))) elFab.style.display = '';
   }
 
@@ -1260,7 +1267,7 @@
   function bindAuth() {
     if (B() && B().onAuthChange) {
       B().onAuthChange(function (user) {
-        if (user) { _profileCache = null; flushBufferToDB(); }
+        if (user) { _profileCache = null; flushBufferToDB(); showFab(); }
         else { _profileCache = null; }
       });
       return true;
@@ -1293,9 +1300,23 @@
     _internals: { flushBufferToDB: flushBufferToDB }
   };
 
+  /* 고객 마이페이지 메뉴에 'AI 시계비서' 행을 '고객센터' 위에 주입 */
+  function injectCustomerMenu() {
+    var box = document.getElementById('mpMenuList');
+    if (!box || !document.body.classList.contains('mypage-open')) return;
+    if (box.querySelector('#mpAiRow')) return;
+    var cs = box.querySelector('[data-mpmenu="cs"]');   // 고객센터 행
+    var btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'mp-menu-row'; btn.id = 'mpAiRow';
+    btn.innerHTML = '<span class="mr-label">AI 시계비서 <b style="color:#e23b3b;font-size:11px;vertical-align:middle">BETA</b></span><span class="mr-arrow">›</span>';
+    btn.addEventListener('click', function () { openPanel(); });
+    if (cs) box.insertBefore(btn, cs); else box.appendChild(btn);
+  }
+
   function init() {
     buildUI();
     bindAutoTracking();
+    setInterval(injectCustomerMenu, 700);   // 마이페이지 열릴 때/재렌더 시 재주입(가벼움)
     if (!bindAuth()) {
       var tries = 0, t = setInterval(function () { if (bindAuth() || ++tries > 20) clearInterval(t); }, 150);
     }

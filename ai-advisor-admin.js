@@ -206,11 +206,35 @@
       '<div class="aia-sub">참고서 <b>' + s.guides + '</b>개를 AI가 학습해 답변에 반영 중이에요.</div>' +
       '<div class="aia-btns"><button class="aia-btn pri" data-act="go-guidelines">참고서 관리</button>' +
       '<button class="aia-btn" data-act="go-alerts">발송 대기 알림 ' + s.alerts + '건</button></div></div>';
+    // 오늘 학습한 내용 (AI가 대화에서 알아낸 것 → 관리자가 학습할지 체크)
+    html += '<h5>오늘 학습한 내용 <span class="aia-meta" style="font-weight:400">(대화에서 AI가 알아낸 것 — 학습할지 정해주세요)</span></h5>';
+    html += '<div class="aia-sec"><button class="aia-btn pri" data-act="ai-learn-now">대화에서 지금 학습하기 (AI 실행)</button></div>';
+    html += '<div id="aiaLearned"><div class="aia-note">불러오는 중…</div></div>';
     // 꼭 확인해주세요 (자주 묻거나 답이 어려웠던 질문)
     html += '<h5>꼭 확인해주세요 <span class="aia-meta" style="font-weight:400">(자주 묻거나 답이 어려웠던 질문)</span></h5>';
     html += '<div id="aiaReview"><div class="aia-note">불러오는 중…</div></div>';
     bodyEl.innerHTML = html;
+    loadLearned();
     loadReviewQuestions();
+  }
+  // AI가 대화에서 뽑은 장기 메모리(학습 후보) — 유지/삭제로 관리
+  function loadLearned() {
+    var box = $('#aiaLearned'); if (!box) return;
+    sb().from('ai_customer_memories').select('id,memory_type,content,confidence,created_at,profile_id')
+      .order('created_at', { ascending: false }).limit(40)
+      .then(function (res) {
+        if (res.error) { box.innerHTML = '<div class="aia-note">' + esc(res.error.message) + '</div>'; return; }
+        var rows = res.data || [];
+        var MEM_KO = { preference: '선호', budget: '예산', personality: '성향', risk: '안전성향', brand_interest: '브랜드 관심', buying_intent: '구매의향' };
+        box.innerHTML = rows.length ? rows.map(function (m) {
+          return '<div class="aia-card nohover"><div class="aia-row">' +
+            '<span class="aia-tag brand">' + esc(MEM_KO[m.memory_type] || m.memory_type) + '</span>' +
+            '<span class="aia-meta" style="margin-left:auto;margin-top:0">확신 ' + (m.confidence || 0) + ' · ' + fmtDate(m.created_at) + '</span></div>' +
+            '<div class="aia-sub" style="margin-top:6px">' + esc(m.content) + '</div>' +
+            '<div class="aia-btns"><button class="aia-btn pri" data-act="mem-keep" data-id="' + esc(m.id) + '">학습 유지</button>' +
+            '<button class="aia-btn dng" data-act="mem-del" data-id="' + esc(m.id) + '">학습 제외</button></div></div>';
+        }).join('') : '<div class="aia-note">아직 학습한 내용이 없어요. 위 "지금 학습하기"를 누르면 AI가 최근 대화를 분석해 고객별 특징을 뽑아줍니다.</div>';
+      }).catch(function (e) { box.innerHTML = '<div class="aia-note">' + esc(String(e)) + '</div>'; });
   }
   function loadReviewQuestions() {
     var box = $('#aiaReview'); if (!box) return;
@@ -509,6 +533,16 @@
     if (act === 'ai-extract-knowledge') return callLearn(el, { action: 'extract_knowledge', limit: 30 }, function () { setTab('knowledge'); });
     if (act === 'go-guidelines') { setTab('guidelines'); return; }
     if (act === 'go-alerts') { setTab('alerts'); return; }
+    if (act === 'ai-learn-now') return callLearn(el, { action: 'summarize_all', limit: 30 }, function () { loadLearned(); });
+    if (act === 'mem-keep') {
+      // 유지 = 확신 100으로 승격(관리자 승인 표시)
+      sb().from('ai_customer_memories').update({ confidence: 100 }).eq('id', id).then(function () { loadLearned(); });
+      return;
+    }
+    if (act === 'mem-del') {
+      sb().from('ai_customer_memories').delete().eq('id', id).then(function () { loadLearned(); });
+      return;
+    }
     if (act === 'review-done') {
       var ids = (el.dataset.ids || '').split(',').filter(Boolean);
       if (!ids.length) return;
