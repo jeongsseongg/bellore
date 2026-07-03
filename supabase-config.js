@@ -111,4 +111,4 @@ window.BELLORE_CATEGORIES = {
      → 고객 답변 문장을 '답변 참고서(지침)+고객 기억+전문가 지식' 기반으로 생성.
        (추천 매물 목록은 aiReply 값과 무관하게 항상 규칙기반으로 함께 표시)
    ============================================================ */
-window.BELLORE_AI_REPLY = false;
+window.BELLORE_AI_REPLY = true;
