@@ -512,7 +512,7 @@
           return chain.then(function () {
             // 추천 의도(추천/예산/매물 키워드 또는 브랜드·레퍼런스 언급)면 실제 매물 추천
             var wantReco = /추천|매물|예산|보여|찾아|있나|입고|예물|결혼|웨딩|선물|커플/.test(message) || a.references.length || a.brands.length;
-            var recoP = wantReco ? recommendProducts(p2, 3).catch(function () { return []; }) : Promise.resolve([]);
+            var recoP = wantReco ? recommendProducts(p2, 10, a).catch(function () { return []; }) : Promise.resolve([]);
             return recoP.then(function (recos) {
               // 개선 루프: 브랜드/레퍼런스도 못 잡고 추천도 못 준 질문 = "대응 어려움" → 표시
               var handled = a.brands.length || a.references.length || (recos && recos.length) || a.buying_stage === 'sell_intent';
@@ -690,11 +690,31 @@
   }
 
   // 프로필 기반 실제 매물 추천(규칙기반, 무료). 상위 N개 반환.
-  function recommendProducts(profile, limit) {
+  // 현재 질문(analysis) 기준으로 브랜드/예산 필터 + 프로필 점수 + 변화(jitter)
+  function recommendProducts(profile, limit, analysis) {
     return fetchProducts().then(function (products) {
       if (!products.length) return [];
-      var ranked = recommendForProfile(profile, products, [], [], { minScore: 20, persist: false });
-      return ranked.slice(0, limit || 3);
+      var list = products.slice();
+      if (analysis) {
+        // 이번 질문에서 브랜드를 말했으면 그 브랜드 우선(없으면 전체 유지)
+        if (analysis.brands && analysis.brands.length) {
+          var byBrand = list.filter(function (p) { return analysis.brands.indexOf(p.brand) >= 0; });
+          if (byBrand.length) list = byBrand;
+        }
+        // 예산을 말했으면 그 범위로 필터
+        var b = analysis.budget;
+        if (b && (b.min || b.max)) {
+          var within = list.filter(function (p) {
+            var pr = Number(p.price) || 0;
+            return (b.min == null || pr >= b.min * 0.8) && (b.max == null || pr <= b.max * 1.15);
+          });
+          if (within.length) list = within;
+        }
+      }
+      var ranked = recommendForProfile(profile, list, [], [], { minScore: 0, persist: false });
+      // 매번 똑같은 순서가 나오지 않도록 점수에 약한 변동을 준다(좋은 매칭은 대체로 앞).
+      ranked.sort(function (x, y) { return (y.score + Math.random() * 8) - (x.score + Math.random() * 8); });
+      return ranked.slice(0, limit || 8);
     });
   }
 
@@ -820,18 +840,20 @@
       + '.bai-consent .bai-agree:disabled{background:#eceae6;color:#9a9a9a}'
       + '.bai-consent-fine{font-size:11px !important;color:#9a9a9a !important;margin:12px 0 0 !important}'
       + '.bai-consent-fine a{color:#6b6b6b;text-decoration:underline}'
-      + '.bai-recos{display:flex;flex-direction:column;gap:8px;margin:2px 0 10px}'
-      + '.bai-reco{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:10px;border:1px solid #e5e3df;border-radius:14px;background:#fff;cursor:pointer}'
+      + '.bai-recos{display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;padding:2px 0 10px;margin:2px 0 8px;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}'
+      + '.bai-recos::-webkit-scrollbar{height:5px}'
+      + '.bai-recos::-webkit-scrollbar-thumb{background:#d8d5cf;border-radius:3px}'
+      + '.bai-reco{flex:0 0 138px;width:138px;display:flex;flex-direction:column;text-align:left;padding:0;border:1px solid #e5e3df;border-radius:14px;background:#fff;cursor:pointer;overflow:hidden;scroll-snap-align:start}'
       + '.bai-reco:active{background:#f7f6f3}'
-      + '.bai-reco-thumb{position:relative;width:56px;height:56px;flex:0 0 56px;border-radius:10px;overflow:hidden;background:#f2f3f5;display:flex;align-items:center;justify-content:center}'
+      + '.bai-reco-thumb{position:relative;width:100%;height:112px;background:#f2f3f5;display:flex;align-items:center;justify-content:center}'
       + '.bai-reco-thumb img{width:100%;height:100%;object-fit:cover}'
-      + '.bai-reco-ph{display:none;font-size:24px}'
+      + '.bai-reco-ph{display:none;font-size:30px}'
       + '.bai-reco-thumb.noimg .bai-reco-ph{display:block}'
-      + '.bai-reco-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}'
-      + '.bai-reco-info b{font-size:14px;font-weight:700;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+      + '.bai-reco-info{display:flex;flex-direction:column;gap:3px;padding:9px 10px 11px}'
+      + '.bai-reco-info b{font-size:13px;font-weight:700;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
       + '.bai-reco-price{font-size:14px;font-weight:700;color:#111}'
-      + '.bai-reco-info em{font-size:11px;color:#9a9a9a;font-style:normal}'
-      + '.bai-reco-go{flex:0 0 auto;font-size:13px;font-weight:700;color:#6b6b6b}';
+      + '.bai-reco-info em{font-size:10px;color:#9a9a9a;font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+      + '.bai-reco-go{display:none}';
     var st = document.createElement('style'); st.id = 'bellore-ai-style'; st.textContent = css;
     document.head.appendChild(st);
   }
@@ -930,9 +952,9 @@
         var who = brands.slice(0, 2).join(', ');
         addBot('다시 오셨네요' + (who ? (', ' + who) : '') + ' 관심 있으셨죠. 그새 들어온 매물을 확인해봤어요.');
         // 분석 기반 선제 추천
-        recommendProducts(p, 3).then(function (recos) {
+        recommendProducts(p, 10).then(function (recos) {
           if (recos && recos.length) {
-            addBot('고객님 취향에 맞춰 이런 시계를 추천드려요. 카드를 누르면 바로 보실 수 있어요.');
+            addBot('고객님 취향에 맞춰 이런 시계를 추천드려요. 옆으로 넘겨 보시고, 카드를 누르면 바로 열려요.');
             addCards(recos);
           } else {
             addBot('지금 딱 맞는 매물은 준비 중이에요. 원하시는 예산·모델을 알려주시면 입고되는 대로 가장 먼저 알려드릴게요.');
