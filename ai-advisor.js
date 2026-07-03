@@ -217,6 +217,12 @@
   // 흔한 일반 질문에 능동적으로 답하는 규칙 응답(AI가 꺼져있거나 실패해도 대화가 되도록)
   function metaAnswer(message, profile) {
     var t = String(message || '').trim();
+    // 고객이 자기 이름을 물으면(로그인+이름 있을 때)
+    if (/(내|제)\s*이름/.test(t)) {
+      var nm = profile && (profile.name);
+      return nm ? ('고객님 성함은 ' + nm + '님으로 확인돼요. 무엇을 도와드릴까요?')
+                : '아직 성함 정보가 없어요. 로그인하시면 맞춤으로 도와드릴 수 있어요.';
+    }
     if (/(이름|누구세요|누구야|넌\s*뭐|정체|뭐라고\s*불러)/.test(t))
       return '저는 벨로르 AI 시계 비서예요. 롤렉스·파텍필립·오메가 같은 명품시계를 찾으시면, 브랜드나 예산만 말씀하셔도 딱 맞는 매물을 찾아 추천해드려요.';
     if (/(뭘\s*잘|뭐\s*(를)?\s*할|할\s*수\s*있|무엇을|기능|어떤\s*걸|뭐하는|도와줄)/.test(t))
@@ -545,9 +551,20 @@
 
   // 답변 생성: AI 활성(window.BELLORE_AI_REPLY)이면 ai-learn 호출, 아니면 규칙기반.
   // 어느 쪽이든 실제 추천 매물 줄글을 함께 붙인다(무료, 추천 동작 보장).
+  // 추론형 모델이 노출하는 <think>…</think> 사고과정/영문 reasoning 제거
+  function cleanAIReply(t) {
+    t = String(t || '');
+    var m = t.lastIndexOf('</think>');
+    if (m >= 0) t = t.slice(m + 8);             // 마지막 </think> 뒤만 = 실제 답
+    t = t.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<\/?think>/gi, '').trim();
+    return t;
+  }
+
   // 추천 매물은 카드(이미지+링크)로 별도 렌더하므로 답변 텍스트엔 붙이지 않는다.
   function composeReply(message, profile, a, recos) {
     var base = provider.generateReply(message, profile, { analysis: a });
+    // 흔한 일반질문(이름/뭘잘해/예물/인사/감사)은 규칙 답변이 더 깔끔 → AI 호출 생략
+    if (metaAnswer(message, profile)) return Promise.resolve(base);
     if (window.BELLORE_AI_REPLY === true && sb() && sb().functions) {
       var cand = (recos || []).map(function (x) { return { name: [x.product.brand, x.product.model, x.product.reference_number].filter(Boolean).join(' '), price: x.product.price, score: x.score }; });
       return sb().functions.invoke(window.BELLORE_AI_FN || 'ai-learn', { body: { action: 'generate_reply', profile_id: (profile && profile.id) || null, message: message, candidates: cand } })
@@ -555,8 +572,8 @@
           if (res && res.error) { console.warn('[BelloreAI] ai-learn error:', res.error.message || res.error); return base; }
           var d = res && res.data;
           if (d && d.skipped) { console.warn('[BelloreAI] ai-learn skipped:', d.hint); return base; }
-          var r = d && d.result && d.result.reply;
-          return (r && r.trim()) ? r.trim() : base;   // AI 실패/빈응답 → 규칙기반
+          var r = cleanAIReply(d && d.result && d.result.reply);
+          return r ? r : base;   // AI 실패/빈응답 → 규칙기반
         }).catch(function (e) { console.warn('[BelloreAI] ai-learn invoke fail:', e); return base; });
     }
     return Promise.resolve(base);
@@ -812,6 +829,9 @@
       + '#belloreAiFab{position:fixed;right:calc(50vw - var(--app-w)/2 + 16px);bottom:88px;z-index:6100;width:54px;height:54px;padding:0;border:none;border-radius:50%;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(0,0,0,.28);cursor:pointer;animation:baiPulse 8s ease-in-out infinite}'
       + '#belloreAiFab svg{width:26px;height:26px}'
       + '#belloreAiFab:active{transform:scale(.95)}'
+      + '#belloreAiFab.edit{animation:none;box-shadow:0 0 0 3px rgba(226,59,59,.4),0 6px 20px rgba(0,0,0,.3);touch-action:none;cursor:grab}'
+      + '#belloreAiFab .bai-fab-x{position:absolute;top:-6px;left:-6px;width:20px;height:20px;border-radius:50%;background:#e23b3b;color:#fff;font:700 14px Pretendard;line-height:1;display:none;align-items:center;justify-content:center}'
+      + '#belloreAiFab.edit .bai-fab-x{display:flex}'
       + '@keyframes baiPulse{0%,84%,100%{transform:scale(1)}87%{transform:scale(1.16)}90%{transform:scale(1)}93%{transform:scale(1.16)}96%{transform:scale(1)}}'
       + '#belloreAiFab .bai-dot{position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#e23b3b;color:#fff;font:700 10px Pretendard;display:none;align-items:center;justify-content:center}'
       + '#baiBubble{position:fixed;right:calc(50vw - var(--app-w)/2 + 16px);bottom:150px;z-index:6100;max-width:230px;padding:9px 13px;border:1px solid #e5e3df;border-radius:16px;border-bottom-right-radius:4px;background:#fff;color:#1a1a1a;font:600 13px Pretendard;box-shadow:0 6px 18px rgba(0,0,0,.14);opacity:0;transform:translateY(6px) scale(.96);pointer-events:none;transition:opacity .28s,transform .28s;display:flex;align-items:center;gap:6px;white-space:nowrap}'
@@ -820,8 +840,7 @@
       + '@keyframes baiWiggle{0%,100%{transform:rotate(0)}30%{transform:rotate(-14deg)}70%{transform:rotate(14deg)}}'
       + '.bai-panel{position:fixed;inset:0;z-index:6000;display:none;background:rgba(0,0,0,.38)}'
       + '.bai-panel.show{display:block}'
-      + '.bai-sheet{position:absolute;right:0;bottom:0;left:0;margin:0 auto;max-width:var(--app-w);height:86vh;background:#fff;border-radius:18px 18px 0 0;display:flex;flex-direction:column;overflow:hidden;font-family:Pretendard,-apple-system,sans-serif;box-shadow:0 -4px 24px rgba(0,0,0,.16)}'
-      + '@media(min-width:560px){.bai-sheet{left:auto;right:calc(50vw - var(--app-w)/2 + 12px);margin:0;width:380px;max-width:calc(var(--app-w) - 24px);bottom:88px;border-radius:18px;height:560px;max-height:80vh;box-shadow:0 10px 40px rgba(0,0,0,.22)}}'
+      + '.bai-sheet{position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:var(--app-w);background:#fff;display:flex;flex-direction:column;overflow:hidden;font-family:Pretendard,-apple-system,sans-serif;box-shadow:0 0 60px rgba(0,0,0,.25)}'
       + '.bai-head{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid #e5e3df}'
       + '.bai-head .bai-ic{width:34px;height:34px;border-radius:50%;background:#111;color:#fff;display:flex;align-items:center;justify-content:center}'
       + '.bai-head b{font-size:16px;font-weight:700;color:#1a1a1a}'
@@ -846,7 +865,13 @@
       + '.bai-consent .bai-agree:disabled{background:#eceae6;color:#9a9a9a}'
       + '.bai-consent-fine{font-size:11px !important;color:#9a9a9a !important;margin:12px 0 0 !important}'
       + '.bai-consent-fine a{color:#6b6b6b;text-decoration:underline}'
-      + '.bai-recos{display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;padding:2px 0 10px;margin:2px 0 8px;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}'
+      + '.bai-recos-wrap{position:relative;margin:2px 0 8px}'
+      + '.bai-recos-next{display:none}'
+      + '@media(min-width:560px){.bai-recos-next{display:flex;position:absolute;right:-2px;top:46%;transform:translateY(-50%);width:30px;height:30px;border-radius:50%;background:#fff;border:1px solid #e5e3df;box-shadow:0 2px 10px rgba(0,0,0,.18);align-items:center;justify-content:center;font-size:20px;color:#333;z-index:2;cursor:pointer}}'
+      + '.bai-reco-more{align-items:center;justify-content:center;gap:6px;color:#6b6b6b;background:#faf9f7}'
+      + '.bai-reco-more .bai-more-ic{font-size:26px;line-height:1}'
+      + '.bai-reco-more span{text-align:center;font-size:12px;font-weight:700;line-height:1.3}'
+      + '.bai-recos{display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;padding:2px 0 10px;margin:0;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity}'
       + '.bai-recos::-webkit-scrollbar{height:5px}'
       + '.bai-recos::-webkit-scrollbar-thumb{background:#d8d5cf;border-radius:3px}'
       + '.bai-reco{flex:0 0 138px;width:138px;display:flex;flex-direction:column;text-align:left;padding:0;border:1px solid #e5e3df;border-radius:14px;background:#fff;cursor:pointer;overflow:hidden;scroll-snap-align:start}'
@@ -873,7 +898,20 @@
     { t: '상담사 연결', q: '__support__' }
   ];
 
-  var elFab, elPanel, elBody, elInput, elBubble;
+  var elFab, elPanel, elBody, elInput, elBubble, fabHidden = false;
+  var FAB_POS_KEY = 'bellore_ai_fabpos', FAB_HIDE_KEY = 'bellore_ai_fabhide';
+
+  /* 간단 토스트 */
+  var _toastEl = null, _toastT = null;
+  function toast(msg) {
+    if (!_toastEl) {
+      _toastEl = document.createElement('div');
+      _toastEl.style.cssText = 'position:fixed;left:50%;bottom:120px;transform:translateX(-50%);z-index:6300;background:rgba(0,0,0,.88);color:#fff;padding:11px 16px;border-radius:22px;font:600 13px Pretendard;max-width:80vw;text-align:center;opacity:0;transition:opacity .25s;pointer-events:none';
+      document.body.appendChild(_toastEl);
+    }
+    _toastEl.textContent = msg; _toastEl.style.opacity = '1';
+    clearTimeout(_toastT); _toastT = setTimeout(function () { _toastEl.style.opacity = '0'; }, 2600);
+  }
 
   /* 프로액티브 말풍선: "어떤 시계 찾으세요?" 등을 2~4초 랜덤으로 잠깐 표시 */
   var BUBBLE_MSGS = ['어떤 시계 찾으세요?', '시계 판매 도와드릴까요?', '예산만 알려주셔도 골라드려요'];
@@ -909,7 +947,6 @@
     elPanel.innerHTML =
       '<div class="bai-sheet">' +
         '<div class="bai-head">' +
-          '<span class="bai-ic">' + ROBOT + '</span>' +
           '<div><b>BELLORE AI</b><div class="bai-sub">명품시계 전문비서</div></div>' +
           '<button class="bai-x" type="button" aria-label="닫기">×</button>' +
         '</div>' +
@@ -922,11 +959,11 @@
     document.body.appendChild(elPanel);
     elBody = $('#baiBody'); elInput = $('#baiInput');
 
-    elFab.addEventListener('click', openPanel);
+    setupFab();
     elPanel.addEventListener('click', function (e) {
       if (e.target.classList.contains('bai-panel') || e.target.closest('.bai-x')) { closePanel(); return; }
       var reco = e.target.closest('.bai-reco');
-      if (reco) { openReco(reco.dataset.pid); return; }
+      if (reco) { if (reco.dataset.more) openMore(); else openReco(reco.dataset.pid); return; }
       var chip = e.target.closest('.bai-chip');
       if (chip) onMenu(chip.dataset.q);
     });
@@ -938,6 +975,7 @@
     if (elPanel.classList.contains('show')) return;
     elPanel.classList.add('show');
     if (elBubble) elBubble.classList.remove('show');
+    if (elFab) elFab.style.display = 'none';   // 대화창 열리면 원형 버튼 숨김
     var dot = $('#baiDot'); if (dot) dot.style.display = 'none';
     // 브라우저/기기 뒤로가기로 닫히게 히스토리 상태 추가
     try { history.pushState({ baiChat: 1 }, ''); } catch (e) {}
@@ -951,6 +989,7 @@
   function closePanel(fromPop) {
     if (!elPanel.classList.contains('show')) return;
     elPanel.classList.remove('show');
+    if (elFab && !fabHidden) elFab.style.display = '';   // 원형 버튼 복귀
     // 사용자가 X/배경으로 닫으면 우리가 추가한 히스토리 항목을 되돌린다(뒤로가기와 상태 일치)
     if (!fromPop) { try { if (history.state && history.state.baiChat) history.back(); } catch (e) {} }
   }
@@ -958,6 +997,58 @@
   window.addEventListener('popstate', function () {
     if (elPanel && elPanel.classList.contains('show')) closePanel(true);
   });
+
+  /* FAB: 탭=열기, 길게 눌러=이동(드래그), 길게 누르면 X 나와서 숨기기 */
+  function setupFab() {
+    // 저장된 위치/숨김 복원
+    var pos = lsGet(FAB_POS_KEY, null);
+    if (pos && pos.left) { elFab.style.left = pos.left; elFab.style.top = pos.top; elFab.style.right = 'auto'; elFab.style.bottom = 'auto'; }
+    if (lsGet(FAB_HIDE_KEY, false)) { fabHidden = true; elFab.style.display = 'none'; }
+    // X 배지
+    var xb = document.createElement('span');
+    xb.className = 'bai-fab-x'; xb.textContent = '×';
+    elFab.appendChild(xb);
+    xb.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); hideFab(); });
+    xb.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+
+    var pressT = null, dragging = false, edit = false, moved = false, sx = 0, sy = 0, ox = 0, oy = 0;
+    elFab.addEventListener('pointerdown', function (e) {
+      if (e.target.closest('.bai-fab-x')) return;
+      sx = e.clientX; sy = e.clientY; moved = false; dragging = true;
+      var r = elFab.getBoundingClientRect(); ox = r.left; oy = r.top;
+      pressT = setTimeout(function () { edit = true; elFab.classList.add('edit'); }, 480);
+      try { elFab.setPointerCapture(e.pointerId); } catch (er) {}
+    });
+    elFab.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      var dx = e.clientX - sx, dy = e.clientY - sy;
+      if (!moved && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) { moved = true; clearTimeout(pressT); edit = true; elFab.classList.add('edit'); }
+      if (edit) {
+        var nx = Math.max(6, Math.min(window.innerWidth - 60, ox + dx));
+        var ny = Math.max(6, Math.min(window.innerHeight - 60, oy + dy));
+        elFab.style.left = nx + 'px'; elFab.style.top = ny + 'px'; elFab.style.right = 'auto'; elFab.style.bottom = 'auto';
+      }
+    });
+    elFab.addEventListener('pointerup', function (e) {
+      clearTimeout(pressT); dragging = false;
+      if (moved) { lsSet(FAB_POS_KEY, { left: elFab.style.left, top: elFab.style.top }); }
+      else if (!edit) { openPanel(); }
+      setTimeout(function () { edit = false; elFab.classList.remove('edit'); }, 1600);
+    });
+    // 마이페이지 진입 시 숨겨져 있으면 다시 불러오기
+    document.addEventListener('click', function (e) {
+      if (fabHidden && e.target.closest('[data-nav="mypage"],#myPageBtn,#headerProfile')) { showFab(); }
+    }, true);
+  }
+  function hideFab() {
+    fabHidden = true; lsSet(FAB_HIDE_KEY, true);
+    if (elFab) elFab.style.display = 'none';
+    toast('마이페이지에서 언제든 다시 불러낼 수 있어요!');
+  }
+  function showFab() {
+    fabHidden = false; lsSet(FAB_HIDE_KEY, false);
+    if (elFab && !(elPanel && elPanel.classList.contains('show'))) elFab.style.display = '';
+  }
 
   function renderConsent() {
     elBody.innerHTML =
@@ -1039,11 +1130,30 @@
   }
   function addCards(recos) {
     if (!recos || !recos.length) return;
-    var wrap = document.createElement('div');
-    wrap.className = 'bai-recos';
-    wrap.innerHTML = recos.map(recoCardHTML).join('');
+    var wrap = document.createElement('div'); wrap.className = 'bai-recos-wrap';
+    var scroller = document.createElement('div'); scroller.className = 'bai-recos';
+    scroller.innerHTML = recos.map(recoCardHTML).join('') +
+      '<button type="button" class="bai-reco bai-reco-more" data-more="1"><span class="bai-more-ic">＋</span><span>추천<br>더 보기</span></button>';
+    wrap.appendChild(scroller);
+    // PC 전용 오른쪽 화살표(더 보기 스크롤)
+    var arrow = document.createElement('button');
+    arrow.type = 'button'; arrow.className = 'bai-recos-next'; arrow.setAttribute('aria-label', '더 보기'); arrow.innerHTML = '›';
+    arrow.addEventListener('click', function () { scroller.scrollBy({ left: 300, behavior: 'smooth' }); });
+    wrap.appendChild(arrow);
     elBody.appendChild(wrap);
     elBody.scrollTop = elBody.scrollHeight;
+  }
+  // '더 보기' → 시계판매(전체 매물) 페이지로 이동(베스트에포트)
+  function openMore() {
+    closePanel();
+    setTimeout(function () {
+      var nav = document.querySelector('[data-nav="listing"],[data-nav="products"],[data-tab="listing"]');
+      if (!nav) {
+        var els = document.querySelectorAll('.tabbar a,.tabbar button,[data-nav]');
+        for (var i = 0; i < els.length; i++) { if (/시계판매/.test(els[i].textContent || '')) { nav = els[i]; break; } }
+      }
+      if (nav) nav.click();
+    }, 160);
   }
   function openReco(pid) {
     if (!pid) return;
@@ -1171,6 +1281,7 @@
     krwShort: krwShort,
     STAGE_LABEL: STAGE_LABEL,
     openPanel: function () { openPanel(); },
+    showFab: function () { showFab(); },
     _internals: { flushBufferToDB: flushBufferToDB }
   };
 
