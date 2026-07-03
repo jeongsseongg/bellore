@@ -905,9 +905,12 @@
 
                     <!-- 빠른 필터 칩 + 정렬 -->
                     <div class="qf-chips" id="catChips">
+                        <button type="button" class="qf-brandtoggle" id="catBrandToggle" aria-pressed="false" aria-label="브랜드 보기">
+                            <span class="qf-switch"><span class="qf-switch-knob"></span></span>브랜드
+                        </button>
+                        <span class="qf-brand-divider" aria-hidden="true"></span>
                         <button type="button" class="qf-chip active" data-chip="all">전체</button>
                         <button type="button" class="qf-chip" data-chip="new">미착용</button>
-                        <button type="button" class="qf-chip" data-chip="brand">브랜드</button>
                         <span class="qf-chip qf-chip-grade" data-chip="grade" role="button" tabindex="0">등급 <i>▾</i>
                             <span class="qf-chip-menu" id="catGradeMenu" hidden>
                                 <button type="button" data-grade="">등급 전체</button>
@@ -1838,6 +1841,10 @@
                 <span class="footer-legal-sep">·</span>
                 <button type="button" class="footer-legal-link strong" data-legal-open="privacy">개인정보처리방침</button>
                 <span class="footer-legal-sep">·</span>
+                <button type="button" class="footer-legal-link" data-legal-open="refund">반품·교환·환불</button>
+                <span class="footer-legal-sep">·</span>
+                <button type="button" class="footer-legal-link" data-legal-open="guide">이용안내</button>
+                <span class="footer-legal-sep">·</span>
                 <button type="button" class="footer-legal-link" id="bizInfoOpen2" data-legal-open="biz">사업자정보</button>
             </div>
             <p class="footer-copy">© 2008 BELLORE. All rights reserved.</p>
@@ -1890,7 +1897,7 @@
           <h4>제10조 (과오금의 환급)</h4>
           <p>회사는 결제 과정에서 과오금이 발생한 경우 지체 없이 이를 환급하며, 환급에 필요한 비용은 회사가 부담합니다. 결제수단별 환급 방법 및 절차는 해당 결제수단 사업자의 정책에 따릅니다.</p>
           <h4>제11조 (배송)</h4>
-          <p>특별한 사정이 없는 한 결제 완료 후 2~4일 이내에 상품을 발송함을 원칙으로 하며, 상품의 검수·정품 확인 등에 소요되는 기간은 별도로 안내합니다. 배송 지연 시 회사는 그 사유를 이용자에게 안내합니다.</p>
+          <p>① 배송비는 전국 무료를 원칙으로 합니다. 다만 500만원 이상 고가 상품은 안전을 위하여 보험이 포함된 프리미엄 안전배송으로 발송되며, 이 경우 별도의 프리미엄 배송비가 부과됩니다.<br>② 특별한 사정이 없는 한 결제 완료 후 2~4일 이내에 상품을 발송함을 원칙으로 하며, 상품의 검수·정품 확인 등에 소요되는 기간은 별도로 안내합니다. 배송 지연 시 회사는 그 사유를 이용자에게 안내합니다.</p>
           <h4>제12조 (환불 및 교환)</h4>
           <p>청약철회 또는 계약 해제가 성립한 경우, 회사는 상품을 반환받은 날부터 3영업일 이내에 이미 지급받은 대금을 환급합니다. 결제수단별 환급은 해당 결제수단의 환급 절차에 따라 처리됩니다.</p>
           <h4>제13조 (이용자의 의무)</h4>
@@ -1934,12 +1941,63 @@
       </div>
     </div>
 
+    <!-- 반품·교환·청약철회 정책 모달 -->
+    <div class="bizinfo-modal legal-modal" id="refundModal" hidden aria-modal="true" role="dialog" aria-label="반품·교환·환불 안내">
+      <div class="bizinfo-backdrop" data-bizclose></div>
+      <div class="bizinfo-sheet legal-sheet">
+        <button class="bizinfo-close" type="button" data-bizclose aria-label="닫기">×</button>
+        <p class="bizinfo-eyebrow">BELLORE</p>
+        <h3 class="bizinfo-title">반품·교환·환불 안내</h3>
+        <div class="legal-body">
+          <p>벨로르는 고객님의 안심 거래를 최우선으로 생각합니다. 아래 기준에 따라 청약철회·반품·교환·환불을 정성껏 도와드립니다.</p>
+          <h4>1. 청약철회(반품) 기간</h4>
+          <p>상품을 받으신 날부터 <b>7일 이내</b>에 청약철회를 신청하실 수 있습니다. 고객센터로 연락 주시면 신속하게 안내해 드립니다.</p>
+          <h4>2. 청약철회가 제한되는 경우</h4>
+          <p>다만 명품시계는 고가·희소 상품의 특성상, 다음의 경우에는 상품 가치가 현저히 훼손되어 부득이하게 청약철회·반품이 제한될 수 있는 점 너그러이 양해 부탁드립니다.</p>
+          <p>① 정품 보호씰·정품 택·보증서 등이 제거되거나 개봉된 경우<br>② 착용 흔적, 스크래치, 링크 조정 등 사용으로 상태가 변경된 경우<br>③ 감정·검수 완료 후 재판매가 곤란할 정도로 가치가 감소한 경우<br>④ 각인·수리·주문제작 등 고객 요청으로 개별 가공된 경우<br>⑤ 그 밖에 관련 법령에서 청약철회를 제한하는 경우</p>
+          <p class="legal-meta" style="margin:6px 0 0">※ 위 경우에도 상품의 하자·오배송 등 회사의 귀책사유가 있는 때에는 청약철회·교환·환불이 가능합니다.</p>
+          <h4>3. 반품 배송비</h4>
+          <p>단순 변심에 의한 반품 시 왕복 배송비(고가 상품의 프리미엄 안전배송비 포함)는 구매자가 부담합니다. 상품 하자·오배송 등 회사의 귀책사유에 의한 경우 배송비는 회사가 부담합니다.</p>
+          <h4>4. 교환</h4>
+          <p>동일 상품의 재고가 있는 경우에 한하여 교환이 가능하며, 상품 하자 시 우선적으로 교환·수리해 드립니다.</p>
+          <h4>5. 환불</h4>
+          <p>반품 상품 회수 및 상태 확인이 완료되면 <b>3영업일 이내</b>에 환불해 드립니다. 환불은 결제하신 수단으로 처리되며, 결제수단별 정책에 따라 카드 취소·계좌 환급 등으로 진행됩니다.</p>
+          <h4>6. 신청 방법</h4>
+          <p>마이페이지 › 주문내역에서 신청하시거나, 고객센터(010-6293-6668)로 연락 주시면 도와드립니다.</p>
+          <p class="legal-meta">시행일자: 2026년 7월 2일 · 벨로르 (대표 정성호) · 고객센터 010-6293-6668</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 이용안내(구매안전·정품보증) 모달 -->
+    <div class="bizinfo-modal legal-modal" id="guideModal" hidden aria-modal="true" role="dialog" aria-label="이용안내">
+      <div class="bizinfo-backdrop" data-bizclose></div>
+      <div class="bizinfo-sheet legal-sheet">
+        <button class="bizinfo-close" type="button" data-bizclose aria-label="닫기">×</button>
+        <p class="bizinfo-eyebrow">BELLORE</p>
+        <h3 class="bizinfo-title">이용안내</h3>
+        <div class="legal-body">
+          <h4>1. 100% 정품 보증</h4>
+          <p>벨로르에서 판매되는 모든 상품은 <b>100% 정품</b>임을 보증합니다. 전문 감정을 거쳐 판매되며, 만일 정품이 아님이 확인될 경우 <b>전액 환불</b>해 드립니다.</p>
+          <h4>2. 안전 결제(구매안전 서비스)</h4>
+          <p>모든 결제는 포트원(PortOne) 및 제휴 결제대행사(PG)의 안전결제 시스템을 통해 보호됩니다. 결제 정보는 암호화되어 처리되며 회사는 카드정보를 저장하지 않습니다.</p>
+          <h4>3. 배송 안내</h4>
+          <p>전국 <b>무료배송</b>을 원칙으로 합니다. 다만 500만원 이상 고가 상품은 안전을 위해 보험이 포함된 <b>프리미엄 안전배송(35,000원)</b>으로 발송됩니다. 결제 완료 후 검수를 거쳐 2~4일 이내 발송함을 원칙으로 합니다.</p>
+          <h4>4. 판매 구조 안내</h4>
+          <p>벨로르는 입점 판매회원(제휴사)의 상품 판매를 중개하는 통신판매중개자이며, 일부 상품은 벨로르가 직접 매입하여 판매합니다. 각 거래의 판매자 및 책임 주체는 상품 상세 및 이용약관에 따릅니다.</p>
+          <p class="legal-meta">시행일자: 2026년 7월 2일 · 벨로르 (대표 정성호) · 고객센터 010-6293-6668</p>
+        </div>
+      </div>
+    </div>
+
     <script>
     (function () {
       var map = {
         biz: document.getElementById('bizInfoModal'),
         terms: document.getElementById('termsModal'),
-        privacy: document.getElementById('privacyModal')
+        privacy: document.getElementById('privacyModal'),
+        refund: document.getElementById('refundModal'),
+        guide: document.getElementById('guideModal')
       };
       function show(m) { if (m) { m.hidden = false; document.body.style.overflow = 'hidden'; } }
       function hideAll() {
@@ -2635,23 +2693,6 @@
                     <p class="co-brand" id="coBrand"></p>
                     <p class="co-model" id="coModel"></p>
                     <p class="co-listprice" id="coListPrice"></p>
-                </div>
-            </section>
-
-            <!-- 결제 방식 -->
-            <section class="co-sec">
-                <h3 class="co-sec-title">결제 방식</h3>
-                <div class="co-paytype" id="coPayType">
-                    <button type="button" class="co-pt active" data-pt="deposit">
-                        <strong>예약금 결제</strong>
-                        <span id="coPtDeposit">-</span>
-                        <em>잔금은 매장 방문 시 결제</em>
-                    </button>
-                    <button type="button" class="co-pt" data-pt="full">
-                        <strong>전액 결제</strong>
-                        <span id="coPtFull">-</span>
-                        <em>배송비 포함 · 바로 배송</em>
-                    </button>
                 </div>
             </section>
 
@@ -3553,15 +3594,17 @@
                 if (k === 'sort') { toggleMenu('catSortMenu', chip); return; }
                 if (k === 'all') { resetQuick(); applyFilters(); return; }
                 if (k === 'new') { fNew = !fNew; chip.classList.toggle('active', fNew); syncAllChip(); applyFilters(); return; }
-                if (k === 'brand') {
-                    var panel = document.getElementById('catBrandPanel');
-                    if (panel) {
-                        panel.hidden = !panel.hidden;
-                        chip.classList.toggle('active', !panel.hidden);
-                        if (!panel.hidden) { setBrandOpen(true); panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
-                    }
-                    return;
-                }
+            });
+            // 무신사식 '브랜드' 토글 스위치 — 켜면 원형 브랜드 패널이 펼쳐지고, 다시 누르면 닫힘
+            var brandToggle = document.getElementById('catBrandToggle');
+            if (brandToggle) brandToggle.addEventListener('click', function () {
+                var panel = document.getElementById('catBrandPanel');
+                if (!panel) return;
+                panel.hidden = !panel.hidden;
+                var on = !panel.hidden;
+                brandToggle.classList.toggle('on', on);
+                brandToggle.setAttribute('aria-pressed', String(on));
+                if (on) { setBrandOpen(true); panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
             });
             document.addEventListener('click', function (e) { if (!e.target.closest('.qf-chip')) closeMenus(); });
             window.addEventListener('scroll', closeMenus, true);

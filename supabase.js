@@ -1700,7 +1700,7 @@
       productBrand: o.product_brand || '',
       productImage: o.product_image || '',
       productPrice: o.product_price || 0,
-      payType: o.pay_type || 'deposit',
+      payType: o.pay_type || 'full',
       amount: o.amount || 0,
       method: o.method || '',
       status: o.status || 'pending',
@@ -1744,7 +1744,7 @@
       product_brand: data.productBrand || null,
       product_image: data.productImage || null,
       product_price: data.productPrice || null,
-      pay_type: data.payType || 'deposit',
+      pay_type: data.payType || 'full',
       amount: data.amount,
       coupon_user_id: data.couponUserId || null,
       discount: data.discount || 0,
@@ -1775,7 +1775,7 @@
         ge.guest = true; ge.cause = res.error;
         throw ge;
       }
-      return { orderNo: orderNo, amount: data.amount, payType: data.payType || 'deposit' };
+      return { orderNo: orderNo, amount: data.amount, payType: data.payType || 'full' };
     });
   };
 
