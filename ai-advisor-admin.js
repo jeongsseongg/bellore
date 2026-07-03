@@ -512,7 +512,7 @@
   function callLearn(btn, body, onDone) {
     if (!sb() || !sb().functions) { alert('백엔드 함수 호출을 사용할 수 없습니다.'); return; }
     var label = btn.textContent; btn.disabled = true; btn.textContent = '처리 중…';
-    sb().functions.invoke('ai-learn', { body: body }).then(function (res) {
+    sb().functions.invoke(window.BELLORE_AI_FN || 'ai-learn', { body: body }).then(function (res) {
       btn.disabled = false; btn.textContent = label;
       var d = res && res.data;
       if (d && d.skipped) { alert('AI 키 미설정: ' + (d.hint || 'ANTHROPIC_API_KEY/OPENAI_API_KEY 시크릿을 설정하세요.')); return; }

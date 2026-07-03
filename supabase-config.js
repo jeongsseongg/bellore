@@ -112,3 +112,10 @@ window.BELLORE_CATEGORIES = {
        (추천 매물 목록은 aiReply 값과 무관하게 항상 규칙기반으로 함께 표시)
    ============================================================ */
 window.BELLORE_AI_REPLY = true;
+
+/* AI 함수(Edge Function)의 "실제 주소 슬러그".
+   - Supabase 대시보드에서 함수를 만들면 URL 이 /functions/v1/<슬러그> 형태입니다.
+   - 우리 함수의 실제 URL 슬러그를 여기에 적습니다(대시보드 함수 페이지의 URL 뒷부분).
+   - 현재 배포된 함수 주소가 'dynamic-processor' 라 그대로 맞춤. 함수를 'ai-learn' 으로
+     새로 배포하면 이 값을 'ai-learn' 으로 바꾸세요. */
+window.BELLORE_AI_FN = "dynamic-processor";

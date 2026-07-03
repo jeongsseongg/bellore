@@ -550,7 +550,7 @@
     var base = provider.generateReply(message, profile, { analysis: a });
     if (window.BELLORE_AI_REPLY === true && sb() && sb().functions) {
       var cand = (recos || []).map(function (x) { return { name: [x.product.brand, x.product.model, x.product.reference_number].filter(Boolean).join(' '), price: x.product.price, score: x.score }; });
-      return sb().functions.invoke('ai-learn', { body: { action: 'generate_reply', profile_id: (profile && profile.id) || null, message: message, candidates: cand } })
+      return sb().functions.invoke(window.BELLORE_AI_FN || 'ai-learn', { body: { action: 'generate_reply', profile_id: (profile && profile.id) || null, message: message, candidates: cand } })
         .then(function (res) {
           if (res && res.error) { console.warn('[BelloreAI] ai-learn error:', res.error.message || res.error); return base; }
           var d = res && res.data;
