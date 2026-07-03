@@ -32,7 +32,7 @@
   function injectStyles() {
     if ($('#bellore-aiadmin-style')) return;
     var css = ''
-      + '#aiAdminPanel{position:fixed;inset:0;z-index:1400;display:none;background:#fff;font-family:Pretendard,-apple-system,sans-serif}'
+      + '#aiAdminPanel{position:fixed;inset:0;z-index:6200;display:none;background:#fff;font-family:Pretendard,-apple-system,sans-serif}'
       + '#aiAdminPanel.show{display:flex;flex-direction:column}'
       + '.aia-top{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid #e5e3df}'
       + '.aia-top .aia-back{background:none;border:none;font-size:24px;color:#1a1a1a;cursor:pointer;line-height:1}'

@@ -214,6 +214,22 @@
      2) AIProvider 인터페이스(stub) + RuleBasedAIProvider
         나중에 OpenAIProvider/ClaudeProvider/LocalLLMProvider 로 교체.
      ============================================================ */
+  // 흔한 일반 질문에 능동적으로 답하는 규칙 응답(AI가 꺼져있거나 실패해도 대화가 되도록)
+  function metaAnswer(message, profile) {
+    var t = String(message || '').trim();
+    if (/(이름|누구세요|누구야|넌\s*뭐|정체|뭐라고\s*불러)/.test(t))
+      return '저는 벨로르 AI 시계 비서예요. 롤렉스·파텍필립·오메가 같은 명품시계를 찾으시면, 브랜드나 예산만 말씀하셔도 딱 맞는 매물을 찾아 추천해드려요.';
+    if (/(뭘\s*잘|뭐\s*(를)?\s*할|할\s*수\s*있|무엇을|기능|어떤\s*걸|뭐하는|도와줄)/.test(t))
+      return '이런 걸 도와드려요:\n· 예산·취향에 맞는 시계 추천\n· 브랜드·모델별 매물 찾기\n· 입고 알림 설정\n· 시세·상담 연결\n찾으시는 브랜드나 예산을 편하게 말씀해 주세요.';
+    if (/(예물|결혼|웨딩|신랑|신부|커플|프로포즈|기념일|선물)/.test(t))
+      return '예물/선물 시계 찾으시는군요! 보통 롤렉스 데이트저스트·오메가·까르띠에 탱크가 예물로 인기예요. 예산을 알려주시면 그 안에서 딱 맞는 매물을 골라드릴게요.';
+    if (/^(안녕|하이|헬로|hi|hello|ㅎㅇ|반가)/i.test(t))
+      return '안녕하세요! 벨로르 AI 시계 비서예요. 어떤 시계를 찾고 계세요? 브랜드나 예산만 알려주셔도 좋아요.';
+    if (/(고마워|감사|thanks|ok|오케이|알겠)/i.test(t))
+      return '언제든지요! 더 찾으실 시계나 궁금한 점 있으면 편하게 말씀해 주세요.';
+    return null;
+  }
+
   // 인터페이스(문서용): analyzeMessage, summarizeCustomer, generateReply, extractExpertKnowledge
   var RuleBasedAIProvider = {
     name: 'rule-based',
@@ -234,6 +250,9 @@
     },
     generateReply: function (message, profile, context) {
       var a = (context && context.analysis) || analyze(message);
+      // 흔한 일반질문은 규칙기반에서도 능동적으로 답한다(AI 미작동 시에도 대화가 되게)
+      var meta = metaAnswer(message, profile);
+      if (meta) return meta;
       var parts = [];
       var tags = [];
       if (a.brands.length) tags.push(a.brands.join(', '));
@@ -492,7 +511,7 @@
           });
           return chain.then(function () {
             // 추천 의도(추천/예산/매물 키워드 또는 브랜드·레퍼런스 언급)면 실제 매물 추천
-            var wantReco = /추천|매물|예산|보여|찾아|있나|입고/.test(message) || a.references.length || a.brands.length;
+            var wantReco = /추천|매물|예산|보여|찾아|있나|입고|예물|결혼|웨딩|선물|커플/.test(message) || a.references.length || a.brands.length;
             var recoP = wantReco ? recommendProducts(p2, 3).catch(function () { return []; }) : Promise.resolve([]);
             return recoP.then(function (recos) {
               // 개선 루프: 브랜드/레퍼런스도 못 잡고 추천도 못 준 질문 = "대응 어려움" → 표시
@@ -526,19 +545,21 @@
 
   // 답변 생성: AI 활성(window.BELLORE_AI_REPLY)이면 ai-learn 호출, 아니면 규칙기반.
   // 어느 쪽이든 실제 추천 매물 줄글을 함께 붙인다(무료, 추천 동작 보장).
+  // 추천 매물은 카드(이미지+링크)로 별도 렌더하므로 답변 텍스트엔 붙이지 않는다.
   function composeReply(message, profile, a, recos) {
     var base = provider.generateReply(message, profile, { analysis: a });
-    var withReco = base + recoLines(recos);
     if (window.BELLORE_AI_REPLY === true && sb() && sb().functions) {
       var cand = (recos || []).map(function (x) { return { name: [x.product.brand, x.product.model, x.product.reference_number].filter(Boolean).join(' '), price: x.product.price, score: x.score }; });
       return sb().functions.invoke('ai-learn', { body: { action: 'generate_reply', profile_id: (profile && profile.id) || null, message: message, candidates: cand } })
         .then(function (res) {
-          var r = res && res.data && res.data.result && res.data.result.reply;
-          if (r) return r + recoLines(recos);
-          return withReco; // skipped/실패 → 규칙기반
-        }).catch(function () { return withReco; });
+          if (res && res.error) { console.warn('[BelloreAI] ai-learn error:', res.error.message || res.error); return base; }
+          var d = res && res.data;
+          if (d && d.skipped) { console.warn('[BelloreAI] ai-learn skipped:', d.hint); return base; }
+          var r = d && d.result && d.result.reply;
+          return (r && r.trim()) ? r.trim() : base;   // AI 실패/빈응답 → 규칙기반
+        }).catch(function (e) { console.warn('[BelloreAI] ai-learn invoke fail:', e); return base; });
     }
-    return Promise.resolve(withReco);
+    return Promise.resolve(base);
   }
 
   function buildInterestItems(a) {
@@ -569,6 +590,7 @@
       color: row.dial_color || '',
       size: row.size_mm || '',
       material: row.material || '',
+      photo: (row.photos && row.photos[0]) || row.image_url || '',
       prev_price: row.prev_price != null ? Number(row.prev_price) : null
     };
   }
@@ -770,10 +792,10 @@
       + '#belloreAiFab{position:fixed;right:18px;bottom:84px;z-index:1200;display:flex;align-items:center;gap:8px;height:52px;padding:0 18px 0 16px;border:none;border-radius:26px;background:#111;color:#fff;font:700 15px Pretendard,-apple-system,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.22);cursor:pointer}'
       + '#belloreAiFab:active{transform:scale(.97)}'
       + '#belloreAiFab .bai-dot{position:absolute;top:-2px;right:-2px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#e23b3b;color:#fff;font:700 11px Pretendard;display:none;align-items:center;justify-content:center}'
-      + '.bai-panel{position:fixed;inset:0;z-index:1300;display:none;background:rgba(0,0,0,.32)}'
+      + '.bai-panel{position:fixed;inset:0;z-index:6000;display:none;background:rgba(0,0,0,.38)}'
       + '.bai-panel.show{display:block}'
-      + '.bai-sheet{position:absolute;right:0;bottom:0;left:0;margin:0 auto;max-width:480px;height:88vh;background:#fff;border-radius:18px 18px 0 0;display:flex;flex-direction:column;overflow:hidden;font-family:Pretendard,-apple-system,sans-serif}'
-      + '@media(min-width:560px){.bai-sheet{right:18px;left:auto;bottom:18px;border-radius:18px;height:600px;max-height:84vh}}'
+      + '.bai-sheet{position:absolute;right:0;bottom:0;left:0;margin:0 auto;max-width:460px;height:86vh;background:#fff;border-radius:18px 18px 0 0;display:flex;flex-direction:column;overflow:hidden;font-family:Pretendard,-apple-system,sans-serif;box-shadow:0 -4px 24px rgba(0,0,0,.16)}'
+      + '@media(min-width:560px){.bai-sheet{left:0;right:0;margin:0 auto;bottom:18px;border-radius:18px;height:620px;max-height:86vh;box-shadow:0 10px 40px rgba(0,0,0,.22)}}'
       + '.bai-head{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid #e5e3df}'
       + '.bai-head .bai-ic{width:34px;height:34px;border-radius:50%;background:#111;color:#fff;display:flex;align-items:center;justify-content:center}'
       + '.bai-head b{font-size:16px;font-weight:700;color:#1a1a1a}'
@@ -795,7 +817,21 @@
       + '.bai-consent label{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:#1a1a1a;margin:8px 0;cursor:pointer}'
       + '.bai-consent label input{margin-top:2px}'
       + '.bai-consent .bai-agree{width:100%;height:46px;margin-top:10px;border:none;border-radius:12px;background:#111;color:#fff;font:700 15px Pretendard;cursor:pointer}'
-      + '.bai-consent .bai-agree:disabled{background:#eceae6;color:#9a9a9a}';
+      + '.bai-consent .bai-agree:disabled{background:#eceae6;color:#9a9a9a}'
+      + '.bai-consent-fine{font-size:11px !important;color:#9a9a9a !important;margin:12px 0 0 !important}'
+      + '.bai-consent-fine a{color:#6b6b6b;text-decoration:underline}'
+      + '.bai-recos{display:flex;flex-direction:column;gap:8px;margin:2px 0 10px}'
+      + '.bai-reco{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:10px;border:1px solid #e5e3df;border-radius:14px;background:#fff;cursor:pointer}'
+      + '.bai-reco:active{background:#f7f6f3}'
+      + '.bai-reco-thumb{position:relative;width:56px;height:56px;flex:0 0 56px;border-radius:10px;overflow:hidden;background:#f2f3f5;display:flex;align-items:center;justify-content:center}'
+      + '.bai-reco-thumb img{width:100%;height:100%;object-fit:cover}'
+      + '.bai-reco-ph{display:none;font-size:24px}'
+      + '.bai-reco-thumb.noimg .bai-reco-ph{display:block}'
+      + '.bai-reco-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}'
+      + '.bai-reco-info b{font-size:14px;font-weight:700;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+      + '.bai-reco-price{font-size:14px;font-weight:700;color:#111}'
+      + '.bai-reco-info em{font-size:11px;color:#9a9a9a;font-style:normal}'
+      + '.bai-reco-go{flex:0 0 auto;font-size:13px;font-weight:700;color:#6b6b6b}';
     var st = document.createElement('style'); st.id = 'bellore-ai-style'; st.textContent = css;
     document.head.appendChild(st);
   }
@@ -824,7 +860,7 @@
       '<div class="bai-sheet">' +
         '<div class="bai-head">' +
           '<span class="bai-ic">' + ROBOT + '</span>' +
-          '<div><b>BELLORE AI</b><div class="bai-sub">시계 전문비서 · 규칙기반 베타</div></div>' +
+          '<div><b>BELLORE AI</b><div class="bai-sub">명품시계 전문비서</div></div>' +
           '<button class="bai-x" type="button" aria-label="닫기">×</button>' +
         '</div>' +
         '<div class="bai-body" id="baiBody"></div>' +
@@ -838,7 +874,9 @@
 
     elFab.addEventListener('click', openPanel);
     elPanel.addEventListener('click', function (e) {
-      if (e.target.classList.contains('bai-panel') || e.target.classList.contains('bai-x')) closePanel();
+      if (e.target.classList.contains('bai-panel') || e.target.closest('.bai-x')) { closePanel(); return; }
+      var reco = e.target.closest('.bai-reco');
+      if (reco) { openReco(reco.dataset.pid); return; }
       var chip = e.target.closest('.bai-chip');
       if (chip) onMenu(chip.dataset.q);
     });
@@ -861,10 +899,11 @@
   function renderConsent() {
     elBody.innerHTML =
       '<div class="bai-consent">' +
-        '<p>벨로르 AI 비서는 맞춤 시계 추천, 시세 안내, 입고 알림 제공을 위해 대화 내용, 관심 상품, 예산, 구매 선호 정보를 저장하고 분석할 수 있습니다.</p>' +
-        '<label><input type="checkbox" id="baiC1"> 맞춤 추천 데이터 사용 동의 (필수)</label>' +
-        '<label><input type="checkbox" id="baiC2"> 마케팅/입고 알림 수신 동의 (선택)</label>' +
-        '<button class="bai-agree" id="baiAgree" disabled>동의하고 시작하기</button>' +
+        '<p>더 잘 맞는 시계를 추천해 드리기 위해 대화를 참고할게요. 시작하시겠어요?</p>' +
+        '<label><input type="checkbox" id="baiC1" checked> 맞춤 추천을 받을게요</label>' +
+        '<label><input type="checkbox" id="baiC2"> 입고·혜택 소식도 받아볼게요 (선택)</label>' +
+        '<button class="bai-agree" id="baiAgree">시작하기</button>' +
+        '<p class="bai-consent-fine">자세한 안내는 <a href="#" data-legal-open="privacy">개인정보처리방침</a>을 참고해 주세요.</p>' +
       '</div>';
     var c1 = $('#baiC1'), agree = $('#baiAgree');
     c1.addEventListener('change', function () { agree.disabled = !c1.checked; });
@@ -893,7 +932,8 @@
         // 분석 기반 선제 추천
         recommendProducts(p, 3).then(function (recos) {
           if (recos && recos.length) {
-            addBot('고객님 취향에 맞춰 이런 시계를 추천드려요:' + recoLines(recos) + '\n\n더 좁혀서 찾아드릴까요? 예산이나 모델을 말씀해 주세요.');
+            addBot('고객님 취향에 맞춰 이런 시계를 추천드려요. 카드를 누르면 바로 보실 수 있어요.');
+            addCards(recos);
           } else {
             addBot('지금 딱 맞는 매물은 준비 중이에요. 원하시는 예산·모델을 알려주시면 입고되는 대로 가장 먼저 알려드릴게요.');
           }
@@ -916,6 +956,40 @@
   }
   function addBot(t) { return addMsg('bot', t); }
   function addUser(t) { return addMsg('user', t); }
+
+  // 추천 매물을 이미지+바로가기 카드로 렌더
+  function recoCardHTML(x) {
+    var p = x.product || {};
+    var name = [p.brand, p.model].filter(Boolean).join(' ') || '매물';
+    var img = p.photo
+      ? '<img src="' + esc(p.photo) + '" alt="" loading="lazy" onerror="this.style.display=\'none\';this.parentNode.classList.add(\'noimg\')">'
+      : '';
+    return '<button type="button" class="bai-reco" data-pid="' + esc(p.id || '') + '">' +
+        '<span class="bai-reco-thumb' + (p.photo ? '' : ' noimg') + '">' + img + '<span class="bai-reco-ph">⌚</span></span>' +
+        '<span class="bai-reco-info">' +
+          '<b>' + esc(name) + '</b>' +
+          '<span class="bai-reco-price">' + krwShort(p.price) + '원</span>' +
+          (p.reference_number ? ('<em>Ref. ' + esc(p.reference_number) + '</em>') : '') +
+        '</span>' +
+        '<span class="bai-reco-go">보기 ›</span>' +
+      '</button>';
+  }
+  function addCards(recos) {
+    if (!recos || !recos.length) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'bai-recos';
+    wrap.innerHTML = recos.map(recoCardHTML).join('');
+    elBody.appendChild(wrap);
+    elBody.scrollTop = elBody.scrollHeight;
+  }
+  function openReco(pid) {
+    if (!pid) return;
+    closePanel();
+    setTimeout(function () {
+      if (window.BELLORE_openProductById) window.BELLORE_openProductById(pid);
+      track('product_view', { product_id: pid, value: { via: 'ai_reco' } });
+    }, 120);
+  }
 
   function onMenu(q) {
     if (q === '__profile__') { showProfileSummary(); return; }
@@ -948,6 +1022,7 @@
     var thinking = addBot('분석 중…');
     handleUserMessage(msg).then(function (res) {
       thinking.textContent = res.reply;
+      addCards(res.recommendations);
       _busy = false;
     }).catch(function (e) {
       thinking.textContent = '저장 중 문제가 있었지만 관심 정보는 기기에 보관했어요. 다시 시도해 주세요.';
