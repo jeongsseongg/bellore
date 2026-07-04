@@ -4914,6 +4914,8 @@ body.pp-lb-open { overflow: hidden; }
     background: rgba(255, 255, 255, 0.98);
     backdrop-filter: blur(20px);
     border-top: 1px solid var(--border);
+    border-top-left-radius: 22px;
+    border-top-right-radius: 22px;
     display: flex;
     align-items: center;
     justify-content: space-around;
@@ -4961,50 +4963,27 @@ body.pp-lb-open { overflow: hidden; }
     transform: scale(0.92);
 }
 
-/* 가운데 AI 원형 버튼 — 탭바 위로 튀어나오고, 튀어나온 부분만 바(bar)가 둥글게 파여
-   원과 이어지는 노치(notch) 처리 (바이버 레퍼런스 참고) */
+/* 가운데 AI 원형 버튼 — 바이버(VIVER) 레퍼런스처럼 탭바 위에 그대로 겹쳐 올린다.
+   별도 노치/그림자 없이 심플하게, 원 자체가 탭바에서 가장 눈에 띄는 메인 요소 */
 .tab-ai-wrap {
     flex: 0 0 auto;
     position: relative;
-    width: 130px;
+    width: 110px;
     height: 100%;
     display: flex;
     align-items: flex-start;
     justify-content: center;
 }
 .tab-ai-circle {
-    position: relative;
-    z-index: 2;
-    width: 76px;
-    height: 76px;
-    margin-top: -34px;
+    width: 84px;
+    height: 84px;
+    margin-top: -26px;
     border: none;
     border-radius: 50%;
     background: #111;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, .25);
     cursor: pointer;
 }
-.tab-ai-circle:active { transform: scale(.94); }
-/* 원 좌우의 바(bar) 표면이 원 쪽으로 매끄럽게 이어지도록 둥근 어깨(fillet)를 채워
-   원이 튀어나온 구간만 곡선이고, 나머지 바는 그대로 직선을 유지한다 — 중앙 원이
-   탭바에서 가장 눈에 띄는 메인 요소가 되도록 크게 */
-.tab-ai-notch {
-    position: absolute;
-    top: -28px;
-    z-index: 1;
-    width: 27px;
-    height: 28px;
-    background: #fff;
-    pointer-events: none;
-}
-.tab-ai-notch-l {
-    left: calc(50% - 65px);
-    border-top-left-radius: 27px;
-}
-.tab-ai-notch-r {
-    left: calc(50% + 38px);
-    border-top-right-radius: 27px;
-}
+.tab-ai-circle:active { transform: scale(.96); }
 /* 기존 상단 네비 잔재 숨김 */
 .nav-menu,
 .menu-toggle,
