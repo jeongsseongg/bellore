@@ -517,16 +517,27 @@
           });
           return chain.then(function () {
             // 추천 의도(추천/예산/매물 키워드 또는 브랜드·레퍼런스 언급)면 실제 매물 추천
-            // 추천은 "고객이 요청"할 때만: 추천/매물/보여/찾아/얼마 등, 레퍼런스 지정, 또는 브랜드+예산 동시.
+            // 추천은 "고객이 요청"할 때만
             var wantReco = /추천|매물|보여|찾아|있나|있어|얼마|골라|예물|결혼|웨딩|선물|커플/.test(message)
               || a.references.length || (a.brands.length && a.budget);
-            var recoP = wantReco ? recommendProducts(p2, 24, a).catch(function () { return []; }) : Promise.resolve([]);
+            // 단, 정보(브랜드/예산/레퍼런스 또는 기존 취향)가 있어야 실제 추천. 없으면 취향 Q&A로.
+            var profHasPref = (p2.preferred_brands && p2.preferred_brands.length) || p2.budget_max || (p2.preferred_references && p2.preferred_references.length);
+            var hasSignal = a.brands.length || a.references.length || a.budget || a.models.length || profHasPref;
+            var askPref = wantReco && !hasSignal;
+            var recoP = (wantReco && hasSignal) ? recommendProducts(p2, 24, a).catch(function () { return []; }) : Promise.resolve([]);
             return recoP.then(function (recos) {
               // 개선 루프: 브랜드/레퍼런스도 못 잡고 추천도 못 준 질문 = "대응 어려움" → 표시
               var handled = a.brands.length || a.references.length || (recos && recos.length) || a.buying_stage === 'sell_intent';
               var userMeta = { analysis: { brands: a.brands, references: a.references, stage: a.buying_stage } };
               if (!handled) userMeta.needs_review = true;
               return logConversation(p2, 'user', message, userMeta.needs_review ? userMeta : null).then(function () {
+                // 정보가 없는데 추천을 원하면 → 부담없는 취향 Q&A
+                if (askPref) {
+                  var ask = '아직 고객님을 알게 된 지 얼마 안 돼서요 😊 부담 갖지 마시고, 취향만 살짝 알려주시면 딱 맞게 찾아드릴게요. 어떤 브랜드나 예산 생각하고 계세요?';
+                  return logConversation(p2, 'assistant', ask).then(function () {
+                    return { reply: ask, analysis: a, profile: p2, recommendations: [], askPref: true };
+                  });
+                }
                 return composeReply(message, p2, a, recos).then(function (reply) {
                   return logConversation(p2, 'assistant', reply).then(function () {
                     return { reply: reply, analysis: a, profile: p2, recommendations: recos, handled: !!handled };
@@ -849,8 +860,9 @@
       + '#belloreAiFab .bai-dot{position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#e23b3b;color:#fff;font:700 10px Pretendard;display:none;align-items:center;justify-content:center}'
       + '#baiBubble{position:fixed;right:calc(50vw - var(--app-w)/2 + 16px);bottom:150px;z-index:6100;max-width:230px;padding:9px 13px;border:1px solid #e5e3df;border-radius:16px;border-bottom-right-radius:4px;background:#fff;color:#1a1a1a;font:600 13px Pretendard;box-shadow:0 6px 18px rgba(0,0,0,.14);opacity:0;transform:translateY(6px) scale(.96);pointer-events:none;transition:opacity .28s,transform .28s;display:flex;align-items:center;gap:6px;white-space:nowrap}'
       + '#baiBubble.show{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}'
-      + '#baiBubble .bai-emoji{display:inline-block;font-size:15px;animation:baiWiggle .7s ease-in-out infinite;transform-origin:70% 70%}'
-      + '@keyframes baiWiggle{0%,100%{transform:rotate(0)}30%{transform:rotate(-14deg)}70%{transform:rotate(14deg)}}'
+      + '#baiBubble .bai-bubble-txt{cursor:pointer}'
+      + '#baiBubble .bai-bubble-x{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-left:2px;border-radius:50%;background:#f2f3f5;color:#6b6b6b;font-size:14px;line-height:1;cursor:pointer;flex:0 0 auto}'
+      + '.bai-action{display:block;margin:6px 0 10px;padding:11px 16px;border:none;border-radius:12px;background:#111;color:#fff;font:700 14px Pretendard;cursor:pointer}'
       + '.bai-panel{position:fixed;inset:0;z-index:6000;display:none;background:rgba(0,0,0,.38)}'
       + '.bai-panel.show{display:block}'
       + '.bai-sheet{position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:var(--app-w);background:#fff;display:flex;flex-direction:column;overflow:hidden;font-family:Pretendard,-apple-system,sans-serif;box-shadow:0 0 60px rgba(0,0,0,.25)}'
@@ -905,7 +917,7 @@
 
   var MENU = [
     { t: '시계 추천받기', q: '제 취향에 맞는 시계를 추천해주세요' },
-    { t: '내 예산 매물', q: '제 예산에 맞는 매물을 보여주세요' },
+    { t: '내 시계 팔기', q: '__sell__' },
     { t: '시세 물어보기', q: '시세를 알고 싶어요' },
     { t: '입고 알림 설정', q: '입고 알림을 설정하고 싶어요' },
     { t: '내 취향 분석', q: '__profile__' },
@@ -931,10 +943,15 @@
   var BUBBLE_MSGS = ['어떤 시계 찾으세요?', '시계 판매 도와드릴까요?', '예산만 알려주셔도 골라드려요'];
   var bubbleIdx = 0, bubbleT = null;
   function showBubble() {
-    if (!elBubble) return;
+    if (!elBubble || !elFab) return;
     // 채팅 열려있거나 버튼이 숨겨졌으면 안 띄움
     if (fabHidden || (elPanel && elPanel.classList.contains('show'))) { scheduleBubble(6000); return; }
-    elBubble.textContent = BUBBLE_MSGS[bubbleIdx % BUBBLE_MSGS.length]; // 글씨만(이모지 제거)
+    // 봇(FAB) 현재 위치 바로 위에 말풍선을 붙인다(드래그로 옮겨도 따라옴)
+    var r = elFab.getBoundingClientRect();
+    elBubble.style.left = 'auto';
+    elBubble.style.right = Math.max(8, Math.round(window.innerWidth - r.right)) + 'px';
+    elBubble.style.bottom = Math.round(window.innerHeight - r.top + 8) + 'px';
+    elBubble.innerHTML = '<span class="bai-bubble-txt">' + esc(BUBBLE_MSGS[bubbleIdx % BUBBLE_MSGS.length]) + '</span><span class="bai-bubble-x" aria-label="닫기">×</span>';
     bubbleIdx++;
     elBubble.classList.add('show');
     var dur = 3000 + Math.floor(Math.random() * 3000); // 3~6초
@@ -951,10 +968,13 @@
     document.body.appendChild(elFab);
 
     // 프로액티브 말풍선 (FAB 옆에 잠깐 떴다 사라짐)
-    elBubble = document.createElement('button');
-    elBubble.id = 'baiBubble'; elBubble.type = 'button';
+    elBubble = document.createElement('div');
+    elBubble.id = 'baiBubble';
     document.body.appendChild(elBubble);
-    elBubble.addEventListener('click', openPanel);
+    elBubble.addEventListener('click', function (e) {
+      if (e.target.closest('.bai-bubble-x')) { elBubble.classList.remove('show'); clearTimeout(bubbleT); scheduleBubble(30000); return; }
+      openPanel();
+    });
 
     elPanel = document.createElement('div');
     elPanel.className = 'bai-panel';
@@ -1101,8 +1121,12 @@
     ensureProfile().then(function (p) {
       var brands = (p && p.preferred_brands) || [];
       var who = brands.slice(0, 2).join(', ');
-      if (who) addBot('다시 오셨네요! 지난번 ' + who + ' 보고 계셨죠. 오늘은 어떤 시계 도와드릴까요?');
-      else addBot('안녕하세요! 벨로르 AI 시계 비서예요. 편하게 말 걸어주세요. 어떤 시계 찾고 계세요?');
+      if (who) {
+        addBot('다시 오셨네요! 지난번 ' + who + ' 보고 계셨죠. 오늘은 어떤 시계 도와드릴까요?');
+      } else {
+        addBot('안녕하세요! 벨로르 AI 시계 비서예요 😊 아직 고객님을 알아가는 중이라, 취향을 살짝 알아볼까요? 부담 없이 편하게요. 어떤 브랜드 좋아하세요?');
+        addQuickChips();
+      }
     }).catch(function () {
       addBot('안녕하세요! 벨로르 AI 시계 비서예요. 어떤 시계 찾고 계세요?');
     });
@@ -1183,11 +1207,45 @@
     if (q === '__profile__') { showProfileSummary(); return; }
     if (q === '__support__') {
       addUser('상담사 연결');
-      addBot('카카오톡 오픈채팅으로 연결해드릴게요. 우측 하단 상담 채널 또는 문의 페이지를 이용해 주세요. 남겨주신 관심 정보는 담당 매니저에게 함께 전달됩니다.');
+      addBot('상담사(고객센터)로 연결해 드릴게요. 잠시만요…');
       track('inquiry_submit', { value: { via: 'ai_assistant' } });
+      setTimeout(function () {
+        closePanel();
+        if (window.CQDemo && window.CQDemo.open) window.CQDemo.open({ screen: 'c-chat' });
+        else toast('고객센터는 마이페이지 > 고객센터에서 이용하실 수 있어요');
+      }, 500);
+      return;
+    }
+    if (q === '__sell__') {
+      addUser('내 시계 팔기');
+      addBot('시계 판매는 이렇게 진행돼요 😊\n1) 판매하실 모델·구성품(박스/보증서)을 알려주세요\n2) 감정사가 검토 후 매입가를 안내드려요\n3) 합의되면 안전하게 거래·정산까지 도와드려요\n\n지금 바로 접수하시겠어요?');
+      addActionButton('지금 판매하러 가기', function () {
+        closePanel();
+        if (window.CQDemo && window.CQDemo.open) window.CQDemo.open();
+        else toast('마이페이지 > 시계판매에서 접수하실 수 있어요');
+      });
+      track('sell_request', { value: { via: 'ai_assistant' } });
       return;
     }
     elInput.value = q; sendCurrent();
+  }
+  // 취향 Q&A용 빠른 선택 칩(브랜드/예산) — 누르면 그 내용을 메시지로 보냄
+  function addQuickChips() {
+    var wrap = document.createElement('div');
+    wrap.className = 'bai-menu';
+    var opts = ['롤렉스', '오메가', '까르띠에', '튜더', '파텍필립', '예산 500만 이하', '예산 1000만대', '예산 3000만 이상'];
+    wrap.innerHTML = opts.map(function (o) { return '<button class="bai-chip" type="button" data-q="' + esc(o) + '">' + esc(o) + '</button>'; }).join('');
+    elBody.appendChild(wrap);
+    elBody.scrollTop = elBody.scrollHeight;
+  }
+  // 채팅 안 단일 액션 버튼
+  function addActionButton(label, fn) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'bai-action';
+    b.textContent = label;
+    b.addEventListener('click', fn);
+    elBody.appendChild(b);
+    elBody.scrollTop = elBody.scrollHeight;
   }
 
   function showProfileSummary() {
@@ -1211,6 +1269,7 @@
     handleUserMessage(msg).then(function (res) {
       thinking.textContent = res.reply;
       addCards(res.recommendations);
+      if (res.askPref) addQuickChips();
       _busy = false;
     }).catch(function (e) {
       thinking.textContent = '저장 중 문제가 있었지만 관심 정보는 기기에 보관했어요. 다시 시도해 주세요.';
