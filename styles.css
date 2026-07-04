@@ -38,6 +38,19 @@
         --container: 660px;
     }
 }
+/* 데스크톱(1024px~)은 "와이드 보기" 토글 없이도 기본적으로 화면을 꽉 채움(진짜 풀화면) — 구구스식 대형 리셀마켓 느낌 */
+@media (min-width: 1024px) {
+    :root {
+        --app-w: 96vw;
+        --container: 96vw;
+    }
+}
+@media (min-width: 1600px) {
+    :root {
+        --app-w: 1536px;
+        --container: 1536px;
+    }
+}
 
 /* 로고 느낌의 영문 세리프 유틸 (한글은 산세리프 유지) */
 .serif { font-family: var(--serif); }
@@ -6467,10 +6480,27 @@ body[data-page="collection"] #collection .section-soft { padding-top: calc(14px 
         gap: 16px;
     }
 }
+/* 데스크톱(1024px~)은 4열, 초광폭(1600px~)은 5열 — 토글 없이 기본 적용(구구스식 대형 그리드) */
+@media (min-width: 1024px) {
+    .home-sale-grid,
+    .col-grid-inner,
+    .hcard-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+    }
+}
+@media (min-width: 1600px) {
+    .home-sale-grid,
+    .col-grid-inner,
+    .hcard-grid {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 18px;
+    }
+}
 html[data-width="full"] .home-sale-grid,
 html[data-width="full"] .col-grid-inner,
 html[data-width="full"] .hcard-grid {
-    grid-template-columns: repeat(4, 1fr);   /* 와이드 모드는 4열 */
+    grid-template-columns: repeat(4, 1fr);   /* 700~1023px 구간에서 수동으로 넓게 볼 때도 4열 */
     gap: 16px;
 }
 /* 이미지 규격 고정: 모든 카드 이미지를 동일한 정사각 박스로 강제(세로/가로형 무관)
@@ -7103,6 +7133,28 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: none; }
 }
+
+/* PC 방문자 전용 첫 화면(바이버식 랜딩) — 모바일에서는 항상 숨김 */
+.pc-gate { display: none; }
+@media (min-width: 1024px) {
+    .pc-gate:not([hidden]) {
+        position: fixed; inset: 0; z-index: 5000;
+        background: #fafaf8;
+        display: flex; align-items: center; justify-content: center;
+    }
+}
+.pc-gate-inner { text-align: center; padding: 0 24px; }
+.pc-gate-logo { width: 220px; height: auto; margin-bottom: 36px; }
+.pc-gate-tagline {
+    font-size: 28px; font-weight: 700; line-height: 1.5;
+    color: var(--text); letter-spacing: -.3px; margin: 0 0 40px;
+}
+.pc-gate-btn {
+    padding: 16px 40px; border-radius: 999px; border: none;
+    background: #111; color: #fff; font-size: 15px; font-weight: 700;
+    letter-spacing: .2px; cursor: pointer;
+}
+.pc-gate-btn:hover { background: #000; }
 
 /* ============================================================
    배치4 보강: 판매시계 ALL/스와이프 · 검색탭 · 자동완성 · 시세그래프 · 벨로르 팝업
