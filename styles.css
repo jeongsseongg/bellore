@@ -3663,24 +3663,21 @@ body.pp-lb-open { overflow: hidden; }
     width: max-content;
     padding-right: 24px;
 }
+/* 카드 전체를 감싸는 테두리 박스는 없앤다 — 이미지에만 자체 박스를 두고
+   텍스트(브랜드/모델/스펙/가격)는 여백 없이 바로 아래 흐르는 레퍼런스 스타일 */
 .hcard {
     flex: 0 0 200px;
     width: 200px;
     scroll-snap-align: start;
-    background: var(--white);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    overflow: hidden;
+    background: transparent;
+    border: none;
+    border-radius: 0;
     position: relative;
-    transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+    transition: opacity 0.2s;
     cursor: pointer;
     user-select: none;
 }
-.hcard:hover {
-    transform: translateY(-6px);
-    border-color: rgba(0,0,0,0.16);
-    box-shadow: 0 18px 42px rgba(0,0,0,0.10);
-}
+.hcard:hover { opacity: 0.85; }
 .hcard-img {
     width: 100%;
     aspect-ratio: 1;
@@ -6486,8 +6483,9 @@ html[data-width="full"] .hcard-grid {
 .hcard-grid .hcard-img {
     aspect-ratio: 1 / 1 !important;
     height: auto !important;
-    background: #ffffff;
-    padding: 10px;
+    background: #f7f7f5;
+    border-radius: 10px;
+    padding: 12px;
 }
 .home-sale-grid .hcard-img img,
 .col-grid-inner .hcard-img img,
@@ -6498,8 +6496,9 @@ html[data-width="full"] .hcard-grid {
 .hcard .hcard-img {
     aspect-ratio: 1 / 1 !important;
     height: auto !important;
-    background: #ffffff !important;
-    padding: 10px;
+    background: #f7f7f5 !important;
+    border-radius: 10px;
+    padding: 12px;
     overflow: hidden;
 }
 .hcard .hcard-img img {
@@ -6520,7 +6519,7 @@ html[data-width="full"] .hcard-grid {
 .hcard--today .hcard-img,
 .hcard-img--wide { aspect-ratio: 1 !important; }
 .hcard--today { grid-column: auto !important; }
-.hcard-grid .hcard-img { padding: 10px; }
+.hcard-grid .hcard-img { padding: 12px; }
 /* 카테고리 오버레이 배지 위치 통일 */
 .hcard-new-badge, .hcard-sale-badge, .hcard-today-label { z-index: 3; }
 

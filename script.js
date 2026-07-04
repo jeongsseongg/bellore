@@ -1350,7 +1350,7 @@
             'data-brand="' + esc(it.brand || '') + '" data-model="' + esc(it.model || '') + '" ' +
             'data-price="' + esc(String(it.price || 0)) + '" data-sprice="' + esc(String(it.sale_price || '')) + '">' +
             '<span class="mypc-img"><img src="' + esc(img) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'"></span>' +
-            '<span class="mypc-brand">' + esc(it.brand || '') + '</span>' +
+            '<span class="mypc-brand">' + esc(brandKR(it.brand) || '') + '</span>' +
             '<span class="mypc-model">' + esc(it.model || '') + '</span>' +
             '<span class="mypc-price">' + priceTxt + '</span>' +
         '</button>';
@@ -3324,7 +3324,25 @@
         }
         return fmt(it.price) + '<em>원</em>';
     }
-    // 카드 하단 정보: 2줄 고정(구성품·등급 / 스탬핑·미리수). 값 없으면 '미표기'.
+    // 브랜드 표기: 카드 첫 줄=영문("ROLEX"), 둘째 줄=한글 브랜드+모델명("롤렉스 데이트저스트 16233")
+    function brandKR(brand) {
+        return window.BELLORE_BRAND_KR ? window.BELLORE_BRAND_KR(brand) : brand;
+    }
+    function brandEN(brand) {
+        return window.BELLORE_BRAND_EN ? window.BELLORE_BRAND_EN(brand) : brand;
+    }
+    function brandModelLineHTML(it) {
+        var line = (brandKR(it.brand) + ' ' + (it.model || '')).trim();
+        return '<p class="hcard-model">' + esc(line) + '</p>';
+    }
+    // 카드 하단 스펙 한 줄: "36mm, 흰판" 형식(사이즈+색상, 사장님 확정)
+    function specLineHTML(it) {
+        var parts = [];
+        if (it.size_mm) parts.push(it.size_mm + 'mm');
+        if (it.dial_color) parts.push(it.dial_color);
+        return parts.length ? '<p class="hcard-pack">' + esc(parts.join(', ')) + '</p>' : '';
+    }
+    // 카드 하단 정보: 2줄 고정(구성품·등급 / 스탬핑·미리수). 값 없으면 '미표기'. (현재 목록 카드에는 미노출, 상세에서만 참고)
     function cardBadgesHTML(it) {
         function v(x) {
             x = (x == null ? '' : String(x)).trim();
@@ -3394,10 +3412,10 @@
             card.dataset.size = it.size_mm || '';
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
-                '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
-                '<p class="hcard-model">' + esc(it.model) + '</p>' +
-                (it.pack ? '<p class="hcard-pack">' + esc(it.pack) + '</p>' : '') +
-                '<p class="hcard-price">' + priceHtml + '</p>' + cardBadgesHTML(it) +
+                '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
+                brandModelLineHTML(it) +
+                specLineHTML(it) +
+                '<p class="hcard-price">' + priceHtml + '</p>' +
                 '<div class="hcard-admin">' +
                 '<button type="button" class="hcard-gear" aria-label="설정"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1l2.1-2.1M17 7l2.1-2.1\"/></svg></button>' +
                 '<div class="hcard-admin-menu" hidden>' +
@@ -3440,10 +3458,10 @@
             card.dataset.created = it.created_at ? (Date.parse(it.created_at) || 0) : 0;
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
-                '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
-                '<p class="hcard-model">' + esc(it.model) + '</p>' +
-                (it.pack ? '<p class="hcard-pack">' + esc(it.pack) + '</p>' : '') +
-                '<p class="hcard-price">' + priceHtml + '</p>' + cardBadgesHTML(it) +
+                '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
+                brandModelLineHTML(it) +
+                specLineHTML(it) +
+                '<p class="hcard-price">' + priceHtml + '</p>' +
                 '<div class="hcard-admin">' +
                 '<button type="button" class="hcard-gear" aria-label="설정"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1l2.1-2.1M17 7l2.1-2.1\"/></svg></button>' +
                 '<div class="hcard-admin-menu" hidden>' +
@@ -3476,10 +3494,10 @@
             card.dataset.sprice = it.sale_price || '';
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
-                '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
-                '<p class="hcard-model">' + esc(it.model) + '</p>' +
-                (it.pack ? '<p class="hcard-pack">' + esc(it.pack) + '</p>' : '') +
-                '<p class="hcard-price">' + priceHtml + '</p>' + cardBadgesHTML(it);
+                '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
+                brandModelLineHTML(it) +
+                specLineHTML(it) +
+                '<p class="hcard-price">' + priceHtml + '</p>';
             frag.appendChild(card);
         });
         grid.appendChild(frag);
@@ -3504,10 +3522,10 @@
             card.dataset.sprice = it.sale_price || '';
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
-                '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
-                '<p class="hcard-model">' + esc(it.model) + '</p>' +
-                (it.pack ? '<p class="hcard-pack">' + esc(it.pack) + '</p>' : '') +
-                '<p class="hcard-price">' + priceHtml + '</p>' + cardBadgesHTML(it);
+                '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
+                brandModelLineHTML(it) +
+                specLineHTML(it) +
+                '<p class="hcard-price">' + priceHtml + '</p>';
             frag.appendChild(card);
         });
         grid.appendChild(frag);
@@ -5795,7 +5813,7 @@
                 if (!val) return '';
                 return '<div class="pp-spec-row"><span>' + label + '</span><strong>' + esc(val) + '</strong></div>';
             }
-            var html = row('브랜드', d.brand) +
+            var html = row('브랜드', brandKR(d.brand)) +
                 row('모델', d.model) +
                 row('컨디션', d.condition) +
                 row('구성품', d.accessories || d.pack) +
@@ -5824,7 +5842,7 @@
             curPhotos = photos;
             curIdx = 0;
 
-            $('#pmBrand').textContent = d.brand || '';
+            $('#pmBrand').textContent = brandKR(d.brand) || '';
             $('#pmModel').textContent = d.model || '';
             $('#pmPrice').innerHTML = ppPriceHTML(d);
             var pno = d.product_no || d.no || '-';
