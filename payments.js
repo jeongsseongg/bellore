@@ -202,6 +202,61 @@
     }
   }
 
+  /* ---------------- 체크아웃 임시저장(새로고침해도 작성 중이던 주문 복원) ---------------- */
+  var CO_DRAFT_KEY = 'bellore_checkout_draft';
+  var CO_DRAFT_TTL = 1000 * 60 * 60 * 2; // 2시간
+  var CO_FIELD_IDS = ['coName', 'coPhone', 'coShipName', 'coShipPhone', 'coPostcode', 'coAddr1', 'coAddr2', 'coShipReq'];
+  var _restoringDraft = false;
+  function saveCheckoutDraft() {
+    if (!product || _restoringDraft) return;
+    try {
+      var fields = {};
+      CO_FIELD_IDS.forEach(function (id) { var el = $('#' + id); if (el) fields[id] = el.value; });
+      var cSel = $('#coCouponSelect');
+      var ag = $('#coAgree');
+      sessionStorage.setItem(CO_DRAFT_KEY, JSON.stringify({
+        product: product,
+        fields: fields,
+        couponId: cSel ? cSel.value : '',
+        agree: !!(ag && ag.checked),
+        savedAt: Date.now()
+      }));
+    } catch (e) {}
+  }
+  function clearCheckoutDraft() {
+    try { sessionStorage.removeItem(CO_DRAFT_KEY); } catch (e) {}
+  }
+  function restoreCheckoutDraft() {
+    var d;
+    try {
+      var raw = sessionStorage.getItem(CO_DRAFT_KEY);
+      if (!raw) return;
+      d = JSON.parse(raw);
+    } catch (e) { return; }
+    if (!d || !d.product || (Date.now() - (d.savedAt || 0)) > CO_DRAFT_TTL) { clearCheckoutDraft(); return; }
+    _restoringDraft = true;
+    openCheckout(d.product);
+    setTimeout(function () {
+      CO_FIELD_IDS.forEach(function (id) {
+        var el = $('#' + id);
+        if (el && d.fields && d.fields[id]) el.value = d.fields[id];
+      });
+      if (d.agree && $('#coAgree')) $('#coAgree').checked = true;
+      updateAmount();
+      if (d.couponId) {
+        var tries = 0;
+        var iv = setInterval(function () {
+          tries++;
+          var sel = $('#coCouponSelect');
+          var opt = sel && sel.querySelector('option[value="' + d.couponId + '"]');
+          if (opt) { sel.value = d.couponId; updateAmount(); clearInterval(iv); }
+          else if (tries > 10) clearInterval(iv);
+        }, 300);
+      }
+      _restoringDraft = false;
+    }, 50);
+  }
+
   function openCheckout(p) {
     // 비회원도 구매 가능(네이버페이 주문형 요건). 주문 생성은 게스트 분기로 처리한다.
     product = p || window.BELLORE_currentProduct;
@@ -232,12 +287,14 @@
     var sc = modal.querySelector('.co-scroll');
     if (sc) sc.scrollTop = 0;
     updateAmount();
+    saveCheckoutDraft();
   }
   window.BELLORE_openCheckout = openCheckout;
 
   function closeCheckout() {
     if (modal) modal.hidden = true;
     document.body.style.overflow = '';
+    clearCheckoutDraft();
   }
 
   // 결제 요청
@@ -368,10 +425,12 @@
       : Promise.resolve({ ok: true, demo: true });
     doConfirm.then(function (res) {
       if (res && (res.ok || res.alreadyPaid)) {
+        clearCheckoutDraft();
         if (window.belloreRefreshCoupons) window.belloreRefreshCoupons();
         showResult(true, '결제가 완료되었습니다',
           '주문번호 ' + (paymentId || '') + '\n마이페이지에서 주문 내역을 확인하실 수 있습니다.');
       } else if (res && res.demo) {
+        clearCheckoutDraft();
         showResult(true, '결제 완료 (데모)',
           '서버 검증(Edge Function) 미배포 상태입니다.\n주문번호 ' + (paymentId || ''));
       } else {
@@ -473,6 +532,20 @@
         if (my) my.click();
       }
     });
+
+    // 구매자 정보/배송지 입력값 자동 임시저장(새로고침 대비)
+    var coModalEl = $('#checkoutModal');
+    if (coModalEl) {
+      var draftTimer = null;
+      coModalEl.addEventListener('input', function () {
+        clearTimeout(draftTimer);
+        draftTimer = setTimeout(saveCheckoutDraft, 400);
+      });
+      coModalEl.addEventListener('change', function () { saveCheckoutDraft(); });
+    }
+
+    // 새로고침 등으로 페이지가 다시 열렸을 때 작성 중이던 주문 복원
+    restoreCheckoutDraft();
 
     handleReturn();
   }

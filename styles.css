@@ -1743,6 +1743,32 @@ img { display: block; max-width: 100%; height: auto; }
     font-weight: 800;
     margin-bottom: 18px;
 }
+.draft-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    background: var(--bg-soft);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin: -6px 0 18px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-2);
+}
+.draft-banner-btns { display: flex; gap: 6px; flex-shrink: 0; }
+.draft-banner-btns button {
+    border: none;
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.draft-banner-btns .draft-restore { background: var(--text); color: var(--white); }
+.draft-banner-btns .draft-dismiss { background: transparent; color: var(--text-3); }
 .form-label {
     display: block;
     font-size: 13px;

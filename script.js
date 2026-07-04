@@ -2555,6 +2555,87 @@
         }
     }
 
+    /* ============ 폼 임시저장(새로고침해도 작성 내용 복원) ============ */
+    var DRAFT_TTL = 1000 * 60 * 60 * 24 * 3; // 3일 지나면 폐기
+    function draftKey(formId) { return 'bellore_draft_' + formId; }
+    function saveFormDraft(form, extra) {
+        if (!form) return;
+        try {
+            var fields = {};
+            $$('input[name], textarea[name], select[name]', form).forEach(function (el) {
+                fields[el.name] = el.value;
+            });
+            var payload = { fields: fields, extra: extra || null, savedAt: Date.now() };
+            try {
+                localStorage.setItem(draftKey(form.id), JSON.stringify(payload));
+            } catch (e) {
+                // 사진 등으로 용량 초과 시 텍스트만이라도 저장
+                payload.extra = null;
+                try { localStorage.setItem(draftKey(form.id), JSON.stringify(payload)); } catch (e2) {}
+            }
+        } catch (e) {}
+    }
+    function loadFormDraft(formId) {
+        try {
+            var raw = localStorage.getItem(draftKey(formId));
+            if (!raw) return null;
+            var d = JSON.parse(raw);
+            if (!d || (Date.now() - (d.savedAt || 0)) > DRAFT_TTL) { localStorage.removeItem(draftKey(formId)); return null; }
+            return d;
+        } catch (e) { return null; }
+    }
+    function clearFormDraft(formId) {
+        try { localStorage.removeItem(draftKey(formId)); } catch (e) {}
+        var banner = document.getElementById(formId + 'DraftBanner');
+        if (banner) banner.remove();
+    }
+    function draftHasContent(d) {
+        if (!d) return false;
+        var hasField = Object.keys(d.fields || {}).some(function (k) { return (d.fields[k] || '').trim(); });
+        var hasExtra = d.extra && Object.keys(d.extra).length;
+        return hasField || hasExtra;
+    }
+    function applyFormDraft(form, fields) {
+        $$('input[name], textarea[name], select[name]', form).forEach(function (el) {
+            if (fields && fields[el.name] != null) el.value = fields[el.name];
+        });
+    }
+    function attachFormAutosave(form, extraGetter) {
+        if (!form) return;
+        var t = null;
+        function save() {
+            clearTimeout(t);
+            t = setTimeout(function () { saveFormDraft(form, extraGetter ? extraGetter() : null); }, 400);
+        }
+        form.addEventListener('input', save);
+        form.addEventListener('change', save);
+    }
+    // 저장된 임시작성분이 있으면 상단에 "이어서 작성" 배너를 띄운다.
+    function initDraftRestore(form, onRestore, onDismiss) {
+        if (!form) return;
+        var d = loadFormDraft(form.id);
+        if (!draftHasContent(d)) return;
+        if (document.getElementById(form.id + 'DraftBanner')) return;
+        var bar = document.createElement('div');
+        bar.className = 'draft-banner';
+        bar.id = form.id + 'DraftBanner';
+        bar.innerHTML = '<span>작성하던 내용이 있어요. 이어서 작성하시겠어요?</span>' +
+            '<span class="draft-banner-btns">' +
+            '<button type="button" class="draft-restore">이어서 작성</button>' +
+            '<button type="button" class="draft-dismiss">새로 작성</button>' +
+            '</span>';
+        var h3 = form.querySelector('h3');
+        if (h3 && h3.nextSibling) form.insertBefore(bar, h3.nextSibling);
+        else form.insertBefore(bar, form.firstChild);
+        bar.querySelector('.draft-restore').addEventListener('click', function () {
+            onRestore(d);
+            bar.remove();
+        });
+        bar.querySelector('.draft-dismiss').addEventListener('click', function () {
+            clearFormDraft(form.id);
+        });
+    }
+
     /* ============ 판매/구입/수리 폼 ============ */
     function initSellBuyRepairForms() {
         // 판매 폼 - 사진 업로드 (최대 10장)
@@ -2606,11 +2687,21 @@
                 if (addCell) sellGrid.insertBefore(cell, addCell);
             });
             if (addCell) addCell.style.display = sellPhotos.length >= 10 ? 'none' : '';
+            saveFormDraft($('#sellForm'), sellPhotos.length ? { photos: sellPhotos } : null);
         }
 
         // 판매 폼 제출
         var sellForm = $('#sellForm');
         if (sellForm) {
+            initDraftRestore(sellForm, function (d) {
+                applyFormDraft(sellForm, d.fields);
+                if (d.extra && d.extra.photos && d.extra.photos.length) {
+                    sellPhotos = d.extra.photos.slice();
+                    renderSellGrid();
+                }
+            });
+            attachFormAutosave(sellForm, function () { return sellPhotos.length ? { photos: sellPhotos } : null; });
+
             sellForm.addEventListener('submit', function (e) {
                 e.preventDefault();
                 var fd = new FormData(sellForm);
@@ -2626,6 +2717,7 @@
                 sellData['사진수'] = sellPhotos.length + '장';
                 sendLead('시계 판매 견적 신청', sellData);
                 alert(fd.get('name') + '님, 판매 견적 신청이 접수되었습니다.\n사진 ' + sellPhotos.length + '장이 함께 전송되었습니다.\n빠른 시간 안에 ' + fd.get('phone') + '으로 연락드립니다.');
+                clearFormDraft('sellForm');
                 sellForm.reset();
                 sellPhotos = [];
                 renderSellGrid();
@@ -2636,6 +2728,9 @@
         // 구입 폼 제출
         var buyForm = $('#buyForm');
         if (buyForm) {
+            initDraftRestore(buyForm, function (d) { applyFormDraft(buyForm, d.fields); });
+            attachFormAutosave(buyForm);
+
             buyForm.addEventListener('submit', function (e) {
                 e.preventDefault();
                 var fd = new FormData(buyForm);
@@ -2645,6 +2740,7 @@
                 }
                 sendLead('시계 구입 문의', fdToObj(fd));
                 alert(fd.get('name') + '님, 구입 문의가 접수되었습니다.\n매물 확보 시 즉시 ' + fd.get('phone') + '으로 안내드립니다.');
+                clearFormDraft('buyForm');
                 buyForm.reset();
                 navigate('home');
             });
@@ -2653,6 +2749,9 @@
         // 수리 폼 제출
         var repairForm = $('#repairForm');
         if (repairForm) {
+            initDraftRestore(repairForm, function (d) { applyFormDraft(repairForm, d.fields); });
+            attachFormAutosave(repairForm);
+
             repairForm.addEventListener('submit', function (e) {
                 e.preventDefault();
                 var fd = new FormData(repairForm);
@@ -2662,6 +2761,7 @@
                 }
                 sendLead('시계 수리 문의', fdToObj(fd));
                 alert(fd.get('name') + '님, 수리 문의가 접수되었습니다.\n1시간 이내 ' + fd.get('phone') + '으로 견적 회신드립니다.');
+                clearFormDraft('repairForm');
                 repairForm.reset();
                 navigate('home');
             });
