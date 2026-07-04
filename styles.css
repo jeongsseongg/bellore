@@ -4964,27 +4964,50 @@ body.pp-lb-open { overflow: hidden; }
     transform: scale(0.92);
 }
 
-/* 가운데 AI 원형 버튼 — 탭바 위로 살짝 튀어나오게 (VIVER ONE 참고) */
-.tab-ai-circle {
+/* 가운데 AI 원형 버튼 — 탭바 위로 튀어나오고, 튀어나온 부분만 바(bar)가 둥글게 파여
+   원과 이어지는 노치(notch) 처리 (바이버 레퍼런스 참고) */
+.tab-ai-wrap {
     flex: 0 0 auto;
-    width: 58px;
-    height: 58px;
-    margin-top: -24px;
-    border: 4px solid #fff;
+    position: relative;
+    width: 124px;
+    height: 100%;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+}
+.tab-ai-circle {
+    position: relative;
+    z-index: 2;
+    width: 72px;
+    height: 72px;
+    margin-top: -32px;
+    border: none;
     border-radius: 50%;
     background: #111;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    font-weight: 800;
-    letter-spacing: .3px;
     box-shadow: 0 6px 16px rgba(0, 0, 0, .22);
     cursor: pointer;
     animation: tabAiPulse 2.8s ease-in-out infinite;
 }
 .tab-ai-circle:active { transform: scale(.94); }
+/* 원 좌우의 바(bar) 표면이 원 쪽으로 매끄럽게 이어지도록 둥근 어깨(fillet)를 채워
+   원이 튀어나온 구간만 곡선이고, 나머지 바는 그대로 직선을 유지한다 */
+.tab-ai-notch {
+    position: absolute;
+    top: -26px;
+    z-index: 1;
+    width: 26px;
+    height: 26px;
+    background: #fff;
+    pointer-events: none;
+}
+.tab-ai-notch-l {
+    left: calc(50% - 62px);
+    border-top-left-radius: 26px;
+}
+.tab-ai-notch-r {
+    left: calc(50% + 36px);
+    border-top-right-radius: 26px;
+}
 @keyframes tabAiPulse {
     0%, 100% { box-shadow: 0 6px 16px rgba(0,0,0,.22), 0 0 0 0 rgba(17,17,17,.16); }
     50% { box-shadow: 0 6px 16px rgba(0,0,0,.22), 0 0 0 7px rgba(17,17,17,0); }
