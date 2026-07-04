@@ -63,6 +63,9 @@
         initAdminOrderUI();
         initAdminDashboard();
         initBackendSync();
+        // 새로고침해도 마이페이지/주문내역/설정 등 보던 화면 그대로 복원(로그인 상태 확정 후)
+        if (backendOn() && NWBackend.ready) NWBackend.ready.then(restoreScreen);
+        else restoreScreen();
         initInstallPrompt();
         initPwaModal();
         initAccountUI();
@@ -257,6 +260,45 @@
         restartAuto();
     }
 
+    /* ============ 마이페이지 등 오버레이 화면 복원(새로고침해도 유지) ============ */
+    // 하단 탭(다른 페이지)으로 이동하면 지워지고, 새로고침 시엔 로그인 상태일 때만 복원한다.
+    var SCREEN_KEY = 'bellore_screen';
+    function saveScreen(type, extra) {
+        try { sessionStorage.setItem(SCREEN_KEY, JSON.stringify({ type: type, extra: extra || null })); } catch (e) {}
+    }
+    function clearScreen() {
+        try { sessionStorage.removeItem(SCREEN_KEY); } catch (e) {}
+    }
+    function loadScreen() {
+        try {
+            var raw = sessionStorage.getItem(SCREEN_KEY);
+            return raw ? JSON.parse(raw) : null;
+        } catch (e) { return null; }
+    }
+    function restoreScreen() {
+        var s = loadScreen();
+        if (!s || !s.type) return;
+        if (!(backendOn() && NWBackend.currentUser && NWBackend.currentUser())) { clearScreen(); return; }
+        if (s.type === 'mypage') {
+            openMyPage();
+            if (s.extra && s.extra.sub) openMpSub(s.extra.sub);
+        } else if (s.type === 'orders') {
+            openMyPage();
+            openOrdersList((s.extra && s.extra.filter) || '');
+        } else if (s.type === 'settings') {
+            openMyPage();
+            if (window.BELLORE_openSettings) window.BELLORE_openSettings();
+            if (s.extra && s.extra.sub === 'noti') {
+                var sp = $('#settingsPage');
+                if (sp) {
+                    sp.dataset.cur = 'noti';
+                    $$('.set-step', sp).forEach(function (el) { el.hidden = el.dataset.sstep !== 'noti'; });
+                    var t = $('#setTitle'); if (t) t.textContent = '알림 설정';
+                }
+            }
+        }
+    }
+
     /* ============ 계정 UI: 구글 로그인 · 마이페이지 · 알림 · 관리자 관리 · 상품 수정 ============ */
     var pocketBound = false;
     var myOrdersUnsub = null;
@@ -299,9 +341,13 @@
         m.hidden = false; document.body.style.overflow = 'hidden';
         renderOrdersList();
         refreshMyOrders(); // 열 때 최신 상태 재조회(취소/변동 즉시 반영)
+        saveScreen('orders', { filter: ordersFilter });
     }
     function closeOrdersList() {
         var m = $('#ordersModal'); if (m) { m.hidden = true; document.body.style.overflow = 'hidden'; }
+        // 마이페이지가 뒤에 열려 있으면 그 상태로 복원 대상을 되돌린다.
+        var mp = $('#myPageModal');
+        if (mp && !mp.hidden) saveScreen('mypage'); else clearScreen();
     }
     // 주문 캐시 반영 + 현황/메뉴/목록 갱신 (구독 콜백 & 수동 폴백 공용)
     function applyMyOrders(orders) {
@@ -373,6 +419,7 @@
         var m = $('#myPageModal');
         if (!m) return;
         m.hidden = false;
+        saveScreen('mypage');
         // 하단 탭에서 '마이페이지'를 활성 표시(다른 탭 active 해제) — tabMy 는 data-nav 가 없어
         // applyPage 가 칠해주지 못하므로 여기서 직접 처리한다.
         var tm = $('#tabMy');
@@ -449,6 +496,7 @@
         if (m) { m.hidden = true; document.body.style.overflow = ''; }
         document.body.classList.remove('mypage-open');
         closeMpSub();
+        clearScreen();
     }
     window.BELLORE_openMyPage = openMyPage;
 
@@ -466,6 +514,7 @@
         var t = $('#mpSubTitle'); if (t) t.textContent = MP_SUB_TITLE[id] || '';
         mc.scrollTop = 0;
         try { window.scrollTo(0, 0); } catch (e) {}
+        saveScreen('mypage', { sub: id });
         return true;
     }
     function closeMpSub() {
@@ -473,6 +522,8 @@
         if (!mc) return;
         mc.classList.remove('mp-sub');
         mc.removeAttribute('data-mpsub');
+        var m = $('#myPageModal');
+        if (m && !m.hidden) saveScreen('mypage');
     }
 
     var notiCache = [];
@@ -845,25 +896,27 @@
                 if (!backendOn() || !NWBackend.currentUser || !NWBackend.currentUser()) { alert('로그인 후 이용해 주세요.'); return; }
                 setStep('home');
                 settingsPage.hidden = false; document.body.style.overflow = 'hidden';
+                saveScreen('settings');
             }
             function closeSettings() {
                 settingsPage.hidden = true;
                 var mp = $('#myPageModal');
                 document.body.style.overflow = (mp && !mp.hidden) ? 'hidden' : '';
+                if (mp && !mp.hidden) saveScreen('mypage'); else clearScreen();
             }
             window.BELLORE_openSettings = openSettings;
             var btnSettings = $('#btnSettings');
             if (btnSettings) btnSettings.addEventListener('click', openSettings);
             var setBack = $('#setBack');
             if (setBack) setBack.addEventListener('click', function () {
-                if (settingsPage.dataset.cur === 'noti') setStep('home');
+                if (settingsPage.dataset.cur === 'noti') { setStep('home'); saveScreen('settings'); }
                 else closeSettings();
             });
             settingsPage.addEventListener('click', function (e) {
                 var row = e.target.closest('[data-sgo]');
                 if (!row) return;
                 var go = row.getAttribute('data-sgo');
-                if (go === 'noti') { setStep('noti'); return; }
+                if (go === 'noti') { setStep('noti'); saveScreen('settings', { sub: 'noti' }); return; }
                 // 회원정보 수정 / 정산계좌 변경 → 회원정보 페이지 (뒤로 시 설정 복귀)
                 closeSettings();
                 if (window.BELLORE_openProfile) window.BELLORE_openProfile(go === 'account' ? 'account' : 'home', 'settings');
@@ -4571,6 +4624,7 @@
         try { if (typeof closeMpSub === 'function') closeMpSub(); } catch (e) {}
         document.body.classList.remove('mypage-open');
         document.body.style.overflow = '';
+        clearScreen();
     }
 
     function applyPage(target) {
