@@ -68,7 +68,9 @@
       + '.aia-detail-back{font-size:13px;color:#2d5fd0;cursor:pointer;margin-bottom:10px;display:inline-block}'
       + '.aia-note{max-width:720px;margin:0 auto 10px;font-size:12px;color:#9a9a9a;line-height:1.6}'
       + '.aia-team-imgs{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}'
-      + '.aia-team-imgs img{width:96px;height:96px;object-fit:cover;border-radius:10px;border:1px solid #e5e3df}';
+      + '.aia-team-imgs img{width:96px;height:96px;object-fit:cover;border-radius:10px;border:1px solid #e5e3df}'
+      + '.aia-2col{max-width:720px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:12px}'
+      + '@media(max-width:560px){.aia-2col{grid-template-columns:1fr}}';
     var st = document.createElement('style'); st.id = 'bellore-aiadmin-style'; st.textContent = css;
     document.head.appendChild(st);
   }
@@ -192,88 +194,90 @@
       '<div class="aia-sub" style="margin-top:2px">' + esc(label) + '</div>' + (sub ? ('<div class="aia-meta">' + esc(sub) + '</div>') : '') + '</div>';
   }
   function paintSettings(s, topBrands, brandCnt, stageCnt) {
-    var html = '<div class="aia-note">AI 상담의 두뇌 상태를 한눈에. 여기서 "지금까지 파악한 데이터"를 보고, "답변 참고서"를 관리하고, "개선이 필요한 질문"을 처리합니다.</div>';
-    // 수집 현황
+    var html = '<div class="aia-note">AI 상담의 두뇌 상태를 한눈에 보는 화면이에요. 수집 현황을 보고, 참고서를 관리하고, AI가 학습한 내용·궁금한 점을 확인하세요.</div>';
     html += '<h5>지금까지 수집·파악한 데이터</h5>';
     html += '<div class="aia-sec" style="display:flex;gap:8px;flex-wrap:wrap">' +
       statTile('고객 프로필', s.profiles) + statTile('대화', s.convs) + statTile('행동 로그', s.events) +
       statTile('전문가 지식', s.knowledge) + statTile('Discord 수집', s.team) + '</div>';
-    // 관심 브랜드 Top
-    html += '<h5>고객 관심 브랜드 Top</h5><div class="aia-card nohover">' +
-      (topBrands.length ? topBrands.map(function (b) { return '<span class="aia-tag brand" style="margin:3px">' + esc(b) + ' ' + brandCnt[b] + '</span>'; }).join(' ') : '<span class="aia-sub">아직 데이터가 적습니다.</span>') + '</div>';
-    // 구매단계 분포
-    var stages = Object.keys(stageCnt);
-    html += '<h5>구매단계 분포</h5><div class="aia-card nohover">' +
-      (stages.length ? stages.map(function (k) { return '<div class="aia-sub">' + esc(STAGE[k] || k) + ': <b>' + stageCnt[k] + '</b></div>'; }).join('') : '<span class="aia-sub">-</span>') + '</div>';
-    // 답변 참고서 요약 + 바로가기
+    html += '<div class="aia-2col">' +
+      '<div><h5>관심 브랜드 Top</h5><div class="aia-card nohover">' +
+        (topBrands.length ? topBrands.map(function (b) { return '<span class="aia-tag brand" style="margin:3px">' + esc(b) + ' ' + brandCnt[b] + '</span>'; }).join(' ') : '<span class="aia-sub">아직 데이터가 적습니다.</span>') + '</div></div>' +
+      '<div><h5>구매단계 분포</h5><div class="aia-card nohover">' +
+        (Object.keys(stageCnt).length ? Object.keys(stageCnt).map(function (k) { return '<div class="aia-sub">' + esc(STAGE[k] || k) + ': <b>' + stageCnt[k] + '</b></div>'; }).join('') : '<span class="aia-sub">-</span>') + '</div></div>' +
+      '</div>';
     html += '<h5>답변 참고서</h5><div class="aia-card nohover">' +
       '<div class="aia-sub">참고서 <b>' + s.guides + '</b>개를 AI가 학습해 답변에 반영 중이에요.</div>' +
       '<div class="aia-btns"><button class="aia-btn pri" data-act="go-guidelines">참고서 관리</button>' +
       '<button class="aia-btn" data-act="go-alerts">발송 대기 알림 ' + s.alerts + '건</button></div></div>';
-    // 오늘 학습한 내용 (AI가 대화에서 알아낸 것 → 관리자가 학습할지 체크)
-    html += '<h5>오늘 학습한 내용 <span class="aia-meta" style="font-weight:400">(대화에서 AI가 알아낸 것 — 학습할지 정해주세요)</span></h5>';
+    html += '<h5>오늘 학습한 내용 <span class="aia-meta" style="font-weight:400">(AI가 대화에서 알아낸 고객 특징)</span></h5>';
     html += '<div class="aia-sec"><button class="aia-btn pri" data-act="ai-learn-now">대화에서 지금 학습하기 (AI 실행)</button></div>';
     html += '<div id="aiaLearned"><div class="aia-note">불러오는 중…</div></div>';
-    // 꼭 확인해주세요 (자주 묻거나 답이 어려웠던 질문)
-    html += '<h5>꼭 확인해주세요 <span class="aia-meta" style="font-weight:400">(자주 묻거나 답이 어려웠던 질문)</span></h5>';
-    html += '<div id="aiaReview"><div class="aia-note">불러오는 중…</div></div>';
+    html += '<h5>확인할 내용 <span class="aia-meta" style="font-weight:400">(대화 중 막혔던 질문 + AI가 궁금해하는 것을 한곳에)</span></h5>';
+    html += '<div id="aiaConfirm"><div class="aia-note">불러오는 중…</div></div>';
     bodyEl.innerHTML = html;
     loadLearned();
-    loadReviewQuestions();
+    loadConfirmations();
   }
-  // AI가 대화에서 뽑은 장기 메모리(학습 후보) — 유지/삭제로 관리
+  // AI가 대화에서 뽑은 장기 메모리(학습 후보) — 유지/삭제로 관리. '궁금한 점'은 확인할 내용 쪽으로 옮겨감.
   function loadLearned() {
     var box = $('#aiaLearned'); if (!box) return;
     sb().from('ai_customer_memories').select('id,memory_type,content,confidence,created_at,profile_id')
-      .order('created_at', { ascending: false }).limit(60)
+      .neq('memory_type', 'question').order('created_at', { ascending: false }).limit(40)
       .then(function (res) {
         if (res.error) { box.innerHTML = '<div class="aia-note">' + esc(res.error.message) + '</div>'; return; }
         var rows = res.data || [];
-        var facts = rows.filter(function (m) { return m.memory_type !== 'question'; });
-        var questions = rows.filter(function (m) { return m.memory_type === 'question'; });
         var MEM_KO = { preference: '선호', budget: '예산', personality: '성향', risk: '안전성향', brand_interest: '브랜드 관심', buying_intent: '구매의향' };
-        var html = facts.length ? facts.map(function (m) {
+        box.innerHTML = rows.length ? rows.map(function (m) {
           return '<div class="aia-card nohover"><div class="aia-row">' +
             '<span class="aia-tag brand">' + esc(MEM_KO[m.memory_type] || m.memory_type) + '</span>' +
             '<span class="aia-meta" style="margin-left:auto;margin-top:0">확신 ' + (m.confidence || 0) + ' · ' + fmtDate(m.created_at) + '</span></div>' +
             '<div class="aia-sub" style="margin-top:6px">' + esc(m.content) + '</div>' +
             '<div class="aia-btns"><button class="aia-btn pri" data-act="mem-keep" data-id="' + esc(m.id) + '">학습 유지</button>' +
-            '<button class="aia-btn dng" data-act="mem-del" data-id="' + esc(m.id) + '">학습 제외</button></div></div>';
+            '<button class="aia-btn dng" data-act="mem-del" data-id="' + esc(m.id) + '">삭제</button></div></div>';
         }).join('') : '<div class="aia-note">아직 학습한 내용이 없어요. 위 "지금 학습하기"를 누르면 AI가 최근 대화를 분석해 고객별 특징을 뽑아줍니다.</div>';
-        html += '<h5 style="margin-top:16px">궁금한 점 <span class="aia-meta" style="font-weight:400">(AI가 확신이 안 서서 여쭤보는 것)</span></h5>';
-        html += questions.length ? questions.map(function (m) {
-          return '<div class="aia-card nohover"><div class="aia-sub">' + esc(m.content) + '</div>' +
-            '<div class="aia-btns"><button class="aia-btn pri" data-act="q-answer" data-msg="' + esc(m.content).replace(/"/g, '&quot;') + '">답변 남기기</button>' +
-            '<button class="aia-btn dng" data-act="mem-del" data-id="' + esc(m.id) + '">넘어가기</button></div>' +
-            '<div class="aia-meta">' + fmtDate(m.created_at) + '</div></div>';
-        }).join('') : '<div class="aia-note">지금은 궁금한 점이 없어요.</div>';
-        box.innerHTML = html;
       }).catch(function (e) { box.innerHTML = '<div class="aia-note">' + esc(String(e)) + '</div>'; });
   }
-  function loadReviewQuestions() {
-    var box = $('#aiaReview'); if (!box) return;
+  // 통합 '확인할 내용' — 대화중 막혔던 질문(ai_conversations) + AI가 궁금해하는 것(ai_customer_memories)
+  // 을 한 목록으로 합쳐 보여준다. 소스만 배지로 구분(중복 UI 제거).
+  function loadConfirmations() {
+    var box = $('#aiaConfirm'); if (!box) return;
+    var items = [];
     sb().from('ai_conversations').select('id,message,created_at')
       .eq('role', 'user').filter('metadata->>needs_review', 'eq', 'true')
       .order('created_at', { ascending: false }).limit(60)
       .then(function (res) {
-        if (res.error) { box.innerHTML = '<div class="aia-note">질문 조회 보류: ' + esc(res.error.message) + '</div>'; return; }
-        var rows = res.data || [];
-        // 같은 질문이 여러 번이면 묶어서 "N번 물어봤어요" 로 — 자주 묻는 질문 파악
+        if (res.error) throw res.error;
         var groups = {}, order = [];
-        rows.forEach(function (c) {
+        (res.data || []).forEach(function (c) {
           var key = (c.message || '').trim().toLowerCase();
           if (!groups[key]) { groups[key] = { msg: c.message, ids: [], last: c.created_at }; order.push(key); }
           groups[key].ids.push(c.id);
         });
-        box.innerHTML = order.length ? order.map(function (k) {
-          var g = groups[k]; var n = g.ids.length;
-          return '<div class="aia-card nohover"><div class="aia-row"><span class="aia-sub" style="flex:1">' + esc(g.msg) + '</span>' +
-            (n > 1 ? '<span class="aia-tag warn" style="margin-left:auto">' + n + '번 물음</span>' : '') + '</div>' +
-            '<div class="aia-btns"><button class="aia-btn pri" data-act="review-to-guide" data-msg="' + esc(g.msg).replace(/"/g, '&quot;') + '">이 질문 참고서에 추가</button>' +
-            '<button class="aia-btn" data-act="review-done" data-ids="' + esc(g.ids.join(',')) + '">확인했어요</button></div>' +
-            '<div class="aia-meta">' + fmtDate(g.last) + '</div></div>';
-        }).join('') : '<div class="aia-note">확인이 필요한 질문이 없어요. 고객이 물었는데 AI가 잘 못 답한 질문이 여기 모여요 → 참고서에 답을 넣어주면 다음부터 잘 답합니다.</div>';
-      }).catch(function (e) { box.innerHTML = '<div class="aia-note">' + esc(String(e)) + '</div>'; });
+        order.forEach(function (k) {
+          var g = groups[k];
+          items.push({ source: '대화', content: g.msg, count: g.ids.length, at: g.last, chatIds: g.ids });
+        });
+        return sb().from('ai_customer_memories').select('id,content,created_at').eq('memory_type', 'question')
+          .order('created_at', { ascending: false }).limit(40);
+      })
+      .then(function (res) {
+        if (res && res.error) throw res.error;
+        (res && res.data || []).forEach(function (m) {
+          items.push({ source: '고객분석', content: m.content, at: m.created_at, memId: m.id });
+        });
+        items.sort(function (a, b) { return new Date(b.at) - new Date(a.at); });
+        box.innerHTML = items.length ? items.map(function (it) {
+          var delAttr = it.chatIds ? ('data-ids="' + esc(it.chatIds.join(',')) + '"') : ('data-id="' + esc(it.memId) + '"');
+          var delAct = it.chatIds ? 'review-done' : 'mem-del';
+          return '<div class="aia-card nohover"><div class="aia-row">' +
+            '<span class="aia-tag' + (it.source === '대화' ? ' warn' : '') + '">' + esc(it.source) + '</span>' +
+            (it.count > 1 ? ('<span class="aia-tag warn" style="margin-left:6px">' + it.count + '번 물음</span>') : '') +
+            '<span class="aia-meta" style="margin-left:auto;margin-top:0">' + fmtDate(it.at) + '</span></div>' +
+            '<div class="aia-sub" style="margin-top:6px">' + esc(it.content) + '</div>' +
+            '<div class="aia-btns"><button class="aia-btn pri" data-act="' + (it.chatIds ? 'review-to-guide' : 'q-answer') + '" data-msg="' + esc(it.content).replace(/"/g, '&quot;') + '">답변 남기기</button>' +
+            '<button class="aia-btn dng" data-act="' + delAct + '" ' + delAttr + '>넘어가기</button></div></div>';
+        }).join('') : '<div class="aia-note">지금은 확인할 내용이 없어요. 대화 중 AI가 막혔던 질문이나, 고객 분석 중 궁금한 점이 생기면 여기 모여요.</div>';
+      }).catch(function (e) { box.innerHTML = '<div class="aia-note">' + esc(String(e && e.message || e)) + '</div>'; });
   }
 
   /* ---------------- 1) 고객 프로필 목록 ---------------- */
@@ -436,7 +440,8 @@
             return '<div class="aia-card nohover"><div class="aia-row"><span class="aia-name" style="font-size:14px">' + esc(k.title) + '</span>' +
               '<button class="aia-btn" data-act="kn-cycle" data-id="' + esc(k.id) + '" data-st="' + esc(k.status) + '" style="margin-left:auto">' + esc(KN_KO[k.status] || k.status) + ' →</button></div>' +
               '<div class="aia-sub" style="margin-top:6px">' + esc(k.content) + '</div>' +
-              '<div class="aia-meta">' + tags + ' · 신뢰도 ' + (k.confidence || 0) + ' · ' + esc(k.source || '') + '</div></div>';
+              '<div class="aia-meta">' + tags + ' · 신뢰도 ' + (k.confidence || 0) + ' · ' + esc(k.source || '') + '</div>' +
+              '<div class="aia-btns"><button class="aia-btn dng" data-act="kn-del" data-id="' + esc(k.id) + '">삭제</button></div></div>';
           }).join('') : '<div class="aia-empty">전문가 지식 노트가 없습니다.</div>');
       }).catch(function (e) { bodyEl.innerHTML = sqlHint(e); });
   }
@@ -466,11 +471,13 @@
           var recent = g.items.slice(0, 3).map(function (i) {
             return '<div class="aia-sub">' + esc(i.deal_type || '참고') + ' ' + krw(i.price_krw || i.price) + '원 · ' + fmtDate(i.scraped_at) + '</div>';
           }).join('');
+          var ids = g.items.map(function (i) { return i.id; }).join(',');
           return '<div class="aia-card nohover"><div class="aia-row">' +
             '<span class="aia-name" style="font-size:15px">' + esc(g.brand || '') + ' ' + esc(g.ref || '') + '</span>' +
             '<span class="aia-score" style="margin-left:auto">' + krw(lo) + '~' + krw(hi) + '원</span></div>' +
             '<div class="aia-meta">총 ' + g.items.length + '건 · 매입 ' + buy + '건 · 판매 ' + sell + '건</div>' +
-            recent + '</div>';
+            recent +
+            '<div class="aia-btns"><button class="aia-btn dng" data-act="market-del" data-ids="' + esc(ids) + '">이 시세 삭제</button></div></div>';
         }).join('');
         bodyEl.innerHTML = html;
       }).catch(function (e) { bodyEl.innerHTML = sqlHint(e); });
@@ -516,7 +523,8 @@
               (txt ? ('<div class="aia-sub" style="margin-top:6px">' + esc(txt) + '</div>') : '') +
               imgHtml + otherHtml +
               (tags ? ('<div class="aia-meta">' + tags + '</div>') : '') +
-              '<div class="aia-btns"><button class="aia-btn" data-act="team-to-knowledge" data-id="' + esc(m.id) + '">전문가 지식으로 보내기</button></div></div>';
+              '<div class="aia-btns"><button class="aia-btn" data-act="team-to-knowledge" data-id="' + esc(m.id) + '">전문가 지식으로 보내기</button>' +
+              '<button class="aia-btn dng" data-act="team-del" data-id="' + esc(m.id) + '">삭제</button></div></div>';
           }).join('') : '<div class="aia-empty">수집된 팀 메시지가 없습니다.<br>Discord/Slack 봇 연동(discord-ingest Edge Function) 후 채워집니다.</div>');
       }).catch(function (e) { bodyEl.innerHTML = sqlHint(e); });
   }
@@ -599,6 +607,22 @@
       sb().from('expert_knowledge_notes').update({ status: next }).eq('id', id).then(function () { renderKnowledge(); });
       return;
     }
+    if (act === 'kn-del') {
+      if (!confirm('이 지식 노트를 삭제할까요?')) return;
+      sb().from('expert_knowledge_notes').delete().eq('id', id).then(function () { renderKnowledge(); });
+      return;
+    }
+    if (act === 'market-del') {
+      if (!confirm('이 시세 항목을 삭제할까요?')) return;
+      var mids = (el.dataset.ids || '').split(',').filter(Boolean);
+      sb().from('watch_market_prices').delete().in('id', mids).then(function () { renderMarket(); });
+      return;
+    }
+    if (act === 'team-del') {
+      if (!confirm('이 팀 메시지를 삭제할까요? (첨부파일도 함께 삭제됩니다)')) return;
+      sb().from('team_messages').delete().eq('id', id).then(function () { renderTeam(); });
+      return;
+    }
     if (act === 'team-to-knowledge') return teamToKnowledge(id);
     if (act === 'ai-summarize') return callLearn(el, { action: 'summarize_profile', profile_id: id }, function () { renderProfileDetail(id); });
     if (act === 'ai-extract-knowledge') return callLearn(el, { action: 'extract_knowledge', limit: 30 }, function () { setTab('knowledge'); });
@@ -613,7 +637,7 @@
       return;
     }
     if (act === 'mem-del') {
-      sb().from('ai_customer_memories').delete().eq('id', id).then(function () { loadLearned(); });
+      sb().from('ai_customer_memories').delete().eq('id', id).then(function () { loadLearned(); loadConfirmations(); });
       return;
     }
     if (act === 'q-answer') {
@@ -624,7 +648,7 @@
     if (act === 'review-done') {
       var ids = (el.dataset.ids || '').split(',').filter(Boolean);
       if (!ids.length) return;
-      sb().from('ai_conversations').update({ metadata: { needs_review: false, resolved: true } }).in('id', ids).then(function () { loadReviewQuestions(); });
+      sb().from('ai_conversations').update({ metadata: { needs_review: false, resolved: true } }).in('id', ids).then(function () { loadConfirmations(); });
       return;
     }
     if (act === 'review-to-guide') {
