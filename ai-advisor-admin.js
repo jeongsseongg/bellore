@@ -80,6 +80,7 @@
     { k: 'conversations', t: '대화 로그' },
     { k: 'alerts', t: '알림 후보' },
     { k: 'knowledge', t: '전문가 지식' },
+    { k: 'market', t: '시세 인사이트' },
     { k: 'team', t: '팀 메시지' },
     { k: 'guidelines', t: '답변 참고서' }
   ];
@@ -138,6 +139,7 @@
     else if (k === 'conversations') renderConversations();
     else if (k === 'alerts') renderAlerts();
     else if (k === 'knowledge') renderKnowledge();
+    else if (k === 'market') renderMarket();
     else if (k === 'team') renderTeam();
     else if (k === 'guidelines') renderGuidelines();
   }
@@ -418,6 +420,7 @@
         var rows = res.data || [];
         var KN_KO = { draft: '초안', reviewed: '검토중', approved: '승인', archived: '보관' };
         bodyEl.innerHTML = '<div class="aia-note">전문가 녹취·디스코드에서 뽑은 시계 지식. 상태를 눌러 초안 → 검토중 → 승인 으로 올립니다.</div>' +
+          '<div class="aia-sec"><button class="aia-btn pri" data-act="ai-magazine-draft">매거진·블로그 초안 생성 (AI)</button></div>' +
           (rows.length ? rows.map(function (k) {
             var tags = [k.brand, k.model, k.reference_number].filter(Boolean).map(function (x) { return '<span class="aia-tag brand">' + esc(x) + '</span>'; }).join(' ');
             return '<div class="aia-card nohover"><div class="aia-row"><span class="aia-name" style="font-size:14px">' + esc(k.title) + '</span>' +
@@ -425,6 +428,41 @@
               '<div class="aia-sub" style="margin-top:6px">' + esc(k.content) + '</div>' +
               '<div class="aia-meta">' + tags + ' · 신뢰도 ' + (k.confidence || 0) + ' · ' + esc(k.source || '') + '</div></div>';
           }).join('') : '<div class="aia-empty">전문가 지식 노트가 없습니다.</div>');
+      }).catch(function (e) { bodyEl.innerHTML = sqlHint(e); });
+  }
+
+  /* ---------------- 5-1) 시세 인사이트 (레퍼런스별 매입/판매 가격대 집계) ---------------- */
+  function renderMarket() {
+    if (!guard()) return;
+    sb().from('watch_market_prices').select('*').order('scraped_at', { ascending: false }).limit(500)
+      .then(function (res) {
+        if (res.error) { bodyEl.innerHTML = sqlHint(res.error) + '<div class="aia-note">ai_market_insights.sql 을 실행했는지 확인하세요.</div>'; return; }
+        var rows = res.data || [];
+        var groups = {}, order = [];
+        rows.forEach(function (r) {
+          var key = (r.brand || '') + ' ' + (r.reference_number || '');
+          if (!groups[key]) { groups[key] = { brand: r.brand, ref: r.reference_number, items: [] }; order.push(key); }
+          groups[key].items.push(r);
+        });
+        var html = '<div class="aia-note">Discord 시세 대화에서 브랜드·레퍼런스·금액·매입/판매 여부를 자동으로 뽑아 정리합니다. 잡담은 자동 제외(브랜드+레퍼런스+금액 셋 다 있어야 인정).</div>' +
+          '<div class="aia-sec"><button class="aia-btn pri" data-act="ai-market-extract">디스코드에서 시세 뽑기</button></div>';
+        if (!order.length) { bodyEl.innerHTML = html + '<div class="aia-empty">아직 정리된 시세가 없습니다. 위 버튼을 눌러 팀 메시지에서 뽑아보세요.</div>'; return; }
+        html += order.map(function (key) {
+          var g = groups[key];
+          var prices = g.items.map(function (i) { return i.price_krw || i.price || 0; }).filter(Boolean);
+          var lo = Math.min.apply(null, prices), hi = Math.max.apply(null, prices);
+          var buy = g.items.filter(function (i) { return i.deal_type === '매입'; }).length;
+          var sell = g.items.filter(function (i) { return i.deal_type === '판매'; }).length;
+          var recent = g.items.slice(0, 3).map(function (i) {
+            return '<div class="aia-sub">' + esc(i.deal_type || '참고') + ' ' + krw(i.price_krw || i.price) + '원 · ' + fmtDate(i.scraped_at) + '</div>';
+          }).join('');
+          return '<div class="aia-card nohover"><div class="aia-row">' +
+            '<span class="aia-name" style="font-size:15px">' + esc(g.brand || '') + ' ' + esc(g.ref || '') + '</span>' +
+            '<span class="aia-score" style="margin-left:auto">' + krw(lo) + '~' + krw(hi) + '원</span></div>' +
+            '<div class="aia-meta">총 ' + g.items.length + '건 · 매입 ' + buy + '건 · 판매 ' + sell + '건</div>' +
+            recent + '</div>';
+        }).join('');
+        bodyEl.innerHTML = html;
       }).catch(function (e) { bodyEl.innerHTML = sqlHint(e); });
   }
 
@@ -554,6 +592,8 @@
     if (act === 'team-to-knowledge') return teamToKnowledge(id);
     if (act === 'ai-summarize') return callLearn(el, { action: 'summarize_profile', profile_id: id }, function () { renderProfileDetail(id); });
     if (act === 'ai-extract-knowledge') return callLearn(el, { action: 'extract_knowledge', limit: 30 }, function () { setTab('knowledge'); });
+    if (act === 'ai-market-extract') return callLearn(el, { action: 'extract_market_insights', limit: 200 }, function () { renderMarket(); });
+    if (act === 'ai-magazine-draft') return callLearn(el, { action: 'generate_magazine_draft' }, function () { setTab('knowledge'); });
     if (act === 'go-guidelines') { setTab('guidelines'); return; }
     if (act === 'go-alerts') { setTab('alerts'); return; }
     if (act === 'ai-learn-now') return callLearn(el, { action: 'summarize_all', limit: 30 }, function () { loadLearned(); });
