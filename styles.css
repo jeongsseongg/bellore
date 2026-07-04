@@ -6445,7 +6445,7 @@ html[data-width="full"] .hcard-grid {
     aspect-ratio: 1 / 1 !important;
     height: auto !important;
     background: #ffffff;
-    padding: 10px;
+    padding: 28px;
 }
 .home-sale-grid .hcard-img img,
 .col-grid-inner .hcard-img img,
@@ -6457,7 +6457,7 @@ html[data-width="full"] .hcard-grid {
     aspect-ratio: 1 / 1 !important;
     height: auto !important;
     background: #ffffff !important;
-    padding: 10px;
+    padding: 28px;
     overflow: hidden;
 }
 .hcard .hcard-img img {
@@ -6478,7 +6478,7 @@ html[data-width="full"] .hcard-grid {
 .hcard--today .hcard-img,
 .hcard-img--wide { aspect-ratio: 1 !important; }
 .hcard--today { grid-column: auto !important; }
-.hcard-grid .hcard-img { padding: 10px; }
+.hcard-grid .hcard-img { padding: 28px; }
 /* 카테고리 오버레이 배지 위치 통일 */
 .hcard-new-badge, .hcard-sale-badge, .hcard-today-label { z-index: 3; }
 
