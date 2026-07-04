@@ -7125,10 +7125,6 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
     font-size: 32px; font-weight: 600; line-height: 1.5;
     color: var(--text); letter-spacing: -.5px; margin: 0 0 44px;
 }
-.pvs-brand {
-    font-size: 1.35em; font-weight: 900; letter-spacing: -.5px;
-    color: #111;
-}
 .pvs-qr {
     display: flex; align-items: center; gap: 16px;
     background: #111; color: #fff; border-radius: 16px; padding: 14px 20px;
