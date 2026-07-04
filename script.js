@@ -3324,7 +3324,14 @@
         }
         return fmt(it.price) + '<em>원</em>';
     }
-    // 카드 하단 정보: 2줄 고정(구성품·등급 / 스탬핑·미리수). 값 없으면 '미표기'.
+    // 카드 하단 스펙 한 줄: "25mm, 블랙" 형식(사이즈/색상 레퍼런스 디자인)
+    function specLineHTML(it) {
+        var parts = [];
+        if (it.size_mm) parts.push(it.size_mm + 'mm');
+        if (it.dial_color) parts.push(it.dial_color);
+        return parts.length ? '<p class="hcard-pack">' + esc(parts.join(', ')) + '</p>' : '';
+    }
+    // 카드 하단 정보: 2줄 고정(구성품·등급 / 스탬핑·미리수). 값 없으면 '미표기'. (현재 목록 카드에는 미노출, 상세에서만 참고)
     function cardBadgesHTML(it) {
         function v(x) {
             x = (x == null ? '' : String(x)).trim();
@@ -3396,8 +3403,8 @@
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
                 '<p class="hcard-model">' + esc(it.model) + '</p>' +
-                (it.pack ? '<p class="hcard-pack">' + esc(it.pack) + '</p>' : '') +
-                '<p class="hcard-price">' + priceHtml + '</p>' + cardBadgesHTML(it) +
+                specLineHTML(it) +
+                '<p class="hcard-price">' + priceHtml + '</p>' +
                 '<div class="hcard-admin">' +
                 '<button type="button" class="hcard-gear" aria-label="설정"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1l2.1-2.1M17 7l2.1-2.1\"/></svg></button>' +
                 '<div class="hcard-admin-menu" hidden>' +
@@ -3442,8 +3449,8 @@
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
                 '<p class="hcard-model">' + esc(it.model) + '</p>' +
-                (it.pack ? '<p class="hcard-pack">' + esc(it.pack) + '</p>' : '') +
-                '<p class="hcard-price">' + priceHtml + '</p>' + cardBadgesHTML(it) +
+                specLineHTML(it) +
+                '<p class="hcard-price">' + priceHtml + '</p>' +
                 '<div class="hcard-admin">' +
                 '<button type="button" class="hcard-gear" aria-label="설정"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1l2.1-2.1M17 7l2.1-2.1\"/></svg></button>' +
                 '<div class="hcard-admin-menu" hidden>' +
@@ -3478,8 +3485,8 @@
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
                 '<p class="hcard-model">' + esc(it.model) + '</p>' +
-                (it.pack ? '<p class="hcard-pack">' + esc(it.pack) + '</p>' : '') +
-                '<p class="hcard-price">' + priceHtml + '</p>' + cardBadgesHTML(it);
+                specLineHTML(it) +
+                '<p class="hcard-price">' + priceHtml + '</p>';
             frag.appendChild(card);
         });
         grid.appendChild(frag);
@@ -3506,8 +3513,8 @@
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
                 '<p class="hcard-model">' + esc(it.model) + '</p>' +
-                (it.pack ? '<p class="hcard-pack">' + esc(it.pack) + '</p>' : '') +
-                '<p class="hcard-price">' + priceHtml + '</p>' + cardBadgesHTML(it);
+                specLineHTML(it) +
+                '<p class="hcard-price">' + priceHtml + '</p>';
             frag.appendChild(card);
         });
         grid.appendChild(frag);
