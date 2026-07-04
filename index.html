@@ -190,26 +190,47 @@
         })();
     </script>
 
-    <!-- PC 방문자 전용 첫 화면(바이버식 랜딩) — "PC 버전으로 보기" 클릭 시 실제 쇼핑 화면 노출.
-         모바일에서는 CSS로 항상 숨김. 세션당 1회만 노출(같은 탭에서 새로고침해도 다시 안 뜸). -->
+    <!-- PC 방문자 전용 첫 화면(바이버식 랜딩). 기본 화면은 항상 모바일이며,
+         "PC 버전으로 보기"를 눌러야만 와이드 모드(data-width="full")가 켜짐 — 강제 아님.
+         "모바일 화면으로 계속 보기"를 누르면 모바일 그대로 진행. 세션당 1회만 노출. -->
     <div id="pcGate" class="pc-gate" hidden>
         <div class="pc-gate-inner">
             <img class="pc-gate-logo" src="assets/logo-bellore.png" alt="BELLORE">
             <p class="pc-gate-tagline">명품시계 거래<br>살 때도, 팔 때도<br>역시 벨로르</p>
             <button type="button" class="pc-gate-btn" id="pcGateBtn">PC 버전으로 보기</button>
+            <button type="button" class="pc-gate-skip" id="pcGateSkip">모바일 화면으로 계속 보기</button>
         </div>
     </div>
+    <!-- 와이드 모드가 켜져 있을 때 언제든 모바일로 되돌아갈 수 있는 버튼 -->
+    <button type="button" class="pc-exit-wide" id="pcExitWide" hidden>모바일 화면으로 보기</button>
     <script>
         (function () {
-            var g = document.getElementById('pcGate'), btn = document.getElementById('pcGateBtn');
-            if (!g || !btn) return;
+            var root = document.documentElement;
+            var g = document.getElementById('pcGate'), btn = document.getElementById('pcGateBtn'), skip = document.getElementById('pcGateSkip');
+            var exitBtn = document.getElementById('pcExitWide');
             var KEY = 'bellore_pc_gate_seen';
             function isDesktop() { return window.matchMedia('(min-width: 1024px)').matches; }
-            if (isDesktop() && !sessionStorage.getItem(KEY)) g.hidden = false;
-            btn.addEventListener('click', function () {
-                g.hidden = true;
-                try { sessionStorage.setItem(KEY, '1'); } catch (e) {}
-            });
+            function isWide() { return root.getAttribute('data-width') === 'full'; }
+            function syncExitBtn() { if (exitBtn) exitBtn.hidden = !(isDesktop() && isWide()); }
+            function setWide(on) {
+                if (on) { root.setAttribute('data-width', 'full'); try { localStorage.setItem('bellore_width', 'full'); } catch (e) {} }
+                else { root.removeAttribute('data-width'); try { localStorage.setItem('bellore_width', 'app'); } catch (e) {} }
+                syncExitBtn();
+            }
+            if (g && btn && skip) {
+                if (isDesktop() && !isWide() && !sessionStorage.getItem(KEY)) g.hidden = false;
+                btn.addEventListener('click', function () {
+                    g.hidden = true;
+                    try { sessionStorage.setItem(KEY, '1'); } catch (e) {}
+                    setWide(true);
+                });
+                skip.addEventListener('click', function () {
+                    g.hidden = true;
+                    try { sessionStorage.setItem(KEY, '1'); } catch (e) {}
+                });
+            }
+            if (exitBtn) exitBtn.addEventListener('click', function () { setWide(false); });
+            syncExitBtn();
         })();
     </script>
 

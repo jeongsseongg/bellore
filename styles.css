@@ -31,24 +31,13 @@
     --serif: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
 }
 
-/* PC(넓은 화면)에서는 앱 컨테이너 폭을 660px로 확대 */
+/* PC(넓은 화면)에서는 앱 컨테이너 폭을 660px로 확대. 그 이상 넓게 보려면
+   마이페이지 "화면 설정"의 PC 와이드 모드 토글(data-width="full")을 켜야 함 —
+   기본 화면은 항상 모바일 프레임 그대로 유지. */
 @media (min-width: 700px) {
     :root {
         --app-w: 660px;
         --container: 660px;
-    }
-}
-/* 데스크톱(1024px~)은 "와이드 보기" 토글 없이도 기본적으로 화면을 꽉 채움(진짜 풀화면) — 구구스식 대형 리셀마켓 느낌 */
-@media (min-width: 1024px) {
-    :root {
-        --app-w: 96vw;
-        --container: 96vw;
-    }
-}
-@media (min-width: 1600px) {
-    :root {
-        --app-w: 1536px;
-        --container: 1536px;
     }
 }
 
@@ -6480,27 +6469,11 @@ body[data-page="collection"] #collection .section-soft { padding-top: calc(14px 
         gap: 16px;
     }
 }
-/* 데스크톱(1024px~)은 4열, 초광폭(1600px~)은 5열 — 토글 없이 기본 적용(구구스식 대형 그리드) */
-@media (min-width: 1024px) {
-    .home-sale-grid,
-    .col-grid-inner,
-    .hcard-grid {
-        grid-template-columns: repeat(4, 1fr);
-        gap: 16px;
-    }
-}
-@media (min-width: 1600px) {
-    .home-sale-grid,
-    .col-grid-inner,
-    .hcard-grid {
-        grid-template-columns: repeat(5, 1fr);
-        gap: 18px;
-    }
-}
+/* 4열 이상은 "화면 설정" 와이드 모드 토글(data-width="full")을 켰을 때만 — 기본은 항상 모바일/3열 */
 html[data-width="full"] .home-sale-grid,
 html[data-width="full"] .col-grid-inner,
 html[data-width="full"] .hcard-grid {
-    grid-template-columns: repeat(4, 1fr);   /* 700~1023px 구간에서 수동으로 넓게 볼 때도 4열 */
+    grid-template-columns: repeat(4, 1fr);
     gap: 16px;
 }
 /* 이미지 규격 고정: 모든 카드 이미지를 동일한 정사각 박스로 강제(세로/가로형 무관)
@@ -7155,6 +7128,21 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
     letter-spacing: .2px; cursor: pointer;
 }
 .pc-gate-btn:hover { background: #000; }
+.pc-gate-skip {
+    display: block; margin: 18px auto 0; padding: 8px; border: none; background: none;
+    color: var(--text-3); font-size: 13px; text-decoration: underline; cursor: pointer;
+}
+
+/* 와이드 모드 중 언제든 모바일로 되돌아가는 버튼 — 데스크톱에서만 노출 */
+.pc-exit-wide { display: none; }
+@media (min-width: 1024px) {
+    .pc-exit-wide:not([hidden]) {
+        display: block; position: fixed; right: 20px; bottom: 20px; z-index: 4500;
+        padding: 10px 18px; border-radius: 999px; border: 1px solid var(--border);
+        background: rgba(255,255,255,.96); color: var(--text); font-size: 13px; font-weight: 600;
+        box-shadow: 0 6px 20px rgba(0,0,0,.12); cursor: pointer;
+    }
+}
 
 /* ============================================================
    배치4 보강: 판매시계 ALL/스와이프 · 검색탭 · 자동완성 · 시세그래프 · 벨로르 팝업
