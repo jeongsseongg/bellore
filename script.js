@@ -1350,7 +1350,7 @@
             'data-brand="' + esc(it.brand || '') + '" data-model="' + esc(it.model || '') + '" ' +
             'data-price="' + esc(String(it.price || 0)) + '" data-sprice="' + esc(String(it.sale_price || '')) + '">' +
             '<span class="mypc-img"><img src="' + esc(img) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'"></span>' +
-            '<span class="mypc-brand">' + esc(it.brand || '') + '</span>' +
+            '<span class="mypc-brand">' + esc(brandKR(it.brand) || '') + '</span>' +
             '<span class="mypc-model">' + esc(it.model || '') + '</span>' +
             '<span class="mypc-price">' + priceTxt + '</span>' +
         '</button>';
@@ -3324,6 +3324,10 @@
         }
         return fmt(it.price) + '<em>원</em>';
     }
+    // 옛 데이터(영문 브랜드, 예: 'ROLEX')도 카드에는 한글 브랜드명으로 노출
+    function brandKR(brand) {
+        return window.BELLORE_BRAND_KR ? window.BELLORE_BRAND_KR(brand) : brand;
+    }
     // 카드 하단 스펙 한 줄: "미리수, 색상" 형식 (사장님 확정 — 사이즈 대신 미리수)
     function specLineHTML(it) {
         var parts = [];
@@ -3401,7 +3405,7 @@
             card.dataset.size = it.size_mm || '';
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
-                '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
+                '<p class="hcard-brand">' + esc(brandKR(it.brand)) + '</p>' +
                 '<p class="hcard-model">' + esc(it.model) + '</p>' +
                 specLineHTML(it) +
                 '<p class="hcard-price">' + priceHtml + '</p>' +
@@ -3447,7 +3451,7 @@
             card.dataset.created = it.created_at ? (Date.parse(it.created_at) || 0) : 0;
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
-                '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
+                '<p class="hcard-brand">' + esc(brandKR(it.brand)) + '</p>' +
                 '<p class="hcard-model">' + esc(it.model) + '</p>' +
                 specLineHTML(it) +
                 '<p class="hcard-price">' + priceHtml + '</p>' +
@@ -3483,7 +3487,7 @@
             card.dataset.sprice = it.sale_price || '';
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
-                '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
+                '<p class="hcard-brand">' + esc(brandKR(it.brand)) + '</p>' +
                 '<p class="hcard-model">' + esc(it.model) + '</p>' +
                 specLineHTML(it) +
                 '<p class="hcard-price">' + priceHtml + '</p>';
@@ -3511,7 +3515,7 @@
             card.dataset.sprice = it.sale_price || '';
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
-                '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
+                '<p class="hcard-brand">' + esc(brandKR(it.brand)) + '</p>' +
                 '<p class="hcard-model">' + esc(it.model) + '</p>' +
                 specLineHTML(it) +
                 '<p class="hcard-price">' + priceHtml + '</p>';
@@ -5802,7 +5806,7 @@
                 if (!val) return '';
                 return '<div class="pp-spec-row"><span>' + label + '</span><strong>' + esc(val) + '</strong></div>';
             }
-            var html = row('브랜드', d.brand) +
+            var html = row('브랜드', brandKR(d.brand)) +
                 row('모델', d.model) +
                 row('컨디션', d.condition) +
                 row('구성품', d.accessories || d.pack) +
@@ -5831,7 +5835,7 @@
             curPhotos = photos;
             curIdx = 0;
 
-            $('#pmBrand').textContent = d.brand || '';
+            $('#pmBrand').textContent = brandKR(d.brand) || '';
             $('#pmModel').textContent = d.model || '';
             $('#pmPrice').innerHTML = ppPriceHTML(d);
             var pno = d.product_no || d.no || '-';
