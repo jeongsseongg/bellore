@@ -225,12 +225,14 @@
   function loadLearned() {
     var box = $('#aiaLearned'); if (!box) return;
     sb().from('ai_customer_memories').select('id,memory_type,content,confidence,created_at,profile_id')
-      .order('created_at', { ascending: false }).limit(40)
+      .order('created_at', { ascending: false }).limit(60)
       .then(function (res) {
         if (res.error) { box.innerHTML = '<div class="aia-note">' + esc(res.error.message) + '</div>'; return; }
         var rows = res.data || [];
+        var facts = rows.filter(function (m) { return m.memory_type !== 'question'; });
+        var questions = rows.filter(function (m) { return m.memory_type === 'question'; });
         var MEM_KO = { preference: '선호', budget: '예산', personality: '성향', risk: '안전성향', brand_interest: '브랜드 관심', buying_intent: '구매의향' };
-        box.innerHTML = rows.length ? rows.map(function (m) {
+        var html = facts.length ? facts.map(function (m) {
           return '<div class="aia-card nohover"><div class="aia-row">' +
             '<span class="aia-tag brand">' + esc(MEM_KO[m.memory_type] || m.memory_type) + '</span>' +
             '<span class="aia-meta" style="margin-left:auto;margin-top:0">확신 ' + (m.confidence || 0) + ' · ' + fmtDate(m.created_at) + '</span></div>' +
@@ -238,6 +240,14 @@
             '<div class="aia-btns"><button class="aia-btn pri" data-act="mem-keep" data-id="' + esc(m.id) + '">학습 유지</button>' +
             '<button class="aia-btn dng" data-act="mem-del" data-id="' + esc(m.id) + '">학습 제외</button></div></div>';
         }).join('') : '<div class="aia-note">아직 학습한 내용이 없어요. 위 "지금 학습하기"를 누르면 AI가 최근 대화를 분석해 고객별 특징을 뽑아줍니다.</div>';
+        html += '<h5 style="margin-top:16px">궁금한 점 <span class="aia-meta" style="font-weight:400">(AI가 확신이 안 서서 여쭤보는 것)</span></h5>';
+        html += questions.length ? questions.map(function (m) {
+          return '<div class="aia-card nohover"><div class="aia-sub">' + esc(m.content) + '</div>' +
+            '<div class="aia-btns"><button class="aia-btn pri" data-act="q-answer" data-msg="' + esc(m.content).replace(/"/g, '&quot;') + '">답변 남기기</button>' +
+            '<button class="aia-btn dng" data-act="mem-del" data-id="' + esc(m.id) + '">넘어가기</button></div>' +
+            '<div class="aia-meta">' + fmtDate(m.created_at) + '</div></div>';
+        }).join('') : '<div class="aia-note">지금은 궁금한 점이 없어요.</div>';
+        box.innerHTML = html;
       }).catch(function (e) { box.innerHTML = '<div class="aia-note">' + esc(String(e)) + '</div>'; });
   }
   function loadReviewQuestions() {
@@ -604,6 +614,11 @@
     }
     if (act === 'mem-del') {
       sb().from('ai_customer_memories').delete().eq('id', id).then(function () { loadLearned(); });
+      return;
+    }
+    if (act === 'q-answer') {
+      setTab('guidelines');
+      setTimeout(function () { guideEditor({ title: 'AI 질문에 대한 답변', category: '일반', content: 'AI 질문: "' + (el.dataset.msg || '') + '"\n→ 답변: ', is_active: true }); }, 60);
       return;
     }
     if (act === 'review-done') {

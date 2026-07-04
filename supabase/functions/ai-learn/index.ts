@@ -180,10 +180,13 @@ async function summarizeProfile(admin: SB, profileId: string) {
 
   const system =
     "너는 명품시계 거래 플랫폼 벨로르의 고객 분석 전문가다. 주어진 고객의 누적 데이터(대화/관심/행동/점수)를 보고 " +
-    "①한국어 2~3문장 영업용 요약(ai_summary) ②핵심 장기메모리 배열(memories)을 만든다. " +
+    "①한국어 2~3문장 영업용 요약(ai_summary) ②핵심 장기메모리 배열(memories) ③확신이 안 서서 관리자에게 " +
+    "물어보고 싶은 질문(questions, 최대 3개, 없으면 빈 배열)을 만든다. questions 는 예를 들어 " +
+    "'예산 상한을 직접 확인한 적이 없는데 여쭤봐도 될까요?' 처럼 실제로 도움될 때만 만들고 억지로 채우지 마라. " +
     "추측은 confidence 를 낮춰라. 반드시 아래 JSON 만 출력: " +
     '{"ai_summary":"...","customer_type":"value_seeker|collector|gift_buyer|investor|unknown",' +
-    '"memories":[{"memory_type":"preference|budget|personality|risk|brand_interest|buying_intent","content":"...","confidence":0-100}]}';
+    '"memories":[{"memory_type":"preference|budget|personality|risk|brand_interest|buying_intent","content":"...","confidence":0-100}],' +
+    '"questions":["..."]}';
   const user = "고객 누적 데이터:\n" + JSON.stringify(facts, null, 0);
 
   const raw = await llm(system, user, 800);
@@ -198,18 +201,22 @@ async function summarizeProfile(admin: SB, profileId: string) {
 
   // 장기 메모리 저장. 재실행 시 누적 폭증을 막기 위해 이전 AI생성 메모리
   // (이벤트/대화에 직접 연결되지 않은 = source_*_id 가 NULL 인 행)만 교체한다.
+  // '궁금한 점'(memory_type='question')도 같이 갈아끼운다 — 매번 최신 상황 기준으로 다시 물어봄.
   await admin.from("ai_customer_memories").delete()
     .eq("profile_id", profileId).is("source_conversation_id", null).is("source_event_id", null);
   const mems = Array.isArray(parsed.memories) ? parsed.memories.slice(0, 12) : [];
-  if (mems.length) {
-    await admin.from("ai_customer_memories").insert(mems.map((m: any) => ({
-      profile_id: profileId, user_id: p.user_id ?? null,
-      memory_type: String(m.memory_type ?? "preference"),
-      content: String(m.content ?? "").slice(0, 500),
-      confidence: Math.max(0, Math.min(100, Number(m.confidence) || 50)),
-    })));
-  }
-  return { profile_id: profileId, ai_summary: parsed.ai_summary, memories: mems.length };
+  const questions = Array.isArray(parsed.questions) ? parsed.questions.slice(0, 3) : [];
+  const rows = mems.map((m: any) => ({
+    profile_id: profileId, user_id: p.user_id ?? null,
+    memory_type: String(m.memory_type ?? "preference"),
+    content: String(m.content ?? "").slice(0, 500),
+    confidence: Math.max(0, Math.min(100, Number(m.confidence) || 50)),
+  })).concat(questions.map((q: string) => ({
+    profile_id: profileId, user_id: p.user_id ?? null,
+    memory_type: "question", content: String(q).slice(0, 500), confidence: 40,
+  })));
+  if (rows.length) await admin.from("ai_customer_memories").insert(rows);
+  return { profile_id: profileId, ai_summary: parsed.ai_summary, memories: mems.length, questions: questions.length };
 }
 
 // ── action 2: 팀 메시지 → 전문가 지식 추출 ──
