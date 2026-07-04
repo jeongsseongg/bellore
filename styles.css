@@ -7116,11 +7116,14 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
     }
 }
 .pvs-left {
-    flex: 1 1 50%; display: flex; flex-direction: column;
+    flex: 1 1 50%; position: relative; display: flex; flex-direction: column;
     align-items: flex-start; justify-content: center;
     padding: 0 8vw;
 }
-.pvs-logo { width: 160px; height: auto; margin-bottom: 40px; }
+.pvs-logo {
+    position: absolute; top: 6vh; left: 8vw;
+    width: 130px; height: auto;
+}
 .pvs-tagline {
     font-size: 32px; font-weight: 600; line-height: 1.5;
     color: var(--text); letter-spacing: -.5px; margin: 0 0 44px;
