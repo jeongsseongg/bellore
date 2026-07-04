@@ -4,13 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#000000">
-    <!-- 화면 설정(와이드 모드)을 첫 페인트 전에 적용해 깜빡임 방지 +
+    <!-- PC 와이드 모드 토글 기능은 삭제됨(바이버식 좌우분할로 대체) —
+         과거에 테스트 중 켜졌던 값이 기기에 남아있으면 강제로 지워서 항상 모바일 폭으로 렌더 +
          PWA 설치 이벤트(beforeinstallprompt)를 가장 먼저 잡아두기 -->
     <script>
         (function () {
             try {
-                if (localStorage.getItem('bellore_width') === 'full')
-                    document.documentElement.setAttribute('data-width', 'full');
+                document.documentElement.removeAttribute('data-width');
+                localStorage.removeItem('bellore_width');
             } catch (e) {}
             // 설치 프롬프트 이벤트는 페이지 로드 직후 일찍 발생할 수 있어,
             // 여기서 먼저 캡처해 둬야 버튼 클릭 때 네이티브 설치창을 띄울 수 있다.
@@ -196,7 +197,7 @@
     <div class="pc-viver-split" id="pcViverSplit">
         <div class="pvs-left">
             <img class="pvs-logo" src="assets/logo-bellore.png" alt="BELLORE">
-            <p class="pvs-tagline">믿을 수 있는<br>명품시계 거래의 시작<br><b>BELLORE</b></p>
+            <p class="pvs-tagline">명품시계 거래는 <b class="pvs-brand">벨로르</b><br>살 때도 팔 때도<br>역시 <b class="pvs-brand">벨로르</b></p>
             <div class="pvs-qr">
                 <img class="pvs-qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=https%3A%2F%2Fbellore.co.kr" alt="QR 코드" loading="lazy">
                 <span class="pvs-qr-text">모바일에서 스캔해서<br>벨로르를 경험하세요.</span>
