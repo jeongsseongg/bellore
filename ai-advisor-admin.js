@@ -66,7 +66,9 @@
       + '.aia-btn.dng{color:#d14343;border-color:#f0c9c9}'
       + '.aia-score{font:700 14px Pretendard;color:#111}'
       + '.aia-detail-back{font-size:13px;color:#2d5fd0;cursor:pointer;margin-bottom:10px;display:inline-block}'
-      + '.aia-note{max-width:720px;margin:0 auto 10px;font-size:12px;color:#9a9a9a;line-height:1.6}';
+      + '.aia-note{max-width:720px;margin:0 auto 10px;font-size:12px;color:#9a9a9a;line-height:1.6}'
+      + '.aia-team-imgs{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}'
+      + '.aia-team-imgs img{width:96px;height:96px;object-fit:cover;border-radius:10px;border:1px solid #e5e3df}';
     var st = document.createElement('style'); st.id = 'bellore-aiadmin-style'; st.textContent = css;
     document.head.appendChild(st);
   }
@@ -429,10 +431,21 @@
   /* ---------------- 6) 팀 메시지(Discord/Slack) ---------------- */
   function renderTeam() {
     if (!guard()) return;
+    var rows = [];
     sb().from('team_messages').select('*').order('created_at', { ascending: false }).limit(200)
       .then(function (res) {
-        if (res.error) { bodyEl.innerHTML = sqlHint(res.error); return; }
-        var rows = res.data || [];
+        if (res.error) { bodyEl.innerHTML = sqlHint(res.error); return null; }
+        rows = res.data || [];
+        var ids = rows.filter(function (m) { return m.has_attachment; }).map(function (m) { return m.id; });
+        if (!ids.length) return { data: [] };
+        return sb().from('team_message_attachments').select('*').in('team_message_id', ids);
+      })
+      .then(function (attRes) {
+        if (!attRes) return;
+        var attByMsg = {};
+        (attRes.data || []).forEach(function (a) {
+          (attByMsg[a.team_message_id] = attByMsg[a.team_message_id] || []).push(a);
+        });
         bodyEl.innerHTML = '<div class="aia-note">Discord/Slack 봇이 수집한 내부 대화. (연동 Edge Function: discord-ingest) 메시지에서 브랜드/레퍼런스를 태깅해 전문가 지식 후보로 보낼 수 있습니다.</div>' +
           '<div class="aia-sec"><button class="aia-btn pri" data-act="ai-extract-knowledge">AI로 지식 일괄 추출 (ai-learn)</button></div>' +
           (rows.length ? rows.map(function (m) {
@@ -440,10 +453,20 @@
             var brand = (AI().rules && AI().rules.extractBrands(txt)[0]) || '';
             var ref = (AI().rules && AI().rules.extractReferences(txt)[0]) || '';
             var tags = [brand, ref].filter(Boolean).map(function (x) { return '<span class="aia-tag brand">' + esc(x) + '</span>'; }).join(' ');
+            var atts = attByMsg[m.id] || [];
+            var imgs = atts.filter(function (a) { return /^image\//.test(a.file_type || ''); });
+            var others = atts.filter(function (a) { return !/^image\//.test(a.file_type || ''); });
+            var imgHtml = imgs.length ? ('<div class="aia-team-imgs">' + imgs.map(function (a) {
+              return '<a href="' + esc(a.file_url || '') + '" target="_blank" rel="noopener"><img src="' + esc(a.file_url || '') + '" alt="' + esc(a.file_name || '') + '" loading="lazy"></a>';
+            }).join('') + '</div>') : '';
+            var otherHtml = others.length ? ('<div class="aia-meta">' + others.map(function (a) {
+              return '<a href="' + esc(a.file_url || '') + '" target="_blank" rel="noopener">📎 ' + esc(a.file_name || '파일') + '</a>';
+            }).join(' · ') + '</div>') : '';
             return '<div class="aia-card nohover"><div class="aia-row"><span class="aia-tag">' + esc(m.platform) + '</span>' +
               '<span class="aia-sub" style="display:inline;margin:0 0 0 6px">' + esc(m.channel_name || m.channel_id || '') + ' · ' + esc(m.sender_name || '') + '</span>' +
               '<span class="aia-meta" style="margin-left:auto;margin-top:0">' + fmtDate(m.created_at) + '</span></div>' +
-              '<div class="aia-sub" style="margin-top:6px">' + esc(txt) + (m.has_attachment ? ' 📎' : '') + '</div>' +
+              (txt ? ('<div class="aia-sub" style="margin-top:6px">' + esc(txt) + '</div>') : '') +
+              imgHtml + otherHtml +
               (tags ? ('<div class="aia-meta">' + tags + '</div>') : '') +
               '<div class="aia-btns"><button class="aia-btn" data-act="team-to-knowledge" data-id="' + esc(m.id) + '">전문가 지식으로 보내기</button></div></div>';
           }).join('') : '<div class="aia-empty">수집된 팀 메시지가 없습니다.<br>Discord/Slack 봇 연동(discord-ingest Edge Function) 후 채워집니다.</div>');
