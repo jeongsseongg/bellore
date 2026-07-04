@@ -4984,9 +4984,8 @@ body.pp-lb-open { overflow: hidden; }
     border: none;
     border-radius: 50%;
     background: #111;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, .22);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, .25);
     cursor: pointer;
-    animation: tabAiPulse 2.8s ease-in-out infinite;
 }
 .tab-ai-circle:active { transform: scale(.94); }
 /* 원 좌우의 바(bar) 표면이 원 쪽으로 매끄럽게 이어지도록 둥근 어깨(fillet)를 채워
@@ -5008,14 +5007,6 @@ body.pp-lb-open { overflow: hidden; }
     left: calc(50% + 30px);
     border-top-right-radius: 22px;
 }
-@keyframes tabAiPulse {
-    0%, 100% { box-shadow: 0 6px 16px rgba(0,0,0,.22), 0 0 0 0 rgba(17,17,17,.16); }
-    50% { box-shadow: 0 6px 16px rgba(0,0,0,.22), 0 0 0 7px rgba(17,17,17,0); }
-}
-@media (prefers-reduced-motion: reduce) {
-    .tab-ai-circle { animation: none; }
-}
-
 /* 기존 상단 네비 잔재 숨김 */
 .nav-menu,
 .menu-toggle,
