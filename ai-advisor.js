@@ -968,8 +968,8 @@
     document.body.appendChild(elPanel);
     elBody = $('#baiBody'); elInput = $('#baiInput');
 
-    var aiTabBtn = document.getElementById('tabAiCircle');
-    if (aiTabBtn) aiTabBtn.addEventListener('click', openPanel);
+    var aiHeaderBtn = document.getElementById('headerAiBtn');
+    if (aiHeaderBtn) aiHeaderBtn.addEventListener('click', function (e) { e.preventDefault(); openPanel(); });
     elPanel.addEventListener('click', function (e) {
       if (e.target.classList.contains('bai-panel') || e.target.closest('.bai-x')) { closePanel(); return; }
       var reco = e.target.closest('.bai-reco');

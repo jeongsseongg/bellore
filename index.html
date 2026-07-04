@@ -202,6 +202,9 @@
             <form class="header-search" id="headerSearch" role="search">
                 <svg class="header-search-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                 <input type="search" id="searchInput" placeholder="브랜드·모델 검색" autocomplete="off" enterkeyhint="search">
+                <button type="button" class="header-ai-btn" id="headerAiBtn" aria-label="AI 시계비서">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </button>
             </form>
             <!-- 알림·장바구니는 마이페이지로 이동(상단에는 검색만 노출) -->
         </div>
@@ -3289,10 +3292,13 @@
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
             <span>검색</span>
         </button>
-        <div class="tab-ai-wrap">
-            <span class="tab-ai-bump" aria-hidden="true"></span>
-            <button type="button" class="tab-ai-circle" id="tabAiCircle" aria-label="AI 시계비서"></button>
-        </div>
+        <button class="tab-item tab-wish" data-nav="wishlist">
+            <span class="tab-wish-ic">
+                <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+                <b class="tab-wish-badge" id="tabWishBadge" hidden>0</b>
+            </span>
+            <span>찜</span>
+        </button>
         <button class="tab-item" data-nav="compare">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="12" r="5"/><path d="M7.5 7.3 7 4h7l-.5 3.3M7.5 16.7 7 20h7l-.5-3.3"/><path d="M10.5 12V9.6M10.5 12h2"/><path d="M19 15.5v-6m0 0-1.9 1.9M19 9.5l1.9 1.9"/></svg>
             <span>시계판매</span>
