@@ -4933,10 +4933,10 @@ body.pp-lb-open { overflow: hidden; }
     color: #9a9a9a;
     transition: color 0.2s, transform 0.15s;
 }
-.tab-item svg { width: 25px; height: 25px; }
+.tab-item svg { width: 29px; height: 29px; }
 /* 벨로르 탭 — 파비콘 B 마크를 마스크로 채워 하단탭 색(currentColor)과 일치 */
 .tab-logo-ic {
-    width: 23px; height: 23px; display: block;
+    width: 27px; height: 27px; display: block;
     background-color: currentColor;
     -webkit-mask: url('assets/icons/bellore-mark.png') center / contain no-repeat;
     mask: url('assets/icons/bellore-mark.png') center / contain no-repeat;
@@ -4966,7 +4966,7 @@ body.pp-lb-open { overflow: hidden; }
 .tab-ai-wrap {
     flex: 0 0 auto;
     position: relative;
-    width: 104px;
+    width: 130px;
     height: 100%;
     display: flex;
     align-items: flex-start;
@@ -4975,34 +4975,35 @@ body.pp-lb-open { overflow: hidden; }
 .tab-ai-circle {
     position: relative;
     z-index: 2;
-    width: 60px;
-    height: 60px;
-    margin-top: -10px;
+    width: 76px;
+    height: 76px;
+    margin-top: -34px;
     border: none;
     border-radius: 50%;
     background: #111;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, .25);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, .25);
     cursor: pointer;
 }
 .tab-ai-circle:active { transform: scale(.94); }
 /* 원 좌우의 바(bar) 표면이 원 쪽으로 매끄럽게 이어지도록 둥근 어깨(fillet)를 채워
-   원이 튀어나온 구간(2~3mm)만 곡선이고, 나머지 바는 그대로 직선을 유지한다 */
+   원이 튀어나온 구간만 곡선이고, 나머지 바는 그대로 직선을 유지한다 — 중앙 원이
+   탭바에서 가장 눈에 띄는 메인 요소가 되도록 크게 */
 .tab-ai-notch {
     position: absolute;
-    top: -10px;
+    top: -28px;
     z-index: 1;
-    width: 18px;
-    height: 10px;
+    width: 27px;
+    height: 28px;
     background: #fff;
     pointer-events: none;
 }
 .tab-ai-notch-l {
-    left: calc(50% - 40px);
-    border-top-left-radius: 18px;
+    left: calc(50% - 65px);
+    border-top-left-radius: 27px;
 }
 .tab-ai-notch-r {
-    left: calc(50% + 22px);
-    border-top-right-radius: 18px;
+    left: calc(50% + 38px);
+    border-top-right-radius: 27px;
 }
 /* 기존 상단 네비 잔재 숨김 */
 .nav-menu,
