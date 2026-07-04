@@ -320,6 +320,25 @@ async function extractMarketInsights(admin: SB, limit: number) {
   return { extracted: rows.length, scanned: (msgs ?? []).length };
 }
 
+// ── action: 고객 챗봇용 시세 조회 (규칙기반, 무료, 원본 대화 텍스트는 노출 안 함) ──
+// 팀 메시지 원문(raw_data)은 내부 대화라 고객에게 그대로 보여주면 안 되므로,
+// 여기서는 집계된 숫자(최소/최대/매입·판매 건수)만 반환한다.
+async function lookupMarketPrice(admin: SB, brand: string | null, reference: string | null) {
+  let q = admin.from("watch_market_prices").select("price_krw,price,deal_type");
+  if (reference) q = q.ilike("reference_number", `%${reference}%`);
+  else if (brand) q = q.eq("brand", brand);
+  else return { count: 0 };
+  const { data } = await q.limit(500);
+  const rows = data ?? [];
+  const prices = rows.map((r: any) => Number(r.price_krw ?? r.price) || 0).filter(Boolean);
+  if (!prices.length) return { count: 0 };
+  return {
+    count: rows.length, min: Math.min(...prices), max: Math.max(...prices),
+    buy: rows.filter((r: any) => r.deal_type === "매입").length,
+    sell: rows.filter((r: any) => r.deal_type === "판매").length,
+  };
+}
+
 // ── action: 매거진/블로그 초안 생성 (AI 필요) ──
 // 최근 팀 대화(정보성) + 고객 관심 트렌드를 근거로 "요즘 시계 반응 / 주의할 점" 초안을 쓴다.
 // expert_knowledge_notes 에 category='매거진초안', status='draft' 로 저장 → 관리자 승인 대기.
@@ -395,12 +414,15 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   try {
-    const { action, profile_id, limit, message, candidates } = await req.json();
+    const { action, profile_id, limit, message, candidates, brand, reference_number } = await req.json();
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
-    // 시세 정리는 규칙기반(무료) — AI 키 없이도 항상 동작
+    // 시세 정리/조회는 규칙기반(무료) — AI 키 없이도 항상 동작
     if (action === "extract_market_insights") {
       return json({ ok: true, result: await extractMarketInsights(admin, Math.min(Number(limit) || 200, 500)) });
+    }
+    if (action === "market_price_lookup") {
+      return json({ ok: true, result: await lookupMarketPrice(admin, brand ?? null, reference_number ?? null) });
     }
 
     if (!hasKey()) {
