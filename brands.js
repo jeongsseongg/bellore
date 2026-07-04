@@ -60,6 +60,17 @@ window.BELLORE_BRAND_KR = function (name) {
   }
   return n;
 };
+// 카드 맨 위 줄(영문 브랜드, 예: 'ROLEX')용 — 한글로 저장돼 있어도 영문으로 변환.
+// 목록에 없는(직접 입력한) 브랜드는 원문 그대로 반환.
+window.BELLORE_BRAND_EN = function (name) {
+  var list = window.BELLORE_BRANDS, n = String(name || '').trim();
+  if (!n) return n;
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].name === n) return list[i].eng || n;
+    if (list[i].eng && list[i].eng.toUpperCase() === n.toUpperCase()) return list[i].eng;
+  }
+  return n;
+};
 
 /* 필터검색·시계등록 공용 속성 목록 (바이버 레퍼런스 기준) */
 window.BELLORE_DIAL_COLORS = ['골드', '그린', '그레이', '레드', '브라운', '블루', '블랙', '오렌지', '옐로우', '퍼플', '핑크', '화이트', '실버'];

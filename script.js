@@ -3324,14 +3324,21 @@
         }
         return fmt(it.price) + '<em>원</em>';
     }
-    // 옛 데이터(영문 브랜드, 예: 'ROLEX')도 카드에는 한글 브랜드명으로 노출
+    // 브랜드 표기: 카드 첫 줄=영문("ROLEX"), 둘째 줄=한글 브랜드+모델명("롤렉스 데이트저스트 16233")
     function brandKR(brand) {
         return window.BELLORE_BRAND_KR ? window.BELLORE_BRAND_KR(brand) : brand;
     }
-    // 카드 하단 스펙 한 줄: "미리수, 색상" 형식 (사장님 확정 — 사이즈 대신 미리수)
+    function brandEN(brand) {
+        return window.BELLORE_BRAND_EN ? window.BELLORE_BRAND_EN(brand) : brand;
+    }
+    function brandModelLineHTML(it) {
+        var line = (brandKR(it.brand) + ' ' + (it.model || '')).trim();
+        return '<p class="hcard-model">' + esc(line) + '</p>';
+    }
+    // 카드 하단 스펙 한 줄: "36mm, 흰판" 형식(사이즈+색상, 사장님 확정)
     function specLineHTML(it) {
         var parts = [];
-        if (it.misu) parts.push(it.misu);
+        if (it.size_mm) parts.push(it.size_mm + 'mm');
         if (it.dial_color) parts.push(it.dial_color);
         return parts.length ? '<p class="hcard-pack">' + esc(parts.join(', ')) + '</p>' : '';
     }
@@ -3405,8 +3412,8 @@
             card.dataset.size = it.size_mm || '';
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
-                '<p class="hcard-brand">' + esc(brandKR(it.brand)) + '</p>' +
-                '<p class="hcard-model">' + esc(it.model) + '</p>' +
+                '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
+                brandModelLineHTML(it) +
                 specLineHTML(it) +
                 '<p class="hcard-price">' + priceHtml + '</p>' +
                 '<div class="hcard-admin">' +
@@ -3451,8 +3458,8 @@
             card.dataset.created = it.created_at ? (Date.parse(it.created_at) || 0) : 0;
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
-                '<p class="hcard-brand">' + esc(brandKR(it.brand)) + '</p>' +
-                '<p class="hcard-model">' + esc(it.model) + '</p>' +
+                '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
+                brandModelLineHTML(it) +
                 specLineHTML(it) +
                 '<p class="hcard-price">' + priceHtml + '</p>' +
                 '<div class="hcard-admin">' +
@@ -3487,8 +3494,8 @@
             card.dataset.sprice = it.sale_price || '';
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
-                '<p class="hcard-brand">' + esc(brandKR(it.brand)) + '</p>' +
-                '<p class="hcard-model">' + esc(it.model) + '</p>' +
+                '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
+                brandModelLineHTML(it) +
                 specLineHTML(it) +
                 '<p class="hcard-price">' + priceHtml + '</p>';
             frag.appendChild(card);
@@ -3515,8 +3522,8 @@
             card.dataset.sprice = it.sale_price || '';
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
-                '<p class="hcard-brand">' + esc(brandKR(it.brand)) + '</p>' +
-                '<p class="hcard-model">' + esc(it.model) + '</p>' +
+                '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
+                brandModelLineHTML(it) +
                 specLineHTML(it) +
                 '<p class="hcard-price">' + priceHtml + '</p>';
             frag.appendChild(card);
