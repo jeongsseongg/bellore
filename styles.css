@@ -7107,42 +7107,42 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
     to { opacity: 1; transform: none; }
 }
 
-/* PC 방문자 전용 첫 화면(바이버식 랜딩) — 모바일에서는 항상 숨김 */
-.pc-gate { display: none; }
+/* PC 방문자 고정 화면(바이버식 좌우 분할) — 모바일에서는 항상 숨김, 토글 없음(바이버와 동일하게 항상 노출) */
+.pc-viver-split { display: none; }
 @media (min-width: 1024px) {
-    .pc-gate:not([hidden]) {
-        position: fixed; inset: 0; z-index: 5000;
+    .pc-viver-split {
+        display: flex; position: fixed; inset: 0; z-index: 5000;
         background: #fafaf8;
-        display: flex; align-items: center; justify-content: center;
     }
 }
-.pc-gate-inner { text-align: center; padding: 0 24px; }
-.pc-gate-logo { width: 220px; height: auto; margin-bottom: 36px; }
-.pc-gate-tagline {
-    font-size: 28px; font-weight: 700; line-height: 1.5;
-    color: var(--text); letter-spacing: -.3px; margin: 0 0 40px;
+.pvs-left {
+    flex: 1 1 50%; display: flex; flex-direction: column;
+    align-items: flex-start; justify-content: center;
+    padding: 0 8vw;
 }
-.pc-gate-btn {
-    padding: 16px 40px; border-radius: 999px; border: none;
-    background: #111; color: #fff; font-size: 15px; font-weight: 700;
-    letter-spacing: .2px; cursor: pointer;
+.pvs-logo { width: 160px; height: auto; margin-bottom: 40px; }
+.pvs-tagline {
+    font-size: 34px; font-weight: 700; line-height: 1.5;
+    color: var(--text); letter-spacing: -.5px; margin: 0 0 44px;
 }
-.pc-gate-btn:hover { background: #000; }
-.pc-gate-skip {
-    display: block; margin: 18px auto 0; padding: 8px; border: none; background: none;
-    color: var(--text-3); font-size: 13px; text-decoration: underline; cursor: pointer;
+.pvs-tagline b { font-weight: 800; }
+.pvs-qr {
+    display: flex; align-items: center; gap: 16px;
+    background: #111; color: #fff; border-radius: 16px; padding: 14px 20px;
 }
-
-/* 와이드 모드 중 언제든 모바일로 되돌아가는 버튼 — 데스크톱에서만 노출 */
-.pc-exit-wide { display: none; }
-@media (min-width: 1024px) {
-    .pc-exit-wide:not([hidden]) {
-        display: block; position: fixed; right: 20px; bottom: 20px; z-index: 4500;
-        padding: 10px 18px; border-radius: 999px; border: 1px solid var(--border);
-        background: rgba(255,255,255,.96); color: var(--text); font-size: 13px; font-weight: 600;
-        box-shadow: 0 6px 20px rgba(0,0,0,.12); cursor: pointer;
-    }
+.pvs-qr-img { width: 64px; height: 64px; border-radius: 6px; background: #fff; }
+.pvs-qr-text { font-size: 13px; line-height: 1.5; font-weight: 600; }
+.pvs-right {
+    flex: 1 1 50%; display: flex; align-items: center; justify-content: center;
+    background: #eeece7;
 }
+.pvs-phone {
+    width: 390px; height: 812px; max-height: 90vh;
+    border: 12px solid #111; border-radius: 46px;
+    overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,.25);
+    background: #111;
+}
+.pvs-frame { width: 100%; height: 100%; border: none; }
 
 /* ============================================================
    배치4 보강: 판매시계 ALL/스와이프 · 검색탭 · 자동완성 · 시세그래프 · 벨로르 팝업

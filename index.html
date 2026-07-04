@@ -190,49 +190,24 @@
         })();
     </script>
 
-    <!-- PC 방문자 전용 첫 화면(바이버식 랜딩). 기본 화면은 항상 모바일이며,
-         "PC 버전으로 보기"를 눌러야만 와이드 모드(data-width="full")가 켜짐 — 강제 아님.
-         "모바일 화면으로 계속 보기"를 누르면 모바일 그대로 진행. 세션당 1회만 노출. -->
-    <div id="pcGate" class="pc-gate" hidden>
-        <div class="pc-gate-inner">
-            <img class="pc-gate-logo" src="assets/logo-bellore.png" alt="BELLORE">
-            <p class="pc-gate-tagline">명품시계 거래<br>살 때도, 팔 때도<br>역시 벨로르</p>
-            <button type="button" class="pc-gate-btn" id="pcGateBtn">PC 버전으로 보기</button>
-            <button type="button" class="pc-gate-skip" id="pcGateSkip">모바일 화면으로 계속 보기</button>
+    <!-- PC 방문자용 고정 화면(바이버식) — 좌: 로고·태그라인·QR, 우: 폰 프레임 안에 모바일 화면 실제 로드.
+         데스크톱(1024px~)에서는 항상 이 화면만 보임(토글 없음, 바이버와 동일). 모바일은 CSS로 항상 숨김.
+         우측 iframe은 자기 폭이 좁아 내부에서는 이 화면이 다시 뜨지 않음(중첩 방지, 폭 기준 CSS라 안전). -->
+    <div class="pc-viver-split" id="pcViverSplit">
+        <div class="pvs-left">
+            <img class="pvs-logo" src="assets/logo-bellore.png" alt="BELLORE">
+            <p class="pvs-tagline">믿을 수 있는<br>명품시계 거래의 시작<br><b>BELLORE</b></p>
+            <div class="pvs-qr">
+                <img class="pvs-qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=https%3A%2F%2Fbellore.co.kr" alt="QR 코드" loading="lazy">
+                <span class="pvs-qr-text">모바일에서 스캔해서<br>벨로르를 경험하세요.</span>
+            </div>
+        </div>
+        <div class="pvs-right">
+            <div class="pvs-phone">
+                <iframe class="pvs-frame" src="./" title="BELLORE 모바일 화면"></iframe>
+            </div>
         </div>
     </div>
-    <!-- 와이드 모드가 켜져 있을 때 언제든 모바일로 되돌아갈 수 있는 버튼 -->
-    <button type="button" class="pc-exit-wide" id="pcExitWide" hidden>모바일 화면으로 보기</button>
-    <script>
-        (function () {
-            var root = document.documentElement;
-            var g = document.getElementById('pcGate'), btn = document.getElementById('pcGateBtn'), skip = document.getElementById('pcGateSkip');
-            var exitBtn = document.getElementById('pcExitWide');
-            var KEY = 'bellore_pc_gate_seen';
-            function isDesktop() { return window.matchMedia('(min-width: 1024px)').matches; }
-            function isWide() { return root.getAttribute('data-width') === 'full'; }
-            function syncExitBtn() { if (exitBtn) exitBtn.hidden = !(isDesktop() && isWide()); }
-            function setWide(on) {
-                if (on) { root.setAttribute('data-width', 'full'); try { localStorage.setItem('bellore_width', 'full'); } catch (e) {} }
-                else { root.removeAttribute('data-width'); try { localStorage.setItem('bellore_width', 'app'); } catch (e) {} }
-                syncExitBtn();
-            }
-            if (g && btn && skip) {
-                if (isDesktop() && !isWide() && !sessionStorage.getItem(KEY)) g.hidden = false;
-                btn.addEventListener('click', function () {
-                    g.hidden = true;
-                    try { sessionStorage.setItem(KEY, '1'); } catch (e) {}
-                    setWide(true);
-                });
-                skip.addEventListener('click', function () {
-                    g.hidden = true;
-                    try { sessionStorage.setItem(KEY, '1'); } catch (e) {}
-                });
-            }
-            if (exitBtn) exitBtn.addEventListener('click', function () { setWide(false); });
-            syncExitBtn();
-        })();
-    </script>
 
     <!-- 상단 헤더 -->
     <header class="header" id="header">
