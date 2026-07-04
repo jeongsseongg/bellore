@@ -4,14 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#000000">
-    <!-- PC 와이드 모드 토글 기능은 삭제됨(바이버식 좌우분할로 대체) —
-         과거에 테스트 중 켜졌던 값이 기기에 남아있으면 강제로 지워서 항상 모바일 폭으로 렌더 +
+    <!-- 화면 설정(와이드 모드)을 첫 페인트 전에 적용해 깜빡임 방지 +
          PWA 설치 이벤트(beforeinstallprompt)를 가장 먼저 잡아두기 -->
     <script>
         (function () {
             try {
-                document.documentElement.removeAttribute('data-width');
-                localStorage.removeItem('bellore_width');
+                if (localStorage.getItem('bellore_width') === 'full')
+                    document.documentElement.setAttribute('data-width', 'full');
             } catch (e) {}
             // 설치 프롬프트 이벤트는 페이지 로드 직후 일찍 발생할 수 있어,
             // 여기서 먼저 캡처해 둬야 버튼 클릭 때 네이티브 설치창을 띄울 수 있다.
@@ -65,9 +64,7 @@
     <!-- Pretendard 는 구글폰트에 없음 → 공식 CDN(jsdelivr)에서 로드해야 실제로 적용됨 -->
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
-    <!-- ?v= 는 sw.js VERSION과 맞춰서 배포 때마다 올림 — HTML은 새로 받았는데
-         CSS/JS만 예전 캐시로 남아 화면이 깨지는 문제(HTML·CSS 버전 불일치) 방지 -->
-    <link rel="stylesheet" href="styles.css?v=163">
+    <link rel="stylesheet" href="styles.css">
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
@@ -192,25 +189,6 @@
             setTimeout(hide, 2600); // 안전장치
         })();
     </script>
-
-    <!-- PC 방문자용 고정 화면(바이버식) — 좌: 로고·태그라인·QR, 우: 폰 프레임 안에 모바일 화면 실제 로드.
-         데스크톱(1024px~)에서는 항상 이 화면만 보임(토글 없음, 바이버와 동일). 모바일은 CSS로 항상 숨김.
-         우측 iframe은 자기 폭이 좁아 내부에서는 이 화면이 다시 뜨지 않음(중첩 방지, 폭 기준 CSS라 안전). -->
-    <div class="pc-viver-split" id="pcViverSplit">
-        <div class="pvs-left">
-            <img class="pvs-logo" src="assets/logo-bellore.png" alt="BELLORE">
-            <p class="pvs-tagline">명품시계 거래<br>살 때도 팔 때도 역시<br>벨로르</p>
-            <div class="pvs-qr">
-                <img class="pvs-qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=https%3A%2F%2Fbellore.co.kr" alt="QR 코드" loading="lazy">
-                <span class="pvs-qr-text">모바일에서 스캔해서<br>벨로르를 경험하세요.</span>
-            </div>
-        </div>
-        <div class="pvs-right">
-            <div class="pvs-phone">
-                <iframe class="pvs-frame" src="./" title="BELLORE 모바일 화면"></iframe>
-            </div>
-        </div>
-    </div>
 
     <!-- 상단 헤더 -->
     <header class="header" id="header">
@@ -3334,20 +3312,19 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
     <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
-    <!-- ?v= 는 sw.js VERSION과 맞춰서 배포 때마다 올림(styles.css와 동일한 이유) -->
-    <script src="ui-dialog.js?v=163"></script>
-    <script src="supabase-config.js?v=163"></script>
-    <script src="brands.js?v=163"></script>
-    <script src="supabase.js?v=163"></script>
-    <script src="bellore-features.js?v=163"></script>
-    <script src="cq-demo.js?v=163"></script>
-    <script src="script.js?v=163"></script>
-    <script src="wishlist.js?v=163"></script>
-    <script src="alerts.js?v=163"></script>
-    <script src="search.js?v=163"></script>
-    <script src="ai-advisor.js?v=163"></script>
-    <script src="ai-advisor-admin.js?v=163"></script>
-    <script src="payments.js?v=163"></script>
+    <script src="ui-dialog.js"></script>
+    <script src="supabase-config.js"></script>
+    <script src="brands.js"></script>
+    <script src="supabase.js"></script>
+    <script src="bellore-features.js"></script>
+    <script src="cq-demo.js"></script>
+    <script src="script.js"></script>
+    <script src="wishlist.js"></script>
+    <script src="alerts.js"></script>
+    <script src="search.js"></script>
+    <script src="ai-advisor.js"></script>
+    <script src="ai-advisor-admin.js"></script>
+    <script src="payments.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {

@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v163";
+const VERSION = "bellore-v164";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -7,20 +7,20 @@ const RUNTIME_CACHE = `${VERSION}-runtime`;
 const SHELL_ASSETS = [
   './',
   './index.html',
-  `./styles.css?v=${VERSION}`,
-  `./script.js?v=${VERSION}`,
-  `./payments.js?v=${VERSION}`,
-  `./ui-dialog.js?v=${VERSION}`,
-  `./supabase-config.js?v=${VERSION}`,
-  `./brands.js?v=${VERSION}`,
-  `./supabase.js?v=${VERSION}`,
-  `./bellore-features.js?v=${VERSION}`,
-  `./cq-demo.js?v=${VERSION}`,
-  `./wishlist.js?v=${VERSION}`,
-  `./alerts.js?v=${VERSION}`,
-  `./search.js?v=${VERSION}`,
-  `./ai-advisor.js?v=${VERSION}`,
-  `./ai-advisor-admin.js?v=${VERSION}`,
+  './styles.css',
+  './script.js',
+  './payments.js',
+  './ui-dialog.js',
+  './supabase-config.js',
+  './brands.js',
+  './supabase.js',
+  './bellore-features.js',
+  './cq-demo.js',
+  './wishlist.js',
+  './alerts.js',
+  './search.js',
+  './ai-advisor.js',
+  './ai-advisor-admin.js',
   './manifest.json',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',

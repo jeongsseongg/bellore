@@ -3286,45 +3286,6 @@
     function listingImg(it) {
         return (it.photos && it.photos[0]) ? it.photos[0] : 'assets/images.jpg';
     }
-    // 사진 배경이 흰색(스튜디오컷)이면 자동으로 누끼 따서 카드 흰 배경과 매끄럽게 붙여줌.
-    // 배경이 흰색이 아니거나(가정집 촬영 등) CORS로 픽셀을 읽을 수 없으면 원본 그대로 둠(안전 폴백).
-    function autoCutoutWhiteBg(img) {
-        function run() {
-            try {
-                var w = img.naturalWidth, h = img.naturalHeight;
-                if (!w || !h) return;
-                var canvas = document.createElement('canvas');
-                canvas.width = w; canvas.height = h;
-                var ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0);
-                var corners;
-                try {
-                    corners = [
-                        ctx.getImageData(0, 0, 1, 1).data,
-                        ctx.getImageData(w - 1, 0, 1, 1).data,
-                        ctx.getImageData(0, h - 1, 1, 1).data,
-                        ctx.getImageData(w - 1, h - 1, 1, 1).data
-                    ];
-                } catch (secErr) { return; } // 다른 도메인 이미지에 CORS 미허용 → 건드리지 않음
-                var TH = 238;
-                var isWhite = corners.every(function (c) { return c[0] > TH && c[1] > TH && c[2] > TH; });
-                if (!isWhite) return; // 흰 배경이 아니면 그대로 둠
-                var imgData = ctx.getImageData(0, 0, w, h);
-                var d = imgData.data;
-                for (var i = 0; i < d.length; i += 4) {
-                    if (d[i] > TH && d[i + 1] > TH && d[i + 2] > TH) d[i + 3] = 0;
-                }
-                ctx.putImageData(imgData, 0, 0);
-                img.src = canvas.toDataURL('image/png');
-            } catch (e) {}
-        }
-        if (img.complete && img.naturalWidth) run();
-        else img.addEventListener('load', run, { once: true });
-    }
-    // 카드 프래그먼트 안의 상품 이미지에 자동 누끼 처리를 건다 (DOM 삽입 전/후 무관)
-    function wireAutoCutout(root) {
-        $$('.hcard-img img[data-autobg]', root).forEach(autoCutoutWhiteBg);
-    }
     // 스탬핑 자유문구에서 4자리 연도(19xx/20xx) 추출 → 필터검색 '스탬핑' 범위 매칭용
     function stampYear(s) {
         var m = String(s || '').match(/(19|20)\d{2}/);
@@ -3450,7 +3411,7 @@
             card.dataset.pack = it.pack || '';
             card.dataset.size = it.size_mm || '';
             card.innerHTML =
-                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="" crossorigin="anonymous" data-autobg="1">' + saleOverlayHTML(it) + '</div>' +
+                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
                 brandModelLineHTML(it) +
                 specLineHTML(it) +
@@ -3463,7 +3424,6 @@
                 '</div></div>';
             frag.appendChild(card);
         });
-        wireAutoCutout(frag);
         inner.insertBefore(frag, inner.firstChild);
     }
 
@@ -3497,7 +3457,7 @@
             card.dataset.stampyear = stampYear(it.stamping);
             card.dataset.created = it.created_at ? (Date.parse(it.created_at) || 0) : 0;
             card.innerHTML =
-                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="" crossorigin="anonymous" data-autobg="1">' + saleOverlayHTML(it) + '</div>' +
+                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
                 brandModelLineHTML(it) +
                 specLineHTML(it) +
@@ -3510,7 +3470,6 @@
                 '</div></div>';
             frag.appendChild(card);
         });
-        wireAutoCutout(frag);
         inner.insertBefore(frag, inner.firstChild);
     }
 
@@ -3534,14 +3493,13 @@
             card.dataset.price = it.price || 0;
             card.dataset.sprice = it.sale_price || '';
             card.innerHTML =
-                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="" crossorigin="anonymous" data-autobg="1">' + saleOverlayHTML(it) + '</div>' +
+                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
                 brandModelLineHTML(it) +
                 specLineHTML(it) +
                 '<p class="hcard-price">' + priceHtml + '</p>';
             frag.appendChild(card);
         });
-        wireAutoCutout(frag);
         grid.appendChild(frag);
     }
 
@@ -3563,14 +3521,13 @@
             card.dataset.price = it.price || 0;
             card.dataset.sprice = it.sale_price || '';
             card.innerHTML =
-                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="" crossorigin="anonymous" data-autobg="1">' + saleOverlayHTML(it) + '</div>' +
+                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
                 brandModelLineHTML(it) +
                 specLineHTML(it) +
                 '<p class="hcard-price">' + priceHtml + '</p>';
             frag.appendChild(card);
         });
-        wireAutoCutout(frag);
         grid.appendChild(frag);
     }
     function renderCatPages(rows) {

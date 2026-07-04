@@ -31,9 +31,7 @@
     --serif: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
 }
 
-/* PC(넓은 화면)에서는 앱 컨테이너 폭을 660px로 확대. 그 이상 넓게 보려면
-   마이페이지 "화면 설정"의 PC 와이드 모드 토글(data-width="full")을 켜야 함 —
-   기본 화면은 항상 모바일 프레임 그대로 유지. */
+/* PC(넓은 화면)에서는 앱 컨테이너 폭을 660px로 확대 */
 @media (min-width: 700px) {
     :root {
         --app-w: 660px;
@@ -6455,25 +6453,15 @@ body[data-page="collection"] #collection .section-soft { padding-top: calc(14px 
 .col-grid-inner,
 .hcard-grid {
     display: grid;
-    /* 모바일: 2열 (참조 스크린샷 규격) */
+    /* 항상 2열 고정 — 모바일·PC 동일하게 한 줄에 2개 (참조 스크린샷 규격) */
     grid-template-columns: 1fr 1fr;
     gap: 14px;
     align-items: start;          /* 카드는 내용 높이대로 → 중간 여백 없음 */
 }
-/* PC(700px~)에서는 카드가 커지지 않도록 자동 3열 — "와이드 보기" 토글 없이도 적용 */
-@media (min-width: 700px) {
-    .home-sale-grid,
-    .col-grid-inner,
-    .hcard-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 16px;
-    }
-}
-/* 4열 이상은 "화면 설정" 와이드 모드 토글(data-width="full")을 켰을 때만 — 기본은 항상 모바일/3열 */
 html[data-width="full"] .home-sale-grid,
 html[data-width="full"] .col-grid-inner,
 html[data-width="full"] .hcard-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, 1fr);   /* 와이드만 4열 */
     gap: 16px;
 }
 /* 이미지 규격 고정: 모든 카드 이미지를 동일한 정사각 박스로 강제(세로/가로형 무관)
@@ -6484,7 +6472,7 @@ html[data-width="full"] .hcard-grid {
 .hcard-grid .hcard-img {
     aspect-ratio: 1 / 1 !important;
     height: auto !important;
-    background: #ffffff;
+    background: #f7f7f5;
     border-radius: 10px;
     padding: 12px;
 }
@@ -6497,7 +6485,7 @@ html[data-width="full"] .hcard-grid {
 .hcard .hcard-img {
     aspect-ratio: 1 / 1 !important;
     height: auto !important;
-    background: #ffffff !important;
+    background: #f7f7f5 !important;
     border-radius: 10px;
     padding: 12px;
     overflow: hidden;
@@ -7106,45 +7094,6 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: none; }
 }
-
-/* PC 방문자 고정 화면(바이버식 좌우 분할) — 모바일에서는 항상 숨김, 토글 없음(바이버와 동일하게 항상 노출) */
-.pc-viver-split { display: none; }
-@media (min-width: 1024px) {
-    .pc-viver-split {
-        display: flex; position: fixed; inset: 0; z-index: 5000;
-        background: #fafaf8;
-    }
-}
-.pvs-left {
-    flex: 1 1 50%; position: relative; display: flex; flex-direction: column;
-    align-items: flex-start; justify-content: center;
-    padding: 0 8vw;
-}
-.pvs-logo {
-    position: absolute; top: 6vh; left: 8vw;
-    width: 130px; height: auto;
-}
-.pvs-tagline {
-    font-size: 32px; font-weight: 600; line-height: 1.5;
-    color: var(--text); letter-spacing: -.5px; margin: 0 0 44px;
-}
-.pvs-qr {
-    display: flex; align-items: center; gap: 16px;
-    background: #111; color: #fff; border-radius: 16px; padding: 14px 20px;
-}
-.pvs-qr-img { width: 64px; height: 64px; border-radius: 6px; background: #fff; }
-.pvs-qr-text { font-size: 13px; line-height: 1.5; font-weight: 600; }
-.pvs-right {
-    flex: 1 1 50%; display: flex; align-items: center; justify-content: center;
-    background: #eeece7;
-}
-.pvs-phone {
-    width: 390px; height: 812px; max-height: 90vh;
-    border: 12px solid #111; border-radius: 46px;
-    overflow: hidden; box-shadow: 0 30px 60px rgba(0,0,0,.25);
-    background: #111;
-}
-.pvs-frame { width: 100%; height: 100%; border: none; }
 
 /* ============================================================
    배치4 보강: 판매시계 ALL/스와이프 · 검색탭 · 자동완성 · 시세그래프 · 벨로르 팝업
