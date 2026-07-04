@@ -3324,10 +3324,10 @@
         }
         return fmt(it.price) + '<em>원</em>';
     }
-    // 카드 하단 스펙 한 줄: "25mm, 블랙" 형식(사이즈/색상 레퍼런스 디자인)
+    // 카드 하단 스펙 한 줄: "미리수, 색상" 형식 (사장님 확정 — 사이즈 대신 미리수)
     function specLineHTML(it) {
         var parts = [];
-        if (it.size_mm) parts.push(it.size_mm + 'mm');
+        if (it.misu) parts.push(it.misu);
         if (it.dial_color) parts.push(it.dial_color);
         return parts.length ? '<p class="hcard-pack">' + esc(parts.join(', ')) + '</p>' : '';
     }
