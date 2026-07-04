@@ -6453,15 +6453,24 @@ body[data-page="collection"] #collection .section-soft { padding-top: calc(14px 
 .col-grid-inner,
 .hcard-grid {
     display: grid;
-    /* 항상 2열 고정 — 모바일·PC 동일하게 한 줄에 2개 (참조 스크린샷 규격) */
+    /* 모바일: 2열 (참조 스크린샷 규격) */
     grid-template-columns: 1fr 1fr;
     gap: 14px;
     align-items: start;          /* 카드는 내용 높이대로 → 중간 여백 없음 */
 }
+/* PC(700px~)에서는 카드가 커지지 않도록 자동 3열 — "와이드 보기" 토글 없이도 적용 */
+@media (min-width: 700px) {
+    .home-sale-grid,
+    .col-grid-inner,
+    .hcard-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+    }
+}
 html[data-width="full"] .home-sale-grid,
 html[data-width="full"] .col-grid-inner,
 html[data-width="full"] .hcard-grid {
-    grid-template-columns: repeat(4, 1fr);   /* 와이드만 4열 */
+    grid-template-columns: repeat(4, 1fr);   /* 와이드 모드는 4열 */
     gap: 16px;
 }
 /* 이미지 규격 고정: 모든 카드 이미지를 동일한 정사각 박스로 강제(세로/가로형 무관)
@@ -6472,7 +6481,7 @@ html[data-width="full"] .hcard-grid {
 .hcard-grid .hcard-img {
     aspect-ratio: 1 / 1 !important;
     height: auto !important;
-    background: #f7f7f5;
+    background: #ffffff;
     border-radius: 10px;
     padding: 12px;
 }
@@ -6485,7 +6494,7 @@ html[data-width="full"] .hcard-grid {
 .hcard .hcard-img {
     aspect-ratio: 1 / 1 !important;
     height: auto !important;
-    background: #f7f7f5 !important;
+    background: #ffffff !important;
     border-radius: 10px;
     padding: 12px;
     overflow: hidden;
