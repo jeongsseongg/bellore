@@ -4969,7 +4969,7 @@ body.pp-lb-open { overflow: hidden; }
 .tab-ai-wrap {
     flex: 0 0 auto;
     position: relative;
-    width: 124px;
+    width: 104px;
     height: 100%;
     display: flex;
     align-items: flex-start;
@@ -4978,9 +4978,9 @@ body.pp-lb-open { overflow: hidden; }
 .tab-ai-circle {
     position: relative;
     z-index: 2;
-    width: 72px;
-    height: 72px;
-    margin-top: -32px;
+    width: 60px;
+    height: 60px;
+    margin-top: -30px;
     border: none;
     border-radius: 50%;
     background: #111;
@@ -4993,20 +4993,20 @@ body.pp-lb-open { overflow: hidden; }
    원이 튀어나온 구간만 곡선이고, 나머지 바는 그대로 직선을 유지한다 */
 .tab-ai-notch {
     position: absolute;
-    top: -26px;
+    top: -22px;
     z-index: 1;
-    width: 26px;
-    height: 26px;
+    width: 22px;
+    height: 22px;
     background: #fff;
     pointer-events: none;
 }
 .tab-ai-notch-l {
-    left: calc(50% - 62px);
-    border-top-left-radius: 26px;
+    left: calc(50% - 52px);
+    border-top-left-radius: 22px;
 }
 .tab-ai-notch-r {
-    left: calc(50% + 36px);
-    border-top-right-radius: 26px;
+    left: calc(50% + 30px);
+    border-top-right-radius: 22px;
 }
 @keyframes tabAiPulse {
     0%, 100% { box-shadow: 0 6px 16px rgba(0,0,0,.22), 0 0 0 0 rgba(17,17,17,.16); }
