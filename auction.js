@@ -15,22 +15,21 @@
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
-  // 금액 한글 단위(맨 앞자리 자릿수 이름) — 보기 쉽게, 파랑색 표기
-  var WON_UNIT = { 1:'일원', 2:'십원', 3:'백원', 4:'천원', 5:'만원', 6:'십만원', 7:'백만원', 8:'천만원', 9:'일억', 10:'십억', 11:'백억', 12:'천억', 13:'일조' };
-  function wonUnit(n) {
+  // 표시용 금액 — 단위 없이 "5,200,000원" (사장님 지침: 표시 화면엔 한글단위 X)
+  function won(n) { return fmt(n) + '원'; }
+  // 금액을 만/억 읽기로 — 금액 '입력칸' 보조 표기에서만 사용. 예: 1,400,000 → "140만원"
+  function korMoney(n) {
     n = Math.floor(Math.abs(Number(n) || 0));
     if (n < 1) return '';
-    return WON_UNIT[String(n).length] || '';
-  }
-  // HTML 표기: "5,200,000원 (백만원)" — 단위는 파랑
-  function wonH(n) {
-    var u = wonUnit(n);
-    return fmt(n) + '원' + (u ? ' <em class="won-u">' + u + '</em>' : '');
-  }
-  // 팝업/텍스트용(색 없음): "5,200,000원(백만원)"
-  function wonT(n) {
-    var u = wonUnit(n);
-    return fmt(n) + '원' + (u ? '(' + u + ')' : '');
+    var eok = Math.floor(n / 100000000);
+    var man = Math.floor((n % 100000000) / 10000);
+    var won0 = n % 10000;
+    var s = '';
+    if (eok) s += eok.toLocaleString('ko-KR') + '억';
+    if (man) s += (s ? ' ' : '') + man.toLocaleString('ko-KR') + '만';
+    if (won0) s += (s ? ' ' : '') + won0.toLocaleString('ko-KR') + '원';
+    else s += '원';
+    return s;
   }
   function B() { return window.NWBackend; }
   function sb() { return window.sbClient; }
@@ -168,7 +167,7 @@
   }
 
   function open() {
-    if (!isAdmin()) { alert('관리자만 이용할 수 있어요.'); return; }
+    if (!isAdmin()) { alert('관리자만 이용할 수 있습니다.'); return; }
     ensureRoot();
     root.hidden = false;
     document.body.style.overflow = 'hidden';
@@ -223,7 +222,7 @@
     });
     if (!list.length) {
       box.innerHTML = (sb() ? '' : dbHelp()) +
-        '<p class="auc-empty">아직 예약된 경매가 없어요.<br>‘시계 목록에서 예약’ 탭에서 시작해보세요.</p>';
+        '<p class="auc-empty">등록된 경매가 없습니다.<br>‘시계 목록에서 예약’ 탭에서 경매를 등록하세요.</p>';
       return;
     }
     box.innerHTML = list.map(auctionCard).join('');
@@ -247,13 +246,13 @@
         '</div>' +
       '</div>' +
       '<div class="auc-figures">' +
-        fig('시세', a.retail_price ? wonH(a.retail_price) : '-') +
-        fig('시작가', wonH(a.start_price)) +
-        fig('현재가', cur ? wonH(cur) : '입찰 전') +
+        fig('시세', a.retail_price ? won(a.retail_price) : '-') +
+        fig('시작가', won(a.start_price)) +
+        fig('현재가', cur ? won(cur) : '입찰 전') +
         fig('입찰', (a.bid_count || 0) + '회') +
-        (floor ? fig(a.owner_role === 'partner' ? '최소낙찰' : '매입보장', wonH(floor)) : '') +
+        (floor ? fig(a.owner_role === 'partner' ? '최소낙찰' : '매입보장', won(floor)) : '') +
       '</div>' +
-      (st === 'ended' && a.winner_id ? '<p class="auc-won">낙찰 ' + wonH(a.final_price) + '</p>' :
+      (st === 'ended' && a.winner_id ? '<p class="auc-won">낙찰 ' + won(a.final_price) + '</p>' :
        st === 'ended' ? '<p class="auc-fail">유찰</p>' : '') +
       '<div class="auc-bidlist" data-bids="' + esc(a.id) + '" hidden></div>' +
       '<div class="auc-card-acts">' +
@@ -282,7 +281,7 @@
             return '<div class="auc-bidrow">' +
               '<span class="auc-bidrank">' + (i + 1) + '</span>' +
               '<span class="auc-bidwho">' + (b.is_floor ? '매입보장' : '응찰자 ' + String(b.bidder_id).slice(0, 6)) + '</span>' +
-              '<b>' + wonH(b.amount) + '</b>' +
+              '<b>' + won(b.amount) + '</b>' +
               '<span class="auc-bidtime">' + fmtWhen(b.created_at) + '</span>' +
             '</div>';
           }).join('') : '<p class="auc-empty">아직 입찰이 없어요.</p>';
@@ -297,7 +296,7 @@
     });
     $$('[data-end]', box).forEach(function (btn) {
       btn.addEventListener('click', function () {
-        bellConfirm('이 경매를 지금 종료할까요? 현재 최고가로 낙찰 처리됩니다.', { title: '경매 종료', okText: '종료하기' }).then(function (ok) {
+        bellConfirm('이 경매를 지금 종료하시겠습니까? 현재 최고가로 낙찰 처리됩니다.', { title: '경매 종료', okText: '종료하기' }).then(function (ok) {
           if (!ok) return;
           endAuction(btn.dataset.end).then(function () { refreshData().then(render); })
             .catch(function (e) { alert('종료 실패: ' + (e.message || e)); });
@@ -306,7 +305,7 @@
     });
     $$('[data-cancel]', box).forEach(function (btn) {
       btn.addEventListener('click', function () {
-        bellConfirm('예약된 경매를 취소할까요?', { title: '예약 취소', okText: '취소하기', cancelText: '닫기' }).then(function (ok) {
+        bellConfirm('예약된 경매를 취소하시겠습니까?', { title: '예약 취소', okText: '취소하기', cancelText: '닫기' }).then(function (ok) {
           if (!ok) return;
           cancelAuction(btn.dataset.cancel).then(function () { refreshData().then(render); })
             .catch(function (e) { alert('취소 실패: ' + (e.message || e)); });
@@ -329,7 +328,7 @@
     var box = $('.auc-body', root);
     if (!sb()) { box.innerHTML = dbHelp(); return; }
     if (!listingsCache.length) {
-      box.innerHTML = '<p class="auc-empty">등록된 시계가 없어요. 먼저 판매시계를 등록해 주세요.</p>';
+      box.innerHTML = '<p class="auc-empty">등록된 시계가 없습니다. 먼저 판매시계를 등록해 주세요.</p>';
       return;
     }
     // 진행중/예약된 경매가 이미 있는 매물 표시
@@ -339,7 +338,7 @@
       if (st === 'live' || st === 'scheduled') activeByListing[a.listing_id] = st;
     });
     box.innerHTML =
-      '<p class="auc-pick-hint">시계를 누르면 경매 설정이 열려요. 등록된 모든 시계가 자동으로 연동됩니다.</p>' +
+      '<p class="auc-pick-hint">시계를 선택하면 경매 설정이 열립니다. 등록된 모든 시계가 자동 연동됩니다.</p>' +
       '<div class="auc-grid">' + listingsCache.map(function (l) {
         var badge = activeByListing[l.id];
         return '<button type="button" class="auc-pick" data-lid="' + esc(l.id) + '">' +
@@ -347,7 +346,7 @@
             (badge ? '<span class="auc-pick-flag auc-pick-flag--' + badge + '">' + STATE_LABEL[badge] + '</span>' : '') + '</div>' +
           '<p class="auc-pick-brand">' + esc(l.brand) + '</p>' +
           '<p class="auc-pick-model">' + esc(l.model) + '</p>' +
-          '<p class="auc-pick-price">' + (l.price ? wonH(l.price) : '가격 미정') + '</p>' +
+          '<p class="auc-pick-price">' + (l.price ? won(l.price) : '가격 미정') + '</p>' +
         '</button>';
       }).join('') + '</div>';
     $$('.auc-pick', box).forEach(function (btn) {
@@ -367,15 +366,15 @@
         '<div class="auc-sheet-head">' +
           '<div class="auc-thumb">' + (l.img ? '<img src="' + esc(l.img) + '" alt="">' : '') + '</div>' +
           '<div><p class="auc-name">' + esc(l.brand + ' ' + l.model) + '</p>' +
-          '<p class="auc-when">시세 ' + (l.price ? wonH(l.price) : '-') + '</p></div>' +
+          '<p class="auc-when">시세 ' + (l.price ? won(l.price) : '-') + '</p></div>' +
           '<button type="button" class="auc-sheet-x" aria-label="닫기">×</button>' +
         '</div>' +
         '<div class="auc-sheet-body">' +
-          field('판매가(입찰 시작가)', '<input type="number" id="aucStart" value="' + startDefault + '" min="0" step="10000"><span class="auc-hint" id="aucStartUnit"></span>') +
+          field('판매가(입찰 시작가)', '<input type="number" id="aucStart" class="auc-money" value="' + startDefault + '" min="0" step="10000"><span class="auc-hint">비우면 시세의 30%로 자동 산정됩니다.</span>') +
           field('진행 시간', chips('aucDur', [['1','1시간'],['6','6시간'],['12','12시간'],['24','1일'],['72','3일']], '24')) +
-          field('시작 시각', '<input type="datetime-local" id="aucStartAt" value="' + nowLocalInput() + '"><span class="auc-hint">지금으로 두면 즉시 시작, 미래로 두면 예약</span>') +
+          field('시작 시각', '<input type="datetime-local" id="aucStartAt" value="' + nowLocalInput() + '"><span class="auc-hint">지금으로 두면 즉시 시작, 미래 시각은 예약됩니다.</span>') +
           field('최소 입찰 단위', chips('aucInc', [['10000','1만'],['50000','5만'],['100000','10만'],['500000','50만']], '10000')) +
-          field('최소 판매가 <em class="auc-sub">(이 밑으론 낙찰 안 됨 · 선택)</em>', '<input type="number" id="aucReserve" placeholder="예: ' + (l.price ? Math.floor(l.price*0.6) : '') + '" min="0" step="10000"><span class="auc-hint">벨로르 물건은 “매입 보장가”, 파트너 물건은 “최소 낙찰가”로 바닥을 받쳐요</span>') +
+          field('최소 판매가 <em class="auc-sub">(이 금액 미만은 낙찰되지 않음 · 선택)</em>', '<input type="number" id="aucReserve" class="auc-money" placeholder="예: ' + (l.price ? Math.floor(l.price*0.6) : '') + '" min="0" step="10000"><span class="auc-hint">벨로르 매물은 매입 보장가, 파트너 매물은 최소 낙찰가로 적용됩니다.</span>') +
           field('누가 참여하나요?', chips('aucElig', [['all','누구나 참여'],['adult','19세 이상만(본인인증)']], 'all')) +
         '</div>' +
         '<div class="auc-sheet-acts">' +
@@ -385,7 +384,7 @@
       '</div>';
     document.body.appendChild(sheet);
     bindChips(sheet);
-    bindUnitHint($('#aucStart', sheet), $('#aucStartUnit', sheet), '비우면 시세의 30%로 자동 · 낮을수록 “싸게 잡을 기회”가 커집니다');
+    $$('.auc-money', sheet).forEach(moneyHintFor);
     var closeSheet = function () { if (sheet.parentNode) sheet.parentNode.removeChild(sheet); };
     sheet.querySelector('.auc-sheet-x').addEventListener('click', closeSheet);
     $('#aucSheetCancel', sheet).addEventListener('click', closeSheet);
@@ -395,15 +394,25 @@
     });
   }
 
-  // 금액 입력칸 아래에 "= 백만원" 처럼 한글 단위를 실시간 표시
-  function bindUnitHint(input, hintEl, base) {
-    if (!input || !hintEl) return;
-    function upd() {
-      var v = parseInt(input.value, 10) || 0;
-      hintEl.innerHTML = (v > 0 ? '= <em class="won-u">' + wonUnit(v) + '</em> (' + fmt(v) + '원)  ' : '') + (base || '');
-    }
-    input.addEventListener('input', upd); upd();
+  // 금액 '입력칸'(.lp-money=상품등록, .auc-money=경매 설정) 오른쪽에 "= 140만원" 보조 표기
+  function moneyHintFor(inp) {
+    if (!inp) return;
+    var n = parseInt(String(inp.value || '').replace(/[^0-9]/g, ''), 10) || 0;
+    var host = (inp.closest && inp.closest('label')) || inp.parentNode;
+    if (!host) return;
+    var hint = host.querySelector('.money-kor-hint');
+    if (!hint) { hint = document.createElement('span'); hint.className = 'money-kor-hint'; host.appendChild(hint); }
+    hint.textContent = n > 0 ? '= ' + korMoney(n) : '';
   }
+  // 금액 입력칸 어디서든(상품등록 .lp-money / 경매 .auc-money) 타이핑·포커스 시 보조표기
+  document.addEventListener('input', function (e) {
+    var inp = e.target && e.target.closest && e.target.closest('.lp-money, .auc-money');
+    if (inp) moneyHintFor(inp);
+  });
+  document.addEventListener('focusin', function (e) {
+    var inp = e.target && e.target.closest && e.target.closest('.lp-money, .auc-money');
+    if (inp) moneyHintFor(inp);
+  });
 
   /* ----- 경매 수정 · 연장 시트 (기존 경매) ----- */
   function openEdit(a) {
@@ -416,7 +425,7 @@
         '<div class="auc-sheet-head">' +
           '<div class="auc-thumb">' + (a.image_url ? '<img src="' + esc(a.image_url) + '" alt="">' : '') + '</div>' +
           '<div><p class="auc-name">' + esc((a.brand || '') + ' ' + (a.model || '')) + '</p>' +
-          '<p class="auc-when">' + STATE_LABEL[st] + ' · 현재가 ' + (a.current_price ? wonT(a.current_price) : '입찰 전') + '</p></div>' +
+          '<p class="auc-when">' + STATE_LABEL[st] + ' · 현재가 ' + (a.current_price ? won(a.current_price) : '입찰 전') + '</p></div>' +
           '<button type="button" class="auc-sheet-x" aria-label="닫기">×</button>' +
         '</div>' +
         '<div class="auc-sheet-body">' +
@@ -424,11 +433,11 @@
             '<p class="auc-hint" style="margin:0 0 8px">현재 종료 ' + fmtWhen(a.end_at) + ' · <span data-endpreview></span></p>' +
             chips('edtExt', [['0','그대로'],['10','+10분'],['30','+30분'],['60','+1시간'],['1440','+1일']], '0') +
           '</div>' +
-          (hasBids ? '' : field('판매가(시작가)', '<input type="number" id="edtStart" value="' + (a.start_price || 0) + '" min="0" step="10000"><span class="auc-hint" id="edtStartUnit"></span>')) +
-          field('최소 입찰 단위', '<input type="number" id="edtInc" value="' + (a.min_increment || 10000) + '" min="1000" step="1000"><span class="auc-hint" id="edtIncUnit"></span>') +
-          field('최소 판매가 <em class="auc-sub">(이 밑으론 낙찰 안 됨 · 선택)</em>', '<input type="number" id="edtReserve" value="' + (a.reserve_price || '') + '" min="0" step="10000"><span class="auc-hint" id="edtResUnit"></span>') +
+          (hasBids ? '' : field('판매가(시작가)', '<input type="number" id="edtStart" class="auc-money" value="' + (a.start_price || 0) + '" min="0" step="10000">')) +
+          field('최소 입찰 단위', '<input type="number" id="edtInc" class="auc-money" value="' + (a.min_increment || 10000) + '" min="1000" step="1000">') +
+          field('최소 판매가 <em class="auc-sub">(이 금액 미만은 낙찰되지 않음 · 선택)</em>', '<input type="number" id="edtReserve" class="auc-money" value="' + (a.reserve_price || '') + '" min="0" step="10000">') +
           field('누가 참여하나요?', chips('edtElig', [['all','누구나 참여'],['adult','19세 이상만(본인인증)']], a.eligibility === 'adult' ? 'adult' : 'all')) +
-          (hasBids ? '<p class="auc-hint">이미 입찰이 있어 시작가는 바꿀 수 없어요. 연장·최소단위·최소판매가·참여자격은 변경 가능합니다.</p>' : '') +
+          (hasBids ? '<p class="auc-hint">이미 입찰이 있어 시작가는 변경할 수 없습니다. 연장·최소단위·최소판매가·참여자격은 변경 가능합니다.</p>' : '') +
         '</div>' +
         '<div class="auc-sheet-acts">' +
           '<button type="button" class="auc-cancel" data-edtcancel>닫기</button>' +
@@ -437,9 +446,7 @@
       '</div>';
     document.body.appendChild(sheet);
     bindChips(sheet);
-    bindUnitHint($('#edtStart', sheet), $('#edtStartUnit', sheet), '');
-    bindUnitHint($('#edtInc', sheet), $('#edtIncUnit', sheet), '');
-    bindUnitHint($('#edtReserve', sheet), $('#edtResUnit', sheet), '');
+    $$('.auc-money', sheet).forEach(moneyHintFor);
     // 연장 미리보기
     var extHidden = sheet.querySelector('#edtExt');
     var preview = sheet.querySelector('[data-endpreview]');
@@ -473,7 +480,7 @@
       var chain = mins > 0 ? extendAuction(a, mins).then(function () { return updateAuction(a.id, patch); })
                            : updateAuction(a.id, patch);
       chain.then(function () {
-        close(); toast('경매 설정을 저장했어요.' + (mins > 0 ? ' 종료 시각을 연장했어요.' : ''));
+        close(); toast('경매 설정이 저장되었습니다.' + (mins > 0 ? ' 종료 시각이 연장되었습니다.' : ''));
         refreshData().then(render);
       }).catch(function (e) {
         save.disabled = false; save.textContent = '저장하기';
@@ -527,7 +534,7 @@
     go.disabled = true; go.textContent = '예약 중…';
     createAuction(payload).then(function () {
       closeSheet();
-      toast('경매를 예약했어요. 찜한 고객에게 알림이 나갑니다.');
+      toast('경매가 등록되었습니다. 관심 고객에게 알림이 발송됩니다.');
       switchTab('live');
       refreshData().then(render);
     }).catch(function (e) {
@@ -618,7 +625,7 @@
         '</button>' +
         '<span class="auc-title">지금 경매</span><span style="width:22px"></span>' +
       '</header>' +
-      '<div class="auc-cust-intro">기회를 잘 잡으면 시세보다 <b>훨씬 싸게</b> 데려올 수 있어요. 마음에 드는 시계에 입찰해 보세요!</div>' +
+      '<div class="auc-cust-intro">벨로르가 정품을 검증한 시계 경매입니다. 원하시는 상품에 입찰하세요.</div>' +
       '<div class="auc-wallet" hidden></div>' +
       '<div class="auc-body auc-cust-body"></div>';
     document.body.appendChild(croot);
@@ -657,7 +664,7 @@
     bar.hidden = false;
     var bal = (cWallet && cWallet.balance) || 0, held = (cWallet && cWallet.held) || 0;
     bar.innerHTML =
-      '<div class="auc-w-left"><span>벨로르 캐시</span><b>' + wonH(bal) + '</b>' +
+      '<div class="auc-w-left"><span>벨로르 캐시</span><b>' + won(bal) + '</b>' +
         (held > 0 ? '<em>예약금 ' + fmt(held) + '원 잠김</em>' : '') + '</div>' +
       '<div class="auc-w-acts">' +
         '<button type="button" class="auc-w-btn" data-wcharge>충전</button>' +
@@ -674,14 +681,14 @@
     box.innerHTML =
       '<div class="mpcash-row">' +
         '<div class="mpcash-left"><span>벨로르 캐시</span>' +
-          '<b>' + fmt(bal) + '<em>원</em> <i class="won-u mpcash-unit">' + wonUnit(bal) + '</i></b>' +
+          '<b>' + fmt(bal) + '<em>원</em></b>' +
           (held > 0 ? '<i class="mpcash-held">예약금 ' + fmt(held) + '원 잠김</i>' : '') + '</div>' +
         '<div class="mpcash-acts">' +
           '<button type="button" class="mpcash-btn" data-wcharge>충전</button>' +
           (bal > 0 ? '<button type="button" class="mpcash-btn mpcash-btn--ghost" data-wrefund>환불</button>' : '') +
         '</div>' +
       '</div>' +
-      '<p class="mpcash-note">충전해서 경매 예약금·상품 구매에 쓰고, 캐시로 구매 시 1% 즉시 할인받으세요.</p>';
+      '<p class="mpcash-note">충전 후 경매 예약금 및 상품 구매에 사용할 수 있으며, 캐시 결제 시 1% 즉시 할인이 적용됩니다.</p>';
   }
 
   // 지갑 데이터 1회 조회 → 경매 바 + 마이페이지 카드 동시 갱신
@@ -692,7 +699,7 @@
 
   /* ---------- 충전 시트 ---------- */
   function openChargeSheet() {
-    if (!myUid()) { toast('로그인 후 충전할 수 있어요.'); openLoginIfPossible(); return; }
+    if (!myUid()) { toast('로그인 후 이용하실 수 있습니다.'); openLoginIfPossible(); return; }
     var W = walletCfg();
     var presets = W.chargePresets || [50000, 100000, 300000, 500000];
     var isAdm = isAdmin();
@@ -706,10 +713,10 @@
           '<button type="button" class="auc-sheet-x" aria-label="닫기">×</button></div>' +
         '<div class="auc-sheet-body">' +
           field('충전 금액', chips('chgAmt', presets.map(function (p) { return [String(p), fmt(p) + '원']; }), String(presets[1] || presets[0])) +
-            '<span class="auc-hint">벨로르 캐시는 언제든 환불 가능해요. 경매 예약금(5%)·상품 구매에 쓰입니다.</span>') +
+            '<span class="auc-hint">벨로르 캐시는 언제든 환불 가능하며, 경매 예약금 및 상품 구매에 사용됩니다.</span>') +
           (canPay ? field('결제 수단', chips('chgPay', [['card', '신용·체크카드'], ['transfer', '계좌이체']].filter(function (o) { return W.charge[o[0]]; }), (W.charge.card ? 'card' : 'transfer'))) : '') +
-          (!canPay && !isAdm ? '<p class="auc-note">카드·계좌이체 충전은 결제 승인 완료 후 열립니다(준비 중). 조금만 기다려 주세요.</p>' : '') +
-          (isAdm ? '<p class="auc-hint">관리자: 아래 버튼은 즉시 충전(테스트)입니다.</p>' : '') +
+          (!canPay && !isAdm ? '<p class="auc-note">카드·계좌이체 충전은 결제 연동 승인 후 제공됩니다.</p>' : '') +
+          (isAdm ? '<p class="auc-hint">관리자 전용 · 즉시 충전(테스트)</p>' : '') +
         '</div>' +
         '<div class="auc-sheet-acts">' +
           '<button type="button" class="auc-cancel" data-chgcancel>취소</button>' +
@@ -726,24 +733,24 @@
       var amt = parseInt($('#chgAmt', sheet).value, 10) || 0;
       if (amt <= 0) { toast('충전 금액을 선택해 주세요.'); return; }
       if (isAdm) {
-        walletCharge(amt).then(function () { close(); toast(fmt(amt) + '원 충전됐어요.'); refreshWalletUI(); })
+        walletCharge(amt).then(function () { close(); toast(fmt(amt) + '원이 충전되었습니다.'); refreshWalletUI(); })
           .catch(function (e) { alert('충전 실패: ' + (e.message || e) + '\n(wallet.sql 실행 여부 확인)'); });
       } else if (canPay) {
         // 포트원 충전 연동 지점(승인 후): 결제창 → 검증 → wallet_charge(service_role)
-        toast('결제창 준비 중입니다. 카드 승인 완료 후 열려요.');
+        toast('카드 결제 연동 준비 중입니다.');
       } else {
-        toast('카드 충전은 곧 열려요(승인 예정).');
+        toast('카드 충전은 결제 연동 승인 후 제공됩니다.');
       }
     });
   }
 
   function doRefund() {
     var bal = (cWallet && cWallet.balance) || 0;
-    if (bal <= 0) { toast('환불할 벨로르 캐시가 없어요.'); return; }
-    bellConfirm('벨로르 캐시 ' + wonT(bal) + ' 전액을 환불 신청할까요?\n(예약금으로 잠긴 금액은 제외됩니다)',
+    if (bal <= 0) { toast('환불 가능한 벨로르 캐시가 없습니다.'); return; }
+    bellConfirm('벨로르 캐시 ' + won(bal) + ' 전액을 환불 신청하시겠습니까?\n(예치된 예약금은 제외됩니다)',
       { title: '캐시 환불', okText: '환불 신청', cancelText: '닫기' }).then(function (ok) {
       if (!ok) return;
-      walletRefund(bal).then(function () { toast('환불 신청됐어요. 등록하신 계좌로 지급됩니다.'); refreshWalletUI(); })
+      walletRefund(bal).then(function () { toast('환불 신청이 접수되었습니다. 등록된 계좌로 지급됩니다.'); refreshWalletUI(); })
         .catch(function (e) { alert('환불 실패: ' + (e.message || e)); });
     });
   }
@@ -763,7 +770,7 @@
     if (live.length) html += '<h3 class="auc-cust-sec">진행 중</h3>' + live.map(custCard).join('');
     if (soon.length) html += '<h3 class="auc-cust-sec">곧 시작</h3>' + soon.map(custCard).join('');
     if (done.length) html += '<h3 class="auc-cust-sec">지난 경매</h3>' + done.slice(0, 6).map(custCard).join('');
-    box.innerHTML = html || '<p class="auc-empty">지금은 진행 중인 경매가 없어요.<br>관심 시계를 찜해두면 경매가 열릴 때 알려드릴게요!</p>';
+    box.innerHTML = html || '<p class="auc-empty">현재 진행 중인 경매가 없습니다.<br>관심 상품을 찜해 두시면 경매 시작 시 알림을 보내드립니다.</p>';
     bindCustActions(box);
     updateCustCountdowns();
   }
@@ -788,30 +795,28 @@
         '<div class="auc-c-pricebox">' +
           '<span class="auc-c-plabel">현재가</span>' +
           '<span class="auc-c-price">' + fmt(curp) + '<em>원</em></span>' +
-          '<span class="won-u auc-c-unit">' + wonUnit(curp) + '</span>' +
-          (pct > 0 ? '<span class="auc-c-off">시세보다 ' + pct + '% 저렴</span>' : '') +
+          (pct > 0 ? '<span class="auc-c-off">시세 대비 ' + pct + '% 낮음</span>' : '') +
         '</div>' +
-        (mine ? '<p class="auc-c-mine">지금 내가 최고 입찰 중이에요</p>' : '') +
+        (mine ? '<p class="auc-c-mine">현재 최고 입찰자입니다.</p>' : '') +
         '<div class="auc-c-stepper">' +
           '<button type="button" class="auc-c-step" data-step="-" data-aid="' + esc(a.id) + '">－</button>' +
-          '<div class="auc-c-stepamt"><span>입찰가</span><b data-wantamt="' + esc(a.id) + '">' + wonH(want) + '</b></div>' +
+          '<div class="auc-c-stepamt"><span>입찰가</span><b data-wantamt="' + esc(a.id) + '">' + won(want) + '</b></div>' +
           '<button type="button" class="auc-c-step" data-step="+" data-aid="' + esc(a.id) + '">＋</button>' +
         '</div>' +
         '<button type="button" class="auc-c-bid" data-bid="' + esc(a.id) + '">이 금액으로 입찰하기</button>' +
-        '<p class="auc-c-hint">＋/－ 로 ' + fmt(a.min_increment || 10000) + '원씩 조절 · 최소 ' + fmt(nm) + '원부터</p>' +
-        (walletCfg().enabled ? '<p class="auc-c-deposit">예약금 5%(' + fmt(depositFor(want)) + '원)만 잠기고, 밀리면 자동 환불돼요. 낙찰 후 취소 시에만 예약금이 환불되지 않습니다.</p>' : '');
+        '<p class="auc-c-hint">＋/－ 버튼으로 ' + fmt(a.min_increment || 10000) + '원씩 조정 · 최소 입찰가 ' + fmt(nm) + '원</p>' +
+        (walletCfg().enabled ? '<p class="auc-c-deposit">입찰 시 예약금 5%(' + fmt(depositFor(want)) + '원)가 예치되며, 상위 입찰 시 자동 환불됩니다. 낙찰 후 구매 취소 시에만 환불되지 않습니다.</p>' : '');
     } else if (st === 'scheduled') {
       body =
         '<div class="auc-c-pricebox">' +
           '<span class="auc-c-plabel">시작가</span>' +
           '<span class="auc-c-price">' + fmt(a.start_price) + '<em>원</em></span>' +
-          '<span class="won-u auc-c-unit">' + wonUnit(a.start_price) + '</span>' +
-          (a.retail_price ? '<span class="auc-c-off">시세 ' + wonT(a.retail_price) + '</span>' : '') +
+          (a.retail_price ? '<span class="auc-c-off">시세 ' + won(a.retail_price) + '</span>' : '') +
         '</div>' +
         '<p class="auc-c-soon">' + fmtWhen(a.start_at) + ' 시작 예정</p>';
     } else {
       body = a.winner_id
-        ? '<p class="auc-c-result auc-c-result--won">' + wonH(a.final_price) + '에 낙찰 완료</p>'
+        ? '<p class="auc-c-result auc-c-result--won">' + won(a.final_price) + '에 낙찰 완료</p>'
         : '<p class="auc-c-result">유찰 (낙찰자 없음)</p>';
     }
     return '<div class="auc-c-card" data-cardid="' + esc(a.id) + '">' +
@@ -837,7 +842,7 @@
         cur = btn.dataset.step === '+' ? cur + inc : Math.max(nm, cur - inc);
         cAmt[a.id] = cur;
         var el = box.querySelector('[data-wantamt="' + a.id + '"]');
-        if (el) el.innerHTML = wonH(cur);
+        if (el) el.innerHTML = won(cur);
       });
     });
     $$('[data-bid]', box).forEach(function (btn) {
@@ -847,26 +852,26 @@
 
   function doCustBid(auctionId, btn) {
     var a = cAuctions.filter(function (x) { return x.id === auctionId; })[0]; if (!a) return;
-    if (!myUid()) { toast('로그인 후 참여하실 수 있어요.'); openLoginIfPossible(); return; }
+    if (!myUid()) { toast('로그인 후 이용하실 수 있습니다.'); openLoginIfPossible(); return; }
     if (a.eligibility === 'adult') {
       var ok = false; try { ok = !!(B() && B().phoneVerified && B().phoneVerified()); } catch (e) {}
-      if (!ok) { alert('이 경매는 만 19세 이상만 참여할 수 있어요.\n휴대폰 본인인증을 먼저 완료해 주세요.'); return; }
+      if (!ok) { alert('본 경매는 만 19세 이상만 참여할 수 있습니다.\n휴대폰 본인인증 후 이용해 주세요.'); return; }
     }
     var amount = cAmt[auctionId] || nextMin(a);
-    var msg = wonT(amount) + '에 입찰할까요?';
+    var msg = won(amount) + '에 입찰하시겠습니까?';
     if (walletCfg().enabled) {
-      msg += '\n\n예약금 ' + wonT(depositFor(amount)) + '(5%)이 벨로르 캐시에서 잠깁니다.' +
-             '\n· 밀리거나 낙찰 안 되면 전액 돌려드려요' +
-             '\n· 낙찰 후 취소할 때만 예약금이 돌아오지 않습니다';
+      msg += '\n\n입찰 시 예약금 ' + won(depositFor(amount)) + '(5%)이 벨로르 캐시에서 예치됩니다.' +
+             '\n· 상위 입찰 시 또는 낙찰되지 않으면 전액 환불됩니다' +
+             '\n· 낙찰 후 구매를 취소하는 경우에만 환불되지 않습니다';
     } else {
-      msg += '\n낙찰되면 결제하셔야 합니다.';
+      msg += '\n낙찰 시 결제가 진행됩니다.';
     }
-    bellConfirm(msg, { title: '입찰 확인', okText: '입찰하기', cancelText: '다시 볼게요' }).then(function (agree) {
+    bellConfirm(msg, { title: '입찰 확인', okText: '입찰하기', cancelText: '취소' }).then(function (agree) {
       if (!agree) return;
       btn.disabled = true; btn.textContent = '입찰 중…';
       placeBid(auctionId, amount).then(function () {
         delete cAmt[auctionId];
-        toast('입찰했어요. 현재 최고가입니다.');
+        toast('입찰이 완료되었습니다. 현재 최고 입찰가입니다.');
         refreshCust();
       }).catch(function (e) {
         btn.disabled = false; btn.textContent = '이 금액으로 입찰하기';

@@ -184,8 +184,8 @@ begin
 
   -- 찜한 고객
   insert into public.notifications (user_id, type, title, body, ref_id)
-  select distinct up.user_id, 'auction_soon', '관심 시계 경매가 열려요',
-         label || ' 경매가 ' || whenq || '에 시작해요! 시작가부터 노려보세요.',
+  select distinct up.user_id, 'auction_soon', '관심 상품 경매 안내',
+         label || ' 경매가 ' || whenq || '에 시작됩니다.',
          new.id::text
     from public.user_picks up
    where up.kind = 'wish'
@@ -194,8 +194,8 @@ begin
 
   -- 소식받기(브랜드/모델 일치) 고객 — 위에서 이미 받은 사람은 제외
   insert into public.notifications (user_id, type, title, body, ref_id)
-  select distinct wa.user_id, 'auction_soon', '기다리던 시계가 경매에 나왔어요',
-         label || ' 경매가 ' || whenq || '에 시작해요! 지금 확인해보세요.',
+  select distinct wa.user_id, 'auction_soon', '관심 상품 경매 안내',
+         label || ' 경매가 ' || whenq || '에 시작됩니다.',
          new.id::text
     from public.watch_alerts wa
    where coalesce(wa.brand,'') = coalesce(new.brand,'')
@@ -231,9 +231,9 @@ begin
 
   if prev is not null then
     insert into public.notifications (user_id, type, title, body, ref_id)
-    values (prev, 'auction_outbid', '누군가 더 높게 입찰했어요',
+    values (prev, 'auction_outbid', '상위 입찰 안내',
             coalesce(nullif(trim(coalesce(a.brand,'') || ' ' || coalesce(a.model,'')),''),'경매')
-            || ' 경매에서 상위 입찰이 나왔어요. 다시 참여하시겠어요?',
+            || ' 경매에 상위 입찰이 등록되었습니다.',
             new.auction_id::text);
   end if;
   return new;
@@ -259,9 +259,9 @@ begin
       new.final_price := new.current_price;
       if new.winner_id is not null then
         insert into public.notifications (user_id, type, title, body, ref_id)
-        values (new.winner_id, 'auction_won', '축하합니다! 낙찰되셨어요',
+        values (new.winner_id, 'auction_won', '낙찰 안내',
                 coalesce(nullif(trim(coalesce(new.brand,'') || ' ' || coalesce(new.model,'')),''),'시계')
-                || ' 경매에 낙찰되었어요. 결제를 진행해 주세요.',
+                || ' 경매에 낙찰되었습니다. 결제를 진행해 주세요.',
                 new.id::text);
       end if;
     else
