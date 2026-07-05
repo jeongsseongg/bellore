@@ -423,11 +423,50 @@
       .order('start_at', { ascending: true }).limit(100)
       .then(function (res) { if (res.error) throw res.error; return res.data || []; });
   }
-  function placeBid(auctionId, amount) {
-    if (!sb()) return Promise.reject(new Error('NO_BACKEND'));
+  function bidInsertDirect(auctionId, amount) {
     return sb().from('auction_bids').insert({
       auction_id: auctionId, bidder_id: myUid(), amount: amount, is_floor: false
     }).select().single().then(function (res) { if (res.error) throw res.error; return res.data; });
+  }
+  // wallet.sql 이 아직 안 올라간 경우(함수 없음)에만 직접 insert 로 폴백.
+  function fnMissing(err) {
+    var c = (err && err.code) || '', m = (err && err.message || '') + '';
+    return c === 'PGRST202' || /Could not find the function|does not exist|schema cache/i.test(m);
+  }
+  function placeBid(auctionId, amount) {
+    if (!sb()) return Promise.reject(new Error('NO_BACKEND'));
+    if (walletCfg().enabled) {
+      return sb().rpc('place_auction_bid', { p_auction: auctionId, p_amount: amount })
+        .then(function (res) {
+          if (res.error) {
+            if (fnMissing(res.error)) return bidInsertDirect(auctionId, amount); // 스키마 미적용 폴백
+            throw res.error;
+          }
+          return res.data;
+        });
+    }
+    return bidInsertDirect(auctionId, amount);
+  }
+
+  /* ---------- 지갑(충전금) ---------- */
+  var cWallet = null;
+  function walletCfg() {
+    return window.BELLORE_WALLET || { enabled: false, depositRate: 0.05, charge: {}, chargePresets: [] };
+  }
+  function depositFor(amount) { return Math.ceil((amount || 0) * (walletCfg().depositRate || 0.05)); }
+  function fetchWallet() {
+    if (!sb() || !myUid()) return Promise.resolve(null);
+    return sb().from('wallets').select('balance,held').eq('user_id', myUid()).maybeSingle()
+      .then(function (res) { return res.data || { balance: 0, held: 0 }; })
+      .catch(function () { return null; });
+  }
+  function walletCharge(amount) {
+    return sb().rpc('wallet_charge', { p_uid: myUid(), p_amount: amount, p_memo: '충전' })
+      .then(function (res) { if (res.error) throw res.error; return res.data; });
+  }
+  function walletRefund(amount) {
+    return sb().rpc('wallet_refund_request', { p_amount: amount })
+      .then(function (res) { if (res.error) throw res.error; return res.data; });
   }
 
   function ensureCRoot() {
@@ -443,9 +482,14 @@
         '<span class="auc-title">지금 경매</span><span style="width:22px"></span>' +
       '</header>' +
       '<div class="auc-cust-intro">기회를 잘 잡으면 시세보다 <b>훨씬 싸게</b> 데려올 수 있어요. 마음에 드는 시계에 입찰해 보세요!</div>' +
+      '<div class="auc-wallet" hidden></div>' +
       '<div class="auc-body auc-cust-body"></div>';
     document.body.appendChild(croot);
     croot.querySelector('.auc-back').addEventListener('click', closeCust);
+    croot.addEventListener('click', function (e) {
+      if (e.target.closest('[data-wcharge]')) { openChargeSheet(); return; }
+      if (e.target.closest('[data-wrefund]')) { doRefund(); return; }
+    });
     return croot;
   }
 
@@ -469,9 +513,78 @@
     if (cTick) { clearInterval(cTick); cTick = null; }
   }
   function refreshCust(silent) {
-    return fetchPublicAuctions().then(function (rows) {
-      cAuctions = rows; renderCust();
+    return Promise.all([fetchPublicAuctions(), fetchWallet()]).then(function (r) {
+      cAuctions = r[0]; cWallet = r[1]; renderWallet(); renderCust();
     }).catch(function () { if (!silent) $('.auc-cust-body', croot).innerHTML = dbHelp(); });
+  }
+
+  function renderWallet() {
+    var bar = $('.auc-wallet', croot); if (!bar) return;
+    if (!walletCfg().enabled || !myUid()) { bar.hidden = true; return; }
+    bar.hidden = false;
+    var bal = (cWallet && cWallet.balance) || 0, held = (cWallet && cWallet.held) || 0;
+    bar.innerHTML =
+      '<div class="auc-w-left"><span>내 충전금</span><b>' + fmt(bal) + '원</b>' +
+        (held > 0 ? '<em>예약금 ' + fmt(held) + '원 잠김</em>' : '') + '</div>' +
+      '<div class="auc-w-acts">' +
+        '<button type="button" class="auc-w-btn" data-wcharge>충전</button>' +
+        (bal > 0 ? '<button type="button" class="auc-w-btn auc-w-btn--ghost" data-wrefund>환불</button>' : '') +
+      '</div>';
+  }
+
+  /* ---------- 충전 시트 ---------- */
+  function openChargeSheet() {
+    if (!myUid()) { toast('로그인 후 충전할 수 있어요.'); openLoginIfPossible(); return; }
+    var W = walletCfg();
+    var presets = W.chargePresets || [50000, 100000, 300000, 500000];
+    var isAdm = isAdmin();
+    var canPay = !!(W.charge && (W.charge.card || W.charge.transfer));
+    var sheet = document.createElement('div');
+    sheet.className = 'auc-sheet';
+    sheet.innerHTML =
+      '<div class="auc-sheet-card">' +
+        '<div class="auc-sheet-head"><div><p class="auc-name">충전금 충전</p>' +
+          '<p class="auc-when">현재 잔액 ' + fmt((cWallet && cWallet.balance) || 0) + '원</p></div>' +
+          '<button type="button" class="auc-sheet-x" aria-label="닫기">×</button></div>' +
+        '<div class="auc-sheet-body">' +
+          field('충전 금액', chips('chgAmt', presets.map(function (p) { return [String(p), fmt(p) + '원']; }), String(presets[1] || presets[0])) +
+            '<span class="auc-hint">충전금은 언제든 환불 가능해요. 입찰 예약금(5%)으로 쓰입니다.</span>') +
+          (canPay ? field('결제 수단', chips('chgPay', [['card', '신용·체크카드'], ['transfer', '계좌이체']].filter(function (o) { return W.charge[o[0]]; }), (W.charge.card ? 'card' : 'transfer'))) : '') +
+          (!canPay && !isAdm ? '<p class="auc-note">카드·계좌이체 충전은 결제 승인 완료 후 열립니다(준비 중). 조금만 기다려 주세요.</p>' : '') +
+          (isAdm ? '<p class="auc-hint">관리자: 아래 버튼은 즉시 충전(테스트)입니다.</p>' : '') +
+        '</div>' +
+        '<div class="auc-sheet-acts">' +
+          '<button type="button" class="auc-cancel" data-chgcancel>취소</button>' +
+          '<button type="button" class="auc-submit" data-chggo>' + (isAdm ? '즉시 충전(테스트)' : '충전하기') + '</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(sheet);
+    bindChips(sheet);
+    var close = function () { if (sheet.parentNode) sheet.parentNode.removeChild(sheet); };
+    sheet.querySelector('.auc-sheet-x').addEventListener('click', close);
+    sheet.querySelector('[data-chgcancel]').addEventListener('click', close);
+    sheet.addEventListener('click', function (e) { if (e.target === sheet) close(); });
+    sheet.querySelector('[data-chggo]').addEventListener('click', function () {
+      var amt = parseInt($('#chgAmt', sheet).value, 10) || 0;
+      if (amt <= 0) { toast('충전 금액을 선택해 주세요.'); return; }
+      if (isAdm) {
+        walletCharge(amt).then(function () { close(); toast(fmt(amt) + '원 충전됐어요.'); refreshCust(); })
+          .catch(function (e) { alert('충전 실패: ' + (e.message || e) + '\n(wallet.sql 실행 여부 확인)'); });
+      } else if (canPay) {
+        // 포트원 충전 연동 지점(승인 후): 결제창 → 검증 → wallet_charge(service_role)
+        toast('결제창 준비 중입니다. 카드 승인 완료 후 열려요.');
+      } else {
+        toast('카드 충전은 곧 열려요(승인 예정).');
+      }
+    });
+  }
+
+  function doRefund() {
+    var bal = (cWallet && cWallet.balance) || 0;
+    if (bal <= 0) { toast('환불할 충전금이 없어요.'); return; }
+    if (!confirm('충전금 ' + fmt(bal) + '원 전액을 환불 신청할까요?\n(예약금으로 잠긴 금액은 제외됩니다)')) return;
+    walletRefund(bal).then(function () { toast('환불 신청됐어요. 등록하신 계좌로 지급됩니다.'); refreshCust(); })
+      .catch(function (e) { alert('환불 실패: ' + (e.message || e)); });
   }
 
   function renderCust() {
@@ -522,7 +635,8 @@
           '<button type="button" class="auc-c-step" data-step="+" data-aid="' + esc(a.id) + '">＋</button>' +
         '</div>' +
         '<button type="button" class="auc-c-bid" data-bid="' + esc(a.id) + '">이 금액으로 입찰하기</button>' +
-        '<p class="auc-c-hint">＋/－ 로 ' + fmt(a.min_increment || 10000) + '원씩 조절 · 최소 ' + fmt(nm) + '원부터</p>';
+        '<p class="auc-c-hint">＋/－ 로 ' + fmt(a.min_increment || 10000) + '원씩 조절 · 최소 ' + fmt(nm) + '원부터</p>' +
+        (walletCfg().enabled ? '<p class="auc-c-deposit">예약금 5%(' + fmt(depositFor(want)) + '원)만 잠기고, 밀리면 자동 환불돼요. 낙찰 후 취소 시에만 예약금이 환불되지 않습니다.</p>' : '');
     } else if (st === 'scheduled') {
       body =
         '<div class="auc-c-pricebox">' +
@@ -575,7 +689,15 @@
       if (!ok) { toast('성인 인증(휴대폰 본인인증) 후 참여하실 수 있어요.'); return; }
     }
     var amount = cAmt[auctionId] || nextMin(a);
-    if (!confirm(fmt(amount) + '원에 입찰할까요?\n낙찰되면 결제하셔야 합니다.')) return;
+    var msg = fmt(amount) + '원에 입찰할까요?';
+    if (walletCfg().enabled) {
+      msg += '\n\n예약금 ' + fmt(depositFor(amount)) + '원(5%)이 충전금에서 잠깁니다.' +
+             '\n· 밀리거나 낙찰 안 되면 전액 환불' +
+             '\n· 낙찰 후 취소 시 예약금은 환불되지 않습니다';
+    } else {
+      msg += '\n낙찰되면 결제하셔야 합니다.';
+    }
+    if (!confirm(msg)) return;
     btn.disabled = true; btn.textContent = '입찰 중…';
     placeBid(auctionId, amount).then(function () {
       delete cAmt[auctionId];
@@ -583,8 +705,12 @@
       refreshCust();
     }).catch(function (e) {
       btn.disabled = false; btn.textContent = '이 금액으로 입찰하기';
-      var msg = (e && e.message) ? e.message : '입찰에 실패했어요.';
-      alert(msg);
+      var m = (e && e.message) ? e.message : '입찰에 실패했어요.';
+      if (m.indexOf('NEED_CHARGE') >= 0) {
+        toast(m.replace(/^.*NEED_CHARGE:/, ''));
+        refreshCust(); openChargeSheet(); return;
+      }
+      alert(m);
       refreshCust();
     });
   }

@@ -84,6 +84,23 @@ window.BELLORE_VERIFY = {
   business: { enabled: false }
 };
 
+/* ============================================================
+   경매 지갑(충전금) · 예약금 설정
+   ------------------------------------------------------------
+   - enabled:true  → 입찰 시 입찰가의 depositRate(5%)를 충전금에서 예약금으로 잠금.
+   - charge.card / charge.transfer → 충전 결제수단 노출(포트원 승인 후 true).
+   - 승인 전(false)에도 관리자는 '관리자 즉시충전(테스트)'으로 흐름 점검 가능.
+   ============================================================ */
+window.BELLORE_WALLET = {
+  enabled: true,
+  depositRate: 0.05,          // 예약금 비율(입찰가의 5%)
+  charge: {
+    card: false,              // 신용·체크카드 충전(포트원 승인 후 true)
+    transfer: false           // 계좌이체 충전(승인 후 true)
+  },
+  chargePresets: [50000, 100000, 300000, 500000, 1000000]
+};
+
 /* 카테고리 정의 (디자인의 탭/필터와 매핑) */
 window.BELLORE_CATEGORIES = {
   // 판매시계 마켓
