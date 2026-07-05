@@ -15,6 +15,23 @@
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
+  // 금액 한글 단위(맨 앞자리 자릿수 이름) — 보기 쉽게, 파랑색 표기
+  var WON_UNIT = { 1:'일원', 2:'십원', 3:'백원', 4:'천원', 5:'만원', 6:'십만원', 7:'백만원', 8:'천만원', 9:'일억', 10:'십억', 11:'백억', 12:'천억', 13:'일조' };
+  function wonUnit(n) {
+    n = Math.floor(Math.abs(Number(n) || 0));
+    if (n < 1) return '';
+    return WON_UNIT[String(n).length] || '';
+  }
+  // HTML 표기: "5,200,000원 (백만원)" — 단위는 파랑
+  function wonH(n) {
+    var u = wonUnit(n);
+    return fmt(n) + '원' + (u ? ' <em class="won-u">' + u + '</em>' : '');
+  }
+  // 팝업/텍스트용(색 없음): "5,200,000원(백만원)"
+  function wonT(n) {
+    var u = wonUnit(n);
+    return fmt(n) + '원' + (u ? '(' + u + ')' : '');
+  }
   function B() { return window.NWBackend; }
   function sb() { return window.sbClient; }
   function isAdmin() { try { return !!(B() && B().isAdmin && B().isAdmin()); } catch (e) { return false; } }
@@ -32,14 +49,20 @@
   var STATE_LABEL = { scheduled: '예약됨', live: '진행중', ended: '종료', canceled: '취소' };
   function remainText(a) {
     var st = auctionState(a);
+    if (st === 'ended' || st === 'canceled') return '';
     var target = st === 'scheduled' ? Date.parse(a.start_at) : Date.parse(a.end_at);
     var d = target - Date.now();
-    if (st === 'ended' || st === 'canceled') return '';
     if (d <= 0) return '';
-    var h = Math.floor(d / 3600000), m = Math.floor((d % 3600000) / 60000), s = Math.floor((d % 60000) / 1000);
     var pre = st === 'scheduled' ? '시작까지 ' : '종료까지 ';
-    if (h >= 24) return pre + Math.floor(h / 24) + '일 ' + (h % 24) + '시간';
-    return pre + (h > 0 ? h + '시간 ' : '') + m + '분 ' + (h > 0 ? '' : s + '초');
+    var days = Math.floor(d / 86400000); d -= days * 86400000;
+    var h = Math.floor(d / 3600000); d -= h * 3600000;
+    var m = Math.floor(d / 60000); d -= m * 60000;
+    var s = Math.floor(d / 1000);
+    // 초 단위까지 항상 표시
+    if (days > 0) return pre + days + '일 ' + h + '시간 ' + m + '분 ' + s + '초';
+    if (h > 0)    return pre + h + '시간 ' + m + '분 ' + s + '초';
+    if (m > 0)    return pre + m + '분 ' + s + '초';
+    return pre + s + '초';
   }
   function fmtWhen(iso) {
     var t = new Date(iso);
@@ -96,6 +119,18 @@
     return sb().from('auctions').update({ status: 'canceled' }).eq('id', id)
       .then(function (res) { if (res.error) throw res.error; });
   }
+  function updateAuction(id, patch) {
+    return sb().from('auctions').update(patch).eq('id', id).select().single()
+      .then(function (res) { if (res.error) throw res.error; return res.data; });
+  }
+  // 종료 시각 연장: 현재 종료시각(이미 지났으면 지금)에서 분 단위 추가
+  function extendAuction(a, minutes) {
+    var base = Math.max(Date.parse(a.end_at), Date.now());
+    var end = new Date(base + minutes * 60000).toISOString();
+    var patch = { end_at: end };
+    if (a.status === 'ended') patch.status = 'live'; // 종료된 걸 다시 열며 연장
+    return updateAuction(a.id, patch);
+  }
 
   /* ---------- 오버레이 DOM ---------- */
   var root = null, listingsCache = [], auctionsCache = [], tab = 'live', tick = null;
@@ -142,11 +177,14 @@
     renderLoading();
     refreshData().then(render);
     if (tick) clearInterval(tick);
+    var beat = 0;
     tick = setInterval(function () {
-      // 라이브 카운트다운/현황 자동 갱신
-      if (tab === 'live') refreshData().then(function () { if (!root.hidden) render(); });
-      else updateCountdowns();
-    }, 8000);
+      if (root.hidden) return;
+      updateCountdowns();               // 매초 카운트다운(초 단위)
+      if (++beat % 8 === 0 && tab === 'live') {  // 8초마다 데이터 갱신
+        refreshData().then(function () { if (!root.hidden && tab === 'live') render(); });
+      }
+    }, 1000);
   }
   function close() {
     if (root) { root.hidden = true; }
@@ -202,24 +240,25 @@
         '<div class="auc-thumb">' + (a.image_url ? '<img src="' + esc(a.image_url) + '" alt="">' : '') + '</div>' +
         '<div class="auc-card-main">' +
           '<div class="auc-badges"><span class="auc-badge auc-badge--' + st + '">' + STATE_LABEL[st] + '</span>' +
-            (a.eligibility === 'adult' ? '<span class="auc-badge auc-badge--adult">성인만</span>' : '') + '</div>' +
+            (a.eligibility === 'adult' ? '<span class="auc-badge auc-badge--adult">19세 이상</span>' : '') + '</div>' +
           '<p class="auc-name">' + esc((a.brand || '') + ' ' + (a.model || '')) + '</p>' +
           '<p class="auc-when">' + fmtWhen(a.start_at) + ' ~ ' + fmtWhen(a.end_at) +
             ' <span class="auc-remain" data-remain="' + esc(a.id) + '">' + remainText(a) + '</span></p>' +
         '</div>' +
       '</div>' +
       '<div class="auc-figures">' +
-        fig('시세', a.retail_price ? fmt(a.retail_price) + '원' : '-') +
-        fig('시작가', fmt(a.start_price) + '원') +
-        fig('현재가', cur ? fmt(cur) + '원' : '입찰 전') +
+        fig('시세', a.retail_price ? wonH(a.retail_price) : '-') +
+        fig('시작가', wonH(a.start_price)) +
+        fig('현재가', cur ? wonH(cur) : '입찰 전') +
         fig('입찰', (a.bid_count || 0) + '회') +
-        (floor ? fig(a.owner_role === 'partner' ? '최소낙찰' : '매입보장', fmt(floor) + '원') : '') +
+        (floor ? fig(a.owner_role === 'partner' ? '최소낙찰' : '매입보장', wonH(floor)) : '') +
       '</div>' +
-      (st === 'ended' && a.winner_id ? '<p class="auc-won">낙찰 ' + fmt(a.final_price) + '원</p>' :
+      (st === 'ended' && a.winner_id ? '<p class="auc-won">낙찰 ' + wonH(a.final_price) + '</p>' :
        st === 'ended' ? '<p class="auc-fail">유찰</p>' : '') +
       '<div class="auc-bidlist" data-bids="' + esc(a.id) + '" hidden></div>' +
       '<div class="auc-card-acts">' +
         '<button type="button" class="auc-mini" data-showbids="' + esc(a.id) + '">입찰 내역</button>' +
+        '<button type="button" class="auc-mini" data-edit="' + esc(a.id) + '">수정 · 연장</button>' +
         (st === 'live' ? '<button type="button" class="auc-mini auc-mini--end" data-end="' + esc(a.id) + '">지금 종료</button>' : '') +
         (st === 'scheduled' ? '<button type="button" class="auc-mini auc-mini--end" data-cancel="' + esc(a.id) + '">예약 취소</button>' : '') +
       '</div>' +
@@ -243,25 +282,35 @@
             return '<div class="auc-bidrow">' +
               '<span class="auc-bidrank">' + (i + 1) + '</span>' +
               '<span class="auc-bidwho">' + (b.is_floor ? '매입보장' : '응찰자 ' + String(b.bidder_id).slice(0, 6)) + '</span>' +
-              '<b>' + fmt(b.amount) + '원</b>' +
+              '<b>' + wonH(b.amount) + '</b>' +
               '<span class="auc-bidtime">' + fmtWhen(b.created_at) + '</span>' +
             '</div>';
           }).join('') : '<p class="auc-empty">아직 입찰이 없어요.</p>';
         }).catch(function () { panel.innerHTML = '<p class="auc-empty">불러오기 실패</p>'; });
       });
     });
+    $$('[data-edit]', box).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var a = auctionsCache.filter(function (x) { return x.id === btn.dataset.edit; })[0];
+        if (a) openEdit(a);
+      });
+    });
     $$('[data-end]', box).forEach(function (btn) {
       btn.addEventListener('click', function () {
-        if (!confirm('이 경매를 지금 종료할까요? 현재 최고가로 낙찰 처리됩니다.')) return;
-        endAuction(btn.dataset.end).then(function () { refreshData().then(render); })
-          .catch(function (e) { alert('종료 실패: ' + (e.message || e)); });
+        bellConfirm('이 경매를 지금 종료할까요? 현재 최고가로 낙찰 처리됩니다.', { title: '경매 종료', okText: '종료하기' }).then(function (ok) {
+          if (!ok) return;
+          endAuction(btn.dataset.end).then(function () { refreshData().then(render); })
+            .catch(function (e) { alert('종료 실패: ' + (e.message || e)); });
+        });
       });
     });
     $$('[data-cancel]', box).forEach(function (btn) {
       btn.addEventListener('click', function () {
-        if (!confirm('예약된 경매를 취소할까요?')) return;
-        cancelAuction(btn.dataset.cancel).then(function () { refreshData().then(render); })
-          .catch(function (e) { alert('취소 실패: ' + (e.message || e)); });
+        bellConfirm('예약된 경매를 취소할까요?', { title: '예약 취소', okText: '취소하기', cancelText: '닫기' }).then(function (ok) {
+          if (!ok) return;
+          cancelAuction(btn.dataset.cancel).then(function () { refreshData().then(render); })
+            .catch(function (e) { alert('취소 실패: ' + (e.message || e)); });
+        });
       });
     });
   }
@@ -298,7 +347,7 @@
             (badge ? '<span class="auc-pick-flag auc-pick-flag--' + badge + '">' + STATE_LABEL[badge] + '</span>' : '') + '</div>' +
           '<p class="auc-pick-brand">' + esc(l.brand) + '</p>' +
           '<p class="auc-pick-model">' + esc(l.model) + '</p>' +
-          '<p class="auc-pick-price">' + (l.price ? fmt(l.price) + '원' : '가격 미정') + '</p>' +
+          '<p class="auc-pick-price">' + (l.price ? wonH(l.price) : '가격 미정') + '</p>' +
         '</button>';
       }).join('') + '</div>';
     $$('.auc-pick', box).forEach(function (btn) {
@@ -318,16 +367,16 @@
         '<div class="auc-sheet-head">' +
           '<div class="auc-thumb">' + (l.img ? '<img src="' + esc(l.img) + '" alt="">' : '') + '</div>' +
           '<div><p class="auc-name">' + esc(l.brand + ' ' + l.model) + '</p>' +
-          '<p class="auc-when">시세 ' + (l.price ? fmt(l.price) + '원' : '-') + '</p></div>' +
+          '<p class="auc-when">시세 ' + (l.price ? wonH(l.price) : '-') + '</p></div>' +
           '<button type="button" class="auc-sheet-x" aria-label="닫기">×</button>' +
         '</div>' +
         '<div class="auc-sheet-body">' +
-          field('판매가(입찰 시작가)', '<input type="number" id="aucStart" value="' + startDefault + '" min="0" step="10000"><span class="auc-hint">비우면 시세의 30%로 시작 · 낮을수록 “싸게 잡을 기회”가 커집니다</span>') +
+          field('판매가(입찰 시작가)', '<input type="number" id="aucStart" value="' + startDefault + '" min="0" step="10000"><span class="auc-hint" id="aucStartUnit"></span>') +
           field('진행 시간', chips('aucDur', [['1','1시간'],['6','6시간'],['12','12시간'],['24','1일'],['72','3일']], '24')) +
           field('시작 시각', '<input type="datetime-local" id="aucStartAt" value="' + nowLocalInput() + '"><span class="auc-hint">지금으로 두면 즉시 시작, 미래로 두면 예약</span>') +
           field('최소 입찰 단위', chips('aucInc', [['10000','1만'],['50000','5만'],['100000','10만'],['500000','50만']], '10000')) +
           field('최소 판매가 <em class="auc-sub">(이 밑으론 낙찰 안 됨 · 선택)</em>', '<input type="number" id="aucReserve" placeholder="예: ' + (l.price ? Math.floor(l.price*0.6) : '') + '" min="0" step="10000"><span class="auc-hint">벨로르 물건은 “매입 보장가”, 파트너 물건은 “최소 낙찰가”로 바닥을 받쳐요</span>') +
-          field('참여 자격', chips('aucElig', [['all','모든 회원'],['adult','성인 인증 회원만']], 'all')) +
+          field('누가 참여하나요?', chips('aucElig', [['all','누구나 참여'],['adult','19세 이상만(본인인증)']], 'all')) +
         '</div>' +
         '<div class="auc-sheet-acts">' +
           '<button type="button" class="auc-cancel" id="aucSheetCancel">취소</button>' +
@@ -336,12 +385,100 @@
       '</div>';
     document.body.appendChild(sheet);
     bindChips(sheet);
+    bindUnitHint($('#aucStart', sheet), $('#aucStartUnit', sheet), '비우면 시세의 30%로 자동 · 낮을수록 “싸게 잡을 기회”가 커집니다');
     var closeSheet = function () { if (sheet.parentNode) sheet.parentNode.removeChild(sheet); };
     sheet.querySelector('.auc-sheet-x').addEventListener('click', closeSheet);
     $('#aucSheetCancel', sheet).addEventListener('click', closeSheet);
     sheet.addEventListener('click', function (e) { if (e.target === sheet) closeSheet(); });
     $('#aucSheetGo', sheet).addEventListener('click', function () {
       submitConfig(l, sheet, closeSheet);
+    });
+  }
+
+  // 금액 입력칸 아래에 "= 백만원" 처럼 한글 단위를 실시간 표시
+  function bindUnitHint(input, hintEl, base) {
+    if (!input || !hintEl) return;
+    function upd() {
+      var v = parseInt(input.value, 10) || 0;
+      hintEl.innerHTML = (v > 0 ? '= <em class="won-u">' + wonUnit(v) + '</em> (' + fmt(v) + '원)  ' : '') + (base || '');
+    }
+    input.addEventListener('input', upd); upd();
+  }
+
+  /* ----- 경매 수정 · 연장 시트 (기존 경매) ----- */
+  function openEdit(a) {
+    var st = auctionState(a);
+    var hasBids = (a.bid_count || 0) > 0;
+    var sheet = document.createElement('div');
+    sheet.className = 'auc-sheet';
+    sheet.innerHTML =
+      '<div class="auc-sheet-card">' +
+        '<div class="auc-sheet-head">' +
+          '<div class="auc-thumb">' + (a.image_url ? '<img src="' + esc(a.image_url) + '" alt="">' : '') + '</div>' +
+          '<div><p class="auc-name">' + esc((a.brand || '') + ' ' + (a.model || '')) + '</p>' +
+          '<p class="auc-when">' + STATE_LABEL[st] + ' · 현재가 ' + (a.current_price ? wonT(a.current_price) : '입찰 전') + '</p></div>' +
+          '<button type="button" class="auc-sheet-x" aria-label="닫기">×</button>' +
+        '</div>' +
+        '<div class="auc-sheet-body">' +
+          '<div class="auc-field"><label>종료 시각 연장</label>' +
+            '<p class="auc-hint" style="margin:0 0 8px">현재 종료 ' + fmtWhen(a.end_at) + ' · <span data-endpreview></span></p>' +
+            chips('edtExt', [['0','그대로'],['10','+10분'],['30','+30분'],['60','+1시간'],['1440','+1일']], '0') +
+          '</div>' +
+          (hasBids ? '' : field('판매가(시작가)', '<input type="number" id="edtStart" value="' + (a.start_price || 0) + '" min="0" step="10000"><span class="auc-hint" id="edtStartUnit"></span>')) +
+          field('최소 입찰 단위', '<input type="number" id="edtInc" value="' + (a.min_increment || 10000) + '" min="1000" step="1000"><span class="auc-hint" id="edtIncUnit"></span>') +
+          field('최소 판매가 <em class="auc-sub">(이 밑으론 낙찰 안 됨 · 선택)</em>', '<input type="number" id="edtReserve" value="' + (a.reserve_price || '') + '" min="0" step="10000"><span class="auc-hint" id="edtResUnit"></span>') +
+          field('누가 참여하나요?', chips('edtElig', [['all','누구나 참여'],['adult','19세 이상만(본인인증)']], a.eligibility === 'adult' ? 'adult' : 'all')) +
+          (hasBids ? '<p class="auc-hint">이미 입찰이 있어 시작가는 바꿀 수 없어요. 연장·최소단위·최소판매가·참여자격은 변경 가능합니다.</p>' : '') +
+        '</div>' +
+        '<div class="auc-sheet-acts">' +
+          '<button type="button" class="auc-cancel" data-edtcancel>닫기</button>' +
+          '<button type="button" class="auc-submit" data-edtsave>저장하기</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(sheet);
+    bindChips(sheet);
+    bindUnitHint($('#edtStart', sheet), $('#edtStartUnit', sheet), '');
+    bindUnitHint($('#edtInc', sheet), $('#edtIncUnit', sheet), '');
+    bindUnitHint($('#edtReserve', sheet), $('#edtResUnit', sheet), '');
+    // 연장 미리보기
+    var extHidden = sheet.querySelector('#edtExt');
+    var preview = sheet.querySelector('[data-endpreview]');
+    function updPreview() {
+      var mins = parseInt(extHidden.value, 10) || 0;
+      if (!mins) { preview.textContent = '연장 안 함'; return; }
+      var base = Math.max(Date.parse(a.end_at), Date.now());
+      preview.textContent = '→ ' + fmtWhen(new Date(base + mins * 60000).toISOString()) + ' 까지';
+    }
+    $$('.auc-chips[data-chip="edtExt"] .auc-chip', sheet).forEach(function (c) {
+      c.addEventListener('click', function () { setTimeout(updPreview, 0); });
+    });
+    updPreview();
+    var close = function () { if (sheet.parentNode) sheet.parentNode.removeChild(sheet); };
+    sheet.querySelector('.auc-sheet-x').addEventListener('click', close);
+    sheet.querySelector('[data-edtcancel]').addEventListener('click', close);
+    sheet.addEventListener('click', function (e) { if (e.target === sheet) close(); });
+    sheet.querySelector('[data-edtsave]').addEventListener('click', function () {
+      var patch = {
+        min_increment: parseInt($('#edtInc', sheet).value, 10) || 10000,
+        reserve_price: parseInt($('#edtReserve', sheet).value, 10) || null,
+        eligibility: $('#edtElig', sheet).value || 'all'
+      };
+      if (!hasBids) {
+        var sp = parseInt($('#edtStart', sheet).value, 10) || 0;
+        if (sp > 0) patch.start_price = sp;
+      }
+      var mins = parseInt($('#edtExt', sheet).value, 10) || 0;
+      var save = sheet.querySelector('[data-edtsave]');
+      save.disabled = true; save.textContent = '저장 중…';
+      var chain = mins > 0 ? extendAuction(a, mins).then(function () { return updateAuction(a.id, patch); })
+                           : updateAuction(a.id, patch);
+      chain.then(function () {
+        close(); toast('경매 설정을 저장했어요.' + (mins > 0 ? ' 종료 시각을 연장했어요.' : ''));
+        refreshData().then(render);
+      }).catch(function (e) {
+        save.disabled = false; save.textContent = '저장하기';
+        alert('저장 실패: ' + (e.message || e));
+      });
     });
   }
 
@@ -520,7 +657,7 @@
     bar.hidden = false;
     var bal = (cWallet && cWallet.balance) || 0, held = (cWallet && cWallet.held) || 0;
     bar.innerHTML =
-      '<div class="auc-w-left"><span>벨로르 캐시</span><b>' + fmt(bal) + '원</b>' +
+      '<div class="auc-w-left"><span>벨로르 캐시</span><b>' + wonH(bal) + '</b>' +
         (held > 0 ? '<em>예약금 ' + fmt(held) + '원 잠김</em>' : '') + '</div>' +
       '<div class="auc-w-acts">' +
         '<button type="button" class="auc-w-btn" data-wcharge>충전</button>' +
@@ -536,7 +673,8 @@
     var bal = (cWallet && cWallet.balance) || 0, held = (cWallet && cWallet.held) || 0;
     box.innerHTML =
       '<div class="mpcash-row">' +
-        '<div class="mpcash-left"><span>벨로르 캐시</span><b>' + fmt(bal) + '<em>원</em></b>' +
+        '<div class="mpcash-left"><span>벨로르 캐시</span>' +
+          '<b>' + fmt(bal) + '<em>원</em> <i class="won-u mpcash-unit">' + wonUnit(bal) + '</i></b>' +
           (held > 0 ? '<i class="mpcash-held">예약금 ' + fmt(held) + '원 잠김</i>' : '') + '</div>' +
         '<div class="mpcash-acts">' +
           '<button type="button" class="mpcash-btn" data-wcharge>충전</button>' +
@@ -602,9 +740,12 @@
   function doRefund() {
     var bal = (cWallet && cWallet.balance) || 0;
     if (bal <= 0) { toast('환불할 벨로르 캐시가 없어요.'); return; }
-    if (!confirm('벨로르 캐시 ' + fmt(bal) + '원 전액을 환불 신청할까요?\n(예약금으로 잠긴 금액은 제외됩니다)')) return;
-    walletRefund(bal).then(function () { toast('환불 신청됐어요. 등록하신 계좌로 지급됩니다.'); refreshWalletUI(); })
-      .catch(function (e) { alert('환불 실패: ' + (e.message || e)); });
+    bellConfirm('벨로르 캐시 ' + wonT(bal) + ' 전액을 환불 신청할까요?\n(예약금으로 잠긴 금액은 제외됩니다)',
+      { title: '캐시 환불', okText: '환불 신청', cancelText: '닫기' }).then(function (ok) {
+      if (!ok) return;
+      walletRefund(bal).then(function () { toast('환불 신청됐어요. 등록하신 계좌로 지급됩니다.'); refreshWalletUI(); })
+        .catch(function (e) { alert('환불 실패: ' + (e.message || e)); });
+    });
   }
 
   function renderCust() {
@@ -642,16 +783,18 @@
     var name = esc((a.brand || '') + ' ' + (a.model || ''));
     var body;
     if (st === 'live') {
+      var curp = a.current_price || a.start_price;
       body =
         '<div class="auc-c-pricebox">' +
           '<span class="auc-c-plabel">현재가</span>' +
-          '<span class="auc-c-price">' + fmt(a.current_price || a.start_price) + '<em>원</em></span>' +
+          '<span class="auc-c-price">' + fmt(curp) + '<em>원</em></span>' +
+          '<span class="won-u auc-c-unit">' + wonUnit(curp) + '</span>' +
           (pct > 0 ? '<span class="auc-c-off">시세보다 ' + pct + '% 저렴</span>' : '') +
         '</div>' +
         (mine ? '<p class="auc-c-mine">지금 내가 최고 입찰 중이에요</p>' : '') +
         '<div class="auc-c-stepper">' +
           '<button type="button" class="auc-c-step" data-step="-" data-aid="' + esc(a.id) + '">－</button>' +
-          '<div class="auc-c-stepamt"><span>입찰가</span><b data-wantamt="' + esc(a.id) + '">' + fmt(want) + '원</b></div>' +
+          '<div class="auc-c-stepamt"><span>입찰가</span><b data-wantamt="' + esc(a.id) + '">' + wonH(want) + '</b></div>' +
           '<button type="button" class="auc-c-step" data-step="+" data-aid="' + esc(a.id) + '">＋</button>' +
         '</div>' +
         '<button type="button" class="auc-c-bid" data-bid="' + esc(a.id) + '">이 금액으로 입찰하기</button>' +
@@ -662,12 +805,13 @@
         '<div class="auc-c-pricebox">' +
           '<span class="auc-c-plabel">시작가</span>' +
           '<span class="auc-c-price">' + fmt(a.start_price) + '<em>원</em></span>' +
-          (a.retail_price ? '<span class="auc-c-off">시세 ' + fmt(a.retail_price) + '원</span>' : '') +
+          '<span class="won-u auc-c-unit">' + wonUnit(a.start_price) + '</span>' +
+          (a.retail_price ? '<span class="auc-c-off">시세 ' + wonT(a.retail_price) + '</span>' : '') +
         '</div>' +
         '<p class="auc-c-soon">' + fmtWhen(a.start_at) + ' 시작 예정</p>';
     } else {
       body = a.winner_id
-        ? '<p class="auc-c-result auc-c-result--won">' + fmt(a.final_price) + '원에 낙찰 완료</p>'
+        ? '<p class="auc-c-result auc-c-result--won">' + wonH(a.final_price) + '에 낙찰 완료</p>'
         : '<p class="auc-c-result">유찰 (낙찰자 없음)</p>';
     }
     return '<div class="auc-c-card" data-cardid="' + esc(a.id) + '">' +
@@ -676,7 +820,7 @@
         '<div class="auc-c-info">' +
           '<div class="auc-badges">' +
             '<span class="auc-badge auc-badge--' + st + '">' + STATE_LABEL[st] + '</span>' +
-            (a.eligibility === 'adult' ? '<span class="auc-badge auc-badge--adult">성인만</span>' : '') + '</div>' +
+            (a.eligibility === 'adult' ? '<span class="auc-badge auc-badge--adult">19세 이상</span>' : '') + '</div>' +
           '<p class="auc-c-name">' + name + '</p>' +
           (st !== 'ended' ? '<p class="auc-c-remain" data-cremain="' + esc(a.id) + '">' + remainText(a) + '</p>' : '') +
         '</div>' +
@@ -693,7 +837,7 @@
         cur = btn.dataset.step === '+' ? cur + inc : Math.max(nm, cur - inc);
         cAmt[a.id] = cur;
         var el = box.querySelector('[data-wantamt="' + a.id + '"]');
-        if (el) el.textContent = fmt(cur) + '원';
+        if (el) el.innerHTML = wonH(cur);
       });
     });
     $$('[data-bid]', box).forEach(function (btn) {
@@ -706,32 +850,34 @@
     if (!myUid()) { toast('로그인 후 참여하실 수 있어요.'); openLoginIfPossible(); return; }
     if (a.eligibility === 'adult') {
       var ok = false; try { ok = !!(B() && B().phoneVerified && B().phoneVerified()); } catch (e) {}
-      if (!ok) { toast('성인 인증(휴대폰 본인인증) 후 참여하실 수 있어요.'); return; }
+      if (!ok) { alert('이 경매는 만 19세 이상만 참여할 수 있어요.\n휴대폰 본인인증을 먼저 완료해 주세요.'); return; }
     }
     var amount = cAmt[auctionId] || nextMin(a);
-    var msg = fmt(amount) + '원에 입찰할까요?';
+    var msg = wonT(amount) + '에 입찰할까요?';
     if (walletCfg().enabled) {
-      msg += '\n\n예약금 ' + fmt(depositFor(amount)) + '원(5%)이 벨로르 캐시에서 잠깁니다.' +
-             '\n· 밀리거나 낙찰 안 되면 전액 환불' +
-             '\n· 낙찰 후 취소 시 예약금은 환불되지 않습니다';
+      msg += '\n\n예약금 ' + wonT(depositFor(amount)) + '(5%)이 벨로르 캐시에서 잠깁니다.' +
+             '\n· 밀리거나 낙찰 안 되면 전액 돌려드려요' +
+             '\n· 낙찰 후 취소할 때만 예약금이 돌아오지 않습니다';
     } else {
       msg += '\n낙찰되면 결제하셔야 합니다.';
     }
-    if (!confirm(msg)) return;
-    btn.disabled = true; btn.textContent = '입찰 중…';
-    placeBid(auctionId, amount).then(function () {
-      delete cAmt[auctionId];
-      toast('입찰했어요. 현재 최고가입니다.');
-      refreshCust();
-    }).catch(function (e) {
-      btn.disabled = false; btn.textContent = '이 금액으로 입찰하기';
-      var m = (e && e.message) ? e.message : '입찰에 실패했어요.';
-      if (m.indexOf('NEED_CHARGE') >= 0) {
-        toast(m.replace(/^.*NEED_CHARGE:/, ''));
-        refreshCust(); openChargeSheet(); return;
-      }
-      alert(m);
-      refreshCust();
+    bellConfirm(msg, { title: '입찰 확인', okText: '입찰하기', cancelText: '다시 볼게요' }).then(function (agree) {
+      if (!agree) return;
+      btn.disabled = true; btn.textContent = '입찰 중…';
+      placeBid(auctionId, amount).then(function () {
+        delete cAmt[auctionId];
+        toast('입찰했어요. 현재 최고가입니다.');
+        refreshCust();
+      }).catch(function (e) {
+        btn.disabled = false; btn.textContent = '이 금액으로 입찰하기';
+        var m = (e && e.message) ? e.message : '입찰에 실패했어요.';
+        if (m.indexOf('NEED_CHARGE') >= 0) {
+          toast(m.replace(/^.*NEED_CHARGE:/, ''));
+          refreshCust(); openChargeSheet(); return;
+        }
+        alert(m);
+        refreshCust();
+      });
     });
   }
   function openLoginIfPossible() {

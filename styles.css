@@ -5860,7 +5860,7 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 /* ===== 공통 다이얼로그(ui-dialog.js): alert/confirm/prompt 대체 ===== */
 .bld-modal[hidden] { display: none; }
 .bld-modal {
-    position: fixed; inset: 0; z-index: 3000;
+    position: fixed; inset: 0; z-index: 5000;
     display: flex; align-items: center; justify-content: center;
     padding: 20px;
 }
@@ -9553,3 +9553,12 @@ body.login-open .tabbar { display: none; }
 .mpcash-btn { padding: 9px 15px; border: 0; border-radius: 9px; background: #fff; color: var(--text); font-weight: 800; font-size: 13px; cursor: pointer; }
 .mpcash-btn--ghost { background: rgba(255,255,255,.16); color: #fff; }
 .mpcash-note { font-size: 11.5px; opacity: .72; margin-top: 10px; line-height: 1.5; }
+
+/* 금액 한글 단위 표기(파랑) — 보기 쉽게 */
+.won-u { color: #2f6fed; font-weight: 800; font-style: normal; font-size: .8em; margin-left: 2px; letter-spacing: -.01em; }
+.auc-fig b { white-space: normal; }
+.auc-fig .won-u { display: block; margin: 1px 0 0; font-size: 11px; }
+.auc-c-unit { color: #2f6fed; font-weight: 800; font-size: 15px; margin-left: 3px; align-self: center; }
+.mpcash-unit { color: #8ab4ff !important; font-size: 13px; margin-left: 5px; font-style: normal; }
+.auc-pick-price .won-u { font-size: 10px; }
+.auc-w-left b .won-u { font-size: 13px; }
