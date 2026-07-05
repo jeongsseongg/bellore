@@ -242,7 +242,7 @@
           panel.innerHTML = rows.length ? rows.map(function (b, i) {
             return '<div class="auc-bidrow">' +
               '<span class="auc-bidrank">' + (i + 1) + '</span>' +
-              '<span class="auc-bidwho">' + (b.is_floor ? '🏷 매입보장' : '응찰자 ' + String(b.bidder_id).slice(0, 6)) + '</span>' +
+              '<span class="auc-bidwho">' + (b.is_floor ? '매입보장' : '응찰자 ' + String(b.bidder_id).slice(0, 6)) + '</span>' +
               '<b>' + fmt(b.amount) + '원</b>' +
               '<span class="auc-bidtime">' + fmtWhen(b.created_at) + '</span>' +
             '</div>';
@@ -486,8 +486,8 @@
     });
     done.sort(function (a, b) { return Date.parse(b.end_at) - Date.parse(a.end_at); });
     var html = '';
-    if (live.length) html += '<h3 class="auc-cust-sec">🔥 진행 중</h3>' + live.map(custCard).join('');
-    if (soon.length) html += '<h3 class="auc-cust-sec">⏰ 곧 시작</h3>' + soon.map(custCard).join('');
+    if (live.length) html += '<h3 class="auc-cust-sec">진행 중</h3>' + live.map(custCard).join('');
+    if (soon.length) html += '<h3 class="auc-cust-sec">곧 시작</h3>' + soon.map(custCard).join('');
     if (done.length) html += '<h3 class="auc-cust-sec">지난 경매</h3>' + done.slice(0, 6).map(custCard).join('');
     box.innerHTML = html || '<p class="auc-empty">지금은 진행 중인 경매가 없어요.<br>관심 시계를 찜해두면 경매가 열릴 때 알려드릴게요!</p>';
     bindCustActions(box);
@@ -513,9 +513,9 @@
         '<div class="auc-c-pricebox">' +
           '<span class="auc-c-plabel">현재가</span>' +
           '<span class="auc-c-price">' + fmt(a.current_price || a.start_price) + '<em>원</em></span>' +
-          (pct > 0 ? '<span class="auc-c-off">시세보다 ' + pct + '% ↓</span>' : '') +
+          (pct > 0 ? '<span class="auc-c-off">시세보다 ' + pct + '% 저렴</span>' : '') +
         '</div>' +
-        (mine ? '<p class="auc-c-mine">✓ 지금 내가 최고 입찰 중이에요</p>' : '') +
+        (mine ? '<p class="auc-c-mine">지금 내가 최고 입찰 중이에요</p>' : '') +
         '<div class="auc-c-stepper">' +
           '<button type="button" class="auc-c-step" data-step="-" data-aid="' + esc(a.id) + '">－</button>' +
           '<div class="auc-c-stepamt"><span>입찰가</span><b data-wantamt="' + esc(a.id) + '">' + fmt(want) + '원</b></div>' +
@@ -579,7 +579,7 @@
     btn.disabled = true; btn.textContent = '입찰 중…';
     placeBid(auctionId, amount).then(function () {
       delete cAmt[auctionId];
-      toast('입찰했어요! 현재 최고가입니다 🎉');
+      toast('입찰했어요. 현재 최고가입니다.');
       refreshCust();
     }).catch(function (e) {
       btn.disabled = false; btn.textContent = '이 금액으로 입찰하기';
