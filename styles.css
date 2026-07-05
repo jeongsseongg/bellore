@@ -9539,3 +9539,17 @@ body.login-open .tabbar { display: none; }
 .auc-w-btn { padding: 9px 16px; border: 0; border-radius: 9px; background: var(--text); color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; }
 .auc-w-btn--ghost { background: #f2f2f2; color: #333; }
 .auc-c-deposit { font-size: 11.5px; color: #888; line-height: 1.55; margin-top: 8px; padding: 9px 11px; background: #f7f7f7; border-radius: 9px; }
+
+/* 마이페이지 · 벨로르 캐시 카드 */
+.mpcash { margin: 4px 0 14px; padding: 15px 16px; border-radius: 14px; background: var(--text); color: #fff; }
+.mpcash[hidden] { display: none; }
+.mpcash-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.mpcash-left { display: flex; flex-direction: column; min-width: 0; }
+.mpcash-left span { font-size: 12px; opacity: .7; }
+.mpcash-left b { font-size: 24px; font-weight: 900; letter-spacing: -.03em; line-height: 1.15; }
+.mpcash-left b em { font-size: 15px; font-weight: 700; font-style: normal; margin-left: 1px; }
+.mpcash-held { font-size: 11px; opacity: .6; font-style: normal; margin-top: 2px; }
+.mpcash-acts { flex: 0 0 auto; display: flex; gap: 7px; }
+.mpcash-btn { padding: 9px 15px; border: 0; border-radius: 9px; background: #fff; color: var(--text); font-weight: 800; font-size: 13px; cursor: pointer; }
+.mpcash-btn--ghost { background: rgba(255,255,255,.16); color: #fff; }
+.mpcash-note { font-size: 11.5px; opacity: .72; margin-top: 10px; line-height: 1.5; }

@@ -486,10 +486,6 @@
       '<div class="auc-body auc-cust-body"></div>';
     document.body.appendChild(croot);
     croot.querySelector('.auc-back').addEventListener('click', closeCust);
-    croot.addEventListener('click', function (e) {
-      if (e.target.closest('[data-wcharge]')) { openChargeSheet(); return; }
-      if (e.target.closest('[data-wrefund]')) { doRefund(); return; }
-    });
     return croot;
   }
 
@@ -514,7 +510,7 @@
   }
   function refreshCust(silent) {
     return Promise.all([fetchPublicAuctions(), fetchWallet()]).then(function (r) {
-      cAuctions = r[0]; cWallet = r[1]; renderWallet(); renderCust();
+      cAuctions = r[0]; cWallet = r[1]; renderWallet(); renderMypageCash(); renderCust();
     }).catch(function () { if (!silent) $('.auc-cust-body', croot).innerHTML = dbHelp(); });
   }
 
@@ -524,12 +520,36 @@
     bar.hidden = false;
     var bal = (cWallet && cWallet.balance) || 0, held = (cWallet && cWallet.held) || 0;
     bar.innerHTML =
-      '<div class="auc-w-left"><span>내 충전금</span><b>' + fmt(bal) + '원</b>' +
+      '<div class="auc-w-left"><span>벨로르 캐시</span><b>' + fmt(bal) + '원</b>' +
         (held > 0 ? '<em>예약금 ' + fmt(held) + '원 잠김</em>' : '') + '</div>' +
       '<div class="auc-w-acts">' +
         '<button type="button" class="auc-w-btn" data-wcharge>충전</button>' +
         (bal > 0 ? '<button type="button" class="auc-w-btn auc-w-btn--ghost" data-wrefund>환불</button>' : '') +
       '</div>';
+  }
+
+  // 마이페이지 벨로르 캐시 카드
+  function renderMypageCash() {
+    var box = document.getElementById('mpCashCard'); if (!box) return;
+    if (!walletCfg().enabled || !myUid()) { box.hidden = true; return; }
+    box.hidden = false;
+    var bal = (cWallet && cWallet.balance) || 0, held = (cWallet && cWallet.held) || 0;
+    box.innerHTML =
+      '<div class="mpcash-row">' +
+        '<div class="mpcash-left"><span>벨로르 캐시</span><b>' + fmt(bal) + '<em>원</em></b>' +
+          (held > 0 ? '<i class="mpcash-held">예약금 ' + fmt(held) + '원 잠김</i>' : '') + '</div>' +
+        '<div class="mpcash-acts">' +
+          '<button type="button" class="mpcash-btn" data-wcharge>충전</button>' +
+          (bal > 0 ? '<button type="button" class="mpcash-btn mpcash-btn--ghost" data-wrefund>환불</button>' : '') +
+        '</div>' +
+      '</div>' +
+      '<p class="mpcash-note">충전해서 경매 예약금·상품 구매에 쓰고, 캐시로 구매 시 1% 즉시 할인받으세요.</p>';
+  }
+
+  // 지갑 데이터 1회 조회 → 경매 바 + 마이페이지 카드 동시 갱신
+  function refreshWalletUI() {
+    if (!walletCfg().enabled) return Promise.resolve();
+    return fetchWallet().then(function (w) { cWallet = w; renderWallet(); renderMypageCash(); });
   }
 
   /* ---------- 충전 시트 ---------- */
@@ -543,12 +563,12 @@
     sheet.className = 'auc-sheet';
     sheet.innerHTML =
       '<div class="auc-sheet-card">' +
-        '<div class="auc-sheet-head"><div><p class="auc-name">충전금 충전</p>' +
+        '<div class="auc-sheet-head"><div><p class="auc-name">벨로르 캐시 충전</p>' +
           '<p class="auc-when">현재 잔액 ' + fmt((cWallet && cWallet.balance) || 0) + '원</p></div>' +
           '<button type="button" class="auc-sheet-x" aria-label="닫기">×</button></div>' +
         '<div class="auc-sheet-body">' +
           field('충전 금액', chips('chgAmt', presets.map(function (p) { return [String(p), fmt(p) + '원']; }), String(presets[1] || presets[0])) +
-            '<span class="auc-hint">충전금은 언제든 환불 가능해요. 입찰 예약금(5%)으로 쓰입니다.</span>') +
+            '<span class="auc-hint">벨로르 캐시는 언제든 환불 가능해요. 경매 예약금(5%)·상품 구매에 쓰입니다.</span>') +
           (canPay ? field('결제 수단', chips('chgPay', [['card', '신용·체크카드'], ['transfer', '계좌이체']].filter(function (o) { return W.charge[o[0]]; }), (W.charge.card ? 'card' : 'transfer'))) : '') +
           (!canPay && !isAdm ? '<p class="auc-note">카드·계좌이체 충전은 결제 승인 완료 후 열립니다(준비 중). 조금만 기다려 주세요.</p>' : '') +
           (isAdm ? '<p class="auc-hint">관리자: 아래 버튼은 즉시 충전(테스트)입니다.</p>' : '') +
@@ -568,7 +588,7 @@
       var amt = parseInt($('#chgAmt', sheet).value, 10) || 0;
       if (amt <= 0) { toast('충전 금액을 선택해 주세요.'); return; }
       if (isAdm) {
-        walletCharge(amt).then(function () { close(); toast(fmt(amt) + '원 충전됐어요.'); refreshCust(); })
+        walletCharge(amt).then(function () { close(); toast(fmt(amt) + '원 충전됐어요.'); refreshWalletUI(); })
           .catch(function (e) { alert('충전 실패: ' + (e.message || e) + '\n(wallet.sql 실행 여부 확인)'); });
       } else if (canPay) {
         // 포트원 충전 연동 지점(승인 후): 결제창 → 검증 → wallet_charge(service_role)
@@ -581,9 +601,9 @@
 
   function doRefund() {
     var bal = (cWallet && cWallet.balance) || 0;
-    if (bal <= 0) { toast('환불할 충전금이 없어요.'); return; }
-    if (!confirm('충전금 ' + fmt(bal) + '원 전액을 환불 신청할까요?\n(예약금으로 잠긴 금액은 제외됩니다)')) return;
-    walletRefund(bal).then(function () { toast('환불 신청됐어요. 등록하신 계좌로 지급됩니다.'); refreshCust(); })
+    if (bal <= 0) { toast('환불할 벨로르 캐시가 없어요.'); return; }
+    if (!confirm('벨로르 캐시 ' + fmt(bal) + '원 전액을 환불 신청할까요?\n(예약금으로 잠긴 금액은 제외됩니다)')) return;
+    walletRefund(bal).then(function () { toast('환불 신청됐어요. 등록하신 계좌로 지급됩니다.'); refreshWalletUI(); })
       .catch(function (e) { alert('환불 실패: ' + (e.message || e)); });
   }
 
@@ -691,7 +711,7 @@
     var amount = cAmt[auctionId] || nextMin(a);
     var msg = fmt(amount) + '원에 입찰할까요?';
     if (walletCfg().enabled) {
-      msg += '\n\n예약금 ' + fmt(depositFor(amount)) + '원(5%)이 충전금에서 잠깁니다.' +
+      msg += '\n\n예약금 ' + fmt(depositFor(amount)) + '원(5%)이 벨로르 캐시에서 잠깁니다.' +
              '\n· 밀리거나 낙찰 안 되면 전액 환불' +
              '\n· 낙찰 후 취소 시 예약금은 환불되지 않습니다';
     } else {
@@ -730,9 +750,24 @@
   /* ---------- 진입점 ---------- */
   document.addEventListener('click', function (e) {
     if (e.target.closest('#adminAuctionBtn')) { e.preventDefault(); open(); return; }
+    if (e.target.closest('[data-wcharge]')) { e.preventDefault(); openChargeSheet(); return; }
+    if (e.target.closest('[data-wrefund]')) { e.preventDefault(); doRefund(); return; }
     if (e.target.closest('[data-auction-open]')) { e.preventDefault(); openCust(); return; }
   });
 
+  // 마이페이지 진입/로그인 변화 시 캐시 카드 갱신
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('[data-nav="mypage"], #headerProfile, #myPageBtn')) setTimeout(refreshWalletUI, 120);
+  }, true);
+  function initWallet() {
+    if (B() && B().onAuthChange) { B().onAuthChange(function () { refreshWalletUI(); }); return true; }
+    return false;
+  }
+  if (!initWallet()) {
+    var wtries = 0, wt = setInterval(function () { if (initWallet() || ++wtries > 20) clearInterval(wt); }, 200);
+  }
+  setTimeout(refreshWalletUI, 800);
+
   window.BELLOREAuctionAdmin = { open: open, close: close };
-  window.BELLOREAuction = { open: openCust, close: closeCust };
+  window.BELLOREAuction = { open: openCust, close: closeCust, refreshWallet: refreshWalletUI };
 })();
