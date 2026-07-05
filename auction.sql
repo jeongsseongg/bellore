@@ -62,6 +62,10 @@ create index if not exists auctions_listing_idx on public.auctions (listing_id);
 create index if not exists auctions_start_idx    on public.auctions (start_at);
 create index if not exists auctions_status_idx   on public.auctions (status, end_at);
 
+-- 참여 자격: 'all'(모든 회원) | 'adult'(성인 본인인증 회원만) — 재실행 안전
+alter table public.auctions
+  add column if not exists eligibility text not null default 'all';
+
 
 -- ② auction_bids ----------------------------------------------
 create table if not exists public.auction_bids (
