@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v151";
+const VERSION = "bellore-v172";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -18,6 +18,7 @@ const SHELL_ASSETS = [
   './cq-demo.js',
   './wishlist.js',
   './alerts.js',
+  './auction.js',
   './search.js',
   './ai-advisor.js',
   './ai-advisor-admin.js',
@@ -79,6 +80,34 @@ self.addEventListener('fetch', (event) => {
         })
         .catch(() => cached);
       return cached || network;
+    })
+  );
+});
+
+/* 알림 클릭 → 앱 열기/포커스 */
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || './';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((cs) => {
+      for (const c of cs) { if ('focus' in c) return c.focus(); }
+      if (self.clients.openWindow) return self.clients.openWindow(target);
+    })
+  );
+});
+
+/* 웹 푸시 수신(백그라운드) — 향후 VAPID 서버 연동 시 동작 */
+self.addEventListener('push', (event) => {
+  let d = {};
+  try { d = event.data ? event.data.json() : {}; } catch (e) {}
+  const title = d.title || '벨로르 알림';
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: d.body || '',
+      icon: 'assets/icons/icon-192.png',
+      badge: 'assets/icons/icon-192.png',
+      tag: d.tag || 'bellore',
+      data: { url: d.url || './' }
     })
   );
 });

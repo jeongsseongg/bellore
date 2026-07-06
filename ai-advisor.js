@@ -886,23 +886,9 @@
   var CONSENT_KEY = 'bellore_ai_consent';
   function consentGiven() { return lsGet(CONSENT_KEY, false) === true; }
 
-  var ROBOT = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="3"/><path d="M12 8V4"/><circle cx="12" cy="3" r="1.4" fill="currentColor"/><circle cx="8.5" cy="14" r="1.2" fill="currentColor"/><circle cx="15.5" cy="14" r="1.2" fill="currentColor"/><path d="M9 17.5h6"/></svg>';
-
   function injectStyles() {
     if ($('#bellore-ai-style')) return;
     var css = ''
-      + '#belloreAiFab{position:fixed;right:calc(50vw - var(--app-w)/2 + 16px);bottom:88px;z-index:6100;width:54px;height:54px;padding:0;border:none;border-radius:50%;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(0,0,0,.28);cursor:pointer;animation:baiPulse 8s ease-in-out infinite}'
-      + '#belloreAiFab svg{width:26px;height:26px}'
-      + '#belloreAiFab:active{transform:scale(.95)}'
-      + '#belloreAiFab.edit{animation:none;box-shadow:0 0 0 3px rgba(226,59,59,.4),0 6px 20px rgba(0,0,0,.3);touch-action:none;cursor:grab}'
-      + '#belloreAiFab .bai-fab-x{position:absolute;top:-6px;left:-6px;width:20px;height:20px;border-radius:50%;background:#e23b3b;color:#fff;font:700 14px Pretendard;line-height:1;display:none;align-items:center;justify-content:center}'
-      + '#belloreAiFab.edit .bai-fab-x{display:flex}'
-      + '@keyframes baiPulse{0%,84%,100%{transform:scale(1)}87%{transform:scale(1.16)}90%{transform:scale(1)}93%{transform:scale(1.16)}96%{transform:scale(1)}}'
-      + '#belloreAiFab .bai-dot{position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#e23b3b;color:#fff;font:700 10px Pretendard;display:none;align-items:center;justify-content:center}'
-      + '#baiBubble{position:fixed;right:calc(50vw - var(--app-w)/2 + 16px);bottom:150px;z-index:6100;max-width:230px;padding:9px 13px;border:1px solid #e5e3df;border-radius:16px;border-bottom-right-radius:4px;background:#fff;color:#1a1a1a;font:600 13px Pretendard;box-shadow:0 6px 18px rgba(0,0,0,.14);opacity:0;transform:translateY(6px) scale(.96);pointer-events:none;transition:opacity .28s,transform .28s;display:flex;align-items:center;gap:6px;white-space:nowrap}'
-      + '#baiBubble.show{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}'
-      + '#baiBubble .bai-bubble-txt{cursor:pointer}'
-      + '#baiBubble .bai-bubble-x{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-left:2px;border-radius:50%;background:#f2f3f5;color:#6b6b6b;font-size:14px;line-height:1;cursor:pointer;flex:0 0 auto}'
       + '.bai-action{display:block;margin:6px 0 10px;padding:11px 16px;border:none;border-radius:12px;background:#111;color:#fff;font:700 14px Pretendard;cursor:pointer}'
       + '.bai-panel{position:fixed;inset:0;z-index:6000;display:none;background:rgba(0,0,0,.38)}'
       + '.bai-panel.show{display:block}'
@@ -911,7 +897,7 @@
       + '.bai-head .bai-ic{width:34px;height:34px;border-radius:50%;background:#111;color:#fff;display:flex;align-items:center;justify-content:center}'
       + '.bai-head b{font-size:16px;font-weight:700;color:#1a1a1a}'
       + '.bai-head .bai-sub{font-size:12px;color:#6b6b6b;margin-top:1px}'
-      + '.bai-beta{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:8px;background:#e23b3b;color:#fff;font:700 10px Pretendard;vertical-align:middle}'
+      + '.bai-beta{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:8px;background:#5b6b7b;color:#fff;font:700 10px Pretendard;vertical-align:middle}'
       + '.bai-x{margin-left:auto;background:none;border:none;font-size:24px;color:#9a9a9a;cursor:pointer;line-height:1}'
       + '.bai-body{flex:1;overflow:auto;padding:16px;background:#f7f6f3}'
       + '.bai-menu{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}'
@@ -966,8 +952,7 @@
     { t: '상담사 연결', q: '__support__' }
   ];
 
-  var elFab, elPanel, elBody, elInput, elBubble, fabHidden = false;
-  var FAB_POS_KEY = 'bellore_ai_fabpos', FAB_HIDE_KEY = 'bellore_ai_fabhide';
+  var elPanel, elBody, elInput;
 
   /* 간단 토스트 */
   var _toastEl = null, _toastT = null;
@@ -981,42 +966,8 @@
     clearTimeout(_toastT); _toastT = setTimeout(function () { _toastEl.style.opacity = '0'; }, 2600);
   }
 
-  /* 프로액티브 말풍선: "어떤 시계 찾으세요?" 등을 2~4초 랜덤으로 잠깐 표시 */
-  var BUBBLE_MSGS = ['어떤 시계 찾으세요?', '시계 판매 도와드릴까요?', '예산만 알려주셔도 골라드려요'];
-  var bubbleIdx = 0, bubbleT = null;
-  function showBubble() {
-    if (!elBubble || !elFab) return;
-    // 채팅 열려있거나 버튼이 숨겨졌으면 안 띄움
-    if (fabHidden || (elPanel && elPanel.classList.contains('show'))) { scheduleBubble(6000); return; }
-    // 봇(FAB) 현재 위치 바로 위에 말풍선을 붙인다(드래그로 옮겨도 따라옴)
-    var r = elFab.getBoundingClientRect();
-    elBubble.style.left = 'auto';
-    elBubble.style.right = Math.max(8, Math.round(window.innerWidth - r.right)) + 'px';
-    elBubble.style.bottom = Math.round(window.innerHeight - r.top + 8) + 'px';
-    elBubble.innerHTML = '<span class="bai-bubble-txt">' + esc(BUBBLE_MSGS[bubbleIdx % BUBBLE_MSGS.length]) + '</span><span class="bai-bubble-x" aria-label="닫기">×</span>';
-    bubbleIdx++;
-    elBubble.classList.add('show');
-    var dur = 3000 + Math.floor(Math.random() * 3000); // 3~6초
-    setTimeout(function () { if (elBubble) elBubble.classList.remove('show'); }, dur);
-    scheduleBubble(dur + 5000 + Math.floor(Math.random() * 4000));
-  }
-  function scheduleBubble(ms) { clearTimeout(bubbleT); bubbleT = setTimeout(showBubble, ms); }
-
   function buildUI() {
     injectStyles();
-    elFab = document.createElement('button');
-    elFab.id = 'belloreAiFab'; elFab.type = 'button';
-    elFab.innerHTML = ROBOT + '<span class="bai-dot" id="baiDot"></span>';
-    document.body.appendChild(elFab);
-
-    // 프로액티브 말풍선 (FAB 옆에 잠깐 떴다 사라짐)
-    elBubble = document.createElement('div');
-    elBubble.id = 'baiBubble';
-    document.body.appendChild(elBubble);
-    elBubble.addEventListener('click', function (e) {
-      if (e.target.closest('.bai-bubble-x')) { elBubble.classList.remove('show'); clearTimeout(bubbleT); scheduleBubble(30000); return; }
-      openPanel();
-    });
 
     elPanel = document.createElement('div');
     elPanel.className = 'bai-panel';
@@ -1035,7 +986,8 @@
     document.body.appendChild(elPanel);
     elBody = $('#baiBody'); elInput = $('#baiInput');
 
-    setupFab();
+    var aiHeaderBtn = document.getElementById('headerAiBtn');
+    if (aiHeaderBtn) aiHeaderBtn.addEventListener('click', function (e) { e.preventDefault(); openPanel(); });
     elPanel.addEventListener('click', function (e) {
       if (e.target.classList.contains('bai-panel') || e.target.closest('.bai-x')) { closePanel(); return; }
       var reco = e.target.closest('.bai-reco');
@@ -1057,9 +1009,6 @@
     // 로그인해야 이용 가능
     if (!loggedIn()) { toast('로그인 후 이용하실 수 있어요'); openLogin(); return; }
     elPanel.classList.add('show');
-    if (elBubble) elBubble.classList.remove('show');
-    if (elFab) elFab.style.display = 'none';   // 대화창 열리면 원형 버튼 숨김
-    var dot = $('#baiDot'); if (dot) dot.style.display = 'none';
     // 브라우저/기기 뒤로가기로 닫히게 히스토리 상태 추가
     try { history.pushState({ baiChat: 1 }, ''); } catch (e) {}
     if (!elBody.dataset.init) {
@@ -1072,7 +1021,6 @@
   function closePanel(fromPop) {
     if (!elPanel.classList.contains('show')) return;
     elPanel.classList.remove('show');
-    if (elFab && !fabHidden) elFab.style.display = '';   // 원형 버튼 복귀
     // 사용자가 X/배경으로 닫으면 우리가 추가한 히스토리 항목을 되돌린다(뒤로가기와 상태 일치)
     if (!fromPop) { try { if (history.state && history.state.baiChat) history.back(); } catch (e) {} }
   }
@@ -1080,57 +1028,6 @@
   window.addEventListener('popstate', function () {
     if (elPanel && elPanel.classList.contains('show')) closePanel(true);
   });
-
-  /* FAB: 탭=열기, 길게 눌러=이동(드래그), 길게 누르면 X 나와서 숨기기 */
-  function setupFab() {
-    // 저장된 위치만 복원(숨김은 세션 한정 — 새로고침/로그인하면 다시 나옴)
-    var pos = lsGet(FAB_POS_KEY, null);
-    if (pos && pos.left) { elFab.style.left = pos.left; elFab.style.top = pos.top; elFab.style.right = 'auto'; elFab.style.bottom = 'auto'; }
-    // X 배지
-    var xb = document.createElement('span');
-    xb.className = 'bai-fab-x'; xb.textContent = '×';
-    elFab.appendChild(xb);
-    xb.addEventListener('click', function (e) { e.stopPropagation(); e.preventDefault(); hideFab(); });
-    xb.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
-
-    var pressT = null, dragging = false, edit = false, moved = false, sx = 0, sy = 0, ox = 0, oy = 0;
-    elFab.addEventListener('pointerdown', function (e) {
-      if (e.target.closest('.bai-fab-x')) return;
-      sx = e.clientX; sy = e.clientY; moved = false; dragging = true;
-      var r = elFab.getBoundingClientRect(); ox = r.left; oy = r.top;
-      pressT = setTimeout(function () { edit = true; elFab.classList.add('edit'); }, 480);
-      try { elFab.setPointerCapture(e.pointerId); } catch (er) {}
-    });
-    elFab.addEventListener('pointermove', function (e) {
-      if (!dragging) return;
-      var dx = e.clientX - sx, dy = e.clientY - sy;
-      if (!moved && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) { moved = true; clearTimeout(pressT); edit = true; elFab.classList.add('edit'); }
-      if (edit) {
-        var nx = Math.max(6, Math.min(window.innerWidth - 60, ox + dx));
-        var ny = Math.max(6, Math.min(window.innerHeight - 60, oy + dy));
-        elFab.style.left = nx + 'px'; elFab.style.top = ny + 'px'; elFab.style.right = 'auto'; elFab.style.bottom = 'auto';
-      }
-    });
-    elFab.addEventListener('pointerup', function (e) {
-      clearTimeout(pressT); dragging = false;
-      if (moved) { lsSet(FAB_POS_KEY, { left: elFab.style.left, top: elFab.style.top }); }
-      else if (!edit) { openPanel(); }
-      setTimeout(function () { edit = false; elFab.classList.remove('edit'); }, 1600);
-    });
-    // 마이페이지 진입 시 숨겨져 있으면 다시 불러오기
-    document.addEventListener('click', function (e) {
-      if (fabHidden && e.target.closest('[data-nav="mypage"],#myPageBtn,#headerProfile')) { showFab(); }
-    }, true);
-  }
-  function hideFab() {
-    fabHidden = true;   // 세션 한정(저장 안 함) → 새로고침/로그인하면 복귀
-    if (elFab) elFab.style.display = 'none';
-    toast('새로고침하거나 마이페이지에 들어오면 다시 나타나요!');
-  }
-  function showFab() {
-    fabHidden = false;
-    if (elFab && !(elPanel && elPanel.classList.contains('show'))) elFab.style.display = '';
-  }
 
   function renderConsent() {
     elBody.innerHTML =
@@ -1372,7 +1269,7 @@
   function bindAuth() {
     if (B() && B().onAuthChange) {
       B().onAuthChange(function (user) {
-        if (user) { _profileCache = null; flushBufferToDB(); showFab(); }
+        if (user) { _profileCache = null; flushBufferToDB(); }
         else { _profileCache = null; }
       });
       return true;
@@ -1401,7 +1298,6 @@
     krwShort: krwShort,
     STAGE_LABEL: STAGE_LABEL,
     openPanel: function () { openPanel(); },
-    showFab: function () { showFab(); },
     _internals: { flushBufferToDB: flushBufferToDB }
   };
 
@@ -1413,7 +1309,7 @@
     var cs = box.querySelector('[data-mpmenu="cs"]');   // 고객센터 행
     var btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'mp-menu-row'; btn.id = 'mpAiRow';
-    btn.innerHTML = '<span class="mr-label">AI 시계비서 <b style="color:#e23b3b;font-size:11px;vertical-align:middle">BETA</b></span><span class="mr-arrow">›</span>';
+    btn.innerHTML = '<span class="mr-label">AI 시계비서 <b style="color:#8a8f98;font-size:11px;vertical-align:middle">BETA</b></span><span class="mr-arrow">›</span>';
     btn.addEventListener('click', function () { openPanel(); });
     if (cs) box.insertBefore(btn, cs); else box.appendChild(btn);
   }
@@ -1427,8 +1323,6 @@
     }
     // 이미 로그인 상태면 버퍼 병합 시도
     setTimeout(function () { if (loggedIn()) flushBufferToDB(); }, 800);
-    // 프로액티브 말풍선 시작(첫 등장은 4초 뒤)
-    scheduleBubble(4000);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();

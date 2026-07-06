@@ -1399,11 +1399,14 @@
         var orderN = (typeof myOrdersCache !== 'undefined' && myOrdersCache) ? myOrdersCache.length : 0;
         var rows = [];
         rows.push({ act: 'orders', label: '주문내역', count: orderN });
+        rows.push({ act: 'auction', label: '경매' });
         if (role === 'vendor' || role === 'partner') rows.push({ act: 'bids', label: '입찰내역' });
         if (role === 'partner') rows.push({ act: 'sales', label: '판매내역' });
         rows.push({ act: 'cs', label: '고객센터' });
         box.innerHTML = rows.map(function (r) {
-            return '<button type="button" class="mp-menu-row" data-mpmenu="' + r.act + '">' +
+            // 경매는 auction.js 가 data-auction-open 으로 처리
+            var attr = (r.act === 'auction') ? 'data-auction-open' : ('data-mpmenu="' + r.act + '"');
+            return '<button type="button" class="mp-menu-row" ' + attr + '>' +
                 '<span class="mr-label">' + r.label + '</span>' +
                 (typeof r.count === 'number' ? '<span class="mr-count">' + r.count + '건</span>' : '') +
                 '<span class="mr-arrow">›</span></button>';
@@ -1952,6 +1955,7 @@
         body.innerHTML = '' +
             '<div class="op-sec"><h4>' + esc(o.productName || '상품') + '</h4>' +
                 '<div class="op-row"><span>주문번호</span><b>' + esc(o.orderNo) + '</b></div>' +
+                '<div class="op-row"><span>회원 구분</span><b id="opMemberInfo">' + (o.customerId ? '회원 · 정보 확인 중…' : '비회원 (게스트 주문)') + '</b></div>' +
                 '<div class="op-row"><span>주문자</span><b>' + esc(o.buyerName || '') + ' / ' + esc(o.buyerPhone || '') + '</b></div>' +
                 '<div class="op-row"><span>결제금액</span><b>' + fmt(o.amount) + '원 (' + (o.payType === 'full' ? '전액' : '예약금') + ')</b></div>' +
                 '<div class="op-row"><span>배송지</span><b>' + addr + '</b></div>' +
@@ -1968,6 +1972,19 @@
                 '<input type="text" id="aopTracking" value="' + esc(o.trackingNo || '') + '" placeholder="숫자만"></div>' +
             '<div class="cp-field"><label>관리자 메모</label><textarea id="aopMemo" rows="2">' + esc(o.adminMemo || '') + '</textarea></div>' +
             '<button type="button" class="cp-del-btn" id="aopRefund">결제 취소 / 환불</button>';
+        // 회원 주문이면 실제 회원 정보(이름/이메일/연락처)를 조회해 표시
+        if (o.customerId && backendOn() && NWBackend.getProfileBrief) {
+            NWBackend.getProfileBrief(o.customerId).then(function (p) {
+                var el = $('#opMemberInfo'); if (!el) return;
+                if (!p) { el.textContent = '회원 (ID ' + String(o.customerId).slice(0, 8) + ')'; return; }
+                var nm = p.display_name || p.company_name || p.biz_name || '';
+                var parts = ['회원'];
+                if (nm) parts.push(nm);
+                if (p.email) parts.push(p.email);
+                if (p.phone) parts.push(p.phone);
+                el.textContent = parts.join(' · ');
+            }).catch(function () {});
+        }
     }
 
     function openAdminOrderPage(orderNo) {
@@ -2097,6 +2114,45 @@
             setBadge('#amrReturns', s.returnsPending);
         }).catch(function () {});
     }
+    // ===== 관리자 신규주문 알림 (앱이 열려 있을 때) =====
+    var _ordWatchUnsub = null, _ordWatchReady = false, _notifiedPaid = {};
+    function startAdminOrderWatch() {
+        if (!backendOn() || !NWBackend.adminWatchNewOrders || _ordWatchUnsub) return;
+        try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission(); } catch (e) {}
+        _ordWatchReady = false;
+        _ordWatchUnsub = NWBackend.adminWatchNewOrders(function (list) {
+            list = list || [];
+            if (!_ordWatchReady) { // 최초 로드 = 기준선(기존 주문은 알림 안 함)
+                list.forEach(function (o) { if (o.status === 'paid') _notifiedPaid[o.id] = 1; });
+                _ordWatchReady = true; return;
+            }
+            var fresh = [];
+            list.forEach(function (o) {
+                if (o.status === 'paid' && !_notifiedPaid[o.id]) { _notifiedPaid[o.id] = 1; fresh.push(o); }
+            });
+            if (fresh.length) { refreshAdminBadges(); fresh.slice(0, 3).forEach(showAdminOrderNotice); }
+        });
+    }
+    function stopAdminOrderWatch() {
+        if (_ordWatchUnsub) { try { _ordWatchUnsub(); } catch (e) {} _ordWatchUnsub = null; }
+        _ordWatchReady = false;
+    }
+    function showAdminOrderNotice(o) {
+        var who = o.customerId ? '회원' : '비회원';
+        var title = '신규 주문';
+        var body = (o.productName || '상품') + ' · ' + fmt(o.amount) + '원 · ' + who + (o.buyerName ? ' · ' + o.buyerName : '');
+        try {
+            if (window.Notification && Notification.permission === 'granted') {
+                if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+                    navigator.serviceWorker.ready.then(function (reg) {
+                        reg.showNotification(title, { body: body, tag: 'order-' + o.id, icon: 'assets/icons/icon-192.png', badge: 'assets/icons/icon-192.png' });
+                    }).catch(function () { try { new Notification(title, { body: body }); } catch (e) {} });
+                } else { try { new Notification(title, { body: body }); } catch (e) {} }
+            }
+        } catch (e) {}
+        try { if (window.bellToast) window.bellToast(title + ': ' + (o.productName || '상품')); } catch (e) {}
+    }
+
     function setBadge(sel, n) {
         var el = $(sel);
         if (!el) return;
@@ -2390,7 +2446,8 @@
             // 광고 배너: 관리자는 숨김(고객은 배너 렌더가 표시 여부 결정)
             if (isAdmin) { var mb = $('#mpBanner'); if (mb) mb.hidden = true; }
             if (!isAdmin) { var p = $('#adminPanel'); if (p) p.hidden = true; }
-            if (isAdmin) { renderAdminDash(); refreshAdminBadges(); }
+            if (isAdmin) { renderAdminDash(); refreshAdminBadges(); startAdminOrderWatch(); }
+            else { stopAdminOrderWatch(); }
         });
 
         // 마이페이지 열릴 때 대시보드 갱신
