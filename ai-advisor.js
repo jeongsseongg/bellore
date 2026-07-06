@@ -611,18 +611,36 @@
     });
   }
   function composeReplyFallback(message, profile, a, base, recos) {
-    if (window.BELLORE_AI_REPLY === true && sb() && sb().functions) {
-      var cand = (recos || []).map(function (x) { return { name: [x.product.brand, x.product.model, x.product.reference_number].filter(Boolean).join(' '), price: x.product.price, score: x.score }; });
-      return sb().functions.invoke(window.BELLORE_AI_FN || 'ai-learn', { body: { action: 'generate_reply', profile_id: (profile && profile.id) || null, message: message, candidates: cand } })
-        .then(function (res) {
-          if (res && res.error) { console.warn('[BelloreAI] ai-learn error:', res.error.message || res.error); return base; }
-          var d = res && res.data;
-          if (d && d.skipped) { console.warn('[BelloreAI] ai-learn skipped:', d.hint); return base; }
-          var r = cleanAIReply(d && d.result && d.result.reply);
-          return looksKorean(r) ? r : base;   // 영어/사고과정이면 한국어 규칙 답변으로 대체
-        }).catch(function (e) { console.warn('[BelloreAI] ai-learn invoke fail:', e); return base; });
+    if (!(window.BELLORE_AI_REPLY === true && sb() && sb().functions)) {
+      console.warn('[BelloreAI] AI 미사용 → 규칙기반 답변. BELLORE_AI_REPLY=' + window.BELLORE_AI_REPLY + ', sb=' + !!sb());
+      return Promise.resolve(base);
     }
-    return Promise.resolve(base);
+    var cand = (recos || []).map(function (x) { return { name: [x.product.brand, x.product.model, x.product.reference_number].filter(Boolean).join(' '), price: x.product.price, score: x.score }; });
+    return sb().functions.invoke(window.BELLORE_AI_FN || 'ai-learn', { body: { action: 'generate_reply', profile_id: (profile && profile.id) || null, message: message, candidates: cand } })
+      .then(function (res) {
+        if (res && res.error) {
+          var errMsg = res.error.message || String(res.error);
+          var ctx = res.error.context;
+          if (ctx && typeof ctx.text === 'function') {
+            return ctx.text().then(function (body) {
+              console.warn('[BelloreAI] ai-learn HTTP 에러 → 규칙기반 대체. status=' + (ctx.status || '?') + ' body=' + body);
+              return base;
+            }).catch(function () { console.warn('[BelloreAI] ai-learn 에러(본문 읽기 실패) → 규칙기반 대체:', errMsg); return base; });
+          }
+          console.warn('[BelloreAI] ai-learn 에러 → 규칙기반 대체:', errMsg);
+          return base;
+        }
+        var d = res && res.data;
+        if (d && d.skipped) { console.warn('[BelloreAI] ai-learn 건너뜀(키 미설정) → 규칙기반 대체:', d.hint); return base; }
+        var rawReply = d && d.result && d.result.reply;
+        var r = cleanAIReply(rawReply);
+        if (!looksKorean(r)) {
+          console.warn('[BelloreAI] AI 응답이 한국어가 아니거나 비어있어 → 규칙기반 대체. 원본:', rawReply);
+          return base;
+        }
+        console.info('[BelloreAI] 실제 AI 응답 사용:', r);
+        return r;
+      }).catch(function (e) { console.warn('[BelloreAI] ai-learn 호출 자체 실패 → 규칙기반 대체:', e); return base; });
   }
 
   function buildInterestItems(a) {
