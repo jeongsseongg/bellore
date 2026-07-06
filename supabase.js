@@ -503,12 +503,44 @@
     });
   };
 
-  // 전체 회원 목록(관리자) — 회원관리 통합 화면용
+  // 전체 회원 목록(관리자) — 회원관리 + AI 고객분석 통합 화면용.
+  // 각 회원(m.id = auth uid)에 AI 프로필(customer_ai_profiles.user_id)을 m.ai 로 붙인다.
+  // ai_advisor.sql 미실행이면 조용히 건너뜀(회원 목록 자체는 그대로 뜬다).
   Backend.listAllMembers = function () {
     if (!Backend.isAdmin()) return Promise.resolve([]);
     return sb.from('profiles').select('*').order('created_at', { ascending: false })
-      .then(function (r) { if (r.error) throw r.error; return r.data || []; })
+      .then(function (r) {
+        if (r.error) throw r.error;
+        var members = r.data || [];
+        return sb.from('customer_ai_profiles')
+          .select('id,user_id,preferred_brands,preferred_models,budget_min,budget_max,buying_stage,buy_probability,price_sensitivity,resale_importance,ai_summary,updated_at')
+          .then(function (ar) {
+            if (!ar.error && ar.data) {
+              var byUser = {};
+              ar.data.forEach(function (p) { if (p.user_id) byUser[p.user_id] = p; });
+              members.forEach(function (m) { m.ai = byUser[m.id] || null; });
+            }
+            return members;
+          }, function () { return members; });
+      })
       .catch(function () { return []; });
+  };
+
+  // 관리자: 회원의 AI 분석 요약 수정/생성(수정 가능 요구). 프로필 없으면 user_id 기준 생성.
+  // patch 예: { preferred_brands:[...], budget_min, budget_max, buying_stage, ai_summary }
+  Backend.saveCustomerAIProfile = function (opts) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    opts = opts || {};
+    var patch = opts.patch || {};
+    if (opts.id) {
+      return sb.from('customer_ai_profiles').update(patch).eq('id', opts.id)
+        .then(function (r) { if (r.error) throw r.error; return r.data; });
+    }
+    if (!opts.user_id) return Promise.reject(new Error('NO_USER'));
+    var row = { user_id: opts.user_id };
+    for (var k in patch) { if (patch.hasOwnProperty(k)) row[k] = patch[k]; }
+    return sb.from('customer_ai_profiles').upsert(row, { onConflict: 'user_id' }).select()
+      .then(function (r) { if (r.error) throw r.error; return (r.data && r.data[0]) || null; });
   };
 
   /* ---------------- 휴대폰(SMS OTP) 인증 ----------------

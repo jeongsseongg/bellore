@@ -8833,7 +8833,8 @@ body.mypage-open .tabbar { z-index: 2550; }
 .amr-sub { display: block; margin-top: 2px; font-size: 11px; font-weight: 600; color: var(--text-3); font-style: normal; }
 .mpc-sub { display: block; margin-top: 2px; font-size: 11px; color: var(--text-3); font-style: normal; }
 .mem-pane { margin-top: 4px; }
-.mem-item { display: flex; flex-direction: column; gap: 3px; }
+/* .admin-list-item 기본이 align-items:center(가운데) → 카드는 왼쪽 정렬로 재정의 */
+.mem-item { display: flex; flex-direction: column; align-items: stretch; gap: 3px; text-align: left; }
 .mem-top { display: flex; align-items: center; gap: 8px; }
 .mem-top b { font-size: 14px; font-weight: 800; color: var(--text); }
 .mem-role { flex: none; font-size: 10.5px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: var(--bg-soft); color: var(--text-2); }
@@ -8841,6 +8842,47 @@ body.mypage-open .tabbar { z-index: 2550; }
 .mem-role--partner { background: #eafaf0; color: var(--dark-green); }
 .mem-role--admin { background: #fdeaea; color: #c0392b; }
 .mem-sub { font-size: 12px; color: var(--text-3); line-height: 1.4; }
+
+/* ===== 회원관리 · AI 고객분석(통합) ===== */
+.mem-stats { display: flex; gap: 8px; margin: 2px 0 12px; }
+.mem-stat { flex: 1; background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 11px 12px; }
+.mem-stat b { display: block; font-size: 20px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+.mem-stat span { font-size: 11px; color: var(--text-3); }
+/* 카드 상단 구매단계 칩(오른쪽 정렬) */
+.mem-stage { flex: none; margin-left: auto; font-size: 10.5px; font-weight: 800; padding: 2px 9px; border-radius: 999px; background: #eafaf0; color: #16a34a; }
+.mem-stage--hot { background: #fdecec; color: #c0392b; }
+.mem-stage--warm { background: #fff0e6; color: #d97326; }
+.mem-stage--sell { background: #eef4ff; color: #2d5fd0; }
+/* AI 분석 블록(카드 안, 점선 구분) */
+.mem-ai { margin-top: 11px; padding-top: 11px; border-top: 1px dashed var(--border); }
+.mem-ai-head { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.mem-ai-badge { width: 16px; height: 16px; border-radius: 50%; background: #111; color: #fff; font-size: 9px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.mem-ai-label { font-size: 11px; font-weight: 800; color: var(--text-2); letter-spacing: .02em; }
+/* .admin-list-item button{color:#e5484d} 를 이기려 .mem-item 접두(명시도) 사용 */
+.mem-item .mem-ai-edit { margin-left: auto; padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--white); font-size: 11.5px; font-weight: 700; color: var(--text-2); cursor: pointer; }
+.mem-item .mem-ai-edit:hover { border-color: var(--text-3); color: var(--text); }
+.mem-ai-tags { margin-bottom: 4px; }
+.mem-ai-tag { display: inline-block; padding: 3px 9px; border-radius: 12px; background: var(--bg-soft); font-size: 12px; font-weight: 700; color: var(--text); margin: 0 4px 4px 0; }
+.mem-ai-tag.brand { background: #eef4ff; color: #2d5fd0; }
+.mem-ai-line { font-size: 12px; color: var(--text-2); line-height: 1.6; margin-top: 4px; }
+.mem-ai-line b { font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+.mem-ai-bar-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.mem-ai-barlab { font-size: 11px; color: var(--text-3); flex: none; }
+.mem-ai-bar { height: 6px; border-radius: 3px; background: #eceae6; overflow: hidden; flex: 1; min-width: 60px; }
+.mem-ai-bar > i { display: block; height: 100%; background: #111; }
+.mem-ai-barval { font-size: 11px; font-weight: 800; color: var(--text); flex: none; font-variant-numeric: tabular-nums; }
+.mem-ai-empty { margin-top: 4px; font-size: 11.5px; color: var(--text-3); line-height: 1.5; }
+.mem-ai-acts { display: flex; gap: 8px; margin-top: 11px; flex-wrap: wrap; }
+.mem-item .mem-ai-btn { padding: 8px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--white); font-size: 12.5px; font-weight: 700; color: var(--text); cursor: pointer; }
+.mem-item .mem-ai-btn.pri { background: #111; color: #fff; border-color: #111; }
+/* 수정 폼 */
+.mem-ai-fld { display: block; margin-top: 8px; }
+.mem-ai-fld > span { display: block; font-size: 11.5px; font-weight: 700; color: var(--text-2); margin-bottom: 5px; }
+.mem-ai-in { width: 100%; min-width: 0; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; font: 14px Pretendard, -apple-system, sans-serif; background: var(--white); color: var(--text); box-sizing: border-box; }
+.mem-ai-in:focus { outline: none; border-color: #111; }
+textarea.mem-ai-in { resize: vertical; line-height: 1.5; }
+.mem-ai-2col { display: flex; gap: 8px; }
+.mem-ai-2col .mem-ai-fld { flex: 1; }
 
 /* ===== 회원정보 수정 (토스식 단계 페이지) ===== */
 .prof-lead { font-size: 13px; color: var(--text-2); margin: 4px 2px 14px; line-height: 1.5; }

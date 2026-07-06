@@ -2111,7 +2111,7 @@
         var p = $('#adminPanel');
         if (!p) return;
         $$('.admin-panel-view', p).forEach(function (sec) { sec.hidden = sec.dataset.apv !== view; });
-        var titles = { quotes: '비교견적 승인', members: '회원관리', coupons: '쿠폰 관리', listings: '판매시계 관리', orders: '주문 관리', returns: '교환 · 반품', settlements: '정산 관리', analytics: '활동 로그' };
+        var titles = { quotes: '비교견적 승인', members: '회원관리 · AI 고객분석', coupons: '쿠폰 관리', listings: '판매시계 관리', orders: '주문 관리', returns: '교환 · 반품', settlements: '정산 관리', analytics: '활동 로그' };
         var t = $('#adminPanelTitle');
         if (t) t.textContent = (view === 'orders') ? (O_FILTER_LABEL[ofilter || ''] || '주문 관리') : (titles[view] || '관리');
         // 패널을 열 때 항목을 즉시 다시 그려, 첫 진입에서 빈 화면이 보이지 않게 한다
@@ -2149,9 +2149,21 @@
         if (p) { p.hidden = true; document.body.style.overflow = 'hidden'; } // 마이페이지가 여전히 떠 있음
     }
 
-    /* ===== 관리자: 회원관리(일반·업체·제휴사 통합) ===== */
+    /* ===== 관리자: 회원관리 + AI 고객분석(통합) =====
+       회원 목록과 AI가 대화·행동으로 분석한 고객 정보를 한 카드에서 본다.
+       - 각 회원(m.id=auth uid)에 m.ai(customer_ai_profiles) 가 붙어 옴(supabase.js).
+       - 카드의 AI 요약은 '수정' 가능(관리자가 직접 교정). 상세·대화는 AI 패널로 연결.
+       - AI 상담/학습 '설정'은 별도 메뉴(AI 상담 설정)로 분리 유지. */
     var _memFilter = 'all';
+    var _memRows = [];
     var ROLE_LABEL = { customer: '일반회원', vendor: '업체', partner: '제휴사', admin: '관리자' };
+    var AI_STAGE = { browsing: '둘러보는 중', considering: '가격 비교 중', high_intent: '매물 찾는 중', ready_to_buy: '구매 임박', sell_intent: '판매 문의', unknown: '미상' };
+    var AI_STAGE_TONE = { ready_to_buy: 'hot', high_intent: 'warm', sell_intent: 'sell' };
+    function aiKrw(n) {
+        if (n == null || n === '') return '-';
+        try { if (window.BelloreAI && window.BelloreAI.krwShort) return window.BelloreAI.krwShort(n); } catch (e) {}
+        return Number(n).toLocaleString() + '원';
+    }
     function openMembers(kind) {
         _memFilter = kind || 'all';
         $$('#memTabs [data-mem]').forEach(function (b) { b.classList.toggle('on', (b.dataset.mem || 'all') === _memFilter); });
@@ -2162,36 +2174,146 @@
         if (paneList) paneList.hidden = showVendor || showPartner;
         if (showVendor) renderVendorList(_adminCache.vendors);
         else if (showPartner) renderAdminPartners();
-        else renderAdminMembers(_memFilter); // all | customer
+        else renderAdminMembers(_memFilter); // all | customer | ai
     }
     function renderAdminMembers(kind) {
         var box = $('#adminMembers'); if (!box) return;
         if (!backendOn() || !NWBackend.listAllMembers) { box.innerHTML = '<div class="admin-list-item"><span>백엔드 연결이 필요합니다.</span></div>'; return; }
         box.innerHTML = '<div class="admin-list-item"><span>불러오는 중…</span></div>';
         NWBackend.listAllMembers().then(function (rows) {
-            rows = rows || [];
-            var list = (kind === 'customer') ? rows.filter(function (m) { return (m.role || 'customer') === 'customer'; }) : rows;
-            if (!list.length) { box.innerHTML = '<div class="admin-list-item"><span>회원이 없습니다.</span></div>'; return; }
-            box.innerHTML = list.map(function (m) {
-                var nm = esc(m.display_name || m.company_name || m.biz_name || '(이름 없음)');
-                var role = ROLE_LABEL[m.role] || m.role || '회원';
-                var sub = [];
-                if (m.email) sub.push(esc(m.email));
-                if (m.phone) sub.push(esc(m.phone) + (m.phone_verified ? ' ✓' : ''));
-                if (m.bank_account) sub.push(esc((m.bank_name || '') + ' ' + m.bank_account));
-                var when = m.created_at ? (' · 가입 ' + String(m.created_at).slice(0, 10)) : '';
-                var reset = m.email ? '<button type="button" class="stl-act" data-resetpw="' + esc(m.email) + '">비번 재설정 메일</button>' : '';
-                return '<div class="admin-list-item mem-item">' +
-                    '<div class="mem-top"><b>' + nm + '</b><span class="mem-role mem-role--' + (m.role || 'customer') + '">' + role + '</span></div>' +
-                    '<div class="mem-sub">' + (sub.join(' · ') || '추가 정보 없음') + when + '</div>' +
-                    (reset ? '<div class="pa-acts">' + reset + '</div>' : '') +
+            _memRows = rows || [];
+            var list = _memRows.slice();
+            if (kind === 'customer') list = list.filter(function (m) { return (m.role || 'customer') === 'customer'; });
+            if (kind === 'ai') {
+                // AI가 분석한 고객만, 구매가능성 높은 순
+                list = list.filter(function (m) { return m.ai; })
+                    .sort(function (a, b) { return (b.ai.buy_probability || 0) - (a.ai.buy_probability || 0); });
+            }
+            // 상단 요약(전체 회원 · AI 분석됨 · 구매 임박)
+            var analyzed = _memRows.filter(function (m) { return m.ai; }).length;
+            var hot = _memRows.filter(function (m) { return m.ai && (m.ai.buying_stage === 'ready_to_buy' || (m.ai.buy_probability || 0) >= 80); }).length;
+            var stat = '<div class="mem-stats">' +
+                '<div class="mem-stat"><b>' + _memRows.length + '</b><span>전체 회원</span></div>' +
+                '<div class="mem-stat"><b>' + analyzed + '</b><span>AI 분석됨</span></div>' +
+                '<div class="mem-stat"><b>' + hot + '</b><span>구매 임박</span></div>' +
                 '</div>';
-            }).join('');
+            if (!list.length) {
+                box.innerHTML = stat + '<div class="admin-list-item"><span>' + (kind === 'ai' ? 'AI가 분석한 고객이 아직 없습니다.' : '회원이 없습니다.') + '</span></div>';
+                return;
+            }
+            box.innerHTML = stat + list.map(memberCard).join('');
         }).catch(function () { box.innerHTML = '<div class="admin-list-item"><span>불러오기 실패 (로그인/권한 확인)</span></div>'; });
+    }
+    function memberCard(m) {
+        var nm = esc(m.display_name || m.company_name || m.biz_name || '(이름 없음)');
+        var role = ROLE_LABEL[m.role] || m.role || '회원';
+        var sub = [];
+        if (m.email) sub.push(esc(m.email));
+        if (m.phone) sub.push(esc(m.phone) + (m.phone_verified ? ' ✓' : ''));
+        if (m.bank_account) sub.push(esc((m.bank_name || '') + ' ' + m.bank_account));
+        var when = m.created_at ? (' · 가입 ' + String(m.created_at).slice(0, 10)) : '';
+        var reset = m.email ? '<button type="button" class="stl-act" data-resetpw="' + esc(m.email) + '">비번 재설정 메일</button>' : '';
+        var a = m.ai;
+        var stageChip = (a && a.buying_stage && a.buying_stage !== 'unknown')
+            ? '<span class="mem-stage mem-stage--' + (AI_STAGE_TONE[a.buying_stage] || 'base') + '">' + esc(AI_STAGE[a.buying_stage] || a.buying_stage) + '</span>' : '';
+        return '<div class="admin-list-item mem-item" data-uid="' + esc(m.id) + '">' +
+            '<div class="mem-top"><b>' + nm + '</b><span class="mem-role mem-role--' + (m.role || 'customer') + '">' + role + '</span>' + stageChip + '</div>' +
+            '<div class="mem-sub">' + (sub.join(' · ') || '추가 정보 없음') + when + '</div>' +
+            memberAIBlock(m) +
+            (reset ? '<div class="pa-acts">' + reset + '</div>' : '') +
+        '</div>';
+    }
+    function memberAIBlock(m) {
+        var a = m.ai;
+        var head = '<div class="mem-ai-head"><span class="mem-ai-badge">AI</span><span class="mem-ai-label">AI가 분석한 고객</span>' +
+            '<button type="button" class="mem-ai-edit" data-aiedit="' + esc(m.id) + '">' + (a ? '수정' : '메모 추가') + '</button></div>';
+        if (!a) {
+            return '<div class="mem-ai">' + head +
+                '<div class="mem-ai-empty">아직 AI 대화·행동 기록이 없어 분석 전이에요. 고객이 BELLORE AI로 문의하거나 상품을 둘러보면 자동으로 채워집니다.</div></div>';
+        }
+        var brands = (a.preferred_brands || []).slice(0, 4).map(function (b) { return '<span class="mem-ai-tag brand">' + esc(b) + '</span>'; }).join('');
+        var models = (a.preferred_models || []).slice(0, 2).join(', ');
+        var line2parts = ['예산 <b>' + aiKrw(a.budget_min) + '~' + aiKrw(a.budget_max) + '</b>'];
+        if (a.price_sensitivity != null) line2parts.push('가격민감 ' + a.price_sensitivity);
+        if (a.resale_importance != null) line2parts.push('리셀 ' + a.resale_importance);
+        var summary = a.ai_summary ? ('<div class="mem-ai-line">' + esc(a.ai_summary) + '</div>') : '';
+        var prob = a.buy_probability || 0;
+        return '<div class="mem-ai">' + head +
+            (brands ? ('<div class="mem-ai-tags">' + brands + (models ? '<span class="mem-ai-tag">' + esc(models) + '</span>' : '') + '</div>') : '') +
+            '<div class="mem-ai-line">' + line2parts.join(' · ') + '</div>' +
+            summary +
+            '<div class="mem-ai-bar-row"><span class="mem-ai-barlab">구매 가능성</span><div class="mem-ai-bar"><i style="width:' + prob + '%"></i></div><span class="mem-ai-barval">' + prob + '%</span></div>' +
+            '<div class="mem-ai-acts">' +
+                (a.id ? '<button type="button" class="mem-ai-btn pri" data-aidetail="' + esc(a.id) + '">상세·대화 보기</button>' : '') +
+            '</div></div>';
+    }
+    // 카드 안에서 AI 요약을 바로 수정(관리자 교정). 저장 시 customer_ai_profiles 갱신/생성.
+    function openMemberAIEdit(uid) {
+        var card = $('#adminMembers .mem-item[data-uid="' + (window.CSS && CSS.escape ? CSS.escape(uid) : uid) + '"]');
+        var m = null;
+        for (var i = 0; i < _memRows.length; i++) { if (String(_memRows[i].id) === String(uid)) { m = _memRows[i]; break; } }
+        if (!card || !m) return;
+        var aiBox = card.querySelector('.mem-ai'); if (!aiBox) return;
+        var a = m.ai || {};
+        var brands = (a.preferred_brands || []).join(', ');
+        var bmin = (a.budget_min != null && a.budget_min !== '') ? Math.round(Number(a.budget_min) / 10000) : '';
+        var bmax = (a.budget_max != null && a.budget_max !== '') ? Math.round(Number(a.budget_max) / 10000) : '';
+        var stageOpts = Object.keys(AI_STAGE).map(function (k) {
+            return '<option value="' + k + '"' + ((a.buying_stage || 'unknown') === k ? ' selected' : '') + '>' + AI_STAGE[k] + '</option>';
+        }).join('');
+        aiBox.innerHTML =
+            '<div class="mem-ai-head"><span class="mem-ai-badge">AI</span><span class="mem-ai-label">AI 분석 수정</span></div>' +
+            '<label class="mem-ai-fld"><span>관심 브랜드 (쉼표로 구분)</span>' +
+                '<input type="text" class="mem-ai-in" data-f="brands" value="' + esc(brands) + '" placeholder="예: 롤렉스, 오메가"></label>' +
+            '<div class="mem-ai-2col">' +
+                '<label class="mem-ai-fld"><span>예산 최소 (만원)</span><input type="number" inputmode="numeric" class="mem-ai-in" data-f="bmin" value="' + esc(String(bmin)) + '" placeholder="예: 1200"></label>' +
+                '<label class="mem-ai-fld"><span>예산 최대 (만원)</span><input type="number" inputmode="numeric" class="mem-ai-in" data-f="bmax" value="' + esc(String(bmax)) + '" placeholder="예: 1800"></label>' +
+            '</div>' +
+            '<label class="mem-ai-fld"><span>구매 단계</span><select class="mem-ai-in" data-f="stage">' + stageOpts + '</select></label>' +
+            '<label class="mem-ai-fld"><span>한 줄 메모 / 요약</span><textarea class="mem-ai-in" data-f="summary" rows="2" placeholder="예: 리셀가치 중시. 풀세트 위주로 안내.">' + esc(a.ai_summary || '') + '</textarea></label>' +
+            '<div class="mem-ai-acts">' +
+                '<button type="button" class="mem-ai-btn pri" data-aisave="' + esc(uid) + '">저장</button>' +
+                '<button type="button" class="mem-ai-btn" data-aicancel="1">취소</button>' +
+            '</div>';
+    }
+    function saveMemberAIEdit(uid, btn) {
+        var m = null;
+        for (var i = 0; i < _memRows.length; i++) { if (String(_memRows[i].id) === String(uid)) { m = _memRows[i]; break; } }
+        if (!m) return;
+        var card = btn.closest('.mem-item'); if (!card) return;
+        function val(f) { var el = card.querySelector('[data-f="' + f + '"]'); return el ? el.value : ''; }
+        function toKrw(v) { v = String(v).replace(/[^0-9.]/g, ''); return v === '' ? null : Math.round(parseFloat(v) * 10000); }
+        var brands = String(val('brands')).split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+        var patch = {
+            preferred_brands: brands,
+            budget_min: toKrw(val('bmin')),
+            budget_max: toKrw(val('bmax')),
+            buying_stage: val('stage') || 'unknown',
+            ai_summary: String(val('summary')).trim() || null
+        };
+        btn.disabled = true; btn.textContent = '저장 중…';
+        NWBackend.saveCustomerAIProfile({ id: (m.ai && m.ai.id) || null, user_id: m.id, patch: patch })
+            .then(function () { renderAdminMembers(_memFilter); })
+            .catch(function (err) {
+                btn.disabled = false; btn.textContent = '저장';
+                alert('저장 실패: ' + ((err && err.message) || err) + '\n(ai_advisor.sql 실행 여부를 확인하세요.)');
+            });
     }
     document.addEventListener('click', function (e) {
         var mt = e.target.closest('#memTabs [data-mem]');
-        if (mt) { openMembers(mt.dataset.mem || 'all'); }
+        if (mt) { openMembers(mt.dataset.mem || 'all'); return; }
+        var det = e.target.closest('[data-aidetail]');
+        if (det) {
+            if (window.BelloreAIAdmin && window.BelloreAIAdmin.openProfileDetail) window.BelloreAIAdmin.openProfileDetail(det.dataset.aidetail);
+            else alert('AI 고객비서 화면을 불러오지 못했습니다.');
+            return;
+        }
+        var ed = e.target.closest('[data-aiedit]');
+        if (ed) { openMemberAIEdit(ed.dataset.aiedit); return; }
+        var sv = e.target.closest('[data-aisave]');
+        if (sv) { saveMemberAIEdit(sv.dataset.aisave, sv); return; }
+        var cc = e.target.closest('[data-aicancel]');
+        if (cc) { renderAdminMembers(_memFilter); return; }
     });
 
     /* ===== 관리자: 제휴사 관리 ===== */

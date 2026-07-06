@@ -76,9 +76,11 @@
   }
 
   /* ---------------- 패널 골격 ---------------- */
+  // '고객 프로필' 은 회원관리(회원관리 · AI 고객분석) 화면으로 흡수됨.
+  // 여기(AI 상담 설정)에는 AI 세팅·운영 탭만 남긴다. 개별 고객 상세(renderProfileDetail)는
+  // 회원 카드의 '상세·대화 보기'에서 openProfileDetail 로 진입한다.
   var TABS = [
     { k: 'settings', t: 'AI 상담 설정' },
-    { k: 'profiles', t: '고객 프로필' },
     { k: 'conversations', t: '대화 로그' },
     { k: 'alerts', t: '알림 후보' },
     { k: 'knowledge', t: '전문가 지식' },
@@ -86,7 +88,7 @@
     { k: 'team', t: '팀 메시지' },
     { k: 'guidelines', t: '답변 참고서' }
   ];
-  var panel, bodyEl, curTab = 'settings';
+  var panel, bodyEl, curTab = 'settings', _fromMember = false;
 
   function buildPanel() {
     injectStyles();
@@ -122,6 +124,18 @@
     try { history.pushState({ aiAdmin: 1 }, ''); } catch (e) {}
     setTab(curTab);
   }
+  // 회원관리(회원 · AI 고객분석) 카드의 '상세·대화 보기' → 특정 고객 AI 상세로 바로 진입.
+  function openProfileDetail(pid) {
+    if (!panel) buildPanel();
+    _fromMember = true;
+    if (!panel.classList.contains('show')) {
+      panel.classList.add('show');
+      document.body.style.overflow = 'hidden';
+      try { history.pushState({ aiAdmin: 1 }, ''); } catch (e) {}
+    }
+    var tb = panel.querySelector('.aia-top b'); if (tb) tb.textContent = '고객 AI 분석';
+    renderProfileDetail(pid);
+  }
   function close(fromPop) {
     if (!panel || !panel.classList.contains('show')) return;
     panel.classList.remove('show'); document.body.style.overflow = '';
@@ -133,6 +147,8 @@
 
   function setTab(k) {
     curTab = k;
+    _fromMember = false;
+    var _tb = panel && panel.querySelector('.aia-top b'); if (_tb) _tb.textContent = 'AI 고객비서';
     $$('.aia-tab', panel).forEach(function (b) { b.classList.toggle('on', b.dataset.tab === k); });
     bodyEl.scrollTop = 0;
     bodyEl.innerHTML = '<div class="aia-empty">불러오는 중…</div>';
@@ -326,7 +342,7 @@
   function paintDetail(p, INT, EVT, CONV, ALERT, REC) {
     if (!p) { bodyEl.innerHTML = sqlHint({ message: '프로필을 찾을 수 없습니다.' }); return; }
     var who = [p.name, p.phone, p.email].filter(Boolean).join(' · ') || '익명 고객';
-    var html = '<span class="aia-detail-back" data-act="back-profiles">‹ 목록으로</span>';
+    var html = '<span class="aia-detail-back" data-act="back-profiles">‹ 회원관리로</span>';
     html += '<div class="aia-card nohover"><div class="aia-name">' + esc(who) + '</div>' +
       '<div class="aia-sub" style="margin-top:6px">' + esc(p.ai_summary || '요약 생성 전') + '</div>' +
       '<div class="aia-btns"><button class="aia-btn pri" data-act="ai-summarize" data-id="' + esc(p.id) + '">AI 요약·메모리 생성</button></div>' +
@@ -598,7 +614,7 @@
   /* ---------------- 액션 핸들러 ---------------- */
   function handleAction(el) {
     var act = el.dataset.act, id = el.dataset.id;
-    if (act === 'back-profiles') { renderProfiles(); return; }
+    if (act === 'back-profiles') { if (_fromMember) close(); else setTab('settings'); return; }
     if (act === 'alert-approve') return updateAlert(id, { status: 'approved', approved_at: new Date().toISOString() });
     if (act === 'alert-dismiss') return updateAlert(id, { status: 'dismissed' });
     if (act === 'alert-sent') return updateAlert(id, { status: 'sent', sent_at: new Date().toISOString() });
@@ -719,7 +735,7 @@
     if (!group) return;
     var btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'admin-menu-row'; btn.id = 'aiAdvisorMenuRow';
-    btn.innerHTML = '<span>AI 고객비서 <em class="amr-sub">상담설정·프로필·대화·알림</em></span>' +
+    btn.innerHTML = '<span>AI 상담 설정 <em class="amr-sub">참고서·알림·지식·시세 (고객분석은 회원관리)</em></span>' +
       '<span class="amr-right"><span class="amr-arrow">›</span></span>';
     group.appendChild(btn);
     btn.addEventListener('click', open);
@@ -739,7 +755,7 @@
     var n = 0, t = setInterval(function () { injectMenu(); if (++n > 120) clearInterval(t); }, 500);
   }
 
-  window.BelloreAIAdmin = { open: open, close: close, setTab: setTab, injectMenu: injectMenu };
+  window.BelloreAIAdmin = { open: open, close: close, setTab: setTab, injectMenu: injectMenu, openProfileDetail: openProfileDetail };
 
   function init() { injectMenu(); bindTriggers(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
