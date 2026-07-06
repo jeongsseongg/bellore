@@ -2364,9 +2364,6 @@
                 </div>
             </div>
 
-            <!-- ===== 벨로르 캐시(충전금) ===== -->
-            <div class="mpcash customer-only" id="mpCashCard" hidden></div>
-
             <!-- ===== 원형 카테고리 (5) ===== -->
             <div class="mp-cats customer-only" id="mpHubCats">
                 <button type="button" class="pl-item" data-myjump="#myCouponSection">
@@ -2393,12 +2390,6 @@
                     <span class="pl-badge" id="pocketCart" hidden>0</span>
                 </button>
             </div>
-
-            <!-- ===== 지금 경매 진입 (고객) ===== -->
-            <button type="button" class="mp-auction-cta customer-only" data-auction-open>
-                <span class="mac-txt"><b>지금 경매</b><em>정품 인증 시계를 경매로 만나보세요</em></span>
-                <span class="mac-arrow">›</span>
-            </button>
 
             <!-- ===== 광고 배너 (관리자 편집 · placement=mypage) ===== -->
             <div class="mp-banner customer-only" id="mpBanner" hidden>
@@ -2514,6 +2505,8 @@
                     <strong class="mp-point-val"><b id="myPointVal">0</b> P</strong>
                     <span class="mp-point-hint">상품 결제 시 자동 적립됩니다.</span>
                 </div>
+                <!-- 벨로르 캐시(충전금) — 포인트와 별개 -->
+                <div id="mpCashCard" hidden></div>
                 <h4>내 쿠폰 <b id="myCouponCount">0</b></h4>
                 <div class="coupon-redeem">
                     <input type="text" id="couponCodeInput" placeholder="쿠폰 코드 입력">

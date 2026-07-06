@@ -679,16 +679,16 @@
     box.hidden = false;
     var bal = (cWallet && cWallet.balance) || 0, held = (cWallet && cWallet.held) || 0;
     box.innerHTML =
-      '<div class="mpcash-row">' +
-        '<div class="mpcash-left"><span>벨로르 캐시</span>' +
-          '<b>' + fmt(bal) + '<em>원</em></b>' +
-          (held > 0 ? '<i class="mpcash-held">예약금 ' + fmt(held) + '원 잠김</i>' : '') + '</div>' +
-        '<div class="mpcash-acts">' +
-          '<button type="button" class="mpcash-btn" data-wcharge>충전</button>' +
-          (bal > 0 ? '<button type="button" class="mpcash-btn mpcash-btn--ghost" data-wrefund>환불</button>' : '') +
+      '<div class="mp-point-card mp-cash-card">' +
+        '<span class="mp-point-label">벨로르 캐시</span>' +
+        '<strong class="mp-point-val"><b>' + fmt(bal) + '</b> 원</strong>' +
+        (held > 0 ? '<span class="mp-cash-held">예약금 ' + fmt(held) + '원 사용 중</span>' : '') +
+        '<div class="mp-cash-acts">' +
+          '<button type="button" class="mp-cash-btn" data-wcharge>충전</button>' +
+          (bal > 0 ? '<button type="button" class="mp-cash-btn mp-cash-btn--ghost" data-wrefund>환불</button>' : '') +
         '</div>' +
-      '</div>' +
-      '<p class="mpcash-note">충전 후 경매 예약금 및 상품 구매에 사용할 수 있으며, 캐시 결제 시 1% 즉시 할인이 적용됩니다.</p>';
+        '<span class="mp-point-hint">경매 예약금·상품 구매에 사용 · 캐시 결제 시 1% 할인</span>' +
+      '</div>';
   }
 
   // 지갑 데이터 1회 조회 → 경매 바 + 마이페이지 카드 동시 갱신

@@ -879,7 +879,7 @@
       + '.bai-head .bai-ic{width:34px;height:34px;border-radius:50%;background:#111;color:#fff;display:flex;align-items:center;justify-content:center}'
       + '.bai-head b{font-size:16px;font-weight:700;color:#1a1a1a}'
       + '.bai-head .bai-sub{font-size:12px;color:#6b6b6b;margin-top:1px}'
-      + '.bai-beta{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:8px;background:#e23b3b;color:#fff;font:700 10px Pretendard;vertical-align:middle}'
+      + '.bai-beta{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:8px;background:#5b6b7b;color:#fff;font:700 10px Pretendard;vertical-align:middle}'
       + '.bai-x{margin-left:auto;background:none;border:none;font-size:24px;color:#9a9a9a;cursor:pointer;line-height:1}'
       + '.bai-body{flex:1;overflow:auto;padding:16px;background:#f7f6f3}'
       + '.bai-menu{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}'
@@ -1291,7 +1291,7 @@
     var cs = box.querySelector('[data-mpmenu="cs"]');   // 고객센터 행
     var btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'mp-menu-row'; btn.id = 'mpAiRow';
-    btn.innerHTML = '<span class="mr-label">AI 시계비서 <b style="color:#e23b3b;font-size:11px;vertical-align:middle">BETA</b></span><span class="mr-arrow">›</span>';
+    btn.innerHTML = '<span class="mr-label">AI 시계비서 <b style="color:#8a8f98;font-size:11px;vertical-align:middle">BETA</b></span><span class="mr-arrow">›</span>';
     btn.addEventListener('click', function () { openPanel(); });
     if (cs) box.insertBefore(btn, cs); else box.appendChild(btn);
   }

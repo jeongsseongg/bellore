@@ -1399,11 +1399,14 @@
         var orderN = (typeof myOrdersCache !== 'undefined' && myOrdersCache) ? myOrdersCache.length : 0;
         var rows = [];
         rows.push({ act: 'orders', label: '주문내역', count: orderN });
+        rows.push({ act: 'auction', label: '경매' });
         if (role === 'vendor' || role === 'partner') rows.push({ act: 'bids', label: '입찰내역' });
         if (role === 'partner') rows.push({ act: 'sales', label: '판매내역' });
         rows.push({ act: 'cs', label: '고객센터' });
         box.innerHTML = rows.map(function (r) {
-            return '<button type="button" class="mp-menu-row" data-mpmenu="' + r.act + '">' +
+            // 경매는 auction.js 가 data-auction-open 으로 처리
+            var attr = (r.act === 'auction') ? 'data-auction-open' : ('data-mpmenu="' + r.act + '"');
+            return '<button type="button" class="mp-menu-row" ' + attr + '>' +
                 '<span class="mr-label">' + r.label + '</span>' +
                 (typeof r.count === 'number' ? '<span class="mr-count">' + r.count + '건</span>' : '') +
                 '<span class="mr-arrow">›</span></button>';
