@@ -1705,6 +1705,7 @@
       method: o.method || '',
       status: o.status || 'pending',
       receiptUrl: o.receipt_url || '',
+      customerId: o.customer_id || null,   // null = 비회원(게스트)
       buyerName: o.buyer_name || '',
       buyerPhone: o.buyer_phone || '',
       // 배송
@@ -1889,6 +1890,25 @@
     }
     load();
     return channelRefetch('adminorders' + (filter || 'all'), ['orders'], load);
+  };
+
+  // 회원 간단 정보 조회(관리자 주문 상세용) — 이메일/이름/연락처
+  Backend.getProfileBrief = function (uid) {
+    if (!uid || !Backend.isAdmin()) return Promise.resolve(null);
+    return sb.from('profiles').select('display_name, company_name, biz_name, email, phone, role')
+      .eq('id', uid).single()
+      .then(function (res) { return res.error ? null : res.data; }, function () { return null; });
+  };
+
+  // 관리자 신규주문 감시(전역 · 앱 열려있을 때 알림용). 패널 구독과 채널 분리.
+  Backend.adminWatchNewOrders = function (cb) {
+    if (!Backend.isAdmin()) return function () {};
+    function load() {
+      sb.from('orders').select('*').order('created_at', { ascending: false }).limit(50)
+        .then(function (res) { cb((res.data || []).map(mapOrder)); });
+    }
+    load();
+    return channelRefetch('adminwatchorders', ['orders'], load);
   };
 
   // 관리자 주문 목록 1회 조회(폴백) — 상태 변경 후 즉시 갱신용
