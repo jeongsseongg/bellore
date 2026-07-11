@@ -1329,6 +1329,27 @@
     return sb.rpc('visits_by_day', { days: days || 14 })
       .then(function (r) { if (r.error) throw r.error; return r.data || []; });
   };
+  // 분석 V2(analytics_v2.sql). 미설치 시 reject → 클라이언트가 V1 폴백.
+  Backend.analyticsOverviewV2 = function (days) {
+    return sb.rpc('analytics_overview_v2', { days: days == null ? 7 : days })
+      .then(function (r) { if (r.error) throw r.error; return r.data || {}; });
+  };
+  Backend.viewsByHour = function (days) {
+    return sb.rpc('views_by_hour', { days: days == null ? 7 : days })
+      .then(function (r) { if (r.error) throw r.error; return r.data || []; });
+  };
+  Backend.topPaths = function (days, lim) {
+    return sb.rpc('top_paths', { days: days == null ? 7 : days, lim: lim || 10 })
+      .then(function (r) { if (r.error) throw r.error; return r.data || []; });
+  };
+  Backend.recentProductViewsV2 = function (lim, off) {
+    return sb.rpc('recent_product_views_v2', { lim: lim || 30, off: off || 0 })
+      .then(function (r) { if (r.error) throw r.error; return r.data || []; });
+  };
+  Backend.recentPageViewsV2 = function (lim, off) {
+    return sb.rpc('recent_page_views_v2', { lim: lim || 30, off: off || 0 })
+      .then(function (r) { if (r.error) throw r.error; return r.data || []; });
+  };
 
   /* ---------------- 사이트 콘텐츠(관리자 인앱 편집: 매입 랜딩 · 벨로르 소개) ---------------- */
   Backend.getSiteContent = function (key) {

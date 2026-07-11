@@ -2286,7 +2286,284 @@
         return (d.getMonth() + 1) + '/' + d.getDate() + ' ' +
             ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
     }
+    /* ===== 관리자: 활동 로그 V2 (기간비교 + 그래프 + 상세 로그) =====
+       analytics_v2.sql 설치 시 상세 화면, 미설치 시 기존(V1) 화면으로 자동 폴백. */
+    var _an2Days = 7;             // 선택 기간(0=오늘)
+    var _an2LogTab = 'product';   // 상세 로그 탭: product | page
+    var _an2Off = { product: 0, page: 0 };
+    var AN2_PAGE_SIZE = 20;
+    var AN2_PATH_NAMES = {
+        home: '홈', collection: '판매시계', compare: '비교견적', buy: '매입 안내',
+        wishlist: '찜', repair: '수리', 'cat-new': '신상품', 'cat-sale': '특가',
+        'cat-today': '오늘의 시계', 'cat-update': '업데이트', cq: '시계판매',
+        search: '검색', auction: '경매', brands: '브랜드'
+    };
+    function an2Num(n) { return (Number(n) || 0).toLocaleString(); }
+    function an2PathName(p) {
+        var k = String(p || '').replace(/^#/, '');
+        return AN2_PATH_NAMES[k] || (p ? String(p) : '(직접 접속)');
+    }
+    function an2Exact(iso) {
+        var ms = Date.parse(iso); if (isNaN(ms)) return '';
+        var d = new Date(ms);
+        return (d.getMonth() + 1) + '.' + d.getDate() + ' ' +
+            ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+    }
+    function an2DeltaHTML(cur, prev) {
+        cur = Number(cur) || 0; prev = Number(prev) || 0;
+        if (!prev) return cur ? '<span class="an2-delta up">신규</span>' : '<span class="an2-delta flat">–</span>';
+        var pct = Math.round(((cur - prev) / prev) * 100);
+        if (!pct) return '<span class="an2-delta flat">0%</span>';
+        return pct > 0
+            ? '<span class="an2-delta up">▲' + pct + '%</span>'
+            : '<span class="an2-delta down">▼' + Math.abs(pct) + '%</span>';
+    }
+    function an2Who(r) {
+        if (r.is_member) return '<span class="an-who member">' + esc(r.viewer_name || r.viewer_email || '회원') + '</span>';
+        var vid = r.visitor_id ? String(r.visitor_id).slice(0, 4) : '';
+        return '<span class="an-who">비회원' + (vid ? ('·' + esc(vid)) : '') + '</span>';
+    }
+    // 일별 추이 라인차트(방문·방문자 2계열, SVG 자체 렌더 — 외부 라이브러리 없음)
+    function an2TrendSVG(rows) {
+        rows = (rows || []).slice().sort(function (a, b) { return a.d < b.d ? -1 : 1; });
+        if (rows.length < 2) return '<p class="admin-empty">그래프를 그릴 데이터가 아직 부족합니다.</p>';
+        var W = 360, H = 190, L = 32, R = 10, T = 12, B = 24;
+        var iw = W - L - R, ih = H - T - B;
+        var max = 0;
+        rows.forEach(function (r) { max = Math.max(max, Number(r.visits) || 0, Number(r.viewers) || 0); });
+        max = Math.max(4, Math.ceil(max * 1.15));
+        // 축 눈금이 어중간하지 않게 반올림(119 → 120)
+        if (max > 20) max = Math.ceil(max / 10) * 10;
+        function X(i) { return L + (rows.length === 1 ? iw / 2 : (iw * i / (rows.length - 1))); }
+        function Y(v) { return T + ih - (ih * (Number(v) || 0) / max); }
+        function line(key) {
+            return rows.map(function (r, i) { return (i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(r[key]).toFixed(1); }).join(' ');
+        }
+        var grid = '', labels = '';
+        [0, 0.5, 1].forEach(function (f) {
+            var v = Math.round(max * f), y = Y(v);
+            grid += '<line x1="' + L + '" y1="' + y + '" x2="' + (W - R) + '" y2="' + y + '" class="an2-grid"/>';
+            labels += '<text x="' + (L - 6) + '" y="' + (y + 4) + '" class="an2-ax" text-anchor="end">' + an2Num(v) + '</text>';
+        });
+        var xl = '';
+        [0, Math.floor((rows.length - 1) / 2), rows.length - 1].forEach(function (i, k, arr) {
+            if (k && i === arr[k - 1]) return;
+            var d = new Date(rows[i].d + 'T00:00:00');
+            xl += '<text x="' + X(i) + '" y="' + (H - 8) + '" class="an2-ax" text-anchor="middle">' + (d.getMonth() + 1) + '/' + d.getDate() + '</text>';
+        });
+        var area = line('visits') + ' L' + X(rows.length - 1).toFixed(1) + ' ' + (T + ih) + ' L' + L + ' ' + (T + ih) + ' Z';
+        var lastI = rows.length - 1;
+        var dots = '<circle cx="' + X(lastI) + '" cy="' + Y(rows[lastI].visits) + '" r="3.5" fill="#2d7ff9"/>' +
+                   '<circle cx="' + X(lastI) + '" cy="' + Y(rows[lastI].viewers) + '" r="3.5" fill="#d97706"/>';
+        // 터치/호버용 히트 영역(열 단위)
+        var hits = rows.map(function (r, i) {
+            var x0 = i ? (X(i - 1) + X(i)) / 2 : L;
+            var x1 = i < rows.length - 1 ? (X(i) + X(i + 1)) / 2 : W - R;
+            var d = new Date(r.d + 'T00:00:00');
+            return '<rect class="an2-hit" x="' + x0.toFixed(1) + '" y="' + T + '" width="' + (x1 - x0).toFixed(1) + '" height="' + ih +
+                '" data-tip="' + esc((d.getMonth() + 1) + '/' + d.getDate() + ' · 방문 ' + an2Num(r.visits) + ' · 방문자 ' + an2Num(r.viewers)) +
+                '" data-x="' + X(i).toFixed(1) + '"/>' +
+                '<line class="an2-cross" x1="' + X(i).toFixed(1) + '" y1="' + T + '" x2="' + X(i).toFixed(1) + '" y2="' + (T + ih) + '"/>';
+        }).join('');
+        return '<div class="an2-legend">' +
+                '<span><i style="background:#2d7ff9"></i>방문</span>' +
+                '<span><i style="background:#d97706"></i>방문자</span></div>' +
+            '<div class="an2-chartwrap"><svg viewBox="0 0 ' + W + ' ' + H + '" class="an2-svg" preserveAspectRatio="none">' +
+            grid + labels + xl +
+            '<path d="' + area + '" fill="#2d7ff9" opacity="0.08"/>' +
+            '<path d="' + line('visits') + '" fill="none" stroke="#2d7ff9" stroke-width="2" stroke-linejoin="round"/>' +
+            '<path d="' + line('viewers') + '" fill="none" stroke="#d97706" stroke-width="2" stroke-linejoin="round"/>' +
+            dots + hits + '</svg><div class="an2-tip" hidden></div></div>';
+    }
+    // 시간대별 방문 막대차트(0~23시)
+    function an2HourSVG(rows) {
+        rows = rows || [];
+        if (!rows.length) return '<p class="admin-empty">아직 데이터가 없습니다.</p>';
+        var W = 360, H = 120, L = 8, R = 8, T = 14, B = 20;
+        var iw = W - L - R, ih = H - T - B;
+        var max = 0, maxI = 0;
+        rows.forEach(function (r, i) { var v = Number(r.visits) || 0; if (v > max) { max = v; maxI = i; } });
+        if (!max) return '<p class="admin-empty">이 기간에는 방문 기록이 없습니다.</p>';
+        var bw = iw / 24;
+        var bars = rows.map(function (r, i) {
+            var v = Number(r.visits) || 0;
+            var h = Math.max(v ? 3 : 0, ih * v / max);
+            var x = L + bw * i + 1.5, y = T + ih - h;
+            var b = v ? '<rect class="an2-bar" x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + (bw - 3).toFixed(1) + '" height="' + h.toFixed(1) + '" rx="3"/>' : '';
+            var lbl = (i === maxI) ? '<text x="' + (x + (bw - 3) / 2) + '" y="' + (y - 5) + '" class="an2-ax an2-bold" text-anchor="middle">' + an2Num(v) + '</text>' : '';
+            return b + lbl + '<rect class="an2-hit" x="' + (L + bw * i) + '" y="' + T + '" width="' + bw + '" height="' + ih +
+                '" data-tip="' + r.h + '시 · 방문 ' + an2Num(v) + (r.product_views ? (' · 시계조회 ' + an2Num(r.product_views)) : '') + '" data-x="' + (L + bw * i + bw / 2).toFixed(1) + '"/>';
+        }).join('');
+        var xl = [0, 6, 12, 18, 23].map(function (hh) {
+            return '<text x="' + (L + bw * hh + bw / 2) + '" y="' + (H - 6) + '" class="an2-ax" text-anchor="middle">' + hh + '시</text>';
+        }).join('');
+        return '<div class="an2-chartwrap"><svg viewBox="0 0 ' + W + ' ' + H + '" class="an2-svg" preserveAspectRatio="none">' +
+            '<line x1="' + L + '" y1="' + (T + ih) + '" x2="' + (W - R) + '" y2="' + (T + ih) + '" class="an2-grid"/>' +
+            bars + xl + '</svg><div class="an2-tip" hidden></div></div>';
+    }
+    // 차트 히트영역 툴팁(마우스/터치 공용) — 위임 1회 바인딩
+    function an2BindTips(box) {
+        if (box.dataset.tipBound) return;
+        box.dataset.tipBound = '1';
+        function show(hit) {
+            var wrap = hit.closest('.an2-chartwrap'); if (!wrap) return;
+            var tip = wrap.querySelector('.an2-tip'); if (!tip) return;
+            wrap.querySelectorAll('.an2-cross.on').forEach(function (c) { c.classList.remove('on'); });
+            var cross = hit.nextElementSibling;
+            if (cross && cross.classList.contains('an2-cross')) cross.classList.add('on');
+            tip.textContent = hit.dataset.tip || '';
+            tip.hidden = false;
+            var svg = wrap.querySelector('svg');
+            var frac = (parseFloat(hit.dataset.x) || 0) / (svg.viewBox.baseVal.width || 640);
+            var px = frac * wrap.clientWidth;
+            tip.style.left = Math.max(4, Math.min(wrap.clientWidth - tip.offsetWidth - 4, px - tip.offsetWidth / 2)) + 'px';
+        }
+        function hide() {
+            box.querySelectorAll('.an2-tip').forEach(function (t) { t.hidden = true; });
+            box.querySelectorAll('.an2-cross.on').forEach(function (c) { c.classList.remove('on'); });
+        }
+        box.addEventListener('mouseover', function (e) { var h = e.target.closest('.an2-hit'); if (h) show(h); });
+        box.addEventListener('mouseout', function (e) { if (!e.relatedTarget || !e.relatedTarget.closest('.an2-chartwrap')) hide(); });
+        box.addEventListener('touchstart', function (e) { var h = e.target.closest('.an2-hit'); if (h) show(h); else hide(); }, { passive: true });
+    }
+    // 상세 로그 행 렌더
+    function an2LogRow(tab, r) {
+        if (tab === 'product') {
+            var name = ((r.brand || '') + ' ' + (r.model || '')).trim() || '(상품)';
+            return '<div class="an-row">' + an2Who(r) +
+                '<span class="an-name">' + esc(name) + '</span>' +
+                '<span class="an-num">' + an2Exact(r.created_at) + '</span></div>';
+        }
+        var ref = '';
+        try {
+            if (r.referrer && !/bellore|localhost/i.test(r.referrer)) ref = new URL(r.referrer).hostname;
+        } catch (e) {}
+        return '<div class="an-row">' + an2Who(r) +
+            '<span class="an-name">' + esc(an2PathName(r.path)) + (ref ? ' <em class="an2-ref">' + esc(ref) + '</em>' : '') + '</span>' +
+            '<span class="an-num">' + an2Exact(r.created_at) + '</span></div>';
+    }
+    function an2LoadLogs(append) {
+        var el = $('#an2Logs'), more = $('#an2More'); if (!el) return;
+        var tab = _an2LogTab;
+        var fn = tab === 'product' ? NWBackend.recentProductViewsV2 : NWBackend.recentPageViewsV2;
+        if (!fn) { el.innerHTML = '<p class="admin-empty">analytics_v2.sql 실행 후 이용할 수 있습니다.</p>'; return; }
+        if (!append) { _an2Off[tab] = 0; el.innerHTML = '<p class="admin-empty">불러오는 중…</p>'; }
+        if (more) { more.disabled = true; more.textContent = '불러오는 중…'; }
+        fn(AN2_PAGE_SIZE, _an2Off[tab]).then(function (rows) {
+            rows = rows || [];
+            var html = rows.map(function (r) { return an2LogRow(tab, r); }).join('');
+            if (!append) el.innerHTML = html || '<p class="admin-empty">아직 기록이 없습니다.</p>';
+            else el.insertAdjacentHTML('beforeend', html);
+            _an2Off[tab] += rows.length;
+            if (more) {
+                var end = rows.length < AN2_PAGE_SIZE;
+                more.disabled = end;
+                more.textContent = end ? '기록 끝까지 확인했습니다' : '더 보기';
+            }
+        }).catch(function () {
+            if (!append) el.innerHTML = '<p class="admin-empty">불러오기 실패 — analytics_v2.sql 실행 여부를 확인하세요.</p>';
+            if (more) { more.disabled = false; more.textContent = '더 보기'; }
+        });
+    }
     function renderAdminAnalytics() {
+        var box = $('#adminAnalytics'); if (!box) return;
+        if (!backendOn() || !NWBackend.analyticsOverviewV2) { renderAdminAnalyticsV1(); return; }
+        box.innerHTML = '<p class="admin-empty">불러오는 중…</p>';
+        NWBackend.analyticsOverviewV2(_an2Days).then(function (o) {
+            o = o || {}; var prev = o.prev || {}, tot = o.totals || {};
+            var periodLabel = _an2Days === 0 ? '어제 대비' : ('이전 ' + _an2Days + '일 대비');
+            function kpi(v, pv, l) {
+                return '<div class="an-card an2-kpi"><b>' + an2Num(v) + '</b><span>' + l + '</span>' + an2DeltaHTML(v, pv) + '</div>';
+            }
+            var tabs = [[0, '오늘'], [7, '7일'], [30, '30일'], [90, '90일']].map(function (t) {
+                return '<button type="button" class="an2-tab' + (t[0] === _an2Days ? ' on' : '') + '" data-andays="' + t[0] + '">' + t[1] + '</button>';
+            }).join('');
+            var since = tot.firstAt ? new Date(tot.firstAt) : null;
+            var sinceTxt = since ? (since.getFullYear() + '.' + (since.getMonth() + 1) + '.' + since.getDate()) : '-';
+            box.innerHTML =
+                '<div class="an2-tabs">' + tabs + '</div>' +
+                '<div class="an-grid an2-grid">' +
+                    kpi(o.visits, prev.visits, '방문') +
+                    kpi(o.visitors, prev.visitors, '방문자') +
+                    kpi(o.productViews, prev.productViews, '시계 조회') +
+                    kpi(o.memberViews, prev.memberViews, '회원 조회') +
+                '</div>' +
+                '<p class="an2-cap">증감은 ' + periodLabel + ' 기준입니다.</p>' +
+                (_an2Days > 0 ? ('<h4 class="an-h">일별 방문 추이</h4><div id="an2Trend"><p class="admin-empty">집계 중…</p></div>') : '') +
+                '<h4 class="an-h">시간대별 방문 <span class="an-mut">(' + (_an2Days === 0 ? '오늘' : '최근 ' + _an2Days + '일') + ')</span></h4>' +
+                '<div id="an2Hours"><p class="admin-empty">집계 중…</p></div>' +
+                '<h4 class="an-h">인기 시계 TOP <span class="an-mut">(' + (_an2Days === 0 ? '오늘' : '최근 ' + _an2Days + '일') + ')</span></h4>' +
+                '<div id="anPopular" class="an-list"><p class="admin-empty">집계 중…</p></div>' +
+                '<h4 class="an-h">많이 본 화면</h4>' +
+                '<div id="an2Paths" class="an-list"><p class="admin-empty">집계 중…</p></div>' +
+                '<h4 class="an-h">상세 로그 <span class="an-mut">(전체 기간 · 최신순)</span></h4>' +
+                '<div class="an2-logtabs">' +
+                    '<button type="button" class="an2-tab' + (_an2LogTab === 'product' ? ' on' : '') + '" data-anlog="product">시계 조회</button>' +
+                    '<button type="button" class="an2-tab' + (_an2LogTab === 'page' ? ' on' : '') + '" data-anlog="page">방문 기록</button>' +
+                '</div>' +
+                '<div id="an2Logs" class="an-list"></div>' +
+                '<button type="button" class="an2-more" id="an2More">더 보기</button>' +
+                '<p class="an2-total">전체 누적 — 방문 ' + an2Num(tot.visits) + ' · 방문자 ' + an2Num(tot.visitors) +
+                    ' · 시계 조회 ' + an2Num(tot.productViews) + '<br>' + sinceTxt + '부터 기록 중 · 로그는 삭제 없이 평생 보관됩니다.</p>';
+
+            an2BindTips(box);
+            if (!box.dataset.an2Bound) {
+                box.dataset.an2Bound = '1';
+                box.addEventListener('click', function (e) {
+                    var dt = e.target.closest('[data-andays]');
+                    if (dt) { _an2Days = Number(dt.dataset.andays); renderAdminAnalytics(); return; }
+                    var lt = e.target.closest('[data-anlog]');
+                    if (lt) {
+                        _an2LogTab = lt.dataset.anlog;
+                        box.querySelectorAll('[data-anlog]').forEach(function (b) { b.classList.toggle('on', b === lt); });
+                        an2LoadLogs(false); return;
+                    }
+                    if (e.target.closest('#an2More')) an2LoadLogs(true);
+                });
+            }
+
+            if (_an2Days > 0 && NWBackend.visitsByDay) {
+                NWBackend.visitsByDay(_an2Days).then(function (rows) {
+                    var el = $('#an2Trend'); if (el) el.innerHTML = an2TrendSVG(rows);
+                }).catch(function () { var el = $('#an2Trend'); if (el) el.innerHTML = '<p class="admin-empty">추이 데이터를 불러오지 못했습니다.</p>'; });
+            }
+            if (NWBackend.viewsByHour) {
+                NWBackend.viewsByHour(_an2Days).then(function (rows) {
+                    var el = $('#an2Hours'); if (el) el.innerHTML = an2HourSVG(rows);
+                }).catch(function () { var el = $('#an2Hours'); if (el) el.innerHTML = '<p class="admin-empty">시간대 데이터를 불러오지 못했습니다.</p>'; });
+            }
+            if (NWBackend.popularProducts) {
+                NWBackend.popularProducts(_an2Days, 10).then(function (rows) {
+                    var el = $('#anPopular'); if (!el) return;
+                    if (!rows || !rows.length) { el.innerHTML = '<p class="admin-empty">아직 조회 데이터가 없습니다.</p>'; return; }
+                    var maxViews = Number(rows[0].views) || 1;
+                    el.innerHTML = rows.map(function (r, i) {
+                        var name = ((r.brand || '') + ' ' + (r.model || '')).trim() || '(상품)';
+                        var w = Math.max(4, Math.round(100 * (Number(r.views) || 0) / maxViews));
+                        return '<div class="an-row an2-poprow"><span class="an-rank">' + (i + 1) + '</span>' +
+                            '<span class="an-name">' + esc(name) + '<i class="an2-popbar" style="width:' + w + '%"></i></span>' +
+                            '<span class="an-num">' + an2Num(r.views) + '회 · ' + an2Num(r.viewers) + '명</span></div>';
+                    }).join('');
+                }).catch(function () { var el = $('#anPopular'); if (el) el.innerHTML = '<p class="admin-empty">불러오기 실패</p>'; });
+            }
+            if (NWBackend.topPaths) {
+                NWBackend.topPaths(_an2Days, 8).then(function (rows) {
+                    var el = $('#an2Paths'); if (!el) return;
+                    if (!rows || !rows.length) { el.innerHTML = '<p class="admin-empty">아직 방문 데이터가 없습니다.</p>'; return; }
+                    el.innerHTML = rows.map(function (r, i) {
+                        return '<div class="an-row"><span class="an-rank">' + (i + 1) + '</span>' +
+                            '<span class="an-name">' + esc(an2PathName(r.path)) + '</span>' +
+                            '<span class="an-num">' + an2Num(r.views) + '회 · ' + an2Num(r.viewers) + '명</span></div>';
+                    }).join('');
+                }).catch(function () { var el = $('#an2Paths'); if (el) el.innerHTML = '<p class="admin-empty">불러오기 실패</p>'; });
+            }
+            an2LoadLogs(false);
+        }).catch(function () {
+            // V2 RPC 미설치 → 기존 화면 + 설치 안내
+            renderAdminAnalyticsV1('<div class="an2-notice">그래프·기간비교·전체 상세 로그를 보려면 <b>analytics_v2.sql</b> 을 Supabase SQL Editor 에 붙여넣고 실행하세요. 실행 전까지는 기본 화면이 표시됩니다.</div>');
+        });
+    }
+    function renderAdminAnalyticsV1(noticeHTML) {
         var box = $('#adminAnalytics'); if (!box) return;
         if (!backendOn() || !NWBackend.analyticsOverview) {
             box.innerHTML = '<p class="admin-empty">분석 기능을 사용하려면 analytics.sql 을 실행하세요.</p>';
@@ -2297,7 +2574,7 @@
         var failHTML = '<p class="admin-empty">불러오기 실패 — analytics.sql 실행 여부를 확인하세요.<br>(관리자 계정으로 로그인되어 있어야 합니다.)</p>';
         NWBackend.analyticsOverview().then(function (o) {
             o = o || {};
-            var html = '<div class="an-grid">' +
+            var html = (noticeHTML || '') + '<div class="an-grid">' +
                 card((o.visitsToday || 0), '오늘 방문') +
                 card((o.visitorsToday || 0), '오늘 방문자') +
                 card((o.viewsToday || 0), '오늘 시계조회') +

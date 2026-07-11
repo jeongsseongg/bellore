@@ -381,7 +381,7 @@ async function generateMagazineDraft(admin: SB) {
 // ── action 3: 지침 기반 답변 생성 (학습소 + 메모리 + 지침으로 응답) ──
 async function generateReply(admin: SB, profileId: string | null, message: string, candidates: unknown) {
   const guide = await guidelinesText(admin);
-  let memo = "", facts = "";
+  let memo = "", facts = "", history = "";
   if (profileId) {
     const { data: p } = await admin.from("customer_ai_profiles").select("*").eq("id", profileId).single();
     if (p) {
@@ -390,9 +390,16 @@ async function generateReply(admin: SB, profileId: string | null, message: strin
     const { data: mems } = await admin.from("ai_customer_memories")
       .select("content").eq("profile_id", profileId).order("confidence", { ascending: false }).limit(8);
     memo = (mems ?? []).map((m) => "- " + m.content).join("\n");
+    // 최근 대화 맥락(없으면 매번 처음 보는 사람처럼 답해 "헛소리"가 늘어난다)
+    const { data: convs } = await admin.from("ai_conversations")
+      .select("role,message").eq("profile_id", profileId)
+      .order("created_at", { ascending: false }).limit(10);
+    history = (convs ?? []).reverse()
+      .map((c) => (c.role === "user" ? "고객" : "비서") + ": " + String(c.message ?? "").slice(0, 200))
+      .join("\n").slice(0, 2400);
   }
   // 관심 브랜드/레퍼런스 관련 전문가 지식(승인본 우선)
-  const brand = (message.match(/롤렉스|오메가|파텍|오데마|까르띠에|튜더/) ?? [])[0] ?? null;
+  const brand = (message.match(/롤렉스|오메가|파텍|오데마|까르띠에|튜더|IWC|파네라이|브라이틀링|위블로|리차드밀|바쉐론|예거|브레게|블랑팡|태그호이어/i) ?? [])[0] ?? null;
   let knowledge = "";
   if (brand) {
     const { data: kn } = await admin.from("expert_knowledge_notes")
@@ -400,15 +407,23 @@ async function generateReply(admin: SB, profileId: string | null, message: strin
     knowledge = (kn ?? []).map((k) => `- ${k.title}: ${k.content}`).join("\n");
   }
   const system = [
-    "너는 명품시계 거래 플랫폼 벨로르의 AI 시계 전문비서다. 반드시 한국어 존댓말로만 답하라. " +
-    "영어·사고과정·<think> 태그·설명 절대 출력 금지. 오직 고객에게 할 최종 답변만 2~4문장으로 간결하고 친근하게.",
+    "너는 명품시계 거래 플랫폼 벨로르(BELLORE)의 AI 시계 전문비서다. 반드시 한국어 존댓말로만 답하라. " +
+    "영어·사고과정·<think> 태그·설명 절대 출력 금지. 오직 고객에게 할 최종 답변만 2~4문장으로 간결하고 전문적이면서 친근하게.",
+    "## 정확성 규칙(최우선 — 위반 금지)\n" +
+    "- 아래에 제공된 정보(추천 후보 매물/전문가 지식/고객 기억/최근 대화)에 없는 가격·시세·재고·할인·스펙·연식을 절대 지어내지 마라.\n" +
+    "- 추천 후보 목록에 없는 매물을 있다고 말하지 마라. 후보가 없으면 '지금 조건에 딱 맞는 매물은 없다'고 솔직히 답하고 입고 알림을 권하라.\n" +
+    "- 모르는 것은 아는 척하지 말고 '정확히 확인 후 안내드리겠다'며 상담사 연결을 권하라.\n" +
+    "- 확실하지 않은 숫자(시세·수수료·감가율 등)는 아예 언급하지 마라.\n" +
+    "- 벨로르 확정 정책 외에는 임의로 정책·이벤트·혜택을 만들지 마라. 확정 정책: 100% 정품 보증(가품 판명 시 전액환불), 전국 무료배송, 전액결제.\n" +
+    "- 앞선 대화 내용과 모순되게 답하지 마라.",
     guide,
-    knowledge ? ("## 참고 전문가 지식\n" + knowledge) : "",
+    knowledge ? ("## 참고 전문가 지식(이 범위 안에서만 인용)\n" + knowledge) : "",
     memo ? ("## 이 고객 기억\n" + memo) : "",
+    history ? ("## 최근 대화(맥락 유지)\n" + history) : "",
   ].filter(Boolean).join("\n\n");
   const user = [
     facts ? ("[" + facts + "]") : "",
-    candidates ? ("추천 후보(점수순): " + JSON.stringify(candidates).slice(0, 1500)) : "",
+    candidates ? ("추천 후보(점수순, 이 목록이 실제 보유 매물의 전부다): " + JSON.stringify(candidates).slice(0, 1500)) : "추천 후보: 없음(매물을 지어내지 말 것)",
     "고객 메시지: " + message,
   ].filter(Boolean).join("\n");
 

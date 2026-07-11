@@ -8828,6 +8828,40 @@ body.mypage-open .tabbar { z-index: 2550; }
 .an-who.member { color: var(--green-bright); }
 @media (max-width: 480px) { .an-grid { grid-template-columns: repeat(3, 1fr); } }
 
+/* ===== 관리자: 활동 로그 V2 (기간 탭 + 그래프 + 상세 로그) ===== */
+.an2-tabs, .an2-logtabs { display: flex; gap: 6px; margin: 0 0 12px; }
+.an2-logtabs { margin: 0 0 8px; }
+.an2-tab { height: 34px; padding: 0 14px; border: 1px solid #e5e3df; border-radius: 17px; background: #fff; font: 700 12.5px Pretendard, -apple-system, sans-serif; color: #6b6b6b; cursor: pointer; }
+.an2-tab.on { background: #111; border-color: #111; color: #fff; }
+.an2-grid { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 480px) { .an2-grid { grid-template-columns: repeat(2, 1fr); } }
+.an2-kpi { position: relative; padding-bottom: 26px; }
+.an2-kpi b { font-variant-numeric: tabular-nums; }
+.an2-delta { display: inline-block; margin-top: 5px; padding: 1px 7px; border-radius: 8px; font-size: 10.5px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.an2-delta.up { background: rgba(22, 163, 74, .1); color: #16a34a; }
+.an2-delta.down { background: rgba(226, 59, 59, .09); color: #c2410c; }
+.an2-delta.flat { background: #f2f3f5; color: #9a9a9a; }
+.an2-cap { margin: -6px 0 4px; font-size: 11px; color: #9a9a9a; }
+.an2-legend { display: flex; gap: 14px; margin: 4px 2px 6px; font-size: 11.5px; font-weight: 700; color: #6b6b6b; }
+.an2-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.an2-chartwrap { position: relative; background: var(--bg-soft); border-radius: 12px; padding: 8px 6px 4px; }
+.an2-svg { display: block; width: 100%; height: auto; }
+.an2-grid-line, .an2-grid { stroke: #e5e3df; stroke-width: 1; }
+.an2-ax { font: 600 10.5px Pretendard, -apple-system, sans-serif; fill: #9a9a9a; }
+.an2-ax.an2-bold { font-weight: 800; fill: #1a1a1a; }
+.an2-bar { fill: #2d7ff9; }
+.an2-hit { fill: transparent; cursor: pointer; }
+.an2-cross { stroke: #1a1a1a; stroke-width: 1; stroke-dasharray: 3 3; opacity: 0; pointer-events: none; }
+.an2-cross.on { opacity: .45; }
+.an2-tip { position: absolute; top: 4px; padding: 5px 9px; border-radius: 8px; background: rgba(17, 17, 17, .92); color: #fff; font: 700 11px Pretendard, -apple-system, sans-serif; white-space: nowrap; pointer-events: none; z-index: 2; }
+.an2-poprow .an-name { position: relative; padding-bottom: 7px; }
+.an2-popbar { position: absolute; left: 0; bottom: 0; height: 4px; border-radius: 2px; background: rgba(45, 127, 249, .35); }
+.an2-ref { font-size: 10.5px; color: #9a9a9a; font-style: normal; }
+.an2-more { display: block; width: 100%; height: 42px; margin-top: 8px; border: 1px solid #e5e3df; border-radius: 12px; background: #fff; font: 700 13px Pretendard, -apple-system, sans-serif; color: #1a1a1a; cursor: pointer; }
+.an2-more:disabled { color: #9a9a9a; background: #f7f6f3; cursor: default; }
+.an2-total { margin: 16px 0 4px; padding: 12px; border-radius: 12px; background: var(--bg-soft); font-size: 11.5px; line-height: 1.6; color: #6b6b6b; text-align: center; font-variant-numeric: tabular-nums; }
+.an2-notice { margin: 0 0 12px; padding: 12px 14px; border: 1px solid #e5e3df; border-radius: 12px; background: #fffdf5; font-size: 12.5px; line-height: 1.6; color: #1a1a1a; }
+
 /* ===== 관리자 메뉴 구분/회원관리 통합 ===== */
 .admin-menu-cap { margin: 16px 2px 6px; font-size: 12px; font-weight: 800; color: var(--text-3); letter-spacing: .02em; }
 .amr-sub { display: block; margin-top: 2px; font-size: 11px; font-weight: 600; color: var(--text-3); font-style: normal; }
