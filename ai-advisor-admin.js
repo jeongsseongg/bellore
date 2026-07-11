@@ -608,19 +608,23 @@
       return;
     }
     if (act === 'kn-del') {
-      if (!confirm('이 지식 노트를 삭제할까요?')) return;
-      sb().from('expert_knowledge_notes').delete().eq('id', id).then(function () { renderKnowledge(); });
+      bellConfirm('이 지식 노트를 삭제할까요?').then(function (ok) {
+        if (ok) sb().from('expert_knowledge_notes').delete().eq('id', id).then(function () { renderKnowledge(); });
+      });
       return;
     }
     if (act === 'market-del') {
-      if (!confirm('이 시세 항목을 삭제할까요?')) return;
-      var mids = (el.dataset.ids || '').split(',').filter(Boolean);
-      sb().from('watch_market_prices').delete().in('id', mids).then(function () { renderMarket(); });
+      bellConfirm('이 시세 항목을 삭제할까요?').then(function (ok) {
+        if (!ok) return;
+        var mids = (el.dataset.ids || '').split(',').filter(Boolean);
+        sb().from('watch_market_prices').delete().in('id', mids).then(function () { renderMarket(); });
+      });
       return;
     }
     if (act === 'team-del') {
-      if (!confirm('이 팀 메시지를 삭제할까요? (첨부파일도 함께 삭제됩니다)')) return;
-      sb().from('team_messages').delete().eq('id', id).then(function () { renderTeam(); });
+      bellConfirm('이 팀 메시지를 삭제할까요? (첨부파일도 함께 삭제됩니다)').then(function (ok) {
+        if (ok) sb().from('team_messages').delete().eq('id', id).then(function () { renderTeam(); });
+      });
       return;
     }
     if (act === 'team-to-knowledge') return teamToKnowledge(id);
@@ -668,8 +672,9 @@
       return;
     }
     if (act === 'guide-del') {
-      if (!confirm('이 지침을 삭제할까요?')) return;
-      sb().from('ai_response_guidelines').delete().eq('id', id).then(function () { renderGuidelines(); });
+      bellConfirm('이 지침을 삭제할까요?').then(function (ok) {
+        if (ok) sb().from('ai_response_guidelines').delete().eq('id', id).then(function () { renderGuidelines(); });
+      });
       return;
     }
   }

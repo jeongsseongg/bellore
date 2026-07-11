@@ -805,10 +805,8 @@
       });
   }
 
-  // 비교견적 신청 (고객) — compareForm 에서 호출
-  Backend.addListing = function (data) {
-    if (!rawUser) return Promise.reject(new Error('NOT_SIGNED_IN'));
-    // 추가 항목은 전용 컬럼 + item_detail 태그 양쪽에 기록(컬럼 미생성 환경 폴백)
+  // 견적 공통: 폼 데이터 → quote_requests 행(전용 컬럼 + item_detail 태그 양쪽 기록 — 컬럼 미생성 환경 폴백)
+  function quoteRowOf(data) {
     var tags = '';
     if (data.ref) tags += '[레퍼런스] ' + data.ref + '\n';
     if (data.year) tags += '[구입시기] ' + data.year + '\n';
@@ -817,65 +815,71 @@
     if (data.parts) tags += '[구성품] ' + data.parts + '\n';
     var memo = data.memo || '';
     var contact = '[연락처] ' + (data.name || '') + ' / ' + (data.phone || '');
-    var detail = (tags + memo + '\n' + contact).trim();
-    return uploadPhotos(data.photos, 10).then(function (urls) {
-      var row = {
-        customer_id: rawUser.id,
-        item_name: (data.model || data.brand || '시계'),
-        item_brand: data.brand || null,
-        item_ref: data.ref || null,
-        item_year: data.year || null,
-        item_grade: data.grade || null,
-        item_stamping: data.stamping || null,
-        item_parts: data.parts || null,
-        item_detail: detail,
-        photo_urls: urls,
-        photo_url: urls[0] || null,
-        status: 'pending'
-      };
-      function ins() {
-        return sb.from('quote_requests').insert(row).then(function (res) {
-          if (res.error && isMissingCol(res.error)) {
-            delete row.item_ref; delete row.item_year; delete row.item_grade;
-            delete row.item_stamping; delete row.item_parts;
-            return sb.from('quote_requests').insert(row).then(function (r2) { if (r2.error) throw r2.error; });
-          }
-          if (res.error) throw res.error;
-        });
+    return {
+      item_name: (data.model || data.brand || '시계'),
+      item_brand: data.brand || null,
+      item_ref: data.ref || null,
+      item_year: data.year || null,
+      item_grade: data.grade || null,
+      item_stamping: data.stamping || null,
+      item_parts: data.parts || null,
+      item_detail: (tags + memo + '\n' + contact).trim()
+    };
+  }
+  // 견적 공통: insert(컬럼 미생성 환경이면 확장 컬럼 제거 후 재시도)
+  function insertQuoteRow(row) {
+    return sb.from('quote_requests').insert(row).then(function (res) {
+      if (res.error && isMissingCol(res.error)) {
+        delete row.item_ref; delete row.item_year; delete row.item_grade;
+        delete row.item_stamping; delete row.item_parts;
+        return sb.from('quote_requests').insert(row).then(function (r2) { if (r2.error) throw r2.error; });
       }
-      return ins().then(function () { refreshQuoteFeeds(); });
+      if (res.error) throw res.error;
     });
+  }
+
+  // 비교견적 신청 (고객) — compareForm 에서 호출
+  Backend.addListing = function (data) {
+    if (!rawUser) return Promise.reject(new Error('NOT_SIGNED_IN'));
+    return uploadPhotos(data.photos, 10).then(function (urls) {
+      var row = quoteRowOf(data);
+      row.customer_id = rawUser.id;
+      row.photo_urls = urls;
+      row.photo_url = urls[0] || null;
+      row.status = 'pending';
+      return insertQuoteRow(row).then(function () { refreshQuoteFeeds(); });
+    });
+  };
+
+  // 비교견적 신청 (비회원) — customer_id 없이 승인 대기(pending)로 접수.
+  // anon insert/스토리지 업로드 RLS 는 guest_quote.sql 실행 필요(미실행 시 GUEST_QUOTE_DISABLED 로 폴백).
+  Backend.addListingGuest = function (data) {
+    return uploadPhotos(data.photos, 10).then(function (urls) {
+      var row = quoteRowOf(data);
+      row.customer_id = null;
+      row.photo_urls = urls;
+      row.photo_url = urls[0] || null;
+      row.status = 'pending';
+      return insertQuoteRow(row);
+    }).then(function () { refreshQuoteFeeds(); })
+      .catch(function (err) {
+        var ge = new Error('GUEST_QUOTE_DISABLED'); // guest_quote.sql 미실행 등
+        ge.guest = true; ge.cause = err;
+        throw ge;
+      });
   };
 
   // 비교견적 등록정보 수정 (고객) — 수정 시 재승인(status=pending) + 입찰 초기화
   Backend.updateListing = function (id, data) {
     if (!rawUser) return Promise.reject(new Error('NOT_SIGNED_IN'));
     if (id == null) return Promise.reject(new Error('NO_ID'));
-    var tags = '';
-    if (data.ref) tags += '[레퍼런스] ' + data.ref + '\n';
-    if (data.year) tags += '[구입시기] ' + data.year + '\n';
-    if (data.grade) tags += '[상태등급] ' + data.grade + '\n';
-    if (data.stamping) tags += '[스템핑] ' + data.stamping + '\n';
-    if (data.parts) tags += '[구성품] ' + data.parts + '\n';
-    var memo = data.memo || '';
-    var contact = '[연락처] ' + (data.name || '') + ' / ' + (data.phone || '');
-    var detail = (tags + memo + '\n' + contact).trim();
     // data.photos 는 기존 URL(string) + 새 File 이 섞여 들어온다. uploadPhotos 가 알아서 처리.
     return uploadPhotos(data.photos, 10).then(function (urls) {
-      var row = {
-        item_name: (data.model || data.brand || '시계'),
-        item_brand: data.brand || null,
-        item_ref: data.ref || null,
-        item_year: data.year || null,
-        item_grade: data.grade || null,
-        item_stamping: data.stamping || null,
-        item_parts: data.parts || null,
-        item_detail: detail,
-        photo_urls: urls,
-        photo_url: urls[0] || null,
-        status: 'pending',      // 수정 시 재승인 필요
-        awarded_bid: null
-      };
+      var row = quoteRowOf(data);
+      row.photo_urls = urls;
+      row.photo_url = urls[0] || null;
+      row.status = 'pending';      // 수정 시 재승인 필요
+      row.awarded_bid = null;
       function upd() {
         return sb.from('quote_requests').update(row).eq('id', id).eq('customer_id', rawUser.id)
           .then(function (res) {

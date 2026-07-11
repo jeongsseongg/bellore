@@ -66,12 +66,17 @@ end $$;
 --   · 관리자 수동충전(테스트) 또는 결제검증 Edge Function(service_role)에서 호출.
 create or replace function public.wallet_charge(p_uid uuid, p_amount bigint, p_memo text default null)
 returns bigint language plpgsql security definer set search_path = public as $$
-declare w public.wallets; is_admin boolean;
+declare w public.wallets;
 begin
   if p_amount is null or p_amount <= 0 then raise exception '충전 금액이 올바르지 않습니다.'; end if;
-  -- 호출 권한: 관리자이거나 service_role(auth.uid() is null)
-  is_admin := (auth.uid() is null) or exists (select 1 from public.profiles where id = auth.uid() and role = 'admin');
-  if not is_admin then raise exception '충전 권한이 없습니다.'; end if;
+  -- 호출 권한: 서버(service_role/SQL Editor) 또는 관리자만.
+  -- ⚠️ 비로그인(anon) 호출도 auth.uid() 가 NULL 이라, 'uid null = 서버' 판정은
+  --    비로그인 무단 충전 구멍이 된다 → auth.role() 로 anon 을 반드시 차단(절대 되돌리지 말 것).
+  if coalesce(auth.role(), '') = 'anon'
+     or (auth.uid() is not null
+         and not exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')) then
+    raise exception '충전 권한이 없습니다.';
+  end if;
 
   w := public._wallet_row(p_uid);
   update public.wallets set balance = balance + p_amount, updated_at = now() where user_id = p_uid
@@ -182,7 +187,8 @@ begin
   if not found then raise exception '경매를 찾을 수 없습니다.'; end if;
   is_admin := exists (select 1 from public.profiles where id = uid and role = 'admin');
   if a.winner_id is null then raise exception '낙찰자가 없는 경매입니다.'; end if;
-  if uid <> a.winner_id and not is_admin then raise exception '권한이 없습니다.'; end if;
+  -- uid 가 NULL(비로그인)이면 아래 비교가 NULL 이 되어 통과해버림 → 명시적으로 차단
+  if uid is null or (uid <> a.winner_id and not is_admin) then raise exception '권한이 없습니다.'; end if;
   perform public._deposit_forfeit(a.winner_id, p_auction);
   update public.auctions set settled = true where id = p_auction;
 end $$;
@@ -234,10 +240,22 @@ create policy dep_admin_all on public.auction_deposits for select
   using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role='admin'));
 
 -- ⑬ 실행 권한(RPC) -------------------------------------------
+--    Supabase 는 public 함수에 기본으로 anon 실행권한을 주므로,
+--    돈이 움직이는 함수는 anon/public 에서 반드시 revoke 한다(재실행 시에도 유지).
 grant execute on function public.place_auction_bid(uuid, bigint)   to authenticated;
 grant execute on function public.wallet_refund_request(bigint)     to authenticated;
 grant execute on function public.auction_winner_cancel(uuid)       to authenticated;
 grant execute on function public.wallet_charge(uuid, bigint, text) to authenticated; -- 내부에서 관리자 검사
+
+revoke execute on function public.wallet_charge(uuid, bigint, text)  from public, anon;
+revoke execute on function public.place_auction_bid(uuid, bigint)    from public, anon;
+revoke execute on function public.wallet_refund_request(bigint)      from public, anon;
+revoke execute on function public.auction_winner_cancel(uuid)        from public, anon;
+-- 내부 전용 함수는 클라이언트(anon/authenticated) 직접 호출 금지
+-- (security definer 함수끼리의 내부 호출은 영향 없음)
+revoke execute on function public._wallet_row(uuid)            from public, anon, authenticated;
+revoke execute on function public._deposit_release(uuid, uuid) from public, anon, authenticated;
+revoke execute on function public._deposit_forfeit(uuid, uuid) from public, anon, authenticated;
 
 -- ============================================================
 -- ✅ 완료. 확인 순서

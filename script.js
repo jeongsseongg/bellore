@@ -5031,16 +5031,18 @@
             }, 600);
         }
 
-        // 회원이면 DB에 매물 등록(실시간 입찰 대상), 비회원이면 로컬 목록만
+        var dbPayload = {
+            brand: p.brand, model: p.model, name: p.name, phone: p.phone, memo: p.memo,
+            ref: p.ref || '', year: p.year || '',
+            parts: (p.parts && p.parts.length ? p.parts.join(', ') : ''),
+            photos: p.photos, photoCount: p.photoCount
+        };
+        // 회원·비회원 모두 DB에 매물 등록(관리자 승인 대기 → 입찰 대상).
+        // 비회원은 guest_quote.sql(anon RLS) 미실행 시 메일 접수+로컬 목록으로 폴백.
         if (mode === 'member' && backendOn() && NWBackend.currentUser()) {
             var btn = form && form.querySelector('[type="submit"]');
             if (btn) btn.disabled = true;
-            NWBackend.addListing({
-                brand: p.brand, model: p.model, name: p.name, phone: p.phone, memo: p.memo,
-                ref: p.ref || '', year: p.year || '',
-                parts: (p.parts && p.parts.length ? p.parts.join(', ') : ''),
-                photos: p.photos, photoCount: p.photoCount
-            }).then(function () {
+            NWBackend.addListing(dbPayload).then(function () {
                 if (form) { showSubmitSuccess(form); form.reset(); }
                 uploadedPhotos.length = 0;
                 renderUploadGrid();
@@ -5048,6 +5050,16 @@
                 alert('매물 등록 실패: ' + (err && err.message ? err.message : err));
             }).then(function () {
                 if (btn) btn.disabled = false;
+            });
+        } else if (backendOn() && NWBackend.addListingGuest) {
+            var gbtn = form && form.querySelector('[type="submit"]');
+            if (gbtn) gbtn.disabled = true;
+            NWBackend.addListingGuest(dbPayload).catch(function (err) {
+                // guest_quote.sql 미실행 등 — 접수 메일은 이미 발송됨. 원인은 콘솔로만.
+                try { console.warn('비회원 견적 DB 접수 실패(guest_quote.sql 실행 필요):', err && err.cause || err); } catch (e) {}
+            }).then(function () {
+                if (gbtn) gbtn.disabled = false;
+                finishLocal();
             });
         } else {
             finishLocal();
@@ -5078,10 +5090,10 @@
         el.innerHTML = submittedItems.map(function (it) {
             return '' +
                 '<div class="my-item">' +
-                '<div class="my-item-img"><img src="' + it.photo + '" alt=""></div>' +
+                '<div class="my-item-img"><img src="' + esc(it.photo) + '" alt=""></div>' +
                 '<div class="my-item-info">' +
-                '<strong>' + it.brand + ' · ' + it.model + '</strong>' +
-                '<p>사진 ' + it.photoCount + '장 · ' + it.submittedAt + '</p>' +
+                '<strong>' + esc(it.brand) + ' · ' + esc(it.model) + '</strong>' +
+                '<p>사진 ' + Number(it.photoCount || 0) + '장 · ' + esc(it.submittedAt) + '</p>' +
                 '</div>' +
                 '<div class="my-item-status">승인 중</div>' +
                 '</div>';

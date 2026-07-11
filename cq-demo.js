@@ -1147,7 +1147,7 @@
       var c = accById(q.uid);
       var chips = [];
       if (q.ref) chips.push('Ref. ' + esc(q.ref));
-      chips.push('고객 ' + esc(c ? (c.display_name || c.email || '회원') : '회원'));
+      chips.push('고객 ' + esc(c ? (c.display_name || c.email || '회원') : (q.uid ? '회원' : '비회원')));
       chips.push('입찰 ' + (q.bids || []).length + '건');
       return '<button type="button" class="cqd-vrow" data-cqd-go="a-quote" data-cqd-id="' + esc(q.id) + '">' +
         rowThumb(q) +
@@ -1207,13 +1207,15 @@
     var suspBtn = q.status === 'suspended'
       ? '<button type="button" class="cqd-actbtn stop" data-cqd-unsuspendq="' + esc(q.id) + '">견적 정지 해제</button>'
       : '<button type="button" class="cqd-actbtn stop" data-cqd-suspendq="' + esc(q.id) + '">견적 정지</button>';
+    var ct = contactOf(q);
     return '<div class="cqd-screen">' +
       watchCard(q) +
       '<div class="cqd-cust">' +
         '<p class="cqd-cust-h">등록 고객 정보</p>' +
         '<dl class="cqd-rows">' +
-          '<div><dt>고객</dt><dd>' + esc(c ? (c.display_name || '회원') : '회원') + (c && c.grade ? ' (' + esc(c.grade) + ')' : '') + '</dd></div>' +
-          '<div><dt>계정</dt><dd>' + esc(c && c.email ? c.email : (q.uid || '-')) + '</dd></div>' +
+          '<div><dt>고객</dt><dd>' + esc(c ? (c.display_name || '회원') : (q.uid ? '회원' : '비회원')) + (c && c.grade ? ' (' + esc(c.grade) + ')' : '') + '</dd></div>' +
+          '<div><dt>계정</dt><dd>' + esc(c && c.email ? c.email : (q.uid || '비회원 신청')) + '</dd></div>' +
+          (ct ? '<div><dt>연락처</dt><dd>' + esc(ct) + '</dd></div>' : '') +
           '<div><dt>신청 메모</dt><dd>' + esc(q.memo || '-') + '</dd></div>' +
         '</dl>' +
       '</div>' +
@@ -1537,6 +1539,12 @@
       var t = l.trim();
       return t && t.charAt(0) !== '[';
     }).join('\n').trim();
+  }
+  // item_detail 의 [연락처] 이름 / 전화 태그 → "이름 / 전화" (비회원 견적도 연락 가능하도록 관리자 상세에 표시)
+  function contactOf(q) {
+    var m = String(q.memo || '').match(/\[연락처\]\s*([^\n]*)/);
+    var t = m ? m[1].trim().replace(/^\/\s*|\s*\/$/g, '').trim() : '';
+    return (t && t !== '/') ? t : '';
   }
 
   /* 관리자 메일 — 신규 신청 / 수정(재승인) 시 발송(필수) */

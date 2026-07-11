@@ -15,8 +15,12 @@ begin
   if p_amount is null or p_amount <= 0 then
     return (select balance from public.wallets where user_id = p_uid);
   end if;
-  -- 관리자/서버(service_role)만 호출 가능
-  if not ((auth.uid() is null) or exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')) then
+  -- 호출 권한: 서버(service_role/SQL Editor) 또는 관리자만.
+  -- ⚠️ 비로그인(anon) 호출도 auth.uid() 가 NULL 이라, 'uid null = 서버' 판정은
+  --    타인 캐시 무단 차감 구멍이 된다 → auth.role() 로 anon 을 반드시 차단(절대 되돌리지 말 것).
+  if coalesce(auth.role(), '') = 'anon'
+     or (auth.uid() is not null
+         and not exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')) then
     raise exception '권한이 없습니다.';
   end if;
   w := public._wallet_row(p_uid);
@@ -26,4 +30,5 @@ begin
     values (p_uid, 'capture', p_amount, w.balance, null, 'done', coalesce(p_memo, '상품 구매 캐시 사용'));
   return w.balance;
 end $$;
-grant execute on function public.wallet_capture(uuid, bigint, uuid, text) to authenticated;
+grant execute on function public.wallet_capture(uuid, bigint, uuid, text) to authenticated; -- 내부에서 관리자 검사
+revoke execute on function public.wallet_capture(uuid, bigint, uuid, text) from public, anon;
