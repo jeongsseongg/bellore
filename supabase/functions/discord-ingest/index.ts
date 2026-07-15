@@ -35,6 +35,17 @@
 // 첨부 처리: 봇이 보낸 url 을 그대로 Storage(team-message-attachments)에 미러링
 //   저장하고 공개/서명 URL 을 DB 에 기록한다(원본 CDN 만료 대비). 다운로드 실패 시
 //   url 만 기록(끊김 없음).
+//
+// ── 비교견적 자동 등록 (디스코드 → 비회원 견적) ──────────────
+//   이미지 + 모델명(텍스트)이 함께 올라오면 quote_requests 에 비회원
+//   (customer_id NULL) 견적을 status='open' 으로 즉시 생성한다(승인 생략).
+//   → 기존 트리거(notify_vendors_on_open / notify_admin_quote)가 승인업체
+//     전체 + 관리자에게 앱 알림을 발송한다. 메일은 발송하지 않는다.
+//   금액이 "100", "1200", "1,450만원" 처럼 있으면 만원 단위로 환산해
+//   관리자 명의 '벨로르 1차 견적' 입찰(bids)을 자동 등록한다.
+//   ⚠️ 선행 조건: discord_quote.sql 실행(customer_id NULL 허용 등).
+//   (선택) 특정 채널만 견적으로 받으려면 Secrets 에
+//   DISCORD_QUOTE_CHANNELS=채널ID,채널ID … 설정. 미설정 시 수집 채널 전체.
 // ============================================================
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -42,6 +53,12 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const INGEST_SECRET = Deno.env.get("DISCORD_INGEST_SECRET") ?? "";
 const BUCKET = "team-message-attachments";
+
+// 비교견적 자동 등록 설정
+const QUOTE_CHANNELS = (Deno.env.get("DISCORD_QUOTE_CHANNELS") ?? "")
+  .split(",").map((s) => s.trim()).filter(Boolean); // 비어 있으면 전 채널 허용
+const PHOTOS_BUCKET = "photos";                      // 견적 사진 공개 버킷(앱과 동일)
+const ADMIN_EMAIL = "bellorekr@gmail.com";           // 1차 견적 입찰 명의(관리자)
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -90,6 +107,115 @@ function tagReference(text: string): string | null {
   const t = m[1];
   if (/^\d{4}$/.test(t) && +t > 1900 && +t < 2100) return null; // 연도 제외
   return t.toUpperCase();
+}
+
+// ── 비교견적 자동 등록 ──────────────────────────────────────
+// 금액 파싱: 만원 단위. "1,450만원"/"850만" 이 최우선, 없으면 단독 숫자.
+//   단독 숫자는 2~4자리(10만~9,999만원)만 금액으로 본다 — 5~6자리 숫자는
+//   레퍼런스(예: 124060)일 가능성이 높아 제외. 콤마 표기("12,000")는
+//   금액이 확실하므로 자릿수 제한 없이 허용. 1억 이상은 "만원"을 붙여 쓴다.
+function parsePriceManwon(text: string): { man: number; token: string } | null {
+  const t = String(text ?? "");
+  const unit = [...t.matchAll(/(\d{1,3}(?:,\d{3})+|\d+)\s*만\s*원?(?![가-힣\w])/g)];
+  for (let i = unit.length - 1; i >= 0; i--) {
+    const n = Number(unit[i][1].replace(/,/g, ""));
+    if (n > 0 && n <= 999999) return { man: n, token: unit[i][0] };
+  }
+  const bare = [...t.matchAll(/(?<![\w.,-])(\d{1,3}(?:,\d{3})+|\d{2,4})(?![\w.,-]|\s*년)/g)];
+  for (let i = bare.length - 1; i >= 0; i--) {
+    const n = Number(bare[i][1].replace(/,/g, ""));
+    if (n >= 10 && n <= 999999) return { man: n, token: bare[i][0] };
+  }
+  return null;
+}
+
+// 모델명: 원문에서 URL·금액 표기를 걷어낸 나머지 텍스트
+function extractModelName(text: string, priceToken?: string): string {
+  let t = String(text ?? "").replace(/https?:\/\/\S+/g, " ");
+  if (priceToken) t = t.replace(priceToken, " ");
+  t = t.replace(/(\d{1,3}(?:,\d{3})+|\d+)\s*만\s*원(?![가-힣\w])/g, " ");
+  return t.replace(/\s+/g, " ").trim().slice(0, 60).trim();
+}
+
+function isImageAttachment(att: { url?: string; file_name?: string; file_type?: string }): boolean {
+  if ((att.file_type ?? "").startsWith("image/")) return true;
+  return /\.(jpe?g|png|webp|gif|heic|heif|avif|bmp)(\?|$)/i.test(att.file_name ?? att.url ?? "");
+}
+
+// 이미지+모델명 → 비회원 견적(open) 생성 + 금액 있으면 1차 견적 입찰
+// 반환: null=대상 아님(수집만), {id,...}=생성됨, {error}=실패(로그용)
+async function createGuestQuote(
+  admin: ReturnType<typeof createClient>,
+  it: { channel_id?: unknown; channel_name?: unknown; sender_name?: unknown },
+  text: string,
+  attachments: { url?: string; file_name?: string; file_type?: string }[],
+) {
+  if (QUOTE_CHANNELS.length && !QUOTE_CHANNELS.includes(String(it.channel_id ?? ""))) return null;
+  const images = attachments.filter(isImageAttachment);
+  if (!images.length) return null;                       // 이미지 필수
+  const price = parsePriceManwon(text);
+  const model = extractModelName(text, price?.token);
+  if (!model) return null;                               // 모델명 필수
+
+  // 사진을 공개 버킷(photos)에 올려 견적 카드에 바로 표시되게 한다
+  const urls: string[] = [];
+  for (const att of images.slice(0, 10)) {
+    try {
+      const res = await fetch(att.url ?? "");
+      if (!res.ok) continue;
+      const buf = new Uint8Array(await res.arrayBuffer());
+      const ext = ((att.file_name ?? "").split(".").pop() || "jpg")
+        .toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+      const path = `discord/${crypto.randomUUID()}.${ext}`;
+      const up = await admin.storage.from(PHOTOS_BUCKET).upload(path, buf, {
+        contentType: att.file_type || res.headers.get("content-type") || "image/jpeg",
+        upsert: false,
+      });
+      if (!up.error) urls.push(admin.storage.from(PHOTOS_BUCKET).getPublicUrl(path).data.publicUrl);
+    } catch (_e) { /* 개별 사진 실패는 건너뜀 */ }
+  }
+  if (!urls.length) return { error: "photo_upload_failed" };
+
+  const brand = tagBrand(text);
+  const ref = tagReference(model); // 금액을 걷어낸 텍스트에서 레퍼런스 추출(금액 오인 방지)
+  const detail = [
+    ref ? `[레퍼런스] ${ref}` : "",
+    `[출처] 디스코드 ${String(it.channel_name ?? "")} / ${String(it.sender_name ?? "익명")} · 비회원 자동 접수`,
+    text ? `[원문] ${text}` : "",
+  ].filter(Boolean).join("\n");
+
+  const row: Record<string, unknown> = {
+    customer_id: null,          // 비회원 — discord_quote.sql 로 NULL 허용 필요
+    item_name: model,
+    item_brand: brand,
+    item_ref: ref,
+    item_detail: detail,
+    photo_urls: urls,
+    photo_url: urls[0],
+    status: "open",             // 승인 생략, 즉시 공개 → 트리거가 업체·관리자 앱 알림(메일 없음)
+  };
+  let ins = await admin.from("quote_requests").insert(row).select("id").single();
+  if (ins.error && /column/i.test(ins.error.message ?? "")) {
+    delete row.item_ref;        // 컬럼 미생성 환경 폴백(quote_compare.sql 미실행)
+    ins = await admin.from("quote_requests").insert(row).select("id").single();
+  }
+  if (ins.error) return { error: ins.error.message };
+
+  // 금액(만원) → 관리자 명의 '벨로르 1차 견적' 입찰
+  let firstBid = 0;
+  if (price) {
+    const prof = await admin.from("profiles").select("id").ilike("email", ADMIN_EMAIL).maybeSingle();
+    if (prof.data?.id) {
+      const bid = await admin.from("bids").insert({
+        quote_request_id: ins.data.id,
+        vendor_id: prof.data.id,
+        amount: price.man * 10000,
+        message: "벨로르 1차 견적",
+      });
+      if (!bid.error) firstBid = price.man * 10000;
+    }
+  }
+  return { id: ins.data.id, photos: urls.length, first_bid: firstBid };
 }
 
 async function mirrorAttachment(
@@ -169,7 +295,13 @@ Deno.serve(async (req) => {
       for (const att of attachments) {
         await mirrorAttachment(admin, data.id, att);
       }
-      results.push({ id: data.id, attachments: attachments.length });
+
+      // 이미지+모델명 → 비회원 비교견적 자동 등록(실패해도 수집은 유지)
+      let quote: unknown = null;
+      try { quote = await createGuestQuote(admin, it, text, attachments); }
+      catch (e) { quote = { error: String(e) }; }
+
+      results.push({ id: data.id, attachments: attachments.length, ...(quote ? { quote } : {}) });
     }
 
     return json({ ok: true, ingested: results.length, results });
