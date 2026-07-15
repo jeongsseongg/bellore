@@ -57,7 +57,7 @@ jobs:
           PGCONN: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           set -euo pipefail
-          docker run --rm -e PGCONN postgres:17 psql "$PGCONN" -v ON_ERROR_STOP=1 <<'SQL'
+          docker run --rm -i -e PGCONN postgres:17 psql "$PGCONN" -v ON_ERROR_STOP=1 <<'SQL'
           \echo '=== quote_requests.customer_id NULL 허용 여부 (is_nullable=YES 여야 함) ==='
           select column_name, is_nullable from information_schema.columns
            where table_schema='public' and table_name='quote_requests'
