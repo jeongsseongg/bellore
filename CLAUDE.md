@@ -40,7 +40,9 @@
 - **배송 기본값**: 미지정 시 "결제 후 2~4일 이내 발송".
 - **쿠폰**: auto(가입지급)/code(코드)/image(이미지 다운). 관리자 카드 클릭=수정, 활성토글·삭제는 수정 페이지 안.
 - **비회원 결제 허용**(네이버페이 요건): 상품·가격 비회원 공개, 결제 로그인벽 제거, `createOrder` 게스트 분기(customer_id null). anon insert RLS는 `guest_checkout.sql` 실행 필요(미실행 시 로그인 폴백).
-- **디스코드 → 비교견적 자동 등록**: 수집 채널에 이미지+모델명 업로드 → 비회원 견적(customer_id null) 즉시 `open`(승인 생략) → 업체·관리자 앱 알림만(메일 X). 금액 숫자(100/1200)=만원 단위 → 관리자 명의 '벨로르 1차 견적' 입찰 자동 등록. 단독 숫자는 2~4자리만 금액 인식(5~6자리=레퍼런스), 1억↑은 "만원" 표기 필요. **사진→금액 순으로 따로 올려도 됨**(같은 채널 30분 내 직전 견적에 매칭, `source_channel_id`). "검수 후 최대 1300만원"이면 입찰 문구에 "검수 후 최대 … 실물 검수 결과에 따라 최종 금액 확정" 안내 자동 포함. 채널 제한은 secret `DISCORD_QUOTE_CHANNELS`. **`discord_quote.sql`+`discord_quote_v2.sql` 실행 + `discord-ingest` 재배포 전엔 동작 안 함.**
+- **디스코드 → 비교견적 자동 등록**: 수집 채널에 이미지+모델명 업로드 → 비회원 견적(customer_id null) 즉시 `open`(승인 생략) → 업체·관리자 앱 알림만(메일 X). 금액 숫자(100/1200)=만원 단위 → 관리자 명의 '벨로르 1차 견적' 입찰 자동 등록. 단독 숫자는 2~4자리만 금액 인식(5~6자리=레퍼런스), 1억↑은 "만원" 표기 필요. **사진→금액 순으로 따로 올려도 됨**(같은 채널 30분 내 직전 견적에 매칭, `source_channel_id`). "검수 후 최대 1300만원"이면 입찰 문구에 "검수 후 최대 … 실물 검수 결과에 따라 최종 금액 확정" 안내 자동 포함.
+- **디스코드 수집 봇 = GitHub Actions** (`discord-poll.yml` + `tools/discord-poll/poll.mjs`, 5분마다): Deno Deploy 릴레이(tools/discord-relay)는 폐기. 봇이 DB에 직접 저장(SUPABASE_DB_URL — db-backup과 공용 시크릿)하므로 Edge Function/INGEST_SECRET 불필요(discord-ingest는 대안 경로로만 유지 — **파싱 규칙 수정 시 poll.mjs와 discord-ingest 양쪽 동일하게**). 필요 시크릿: `DISCORD_BOT_TOKEN`(필수), `DISCORD_CHANNELS`/`DISCORD_QUOTE_CHANNELS`(선택, 미설정=봇이 보는 전체 채널). 메시지 중복은 metadata.raw.id 로 방지.
+- **DB SQL은 GitHub Actions로 직접 실행 가능**: `db-maintenance.yml` (Run workflow → `apply-discord-quote`=discord_quote*.sql 적용 / `diagnose`=읽기 점검). 사장님 SQL Editor 복붙 없이 처리 가능.
 
 ## 법적 문서 (푸터 5링크 — 구구스/바이버식)
 - **이용약관 / 개인정보처리방침 / 반품·교환·환불 / 이용안내 / 사업자정보** — 모두 `.bizinfo-modal(.legal-modal)`, `data-legal-open="terms|privacy|refund|guide|biz"`.

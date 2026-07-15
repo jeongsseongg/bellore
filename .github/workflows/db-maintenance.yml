@@ -1,0 +1,86 @@
+name: DB Maintenance
+
+# Supabase DB에 대한 점검/마이그레이션을 GitHub에서 직접 실행한다.
+# (db-backup.yml 과 동일한 SUPABASE_DB_URL 시크릿 사용 — 추가 설정 불필요)
+#
+# 실행 방법: Actions 탭 > DB Maintenance > Run workflow
+#   task = diagnose            : 읽기 전용 점검(테이블 상태·최근 데이터 요약)
+#   task = apply-discord-quote : discord_quote*.sql 3개를 순서대로 적용(재실행 안전)
+#
+# 개인정보(이메일/전화)는 로그에 출력하지 않는다.
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "실행할 작업"
+        type: choice
+        default: diagnose
+        options:
+          - diagnose
+          - apply-discord-quote
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Guard — 시크릿 없으면 중단
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$DB_URL" ]; then
+            echo "SUPABASE_DB_URL 시크릿 미설정 — 실행 불가"; exit 1
+          fi
+
+      - name: Apply discord_quote SQL (재실행 안전)
+        if: inputs.task == 'apply-discord-quote'
+        env:
+          PGCONN: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          for f in discord_quote.sql discord_quote_v2.sql discord_quote_v3.sql; do
+            echo "=== $f ==="
+            docker run --rm -e PGCONN -v "$PWD:/repo:ro" postgres:17 \
+              psql "$PGCONN" -v ON_ERROR_STOP=1 -f "/repo/$f"
+          done
+          echo "모든 SQL 적용 완료"
+
+      - name: Diagnose (읽기 전용)
+        if: inputs.task == 'diagnose'
+        env:
+          PGCONN: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          docker run --rm -e PGCONN postgres:17 psql "$PGCONN" -v ON_ERROR_STOP=1 <<'SQL'
+          \echo '=== quote_requests.customer_id NULL 허용 여부 (is_nullable=YES 여야 함) ==='
+          select column_name, is_nullable from information_schema.columns
+           where table_schema='public' and table_name='quote_requests'
+             and column_name in ('customer_id','source_channel_id','item_ref');
+          \echo '=== team_messages 수집 현황 ==='
+          select count(*) as total,
+                 max(created_at) as last_collected
+            from public.team_messages;
+          \echo '=== team_messages 최근 5건 (내용 40자까지만) ==='
+          select created_at, platform, channel_name, has_attachment,
+                 left(coalesce(message,''), 40) as message_head
+            from public.team_messages order by created_at desc limit 5;
+          \echo '=== quote_requests 최근 5건 ==='
+          select created_at, status,
+                 (customer_id is null) as guest,
+                 left(coalesce(item_name,''), 30) as item
+            from public.quote_requests order by created_at desc limit 5;
+          SQL
+
+      - name: Diagnose 정책 확인
+        if: inputs.task == 'diagnose'
+        env:
+          PGCONN: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          docker run --rm -e PGCONN postgres:17 psql "$PGCONN" -c \
+            "select policyname, tablename from pg_policies where policyname in ('photos_discord_bot_insert','quote_requests_open_read');"

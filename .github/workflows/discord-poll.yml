@@ -1,0 +1,38 @@
+name: Discord Poll
+
+# 디스코드 수집 봇 (Deno Deploy 릴레이 대체 — tools/discord-poll/poll.mjs)
+# 5분마다 채널을 읽어 Supabase 에 저장 + 이미지+모델명 → 비회원 비교견적 자동 등록.
+#
+# 필요한 시크릿:
+#   DISCORD_BOT_TOKEN (필수 — 미설정 시 조용히 건너뜀, 실패 메일 없음)
+#   SUPABASE_DB_URL   (이미 등록됨 — db-backup 과 공용)
+#   DISCORD_CHANNELS / DISCORD_QUOTE_CHANNELS (선택 — 채널 제한)
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: discord-poll
+  cancel-in-progress: false
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Poll Discord → Supabase
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          DISCORD_CHANNELS: ${{ secrets.DISCORD_CHANNELS }}
+          DISCORD_QUOTE_CHANNELS: ${{ secrets.DISCORD_QUOTE_CHANNELS }}
+        run: |
+          npm install --no-save --no-audit --no-fund pg@8 >/dev/null 2>&1
+          node tools/discord-poll/poll.mjs
