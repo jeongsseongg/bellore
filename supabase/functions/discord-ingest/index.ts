@@ -43,7 +43,10 @@
 //     전체 + 관리자에게 앱 알림을 발송한다. 메일은 발송하지 않는다.
 //   금액이 "100", "1200", "1,450만원" 처럼 있으면 만원 단위로 환산해
 //   관리자 명의 '벨로르 1차 견적' 입찰(bids)을 자동 등록한다.
-//   ⚠️ 선행 조건: discord_quote.sql 실행(customer_id NULL 허용 등).
+//   "검수 후 최대 1300만원" 처럼 조건부 금액이면 입찰 문구에 그대로 안내.
+//   사진 없이 금액만 뒤이어 올라온 메시지는 같은 채널의 최근 30분 내
+//   자동 견적에 1차 견적으로 붙는다(사진→금액 순서로 나눠 올려도 됨).
+//   ⚠️ 선행 조건: discord_quote.sql + discord_quote_v2.sql 실행.
 //   (선택) 특정 채널만 견적으로 받으려면 Secrets 에
 //   DISCORD_QUOTE_CHANNELS=채널ID,채널ID … 설정. 미설정 시 수집 채널 전체.
 // ============================================================
@@ -129,12 +132,79 @@ function parsePriceManwon(text: string): { man: number; token: string } | null {
   return null;
 }
 
-// 모델명: 원문에서 URL·금액 표기를 걷어낸 나머지 텍스트
+// 모델명: 원문에서 URL·금액 표기·금액 수식어("검수 후 최대" 등)를 걷어낸 텍스트
 function extractModelName(text: string, priceToken?: string): string {
   let t = String(text ?? "").replace(/https?:\/\/\S+/g, " ");
   if (priceToken) t = t.replace(priceToken, " ");
   t = t.replace(/(\d{1,3}(?:,\d{3})+|\d+)\s*만\s*원(?![가-힣\w])/g, " ");
+  t = t.replace(/검수\s*후\s*(최대)?/g, " ").replace(/(?<![가-힣])최대(?![가-힣])/g, " ");
   return t.replace(/\s+/g, " ").trim().slice(0, 60).trim();
+}
+
+// 1차 견적 입찰 문구 — "검수 후 최대" 등 조건부 금액이면 안내 문구를 붙인다
+function bidMessageFor(text: string, man: number): string {
+  const pretty = man.toLocaleString("ko-KR") + "만원";
+  if (/검수\s*후\s*최대/.test(text)) {
+    return "검수 후 최대 " + pretty + " — 벨로르 1차 견적입니다. 실물 검수 결과에 따라 최종 금액이 확정됩니다.";
+  }
+  if (/(?<![가-힣])최대(?![가-힣])/.test(text)) {
+    return "최대 " + pretty + " — 벨로르 1차 견적입니다. 상태 확인 후 최종 금액이 확정됩니다.";
+  }
+  return "벨로르 1차 견적";
+}
+
+// 관리자 명의 1차 견적 입찰 등록/갱신 (upsert: 같은 견적에 다시 오면 금액 갱신)
+async function placeFirstBid(
+  admin: ReturnType<typeof createClient>,
+  quoteId: string,
+  price: { man: number },
+  text: string,
+): Promise<number> {
+  const prof = await admin.from("profiles").select("id").ilike("email", ADMIN_EMAIL).maybeSingle();
+  if (!prof.data?.id) return 0;
+  const bid = await admin.from("bids").upsert({
+    quote_request_id: quoteId,
+    vendor_id: prof.data.id,
+    amount: price.man * 10000,
+    message: bidMessageFor(text, price.man),
+  }, { onConflict: "quote_request_id,vendor_id" });
+  return bid.error ? 0 : price.man * 10000;
+}
+
+// 사진 없이 금액만 뒤이어 올라온 경우(예: 사진 먼저 → "검수 후 최대 1300만원"):
+// 같은 채널에서 최근 30분 내 자동 생성된 비회원 견적을 찾아 1차 견적을 붙인다.
+// 이미 1차 견적이 있으면 "만원" 표기가 명시된 경우에만 금액을 갱신(잡담 숫자로
+// 기존 견적이 덮이는 것 방지).
+async function attachPriceToRecentQuote(
+  admin: ReturnType<typeof createClient>,
+  it: { channel_id?: unknown },
+  text: string,
+) {
+  const price = parsePriceManwon(text);
+  if (!price) return null;
+  const since = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+
+  let sel = await admin.from("quote_requests").select("id")
+    .is("customer_id", null).eq("status", "open").gte("created_at", since)
+    .eq("source_channel_id", String(it.channel_id ?? ""))
+    .order("created_at", { ascending: false }).limit(1);
+  if (sel.error && /column/i.test(sel.error.message ?? "")) {
+    // source_channel_id 컬럼 미생성(discord_quote_v2.sql 미실행) → 채널 구분 없이 최근 견적
+    sel = await admin.from("quote_requests").select("id")
+      .is("customer_id", null).eq("status", "open").gte("created_at", since)
+      .order("created_at", { ascending: false }).limit(1);
+  }
+  const quote = sel.data?.[0];
+  if (!quote) return null;
+
+  const prof = await admin.from("profiles").select("id").ilike("email", ADMIN_EMAIL).maybeSingle();
+  if (prof.data?.id) {
+    const existing = await admin.from("bids").select("id")
+      .eq("quote_request_id", quote.id).eq("vendor_id", prof.data.id).maybeSingle();
+    if (existing.data && !/만\s*원?/.test(text)) return { skipped: "bid_exists" };
+  }
+  const firstBid = await placeFirstBid(admin, quote.id, price, text);
+  return firstBid ? { id: quote.id, first_bid: firstBid, attached: true } : { error: "bid_failed" };
 }
 
 function isImageAttachment(att: { url?: string; file_name?: string; file_type?: string }): boolean {
@@ -193,28 +263,18 @@ async function createGuestQuote(
     photo_urls: urls,
     photo_url: urls[0],
     status: "open",             // 승인 생략, 즉시 공개 → 트리거가 업체·관리자 앱 알림(메일 없음)
+    source_channel_id: String(it.channel_id ?? ""), // 뒤이어 오는 금액 메시지 매칭용
   };
   let ins = await admin.from("quote_requests").insert(row).select("id").single();
   if (ins.error && /column/i.test(ins.error.message ?? "")) {
-    delete row.item_ref;        // 컬럼 미생성 환경 폴백(quote_compare.sql 미실행)
+    delete row.item_ref;              // 컬럼 미생성 환경 폴백(quote_compare.sql 미실행)
+    delete row.source_channel_id;     // (discord_quote_v2.sql 미실행)
     ins = await admin.from("quote_requests").insert(row).select("id").single();
   }
   if (ins.error) return { error: ins.error.message };
 
   // 금액(만원) → 관리자 명의 '벨로르 1차 견적' 입찰
-  let firstBid = 0;
-  if (price) {
-    const prof = await admin.from("profiles").select("id").ilike("email", ADMIN_EMAIL).maybeSingle();
-    if (prof.data?.id) {
-      const bid = await admin.from("bids").insert({
-        quote_request_id: ins.data.id,
-        vendor_id: prof.data.id,
-        amount: price.man * 10000,
-        message: "벨로르 1차 견적",
-      });
-      if (!bid.error) firstBid = price.man * 10000;
-    }
-  }
+  const firstBid = price ? await placeFirstBid(admin, ins.data.id, price, text) : 0;
   return { id: ins.data.id, photos: urls.length, first_bid: firstBid };
 }
 
@@ -298,8 +358,16 @@ Deno.serve(async (req) => {
 
       // 이미지+모델명 → 비회원 비교견적 자동 등록(실패해도 수집은 유지)
       let quote: unknown = null;
-      try { quote = await createGuestQuote(admin, it, text, attachments); }
-      catch (e) { quote = { error: String(e) }; }
+      try {
+        quote = await createGuestQuote(admin, it, text, attachments);
+        // 사진 없이 금액만 온 메시지("검수 후 최대 1300만원" 등)는
+        // 같은 채널의 직전 자동 견적에 1차 견적으로 붙인다
+        if (!quote && !attachments.some(isImageAttachment)) {
+          if (!QUOTE_CHANNELS.length || QUOTE_CHANNELS.includes(String(it.channel_id ?? ""))) {
+            quote = await attachPriceToRecentQuote(admin, it, text);
+          }
+        }
+      } catch (e) { quote = { error: String(e) }; }
 
       results.push({ id: data.id, attachments: attachments.length, ...(quote ? { quote } : {}) });
     }
