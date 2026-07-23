@@ -5,7 +5,7 @@
 
 create table if not exists public.orders (
   id            uuid primary key default gen_random_uuid(),
-  -- 토스에 보내는 주문번호(영문/숫자, 사람이 읽기 쉬운 값)
+  -- 포트원 paymentId로 사용하는 주문번호(영문/숫자)
   order_no      text unique not null,
   customer_id   uuid references auth.users(id) on delete set null,
   -- 주문 상품
@@ -15,11 +15,11 @@ create table if not exists public.orders (
   product_image text,
   product_price bigint,              -- 상품 정가
   -- 결제
-  pay_type      text not null default 'deposit',  -- 'deposit'(예약금) | 'full'(전액)
+  pay_type      text not null default 'full',     -- 'full'(전액)만 허용
   amount        bigint not null,                  -- 실제 결제 금액
   method        text,                             -- 카드/가상계좌/간편결제 등
   status        text not null default 'pending',  -- pending | paid | failed | canceled
-  payment_key   text,                             -- 토스 paymentKey
+  payment_key   text,                             -- 포트원 paymentId
   receipt_url   text,
   -- 구매자 정보
   buyer_name    text,

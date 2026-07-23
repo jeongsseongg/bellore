@@ -3295,6 +3295,19 @@ body.pp-lb-open { overflow: hidden; }
 .pp-title { font-size: 16px; font-weight: 600; color: var(--text-2); margin-top: 6px; line-height: 1.5; }
 .pp-price { font-size: 26px; font-weight: 900; margin: 14px 0 18px; }
 .pp-price .won { font-size: 17px; font-weight: 700; margin-left: 1px; }
+.pp-responsibility {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0 0 14px;
+    padding: 13px 14px;
+    border: 1px solid #dce8e2;
+    border-radius: 12px;
+    background: #f4faf7;
+    color: var(--text);
+}
+.pp-responsibility strong { font-size: 13px; font-weight: 800; color: #12633f; }
+.pp-responsibility span { font-size: 12px; line-height: 1.55; color: var(--text-2); }
 
 .pp-meta {
     border-top: 1px solid var(--border);
@@ -6020,8 +6033,38 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 }
 .co-method.active { border-color: var(--text); background: #faf9f7; box-shadow: 0 0 0 1px var(--text) inset; font-weight: 700; }
 .co-methods-empty { grid-column: 1 / -1; font-size: 13px; color: var(--text-3); line-height: 1.6; margin: 0; text-align: center; padding: 10px 0; }
-.co-agree { display: flex; align-items: flex-start; gap: 8px; margin-top: 14px; font-size: 12.5px; color: var(--text-2); line-height: 1.5; cursor: pointer; }
+.co-responsibility {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 14px;
+    padding: 12px 13px;
+    border-radius: 10px;
+    background: #f4faf7;
+    border: 1px solid #dce8e2;
+}
+.co-responsibility strong { font-size: 13px; color: #12633f; }
+.co-responsibility span { font-size: 12px; line-height: 1.5; color: var(--text-2); }
+.co-agree { display: flex; align-items: flex-start; gap: 8px; margin-top: 12px; font-size: 12.5px; color: var(--text-2); line-height: 1.5; cursor: pointer; }
 .co-agree input { margin-top: 2px; flex: none; }
+.co-agree b { color: var(--text); }
+.co-inline-link {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+}
+.co-agree-summary {
+    margin: 10px 0 0 24px;
+    color: var(--text-3);
+    font-size: 11px;
+    line-height: 1.55;
+}
 
 /* 결제 결과 */
 .pay-result {

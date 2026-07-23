@@ -44,22 +44,17 @@ window.BELLORE_PAYMENTS = {
   //   payMethod: 'CARD'(카드) | 'EASY_PAY'(간편결제) | 'TRANSFER'(계좌이체) | 'VIRTUAL_ACCOUNT'(가상계좌)
   //   easyPayProvider: 간편결제일 때 지정(아래 값 참고). 비우면 PG 기본 선택창.
   channels: [
-    { id: "card",     label: "신용·체크카드", payMethod: "CARD",     channelKey: "channel-key-e0e4ee1b-5550-47e0-8065-f76cf3f8fe39" },
+    { id: "card",     label: "신용·체크카드", payMethod: "CARD",     channelKey: "" },
     { id: "kakaopay", label: "카카오페이",   payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_KAKAOPAY" },
     { id: "naverpay", label: "네이버페이",   payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_NAVERPAY" },
     { id: "tosspay",  label: "토스페이",     payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_TOSSPAY" },
     { id: "payco",    label: "페이코",       payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_PAYCO" },
     { id: "smilepay", label: "스마일페이",   payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_SMILEPAY" }
   ],
-  // 결제 검증 Edge Function (배포 후 활성화). 비워두면 데모 승인.
+  // 결제 검증 Edge Function. 비어 있거나 호출 불가하면 결제를 차단합니다.
   confirmUrl: "https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/confirm-payment",
-  // 결제 취소/환불 Edge Function (배포 후 활성화). 비워두면 DB 상태만 변경.
+  // 결제 취소/환불 Edge Function. 실제 포트원 취소 성공 후에만 환불 완료 처리합니다.
   cancelUrl: "https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/cancel-payment",
-  // 예약금(계약금) 비율 — 상품가의 몇 %를 선결제로 받을지
-  depositRate: 0.10,
-  // 예약금 최소/최대 한도(원)
-  depositMin: 500000,
-  depositMax: 5000000,
   // 배송비: 기본 전국 무료. 프리미엄배송 기준액 이상 고가 상품만 아래 금액 가산(필수).
   shippingFee: 35000,          // 프리미엄배송비(고가 상품)
   premiumShipThreshold: 5000000 // 이 금액 이상 = 프리미엄배송 필수, 미만 = 무료배송

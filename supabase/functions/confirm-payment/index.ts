@@ -5,14 +5,13 @@
 //   1) Supabase CLI 또는 대시보드로
 //   2) PORTONE_API_SECRET 시크릿 등록 (포트원 콘솔 > 결제연동 > API Keys 의 "V2 API Secret")
 //        supabase secrets set PORTONE_API_SECRET=xxxxxxxx
-//      (선택) supabase secrets set DEPOSIT_RATE=0.10 DEPOSIT_MIN=500000 \
-//             DEPOSIT_MAX=5000000 SHIPPING_FEE=35000
+//      supabase secrets set PORTONE_STORE_ID=store-... SHIPPING_FEE=35000
 //   3) supabase functions deploy confirm-payment --no-verify-jwt
 //
 // 보안 핵심(억대 거래 필수):
 //   - 결제금액·상품가는 프런트가 보낸 값이라 신뢰하지 않는다.
 //   - order.listing_id 로 DB의 진짜 시세(listings)를 직접 조회해
-//     예약금/전액/배송비/쿠폰할인을 "서버에서 다시 계산"한다.
+//     전액/배송비/쿠폰할인을 "서버에서 다시 계산"한다.
 //   - 포트원 API로 실제 결제건(paymentId)을 조회해 status=PAID 이고
 //     결제금액이 서버 재계산값과 정확히 일치할 때만 주문을 확정한다.
 //   - 이렇게 해야 "1억 시계를 1,000원에 결제" 같은 금액 위·변조를 차단한다.
@@ -21,14 +20,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const PORTONE_API_SECRET = Deno.env.get("PORTONE_API_SECRET") ?? "";
 const PORTONE_API_BASE = Deno.env.get("PORTONE_API_BASE") ?? "https://api.portone.io";
+const PORTONE_STORE_ID = Deno.env.get("PORTONE_STORE_ID") ?? "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 // 결제 정책 상수 — 프런트(supabase-config.js / payments.js)와 반드시 동일하게 유지.
-//   필요 시 secrets 로 덮어쓸 수 있게 env 우선.
-const DEPOSIT_RATE = Number(Deno.env.get("DEPOSIT_RATE") ?? "0.10");
-const DEPOSIT_MIN = Number(Deno.env.get("DEPOSIT_MIN") ?? "500000");
-const DEPOSIT_MAX = Number(Deno.env.get("DEPOSIT_MAX") ?? "5000000");
 const SHIPPING_FEE = Number(Deno.env.get("SHIPPING_FEE") ?? "35000");
 const PREMIUM_SHIP_THRESHOLD = Number(Deno.env.get("PREMIUM_SHIP_THRESHOLD") ?? "5000000");
 // 포인트 적립률 — 결제 확정 금액의 1%(기본). secrets 로 조정 가능. 0 이면 적립 안 함.
@@ -48,12 +44,6 @@ function json(body: unknown, status = 200) {
   });
 }
 
-// payments.js calcDeposit 과 동일한 계산
-function calcDeposit(price: number): number {
-  let d = Math.round((price * DEPOSIT_RATE) / 1000) * 1000;
-  d = Math.max(DEPOSIT_MIN, Math.min(d, DEPOSIT_MAX || price));
-  return Math.min(d, price);
-}
 function calcFull(price: number): number {
   // 기본 무료배송. 프리미엄배송 기준액 이상 고가 상품만 프리미엄배송비 가산.
   return price + (price >= PREMIUM_SHIP_THRESHOLD ? SHIPPING_FEE : 0);
@@ -102,23 +92,33 @@ Deno.serve(async (req) => {
 
     // 2) 서버 측 금액 재계산 (위·변조 방지의 핵심)
     //    - 프런트가 보낸 order.amount / order.product_price 는 신뢰하지 않는다.
-    //    - listings 의 실제 가격으로 예약금/전액을 다시 계산한다.
+    //    - listings의 실제 판매가(유효한 타임세일 포함)로 전액을 다시 계산한다.
     if (!order.listing_id) {
       return json({ error: "price_unverifiable_no_listing" }, 400);
     }
     const { data: listing, error: lErr } = await admin
       .from("listings")
-      .select("price, sale_price")
+      .select("price, sale_price, tags, sale_started_at, created_at")
       .eq("id", order.listing_id)
       .single();
     if (lErr || !listing) return json({ error: "listing_not_found" }, 404);
 
-    // 체크아웃은 정가(price) 기준으로 동작한다(script.js currentProduct.price = price).
-    const truePrice = Number(listing.price) || 0;
+    const listPrice = Number(listing.price) || 0;
+    const salePrice = Number(listing.sale_price) || 0;
+    const saleBase = listing.sale_started_at || listing.created_at;
+    const saleActive =
+      Array.isArray(listing.tags) &&
+      listing.tags.includes("sale") &&
+      !!saleBase &&
+      new Date(saleBase).getTime() + 72 * 60 * 60 * 1000 > Date.now();
+    const truePrice =
+      saleActive && salePrice > 0 && salePrice < listPrice ? salePrice : listPrice;
     if (truePrice <= 0) return json({ error: "invalid_listing_price" }, 400);
 
-    const base =
-      order.pay_type === "full" ? calcFull(truePrice) : calcDeposit(truePrice);
+    if (order.pay_type !== "full") {
+      return json({ error: "unsupported_pay_type" }, 400);
+    }
+    const base = calcFull(truePrice);
 
     // 3) 쿠폰 할인도 서버에서 재검증 (프런트가 보낸 discount 무시)
     let serverDiscount = 0;
@@ -148,6 +148,9 @@ Deno.serve(async (req) => {
 
     if (!pres.ok) {
       return json({ error: "portone_lookup_failed", detail: payment }, 400);
+    }
+    if (PORTONE_STORE_ID && payment?.storeId !== PORTONE_STORE_ID) {
+      return json({ error: "store_mismatch" }, 400);
     }
 
     // 5) 상태/금액 대조 — PAID 이고 실제 결제금액이 서버 재계산값과 일치해야 함

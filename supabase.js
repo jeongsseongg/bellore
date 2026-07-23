@@ -738,7 +738,7 @@
             .then(function (s) {
               if (s.data && s.data.seller_id) {
                 Backend.createNotification({ uid: s.data.seller_id, type: 'settlement',
-                  text: '정산금 ' + (s.data.net_amount || 0).toLocaleString('ko-KR') + '원이 입금 처리되었습니다.' });
+                  text: '공급대금 ' + (s.data.net_amount || 0).toLocaleString('ko-KR') + '원이 입금 처리되었습니다.' });
               }
             }, function () {});
         }
@@ -1415,7 +1415,7 @@
     return sb.from('profiles').update({ approved: approved }).eq('id', id)
       .then(function (res) {
         if (res.error) throw res.error;
-        if (approved) Backend.createNotification({ uid: id, type: 'approved', text: '제휴사 승인이 완료되었습니다. 이제 상품을 등록·판매할 수 있어요.' });
+        if (approved) Backend.createNotification({ uid: id, type: 'approved', text: '공급협력사 승인이 완료되었습니다. 이제 벨로르에 공급할 상품을 등록할 수 있어요.' });
         refreshVendors(); refreshAccounts();
       });
   };
@@ -1752,7 +1752,7 @@
     };
   }
 
-  // 체크아웃: pending 주문 생성 → 토스에 넘길 order_no 반환
+  // 체크아웃: pending 주문 생성 → 포트원에 넘길 order_no 반환
   Backend.createOrder = function (data) {
     // 비회원(rawUser 없음)도 구매 가능 — 네이버페이 주문형 요건.
     // (orders.customer_id 는 NULL 허용. anon insert 는 guest_checkout.sql 의 RLS 정책 필요)
@@ -1766,7 +1766,7 @@
       product_brand: data.productBrand || null,
       product_image: data.productImage || null,
       product_price: data.productPrice || null,
-      pay_type: data.payType || 'full',
+      pay_type: 'full',
       amount: data.amount,
       coupon_user_id: data.couponUserId || null,
       discount: data.discount || 0,
@@ -1797,15 +1797,15 @@
         ge.guest = true; ge.cause = res.error;
         throw ge;
       }
-      return { orderNo: orderNo, amount: data.amount, payType: data.payType || 'full' };
+      return { orderNo: orderNo, amount: data.amount, payType: 'full' };
     });
   };
 
-  // 결제 승인(검증) — Edge Function 호출. 미배포 시 데모 승인.
+  // 결제 승인(검증) — Edge Function 필수. 검증 함수가 없으면 결제를 성공 처리하지 않는다.
   Backend.confirmOrder = function (params) {
     var PAY = window.BELLORE_PAYMENTS || {};
     if (!PAY.confirmUrl) {
-      return Promise.resolve({ ok: true, demo: true });
+      return Promise.reject(new Error('PAYMENT_CONFIRM_NOT_CONFIGURED'));
     }
     return fetch(PAY.confirmUrl, {
       method: 'POST',
@@ -1957,15 +1957,12 @@
       .then(function (res) { if (res.error) throw res.error; return true; });
   };
 
-  // 환불 — Edge Function(cancel-payment)으로 토스 취소 + DB 갱신. 미배포 시 DB만 갱신.
+  // 환불 — Edge Function(cancel-payment)으로 포트원 취소와 DB 갱신.
+  // 결제대행 취소 없이 DB 상태만 바꾸는 폴백은 금지한다.
   Backend.adminRefund = function (order, reason) {
     var PAY = window.BELLORE_PAYMENTS || {};
     if (!PAY.cancelUrl) {
-      return sb.from('orders').update({
-        status: 'refunded', refund_amount: order.amount, cancel_reason: reason || order.cancelReason || null
-      }).eq('id', order.id).then(function (res) {
-        if (res.error) throw res.error; return { ok: true, demo: true };
-      });
+      return Promise.reject(new Error('PAYMENT_CANCEL_NOT_CONFIGURED'));
     }
     return sb.auth.getSession().then(function (s) {
       var token = (s && s.data && s.data.session && s.data.session.access_token) || CFG.anonKey;

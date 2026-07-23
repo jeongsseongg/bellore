@@ -2,8 +2,8 @@
    벨로르(BELLORE) · 결제(포트원 PortOne V2) 연동
    ------------------------------------------------------------
    - 상품 상세의 "바로구매" → 체크아웃 모달 → 결제수단 선택 → 포트원 결제
-   - 예약금/전액 선택, 구매자 정보 입력, 주문 DB 기록
-   - 카드 + 간편결제(카카오/네이버/토스/페이코/스마일페이) 지원
+   - 전액 결제만 제공하며 구매자·배송지 정보와 주문을 DB에 기록
+   - PG 계약이 완료되어 채널 키가 등록된 결제수단만 노출
    - 결제 후 Edge Function(confirm-payment)이 포트원 API로 금액·상태 검증
    ============================================================ */
 (function () {
@@ -21,13 +21,6 @@
       ? window.NWBackend.currentUser() : null;
   }
 
-  // 결제 금액 계산
-  function calcDeposit(price) {
-    var rate = PAY.depositRate || 0.10;
-    var d = Math.round((price * rate) / 1000) * 1000;
-    d = Math.max(PAY.depositMin || 0, Math.min(d, PAY.depositMax || price));
-    return Math.min(d, price); // 상품가보다 클 수 없음
-  }
   // 배송비: 기본 전국 무료. 단, 프리미엄배송 기준액(기본 500만원) 이상 고가 상품은
   //          안전·보험 프리미엄배송(기본 35,000원) 필수 가산. (약관/배송정책 특약)
   function shipFee(price) {
@@ -39,7 +32,7 @@
   }
 
   /* ---------------- 체크아웃 모달 ---------------- */
-  var modal, product, payType = 'full';   // 예약금 폐지 — 전액결제 전용(네이버페이 지침)
+  var modal, product;
   var selectedChannel = null;   // 선택된 결제수단(config.channels 의 한 항목)
 
   function getModal() { return $('#checkoutModal'); }
@@ -50,7 +43,15 @@
     return list;
   }
   function portoneReady() {
-    return !!(window.PortOne && PAY.storeId && activeChannels().length);
+    return !!(
+      window.PortOne &&
+      PAY.storeId &&
+      activeChannels().length &&
+      backendOn() &&
+      window.NWBackend.createOrder &&
+      window.NWBackend.confirmOrder &&
+      PAY.confirmUrl
+    );
   }
 
   // 결제수단 버튼 렌더
@@ -59,7 +60,7 @@
     if (!box) return;
     var chans = activeChannels();
     if (!portoneReady()) {
-      box.innerHTML = '<p class="co-methods-empty">결제 수단을 준비 중입니다. 잠시 후 다시 시도하거나 카카오톡 상담으로 문의해 주세요.</p>';
+      box.innerHTML = '<p class="co-methods-empty">결제 수단을 준비 중입니다. PG 운영 채널과 서버 결제 검증이 모두 활성화된 후 결제할 수 있습니다.</p>';
       selectedChannel = null;
       return;
     }
@@ -78,15 +79,9 @@
     renderMethods();
   }
 
-  function setPayType(t) {
-    payType = t;
-    var btns = document.querySelectorAll('#coPayType .co-pt');
-    Array.prototype.forEach.call(btns, function (b) {
-      b.classList.toggle('active', b.dataset.pt === t);
-    });
-    // 전액 결제일 때만 배송지 입력 노출(예약금은 매장 방문)
+  function enableShippingAddress() {
     var ship = $('#coShipSec');
-    if (ship) ship.hidden = (t !== 'full');
+    if (ship) ship.hidden = false;
     updateAmount();
   }
 
@@ -127,7 +122,7 @@
   }
   function baseAmount() {
     if (!product) return 0;
-    return payType === 'full' ? calcFull(product.price) : calcDeposit(product.price);
+    return calcFull(product.price);
   }
   function currentAmount() {
     var b = baseAmount();
@@ -215,8 +210,7 @@
     // 상품상세 모달이 떠 있으면 닫기(겹침 방지)
     var pm = $('#productModal');
     if (pm) pm.hidden = true;
-    payType = 'full';
-    setPayType('full');
+    enableShippingAddress();
     renderProduct();
     // 쿠폰 초기화 후 내 쿠폰 로드
     var cSel = $('#coCouponSelect'); if (cSel) cSel.value = '';
@@ -226,7 +220,9 @@
     // 결제수단 초기화 + 동의 체크 해제
     selectedChannel = null;
     renderMethods();
-    var ag = $('#coAgree'); if (ag) ag.checked = false;
+    ['#coAgreeTerms', '#coAgreePrivacy', '#coAgreeOrder'].forEach(function (sel) {
+      var ag = $(sel); if (ag) ag.checked = false;
+    });
     modal.hidden = false;
     document.body.style.overflow = 'hidden';
     var sc = modal.querySelector('.co-scroll');
@@ -246,25 +242,35 @@
     var phone = $('#coPhone').value.trim();
     if (!name || !phone) { alert('이름과 연락처를 입력해 주세요.'); return; }
 
-    // 전액 결제(배송)면 배송지 필수
     var ship = {};
-    if (payType === 'full') {
-      ship.recipient = ($('#coShipName').value || '').trim() || name;
-      ship.phone = ($('#coShipPhone').value || '').trim() || phone;
-      ship.postcode = ($('#coPostcode').value || '').trim();
-      ship.addr1 = ($('#coAddr1').value || '').trim();
-      ship.addr2 = ($('#coAddr2').value || '').trim();
-      ship.request = ($('#coShipReq').value || '').trim();
-      if (!ship.postcode || !ship.addr1) { alert('배송 주소를 입력해 주세요.'); return; }
-    }
+    ship.recipient = ($('#coShipName').value || '').trim() || name;
+    ship.phone = ($('#coShipPhone').value || '').trim() || phone;
+    ship.postcode = ($('#coPostcode').value || '').trim();
+    ship.addr1 = ($('#coAddr1').value || '').trim();
+    ship.addr2 = ($('#coAddr2').value || '').trim();
+    ship.request = ($('#coShipReq').value || '').trim();
+    if (!ship.postcode || !ship.addr1) { alert('배송 주소를 입력해 주세요.'); return; }
     if (!portoneReady()) {
-      alert('결제 모듈을 불러오지 못했습니다. 잠시 후 다시 시도하거나 카카오톡 상담으로 문의해 주세요.');
+      alert('PG 운영 채널 또는 서버 결제 검증이 준비되지 않아 결제를 진행할 수 없습니다.');
       renderMethods();
       return;
     }
     if (!selectedChannel) { alert('결제 수단을 선택해 주세요.'); return; }
-    var agree = $('#coAgree');
-    if (agree && !agree.checked) { alert('결제 진행에 동의해 주세요.'); return; }
+    var requiredAgreements = [
+      { el: $('#coAgreeTerms'), message: '이용약관에 동의해 주세요.' },
+      { el: $('#coAgreePrivacy'), message: '개인정보 수집·이용에 동의해 주세요.' },
+      { el: $('#coAgreeOrder'), message: '상품 상태·배송·환불 및 결제금액 확인에 동의해 주세요.' }
+    ];
+    for (var ai = 0; ai < requiredAgreements.length; ai++) {
+      if (!requiredAgreements[ai].el || !requiredAgreements[ai].el.checked) {
+        alert(requiredAgreements[ai].message);
+        return;
+      }
+    }
+    if (!product.listingId) {
+      alert('판매 승인된 상품만 결제할 수 있습니다. 상품 정보를 다시 불러와 주세요.');
+      return;
+    }
 
     var uc = getSelectedCoupon();
     var base = baseAmount();
@@ -278,14 +284,13 @@
     payBtn.textContent = '주문 생성 중...';
 
     // 1) pending 주문 생성 → order_no 발급
-    var createOrder = (backendOn() && window.NWBackend.createOrder)
-      ? window.NWBackend.createOrder({
+    var createOrder = window.NWBackend.createOrder({
           listingId: product.listingId,
           productName: orderName,
           productBrand: product.brand,
           productImage: product.image,
           productPrice: product.price,
-          payType: payType,
+          payType: 'full',
           amount: amount,
           couponUserId: uc ? uc.id : null,
           discount: discount,
@@ -297,8 +302,7 @@
           shipAddr1: ship.addr1 || null,
           shipAddr2: ship.addr2 || null,
           shipRequest: ship.request || null
-        })
-      : Promise.resolve({ orderNo: 'DEMO' + Date.now().toString(36).toUpperCase() });
+        });
 
     createOrder.then(function (order) {
       // 주문번호/금액을 복귀 후 검증용으로 저장
@@ -363,17 +367,16 @@
   // 결제 성공 후 서버(Edge Function) 검증
   function verifyPayment(paymentId) {
     showResult(true, '결제 승인 처리 중...', '잠시만 기다려 주세요.');
-    var doConfirm = (backendOn() && window.NWBackend.confirmOrder)
-      ? window.NWBackend.confirmOrder({ paymentId: paymentId })
-      : Promise.resolve({ ok: true, demo: true });
+    if (!(backendOn() && window.NWBackend.confirmOrder && PAY.confirmUrl)) {
+      showResult(false, '결제 승인 확인 불가', '서버 결제 검증이 준비되지 않았습니다. 고객센터로 문의해 주세요.');
+      return;
+    }
+    var doConfirm = window.NWBackend.confirmOrder({ paymentId: paymentId });
     doConfirm.then(function (res) {
       if (res && (res.ok || res.alreadyPaid)) {
         if (window.belloreRefreshCoupons) window.belloreRefreshCoupons();
         showResult(true, '결제가 완료되었습니다',
           '주문번호 ' + (paymentId || '') + '\n마이페이지에서 주문 내역을 확인하실 수 있습니다.');
-      } else if (res && res.demo) {
-        showResult(true, '결제 완료 (데모)',
-          '서버 검증(Edge Function) 미배포 상태입니다.\n주문번호 ' + (paymentId || ''));
       } else {
         showResult(false, '결제 승인 실패',
           (res && res.error) ? res.error : '결제 검증 중 문제가 발생했습니다. 고객센터로 문의해 주세요.');
@@ -420,12 +423,6 @@
   function init() {
     var closeBtn = $('#coClose');
     if (closeBtn) closeBtn.addEventListener('click', closeCheckout);
-
-    var ptWrap = $('#coPayType');
-    if (ptWrap) ptWrap.addEventListener('click', function (e) {
-      var btn = e.target.closest('.co-pt');
-      if (btn) setPayType(btn.dataset.pt);
-    });
 
     var payBtn = $('#coPayBtn');
     if (payBtn) payBtn.addEventListener('click', requestPay);

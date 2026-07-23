@@ -432,7 +432,7 @@
                 var del = e.target.closest('[data-odel]');
                 if (del) {
                     e.stopPropagation();
-                    bellConfirm('이 주문을 구매내역에서 삭제할까요?\n(취소·환불 완료된 주문만 숨겨지며, 정산/세금 기록은 보존됩니다.)').then(function (ok) {
+                    bellConfirm('이 주문을 구매내역에서 삭제할까요?\n(취소·환불 완료된 주문만 숨겨지며, 회계·세금 기록은 보존됩니다.)').then(function (ok) {
                         if (!ok) return;
                         hideOrder(del.dataset.odel);
                         renderOrdersList();
@@ -1093,7 +1093,7 @@
                     var note = $('#partnerStateNote');
                     if (note) {
                         note.textContent = info.isApprovedPartner
-                            ? '✓ 제휴사 승인 완료 — 상품을 등록·판매할 수 있어요. 판매대금은 수수료 제외 후 등록 계좌로 정산됩니다.'
+                            ? '✓ 공급협력사 승인 완료 — 벨로르에 공급할 상품을 등록할 수 있어요. 공급대금은 약정 금액을 등록 계좌로 지급합니다.'
                             : (allVerified ? '인증 완료 — 관리자 승인을 기다리는 중입니다.' : '사업자·휴대폰·계좌·이메일 인증을 완료해 주세요.');
                     }
                     var newBtn = $('#btnPartnerNewListing');
@@ -1109,13 +1109,13 @@
         var box = $('#myStlList'); if (!box || !backendOn() || !NWBackend.listMySettlements) return;
         NWBackend.listMySettlements().then(function (rows) {
             var cnt = $('#myStlCount'); if (cnt) cnt.textContent = rows.length;
-            if (!rows.length) { box.innerHTML = '<p class="mypage-prodrow-empty">정산 내역이 없습니다.</p>'; return; }
+            if (!rows.length) { box.innerHTML = '<p class="mypage-prodrow-empty">공급대금 지급 내역이 없습니다.</p>'; return; }
             box.innerHTML = rows.map(function (s) {
-                var label = s.status === 'paid' ? '입금완료' : (s.status === 'hold' ? '보류' : '정산대기');
+                var label = s.status === 'paid' ? '입금완료' : (s.status === 'hold' ? '보류' : '지급대기');
                 var cls = s.status === 'paid' ? 'stl-paid' : (s.status === 'hold' ? 'stl-hold' : 'stl-pending');
                 return '<div class="stl-row">' +
                     '<div class="stl-main"><b>' + esc(s.productName || '상품') + '</b>' +
-                    '<span class="stl-amt">정산 ' + fmt(s.net) + '원</span></div>' +
+                    '<span class="stl-amt">공급대금 ' + fmt(s.net) + '원</span></div>' +
                     '<div class="stl-sub">판매가 ' + fmt(s.gross) + '원 · 수수료 ' + fmt(s.fee) + '원(' + Math.round((s.feeRate || 0) * 100) + '%)' +
                     ' · <span class="' + cls + '">' + label + '</span></div>' +
                     '</div>';
@@ -1133,7 +1133,7 @@
 
     var NOTI_LABEL = {
         quote_open: '비교견적', quote_new: '비교견적 등록', bid_new: '입찰 도착', awarded: '입찰 채택', approved: '승인 완료',
-        account: '계좌 인증', business: '사업자 인증', listing: '판매 매물', settlement: '정산',
+        account: '계좌 인증', business: '사업자 인증', listing: '공급 상품', settlement: '공급대금',
         support_new: '고객센터 문의', support_reply: '고객센터 답변', info: '알림'
     };
     // 알림 종류별 색상 카테고리(비교견적/판매/고객센터)
@@ -1788,7 +1788,7 @@
             '<div class="op-sec"><h4>결제 정보</h4>' +
                 '<div class="op-row"><span>주문번호</span><b>' + esc(o.orderNo) + '</b></div>' +
                 '<div class="op-row"><span>주문일시</span><b>' + (fmtDate(o.createdAt) || '-') + '</b></div>' +
-                '<div class="op-row"><span>결제방식</span><b>' + (o.payType === 'full' ? '전액 결제' : '예약금 결제') + '</b></div>' +
+                '<div class="op-row"><span>결제방식</span><b>' + (o.payType === 'full' ? '전액 결제' : '이전 주문 결제') + '</b></div>' +
                 (o.discount ? '<div class="op-row"><span>쿠폰할인</span><b>-' + fmt(o.discount) + '원</b></div>' : '') +
                 '<div class="op-row op-row--total"><span>결제금액</span><b>' + fmt(o.amount) + '원</b></div>' +
                 (o.receiptUrl ? '<a class="op-receipt" href="' + esc(o.receiptUrl) + '" target="_blank" rel="noopener">영수증 보기</a>' : '') +
@@ -1957,7 +1957,7 @@
                 '<div class="op-row"><span>주문번호</span><b>' + esc(o.orderNo) + '</b></div>' +
                 '<div class="op-row"><span>회원 구분</span><b id="opMemberInfo">' + (o.customerId ? '회원 · 정보 확인 중…' : '비회원 (게스트 주문)') + '</b></div>' +
                 '<div class="op-row"><span>주문자</span><b>' + esc(o.buyerName || '') + ' / ' + esc(o.buyerPhone || '') + '</b></div>' +
-                '<div class="op-row"><span>결제금액</span><b>' + fmt(o.amount) + '원 (' + (o.payType === 'full' ? '전액' : '예약금') + ')</b></div>' +
+                '<div class="op-row"><span>결제금액</span><b>' + fmt(o.amount) + '원 (' + (o.payType === 'full' ? '전액' : '이전 주문') + ')</b></div>' +
                 '<div class="op-row"><span>배송지</span><b>' + addr + '</b></div>' +
                 (o.shipRequest ? '<div class="op-row"><span>요청</span><b>' + esc(o.shipRequest) + '</b></div>' : '') +
             '</div>' +
@@ -2034,10 +2034,11 @@
             }
             if (e.target.closest('#aopRefund')) {
                 if (!_aOrderEditing) return;
-                bellConfirm('이 주문을 환불 처리할까요? 토스 결제건은 실제 취소가 진행됩니다.').then(function (ok) {
+                bellConfirm('이 주문을 환불 처리할까요? 포트원에 실제 결제 취소를 요청합니다.').then(function (ok) {
                     if (!ok) return;
                     NWBackend.adminRefund(_aOrderEditing, '관리자 환불').then(function (res) {
-                        if (res && (res.ok || res.alreadyRefunded)) { alert('환불 처리되었습니다.'); closeAdminOrderPage(); }
+                        if (res && res.pending) { alert('환불 요청이 접수되었습니다. PG 처리 완료 후 상태를 확인해 주세요.'); closeAdminOrderPage(); }
+                        else if (res && (res.ok || res.alreadyRefunded)) { alert('환불 처리되었습니다.'); closeAdminOrderPage(); }
                         else alert('환불 실패: ' + ((res && res.error) || '알 수 없는 오류'));
                     }).catch(function () { alert('환불 처리 중 오류가 발생했습니다.'); });
                 });
@@ -2164,7 +2165,7 @@
         var p = $('#adminPanel');
         if (!p) return;
         $$('.admin-panel-view', p).forEach(function (sec) { sec.hidden = sec.dataset.apv !== view; });
-        var titles = { quotes: '비교견적 승인', members: '회원관리', coupons: '쿠폰 관리', listings: '판매시계 관리', orders: '주문 관리', returns: '교환 · 반품', settlements: '정산 관리', analytics: '활동 로그' };
+        var titles = { quotes: '비교견적 승인', members: '회원관리', coupons: '쿠폰 관리', listings: '판매시계 관리', orders: '주문 관리', returns: '교환 · 반품', settlements: '공급대금 관리', analytics: '활동 로그' };
         var t = $('#adminPanelTitle');
         if (t) t.textContent = (view === 'orders') ? (O_FILTER_LABEL[ofilter || ''] || '주문 관리') : (titles[view] || '관리');
         // 패널을 열 때 항목을 즉시 다시 그려, 첫 진입에서 빈 화면이 보이지 않게 한다
@@ -2204,7 +2205,7 @@
 
     /* ===== 관리자: 회원관리(일반·업체·제휴사 통합) ===== */
     var _memFilter = 'all';
-    var ROLE_LABEL = { customer: '일반회원', vendor: '업체', partner: '제휴사', admin: '관리자' };
+    var ROLE_LABEL = { customer: '일반회원', vendor: '업체', partner: '공급협력사', admin: '관리자' };
     function openMembers(kind) {
         _memFilter = kind || 'all';
         $$('#memTabs [data-mem]').forEach(function (b) { b.classList.toggle('on', (b.dataset.mem || 'all') === _memFilter); });
@@ -2253,7 +2254,7 @@
         box.innerHTML = '<div class="admin-list-item"><span>불러오는 중…</span></div>';
         NWBackend.listPartners().then(function (rows) {
             setBadge('#amrPartners', rows.filter(function (p) { return !p.approved; }).length);
-            if (!rows.length) { box.innerHTML = '<div class="admin-list-item"><span>제휴사가 없습니다.</span></div>'; return; }
+            if (!rows.length) { box.innerHTML = '<div class="admin-list-item"><span>공급협력사가 없습니다.</span></div>'; return; }
             box.innerHTML = rows.map(function (p) {
                 var name = esc(p.biz_name || p.company_name || p.display_name || '(이름 없음)');
                 var rate = Math.round((p.commission_rate != null ? p.commission_rate : 0.1) * 100);
@@ -2269,7 +2270,7 @@
                         '<button type="button" class="stl-act" data-pbiz="' + esc(p.id) + '" data-on="' + (p.biz_verified ? '0' : '1') + '">' + (p.biz_verified ? '사업자해제' : '사업자승인') + '</button>' +
                         '<button type="button" class="stl-act" data-pacct="' + esc(p.id) + '" data-on="' + (p.account_verified ? '0' : '1') + '">' + (p.account_verified ? '계좌해제' : '계좌승인') + '</button>' +
                         '<button type="button" class="stl-act" data-prate="' + esc(p.id) + '" data-rate="' + rate + '">수수료변경</button>' +
-                        '<button type="button" class="stl-act' + (p.approved ? ' ghost' : '') + '" data-papprove="' + esc(p.id) + '" data-on="' + (p.approved ? '0' : '1') + '">' + (p.approved ? '승인취소' : '제휴사 승인') + '</button>' +
+                        '<button type="button" class="stl-act' + (p.approved ? ' ghost' : '') + '" data-papprove="' + esc(p.id) + '" data-on="' + (p.approved ? '0' : '1') + '">' + (p.approved ? '승인취소' : '공급협력사 승인') + '</button>' +
                     '</div>' +
                 '</div>';
             }).join('');
@@ -2623,9 +2624,9 @@
         NWBackend.listAllSettlements(_stlFilter ? { status: _stlFilter } : {}).then(function (rows) {
             var pendCnt = rows.filter(function (s) { return s.status === 'pending'; }).length;
             if (!_stlFilter) setBadge('#amrSettlements', pendCnt);
-            if (!rows.length) { box.innerHTML = '<div class="admin-list-item"><span>정산 내역이 없습니다.</span></div>'; return; }
+            if (!rows.length) { box.innerHTML = '<div class="admin-list-item"><span>공급대금 지급 내역이 없습니다.</span></div>'; return; }
             box.innerHTML = rows.map(function (s) {
-                var label = s.status === 'paid' ? '입금완료' : (s.status === 'hold' ? '보류' : '정산대기');
+                var label = s.status === 'paid' ? '입금완료' : (s.status === 'hold' ? '보류' : '지급대기');
                 var cls = s.status === 'paid' ? 'stl-paid' : (s.status === 'hold' ? 'stl-hold' : 'stl-pending');
                 var payee = s.sellerRole === 'admin'
                     ? '벨로르(직접판매)'
@@ -2636,9 +2637,9 @@
                     else btns += '<button type="button" class="stl-act ghost" data-stlpending="' + esc(s.id) + '">대기로 되돌리기</button>';
                 }
                 return '<div class="admin-list-item stl-adm">' +
-                    '<div class="stl-main"><b>' + esc(s.productName || '상품') + '</b><span class="stl-amt">정산 ' + fmt(s.net) + '원</span></div>' +
+                    '<div class="stl-main"><b>' + esc(s.productName || '상품') + '</b><span class="stl-amt">공급대금 ' + fmt(s.net) + '원</span></div>' +
                     '<div class="stl-sub">판매가 ' + fmt(s.gross) + '원 · 수수료 ' + fmt(s.fee) + '원(' + Math.round((s.feeRate || 0) * 100) + '%) · <span class="' + cls + '">' + label + '</span></div>' +
-                    '<div class="stl-sub small">정산대상: ' + payee + '</div>' +
+                    '<div class="stl-sub small">지급대상: ' + payee + '</div>' +
                     (btns ? '<div class="pa-acts">' + btns + '</div>' : '') +
                 '</div>';
             }).join('');
@@ -2668,13 +2669,13 @@
             });
         } else if (pap) {
             var on = pap.dataset.on === '1';
-            bellConfirm(on ? '이 제휴사를 승인할까요? 승인하면 상품 등록·판매가 가능합니다.' : '제휴사 승인을 취소할까요?').then(function (ok) {
+            bellConfirm(on ? '이 공급협력사를 승인할까요? 승인하면 벨로르에 공급할 상품을 등록할 수 있습니다.' : '공급협력사 승인을 취소할까요?').then(function (ok) {
                 if (!ok) return;
                 NWBackend.setPartnerApproved(pap.dataset.papprove, on)
                     .then(renderAdminPartners).catch(function (err) { alert('실패: ' + (err && err.message || err)); });
             });
         } else if (sp) {
-            bellConfirm('이 정산을 입금완료로 처리할까요? 제휴사에게 알림이 전송됩니다.').then(function (ok) {
+            bellConfirm('이 공급대금을 입금완료로 처리할까요? 공급협력사에게 알림이 전송됩니다.').then(function (ok) {
                 if (!ok) return;
                 NWBackend.setSettlementStatus(sp.dataset.stlpaid, 'paid')
                     .then(function () { renderAdminSettlements(_stlFilter); }).catch(function (err) { alert('실패: ' + (err && err.message || err)); });
@@ -3647,6 +3648,12 @@
         if (!base) return false;
         return (Date.parse(base) + SALE_HOURS * 3600 * 1000) > Date.now();
     };
+    function effectivePrice(it) {
+        var price = parseInt((it && it.price), 10) || 0;
+        var salePrice = parseInt((it && it.sale_price), 10) || 0;
+        return salePrice > 0 && salePrice < price && window.belloreSaleActive(it)
+            ? salePrice : price;
+    }
     // 가격 표시(할인 적용 시 정가 취소선 + 할인가 + 할인율)
     function priceHTML(it) {
         if (!it.price) return '가격 문의<em></em>';
@@ -3665,8 +3672,18 @@
     function brandEN(brand) {
         return window.BELLORE_BRAND_EN ? window.BELLORE_BRAND_EN(brand) : brand;
     }
+    function isNewItem(it) {
+        var condition = String((it && it.condition) || '');
+        var tags = (it && it.tags) || [];
+        return /미착용|신품/.test(condition) || tags.indexOf('new') !== -1;
+    }
+    function displayModelName(it) {
+        var model = String((it && it.model) || '').trim();
+        if (!model || isNewItem(it) || /^\[?중고\]?/.test(model)) return model;
+        return '[중고] ' + model;
+    }
     function brandModelLineHTML(it) {
-        var line = (brandKR(it.brand) + ' ' + (it.model || '')).trim();
+        var line = (brandKR(it.brand) + ' ' + displayModelName(it)).trim();
         return '<p class="hcard-model">' + esc(line) + '</p>';
     }
     // 카드 하단 스펙 한 줄: "36mm, 흰판" 형식(사이즈+색상, 사장님 확정)
@@ -3777,8 +3794,10 @@
             card.dataset.pid = it.id;
             card.dataset.brand = it.brand;
             card.dataset.model = it.model;
-            card.dataset.price = it.price || 0;
+            card.dataset.price = effectivePrice(it);
+            card.dataset.listprice = it.price || 0;
             card.dataset.sprice = it.sale_price || '';
+            card.dataset.saleactive = window.belloreSaleActive(it) ? '1' : '';
             card.dataset.pack = it.pack || '';
             card.dataset.size = it.size_mm || '';
             card.dataset.color = it.dial_color || '';
@@ -3824,8 +3843,11 @@
             card.dataset.pid = it.id;
             card.dataset.brand = it.brand;
             card.dataset.model = it.model;
-            card.dataset.price = it.price || 0;
+            card.dataset.price = effectivePrice(it);
+            card.dataset.listprice = it.price || 0;
             card.dataset.sprice = it.sale_price || '';
+            card.dataset.saleactive = window.belloreSaleActive(it) ? '1' : '';
+            card.dataset.cond = it.condition || '';
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
@@ -3852,8 +3874,11 @@
             card.dataset.pid = it.id;
             card.dataset.brand = it.brand;
             card.dataset.model = it.model;
-            card.dataset.price = it.price || 0;
+            card.dataset.price = effectivePrice(it);
+            card.dataset.listprice = it.price || 0;
             card.dataset.sprice = it.sale_price || '';
+            card.dataset.saleactive = window.belloreSaleActive(it) ? '1' : '';
+            card.dataset.cond = it.condition || '';
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
@@ -4578,7 +4603,7 @@
                     : '휴대폰 본인인증을 진행해 주세요.';
                 var sub = $('#signupSubmitBtn'); if (sub) sub.textContent = biz ? '가입 신청' : '가입 완료';
                 var ttl = $('#signupStep1Title');
-                if (ttl) ttl.textContent = (role === 'vendor' ? '업체 회원 정보' : role === 'partner' ? '제휴사 정보' : '기본 정보');
+                if (ttl) ttl.textContent = (role === 'vendor' ? '업체 회원 정보' : role === 'partner' ? '공급협력사 정보' : '기본 정보');
             };
             var nextBtn = $('#signupNext');
             if (nextBtn) nextBtn.addEventListener('click', function () {
@@ -4708,7 +4733,7 @@
                     if (!d.company) { alert('상호(회사명)를 입력해주세요.'); return; }
                     if (d.businessNo.length !== 10) { alert('사업자등록번호 10자리를 입력해주세요.'); return; }
                     if (!d.ceoName) { alert('대표자명을 입력해주세요.'); return; }
-                    if (!d.bank || !d.account || !d.holder) { alert('정산 계좌(은행·계좌번호·예금주)를 입력해주세요.'); return; }
+                    if (!d.bank || !d.account || !d.holder) { alert('판매대금·환불 계좌(은행·계좌번호·예금주)를 입력해주세요.'); return; }
                     if (isLive('business') && !vSt.biz.real && !vSt.biz.nc) { alert('사업자 인증을 완료해주세요.'); return; }
                     if (isLive('account') && !vSt.account.real && !vSt.account.nc) { alert('계좌 인증을 완료해주세요.'); return; }
                 }
@@ -6081,7 +6106,7 @@
         function ppPriceHTML(d) {
             if (!d.price) return d.priceHtml || '가격 문의';
             var sp = parseInt(d.sale_price, 10) || 0;
-            if (sp > 0 && sp < d.price) {
+            if (sp > 0 && sp < d.price && window.belloreSaleActive(d)) {
                 var rate = Math.round((1 - sp / d.price) * 100);
                 return '<span class="pp-price-old">' + fmt(d.price) + '원</span>' +
                     '<span class="pp-price-now"><b class="pp-rate">' + rate + '%</b>' + fmt(sp) + '<span class="won">원</span></span>';
@@ -6167,7 +6192,7 @@
             var lines = [];
             if (String(d.detail_desc || '').trim()) lines.push(esc(String(d.detail_desc).trim()).replace(/\n/g, '<br>'));
             if (String(d.special_note || '').trim()) lines.push('<b>특이사항</b> : ' + esc(String(d.special_note).trim()));
-            lines.push('<span class="pp-state-note">본 상품은 판매자가 입력한 정보이며, 구매 완료 시 벨로르 정밀 검수 후 출고됩니다. 중고 상품 특성상 스크래치·찍힘 및 사용감이 있을 수 있는 점 참고 부탁드립니다.</span>');
+            lines.push('<span class="pp-state-note">상품 상태 정보는 공급 자료와 벨로르의 검수 결과를 바탕으로 제공됩니다. 벨로르가 판매 당사자로서 정밀 검수 후 출고하며 교환·환불·분쟁 처리를 책임집니다. 중고 상품은 스크래치·찍힘 및 사용감이 있을 수 있습니다.</span>');
             desc.innerHTML = lines.map(function (l) { return '<p>' + l + '</p>'; }).join('');
         }
         function paint(d) {
@@ -6177,12 +6202,12 @@
             curIdx = 0;
 
             $('#pmBrand').textContent = brandKR(d.brand) || '';
-            $('#pmModel').textContent = d.model || '';
+            $('#pmModel').textContent = displayModelName(d);
             $('#pmPrice').innerHTML = ppPriceHTML(d);
             var pno = d.product_no || d.no || '-';
             $('#pmNo').textContent = pno;
             var no2 = $('#pmNo2'); if (no2) no2.textContent = pno;
-            var sm = $('#pmSaleMethod'); if (sm) sm.textContent = d.sale_method || '벨로르 직접 검수 판매';
+            var sm = $('#pmSaleMethod'); if (sm) sm.textContent = '벨로르 판매·결제 책임';
             var ship = $('#pmShip'); if (ship) ship.textContent = d.ship_info || '결제 후 2~4일 이내 발송';
             $('#pmPoint').textContent = d.price ? (fmt(Math.round(d.price * 0.01)) + 'P 적립 (1%)') : '-';
             paintAcc(d);
@@ -6212,13 +6237,18 @@
             var model = card.querySelector('.hcard-model');
             var price = card.querySelector('.hcard-price');
             var pid = card.dataset.pid || '';
+            var rawModel = card.dataset.model || (model ? model.textContent : '');
+            var condition = card.dataset.cond || '';
 
             paint({
                 brand: brand ? brand.textContent : (card.dataset.brand || ''),
-                model: model ? model.textContent : (card.dataset.model || ''),
+                model: rawModel,
+                condition: condition,
                 priceHtml: price ? price.innerHTML.replace(/<em>/g, '<span class="won">').replace(/<\/em>/g, '</span>') : '',
-                price: parseInt(card.dataset.price, 10) || 0,
+                price: parseInt(card.dataset.listprice, 10) || parseInt(card.dataset.price, 10) || 0,
                 sale_price: parseInt(card.dataset.sprice, 10) || 0,
+                tags: card.dataset.saleactive === '1' ? ['sale'] : [],
+                sale_started_at: card.dataset.saleactive === '1' ? new Date().toISOString() : null,
                 img: img ? img.src : '',
                 no: pid ? pid.slice(0, 8).toUpperCase() : '-'
             });
@@ -6227,7 +6257,8 @@
             window.BELLORE_currentProduct = {
                 listingId: pid || null,
                 brand: brand ? brand.textContent : (card.dataset.brand || ''),
-                model: model ? model.textContent : (card.dataset.model || ''),
+                model: displayModelName({ model: rawModel, condition: condition }),
+                condition: condition,
                 price: parseInt(card.dataset.price, 10) || 0,
                 image: img ? img.src : ''
             };
@@ -6264,6 +6295,8 @@
                     paint({
                         brand: it.brand, model: it.model, price: it.price,
                         sale_price: it.sale_price || 0,
+                        tags: it.tags || [], sale_started_at: it.sale_started_at || null,
+                        created_at: it.created_at || null,
                         photos: it.photos, category: it.category,
                         pack: it.pack || '', has_warranty: !!it.has_warranty,
                         accessories: it.accessories || '',
@@ -6281,8 +6314,9 @@
                     window.BELLORE_currentProduct = {
                         listingId: it.id,
                         brand: it.brand,
-                        model: it.model,
-                        price: it.price || 0,
+                        model: displayModelName(it),
+                        condition: it.condition || '',
+                        price: effectivePrice(it),
                         image: (it.photos && it.photos[0]) || ''
                     };
                 }).catch(function () {});
@@ -6304,6 +6338,8 @@
                 paint({
                     brand: it.brand, model: it.model, price: it.price,
                     sale_price: it.sale_price || 0, photos: it.photos, category: it.category,
+                    tags: it.tags || [], sale_started_at: it.sale_started_at || null,
+                    created_at: it.created_at || null,
                     pack: it.pack || '', has_warranty: !!it.has_warranty, accessories: it.accessories || '',
                     condition: it.condition || '', size_mm: it.size_mm || 0, stamping: it.stamping || '',
                     misu: it.misu || '', purchase_year: it.purchase_year || '', special_note: it.special_note || '',
@@ -6312,8 +6348,9 @@
                     no: String(it.id).slice(0, 8).toUpperCase()
                 });
                 window.BELLORE_currentProduct = {
-                    listingId: it.id, brand: it.brand, model: it.model,
-                    price: it.price || 0, image: (it.photos && it.photos[0]) || ''
+                    listingId: it.id, brand: it.brand, model: displayModelName(it),
+                    condition: it.condition || '',
+                    price: effectivePrice(it), image: (it.photos && it.photos[0]) || ''
                 };
                 modal.hidden = false;
                 modal.querySelector('.pp-scroll').scrollTop = 0;
