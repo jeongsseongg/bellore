@@ -3679,12 +3679,15 @@
     }
     function displayModelName(it) {
         var model = String((it && it.model) || '').trim();
-        if (!model || isNewItem(it) || /^\[?중고\]?/.test(model)) return model;
-        return '[중고] ' + model;
+        return model.replace(/^\s*\[?중고\]?\s*/i, '');
     }
     function brandModelLineHTML(it) {
         var line = (brandKR(it.brand) + ' ' + displayModelName(it)).trim();
         return '<p class="hcard-model">' + esc(line) + '</p>';
+    }
+    function usedStatusHTML(it) {
+        if (isNewItem(it)) return '';
+        return '<p class="hcard-used-row"><span class="hcard-used-badge">중고 상품</span></p>';
     }
     // 카드 하단 스펙 한 줄: "36mm, 흰판" 형식(사이즈+색상, 사장님 확정)
     function specLineHTML(it) {
@@ -3767,6 +3770,7 @@
                 brandModelLineHTML(it) +
                 specLineHTML(it) +
                 '<p class="hcard-price">' + priceHtml + '</p>' +
+                usedStatusHTML(it) +
                 '<div class="hcard-admin">' +
                 '<button type="button" class="hcard-gear" aria-label="설정"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1l2.1-2.1M17 7l2.1-2.1\"/></svg></button>' +
                 '<div class="hcard-admin-menu" hidden>' +
@@ -3815,6 +3819,7 @@
                 brandModelLineHTML(it) +
                 specLineHTML(it) +
                 '<p class="hcard-price">' + priceHtml + '</p>' +
+                usedStatusHTML(it) +
                 '<div class="hcard-admin">' +
                 '<button type="button" class="hcard-gear" aria-label="설정"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1l2.1-2.1M17 7l2.1-2.1\"/></svg></button>' +
                 '<div class="hcard-admin-menu" hidden>' +
@@ -3853,7 +3858,8 @@
                 '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
                 brandModelLineHTML(it) +
                 specLineHTML(it) +
-                '<p class="hcard-price">' + priceHtml + '</p>';
+                '<p class="hcard-price">' + priceHtml + '</p>' +
+                usedStatusHTML(it);
             frag.appendChild(card);
         });
         grid.appendChild(frag);
@@ -3884,7 +3890,8 @@
                 '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
                 brandModelLineHTML(it) +
                 specLineHTML(it) +
-                '<p class="hcard-price">' + priceHtml + '</p>';
+                '<p class="hcard-price">' + priceHtml + '</p>' +
+                usedStatusHTML(it);
             frag.appendChild(card);
         });
         grid.appendChild(frag);
