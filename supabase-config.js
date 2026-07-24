@@ -124,6 +124,9 @@ window.BELLORE_CATEGORIES = {
        (추천 매물 목록은 aiReply 값과 무관하게 항상 규칙기반으로 함께 표시)
    ============================================================ */
 window.BELLORE_AI_REPLY = true;
+window.BELLORE_LOCAL_AI = true;
+window.BELLORE_LOCAL_AI_POLL_MS = 1000;
+window.BELLORE_LOCAL_AI_MAX_POLLS = 40;
 
 /* AI 함수(Edge Function)의 "실제 주소 슬러그".
    - Supabase 대시보드에서 함수를 만들면 URL 이 /functions/v1/<슬러그> 형태입니다.

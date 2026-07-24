@@ -1,7 +1,7 @@
 # 벨로르 · 고객별 AI 시계 전문비서 — 누적 학습 / Discord 연동 / 실제 AI
 
 이 문서는 "어떻게 누적으로 학습하는가 → Discord 연동 → 실제 AI 학습"의 전체 흐름과
-배포 방법을 정리한다. 코드는 모두 들어가 있고, **활성화는 사장님이 시크릿(키)만 넣으면** 된다.
+배포 방법을 정리한다. 외부 AI와 사무실 PC의 Ollama 로컬 AI 중 하나를 선택할 수 있다.
 
 ## 0) "학습"의 정의 (중요)
 고객마다 신경망을 재학습(fine-tune)하지 **않는다.** 그건 비싸고 불필요하다.
@@ -38,6 +38,32 @@
 2. **프런트**: 이미 `index.html` 에 `ai-advisor.js` / `ai-advisor-admin.js` 연결됨.
    배포만 하면 고객용 'BELLORE AI' 버튼과 관리자 'AI 고객비서' 메뉴가 뜬다.
    - 이 단계까지는 **무료/즉시** 동작(규칙기반).
+
+### 사무실 로컬 AI 연결
+
+로컬 AI는 고객 브라우저에서 사무실 PC로 직접 접속하지 않는다. 고객 질문을 Supabase의
+보안 큐에 넣고, 사무실 PC의 워커가 Ollama로 답변한 뒤 결과만 돌려준다. 방화벽 포트 개방,
+고정 IP, Ollama 외부 공개가 필요 없다.
+
+1. Supabase SQL Editor에서 `local_ai_bridge.sql` 전체를 한 번 실행한다.
+2. `.env.local.example`을 참고해 프로젝트 루트의 `.env.local`을 설정한다.
+   실제 파일은 Git에 올라가지 않는다.
+3. 모델 생성:
+   ```powershell
+   ollama create bellore-shop-ai:1 -f ai\Modelfile
+   ```
+4. 워커 실행:
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File tools\run-local-ai-worker.ps1
+   ```
+5. 모델 검증:
+   ```powershell
+   node tools\eval-bellore-shop-ai.mjs
+   ```
+
+워커가 45초 이상 응답하지 않으면 웹은 로컬 큐를 건너뛰고 기존 서버/규칙 답변으로 즉시
+전환한다. 답변은 실제 판매 후보 ID만 추천할 수 있고, 검증되지 않은 가격·정품 판정·과거
+대화 기억·민감정보 요구는 모델 응답과 DB 저장 단계에서 모두 차단한다.
 
 ## 3) Discord 연동 (팀 지식 수집)
 Discord 는 채널 메시지를 임의 URL 로 자동 전송하지 않는다 → **작은 봇**이 필요하다.
@@ -158,10 +184,11 @@ select cron.schedule(
 - AI 키를 켜고 `window.BELLORE_AI_REPLY = true` 로 두면, 답변 문장은 ai-learn(지침+기억+지식
   기반)이 생성하고 추천 매물 목록은 그대로 붙는다. (기본값 off = 규칙기반, 비용 0)
 
-## 5) AIProvider 교체 지점
-- 클라이언트: `ai-advisor.js` 의 `provider = RuleBasedAIProvider`(현재).
-- 서버(실제 AI): `ai-learn` Edge Function 의 `llm()` 어댑터(anthropic/openai 선택).
-- 나중에 `LocalLLMProvider` 등을 붙이려면 `llm()` 에 분기만 추가하면 된다.
+## 5) AIProvider 우선순위
+- 실제 판매 시세가 확인되는 질문: 기존 시세 함수.
+- 워커가 온라인: Supabase 큐 → `bellore-shop-ai:1`(Ollama) → 응답 검증.
+- 워커가 오프라인/실패: `ai-learn` Edge Function.
+- 외부 AI도 미설정/실패: `RuleBasedAIProvider`.
 
 ## 6) 보안/개인정보
 - 전화·지역·실제예산·성향은 민감 데이터 → `consent_personalization` /

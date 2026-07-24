@@ -1,8 +1,7 @@
 /* ============================================================
    벨로르(BELLORE) · 고객별 AI 시계 전문비서 — 1차 기반 (엔진 + 고객 UI)
    ------------------------------------------------------------
-   ⚠️ 외부 AI API(OpenAI/Claude) 미연결. 전부 "규칙 기반"으로 동작.
-   나중에 API 를 붙일 수 있도록 AIProvider 인터페이스(stub)만 둡니다.
+   사무실 로컬 AI 우선 + Supabase 큐 + 규칙 기반 안전 폴백.
 
    동작 개요(고객):
      채팅 입력 → ai_conversations 저장 → ruleExtractor 로 브랜드/모델/예산/성향 추출
@@ -223,8 +222,10 @@
       return nm ? ('고객님 성함은 ' + nm + '님으로 확인돼요. 무엇을 도와드릴까요?')
                 : '아직 성함 정보가 없어요. 로그인하시면 맞춤으로 도와드릴 수 있어요.';
     }
+    if (/(나는|난|내가|저는|제가).{0,8}(누구|어떤\s*사람)|내\s*이름/.test(t))
+      return '제가 확인할 수 있는 것은 고객님이 직접 알려주신 관심 조건뿐이에요. 실제 신원이나 과거 행동은 추측하지 않으며, 원하시는 브랜드·모델·예산을 말씀해 주시면 그 조건으로 찾아볼게요.';
     if (/(이름|누구세요|누구야|넌\s*뭐|정체|뭐라고\s*불러)/.test(t))
-      return '저는 벨로르 AI 시계 비서예요. 롤렉스·파텍필립·오메가 같은 명품시계를 찾으시면, 브랜드나 예산만 말씀하셔도 딱 맞는 매물을 찾아 추천해드려요.';
+      return '저는 벨로르의 시계 탐색 도우미예요. 현재 등록된 매물 안에서 조건을 비교하고 필요한 정보를 정리하며, 가격과 진위의 최종 판단은 전문 상담사가 확인해요.';
     if (/(뭘\s*잘|아는\s*게|아는\s*거|뭐\s*(를)?\s*할|할\s*수\s*있|무엇을|기능|어떤\s*걸|뭐하는|도와줄)/.test(t))
       return '이런 걸 도와드려요:\n· 예산·취향에 맞는 시계 추천\n· 브랜드·모델별 매물 찾기\n· 입고 알림 설정\n· 시세·상담 연결\n찾으시는 브랜드나 예산을 편하게 말씀해 주세요.';
     if (/(예물|결혼|웨딩|신랑|신부|커플|프로포즈|기념일|선물)/.test(t))
@@ -276,8 +277,7 @@
         browsing: '천천히 둘러보세요. 관심 모델을 말씀해주시면 취향을 분석해 추천해드려요.'
       }[a.buying_stage];
       if (stageMsg) parts.push(stageMsg);
-      if (!parts.length) parts.push('관심 정보를 저장했습니다. 선호 브랜드/모델/예산을 분석하고 있습니다. 상품 추천 기능은 곧 연결됩니다.');
-      else parts.push('상품 추천 기능은 곧 연결됩니다.');
+      if (!parts.length) parts.push('원하시는 브랜드·모델·예산을 알려주시면 현재 등록된 매물 안에서 확인해드릴게요.');
       return parts.join(' ');
     },
     extractExpertKnowledge: function (teamMessages) {
@@ -584,6 +584,79 @@
     return ko >= 2 && ko >= en;   // 한글이 영문 이상일 때만 인정
   }
 
+  function localAiReplyAllowed(t) {
+    t = String(t || '');
+    if (!looksKorean(t) || t.length > 600) return false;
+    if (/(지난번|전에\s*보셨|보고\s*계셨|기억하고\s*있|다시\s*오셨)/.test(t)) return false;
+    if (/(곧\s*연결|추후\s*연결|기능은\s*준비\s*중)/.test(t)) return false;
+    if (/(₩\s*\d|KRW\s*\d|\d[\d,. ]{1,14}\s*(원|만원|억원))/i.test(t)) return false;
+    if (/(정품|진품|가품)(으로)?\s*(확실|보장|맞습니다|아닙니다|판단|확인)/.test(t)) return false;
+    return true;
+  }
+
+  function localAiCandidates(recos) {
+    var seen = {};
+    return (recos || []).map(function (item) {
+      var product = item && item.product || {};
+      var id = String(product.id || '').trim().slice(0, 80);
+      var name = [product.brand, product.model, product.reference_number].filter(Boolean).join(' ').trim().slice(0, 180);
+      if (!id || !name || seen[id]) return null;
+      seen[id] = true;
+      return { id: id, name: name };
+    }).filter(Boolean).slice(0, 8);
+  }
+
+  function waitLocalAi(ms) {
+    return new Promise(function (resolve) { setTimeout(resolve, ms); });
+  }
+
+  function pollLocalAiResult(clientToken, attempt) {
+    var maxPolls = Math.max(1, Math.min(60, Number(window.BELLORE_LOCAL_AI_MAX_POLLS || 40)));
+    var pollMs = Math.max(800, Math.min(3000, Number(window.BELLORE_LOCAL_AI_POLL_MS || 1000)));
+    if (attempt >= maxPolls) return Promise.resolve(null);
+    return waitLocalAi(pollMs).then(function () {
+      return sb().rpc('get_shop_ai_chat_result', { p_client_token: clientToken });
+    }).then(function (res) {
+      if (res && res.error) throw res.error;
+      var row = Array.isArray(res && res.data) ? res.data[0] : (res && res.data);
+      if (!row) return pollLocalAiResult(clientToken, attempt + 1);
+      if (row.status === 'completed' || row.status === 'safe_fallback') {
+        var reply = cleanAIReply(row.reply);
+        return localAiReplyAllowed(reply) ? reply : null;
+      }
+      if (row.status === 'ai_failed') return null;
+      return pollLocalAiResult(clientToken, attempt + 1);
+    });
+  }
+
+  function requestLocalAiReply(message, recos) {
+    if (!(window.BELLORE_LOCAL_AI === true && sb() && typeof sb().rpc === 'function')) {
+      return Promise.resolve(null);
+    }
+    return sb().rpc('get_shop_ai_runtime_status').then(function (statusResult) {
+      if (statusResult && statusResult.error) throw statusResult.error;
+      var runtime = Array.isArray(statusResult && statusResult.data)
+        ? statusResult.data[0]
+        : (statusResult && statusResult.data);
+      if (!runtime || runtime.online !== true) return null;
+      return sb().rpc('submit_shop_ai_chat', {
+      p_payload: {
+        message: String(message || '').slice(0, 600),
+        candidates: localAiCandidates(recos)
+      }
+      });
+    }).then(function (res) {
+      if (!res) return null;
+      if (res && res.error) throw res.error;
+      var receipt = Array.isArray(res && res.data) ? res.data[0] : (res && res.data);
+      if (!receipt || !receipt.client_token) throw new Error('로컬 AI 접수번호가 없습니다.');
+      return pollLocalAiResult(receipt.client_token, 0);
+    }).catch(function (error) {
+      console.warn('[BelloreAI] 로컬 AI 큐 미사용 → 서버/규칙 답변:', error && error.message || error);
+      return null;
+    });
+  }
+
   // "시세" 질문이면 디스코드에서 정리해둔 실제 매입/판매 데이터로 답한다(무료, 항상 동작).
   function priceAnswer(message, a) {
     if (!/시세|가격/.test(message)) return Promise.resolve(null);
@@ -603,11 +676,15 @@
   // 추천 매물은 카드(이미지+링크)로 별도 렌더하므로 답변 텍스트엔 붙이지 않는다.
   function composeReply(message, profile, a, recos) {
     var base = provider.generateReply(message, profile, { analysis: a });
-    // 흔한 일반질문(이름/뭘잘해/예물/인사/감사)은 규칙 답변이 더 깔끔 → AI 호출 생략
-    if (metaAnswer(message, profile)) return Promise.resolve(base);
     return priceAnswer(message, a).then(function (priced) {
       if (priced) return priced;
-      return composeReplyFallback(message, profile, a, base, recos);
+      return requestLocalAiReply(message, recos).then(function (localReply) {
+        if (localReply) {
+          console.info('[BelloreAI] 사무실 로컬 AI 응답 사용');
+          return localReply;
+        }
+        return composeReplyFallback(message, profile, a, base, recos);
+      });
     });
   }
   function composeReplyFallback(message, profile, a, base, recos) {
@@ -1092,17 +1169,10 @@
       '<div class="bai-menu">' +
         MENU.map(function (m) { return '<button class="bai-chip" type="button" data-q="' + esc(m.q) + '">' + esc(m.t) + '</button>'; }).join('') +
       '</div>';
-    // 친근한 인사만. 상품 추천은 "고객이 요청할 때만" 보여준다(먼저 들이밀지 않음).
-    // (인사말 자체는 상단 타이틀이 하므로, 말풍선에서는 중복 인사 없이 바로 안내)
-    ensureProfile().then(function (p) {
-      var brands = (p && p.preferred_brands) || [];
-      var who = brands.slice(0, 2).join(', ');
-      if (who) {
-        addBot('다시 오셨네요! 지난번 ' + who + ' 보고 계셨죠. 오늘은 어떤 시계 도와드릴까요?');
-      } else {
-        addBot('아직 고객님을 알아가는 중이에요 😊 취향을 살짝 알려주시면 딱 맞는 시계를 찾아드릴게요. 어떤 브랜드 좋아하세요?');
-        addQuickChips();
-      }
+    // 저장된 관심 정보를 실제 기억처럼 말하지 않는다. 항상 현재 요청부터 확인한다.
+    ensureProfile().then(function () {
+      addBot('찾으시는 시계의 브랜드·모델·예산을 알려주세요. 현재 등록된 매물 안에서 확인해드릴게요.');
+      addQuickChips();
     }).catch(function () {
       addBot('어떤 시계를 찾고 계세요? 브랜드나 예산만 알려주셔도 좋아요.');
     });
