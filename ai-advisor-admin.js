@@ -172,9 +172,17 @@
       cnt('ai_response_guidelines', function (q) { return q.eq('is_active', true); }),
       cnt('expert_knowledge_notes'),
       cnt('team_messages'),
-      cnt('ai_alert_candidates', function (q) { return q.eq('status', 'pending'); })
+      cnt('ai_alert_candidates', function (q) { return q.eq('status', 'pending'); }),
+      sb().rpc('get_shop_ai_runtime_status').then(function (result) {
+        if (result && result.error) return false;
+        var row = Array.isArray(result && result.data) ? result.data[0] : (result && result.data);
+        return !!(row && row.online === true);
+      }).catch(function () { return false; })
     ]).then(function (c) {
-      stat = { profiles: c[0], convs: c[1], events: c[2], guides: c[3], knowledge: c[4], team: c[5], alerts: c[6] };
+      stat = {
+        profiles: c[0], convs: c[1], events: c[2], guides: c[3],
+        knowledge: c[4], team: c[5], alerts: c[6], localOnline: c[7]
+      };
       // 관심 브랜드 Top / 단계 분포 (표본 조회)
       return sb().from('customer_ai_profiles').select('preferred_brands,buying_stage').limit(500);
     }).then(function (res) {
@@ -198,7 +206,9 @@
     html += '<h5>지금까지 수집·파악한 데이터</h5>';
     html += '<div class="aia-sec" style="display:flex;gap:8px;flex-wrap:wrap">' +
       statTile('고객 프로필', s.profiles) + statTile('대화', s.convs) + statTile('행동 로그', s.events) +
-      statTile('전문가 지식', s.knowledge) + statTile('Discord 수집', s.team) + '</div>';
+      statTile('전문가 지식', s.knowledge) + statTile('Discord 수집', s.team) +
+      statTile('로컬 AI', s.localOnline ? '온라인' : '오프라인',
+        s.localOnline ? 'Ollama 워커 연결됨' : '현재 안전 폴백 사용 중') + '</div>';
     html += '<div class="aia-2col">' +
       '<div><h5>관심 브랜드 Top</h5><div class="aia-card nohover">' +
         (topBrands.length ? topBrands.map(function (b) { return '<span class="aia-tag brand" style="margin:3px">' + esc(b) + ' ' + brandCnt[b] + '</span>'; }).join(' ') : '<span class="aia-sub">아직 데이터가 적습니다.</span>') + '</div></div>' +
@@ -389,7 +399,13 @@
         if (!rows.length) { bodyEl.innerHTML = '<div class="aia-empty">대화 로그가 없습니다.</div>'; return; }
         bodyEl.innerHTML = '<div class="aia-note">최근 대화 200건. 고객 상세에서 고객별 전체 대화를 볼 수 있습니다.</div>' +
           rows.map(function (c) {
+            var provider = c.metadata && c.metadata.provider;
+            var providerKo = {
+              local_ai: '로컬 AI', edge_ai: '외부 AI', rule_fallback: '규칙 폴백',
+              market_price_lookup: '시세 조회', preference_prompt: '취향 질문'
+            };
             return '<div class="aia-card nohover"><div class="aia-row"><span class="aia-tag ' + (c.role === 'user' ? 'brand' : '') + '">' + esc(c.role) + '</span>' +
+              (provider ? ('<span class="aia-tag">' + esc(providerKo[provider] || provider) + '</span>') : '') +
               '<span class="aia-meta" style="margin-left:auto;margin-top:0">' + fmtDate(c.created_at) + '</span></div>' +
               '<div class="aia-sub" style="margin-top:6px">' + esc(c.message) + '</div></div>';
           }).join('');

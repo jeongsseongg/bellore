@@ -3100,13 +3100,13 @@
     <script src="alerts.js"></script>
     <script src="auction.js"></script>
     <script src="search.js"></script>
-    <script src="ai-advisor.js"></script>
-    <script src="ai-advisor-admin.js"></script>
+    <script src="ai-advisor.js?v=20260725-ai-log"></script>
+    <script src="ai-advisor-admin.js?v=20260725-ai-log"></script>
     <script src="payments.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('sw.js?v=20260724-used-label').catch(function (err) {
+                navigator.serviceWorker.register('sw.js?v=20260725-ai-log').catch(function (err) {
                     console.warn('서비스워커 등록 실패:', err);
                 });
             });

@@ -17,6 +17,11 @@ const cases = [
     intents: ["identity"]
   },
   {
+    key: "assistant-identity-colloquial",
+    input: { message: "넌 누군데", candidates: [] },
+    intents: ["identity"]
+  },
+  {
     key: "customer-identity",
     input: { message: "난 누구고", candidates: [] },
     intents: ["customer_identity"]

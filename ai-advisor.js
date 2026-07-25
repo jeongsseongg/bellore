@@ -224,7 +224,7 @@
     }
     if (/(나는|난|내가|저는|제가).{0,8}(누구|어떤\s*사람)|내\s*이름/.test(t))
       return '제가 확인할 수 있는 것은 고객님이 직접 알려주신 관심 조건뿐이에요. 실제 신원이나 과거 행동은 추측하지 않으며, 원하시는 브랜드·모델·예산을 말씀해 주시면 그 조건으로 찾아볼게요.';
-    if (/(이름|누구세요|누구야|넌\s*뭐|정체|뭐라고\s*불러)/.test(t))
+    if (/(이름|누구세요|누구야|누군데|누구냐|누구니|정체|뭐라고\s*불러|(?:넌|너는|당신은).{0,8}(?:누구|뭐|정체))/.test(t))
       return '저는 벨로르의 시계 탐색 도우미예요. 현재 등록된 매물 안에서 조건을 비교하고 필요한 정보를 정리하며, 가격과 진위의 최종 판단은 전문 상담사가 확인해요.';
     if (/(뭘\s*잘|아는\s*게|아는\s*거|뭐\s*(를)?\s*할|할\s*수\s*있|무엇을|기능|어떤\s*걸|뭐하는|도와줄)/.test(t))
       return '이런 걸 도와드려요:\n· 예산·취향에 맞는 시계 추천\n· 브랜드·모델별 매물 찾기\n· 입고 알림 설정\n· 시세·상담 연결\n찾으시는 브랜드나 예산을 편하게 말씀해 주세요.';
@@ -273,7 +273,7 @@
         sell_intent: '판매/위탁 상담으로 도와드릴게요. 모델과 구성품을 알려주시면 매입가를 안내드립니다.',
         ready_to_buy: '바로 진행 가능하세요. 담당 매니저 연결 또는 예약을 도와드릴까요?',
         high_intent: '원하시는 매물이 입고되면 가장 먼저 알림을 보내드릴게요. 입고 알림을 켜드릴까요?',
-        considering: '가격/시세는 곧 연결될 추천 기능에서 정확히 안내드릴게요.',
+        considering: '가격·시세는 확인 가능한 실제 거래 자료와 등록 매물을 기준으로 안내하고, 자료가 부족하면 전문 상담사 확인이 필요하다고 분명히 말씀드릴게요.',
         browsing: '천천히 둘러보세요. 관심 모델을 말씀해주시면 취향을 분석해 추천해드려요.'
       }[a.buying_stage];
       if (stageMsg) parts.push(stageMsg);
@@ -498,6 +498,73 @@
     return Promise.resolve();
   }
 
+  var CHAT_SESSION_KEY = 'bellore_ai_chat_session';
+  function chatSessionId() {
+    try {
+      var current = sessionStorage.getItem(CHAT_SESSION_KEY);
+      if (/^[0-9a-f-]{36}$/i.test(current || '')) return current;
+      var created = (window.crypto && typeof window.crypto.randomUUID === 'function')
+        ? window.crypto.randomUUID()
+        : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = Math.random() * 16 | 0;
+            return (c === 'x' ? r : (r & 3 | 8)).toString(16);
+          });
+      sessionStorage.setItem(CHAT_SESSION_KEY, created);
+      return created;
+    } catch (e) { return null; }
+  }
+
+  function auditIntent(message, analysis) {
+    var t = String(message || '');
+    if (/(나는|난|내가|저는|제가).{0,8}(누구|어떤\s*사람)|내\s*이름/.test(t)) return 'customer_identity';
+    if (/(누구세요|누구야|누군데|누구냐|누구니|정체|(?:넌|너는|당신은).{0,8}(?:누구|뭐|정체))/.test(t)) return 'identity';
+    if (/(팔|판매|매도|매입|위탁)/.test(t)) return 'sell_question';
+    if (/(가격|시세|얼마|예산)/.test(t)) return 'price_question';
+    if (/(추천|골라|찾아|매물|재고|있나|있어|보여)/.test(t)) return 'recommendation';
+    if (analysis && (analysis.brands.length || analysis.references.length)) return 'inventory_question';
+    return 'general';
+  }
+
+  function logConversationTurn(profile, userMessage, assistantMessage, metadata) {
+    metadata = metadata || {};
+    var analysis = metadata.analysis || { brands: [], references: [], stage: 'unknown' };
+    var providerName = metadata.provider || 'rule_fallback';
+    var payload = {
+      profile_id: profile && profile.id || null,
+      session_id: chatSessionId(),
+      user_message: String(userMessage || '').slice(0, 600),
+      assistant_reply: String(assistantMessage || '').slice(0, 600),
+      provider: providerName,
+      intent: auditIntent(userMessage, analysis),
+      needs_review: metadata.needs_review === true,
+      recommended_listing_ids: metadata.recommended_listing_ids || []
+    };
+    if (sb() && typeof sb().rpc === 'function') {
+      return sb().rpc('log_shop_ai_turn', { p_payload: payload }).then(function (result) {
+        if (result && result.error) throw result.error;
+        return result && result.data;
+      }).catch(function (error) {
+        console.warn('[BelloreAI] 통합 대화 로그 RPC 실패 → 기존 저장 방식 사용:', error && error.message || error);
+        return Promise.all([
+          logConversation(profile, 'user', userMessage, {
+            analysis: analysis,
+            needs_review: payload.needs_review,
+            provider: providerName
+          }),
+          logConversation(profile, 'assistant', assistantMessage, { provider: providerName })
+        ]);
+      });
+    }
+    return Promise.all([
+      logConversation(profile, 'user', userMessage, {
+        analysis: analysis,
+        needs_review: payload.needs_review,
+        provider: providerName
+      }),
+      logConversation(profile, 'assistant', assistantMessage, { provider: providerName })
+    ]);
+  }
+
   // 사용자 메시지 1턴 처리 → { reply, analysis, profile }
   function handleUserMessage(message) {
     var a = analyze(message);
@@ -527,21 +594,33 @@
             var recoP = (wantReco && hasSignal) ? recommendProducts(p2, 24, a).catch(function () { return []; }) : Promise.resolve([]);
             return recoP.then(function (recos) {
               // 개선 루프: 브랜드/레퍼런스도 못 잡고 추천도 못 준 질문 = "대응 어려움" → 표시
-              var handled = a.brands.length || a.references.length || (recos && recos.length) || a.buying_stage === 'sell_intent';
+              var handled = a.brands.length || a.references.length || (recos && recos.length) ||
+                a.buying_stage === 'sell_intent' || !!metaAnswer(message, p2);
               var userMeta = { analysis: { brands: a.brands, references: a.references, stage: a.buying_stage } };
               if (!handled) userMeta.needs_review = true;
-              return logConversation(p2, 'user', message, userMeta.needs_review ? userMeta : null).then(function () {
-                // 정보가 없는데 추천을 원하면 → 부담없는 취향 Q&A
-                if (askPref) {
-                  var ask = '아직 고객님을 알게 된 지 얼마 안 돼서요 😊 부담 갖지 마시고, 취향만 살짝 알려주시면 딱 맞게 찾아드릴게요. 어떤 브랜드나 예산 생각하고 계세요?';
-                  return logConversation(p2, 'assistant', ask).then(function () {
-                    return { reply: ask, analysis: a, profile: p2, recommendations: [], askPref: true };
-                  });
-                }
-                return composeReply(message, p2, a, recos).then(function (reply) {
-                  return logConversation(p2, 'assistant', reply).then(function () {
-                    return { reply: reply, analysis: a, profile: p2, recommendations: recos, handled: !!handled };
-                  });
+              // 정보가 없는데 추천을 원하면 → 부담없는 취향 Q&A
+              if (askPref) {
+                var ask = '아직 고객님을 알게 된 지 얼마 안 돼서요 😊 부담 갖지 마시고, 취향만 살짝 알려주시면 딱 맞게 찾아드릴게요. 어떤 브랜드나 예산 생각하고 계세요?';
+                _lastReplyProvider = 'preference_prompt';
+                return logConversationTurn(p2, message, ask, {
+                  analysis: userMeta.analysis,
+                  needs_review: userMeta.needs_review === true,
+                  provider: _lastReplyProvider,
+                  recommended_listing_ids: []
+                }).then(function () {
+                  return { reply: ask, analysis: a, profile: p2, recommendations: [], askPref: true };
+                });
+              }
+              return composeReply(message, p2, a, recos).then(function (reply) {
+                return logConversationTurn(p2, message, reply, {
+                  analysis: userMeta.analysis,
+                  needs_review: userMeta.needs_review === true,
+                  provider: _lastReplyProvider,
+                  recommended_listing_ids: (recos || []).map(function (item) {
+                    return String(item && item.product && item.product.id || '');
+                  }).filter(Boolean).slice(0, 8)
+                }).then(function () {
+                  return { reply: reply, analysis: a, profile: p2, recommendations: recos, handled: !!handled };
                 });
               });
             });
@@ -674,12 +753,18 @@
   }
 
   // 추천 매물은 카드(이미지+링크)로 별도 렌더하므로 답변 텍스트엔 붙이지 않는다.
+  var _lastReplyProvider = 'rule_fallback';
   function composeReply(message, profile, a, recos) {
+    _lastReplyProvider = 'rule_fallback';
     var base = provider.generateReply(message, profile, { analysis: a });
     return priceAnswer(message, a).then(function (priced) {
-      if (priced) return priced;
+      if (priced) {
+        _lastReplyProvider = 'market_price_lookup';
+        return priced;
+      }
       return requestLocalAiReply(message, recos).then(function (localReply) {
         if (localReply) {
+          _lastReplyProvider = 'local_ai';
           console.info('[BelloreAI] 사무실 로컬 AI 응답 사용');
           return localReply;
         }
@@ -689,6 +774,7 @@
   }
   function composeReplyFallback(message, profile, a, base, recos) {
     if (!(window.BELLORE_AI_REPLY === true && sb() && sb().functions)) {
+      _lastReplyProvider = 'rule_fallback';
       console.warn('[BelloreAI] AI 미사용 → 규칙기반 답변. BELLORE_AI_REPLY=' + window.BELLORE_AI_REPLY + ', sb=' + !!sb());
       return Promise.resolve(base);
     }
@@ -700,24 +786,28 @@
           var ctx = res.error.context;
           if (ctx && typeof ctx.text === 'function') {
             return ctx.text().then(function (body) {
+              _lastReplyProvider = 'rule_fallback';
               console.warn('[BelloreAI] ai-learn HTTP 에러 → 규칙기반 대체. status=' + (ctx.status || '?') + ' body=' + body);
               return base;
-            }).catch(function () { console.warn('[BelloreAI] ai-learn 에러(본문 읽기 실패) → 규칙기반 대체:', errMsg); return base; });
+            }).catch(function () { _lastReplyProvider = 'rule_fallback'; console.warn('[BelloreAI] ai-learn 에러(본문 읽기 실패) → 규칙기반 대체:', errMsg); return base; });
           }
+          _lastReplyProvider = 'rule_fallback';
           console.warn('[BelloreAI] ai-learn 에러 → 규칙기반 대체:', errMsg);
           return base;
         }
         var d = res && res.data;
-        if (d && d.skipped) { console.warn('[BelloreAI] ai-learn 건너뜀(키 미설정) → 규칙기반 대체:', d.hint); return base; }
+        if (d && d.skipped) { _lastReplyProvider = 'rule_fallback'; console.warn('[BelloreAI] ai-learn 건너뜀(키 미설정) → 규칙기반 대체:', d.hint); return base; }
         var rawReply = d && d.result && d.result.reply;
         var r = cleanAIReply(rawReply);
         if (!looksKorean(r)) {
+          _lastReplyProvider = 'rule_fallback';
           console.warn('[BelloreAI] AI 응답이 한국어가 아니거나 비어있어 → 규칙기반 대체. 원본:', rawReply);
           return base;
         }
+        _lastReplyProvider = 'edge_ai';
         console.info('[BelloreAI] 실제 AI 응답 사용:', r);
         return r;
-      }).catch(function (e) { console.warn('[BelloreAI] ai-learn 호출 자체 실패 → 규칙기반 대체:', e); return base; });
+      }).catch(function (e) { _lastReplyProvider = 'rule_fallback'; console.warn('[BelloreAI] ai-learn 호출 자체 실패 → 규칙기반 대체:', e); return base; });
   }
 
   function buildInterestItems(a) {

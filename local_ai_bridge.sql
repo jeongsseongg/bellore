@@ -271,6 +271,118 @@ as $$
   from public.ai_local_worker_auth worker;
 $$;
 
+create or replace function public.log_shop_ai_turn(p_payload jsonb)
+returns uuid
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_turn_id uuid := gen_random_uuid();
+  v_profile_id uuid;
+  v_session_id uuid;
+  v_user_message text;
+  v_assistant_reply text;
+  v_provider text;
+  v_intent text;
+  v_needs_review boolean;
+  v_recommended jsonb := '[]'::jsonb;
+  v_metadata jsonb;
+begin
+  if jsonb_typeof(p_payload) <> 'object' then
+    raise exception 'invalid_payload';
+  end if;
+
+  v_user_message := nullif(left(trim(coalesce(p_payload->>'user_message', '')), 600), '');
+  v_assistant_reply := nullif(left(trim(coalesce(p_payload->>'assistant_reply', '')), 600), '');
+  if v_user_message is null or v_assistant_reply is null then
+    raise exception 'invalid_turn';
+  end if;
+
+  v_provider := coalesce(nullif(p_payload->>'provider', ''), 'rule_fallback');
+  if v_provider not in (
+    'local_ai', 'edge_ai', 'rule_fallback', 'market_price_lookup', 'preference_prompt'
+  ) then
+    v_provider := 'rule_fallback';
+  end if;
+
+  v_intent := coalesce(nullif(p_payload->>'intent', ''), 'general');
+  if v_intent not in (
+    'identity','customer_identity','recommendation','inventory_question',
+    'price_question','sell_question','general','out_of_scope'
+  ) then
+    v_intent := 'general';
+  end if;
+  v_needs_review := coalesce(p_payload->'needs_review' = 'true'::jsonb, false);
+
+  begin
+    v_profile_id := nullif(p_payload->>'profile_id', '')::uuid;
+  exception when invalid_text_representation then
+    v_profile_id := null;
+  end;
+  begin
+    v_session_id := nullif(p_payload->>'session_id', '')::uuid;
+  exception when invalid_text_representation then
+    v_session_id := null;
+  end;
+
+  if v_profile_id is not null and not exists (
+    select 1
+    from public.customer_ai_profiles profile
+    where profile.id = v_profile_id
+      and (
+        profile.user_id = auth.uid()
+        or public.is_admin_uid(auth.uid())
+      )
+  ) then
+    v_profile_id := null;
+  end if;
+
+  if (
+    select count(*)
+    from public.ai_conversations conversation
+    where conversation.channel = 'web-ai-audit'
+      and conversation.role = 'user'
+      and conversation.created_at > now() - interval '1 minute'
+  ) >= 180 then
+    raise exception 'log_rate_limited';
+  end if;
+
+  if public.ai_jsonb_is_string_array(p_payload->'recommended_listing_ids') then
+    select coalesce(jsonb_agg(item.id), '[]'::jsonb)
+    into v_recommended
+    from (
+      select left(value, 80) as id
+      from jsonb_array_elements_text(p_payload->'recommended_listing_ids') value
+      where nullif(trim(value), '') is not null
+      limit 8
+    ) item;
+  end if;
+
+  v_metadata := jsonb_build_object(
+    'turn_id', v_turn_id,
+    'provider', v_provider,
+    'intent', v_intent,
+    'needs_review', v_needs_review,
+    'recommended_listing_ids', v_recommended
+  );
+
+  insert into public.ai_conversations (
+    user_id, profile_id, session_id, channel, role, message, metadata
+  ) values
+    (
+      auth.uid(), v_profile_id, v_session_id, 'web-ai-audit', 'user',
+      v_user_message, v_metadata
+    ),
+    (
+      auth.uid(), v_profile_id, v_session_id, 'web-ai-audit', 'assistant',
+      v_assistant_reply, v_metadata
+    );
+
+  return v_turn_id;
+end;
+$$;
+
 create or replace function public.claim_shop_ai_chat(
   p_worker_name text,
   p_worker_secret text
@@ -440,6 +552,7 @@ revoke all on function public.verify_local_ai_worker(text, text) from public;
 revoke all on function public.submit_shop_ai_chat(jsonb) from public;
 revoke all on function public.get_shop_ai_chat_result(uuid) from public;
 revoke all on function public.get_shop_ai_runtime_status() from public;
+revoke all on function public.log_shop_ai_turn(jsonb) from public;
 revoke all on function public.claim_shop_ai_chat(text, text) from public;
 revoke all on function public.get_shop_ai_knowledge(text, text) from public;
 revoke all on function public.complete_shop_ai_chat(
@@ -449,6 +562,7 @@ revoke all on function public.complete_shop_ai_chat(
 grant execute on function public.submit_shop_ai_chat(jsonb) to anon, authenticated;
 grant execute on function public.get_shop_ai_chat_result(uuid) to anon, authenticated;
 grant execute on function public.get_shop_ai_runtime_status() to anon, authenticated;
+grant execute on function public.log_shop_ai_turn(jsonb) to anon, authenticated;
 grant execute on function public.claim_shop_ai_chat(text, text) to anon, authenticated;
 grant execute on function public.get_shop_ai_knowledge(text, text) to anon, authenticated;
 grant execute on function public.complete_shop_ai_chat(
