@@ -1,0 +1,478 @@
+<title>BELLORE 마이페이지 개편 시안</title>
+<style>
+:root{
+  --bg:#edecea; --panel:#ffffff; --ink:#15171a; --ink2:#4b5158; --muted:#787f87;
+  --line:#dbd8d4; --line2:#e9e6e2; --accent:#9a6f66; --accent-soft:#f3ebe9; --warn:#b4443e;
+  --sans:"Pretendard",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+  --serif:"Playfair Display","Cormorant Garamond",Georgia,"Times New Roman",serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#101113;--panel:#1a1c1f;--ink:#eef1f4;--ink2:#c3cad2;--muted:#8e98a3;
+    --line:#2e3238;--line2:#25292e;--accent:#cf9f95;--accent-soft:#2b2320;--warn:#e08a84}
+}
+:root[data-theme="dark"]{--bg:#101113;--panel:#1a1c1f;--ink:#eef1f4;--ink2:#c3cad2;--muted:#8e98a3;
+  --line:#2e3238;--line2:#25292e;--accent:#cf9f95;--accent-soft:#2b2320;--warn:#e08a84}
+:root[data-theme="light"]{--bg:#edecea;--panel:#ffffff;--ink:#15171a;--ink2:#4b5158;--muted:#787f87;
+  --line:#dbd8d4;--line2:#e9e6e2;--accent:#9a6f66;--accent-soft:#f3ebe9;--warn:#b4443e}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;
+  letter-spacing:-.01em;-webkit-font-smoothing:antialiased}
+img{max-width:100%;display:block}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px}
+@media (max-width:540px){.wrap{padding:0 14px}}
+
+.cover{padding:54px 0 34px;border-bottom:1px solid var(--line)}
+.cover-brand{font-family:var(--serif);font-size:27px;font-weight:700;letter-spacing:.3em;text-indent:.3em;margin:0 0 20px}
+.cover h1{font-size:clamp(26px,5.2vw,40px);line-height:1.22;font-weight:800;margin:0 0 14px;
+  letter-spacing:-.035em;max-width:20ch;text-wrap:balance}
+.cover p{margin:0 0 10px;max-width:64ch;color:var(--ink2);font-size:15.5px}
+.cover p b{color:var(--ink)}
+.keep{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.keep span{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:999px;
+  border:1px solid var(--line);background:var(--panel);font-size:12.5px;font-weight:600;color:var(--ink2)}
+.keep span b{color:var(--ink);font-weight:800;margin-right:5px}
+
+.sec{padding:44px 0;border-bottom:1px solid var(--line)}
+.sec:last-of-type{border-bottom:0}
+.sec-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.eyebrow{font-size:11.5px;font-weight:800;letter-spacing:.26em;text-transform:uppercase;color:var(--accent)}
+.sec h2{font-size:clamp(21px,3.3vw,27px);font-weight:800;letter-spacing:-.03em;margin:0}
+.sec-lead{margin:10px 0 0;color:var(--ink2);max-width:66ch;font-size:15px}
+
+/* 진단 */
+.diag{list-style:none;margin:26px 0 0;padding:0;display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.diag li{background:var(--panel);border:1px solid var(--line2);border-radius:13px;padding:16px 18px}
+.diag .now{display:flex;align-items:flex-start;gap:8px;font-size:13.5px;font-weight:700;color:var(--warn)}
+.diag .now i{font-style:normal;flex:0 0 auto}
+.diag .fix{margin:9px 0 0;font-size:13.5px;color:var(--ink2);padding-left:20px}
+.diag .fix b{color:var(--ink);font-weight:700}
+
+/* 화면 */
+.screens{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:34px;margin-top:28px;align-items:start}
+.scard{min-width:0}
+.vh{display:flex;align-items:flex-start;gap:11px;margin-bottom:13px}
+.vt{flex:0 0 auto;width:27px;height:27px;border-radius:8px;background:var(--ink);color:var(--panel);
+  display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:800;margin-top:2px}
+.vt.rec{background:var(--accent)}
+.vh h3{margin:0;font-size:16.5px;font-weight:800;letter-spacing:-.03em}
+.vh p{margin:2px 0 0;font-size:12.5px;color:var(--muted)}
+.dev-hold{width:100%;overflow:hidden}
+.device{width:100%;max-width:390px;min-width:0;margin:0 auto;background:#1b1e22;border-radius:40px;
+  padding:9px;box-shadow:0 18px 40px rgba(8,12,20,.2)}
+.js-fit .device{width:390px;max-width:none;margin:0;transform-origin:top left}
+.device-screen{border-radius:32px;overflow:hidden;background:#fff;position:relative}
+.pts{list-style:none;margin:15px 0 0;padding:0}
+.pts li{display:grid;grid-template-columns:auto 1fr;gap:9px;padding:8px 0;border-top:1px solid var(--line2);
+  font-size:13.5px;color:var(--ink2)}
+.pts li:first-child{border-top:0}
+.pts .k{font-size:11px;font-weight:800;color:var(--accent);background:var(--accent-soft);border-radius:5px;
+  padding:2px 7px;white-space:nowrap;height:fit-content;margin-top:1px}
+.pts b{color:var(--ink);font-weight:700}
+.good{margin:12px 0 0;font-size:12.5px;color:var(--muted);border-left:2px solid var(--line);padding:2px 0 2px 11px;line-height:1.6}
+.good b{color:var(--ink2);font-weight:700}
+
+/* 배지 규칙 비교 */
+.ba{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px;max-width:800px}
+@media (max-width:560px){.ba{grid-template-columns:1fr}}
+.ba > div{background:var(--panel);border:1px solid var(--line2);border-radius:14px;padding:16px}
+.ba h4{margin:0 0 3px;font-size:13px;font-weight:800}
+.ba h4.x{color:var(--muted)} .ba h4.o{color:var(--accent)}
+.ba p.c{margin:0 0 14px;font-size:11.5px;color:var(--muted)}
+.stage{background:#fff;border-radius:10px;padding:16px 8px}
+.iconrow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center}
+.iconrow .ci{position:relative;width:46px;height:46px;border-radius:50%;background:#f4f4f3;
+  display:flex;align-items:center;justify-content:center;margin:0 auto;color:#111214}
+.iconrow em{position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;border-radius:999px;
+  background:#e0342c;color:#fff;font-size:10.5px;font-weight:800;font-style:normal;display:flex;
+  align-items:center;justify-content:center;padding:0 5px;border:2px solid #fff}
+.iconrow em.dot{min-width:9px;width:9px;height:9px;padding:0;background:#9a6f66;top:0;right:0}
+.iconrow span{display:block;font-size:10.5px;margin-top:7px;color:#4a525c;font-weight:600}
+
+.ask{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:0 12px 12px 0;padding:20px 22px;margin-top:26px}
+.ask h3{margin:0 0 10px;font-size:15.5px;font-weight:800}
+.ask ul{margin:0;padding-left:19px;font-size:14.5px;color:var(--ink2)}
+.ask ul li{padding:4px 0}
+.ask ul b{color:var(--ink)}
+.foot{padding:30px 0 56px;color:var(--muted);font-size:12.5px;line-height:1.7}
+
+/* ============================================================
+   앱 화면 — 확정 톤 (흰 바탕 · 로즈브라운 1색 · 좌우 24px)
+   ============================================================ */
+.app{--i:#111214;--s:#6e7278;--d:#a2a6ab;--ln:#efedea;--band:#fafaf9;--ro:#9a6f66;--ro2:#f5eeec;
+  background:#fff;color:var(--i);font-size:14px;line-height:1.5;letter-spacing:-.02em;font-family:var(--sans)}
+.app *{box-sizing:border-box;min-width:0}
+.app svg{display:block}
+.app p{margin:0}
+.ic{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.ic.sm{width:16px;height:16px}
+.ic.xs{width:13px;height:13px;stroke-width:2.1}
+.ic.lg{width:25px;height:25px;stroke-width:1.6}
+.num{font-variant-numeric:tabular-nums}
+.st{display:flex;justify-content:space-between;align-items:center;padding:11px 24px 2px;font-size:12px;font-weight:700}
+.wm{font-family:var(--serif);font-size:20px;font-weight:700;letter-spacing:.16em;text-indent:.16em}
+.hd{display:flex;align-items:center;justify-content:space-between;padding:12px 24px 6px;min-height:54px}
+.hd .ttl{font-size:17px;font-weight:800;letter-spacing:-.04em}
+.hd .r{display:flex;gap:16px;align-items:center}
+.hd-ic{position:relative}
+.dot{position:absolute;top:-1px;right:-2px;width:6px;height:6px;border-radius:50%;background:#e0342c;border:1.5px solid #fff}
+.gap{height:32px}.gap.s{height:20px}.gap.l{height:40px}
+
+/* 프로필 */
+.prof{display:flex;align-items:center;gap:14px;padding:14px 24px 0}
+.prof .av{width:54px;height:54px;border-radius:50%;background:#f2f1ef;display:flex;align-items:center;
+  justify-content:center;color:#b8bcc0;flex:0 0 auto}
+.prof .w{flex:1;min-width:0}
+.prof .n{font-size:20px;font-weight:800;letter-spacing:-.045em;display:flex;align-items:center;gap:8px}
+.grade{font-size:10.5px;font-weight:800;letter-spacing:.06em;color:var(--ro);background:var(--ro2);
+  padding:3px 8px;border-radius:5px}
+.prof .m{font-size:12.5px;color:var(--s);margin-top:3px}
+.prof .go{color:var(--d)}
+
+/* 자산 3칸 */
+.sum{display:grid;grid-template-columns:repeat(3,1fr);margin:20px 24px 0;border:1px solid var(--ln);
+  border-radius:16px;overflow:hidden}
+.sum a{padding:17px 6px 15px;text-align:center;text-decoration:none;color:var(--i);border-left:1px solid var(--ln)}
+.sum a:first-child{border-left:0}
+.sum .v{font-size:19px;font-weight:800;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.sum .v em{font-style:normal;font-size:13px;font-weight:700;margin-left:1px}
+.sum .l{font-size:11.5px;color:var(--s);margin-top:3px;font-weight:600}
+
+/* 진행 중 카드 */
+.now{margin:16px 24px 0;border:1px solid #111214;border-radius:16px;overflow:hidden}
+.now .h{display:flex;align-items:center;gap:7px;padding:14px 18px 0;font-size:11.5px;font-weight:800;color:var(--ro)}
+.now .h i{width:6px;height:6px;border-radius:50%;background:var(--ro);display:block}
+.now .b{display:flex;gap:13px;align-items:center;padding:12px 18px 16px}
+.now .b img{width:58px;height:58px;border-radius:10px;object-fit:cover;background:var(--band);
+  mix-blend-mode:multiply;flex:0 0 auto}
+.now .b .w{flex:1;min-width:0}
+.now .b .t{display:block;font-size:14px;font-weight:700;letter-spacing:-.035em}
+.now .b .s{display:block;font-size:11.5px;color:var(--s);margin-top:3px;line-height:1.5}
+.now .f{display:flex;border-top:1px solid var(--ln)}
+.now .f span{flex:1;text-align:center;padding:13px 0;font-size:13px;font-weight:700;border-left:1px solid var(--ln)}
+.now .f span:first-child{border-left:0}
+
+/* 메뉴 */
+.mgroup{padding:0 24px;margin-top:26px}
+.mgroup .gl{font-size:11.5px;font-weight:800;color:var(--d);letter-spacing:.1em;margin-bottom:2px}
+.mgroup a{display:flex;align-items:center;justify-content:space-between;padding:16px 0;text-decoration:none;
+  color:var(--i);font-size:15px;font-weight:600;letter-spacing:-.03em;border-bottom:1px solid var(--ln)}
+.mgroup a:last-child{border-bottom:0}
+.mgroup a .r{display:flex;align-items:center;gap:9px;color:var(--d);font-size:12.5px;font-weight:700}
+.mgroup a .r .c{color:var(--ro);font-variant-numeric:tabular-nums}
+.beta{font-size:9.5px;font-weight:800;letter-spacing:.08em;color:var(--d);border:1px solid var(--ln);
+  border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:2px}
+
+/* 아이콘 그리드 (B안) */
+.gr{display:grid;grid-template-columns:repeat(4,1fr);gap:20px 4px;padding:22px 16px 4px}
+.gr a{display:flex;flex-direction:column;align-items:center;gap:8px;text-decoration:none;color:var(--i)}
+.gr .ci{position:relative;width:48px;height:48px;border-radius:50%;background:#f6f5f4;display:flex;
+  align-items:center;justify-content:center}
+.gr .ci em{position:absolute;top:0;right:0;width:9px;height:9px;border-radius:50%;background:var(--ro);
+  border:2px solid #fff;font-style:normal}
+.gr span{font-size:11.5px;font-weight:600;letter-spacing:-.03em;text-align:center}
+.gr small{font-size:11px;color:var(--ro);font-weight:800;font-variant-numeric:tabular-nums}
+
+/* 배너 */
+.bnr{position:relative;height:104px;margin:24px 24px 0;border-radius:14px;overflow:hidden;background:#111}
+.bnr img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 42%;
+  filter:brightness(.62) saturate(.78)}
+.bnr::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(100deg,rgba(0,0,0,.72) 0%,rgba(0,0,0,.28) 58%,rgba(0,0,0,.05) 100%)}
+.bnr .in{position:absolute;left:18px;bottom:16px;color:#fff;z-index:1}
+.bnr .e{font-size:10px;letter-spacing:.2em;font-weight:800;color:#e3d9d4}
+.bnr .t{font-size:15px;font-weight:800;letter-spacing:-.04em;margin-top:5px}
+.bnr .pg{position:absolute;right:14px;bottom:14px;z-index:1;font-size:10px;font-weight:700;color:#fff;
+  background:rgba(0,0,0,.42);padding:2px 8px;border-radius:999px}
+
+/* 고객센터 */
+.cs{margin-top:32px;padding:26px 24px 28px;background:var(--band)}
+.cs .wm{font-size:18px;margin-bottom:4px}
+.cs .tag{font-size:11.5px;color:var(--s)}
+.cs .tel{font-size:18px;font-weight:800;margin-top:15px;letter-spacing:-.035em;font-variant-numeric:tabular-nums}
+.cs .hrs{font-size:11.5px;color:var(--s);margin-top:3px}
+.cs .lnk{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:18px;font-size:12.5px;color:var(--s);font-weight:600}
+.cs .biz{display:flex;align-items:center;gap:6px;margin-top:16px;font-size:12.5px;font-weight:700}
+.cs .out{margin-top:18px;font-size:12.5px;color:var(--d);font-weight:600;text-decoration:underline}
+
+/* 탭바 — 현재 앱 라벨 유지 */
+.tab{display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--ln);background:#fff;padding:10px 0 15px}
+.tab a{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;text-decoration:none;
+  color:#adb1b6;font-size:10.5px;font-weight:600}
+.tab a.on{color:#111214;font-weight:800}
+.tab em{position:absolute;top:-4px;left:calc(50% + 5px);min-width:17px;height:17px;border-radius:999px;
+  background:#e0342c;color:#fff;font-size:10px;font-weight:800;font-style:normal;display:flex;
+  align-items:center;justify-content:center;padding:0 5px;border:2px solid #fff}
+</style>
+
+<svg style="display:none" aria-hidden="true">
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7.5"/><path d="m20.5 20.5-4.2-4.2"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 1 0-12 0c0 6-2.5 7-2.5 7h17S18 14 18 8Z"/><path d="M13.7 19a2 2 0 0 1-3.4 0"/></symbol>
+  <symbol id="i-cart" viewBox="0 0 24 24"><circle cx="9.5" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3h2.6l2.4 12.2a1.7 1.7 0 0 0 1.7 1.3h8.4a1.7 1.7 0 0 0 1.7-1.3L21 7H6"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.7V20h13V9.7"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20.3s-7.5-4.6-7.5-9.7A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 3c0 5.1-7.5 9.7-7.5 9.7Z"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4.8 20c.6-3.7 3.6-5.6 7.2-5.6s6.6 1.9 7.2 5.6"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+  <symbol id="i-cog" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l1.7-1.3-1.9-3.3-2 .8a7.6 7.6 0 0 0-2.6-1.5l-.3-2.2h-3.8l-.3 2.2a7.6 7.6 0 0 0-2.6 1.5l-2-.8L3.7 9.2l1.7 1.3a7.6 7.6 0 0 0 0 3l-1.7 1.3 1.9 3.3 2-.8a7.6 7.6 0 0 0 2.6 1.5l.3 2.2h3.8l.3-2.2a7.6 7.6 0 0 0 2.6-1.5l2 .8 1.9-3.3Z"/></symbol>
+  <symbol id="i-watch-up" viewBox="0 0 24 24"><circle cx="12" cy="12.6" r="5.6"/><path d="M8.6 7.2 9 3.4h6l.4 3.8M15.4 18l-.4 3.6H9L8.6 18"/><path d="M12 15V9.9m0 0-1.8 1.8M12 9.9l1.8 1.8"/></symbol>
+  <symbol id="i-ticket" viewBox="0 0 24 24"><path d="M3 8.2A2 2 0 0 1 5 6.2h14a2 2 0 0 1 2 2v1.6a2.2 2.2 0 0 0 0 4.4v1.6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1.6a2.2 2.2 0 0 0 0-4.4Z"/><path d="M13.5 6.6v10.8" stroke-dasharray="2 2.4"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M12 7.4V12l3 1.8"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="m12 3 8.4 4.2v9.6L12 21l-8.4-4.2V7.2Z"/><path d="m3.6 7.2 8.4 4.2 8.4-4.2M12 21v-9.6"/></symbol>
+  <symbol id="i-gavel" viewBox="0 0 24 24"><path d="m3.5 20.5 8-8"/><path d="m9.5 8.5 6 6"/><path d="m13.2 4.8 6 6-2.4 2.4-6-6z"/><path d="M14.5 18.5h7"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 1.9 5.3L19 10.2l-5.1 1.9L12 17.4l-1.9-5.3L5 10.2l5.1-1.9Z"/></symbol>
+  <symbol id="i-truck" viewBox="0 0 24 24"><path d="M2.5 6.5h11v10h-11z"/><path d="M13.5 10h4l3 3.2v3.3h-7z"/><circle cx="7" cy="18.5" r="1.7"/><circle cx="17" cy="18.5" r="1.7"/></symbol>
+</svg>
+
+<div class="wrap">
+<header class="cover">
+  <p class="cover-brand">BELLORE</p>
+  <h1>마이페이지 개편안</h1>
+  <p>확정하신 톤(<b>C 매거진형 홈</b> + <b>B 시세형 검색바</b>) 그대로입니다. 흰 바탕 · 로즈브라운 한 색 ·
+     좌우 여백 24px. 홈 · 검색은 손대지 않았습니다.</p>
+  <p>보내주신 현재 화면에서 <b>실제로 어긋나 있는 것들</b>을 먼저 짚고, 두 가지 안으로 그렸습니다.
+     A안이 권장이고, B안은 지금의 아이콘 그리드를 살린 최소 수정안입니다.</p>
+  <div class="keep">
+    <span><b>유지</b>탭바 5칸 · 현재 라벨</span>
+    <span><b>유지</b>주문내역 · 경매 · AI 시계비서 · 고객센터</span>
+    <span><b>유지</b>포인트/쿠폰 · 시계판매 · 내 관심 · 최근 본 · 장바구니</span>
+  </div>
+</header>
+</div>
+
+<div class="wrap">
+<section class="sec">
+  <div class="sec-head"><span class="eyebrow">Now</span><h2>현재 화면에서 고칠 것</h2></div>
+  <p class="sec-lead">보내주신 캡처에서 눈에 걸리는 부분입니다. 취향 문제가 아니라 <b>규격이 어긋난 것들</b>입니다.</p>
+  <ul class="diag">
+    <li><p class="now"><i>1</i>아이콘 5개가 4칸 그리드 → 둘째 줄에 <b>장바구니 하나만</b> 덩그러니, 오른쪽 3칸이 빕니다.</p>
+      <p class="fix">→ <b>4칸에 딱 맞게 8개</b>로 채우거나(B안), 아예 <b>목록으로 전환</b>합니다(A안).</p></li>
+    <li><p class="now"><i>2</i>배너 자리에 <b>"이벤트·혜택 배너" 점선 박스</b>가 그대로 보입니다. 등록된 배너가 없을 때 자리표시가 노출된 상태입니다.</p>
+      <p class="fix">→ 배너가 없으면 <b>영역 자체를 숨깁니다.</b> 있을 때만 사진 배너로 노출.</p></li>
+    <li><p class="now"><i>3</i>빨간 숫자 배지가 <b>한 화면에 4개</b>(1·1·2·3). 다 급해 보여서 정작 급한 게 안 보입니다.</p>
+      <p class="fix">→ 빨강은 <b>정말 조치가 필요한 것</b>(장바구니·알림)만. 나머지는 <b>작은 점</b>이나 회색 숫자.</p></li>
+    <li><p class="now"><i>4</i>탭바의 '마이페이지'가 <b>검은 사각 테두리</b>로 표시됩니다. 버튼처럼 보여 다른 탭과 규격이 어긋납니다.</p>
+      <p class="fix">→ 테두리 없이 <b>아이콘·글씨만 검정 굵게</b>. 나머지는 회색.</p></li>
+    <li><p class="now"><i>5</i>이름 아래 <b>이메일이 그대로</b> 노출됩니다. 가족·지인에게 화면을 보여줄 때 부담이 됩니다.</p>
+      <p class="fix">→ 그 자리에 <b>등급과 혜택</b>을 넣고, 이메일은 회원정보 수정 안으로.</p></li>
+    <li><p class="now"><i>6</i>주문내역 · 경매 · AI · 고객센터가 <b>전부 같은 무게</b>입니다. 진행 중인 주문이 있어도 티가 안 납니다.</p>
+      <p class="fix">→ <b>진행 중인 주문·견적을 맨 위 카드</b>로. "언제 오냐" 문의가 줄어듭니다.</p></li>
+  </ul>
+
+  <div class="ba">
+    <div><h4 class="x">지금 — 빨간 배지 4개</h4><p class="c">전부 빨강이라 우선순위가 없습니다</p>
+      <div class="stage"><div class="iconrow">
+        <div><span class="ci"><em>1</em><svg class="ic"><use href="#i-ticket"/></svg></span><span>포인트/쿠폰</span></div>
+        <div><span class="ci"><svg class="ic"><use href="#i-watch-up"/></svg></span><span>시계판매</span></div>
+        <div><span class="ci"><em>1</em><svg class="ic"><use href="#i-heart"/></svg></span><span>내 관심</span></div>
+        <div><span class="ci"><em>2</em><svg class="ic"><use href="#i-cart"/></svg></span><span>장바구니</span></div>
+      </div></div></div>
+    <div><h4 class="o">개편 — 빨강은 하나만</h4><p class="c">조치가 필요한 장바구니만 빨강, 나머지는 점</p>
+      <div class="stage"><div class="iconrow">
+        <div><span class="ci"><em class="dot"></em><svg class="ic"><use href="#i-ticket"/></svg></span><span>포인트/쿠폰</span></div>
+        <div><span class="ci"><svg class="ic"><use href="#i-watch-up"/></svg></span><span>시계판매</span></div>
+        <div><span class="ci"><em class="dot"></em><svg class="ic"><use href="#i-heart"/></svg></span><span>내 관심</span></div>
+        <div><span class="ci"><em>2</em><svg class="ic"><use href="#i-cart"/></svg></span><span>장바구니</span></div>
+      </div></div></div>
+  </div>
+</section>
+</div>
+
+<div class="wrap">
+<section class="sec">
+  <div class="sec-head"><span class="eyebrow">Proposal</span><h2>개편안 두 가지</h2></div>
+  <p class="sec-lead">둘 다 지금 있는 메뉴를 <b>하나도 빼지 않았습니다.</b> 순서와 표현만 바꿨습니다.</p>
+
+  <div class="screens">
+
+    <!-- ═══ A안 ═══ -->
+    <article class="scard">
+      <div class="vh"><span class="vt rec">A</span><div><h3>진행 중인 것 먼저 <span style="font-size:11.5px;color:var(--accent)">권장</span></h3>
+        <p>아이콘 그리드 → 자산 3칸 + 목록</p></div></div>
+      <div class="device"><div class="device-screen app">
+        <div class="st"><span class="num">9:41</span><span class="num">5G ▮▮▮ 82</span></div>
+        <div class="hd"><span class="ttl">마이페이지</span>
+          <span class="r"><span class="hd-ic"><svg class="ic"><use href="#i-bell"/></svg><i class="dot"></i></span>
+            <svg class="ic"><use href="#i-cog"/></svg></span></div>
+        <div class="prof">
+          <span class="av"><svg class="ic lg"><use href="#i-user"/></svg></span>
+          <span class="w">
+            <span class="n">조웅현님 <span class="grade">VIP</span></span>
+            <span class="m">다음 등급까지 구매 <span class="num">1</span>회 남았어요</span>
+          </span>
+          <span class="go"><svg class="ic sm"><use href="#i-chev"/></svg></span>
+        </div>
+        <div class="sum">
+          <a href="#"><p class="v num">12,400<em>P</em></p><p class="l">포인트</p></a>
+          <a href="#"><p class="v num">3<em>장</em></p><p class="l">쿠폰</p></a>
+          <a href="#"><p class="v num">18</p><p class="l">내 관심</p></a>
+        </div>
+        <div class="now">
+          <p class="h"><i></i>배송 중</p>
+          <div class="b">
+            <img src="data:image/webp;base64,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" alt="">
+            <span class="w">
+              <span class="t">데이트저스트 41 화이트</span>
+              <span class="s"><span class="num">7/28</span> 도착 예정 · 주문번호 <span class="num">00B260722004</span></span>
+            </span>
+          </div>
+          <div class="f"><span>배송 조회</span><span>주문 상세</span></div>
+        </div>
+        <div class="mgroup">
+          <p class="gl">거래</p>
+          <a href="#">주문 내역 <span class="r"><span class="c num">2건</span><svg class="ic xs"><use href="#i-chev"/></svg></span></a>
+          <a href="#">시계 판매 · 내 견적 <span class="r"><span class="c num">4건 진행</span><svg class="ic xs"><use href="#i-chev"/></svg></span></a>
+          <a href="#">경매 <span class="r"><svg class="ic xs"><use href="#i-chev"/></svg></span></a>
+          <a href="#">장바구니 <span class="r"><span class="c num">2</span><svg class="ic xs"><use href="#i-chev"/></svg></span></a>
+        </div>
+        <div class="mgroup">
+          <p class="gl">내 활동</p>
+          <a href="#">최근 본 상품 <span class="r"><svg class="ic xs"><use href="#i-chev"/></svg></span></a>
+          <a href="#">AI 시계비서<span class="beta">BETA</span> <span class="r"><svg class="ic xs"><use href="#i-chev"/></svg></span></a>
+          <a href="#">고객센터 <span class="r"><svg class="ic xs"><use href="#i-chev"/></svg></span></a>
+          <a href="#">회원정보 수정 <span class="r"><svg class="ic xs"><use href="#i-chev"/></svg></span></a>
+        </div>
+        <div class="cs">
+          <p class="wm">BELLORE</p>
+          <p class="tag">명품시계 거래 · 통신판매중개</p>
+          <p class="tel num">010-6293-6668</p>
+          <p class="hrs">평일 11:00 ~ 19:00 · 24시간 상담 접수</p>
+          <div class="lnk"><span>이용약관</span><span>개인정보처리방침</span><span>반품·교환·환불</span>
+            <span>이용안내</span><span>사업자정보</span></div>
+          <p class="biz">벨로르 사업자 정보 <svg class="ic xs" style="transform:rotate(90deg)"><use href="#i-chev"/></svg></p>
+          <p class="out">로그아웃</p>
+        </div>
+        <div class="tab">
+          <a href="#"><svg class="ic"><use href="#i-home"/></svg><span>홈</span></a>
+          <a href="#"><svg class="ic"><use href="#i-search"/></svg><span>검색</span></a>
+          <a href="#"><em>3</em><svg class="ic"><use href="#i-heart"/></svg><span>찜</span></a>
+          <a href="#"><svg class="ic"><use href="#i-watch-up"/></svg><span>시계판매</span></a>
+          <a href="#" class="on"><svg class="ic"><use href="#i-user"/></svg><span>마이페이지</span></a>
+        </div>
+      </div></div>
+      <ul class="pts">
+        <li><span class="k">첫칸</span><span>이름 · 등급 다음에 <b>포인트 / 쿠폰 / 내 관심</b> 큰 숫자 3칸. 쓸 수 있는 게 바로 보입니다.</span></li>
+        <li><span class="k">배송</span><span><b>배송 중 카드</b>가 목록보다 위. 도착 예정일과 주문번호를 같이 보여줍니다.</span></li>
+        <li><span class="k">목록</span><span>아이콘 그리드를 없애고 <b>글자 목록 2묶음</b>(거래 / 내 활동)으로. 빈칸이 생길 수 없습니다.</span></li>
+        <li><span class="k">하단</span><span>고객센터 · <b>법적 링크 5개</b> · 사업자정보 · 로그아웃(구구스 방식).</span></li>
+      </ul>
+      <p class="good"><b>이런 점이 좋습니다</b> — 메뉴가 늘어나도 줄만 추가하면 되고, 빈칸·정렬 어긋남이 구조적으로 안 생깁니다.</p>
+    </article>
+
+    <!-- ═══ B안 ═══ -->
+    <article class="scard">
+      <div class="vh"><span class="vt">B</span><div><h3>아이콘 그리드 유지</h3>
+        <p>지금 구조를 살린 최소 수정</p></div></div>
+      <div class="device"><div class="device-screen app">
+        <div class="st"><span class="num">9:41</span><span class="num">5G ▮▮▮ 82</span></div>
+        <div class="hd"><span class="ttl">마이페이지</span>
+          <span class="r"><span class="hd-ic"><svg class="ic"><use href="#i-bell"/></svg><i class="dot"></i></span>
+            <svg class="ic"><use href="#i-cog"/></svg></span></div>
+        <div class="prof">
+          <span class="av"><svg class="ic lg"><use href="#i-user"/></svg></span>
+          <span class="w">
+            <span class="n">조웅현님 <span class="grade">VIP</span></span>
+            <span class="m">포인트 <span class="num">12,400P</span> · 쿠폰 <span class="num">3장</span></span>
+          </span>
+          <span class="go"><svg class="ic sm"><use href="#i-chev"/></svg></span>
+        </div>
+        <div class="gr">
+          <a href="#"><span class="ci"><em></em><svg class="ic"><use href="#i-ticket"/></svg></span><span>포인트/쿠폰</span></a>
+          <a href="#"><span class="ci"><svg class="ic"><use href="#i-watch-up"/></svg></span><span>시계판매</span></a>
+          <a href="#"><span class="ci"><em></em><svg class="ic"><use href="#i-heart"/></svg></span><span>내 관심</span></a>
+          <a href="#"><span class="ci"><svg class="ic"><use href="#i-clock"/></svg></span><span>최근 본 상품</span></a>
+          <a href="#"><span class="ci"><svg class="ic"><use href="#i-cart"/></svg></span><span>장바구니</span><small class="num">2</small></a>
+          <a href="#"><span class="ci"><svg class="ic"><use href="#i-box"/></svg></span><span>주문 내역</span><small class="num">2</small></a>
+          <a href="#"><span class="ci"><svg class="ic"><use href="#i-gavel"/></svg></span><span>경매</span></a>
+          <a href="#"><span class="ci"><svg class="ic"><use href="#i-spark"/></svg></span><span>AI 시계비서</span></a>
+        </div>
+        <div class="bnr">
+          <img src="data:image/webp;base64,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" alt="">
+          <div class="in"><p class="e">EVENT</p><p class="t">첫 구매 30만원 쿠폰</p></div>
+          <span class="pg num">1 / 2</span>
+        </div>
+        <div class="mgroup" style="margin-top:24px">
+          <a href="#">배송 조회 <span class="r"><span class="c">배송 중 <span class="num">1</span></span><svg class="ic xs"><use href="#i-chev"/></svg></span></a>
+          <a href="#">내 견적 <span class="r"><span class="c num">4건 진행</span><svg class="ic xs"><use href="#i-chev"/></svg></span></a>
+          <a href="#">고객센터 <span class="r"><svg class="ic xs"><use href="#i-chev"/></svg></span></a>
+          <a href="#">회원정보 수정 <span class="r"><svg class="ic xs"><use href="#i-chev"/></svg></span></a>
+        </div>
+        <div class="cs">
+          <p class="wm">BELLORE</p>
+          <p class="tag">명품시계 거래 · 통신판매중개</p>
+          <p class="tel num">010-6293-6668</p>
+          <p class="hrs">평일 11:00 ~ 19:00 · 24시간 상담 접수</p>
+          <div class="lnk"><span>이용약관</span><span>개인정보처리방침</span><span>반품·교환·환불</span>
+            <span>이용안내</span><span>사업자정보</span></div>
+          <p class="out">로그아웃</p>
+        </div>
+        <div class="tab">
+          <a href="#"><svg class="ic"><use href="#i-home"/></svg><span>홈</span></a>
+          <a href="#"><svg class="ic"><use href="#i-search"/></svg><span>검색</span></a>
+          <a href="#"><em>3</em><svg class="ic"><use href="#i-heart"/></svg><span>찜</span></a>
+          <a href="#"><svg class="ic"><use href="#i-watch-up"/></svg><span>시계판매</span></a>
+          <a href="#" class="on"><svg class="ic"><use href="#i-user"/></svg><span>마이페이지</span></a>
+        </div>
+      </div></div>
+      <ul class="pts">
+        <li><span class="k">4칸</span><span>아이콘을 <b>8개(4칸 × 2줄)</b>로 맞춰 <b>빈칸을 없앴습니다.</b> 주문내역·경매·AI를 그리드로 올렸습니다.</span></li>
+        <li><span class="k">배지</span><span>빨간 숫자를 걷어내고 <b>작은 점</b>으로. 개수는 라벨 아래 회색 숫자로 적습니다.</span></li>
+        <li><span class="k">배너</span><span>점선 자리표시 대신 <b>진짜 사진 배너</b>. 등록된 배너가 없으면 <b>영역 자체가 사라집니다.</b></span></li>
+        <li><span class="k">아래</span><span>그리드에 못 넣은 것만 <b>목록 4줄</b>로. 배송 조회를 맨 위에 뒀습니다.</span></li>
+      </ul>
+      <p class="good"><b>이런 점이 좋습니다</b> — 지금 화면과 가장 비슷해서 사용자가 헤매지 않고, 개발 분량도 가장 적습니다.</p>
+    </article>
+
+  </div>
+
+  <div class="ask">
+    <h3>정해주실 것</h3>
+    <ul>
+      <li><b>A안 / B안</b> 중 하나. 섞어도 됩니다 (예: "B안 그리드 + A안 배송 카드").</li>
+      <li><b>등급 표시</b>(VIP) — 실제로 운영하실 등급 기준이 있는지. 없으면 그 자리에 포인트·쿠폰을 넣겠습니다.</li>
+      <li><b>이메일 노출</b> — 지금처럼 이름 아래 두는 게 나은지, 회원정보 안으로 넣을지.</li>
+      <li><b>경매</b> — 현재 운영 중인지. 준비 중이면 목록에서 잠시 내려도 됩니다.</li>
+      <li>액센트 색은 아직 <b>로즈브라운</b>입니다(딥그린 여부 미정).</li>
+    </ul>
+  </div>
+</section>
+
+<p class="foot">BELLORE 마이페이지 개편 시안 · 390pt 규격 목업 — 홈 · 검색은 확정안 그대로이며,
+  앱 코드와 DESIGN.md는 아직 변경하지 않았습니다.</p>
+</div>
+
+<script>
+/* 좁은 화면에서도 실제 390pt 규격 그대로 보이도록 비율만 축소 */
+(function () {
+  var devices = Array.prototype.slice.call(document.querySelectorAll('.device'));
+  if (!devices.length) return;
+  var holders = devices.map(function (d) {
+    var h = document.createElement('div');
+    h.className = 'dev-hold';
+    d.parentNode.insertBefore(h, d);
+    h.appendChild(d);
+    return h;
+  });
+  document.documentElement.classList.add('js-fit');
+  function fit() {
+    holders.forEach(function (h) {
+      var d = h.firstElementChild;
+      if (!d) return;
+      var k = Math.min(1, h.clientWidth / 390);
+      d.style.transform = k < 1 ? 'scale(' + k.toFixed(4) + ')' : 'none';
+      var want = Math.round(d.offsetHeight * k) + 'px';
+      if (h.style.height !== want) h.style.height = want;
+    });
+  }
+  fit();
+  window.addEventListener('load', fit);
+  window.addEventListener('resize', fit);
+  if (window.ResizeObserver) {
+    var ro = new ResizeObserver(function () { fit(); });
+    holders.forEach(function (h) { ro.observe(h); });
+  }
+})();
+</script>
