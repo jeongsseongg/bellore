@@ -3103,12 +3103,12 @@
     <script src="search.js"></script>
     <script src="ai-advisor.js?v=20260725-ai-log"></script>
     <script src="ai-advisor-admin.js?v=20260725-ai-log"></script>
-    <script src="payments.js?v=20260727-combined-payment-test"></script>
-    <script src="naverpay.js?v=20260727-naverpay-order"></script>
+    <script src="payments.js?v=20260727-card-naver-options"></script>
+    <script src="naverpay.js?v=20260727-card-naver-options"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('sw.js?v=20260727-combined-payment-test').catch(function (err) {
+                navigator.serviceWorker.register('sw.js?v=20260727-card-naver-options').catch(function (err) {
                     console.warn('서비스워커 등록 실패:', err);
                 });
             });

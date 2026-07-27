@@ -56,6 +56,22 @@
     });
     return list;
   }
+  function naverOrderChannel() {
+    var npay = window.BELLORE_NAVERPAY || {};
+    if (!npay.enabled || !npay.endpoint) return null;
+    if (npay.testOnly && !testPaymentsEnabled()) return null;
+    return {
+      id: 'naver-order',
+      label: '네이버페이',
+      kind: 'naver-order'
+    };
+  }
+  function availableChannels() {
+    var list = activeChannels().slice();
+    var naver = naverOrderChannel();
+    if (naver) list.push(naver);
+    return list;
+  }
   function portoneReady() {
     return !!(
       window.PortOne &&
@@ -72,13 +88,17 @@
   function renderMethods() {
     var box = $('#coMethods');
     if (!box) return;
-    var chans = activeChannels();
-    if (!portoneReady()) {
+    var chans = availableChannels();
+    if (!chans.length) {
       box.innerHTML = '<p class="co-methods-empty">결제 수단을 준비 중입니다. PG 운영 채널과 서버 결제 검증이 모두 활성화된 후 결제할 수 있습니다.</p>';
       selectedChannel = null;
       return;
     }
-    if (!selectedChannel || chans.indexOf(selectedChannel) === -1) selectedChannel = chans[0];
+    var selected = null;
+    for (var i = 0; i < chans.length; i++) {
+      if (selectedChannel && chans[i].id === selectedChannel.id) selected = chans[i];
+    }
+    selectedChannel = selected || chans[0];
     box.innerHTML = chans.map(function (c) {
       var on = (c === selectedChannel);
       return '<button type="button" class="co-method' + (on ? ' active' : '') +
@@ -86,7 +106,7 @@
     }).join('');
   }
   function selectChannel(id) {
-    var chans = activeChannels();
+    var chans = availableChannels();
     for (var i = 0; i < chans.length; i++) {
       if (chans[i].id === id) { selectedChannel = chans[i]; break; }
     }
@@ -264,11 +284,6 @@
     ship.addr2 = ($('#coAddr2').value || '').trim();
     ship.request = ($('#coShipReq').value || '').trim();
     if (!ship.postcode || !ship.addr1) { alert('배송 주소를 입력해 주세요.'); return; }
-    if (!portoneReady()) {
-      alert('PG 운영 채널 또는 서버 결제 검증이 준비되지 않아 결제를 진행할 수 없습니다.');
-      renderMethods();
-      return;
-    }
     if (!selectedChannel) { alert('결제 수단을 선택해 주세요.'); return; }
     var requiredAgreements = [
       { el: $('#coAgreeTerms'), message: '이용약관에 동의해 주세요.' },
@@ -283,6 +298,30 @@
     }
     if (!product.listingId) {
       alert('판매 승인된 상품만 결제할 수 있습니다. 상품 정보를 다시 불러와 주세요.');
+      return;
+    }
+
+    if (selectedChannel.kind === 'naver-order') {
+      if (!window.BELLORE_NPAY_START) {
+        alert('네이버페이 연결을 준비 중입니다. 잠시 후 다시 시도해 주세요.');
+        return;
+      }
+      var naverBtn = $('#coPayBtn');
+      naverBtn.disabled = true;
+      naverBtn.textContent = '네이버페이 연결 중...';
+      window.BELLORE_NPAY_START(product).catch(function (error) {
+        console.warn('[BELLORE] 네이버페이 주문 시작 실패:', error);
+        alert('네이버페이 샌드박스 승인이 아직 완료되지 않았습니다.');
+      }).finally(function () {
+        naverBtn.disabled = false;
+        naverBtn.textContent = '결제하기';
+      });
+      return;
+    }
+
+    if (!portoneReady()) {
+      alert('PG 운영 채널 또는 서버 결제 검증이 준비되지 않아 결제를 진행할 수 없습니다.');
+      renderMethods();
       return;
     }
 

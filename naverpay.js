@@ -104,6 +104,28 @@
     });
   }
 
+  function startOrder(product) {
+    if (!available() || !product || !product.listingId) {
+      return Promise.reject(new Error('naverpay_not_available'));
+    }
+    var mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+    var popup = mobile ? null : window.open('about:blank', '_blank');
+    return initSdk().then(function (config) {
+      return registerOrder(product.listingId).then(function (order) {
+        var base = config.sandbox
+          ? (mobile ? 'https://test-m.pay.naver.com/o/customer/buy/' : 'https://test-order.pay.naver.com/customer/buy/')
+          : (mobile ? 'https://m.pay.naver.com/o/customer/buy/' : 'https://order.pay.naver.com/customer/buy/');
+        var target = base + encodeURIComponent(order.key) + '/' + encodeURIComponent(order.merchantNo);
+        if (popup && !popup.closed) popup.location.href = target;
+        else window.location.href = target;
+        return order;
+      });
+    }).catch(function (error) {
+      if (popup && !popup.closed) popup.close();
+      throw error;
+    });
+  }
+
   function render(product) {
     var box = document.getElementById(containerId);
     if (!box) return;
@@ -142,4 +164,5 @@
   }
 
   window.BELLORE_NPAY_RENDER = render;
+  window.BELLORE_NPAY_START = startOrder;
 })();
