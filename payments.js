@@ -37,9 +37,22 @@
 
   function getModal() { return $('#checkoutModal'); }
 
-  // 설정에 채워진(=channelKey 가 있는) 결제수단만 사용
+  function testPaymentsEnabled() {
+    var host = (location.hostname || '').toLowerCase();
+    if (host === 'localhost' || host === '127.0.0.1' || host === '[::1]') return true;
+    try {
+      return new URLSearchParams(location.search).get('paymentTest') === '1';
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  // 설정에 채워진 채널만 사용하며 테스트 채널은 명시적인 테스트 주소로 제한한다.
   function activeChannels() {
-    var list = (PAY.channels || []).filter(function (c) { return c && c.channelKey; });
+    var allowTest = testPaymentsEnabled();
+    var list = (PAY.channels || []).filter(function (c) {
+      return c && c.channelKey && (!c.test || allowTest);
+    });
     return list;
   }
   function portoneReady() {
