@@ -41,7 +41,8 @@
     var host = (location.hostname || '').toLowerCase();
     if (host === 'localhost' || host === '127.0.0.1' || host === '[::1]') return true;
     try {
-      return new URLSearchParams(location.search).get('paymentTest') === '1';
+      var params = new URLSearchParams(location.search);
+      return params.get('paymentTest') === '1' || params.get('naverPayTest') === '1';
     } catch (_e) {
       return false;
     }
