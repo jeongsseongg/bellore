@@ -6269,6 +6269,9 @@
                 price: parseInt(card.dataset.price, 10) || 0,
                 image: img ? img.src : ''
             };
+            if (window.BELLORE_NPAY_RENDER) {
+                window.BELLORE_NPAY_RENDER(window.BELLORE_currentProduct);
+            }
 
             // 최근 확인한 상품 기록(검색 페이지에서 사용)
             if (window.BELLORE_recordView) window.BELLORE_recordView({
@@ -6326,12 +6329,19 @@
                         price: effectivePrice(it),
                         image: (it.photos && it.photos[0]) || ''
                     };
+                    if (window.BELLORE_NPAY_RENDER) {
+                        window.BELLORE_NPAY_RENDER(window.BELLORE_currentProduct);
+                    }
                 }).catch(function () {});
             }
         }
 
         function closeProduct() {
             closeLightbox();
+            window.BELLORE_currentProduct = null;
+            if (window.BELLORE_NPAY_RENDER) {
+                window.BELLORE_NPAY_RENDER(null);
+            }
             modal.hidden = true;
             document.body.style.overflow = '';
             try { sessionStorage.removeItem('bellore_view_product'); } catch (e) {}
@@ -6359,6 +6369,9 @@
                     condition: it.condition || '',
                     price: effectivePrice(it), image: (it.photos && it.photos[0]) || ''
                 };
+                if (window.BELLORE_NPAY_RENDER) {
+                    window.BELLORE_NPAY_RENDER(window.BELLORE_currentProduct);
+                }
                 modal.hidden = false;
                 modal.querySelector('.pp-scroll').scrollTop = 0;
                 $$('.pp-tab', modal).forEach(function (x, i) { x.classList.toggle('active', i === 0); });

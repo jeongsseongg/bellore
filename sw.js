@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v178-ai-log";
+const VERSION = "bellore-v179-naverpay-order";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -10,6 +10,7 @@ const SHELL_ASSETS = [
   './styles.css',
   './script.js',
   './payments.js',
+  './naverpay.js',
   './ui-dialog.js',
   './supabase-config.js',
   './brands.js',
