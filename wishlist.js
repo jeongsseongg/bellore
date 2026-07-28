@@ -176,6 +176,9 @@
     var pw = $('#wishPanelWish'), pc = $('#wishPanelCart');
     if (pw) pw.hidden = (v !== 'wish');
     if (pc) pc.hidden = (v !== 'cart');
+    if (v === 'cart' && window.BELLORE_NPAY_RENDER_CART) {
+      window.BELLORE_NPAY_RENDER_CART(getCart());
+    }
   }
   function curView() { var pc = $('#wishPanelCart'); return (pc && !pc.hidden) ? 'cart' : 'wish'; }
 
