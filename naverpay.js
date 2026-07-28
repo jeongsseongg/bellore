@@ -192,4 +192,5 @@
   window.BELLORE_NPAY_RENDER = render;
   window.BELLORE_NPAY_RENDER_CART = renderCart;
   window.BELLORE_NPAY_START = startOrder;
+  if (window.BELLOREWishlist) renderCart(window.BELLOREWishlist.getCart());
 })();
