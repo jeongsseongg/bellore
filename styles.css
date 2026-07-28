@@ -6610,6 +6610,14 @@ html[data-width="full"] .hcard-grid {
     border: 1px solid #111; border-radius: 10px; background: #fff; color: #111;
     font-size: 15px; font-weight: 700;
 }
+
+.cart-npay {
+    width: min(420px, 100%);
+    margin: 24px auto 0;
+}
+.cart-npay[hidden] {
+    display: none;
+}
 .pp-cart:active { opacity: .85; }
 
 /* 마이페이지 장바구니 링크 */

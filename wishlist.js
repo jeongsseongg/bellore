@@ -212,6 +212,7 @@
     var we = $('#wishEmpty'), ce = $('#cartEmpty');
     if (we) we.hidden = wish.length > 0;
     if (ce) ce.hidden = cart.length > 0;
+    if (window.BELLORE_NPAY_RENDER_CART) window.BELLORE_NPAY_RENDER_CART(cart);
     if ($('#wishCount')) $('#wishCount').textContent = wish.length;
     if ($('#cartCount')) $('#cartCount').textContent = cart.length;
   }

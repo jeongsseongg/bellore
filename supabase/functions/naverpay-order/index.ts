@@ -65,8 +65,32 @@ function productUrl(id: string) {
   return `${SITE_URL}/#p=${encodeURIComponent(id)}`;
 }
 
+function uuidToNaverId(uuid: string) {
+  const hex = uuid.replace(/-/g, "");
+  if (!/^[0-9a-f]{32}$/i.test(hex)) throw new Error("invalid_uuid");
+  let binary = "";
+  for (let i = 0; i < hex.length; i += 2) {
+    binary += String.fromCharCode(parseInt(hex.slice(i, i + 2), 16));
+  }
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function naverIdToUuid(id: string) {
+  if (/^[0-9a-f-]{36}$/i.test(id)) return id;
+  if (!/^[A-Za-z0-9_-]{22}$/.test(id)) throw new Error("invalid_product_id");
+  const base64 = id.replace(/-/g, "+").replace(/_/g, "/") + "==";
+  const binary = atob(base64);
+  if (binary.length !== 16) throw new Error("invalid_product_id");
+  let hex = "";
+  for (let i = 0; i < binary.length; i++) {
+    hex += binary.charCodeAt(i).toString(16).padStart(2, "0");
+  }
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 function productXml(listing: any, includeStock: boolean) {
-  const id = String(listing.id);
+  const listingId = String(listing.id);
+  const id = uuidToNaverId(listingId);
   const name = `[중고] ${[listing.title, listing.description].filter(Boolean).join(" ")}`.slice(0, 100);
   const price = effectivePrice(listing);
   const image = Array.isArray(listing.image_urls) && listing.image_urls[0]
@@ -74,7 +98,7 @@ function productXml(listing: any, includeStock: boolean) {
   const sold = ["hidden", "sold", "reserved"].includes(String(listing.status || "").toLowerCase());
   return `<product><id>${escapeXml(id)}</id><ecMallProductId>${escapeXml(id)}</ecMallProductId>`
     + `<name>${cdata(name)}</name><basePrice>${price}</basePrice><taxType>TAX</taxType>`
-    + `<infoUrl>${cdata(productUrl(id))}</infoUrl><imageUrl>${cdata(image)}</imageUrl>`
+    + `<infoUrl>${cdata(productUrl(listingId))}</infoUrl><imageUrl>${cdata(image)}</imageUrl>`
     + (includeStock
       ? `<status>${sold ? "NOT_SALE" : "ON_SALE"}</status><stockQuantity>${sold ? 0 : 1}</stockQuantity>`
         + `<supplementSupport>false</supplementSupport><optionSupport>false</optionSupport>`
@@ -106,39 +130,56 @@ Deno.serve(async (req) => {
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
   if (req.method === "GET") {
-    const ids: string[] = [];
+    const requestedIds: string[] = [];
     for (const [key, value] of url.searchParams.entries()) {
-      if (/^product\[\d+\]\[id\]$/.test(key) && value) ids.push(value);
+      if (/^product\[\d+\]\[id\]$/.test(key) && value) requestedIds.push(value);
     }
-    if (!ids.length) return new Response("missing product id", { status: 400 });
+    if (!requestedIds.length) return new Response("missing product id", { status: 400 });
+    let ids: string[];
+    try {
+      ids = requestedIds.map(naverIdToUuid);
+    } catch {
+      return new Response("invalid product id", { status: 400 });
+    }
     const { data, error } = await admin.from("listings").select("*").in("id", ids);
     if (error) return new Response("lookup failed", { status: 500 });
+    const byId = new Map((data ?? []).map((row) => [String(row.id), row]));
     const xml = `<?xml version="1.0" encoding="utf-8"?><products>`
-      + (data ?? []).map((row) => productXml(row, true)).join("") + `</products>`;
+      + ids.map((id) => byId.get(id)).filter(Boolean).map((row) => productXml(row, true)).join("")
+      + `</products>`;
     return new Response(xml, { headers: { "Content-Type": "application/xml; charset=utf-8" } });
   }
 
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
   try {
     const body = await req.json();
-    const listingId = String(body.listingId || "");
-    if (!/^[0-9a-f-]{36}$/i.test(listingId)) return json({ error: "invalid_listing_id" }, 400);
-    const { data: listing, error } = await admin.from("listings").select("*").eq("id", listingId).single();
-    if (error || !listing) return json({ error: "listing_not_found" }, 404);
-    if (["hidden", "sold", "reserved"].includes(String(listing.status || "").toLowerCase())) {
+    const listingIds = Array.isArray(body.listingIds)
+      ? [...new Set(body.listingIds.map((id: unknown) => String(id)))]
+      : [String(body.listingId || "")];
+    if (!listingIds.length || listingIds.length > 20
+      || listingIds.some((id: string) => !/^[0-9a-f-]{36}$/i.test(id))) {
+      return json({ error: "invalid_listing_id" }, 400);
+    }
+    const { data: rows, error } = await admin.from("listings").select("*").in("id", listingIds);
+    if (error || !rows || rows.length !== listingIds.length) return json({ error: "listing_not_found" }, 404);
+    const byId = new Map(rows.map((row) => [String(row.id), row]));
+    const listings = listingIds.map((id: string) => byId.get(id));
+    if (listings.some((listing) =>
+      ["hidden", "sold", "reserved"].includes(String(listing?.status || "").toLowerCase()))) {
       return json({ error: "product_not_available" }, 409);
     }
-    const price = effectivePrice(listing);
-    if (price <= 0) return json({ error: "invalid_price" }, 400);
+    if (listings.some((listing) => effectivePrice(listing) <= 0)) {
+      return json({ error: "invalid_price" }, 400);
+    }
 
     const orderXml = `<?xml version="1.0" encoding="utf-8"?><order>`
       + `<merchantId>${escapeXml(MERCHANT_ID)}</merchantId><certiKey>${escapeXml(CERTI_KEY)}</certiKey>`
-      + productXml(listing, false)
-      + `<backUrl>${cdata(productUrl(listingId))}</backUrl><interface>`
+      + listings.map((listing) => productXml(listing, false)).join("")
+      + `<backUrl>${cdata(listingIds.length === 1 ? productUrl(listingIds[0]) : `${SITE_URL}/#wishlist`)}</backUrl><interface>`
       + `<salesCode></salesCode><cpaInflowCode>${escapeXml(body.cpaInflowCode)}</cpaInflowCode>`
       + `<naverInflowCode>${escapeXml(body.naverInflowCode)}</naverInflowCode>`
       + `<saClickId>${escapeXml(body.saClickId)}</saClickId>`
-      + `<merchantCustomCode1>${escapeXml(listingId)}</merchantCustomCode1>`
+      + `<merchantCustomCode1>${escapeXml(listingIds.join(","))}</merchantCustomCode1>`
       + `<merchantCustomCode2></merchantCustomCode2></interface></order>`;
 
     const response = await fetch(ORDER_API, {

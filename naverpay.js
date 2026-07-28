@@ -54,32 +54,19 @@
     });
   }
 
-  function initTracking(config) {
-    return loadScript('https://wcs.naver.net/wcslog.js', 'npay-wcs').then(function () {
-      window.wcs_add = window.wcs_add || {};
-      window.wcs_add.wa = config.accountId;
-      if (window.wcs) {
-        window.wcs.checkoutWhitelist = ['bellore.co.kr'];
-        if (window.wcs.inflow) window.wcs.inflow('bellore.co.kr');
-        if (window.wcs_do) window.wcs_do();
-      }
-    });
-  }
-
   function initSdk() {
     if (sdkPromise) return sdkPromise;
     sdkPromise = getPublicConfig().then(function (config) {
-      return initTracking(config).then(function () {
-        var sdk = CFG.testOnly
-          ? 'https://test-pay.naver.com/assets/button/latest/npay.button.js'
-          : 'https://npay-order.pstatic.net/assets/button/latest/npay.button.js';
-        return loadScript(sdk, 'npay-sdk').then(function () { return config; });
-      });
+      var sdk = CFG.testOnly
+        ? 'https://test-pay.naver.com/assets/button/latest/npay.button.js'
+        : 'https://npay-order.pstatic.net/assets/button/latest/npay.button.js';
+      return loadScript(sdk, 'npay-sdk').then(function () { return config; });
     });
     return sdkPromise;
   }
 
-  function registerOrder(listingId) {
+  function registerOrder(listingIds) {
+    var ids = Array.isArray(listingIds) ? listingIds : [listingIds];
     var cookies = {};
     document.cookie.split(';').forEach(function (pair) {
       var bits = pair.trim().split('=');
@@ -89,7 +76,7 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        listingId: listingId,
+        listingIds: ids,
         cpaInflowCode: cookies.CPAValidator || '',
         naverInflowCode: cookies.NA_CO || '',
         saClickId: cookies.NVADID || ''
@@ -111,7 +98,7 @@
     var mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
     var popup = mobile ? null : window.open('about:blank', '_blank');
     return initSdk().then(function (config) {
-      return registerOrder(product.listingId).then(function (order) {
+      return registerOrder([product.listingId]).then(function (order) {
         var base = config.sandbox
           ? (mobile ? 'https://test-m.pay.naver.com/o/customer/buy/' : 'https://test-order.pay.naver.com/customer/buy/')
           : (mobile ? 'https://m.pay.naver.com/o/customer/buy/' : 'https://order.pay.naver.com/customer/buy/');
@@ -151,7 +138,7 @@
           benefitCoachMark: true
         },
         onBuyClick: function () {
-          return registerOrder(product.listingId).catch(function (error) {
+          return registerOrder([product.listingId]).catch(function (error) {
             alert('네이버페이 주문서를 열지 못했습니다. 잠시 후 다시 시도해 주세요.');
             throw error;
           });
@@ -163,6 +150,46 @@
     });
   }
 
+  function renderCart(items) {
+    var box = document.getElementById('npay-cart-button-container');
+    if (!box) return;
+    var products = (items || []).filter(function (item) {
+      return item && item.id && Number(item.price) > 0;
+    });
+    box.hidden = true;
+    box.innerHTML = '';
+    if (!available() || !products.length) return;
+
+    initSdk().then(function (config) {
+      if (!window.Npay || !window.Npay.order) return;
+      box.hidden = false;
+      window.Npay.order.create({
+        buttonKey: config.buttonKey,
+        containerId: 'npay-cart-button-container',
+        orderRegistrationVersion: '2.1',
+        type: 'template',
+        colorTheme: 'green',
+        enable: true,
+        components: {
+          talkTalk: false,
+          wishlist: false,
+          benefitMessage: true,
+          benefitCoachMark: true
+        },
+        onBuyClick: function () {
+          return registerOrder(products.map(function (item) { return item.id; })).catch(function (error) {
+            alert('네이버페이 주문서를 열지 못했습니다. 잠시 후 다시 시도해 주세요.');
+            throw error;
+          });
+        }
+      });
+    }).catch(function (error) {
+      console.warn('[BELLORE] 네이버페이 장바구니 버튼 준비 실패:', error && error.message);
+      box.hidden = true;
+    });
+  }
+
   window.BELLORE_NPAY_RENDER = render;
+  window.BELLORE_NPAY_RENDER_CART = renderCart;
   window.BELLORE_NPAY_START = startOrder;
 })();

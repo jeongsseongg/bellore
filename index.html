@@ -58,6 +58,14 @@
     <meta name="google-site-verification" content="yxngRyaIqnMPq0GTy8YTWBuqCcAAMrSbTNqnDtS4P9c">
     <meta name="naver-site-verification" content="2bb5966a074bd09c17d7bfea3dc74bf530fd1104">
 
+    <!-- 네이버페이 공통 유입 스크립트: 관리자 페이지를 제외한 전 화면 공통 -->
+    <script type="text/javascript" src="https://wcs.naver.net/wcslog.js"></script>
+    <script type="text/javascript">
+        if (!window.wcs_add) window.wcs_add = {};
+        window.wcs_add.wa = "s_ce48c59488b";
+        if (window.wcs && window.wcs.inflow) window.wcs.inflow("bellore.co.kr");
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -1542,6 +1550,7 @@
                 <div class="wish-panel" id="wishPanelCart" hidden>
                     <div class="hcard-grid" id="cartGrid"></div>
                     <div class="wish-empty" id="cartEmpty" hidden>장바구니가 비어 있습니다.</div>
+                    <div class="cart-npay" id="npay-cart-button-container" hidden></div>
                 </div>
                 <div class="alerts-sec">
                     <h4 class="alerts-title">소식 기다리는 시계 <b id="wishAlertCount">0</b></h4>
@@ -3104,7 +3113,10 @@
     <script src="ai-advisor.js?v=20260725-ai-log"></script>
     <script src="ai-advisor-admin.js?v=20260725-ai-log"></script>
     <script src="payments.js?v=20260727-card-naver-options"></script>
-    <script src="naverpay.js?v=20260727-card-naver-options"></script>
+    <script src="naverpay.js?v=20260728-naver-review-fixes"></script>
+    <script type="text/javascript">
+        if (window.wcs_do) window.wcs_do();
+    </script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
