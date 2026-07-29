@@ -3665,6 +3665,12 @@
         }
         return fmt(it.price) + '<em>원</em>';
     }
+    // 판매시계 목록은 레퍼런스와 동일하게 만원 단위로 간결하게 표기한다.
+    function collectionPriceHTML(it) {
+        var price = effectivePrice(it);
+        if (!price) return '가격 문의';
+        return fmt(Math.round(price / 10000)) + '<em>만원</em>';
+    }
     // 브랜드 표기: 카드 첫 줄=영문("ROLEX"), 둘째 줄=한글 브랜드+모델명("롤렉스 데이트저스트 16233")
     function brandKR(brand) {
         return window.BELLORE_BRAND_KR ? window.BELLORE_BRAND_KR(brand) : brand;
@@ -3792,7 +3798,7 @@
         });
         var frag = document.createDocumentFragment();
         rows.forEach(function (it) {
-            var priceHtml = priceHTML(it);
+            var priceHtml = collectionPriceHTML(it);
             var card = document.createElement('article');
             card.className = 'hcard hcard-dynamic';
             card.dataset.pid = it.id;
@@ -3816,10 +3822,9 @@
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
-                brandModelLineHTML(it) +
-                specLineHTML(it) +
+                '<p class="hcard-model">' + esc(displayModelName(it)) + '</p>' +
+                '<p class="hcard-buy-label">즉시 구매가</p>' +
                 '<p class="hcard-price">' + priceHtml + '</p>' +
-                usedStatusHTML(it) +
                 '<div class="hcard-admin">' +
                 '<button type="button" class="hcard-gear" aria-label="설정"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1l2.1-2.1M17 7l2.1-2.1\"/></svg></button>' +
                 '<div class="hcard-admin-menu" hidden>' +
@@ -3836,13 +3841,15 @@
     function renderHomeProducts(rows) {
         var grid = $('#homeOnSale .home-sale-grid');
         if (!grid) return;
+        var count = $('#homeSaleCount');
+        if (count) count.textContent = (rows || []).length.toLocaleString('ko-KR');
         $$('.hcard-dynamic', grid).forEach(function (el) { el.remove(); });
         var statics = $$('.hcard', grid).filter(function (c) { return !c.classList.contains('hcard-dynamic'); });
         if (!rows || !rows.length) { statics.forEach(function (c) { c.style.display = ''; }); return; }
         statics.forEach(function (c) { c.style.display = 'none'; });
         var frag = document.createDocumentFragment();
         rows.slice(0, 12).forEach(function (it) {
-            var priceHtml = priceHTML(it);
+            var priceHtml = collectionPriceHTML(it);
             var card = document.createElement('article');
             card.className = 'hcard hcard-dynamic';
             card.dataset.pid = it.id;
@@ -3856,10 +3863,10 @@
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
-                brandModelLineHTML(it) +
-                specLineHTML(it) +
+                '<p class="hcard-model">' + esc(displayModelName(it)) + '</p>' +
+                '<p class="hcard-buy-label">즉시 구매가</p>' +
                 '<p class="hcard-price">' + priceHtml + '</p>' +
-                usedStatusHTML(it);
+                '';
             frag.appendChild(card);
         });
         grid.appendChild(frag);

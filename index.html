@@ -228,6 +228,49 @@
     <main class="main-wrap">
         <!-- ========== 홈 ========== -->
         <section class="page page-home active" id="home">
+            <!-- 모바일 홈 대시보드: 검색 → 최근검색 → 실시간시세 → 판매중 → 최근확인 -->
+            <section class="home-market-dashboard">
+                <div class="container">
+                    <button type="button" class="home-main-search" id="homeMainSearch" aria-label="상품 검색">
+                        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>
+                        <span>모델명 · 레퍼런스 검색</span>
+                    </button>
+
+                    <section class="home-recent-searches" id="homeRecentSearches">
+                        <div class="home-block-head">
+                            <h2>최근 검색어</h2>
+                            <button type="button" class="home-search-more" data-open-search>인기 검색어</button>
+                        </div>
+                        <div class="home-recent-chips" id="homeRecentChips">
+                            <span class="home-history-empty">최근 검색어가 없습니다.</span>
+                        </div>
+                    </section>
+
+                    <section class="home-market-price" aria-labelledby="homeMarketTitle">
+                        <div class="home-market-head">
+                            <div>
+                                <h2 id="homeMarketTitle">실시간 시세</h2>
+                                <p>최근 30일 체결가 기준</p>
+                            </div>
+                            <time id="homeMarketTime">07.28 09:00</time>
+                        </div>
+                        <div class="home-market-tabs" role="tablist" aria-label="시세 브랜드">
+                            <button type="button" class="active">전체</button>
+                            <button type="button">롤렉스</button>
+                            <button type="button">까르띠에</button>
+                            <button type="button">오메가</button>
+                        </div>
+                        <ol class="home-market-list">
+                            <li><b>1</b><span class="home-market-thumb"><img src="assets/m1263340002.png" alt=""></span><span class="home-market-model"><strong>데이트저스트 41 화이트</strong><small>126334</small></span><span class="home-market-value"><strong>1,650만</strong><small class="up">▲ 2.4%</small></span></li>
+                            <li><b>2</b><span class="home-market-thumb"><img src="assets/m128395tbr0032.png" alt=""></span><span class="home-market-model"><strong>데이데이트 36 베젤</strong><small>128238</small></span><span class="home-market-value"><strong>6,200만</strong><small class="up">▲ 3.1%</small></span></li>
+                            <li><b>3</b><span class="home-market-thumb"><img src="assets/2026-03-18_이미지자료_193209.jpg" alt=""></span><span class="home-market-model"><strong>데이트저스트 36 그레이</strong><small>126231</small></span><span class="home-market-value"><strong>1,420만</strong><small class="down">▼ 0.6%</small></span></li>
+                            <li><b>4</b><span class="home-market-thumb"><img src="assets/m2282360012.png" alt=""></span><span class="home-market-model"><strong>데이데이트 40 플래티넘</strong><small>228236</small></span><span class="home-market-value"><strong>8,500만</strong><small class="up">▲ 0.9%</small></span></li>
+                            <li><b>5</b><span class="home-market-thumb"><img src="assets/m128395tbr0032.png" alt=""></span><span class="home-market-model"><strong>데이데이트 36 로즈골드</strong><small>336933</small></span><span class="home-market-value"><strong>6,300만</strong><small>－</small></span></li>
+                        </ol>
+                    </section>
+                </div>
+            </section>
+
             <section class="hero-carousel" id="heroCarousel">
                 <div class="hero-track" id="heroTrack">
                     <!-- 기본 슬라이드 (배너가 없을 때 노출). DB 배너가 있으면 JS가 슬라이드를 추가/교체 -->
@@ -280,10 +323,19 @@
             <!-- 판매중인 시계 (2열 그리드) -->
             <section class="section" id="homeOnSale">
                 <div class="container">
-                    <div class="home-sale-grid" aria-live="polite"></div>
-                    <div style="text-align:right;margin-top:12px">
-                        <a href="#collection" class="home-sale-more" data-nav="collection">전체 보기 →</a>
+                    <div class="home-block-head home-sale-head">
+                        <h2>지금 판매 중 <b id="homeSaleCount">0</b></h2>
+                        <a href="#collection" class="home-sale-more" data-nav="collection">전체</a>
                     </div>
+                    <div class="home-sale-grid" aria-live="polite"></div>
+                </div>
+            </section>
+
+            <section class="home-viewed-section" id="homeViewedSection">
+                <div class="container">
+                    <div class="home-block-head"><h2>최근 확인한 상품</h2></div>
+                    <div class="home-viewed-row" id="homeViewedRow"></div>
+                    <p class="home-history-empty" id="homeViewedEmpty">최근 확인한 상품이 없습니다.</p>
                 </div>
             </section>
         </section>

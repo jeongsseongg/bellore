@@ -46,6 +46,7 @@
     var arr = lsGet(VIEWED_KEY).filter(function (x) { return String(x.id) !== id; });
     arr.unshift({ id: id, brand: it.brand || '', model: it.model || '', price: it.price || 0, sale_price: it.sale_price || 0, img: it.img || it.image || '' });
     lsSet(VIEWED_KEY, arr.slice(0, 20));
+    renderHomeViewed();
   };
   function getViewed() { return lsGet(VIEWED_KEY); }
   window.BELLORE_getViewed = getViewed;
@@ -168,6 +169,8 @@
     document.body.classList.remove('is-searching');
     if (input) input.value = '';
     hideAuto();
+    renderHomeSearchHistory();
+    renderHomeViewed();
   }
   window.BELLORE_openSearch = openPage;
 
@@ -231,6 +234,32 @@
         return '<li><button type="button" class="sp-pop-item" data-q="' + esc(q) + '"><b>' + (i + 1) + '</b><span>' + esc(q) + '</span></button></li>';
       }).join('');
     });
+  }
+
+  /* ---------- 홈: 최근 검색어 / 최근 확인 상품 ---------- */
+  function renderHomeSearchHistory() {
+    var box = $('#homeRecentChips');
+    if (!box) return;
+    var recent = getRecent();
+    box.innerHTML = recent.length
+      ? recent.slice(0, 6).map(function (q) {
+          return '<button type="button" class="home-recent-chip" data-home-q="' + esc(q) + '">' + esc(q) + '</button>';
+        }).join('')
+      : '<span class="home-history-empty">최근 검색어가 없습니다.</span>';
+  }
+
+  function renderHomeViewed() {
+    var row = $('#homeViewedRow'), empty = $('#homeViewedEmpty');
+    if (!row || !empty) return;
+    var viewed = getViewed();
+    row.innerHTML = viewed.slice(0, 10).map(function (it) {
+      var price = it.sale_price && it.sale_price < it.price ? it.sale_price : it.price;
+      return '<button type="button" class="home-viewed-card" data-pid="' + esc(it.id) + '" data-brand="' + esc(it.brand) + '" data-model="' + esc(it.model) + '" data-price="' + (it.price || 0) + '" data-sprice="' + (it.sale_price || '') + '">' +
+        '<span class="home-viewed-img"><img src="' + esc(it.img || 'assets/images.jpg') + '" alt=""></span>' +
+        '<strong>' + esc(it.brand) + '</strong><span>' + esc(it.model) + '</span>' +
+        '<b>' + (price ? fmt(Math.round(price / 10000)) + '만원' : '가격 문의') + '</b></button>';
+    }).join('');
+    empty.hidden = viewed.length > 0;
   }
 
   /* ---------- 카테고리 탭 (브랜드 → 모델) ---------- */
@@ -394,6 +423,15 @@
     }
   });
 
+  document.addEventListener('click', function (e) {
+    var openBtn = e.target.closest('#homeMainSearch, [data-open-search]');
+    if (openBtn) { e.preventDefault(); openPage('word'); return; }
+    var q = e.target.closest('[data-home-q]');
+    if (q) { runQuery(q.dataset.homeQ); return; }
+    var viewed = e.target.closest('.home-viewed-card');
+    if (viewed) { openViewed(viewed); }
+  });
+
   function openViewed(v) {
     closePage();
     // 가상 카드를 만들어 기존 상세 로직 재사용
@@ -419,6 +457,15 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireHeader);
   else wireHeader();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      renderHomeSearchHistory();
+      renderHomeViewed();
+    });
+  } else {
+    renderHomeSearchHistory();
+    renderHomeViewed();
+  }
 
   /* ---------- 홈 원형 브랜드 → 판매시계 필터 연동 ---------- */
   document.addEventListener('click', function (e) {

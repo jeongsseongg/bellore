@@ -6604,19 +6604,117 @@ html[data-width="full"] .hcard-grid {
 .hcard-wish.on svg { fill: #fff; }
 .hcard-cart:hover { color: #111; }
 
+/* 판매시계 카드 — 바이버 레퍼런스형 상품 그리드 */
+#collection .col-grid-inner {
+    column-gap: 28px;
+    row-gap: 48px;
+}
+#collection .hcard {
+    min-width: 0;
+}
+#collection .hcard-img {
+    position: relative;
+    padding: 14px !important;
+    border-radius: 18px !important;
+    background: #f8f8f7 !important;
+}
+#collection .hcard-actions {
+    top: auto;
+    right: 14px;
+    bottom: 12px;
+    gap: 0;
+}
+#collection .hcard-actions button {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: #9da3a8;
+}
+#collection .hcard-wish.on {
+    color: #111;
+    background: transparent;
+}
+#collection .hcard-wish.on svg {
+    fill: currentColor;
+}
+#collection .hcard-brand {
+    padding: 8px 0 0;
+    color: #151515;
+    font-size: 21px;
+    font-weight: 800;
+    line-height: 1.25;
+    letter-spacing: -0.35px;
+}
+#collection .hcard-model {
+    min-height: 0;
+    padding: 4px 0 0;
+    color: #73787f;
+    font-size: 21px;
+    font-weight: 400;
+    line-height: 1.35;
+    letter-spacing: -0.35px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    display: block;
+}
+#collection .hcard-buy-label {
+    margin: 28px 0 0;
+    color: #a4a9af;
+    font-size: 19px;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.25px;
+}
+#collection .hcard-price {
+    padding: 5px 0 0;
+    color: #111;
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1.25;
+    letter-spacing: -0.5px;
+}
+#collection .hcard-price em {
+    margin-left: 0;
+}
+#collection .hcard-pack,
+#collection .hcard-used-row {
+    display: none;
+}
+@media (max-width: 699px) {
+    #collection .col-grid-inner {
+        column-gap: 14px;
+        row-gap: 38px;
+    }
+    #collection .hcard-img {
+        padding: 10px !important;
+        border-radius: 14px !important;
+    }
+    #collection .hcard-actions {
+        right: 9px;
+        bottom: 8px;
+    }
+    #collection .hcard-brand,
+    #collection .hcard-model {
+        font-size: 17px;
+    }
+    #collection .hcard-buy-label {
+        margin-top: 22px;
+        font-size: 16px;
+    }
+    #collection .hcard-price {
+        font-size: 21px;
+    }
+}
+
 /* 상세 하단 장바구니 버튼 */
 .pp-cart {
     flex: 0 0 auto; padding: 0 18px; min-width: 96px; min-height: 60px;
     border: 1px solid #111; border-radius: 10px; background: #fff; color: #111;
     font-size: 15px; font-weight: 700;
-}
-
-.cart-npay {
-    width: min(420px, 100%);
-    margin: 24px auto 0;
-}
-.cart-npay[hidden] {
-    display: none;
 }
 .pp-cart:active { opacity: .85; }
 
@@ -7486,6 +7584,288 @@ body.is-searching .tabbar { display: none !important; }
 }
 .cat-brand-search input { flex: 1; border: none; outline: none; background: none; font-size: 13.5px; font-family: inherit; }
 .cat-brand-search[hidden] { display: none; }
+
+/* ============================================================
+   홈 대시보드 — 검색 · 최근검색 · 실시간시세 · 판매중 · 최근확인
+   ============================================================ */
+body[data-page="home"] #header {
+    background: rgba(255,255,255,.98);
+    border-bottom-color: transparent;
+}
+
+.cart-npay {
+    width: min(420px, 100%);
+    margin: 24px auto 0;
+}
+.cart-npay[hidden] {
+    display: none;
+}
+body[data-page="home"] #catBar { display: none; }
+body[data-page="home"] #header .logo-img { filter: none; }
+.page-home .hero-carousel,
+.page-home .brand-quicklinks { display: none; }
+.home-market-dashboard {
+    padding-top: calc(var(--header-h) + env(safe-area-inset-top) + 16px);
+    background: #fff;
+}
+.home-main-search {
+    width: 100%;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 0 17px;
+    border: 1px solid #eceae6;
+    border-radius: 15px;
+    background: #fafafa;
+    color: #73787f;
+    font-size: 15px;
+    text-align: left;
+}
+.home-main-search svg { flex: 0 0 auto; color: #7f878d; }
+.home-recent-searches { padding: 24px 0 18px; }
+.home-block-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+.home-block-head h2 {
+    margin: 0;
+    color: #171717;
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.3;
+    letter-spacing: -.55px;
+}
+.home-block-head h2 b {
+    color: #9c7169;
+    font-weight: 800;
+}
+.home-search-more,
+.home-sale-more {
+    color: #7d8288;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.home-recent-chips {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+}
+.home-recent-chips::-webkit-scrollbar { display: none; }
+.home-recent-chip {
+    flex: 0 0 auto;
+    padding: 9px 14px;
+    border: 1px solid #ece9e4;
+    border-radius: 999px;
+    background: #fff;
+    color: #555b60;
+    font-size: 13px;
+}
+.home-history-empty {
+    color: #b1b5ba;
+    font-size: 13px;
+    line-height: 1.5;
+}
+.home-market-price {
+    padding: 8px 0 26px;
+    border-bottom: 1px solid #f0efec;
+}
+.home-market-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 18px;
+}
+.home-market-head h2 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -.6px;
+}
+.home-market-head p {
+    margin: 3px 0 0;
+    color: #8d9298;
+    font-size: 13px;
+}
+.home-market-head time {
+    margin-top: 7px;
+    color: #777d83;
+    font-size: 13px;
+    font-weight: 700;
+}
+.home-market-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+.home-market-tabs button {
+    padding: 9px 16px;
+    border: 1px solid #ece9e4;
+    border-radius: 999px;
+    background: #fff;
+    color: #777d83;
+    font-size: 13px;
+    font-weight: 700;
+}
+.home-market-tabs button.active {
+    border-color: #111;
+    background: #111;
+    color: #fff;
+}
+.home-market-list { margin: 0; padding: 0; }
+.home-market-list li {
+    min-height: 69px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #f1f0ed;
+}
+.home-market-list li:last-child { border-bottom: 0; }
+.home-market-list > li > b {
+    width: 20px;
+    color: #9e736a;
+    font-size: 14px;
+    text-align: left;
+}
+.home-market-thumb {
+    width: 48px;
+    height: 48px;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: #fafafa;
+    overflow: hidden;
+}
+.home-market-thumb img { width: 100%; height: 100%; object-fit: contain; }
+.home-market-model { min-width: 0; flex: 1; }
+.home-market-model strong,
+.home-market-model small,
+.home-market-value strong,
+.home-market-value small { display: block; }
+.home-market-model strong {
+    overflow: hidden;
+    color: #1c1c1c;
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.home-market-model small {
+    margin-top: 4px;
+    color: #adb1b6;
+    font-size: 11px;
+    font-weight: 700;
+}
+.home-market-value { flex: 0 0 auto; text-align: right; }
+.home-market-value strong { color: #171717; font-size: 14px; font-weight: 800; }
+.home-market-value small { margin-top: 4px; color: #a7abb0; font-size: 11px; font-weight: 700; }
+.home-market-value small.up { color: #a87369; }
+.home-market-value small.down { color: #9fa6ad; }
+.page-home #homeOnSale {
+    padding: 28px 0 30px;
+    background: #fff;
+}
+.home-sale-head { margin-bottom: 18px; }
+.home-viewed-section {
+    padding: 0 0 38px;
+    background: #fff;
+}
+.home-viewed-row {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+}
+.home-viewed-row::-webkit-scrollbar { display: none; }
+.home-viewed-card {
+    width: 124px;
+    flex: 0 0 124px;
+    text-align: left;
+}
+.home-viewed-img {
+    width: 124px;
+    height: 124px;
+    display: block;
+    overflow: hidden;
+    border-radius: 14px;
+    background: #f8f8f7;
+}
+.home-viewed-img img { width: 100%; height: 100%; object-fit: contain; }
+.home-viewed-card strong,
+.home-viewed-card span:not(.home-viewed-img),
+.home-viewed-card b {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.home-viewed-card strong { margin-top: 8px; color: #151515; font-size: 12px; }
+.home-viewed-card span:not(.home-viewed-img) { margin-top: 3px; color: #777d83; font-size: 12px; }
+.home-viewed-card b { margin-top: 6px; color: #111; font-size: 14px; }
+
+/* 홈 판매카드도 판매시계와 같은 레퍼런스 스타일 */
+#homeOnSale .home-sale-grid { column-gap: 14px; row-gap: 38px; }
+#homeOnSale .hcard { min-width: 0; }
+#homeOnSale .hcard-img {
+    position: relative;
+    padding: 10px !important;
+    border-radius: 14px !important;
+    background: #f8f8f7 !important;
+}
+#homeOnSale .hcard-actions { top: auto; right: 9px; bottom: 8px; gap: 0; }
+#homeOnSale .hcard-actions button {
+    width: 28px; height: 28px; padding: 0; border: 0; border-radius: 0;
+    background: transparent; box-shadow: none; color: #9da3a8;
+}
+#homeOnSale .hcard-wish.on { color: #111; background: transparent; }
+#homeOnSale .hcard-wish.on svg { fill: currentColor; }
+#homeOnSale .hcard-brand {
+    padding: 8px 0 0; color: #151515; font-size: 17px; font-weight: 800;
+    line-height: 1.25; letter-spacing: -.35px;
+}
+#homeOnSale .hcard-model {
+    min-height: 0; padding: 4px 0 0; color: #73787f; font-size: 17px;
+    font-weight: 400; line-height: 1.35; letter-spacing: -.35px;
+    white-space: nowrap; text-overflow: ellipsis; display: block;
+}
+#homeOnSale .hcard-buy-label {
+    margin: 22px 0 0; color: #a4a9af; font-size: 16px; font-weight: 700;
+    line-height: 1.3; letter-spacing: -.25px;
+}
+#homeOnSale .hcard-price {
+    padding: 5px 0 0; color: #111; font-size: 21px; font-weight: 800;
+    line-height: 1.25; letter-spacing: -.5px;
+}
+
+/* 검색창 클릭 시 앱 내부 하단 시트 */
+.search-page {
+    top: max(72px, env(safe-area-inset-top));
+    bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+    height: auto;
+    border: 0;
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -12px 36px rgba(0,0,0,.14);
+    overflow: hidden;
+}
+body.is-searching .tabbar { display: flex !important; }
+body.is-searching .tab-search { color: #111; }
+.sp-top { padding-top: 15px; }
+.sp-panel { padding-bottom: 60px; }
+
+@media (min-width: 700px) {
+    .home-market-dashboard,
+    .page-home #homeOnSale,
+    .home-viewed-section { max-width: 660px; margin: 0 auto; }
+}
 
 /* 검색 결과 없음: 벨로르 로고 + 기업 안내 문구(팝업 대체) */
 .col-empty {
