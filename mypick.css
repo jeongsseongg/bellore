@@ -81,6 +81,43 @@
   display: none !important;
 }
 
+#wishlist .wish-tool {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--mypick-line);
+  color: var(--mypick-sub);
+  font-size: 12px;
+}
+
+#wishlist .wish-tool[hidden] {
+  display: none !important;
+}
+
+#wishlist .wish-tool b {
+  color: var(--mypick-green);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+#wishlist .wish-tool-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+}
+
+#wishlist .wish-tool-actions button {
+  color: var(--mypick-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+#wishlist .wish-tool-actions button.active {
+  color: var(--mypick-green);
+  font-weight: 800;
+}
+
 #wishlist .hcard-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -151,6 +188,11 @@
 
 #wishlist .wish-heart-on svg {
   fill: currentColor;
+}
+
+#wishlist #wishGrid.editing .wish-heart-on {
+  border: 1px solid var(--mypick-green);
+  background: #fff;
 }
 
 #wishlist .wish-card .hcard-brand {
@@ -423,6 +465,22 @@
   font-weight: 800;
 }
 
+#wishlist .wish-hint {
+  margin: 12px 0 0;
+  color: var(--mypick-muted);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+#wishlist .wish-hint[hidden] {
+  display: none !important;
+}
+
+#wishlist .wish-hint b {
+  color: var(--mypick-sub);
+  font-weight: 750;
+}
+
 #wishlist #cartOrderSelected {
   width: 100%;
   height: 54px;
@@ -439,6 +497,105 @@
 
 #wishlist .cart-npay {
   margin-top: 10px;
+}
+
+#wishlist .wish-recommend {
+  margin: 24px -20px 0;
+  padding: 20px 20px 8px;
+  border-top: 8px solid var(--mypick-band);
+}
+
+#wishlist .wish-recommend[hidden] {
+  display: none !important;
+}
+
+#wishlist .wish-recommend-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#wishlist .wish-recommend-head strong {
+  color: var(--mypick-ink);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+#wishlist .wish-recommend-head button {
+  color: var(--mypick-sub);
+  font-size: 11.5px;
+}
+
+#wishlist .wish-recommend-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding-top: 14px;
+}
+
+#wishlist .wish-recommend-card {
+  min-width: 0;
+  cursor: pointer;
+}
+
+#wishlist .wish-recommend-image {
+  position: relative;
+  aspect-ratio: 1;
+  padding: 10px;
+  background: var(--mypick-band);
+}
+
+#wishlist .wish-recommend-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+#wishlist .wish-recommend-image .wish-recent-heart {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  background: rgba(255,255,255,.92);
+  border-radius: 50%;
+}
+
+#wishlist .wish-recommend-card > b,
+#wishlist .wish-recommend-card > strong,
+#wishlist .wish-recommend-card > small,
+#wishlist .wish-recommend-card > em {
+  display: block;
+}
+
+#wishlist .wish-recommend-card > b {
+  margin-top: 10px;
+  color: var(--mypick-ink);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .1em;
+}
+
+#wishlist .wish-recommend-card > strong {
+  min-height: 2.9em;
+  margin-top: 4px;
+  color: var(--mypick-sub);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+#wishlist .wish-recommend-card > small {
+  margin-top: 8px;
+  color: var(--mypick-muted);
+  font-size: 10px;
+}
+
+#wishlist .wish-recommend-card > em {
+  margin-top: 2px;
+  color: var(--mypick-ink);
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 800;
 }
 
 #wishlist .wish-recent-day {
@@ -483,6 +640,11 @@
 
 #wishlist .wish-recent-heart.on svg {
   fill: currentColor;
+}
+
+#wishlist #recentHint {
+  margin: 18px 0 6px;
+  text-align: center;
 }
 
 #wishlist .alerts-sec {

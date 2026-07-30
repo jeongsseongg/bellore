@@ -64,7 +64,7 @@
       if (!box) return;
       box.innerHTML = items.length
         ? items.map(rowHTML).join('')
-        : '<p class="alert-empty">소식받기를 신청한 시계가 없습니다.<br>찾는 모델이 없을 때 ‘소식받기’를 눌러보세요.</p>';
+        : '<p class="alert-empty"><b>신청한 모델이 없습니다</b><br>찾는 모델이 없을 때 <b>소식받기</b>를 누르면<br>입고 즉시 알려드립니다.</p>';
     });
     var c1 = $('#wishAlertCount'); if (c1) c1.textContent = items.length;
     var c2 = $('#myAlertCount'); if (c2) c2.textContent = items.length;
