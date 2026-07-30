@@ -5913,6 +5913,8 @@
                 c.style.display = hit ? '' : 'none';
                 if (hit) hits++;
             });
+            var countEl = document.getElementById('catCount');
+            if (countEl) countEl.textContent = hits;
             // 브랜드 원형 활성 표시를 검색어에 맞춰 동기화(모델 칩은 닫음)
             try {
                 var matchBrandBtn = null;
@@ -5950,7 +5952,10 @@
 
     function clearSearchFilter() {
         hideSearchEmpty();
-        $$('#collection .hcard').forEach(function (c) { c.style.display = ''; });
+        var cards = $$('#collection .hcard');
+        cards.forEach(function (c) { c.style.display = ''; });
+        var countEl = document.getElementById('catCount');
+        if (countEl) countEl.textContent = cards.length;
     }
     // 검색 페이지(search.js)에서 호출
     window.BELLORE_runSearch = runSearch;
