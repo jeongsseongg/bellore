@@ -380,13 +380,111 @@
     var ph = (q.photos && q.photos[0]) || '';
     return '<div class="cqd-watchcard">' +
       '<div class="cqd-watchcard-head">' +
-        '<img src="' + esc(ph) + '" alt="" onerror="this.style.visibility=\'hidden\'">' +
+        (ph ? '<button type="button" class="cqd-watch-photo" data-cqd-photo="' + esc(q.id) + '" data-cqd-photo-index="0" aria-label="등록 사진 크게 보기">' +
+          '<img src="' + esc(ph) + '" alt="' + esc((q.brand || '') + ' ' + (q.model || '') + ' 등록 사진') + '" loading="lazy" decoding="async" onerror="this.style.visibility=\'hidden\'"></button>'
+          : '<span class="cqd-watch-photo ph">' + ICON_WATCH + '</span>') +
         '<div><p class="cqd-wc-brand">' + esc(q.brand || '시계') + '</p>' +
         '<p class="cqd-wc-model">' + esc(q.model || '') + '</p>' +
         '<p class="cqd-wc-ref">사진 ' + (q.photoCount || (q.photos ? q.photos.length : 0)) + '장</p></div>' +
         statusBadge(q) +
       '</div>' +
     '</div>';
+  }
+
+  function quotePhotoStrip(q) {
+    var photos = (q && q.photos) || [];
+    if (!photos.length) return '';
+    return '<section class="cqd-photo-section" aria-label="등록 사진">' +
+      '<div class="cqd-photo-section-head"><b>등록 사진</b><span>' + photos.length + '장 · 눌러서 크게 보기</span></div>' +
+      '<div class="cqd-photo-strip">' + photos.map(function (src, index) {
+        return '<button type="button" data-cqd-photo="' + esc(q.id) + '" data-cqd-photo-index="' + index + '" aria-label="' + (index + 1) + '번째 사진 크게 보기">' +
+          '<img src="' + esc(src) + '" alt="' + esc((q.brand || '시계') + ' 등록 사진 ' + (index + 1)) + '" loading="lazy" decoding="async"></button>';
+      }).join('') + '</div></section>';
+  }
+
+  function findAnyQuote(id) {
+    return findIn(cust.watches, id) || findIn(vend.quotes, id) || findIn(allAdminQuotes(), id);
+  }
+
+  var photoViewerKeyHandler = null;
+  function closePhotoViewer() {
+    var viewer = document.querySelector('.cqd-photo-viewer');
+    if (viewer) viewer.remove();
+    if (photoViewerKeyHandler) document.removeEventListener('keydown', photoViewerKeyHandler);
+    photoViewerKeyHandler = null;
+    document.body.classList.remove('cqd-photo-viewer-open');
+  }
+
+  function downloadQuotePhoto(src, q, index, button) {
+    if (!src) return;
+    var oldText = button ? button.textContent : '';
+    if (button) { button.disabled = true; button.textContent = '준비 중…'; }
+    fetch(src, { cache: 'force-cache' })
+      .then(function (res) {
+        if (!res.ok) throw new Error('사진을 불러오지 못했습니다.');
+        return res.blob();
+      })
+      .then(function (blob) {
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        var base = ((q.brand || '') + '-' + (q.model || '')).replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, '-');
+        a.href = url;
+        a.download = (base || '벨로르-견적사진') + '-' + (index + 1) + '.webp';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      })
+      .catch(function (err) { alert('사진 다운로드 실패: ' + msg(err)); })
+      .then(function () {
+        if (button) { button.disabled = false; button.textContent = oldText; }
+      });
+  }
+
+  function openPhotoViewer(q, startIndex) {
+    var photos = (q && q.photos) || [];
+    if (!photos.length) return;
+    closePhotoViewer();
+    var index = Math.max(0, Math.min(Number(startIndex) || 0, photos.length - 1));
+    var viewer = document.createElement('div');
+    viewer.className = 'cqd-photo-viewer';
+    viewer.setAttribute('role', 'dialog');
+    viewer.setAttribute('aria-modal', 'true');
+    viewer.setAttribute('aria-label', '등록 사진 크게 보기');
+    viewer.innerHTML =
+      '<button type="button" class="cqd-photo-viewer-close" aria-label="닫기">×</button>' +
+      '<button type="button" class="cqd-photo-viewer-nav prev" aria-label="이전 사진">‹</button>' +
+      '<figure><img alt=""><figcaption><span></span><b></b></figcaption></figure>' +
+      '<button type="button" class="cqd-photo-viewer-nav next" aria-label="다음 사진">›</button>' +
+      '<button type="button" class="cqd-photo-download">현재 사진 다운로드</button>';
+    document.body.appendChild(viewer);
+    document.body.classList.add('cqd-photo-viewer-open');
+    var image = viewer.querySelector('img');
+    var count = viewer.querySelector('figcaption span');
+    var label = viewer.querySelector('figcaption b');
+    var prev = viewer.querySelector('.prev');
+    var next = viewer.querySelector('.next');
+    var download = viewer.querySelector('.cqd-photo-download');
+    function show(nextIndex) {
+      index = (nextIndex + photos.length) % photos.length;
+      image.src = photos[index];
+      image.alt = (q.brand || '시계') + ' ' + (q.model || '') + ' 등록 사진 ' + (index + 1);
+      count.textContent = (index + 1) + ' / ' + photos.length;
+      label.textContent = (q.brand || '') + ' ' + (q.model || '');
+      prev.hidden = next.hidden = photos.length < 2;
+    }
+    viewer.querySelector('.cqd-photo-viewer-close').addEventListener('click', closePhotoViewer);
+    viewer.addEventListener('click', function (e) { if (e.target === viewer) closePhotoViewer(); });
+    prev.addEventListener('click', function () { show(index - 1); });
+    next.addEventListener('click', function () { show(index + 1); });
+    download.addEventListener('click', function () { downloadQuotePhoto(photos[index], q, index, download); });
+    photoViewerKeyHandler = function (e) {
+      if (e.key === 'Escape') closePhotoViewer();
+      else if (e.key === 'ArrowLeft') show(index - 1);
+      else if (e.key === 'ArrowRight') show(index + 1);
+    };
+    document.addEventListener('keydown', photoViewerKeyHandler);
+    show(index);
   }
 
   /* 목록 썸네일 — 실제 등록 사진(없으면 ⌚) */
@@ -432,7 +530,7 @@
           '<p class="cqs-model">' + esc(q.model || '') + '</p>' +
           (q.ref ? '<p class="cqs-ref">' + esc(q.ref) + '</p>' : '') +
         '</div>' +
-        (ph ? '<img class="cqs-photo" src="' + esc(ph) + '" alt="" onerror="this.style.visibility=\'hidden\'">' : '<div class="cqs-photo ph">' + ICON_WATCH + '</div>') +
+        (ph ? '<img class="cqs-photo" src="' + esc(ph) + '" alt="' + esc((q.brand || '') + ' ' + (q.model || '') + ' 등록 사진') + '" data-cqd-photo="' + esc(q.id) + '" data-cqd-photo-index="0" role="button" tabindex="0" loading="lazy" decoding="async" onerror="this.style.visibility=\'hidden\'">' : '<div class="cqs-photo ph">' + ICON_WATCH + '</div>') +
       '</div>' + spec +
     '</div>';
   }
@@ -1209,6 +1307,7 @@
       : '<button type="button" class="cqd-actbtn stop" data-cqd-suspendq="' + esc(q.id) + '">견적 정지</button>';
     return '<div class="cqd-screen">' +
       watchCard(q) +
+      quotePhotoStrip(q) +
       '<div class="cqd-cust">' +
         '<p class="cqd-cust-h">등록 고객 정보</p>' +
         '<dl class="cqd-rows">' +
@@ -1331,6 +1430,14 @@
     var sa = e.target.closest('[data-cqd-shareact]');
     if (sa) { shareAct(sa.getAttribute('data-cqd-shareact')); return; }
     if (e.target.closest('#cqShareClose') || e.target.closest('#cqShareMask')) { closeShareSheet(); return; }
+
+    /* 모든 역할: 썸네일을 눌러 크게 확인 + 현재 사진 다운로드 */
+    var photoTarget = e.target.closest('[data-cqd-photo]');
+    if (photoTarget) {
+      var photoQuote = findAnyQuote(photoTarget.getAttribute('data-cqd-photo'));
+      if (photoQuote) openPhotoViewer(photoQuote, Number(photoTarget.getAttribute('data-cqd-photo-index')) || 0);
+      return;
+    }
 
     /* 상단 + 버튼 / 빈목록 CTA → 새 시계 등록(상태 초기화) */
     if (e.target.closest('.cqd-add') || e.target.closest('[data-cqd-new]')) {
@@ -1461,7 +1568,26 @@
 
     /* 관리자: 견적 승인/거부/정지/삭제 */
     var ap = e.target.closest('[data-cqd-approve]');
-    if (ap) { B.approveListing(ap.getAttribute('data-cqd-approve')).then(function(){ alert('승인했습니다. 업체 입찰이 시작됩니다.'); }).catch(function (err) { alert('실패: ' + msg(err)); }); return; }
+    if (ap) {
+      var approveId = ap.getAttribute('data-cqd-approve');
+      var approveQuote = findIn(adm.pending, approveId);
+      ap.disabled = true;
+      ap.textContent = '승인 처리 중…';
+      B.approveListing(approveId).then(function () {
+        if (approveQuote) {
+          adm.pending = adm.pending.filter(function (q) { return q.id !== approveId; });
+          approveQuote.status = 'open';
+          if (!findIn(adm.open, approveId)) adm.open.unshift(approveQuote);
+        }
+        render();
+        alert('승인 완료. 업체 입찰이 시작되었습니다.');
+      }).catch(function (err) {
+        ap.disabled = false;
+        ap.textContent = '견적 승인(입찰 시작)';
+        alert('승인 실패: ' + msg(err));
+      });
+      return;
+    }
     var rj = e.target.closest('[data-cqd-reject]');
     if (rj) { bellConfirm('이 견적을 거부할까요?').then(function (ok) { if (ok) B.rejectListing(rj.getAttribute('data-cqd-reject')).then(function(){ go('a-dash', null, true); }).catch(function (err) { alert('실패: ' + msg(err)); }); }); return; }
     var sq = e.target.closest('[data-cqd-suspendq]');
@@ -1528,6 +1654,10 @@
   function onKey(e) {
     if (e.target && e.target.id === 'cqChatInput' && e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault(); sendChat();
+    } else if (e.target && e.target.matches && e.target.matches('[data-cqd-photo]') && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      var q = findAnyQuote(e.target.getAttribute('data-cqd-photo'));
+      if (q) openPhotoViewer(q, Number(e.target.getAttribute('data-cqd-photo-index')) || 0);
     }
   }
 
@@ -1595,7 +1725,10 @@
       photos: newPhotos,
       brand: d.brand, model: d.model, ref: d.ref, stamping: d.stamping,
       year: d.year, grade: d.grade, parts: d.parts,
-      memo: d.memo, name: d.name, phone: d.phone
+      memo: d.memo, name: d.name, phone: d.phone,
+      onProgress: function (done, total) {
+        btn.textContent = '사진 저장 ' + done + '/' + total;
+      }
     })
       .then(function () {
         emailAdminSubmit(d, false);

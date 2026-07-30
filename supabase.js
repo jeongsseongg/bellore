@@ -99,22 +99,73 @@
     return (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
       : 'x' + Date.now() + Math.random().toString(16).slice(2);
   }
-  function uploadPhotos(items, max) {
+  // 휴대폰 원본을 그대로 전송하면 견적 시작이 수십 초간 멈춘 것처럼 보이고
+  // 이후 목록/상세 조회 때마다 Storage egress가 커진다. 판독 가능한 1600px WebP로
+  // 한 번만 최적화해 영구 저장하고, 같은 URL은 1년간 브라우저/CDN 캐시한다.
+  function optimizePhoto(blob) {
+    if (!blob || !blob.type || blob.type.indexOf('image/') !== 0) {
+      return Promise.reject(new Error('이미지 파일만 등록할 수 있습니다.'));
+    }
+    if (blob.size > 30 * 1024 * 1024) {
+      return Promise.reject(new Error('사진 1장의 용량은 30MB 이하여야 합니다.'));
+    }
+    return new Promise(function (resolve, reject) {
+      var src = URL.createObjectURL(blob);
+      var image = new Image();
+      image.onload = function () {
+        try {
+          var maxSide = 1600;
+          var scale = Math.min(1, maxSide / Math.max(image.naturalWidth || 1, image.naturalHeight || 1));
+          var width = Math.max(1, Math.round(image.naturalWidth * scale));
+          var height = Math.max(1, Math.round(image.naturalHeight * scale));
+          var canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          var ctx = canvas.getContext('2d', { alpha: false });
+          if (!ctx) throw new Error('사진 최적화를 시작할 수 없습니다.');
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, width, height);
+          ctx.drawImage(image, 0, 0, width, height);
+          canvas.toBlob(function (result) {
+            URL.revokeObjectURL(src);
+            canvas.width = canvas.height = 1;
+            if (!result) { reject(new Error('사진 최적화에 실패했습니다.')); return; }
+            resolve(result);
+          }, 'image/webp', 0.8);
+        } catch (err) {
+          URL.revokeObjectURL(src);
+          reject(err);
+        }
+      };
+      image.onerror = function () {
+        URL.revokeObjectURL(src);
+        reject(new Error('사진 파일을 읽을 수 없습니다.'));
+      };
+      image.src = src;
+    });
+  }
+  function uploadPhotos(items, max, onProgress) {
     items = (items || []).slice(0, max || 10);
     var out = [];
     var chain = Promise.resolve();
-    items.forEach(function (it) {
+    items.forEach(function (it, index) {
       chain = chain.then(function () {
-        if (typeof it === 'string' && !it.startsWith('data:')) { out.push(it); return; }
+        if (typeof it === 'string' && !it.startsWith('data:')) {
+          out.push(it);
+          if (onProgress) onProgress(index + 1, items.length);
+          return;
+        }
         var blob = (typeof it === 'string') ? dataURLtoBlob(it) : it;
-        var ext = (blob.type.split('/')[1] || 'jpg').split('+')[0];
-        var path = (rawUser ? rawUser.id : 'anon') + '/' + uuid() + '.' + ext;
-        return sb.storage.from('photos').upload(path, blob, { cacheControl: '3600', upsert: false })
+        return optimizePhoto(blob).then(function (optimized) {
+          var path = (rawUser ? rawUser.id : 'anon') + '/quotes/' + uuid() + '.webp';
+          return sb.storage.from('photos').upload(path, optimized, { cacheControl: '31536000', upsert: false });
+        })
           .then(function (res) {
             // 업로드 실패를 조용히 삼키면 '저장 성공'인데 이미지가 빈 채로 저장된다.
             // → 실제 원인(스토리지 버킷/권한)이 그대로 노출되도록 에러를 던진다.
             if (res.error) { throw new Error('이미지 업로드 실패: ' + (res.error.message || '스토리지 권한/버킷을 확인하세요') + ' (Storage 버킷 photos 가 public 인지, 업로드 정책이 있는지 확인)'); }
-            out.push(sb.storage.from('photos').getPublicUrl(path).data.publicUrl);
+            out.push(sb.storage.from('photos').getPublicUrl(res.data.path).data.publicUrl);
+            if (onProgress) onProgress(index + 1, items.length);
           });
       });
     });
@@ -795,9 +846,12 @@
     };
   }
 
+  var QUOTE_SELECT = 'id,customer_id,item_name,item_brand,item_ref,item_year,item_grade,item_stamping,item_parts,item_detail,photo_urls,photo_url,status,awarded_bid,view_count,created_at';
+  var BID_SELECT = 'id,quote_request_id,vendor_id,amount,message,created_at';
+
   function fetchBidsFor(ids) {
     if (!ids.length) return Promise.resolve({});
-    return sb.from('bids').select('*').in('quote_request_id', ids)
+    return sb.from('bids').select(BID_SELECT).in('quote_request_id', ids)
       .then(function (res) {
         var by = {};
         (res.data || []).forEach(function (b) { (by[b.quote_request_id] = by[b.quote_request_id] || []).push(b); });
@@ -818,7 +872,7 @@
     var memo = data.memo || '';
     var contact = '[연락처] ' + (data.name || '') + ' / ' + (data.phone || '');
     var detail = (tags + memo + '\n' + contact).trim();
-    return uploadPhotos(data.photos, 10).then(function (urls) {
+    return uploadPhotos(data.photos, 10, data.onProgress).then(function (urls) {
       var row = {
         customer_id: rawUser.id,
         item_name: (data.model || data.brand || '시계'),
@@ -861,7 +915,7 @@
     var contact = '[연락처] ' + (data.name || '') + ' / ' + (data.phone || '');
     var detail = (tags + memo + '\n' + contact).trim();
     // data.photos 는 기존 URL(string) + 새 File 이 섞여 들어온다. uploadPhotos 가 알아서 처리.
-    return uploadPhotos(data.photos, 10).then(function (urls) {
+    return uploadPhotos(data.photos, 10, data.onProgress).then(function (urls) {
       var row = {
         item_name: (data.model || data.brand || '시계'),
         item_brand: data.brand || null,
@@ -903,8 +957,9 @@
     if (!rawUser) { cb([]); return function () {}; }
     var uid = rawUser.id;
     function load() {
-      sb.from('quote_requests').select('*').eq('customer_id', uid)
+      sb.from('quote_requests').select(QUOTE_SELECT).eq('customer_id', uid)
         .order('created_at', { ascending: false })
+        .limit(100)
         .then(function (res) {
           var quotes = res.data || [];
           fetchBidsFor(quotes.map(function (q) { return q.id; })).then(function (by) {
@@ -921,8 +976,9 @@
   // 승인 대기 비교견적 (관리자) — adminPending 에 렌더
   Backend.subscribePending = function (cb) {
     function load() {
-      sb.from('quote_requests').select('*').eq('status', 'pending')
+      sb.from('quote_requests').select(QUOTE_SELECT).eq('status', 'pending')
         .order('created_at', { ascending: false })
+        .limit(100)
         .then(function (res) {
           var quotes = res.data || [];
           fetchBidsFor(quotes.map(function (q) { return q.id; })).then(function (by) {
@@ -939,8 +995,9 @@
   // 진행중(open) 비교견적 (승인업체/관리자) — 업체 입찰 화면용
   Backend.subscribeOpenQuotes = function (cb) {
     function load() {
-      sb.from('quote_requests').select('*').eq('status', 'open')
+      sb.from('quote_requests').select(QUOTE_SELECT).eq('status', 'open')
         .order('created_at', { ascending: false })
+        .limit(100)
         .then(function (res) {
           var quotes = res.data || [];
           fetchBidsFor(quotes.map(function (q) { return q.id; })).then(function (by) {
@@ -957,8 +1014,9 @@
   // 정지(suspended)된 비교견적 (관리자) — 정지 목록/재개용
   Backend.subscribeSuspended = function (cb) {
     function load() {
-      sb.from('quote_requests').select('*').eq('status', 'suspended')
+      sb.from('quote_requests').select(QUOTE_SELECT).eq('status', 'suspended')
         .order('created_at', { ascending: false })
+        .limit(100)
         .then(function (res) {
           var quotes = res.data || [];
           fetchBidsFor(quotes.map(function (q) { return q.id; })).then(function (by) {
@@ -974,11 +1032,17 @@
   //  - 승인업체(알림설정 ON)에게는 DB 트리거가 앱알림 생성
   //  - VIP 업체에게는 추가로 카톡 알림톡 발송(Edge Function, best-effort)
   Backend.approveListing = function (id) {
-    return sb.from('quote_requests').update({ status: 'open' }).eq('id', id)
+    if (!Backend.isAdmin()) return Promise.reject(new Error('관리자 권한이 확인되지 않았습니다.'));
+    return sb.from('quote_requests').update({ status: 'open' }).eq('id', id).eq('status', 'pending')
+      .select('id,status').maybeSingle()
       .then(function (res) {
         if (res.error) throw res.error;
+        if (!res.data || res.data.status !== 'open') {
+          throw new Error('승인 처리된 견적이 없습니다. 관리자 권한과 RLS 정책을 확인해주세요.');
+        }
         refreshQuoteFeeds();
         notifyVipKakao(id); // 실패해도 승인 흐름엔 영향 없음
+        return res.data;
       });
   };
 
