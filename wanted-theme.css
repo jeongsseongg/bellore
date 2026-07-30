@@ -1,27 +1,27 @@
 /*
  * BELLORE · Wanted-inspired UI
- * 넓은 흰 캔버스, 얇은 구분선, 선명한 정보 위계, 파란 단일 액센트.
+ * 넓은 흰 캔버스, 얇은 구분선, 선명한 정보 위계, 벨로르 딥그린 액센트.
  * 기존 기능/DOM은 유지하고 시각 체계만 교체한다.
  */
 
 :root {
-  --wanted-blue: #00b86b;
-  --wanted-blue-hover: #009a59;
+  --wanted-blue: #1a2925;
+  --wanted-blue-hover: #0f1d19;
   --wanted-ink: #171719;
   --wanted-sub: #6b6b6f;
   --wanted-muted: #8f8f95;
   --wanted-line: #e1e2e4;
   --wanted-soft: #f7f7f8;
-  --wanted-soft-blue: #eafff4;
+  --wanted-soft-blue: #eef3f1;
   --wanted-radius: 12px;
   --wanted-content: 1200px;
   --black: #171719;
   --black-soft: #171719;
   --dark-green: #171719;
   --green: var(--wanted-blue);
-  --green-mid: #20cf82;
+  --green-mid: #344b44;
   --green-bright: var(--wanted-blue);
-  --green-light: #c8f4de;
+  --green-light: #dce7e3;
   --gold: var(--wanted-blue);
   --bg-soft: var(--wanted-soft);
   --text: var(--wanted-ink);
@@ -838,7 +838,7 @@ html[data-width="full"] .hcard-grid {
 .page-collection .cat-brand-search:focus-within {
   border-color: var(--wanted-blue);
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(51, 102, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(26, 41, 37, 0.10);
 }
 
 .page-collection .cat-brand-search input {
@@ -929,7 +929,7 @@ html[data-width="full"] .hcard-grid {
   border: 1px solid #dfe5ff;
   border-radius: 18px;
   background:
-    radial-gradient(circle at 86% 20%, rgba(51, 102, 255, 0.16), transparent 34%),
+    radial-gradient(circle at 86% 20%, rgba(26, 41, 37, 0.14), transparent 34%),
     linear-gradient(135deg, #f7f9ff, #fff);
 }
 
@@ -952,7 +952,7 @@ html[data-width="full"] .hcard-grid {
 .compare-form-hero {
   border: 1px solid #dfe5ff;
   background:
-    radial-gradient(circle at 85% 15%, rgba(51, 102, 255, 0.18), transparent 34%),
+    radial-gradient(circle at 85% 15%, rgba(26, 41, 37, 0.16), transparent 34%),
     linear-gradient(135deg, #f5f8ff, #fff);
   color: var(--wanted-ink);
   box-shadow: none;
@@ -1018,7 +1018,7 @@ html[data-width="full"] .hcard-grid {
 
 #loginModal .login-form input:focus {
   border-color: var(--wanted-blue);
-  box-shadow: 0 0 0 3px rgba(51, 102, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(26, 41, 37, 0.10);
 }
 
 #loginModal .login-btn.login-default,
@@ -1177,7 +1177,7 @@ html[data-width="full"] .hcard-grid {
    ============================================================ */
 .cqd-overlay {
   --cq-green: var(--wanted-blue);
-  --cq-green-deep: #009a59;
+  --cq-green-deep: #0f1d19;
   --cq-gold: var(--wanted-soft-blue);
   max-width: 100%;
   background: var(--wanted-soft);
@@ -1415,7 +1415,7 @@ html[data-width="full"] .hcard-grid {
 
 .cqd-state.done,
 .cqd-state.ok {
-  color: #009a59;
+  color: #1a2925;
   background: var(--wanted-soft-blue);
   border-color: #c8f4de;
 }
