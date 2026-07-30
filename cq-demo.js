@@ -1391,7 +1391,10 @@
   }
   function vendorThumb(q) {
     var src = q.photos && q.photos[0];
-    return src ? '<span class="th"><img src="' + esc(src) + '" alt="" loading="lazy"></span>' : '<span class="th ph">사진 없음</span>';
+    return src
+      ? '<span class="th" data-cqd-photo="' + esc(q.id) + '" data-cqd-photo-index="0" role="button" tabindex="0" aria-label="등록 사진 크게 보기">' +
+          '<img src="' + esc(src) + '" alt="' + esc((q.brand || '시계') + ' ' + (q.model || '') + ' 등록 사진') + '" loading="lazy"></span>'
+      : '<span class="th ph">사진 없음</span>';
   }
   function vendorBidWins() {
     return (vend.notifications || []).filter(function (n) {
@@ -1543,7 +1546,8 @@
     var photo = q.photos && q.photos[0];
     return '<div class="cqd-screen cqvr">' +
       vendorHeader('제안가 입력', true) +
-      '<div class="pcard"><div class="img' + (photo ? '' : ' ph') + '">' +
+      '<div class="pcard"><div class="img' + (photo ? '' : ' ph') + '"' +
+        (photo ? ' data-cqd-photo="' + esc(q.id) + '" data-cqd-photo-index="0" role="button" tabindex="0" aria-label="등록 사진 크게 보기"' : '') + '>' +
         (photo ? '<img src="' + esc(photo) + '" alt="" loading="eager">' : '<span>등록 사진 없음</span>') +
         '<span class="pg num">1 / ' + Math.max(1, q.photoCount) + '</span></div>' +
         '<div class="b"><p class="n">' + esc((q.brand || '') + ' ' + (q.model || '')) + '</p>' +
@@ -1834,6 +1838,20 @@
       return;
     }
 
+    /* 사진 클릭은 카드 화면 이동보다 우선한다. 업체 견적 썸네일도 바로 확대한다. */
+    var photoAllTarget = e.target.closest('[data-cqd-photo-all]');
+    if (photoAllTarget) {
+      var allPhotoQuote = findAnyQuote(photoAllTarget.getAttribute('data-cqd-photo-all'));
+      if (allPhotoQuote) downloadAllQuotePhotos(allPhotoQuote, photoAllTarget);
+      return;
+    }
+    var photoTarget = e.target.closest('[data-cqd-photo]');
+    if (photoTarget) {
+      var photoQuote = findAnyQuote(photoTarget.getAttribute('data-cqd-photo'));
+      if (photoQuote) openPhotoViewer(photoQuote, Number(photoTarget.getAttribute('data-cqd-photo-index')) || 0);
+      return;
+    }
+
     var nav = e.target.closest('[data-cqd-go]');
     if (nav) { go(nav.getAttribute('data-cqd-go'), nav.getAttribute('data-cqd-id') || null); return; }
 
@@ -1857,21 +1875,6 @@
     var sa = e.target.closest('[data-cqd-shareact]');
     if (sa) { shareAct(sa.getAttribute('data-cqd-shareact')); return; }
     if (e.target.closest('#cqShareClose') || e.target.closest('#cqShareMask')) { closeShareSheet(); return; }
-
-    var photoAllTarget = e.target.closest('[data-cqd-photo-all]');
-    if (photoAllTarget) {
-      var allPhotoQuote = findAnyQuote(photoAllTarget.getAttribute('data-cqd-photo-all'));
-      if (allPhotoQuote) downloadAllQuotePhotos(allPhotoQuote, photoAllTarget);
-      return;
-    }
-
-    /* 모든 역할: 썸네일을 눌러 크게 확인 + 현재 사진 다운로드 */
-    var photoTarget = e.target.closest('[data-cqd-photo]');
-    if (photoTarget) {
-      var photoQuote = findAnyQuote(photoTarget.getAttribute('data-cqd-photo'));
-      if (photoQuote) openPhotoViewer(photoQuote, Number(photoTarget.getAttribute('data-cqd-photo-index')) || 0);
-      return;
-    }
 
     var vendorFilter = e.target.closest('[data-cqv-filter]');
     if (vendorFilter) {

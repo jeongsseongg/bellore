@@ -50,6 +50,8 @@
 .cqvr .qcard.mine{border-color:var(--bl);box-shadow:0 0 0 1px var(--bl) inset}
 .cqvr .qtop{display:flex;gap:12px;align-items:flex-start}
 .cqvr .qtop .th{width:62px;height:62px;border-radius:10px;background:var(--bg2);overflow:hidden;flex:0 0 auto}
+.cqvr .qtop .th[data-cqd-photo],.cqvr .pcard .img[data-cqd-photo]{cursor:zoom-in}
+.cqvr .qtop .th[data-cqd-photo]:focus-visible,.cqvr .pcard .img[data-cqd-photo]:focus-visible{outline:3px solid rgba(26,41,37,.28);outline-offset:2px}
 .cqvr .qtop .th img{width:100%;height:100%;object-fit:cover;mix-blend-mode:multiply}
 .cqvr .qtop .th.ph{display:grid;place-items:center;color:var(--d);font-size:11px}
 .cqvr .qtop .w{flex:1;min-width:0}
