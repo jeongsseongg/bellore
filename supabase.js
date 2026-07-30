@@ -847,7 +847,7 @@
   }
 
   var QUOTE_SELECT = 'id,customer_id,item_name,item_brand,item_ref,item_year,item_grade,item_stamping,item_parts,item_detail,photo_urls,photo_url,status,awarded_bid,view_count,created_at';
-  var BID_SELECT = 'id,quote_request_id,vendor_id,amount,message,created_at';
+  var BID_SELECT = 'id,quote_request_id,vendor_id,vendor_name,created_by_admin,amount,message,created_at';
 
   function fetchBidsFor(ids) {
     if (!ids.length) return Promise.resolve({});
@@ -1065,18 +1065,68 @@
       .then(function (res) { if (res.error) throw res.error; refreshQuoteFeeds(); });
   };
 
-  // 입찰 (관리자/승인업체) — placeBid({id,uid,...}, amount[, message])
+  // 업체 입찰 — 기존 자기 입찰이 있으면 수정, 없으면 신규 등록.
+  // DB의 UNIQUE 제약은 관리자 중복견적을 위해 제거했으므로 앱에서 명시적으로 갱신 대상을 찾는다.
   Backend.placeBid = function (listing, amount, message) {
     if (!rawUser) return Promise.reject(new Error('NOT_SIGNED_IN'));
     var row = {
       quote_request_id: listing.id,
       vendor_id: rawUser.id,
       amount: amount,
-      message: message || null
+      message: message || null,
+      created_by_admin: false
     };
-    // 동일 업체 재입찰 시 upsert (unique(quote_request_id, vendor_id))
-    return sb.from('bids').upsert(row, { onConflict: 'quote_request_id,vendor_id' })
-      .then(function (res) { if (res.error) throw res.error; refreshQuoteFeeds(); });
+    return sb.from('bids').select('id')
+      .eq('quote_request_id', listing.id)
+      .eq('vendor_id', rawUser.id)
+      .eq('created_by_admin', false)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(function (found) {
+        if (found.error) throw found.error;
+        var req = found.data
+          ? sb.from('bids').update({ amount: row.amount, message: row.message }).eq('id', found.data.id)
+          : sb.from('bids').insert(row);
+        return req.then(function (res) {
+          if (res.error) throw res.error;
+          refreshQuoteFeeds();
+        });
+      });
+  };
+
+  // 메인관리자: 등록 업체 계정과 무관한 업체명으로 동일 견적에 여러 제안 추가/이름 수정.
+  Backend.adminAddBid = function (quoteId, vendorName, amount, message) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    var name = String(vendorName || '').trim();
+    if (!name) return Promise.reject(new Error('업체명을 입력해주세요.'));
+    var row = {
+      quote_request_id: quoteId,
+      vendor_id: rawUser.id,
+      vendor_name: name,
+      amount: amount,
+      message: message || null,
+      created_by_admin: true
+    };
+    return sb.from('bids').insert(row).select(BID_SELECT).single()
+      .then(function (res) {
+        if (res.error) throw res.error;
+        refreshQuoteFeeds();
+        return res.data;
+      });
+  };
+  Backend.adminRenameBid = function (bidId, vendorName) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    var name = String(vendorName || '').trim();
+    if (!name) return Promise.reject(new Error('업체명을 입력해주세요.'));
+    return sb.from('bids').update({ vendor_name: name }).eq('id', bidId)
+      .select(BID_SELECT).maybeSingle()
+      .then(function (res) {
+        if (res.error) throw res.error;
+        if (!res.data) throw new Error('변경할 견적을 찾지 못했습니다.');
+        refreshQuoteFeeds();
+        return res.data;
+      });
   };
 
   // 고객 채택: open → awarded (+ 낙찰 업체 알림 시도)

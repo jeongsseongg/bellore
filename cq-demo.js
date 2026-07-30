@@ -107,6 +107,7 @@
 
   /* ===== 헬퍼 ===== */
   function vendorName(p) { return (p && (p.company_name || p.display_name)) || '(이름 없음)'; }
+  function bidVendorName(b, p) { return (b && b.vendor_name) || vendorName(p); }
   function vendorLetter(p) { return vendorName(p).charAt(0).toUpperCase(); }
   function vendorAvatar(p) {
     var lo = p && p.logo_url;
@@ -732,12 +733,12 @@
     var vp = null;
     if (reveal) {
       vp = awardedVendorCache[q.id];
-      if (vp === undefined && B && B.getVendorPublic && bid.vendor_id) {
+      if (vp === undefined && B && B.getVendorPublic && bid.vendor_id && !bid.vendor_name) {
         awardedVendorCache[q.id] = null;
         B.getVendorPublic(bid.vendor_id).then(function (p) { awardedVendorCache[q.id] = p; renderIfOpen(); });
       }
     }
-    var vName = (vp && (vp.company_name || vp.display_name)) || '벨로르 인증 업체';
+    var vName = bid.vendor_name || (vp && (vp.company_name || vp.display_name)) || '벨로르 인증 업체';
     var vLogo = vp && vp.logo_url;
     var revCount = reviews.length;
     var revAvg = revCount ? (reviews.reduce(function (s, r) { return s + (Number(r.rating) || 5); }, 0) / revCount) : 0;
@@ -767,7 +768,7 @@
       sellBtns = '<p class="cqd-note" style="text-align:center">이미 다른 견적으로 판매가 확정되었습니다.</p>' +
         '<button type="button" class="cqd-cta ghost" data-cqd-go="c-bids" data-cqd-id="' + esc(q.id) + '">‹ 목록으로</button>';
     } else {
-      sellBtns = '<button type="button" class="cqo-sell" data-cqd-award data-cqd-q="' + esc(q.id) + '" data-cqd-bid="' + esc(bid.id) + '" data-cqd-vendor="' + esc(bid.vendor_id) + '" data-cqd-amt="' + Number(bid.amount) + '">이 견적으로 판매하기</button>' +
+      sellBtns = '<button type="button" class="cqo-sell" data-cqd-award data-cqd-q="' + esc(q.id) + '" data-cqd-bid="' + esc(bid.id) + '" data-cqd-vendor="' + esc(bid.created_by_admin ? '' : bid.vendor_id) + '" data-cqd-vendor-name="' + esc(bid.vendor_name || '') + '" data-cqd-amt="' + Number(bid.amount) + '">이 견적으로 판매하기</button>' +
         '<button type="button" class="cqo-compare" data-cqd-go="c-bids" data-cqd-id="' + esc(q.id) + '">다른 견적 비교하기</button>';
     }
     var offer = '<div class="cqo-offer">' +
@@ -1375,14 +1376,16 @@
     var bids = q.bids || [];
     var rows = bids.map(function (b, i) {
       var v = vendById(b.vendor_id);
+      var displayVendorName = bidVendorName(b, v);
       return '<div class="cqd-vrow static">' +
-        vendorAvatar(v) +
+        vendorAvatar(v || { company_name: displayVendorName }) +
         '<span class="cqd-vrow-main">' +
-          '<span class="cqd-vrow-name">' + (i + 1) + '. ' + esc(vendorName(v)) +
+          '<span class="cqd-vrow-name">' + (i + 1) + '. ' + esc(displayVendorName) +
             (q.awarded_bid === b.id ? ' <span class="cqd-flag awd">채택</span>' : (i === 0 ? ' <span class="cqd-flag top">최고가</span>' : '')) + '</span>' +
           '<span class="cqd-vrow-sub"><em>' + (b.message ? esc(b.message) : '메모 없음') + '</em></span>' +
         '</span>' +
-        '<span class="cqd-vrow-amt">' + won(b.amount) + '</span>' +
+        '<span class="cqd-admin-bid-side"><span class="cqd-vrow-amt">' + won(b.amount) + '</span>' +
+          '<button type="button" class="cqd-actbtn sm" data-cqd-renamebid="' + esc(b.id) + '" data-cqd-bidname="' + esc(displayVendorName) + '">업체명 변경</button></span>' +
       '</div>';
     }).join('') || '<p class="cqd-note">아직 입찰이 없습니다.</p>';
     var approveBtns = q.status === 'pending'
@@ -1406,6 +1409,17 @@
       '<div class="cqd-actions">' + approveBtns + suspBtn +
         '<button type="button" class="cqd-actbtn warn" data-cqd-delq="' + esc(q.id) + '">견적 삭제</button>' +
       '</div>' +
+      (q.status === 'open' ? '<div class="cqd-form cqd-admin-bid-form">' +
+        '<p class="cqd-cust-h">메인관리자 중복 견적 추가</p>' +
+        '<label for="cqdAdminBidVendor">표시할 업체명</label>' +
+        '<input type="text" id="cqdAdminBidVendor" maxlength="80" placeholder="예: 강남 명품시계">' +
+        '<label for="cqdAdminBidAmount">제안 금액 (원)</label>' +
+        '<input type="tel" id="cqdAdminBidAmount" inputmode="numeric" placeholder="예: 21000000">' +
+        '<label for="cqdAdminBidMessage">고객에게 전할 메모</label>' +
+        '<textarea id="cqdAdminBidMessage" rows="2" placeholder="당일 현금 지급 가능합니다."></textarea>' +
+        '<button type="button" class="cqd-cta primary" data-cqd-adminaddbid="' + esc(q.id) + '">이 업체명으로 견적 추가</button>' +
+        '<p class="cqd-mini">업체명을 바꿔 같은 견적에 여러 건을 계속 추가할 수 있습니다.</p>' +
+      '</div>' : '') +
       '<p class="cqd-block-label">전체 업체 입찰 (관리자만 열람)</p>' +
       '<div class="cqd-vlist">' + rows + '</div>' +
     '</div>';
@@ -1618,13 +1632,14 @@
       var qid = aw.getAttribute('data-cqd-q');
       var bidId = aw.getAttribute('data-cqd-bid');
       var vendorId = aw.getAttribute('data-cqd-vendor');
+      var selectedVendorName = aw.getAttribute('data-cqd-vendor-name') || '';
       var amt = Number(aw.getAttribute('data-cqd-amt'));
       var qa = findIn(cust.watches, qid); if (!qa) return;
       bellConfirm(won(amt) + ' 견적으로 판매를 확정할까요?\n확정 후 해당 업체 정보가 공개되며, 관리자에게 전송됩니다.').then(function (ok) {
         if (!ok) return;
         B.awardBid(qid, bidId, vendorId).then(function () {
           var vp = awardedVendorCache[qid];
-          emailAdmin(qa, { amount: amt, id: bidId }, vp && (vp.company_name || vp.display_name));
+          emailAdmin(qa, { amount: amt, id: bidId }, selectedVendorName || (vp && (vp.company_name || vp.display_name)));
           alert('판매가 확정되었습니다. 관리자(' + ADMIN_EMAIL + ')에게 선택 내역을 전송했습니다.');
           go('c-offer', qid + '|' + bidId, true);
         }).catch(function (err) { alert('확정 실패: ' + msg(err)); });
@@ -1684,6 +1699,43 @@
         ap.disabled = false;
         ap.textContent = '견적 승인(입찰 시작)';
         alert('승인 실패: ' + msg(err));
+      });
+      return;
+    }
+
+    /* 메인관리자: 동일 견적에 업체명을 달리해 중복 제안 추가 */
+    var adminAddBid = e.target.closest('[data-cqd-adminaddbid]');
+    if (adminAddBid) {
+      var adminBidQuoteId = adminAddBid.getAttribute('data-cqd-adminaddbid');
+      var adminBidVendorEl = overlay.querySelector('#cqdAdminBidVendor');
+      var adminBidAmountEl = overlay.querySelector('#cqdAdminBidAmount');
+      var adminBidMessageEl = overlay.querySelector('#cqdAdminBidMessage');
+      var adminBidVendor = adminBidVendorEl ? adminBidVendorEl.value.trim() : '';
+      var adminBidAmount = Number(String(adminBidAmountEl && adminBidAmountEl.value || '').replace(/[^0-9]/g, ''));
+      if (!adminBidVendor) { alert('표시할 업체명을 입력해주세요.'); return; }
+      if (!adminBidAmount) { alert('제안 금액을 입력해주세요.'); return; }
+      adminAddBid.disabled = true; adminAddBid.textContent = '견적 추가 중…';
+      B.adminAddBid(adminBidQuoteId, adminBidVendor, adminBidAmount, adminBidMessageEl ? adminBidMessageEl.value.trim() : '')
+        .then(function () {
+          alert(adminBidVendor + ' 이름으로 ' + won(adminBidAmount) + ' 견적을 추가했습니다.');
+          render();
+        }).catch(function (err) {
+          adminAddBid.disabled = false; adminAddBid.textContent = '이 업체명으로 견적 추가';
+          alert('중복 견적 추가 실패: ' + msg(err));
+        });
+      return;
+    }
+
+    /* 메인관리자: 견적별 표시 업체명 변경 */
+    var renameBid = e.target.closest('[data-cqd-renamebid]');
+    if (renameBid) {
+      var renameBidId = renameBid.getAttribute('data-cqd-renamebid');
+      var oldBidName = renameBid.getAttribute('data-cqd-bidname') || '';
+      bellPrompt('이 견적에 표시할 업체명을 입력해주세요.', oldBidName).then(function (nextBidName) {
+        if (nextBidName == null || !String(nextBidName).trim()) return;
+        B.adminRenameBid(renameBidId, String(nextBidName).trim()).then(function () {
+          alert('견적 업체명이 변경되었습니다.');
+        }).catch(function (err) { alert('업체명 변경 실패: ' + msg(err)); });
       });
       return;
     }

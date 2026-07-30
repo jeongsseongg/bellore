@@ -8224,6 +8224,15 @@ body.cqd-photo-viewer-open { overflow: hidden; }
 .cqd-photo-download-all { background: #fff; color: #17372f !important; }
 .cqd-photo-downloads button:disabled { opacity: .65; cursor: wait; }
 .cqd-admin-vendor-name { margin-top: 14px; padding: 14px; border-radius: 14px; background: #fff; }
+.cqd-admin-bid-form .cqd-cust-h { margin: 0 0 10px; }
+.cqd-admin-bid-side { display: grid; justify-items: end; gap: 7px; flex: 0 0 auto; }
+.cqd-admin-bid-side .cqd-vrow-amt { white-space: nowrap; }
+.cqd-admin-bid-side .cqd-actbtn { min-width: 86px; }
+@media (max-width: 520px) {
+  .cqd-vrow.static { align-items: flex-start; }
+  .cqd-admin-bid-side { max-width: 104px; }
+  .cqd-admin-bid-side .cqd-vrow-amt { font-size: 13px; }
+}
 @media (max-width: 520px) {
   .cqd-photo-strip { gap: 6px; }
   .cqd-photo-viewer { padding-inline: 8px; }
