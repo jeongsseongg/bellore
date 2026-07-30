@@ -1500,6 +1500,19 @@
     return sb.from('profiles').update({ suspended: !!on }).eq('id', id)
       .then(function (res) { if (res.error) throw res.error; refreshVendors(); refreshAccounts(); });
   };
+  Backend.adminRenameVendor = function (id, companyName) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    var name = String(companyName || '').trim();
+    if (!name) return Promise.reject(new Error('업체명을 입력해주세요.'));
+    return sb.from('profiles').update({ company_name: name }).eq('id', id)
+      .select('id,company_name').maybeSingle()
+      .then(function (res) {
+        if (res.error) throw res.error;
+        if (!res.data) throw new Error('변경할 업체를 찾지 못했습니다.');
+        refreshVendors(); refreshAccounts();
+        return res.data;
+      });
+  };
   // 관리자: 업체/회원 프로필 삭제 (auth 계정 완전 삭제는 Supabase 콘솔에서)
   Backend.deleteAccount = function (id) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));

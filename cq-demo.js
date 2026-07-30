@@ -395,7 +395,8 @@
     var photos = (q && q.photos) || [];
     if (!photos.length) return '';
     return '<section class="cqd-photo-section" aria-label="등록 사진">' +
-      '<div class="cqd-photo-section-head"><b>등록 사진</b><span>' + photos.length + '장 · 눌러서 크게 보기</span></div>' +
+      '<div class="cqd-photo-section-head"><div><b>등록 사진</b><span>' + photos.length + '장 · 눌러서 크게 보기</span></div>' +
+        '<button type="button" class="cqd-photo-all" data-cqd-photo-all="' + esc(q.id) + '">전체 다운로드</button></div>' +
       '<div class="cqd-photo-strip">' + photos.map(function (src, index) {
         return '<button type="button" data-cqd-photo="' + esc(q.id) + '" data-cqd-photo-index="' + index + '" aria-label="' + (index + 1) + '번째 사진 크게 보기">' +
           '<img src="' + esc(src) + '" alt="' + esc((q.brand || '시계') + ' 등록 사진 ' + (index + 1)) + '" loading="lazy" decoding="async"></button>';
@@ -441,6 +442,89 @@
       });
   }
 
+  function crc32(bytes) {
+    var crc = 0xffffffff;
+    for (var b = 0; b < bytes.length; b++) {
+      crc ^= bytes[b];
+      for (var i = 0; i < 8; i++) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0);
+    }
+    return (crc ^ 0xffffffff) >>> 0;
+  }
+
+  function zipDateTime(date) {
+    date = date || new Date();
+    var year = Math.max(1980, date.getFullYear());
+    return {
+      time: (date.getHours() << 11) | (date.getMinutes() << 5) | (date.getSeconds() >> 1),
+      date: ((year - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate()
+    };
+  }
+
+  function makeStoredZip(files) {
+    var encoder = new TextEncoder();
+    var localParts = [], centralParts = [], offset = 0, stamp = zipDateTime();
+    function write16(view, at, value) { view.setUint16(at, value, true); }
+    function write32(view, at, value) { view.setUint32(at, value, true); }
+    files.forEach(function (file) {
+      var name = encoder.encode(file.name), data = file.bytes, checksum = crc32(data);
+      var local = new Uint8Array(30 + name.length), lv = new DataView(local.buffer);
+      write32(lv, 0, 0x04034b50); write16(lv, 4, 20); write16(lv, 6, 0x0800);
+      write16(lv, 8, 0); write16(lv, 10, stamp.time); write16(lv, 12, stamp.date);
+      write32(lv, 14, checksum); write32(lv, 18, data.length); write32(lv, 22, data.length);
+      write16(lv, 26, name.length); write16(lv, 28, 0); local.set(name, 30);
+      localParts.push(local, data);
+
+      var central = new Uint8Array(46 + name.length), cv = new DataView(central.buffer);
+      write32(cv, 0, 0x02014b50); write16(cv, 4, 20); write16(cv, 6, 20); write16(cv, 8, 0x0800);
+      write16(cv, 10, 0); write16(cv, 12, stamp.time); write16(cv, 14, stamp.date);
+      write32(cv, 16, checksum); write32(cv, 20, data.length); write32(cv, 24, data.length);
+      write16(cv, 28, name.length); write16(cv, 30, 0); write16(cv, 32, 0); write16(cv, 34, 0);
+      write16(cv, 36, 0); write32(cv, 38, 0); write32(cv, 42, offset); central.set(name, 46);
+      centralParts.push(central);
+      offset += local.length + data.length;
+    });
+    var centralSize = centralParts.reduce(function (sum, part) { return sum + part.length; }, 0);
+    var end = new Uint8Array(22), ev = new DataView(end.buffer);
+    write32(ev, 0, 0x06054b50); write16(ev, 4, 0); write16(ev, 6, 0);
+    write16(ev, 8, files.length); write16(ev, 10, files.length);
+    write32(ev, 12, centralSize); write32(ev, 16, offset); write16(ev, 20, 0);
+    return new Blob(localParts.concat(centralParts, [end]), { type: 'application/zip' });
+  }
+
+  function saveDownloadBlob(blob, filename) {
+    var url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
+  }
+
+  function downloadAllQuotePhotos(q, button) {
+    var photos = (q && q.photos) || [];
+    if (!photos.length) return;
+    var oldText = button ? button.textContent : '';
+    if (button) { button.disabled = true; button.textContent = 'ZIP 준비 0/' + photos.length; }
+    var files = [];
+    var chain = Promise.resolve();
+    photos.forEach(function (src, index) {
+      chain = chain.then(function () {
+        return fetch(src, { cache: 'force-cache' }).then(function (res) {
+          if (!res.ok) throw new Error((index + 1) + '번째 사진을 불러오지 못했습니다.');
+          return res.arrayBuffer();
+        }).then(function (buffer) {
+          files.push({ name: String(index + 1).padStart(2, '0') + '.webp', bytes: new Uint8Array(buffer) });
+          if (button) button.textContent = 'ZIP 준비 ' + (index + 1) + '/' + photos.length;
+        });
+      });
+    });
+    chain.then(function () {
+      var base = ((q.brand || '') + '-' + (q.model || '')).replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, '-');
+      saveDownloadBlob(makeStoredZip(files), (base || '벨로르-견적사진') + '-전체.zip');
+    }).catch(function (err) {
+      alert('전체 사진 다운로드 실패: ' + msg(err));
+    }).then(function () {
+      if (button) { button.disabled = false; button.textContent = oldText; }
+    });
+  }
+
   function openPhotoViewer(q, startIndex) {
     var photos = (q && q.photos) || [];
     if (!photos.length) return;
@@ -456,7 +540,8 @@
       '<button type="button" class="cqd-photo-viewer-nav prev" aria-label="이전 사진">‹</button>' +
       '<figure><img alt=""><figcaption><span></span><b></b></figcaption></figure>' +
       '<button type="button" class="cqd-photo-viewer-nav next" aria-label="다음 사진">›</button>' +
-      '<button type="button" class="cqd-photo-download">현재 사진 다운로드</button>';
+      '<div class="cqd-photo-downloads"><button type="button" class="cqd-photo-download">현재 사진</button>' +
+        '<button type="button" class="cqd-photo-download-all">전체 사진 ZIP</button></div>';
     document.body.appendChild(viewer);
     document.body.classList.add('cqd-photo-viewer-open');
     var image = viewer.querySelector('img');
@@ -465,6 +550,7 @@
     var prev = viewer.querySelector('.prev');
     var next = viewer.querySelector('.next');
     var download = viewer.querySelector('.cqd-photo-download');
+    var downloadAll = viewer.querySelector('.cqd-photo-download-all');
     function show(nextIndex) {
       index = (nextIndex + photos.length) % photos.length;
       image.src = photos[index];
@@ -478,6 +564,7 @@
     prev.addEventListener('click', function () { show(index - 1); });
     next.addEventListener('click', function () { show(index + 1); });
     download.addEventListener('click', function () { downloadQuotePhoto(photos[index], q, index, download); });
+    downloadAll.addEventListener('click', function () { downloadAllQuotePhotos(q, downloadAll); });
     photoViewerKeyHandler = function (e) {
       if (e.key === 'Escape') closePhotoViewer();
       else if (e.key === 'ArrowLeft') show(index - 1);
@@ -1359,6 +1446,11 @@
         '<div><dt>승인</dt><dd>' + (v.approved ? '승인됨' : '대기') + '</dd></div>' +
         '<div><dt>계좌인증</dt><dd>' + (v.account_verified ? '완료' : '미완료') + '</dd></div>' +
       '</dl>' +
+      '<div class="cqd-form cqd-admin-vendor-name">' +
+        '<label for="cqdAdminVendorName">메인관리자 업체명 변경</label>' +
+        '<input type="text" id="cqdAdminVendorName" value="' + esc(vendorName(v)) + '" maxlength="80" placeholder="업체명">' +
+        '<button type="button" class="cqd-cta primary" data-cqd-renamev="' + esc(v.id) + '">업체명 저장</button>' +
+      '</div>' +
       '<div class="cqd-actions">' +
         (v.approved
           ? '<button type="button" class="cqd-actbtn" data-cqd-unapprovev="' + esc(v.id) + '">승인 취소</button>'
@@ -1430,6 +1522,13 @@
     var sa = e.target.closest('[data-cqd-shareact]');
     if (sa) { shareAct(sa.getAttribute('data-cqd-shareact')); return; }
     if (e.target.closest('#cqShareClose') || e.target.closest('#cqShareMask')) { closeShareSheet(); return; }
+
+    var photoAllTarget = e.target.closest('[data-cqd-photo-all]');
+    if (photoAllTarget) {
+      var allPhotoQuote = findAnyQuote(photoAllTarget.getAttribute('data-cqd-photo-all'));
+      if (allPhotoQuote) downloadAllQuotePhotos(allPhotoQuote, photoAllTarget);
+      return;
+    }
 
     /* 모든 역할: 썸네일을 눌러 크게 확인 + 현재 사진 다운로드 */
     var photoTarget = e.target.closest('[data-cqd-photo]');
@@ -1585,6 +1684,26 @@
         ap.disabled = false;
         ap.textContent = '견적 승인(입찰 시작)';
         alert('승인 실패: ' + msg(err));
+      });
+      return;
+    }
+
+    /* 메인관리자: 등록 업체의 상호를 직접 변경 */
+    var renameVendor = e.target.closest('[data-cqd-renamev]');
+    if (renameVendor) {
+      var vendorId = renameVendor.getAttribute('data-cqd-renamev');
+      var vendorNameInput = overlay.querySelector('#cqdAdminVendorName');
+      var nextVendorName = vendorNameInput ? vendorNameInput.value.trim() : '';
+      if (!nextVendorName) { alert('업체명을 입력해주세요.'); return; }
+      renameVendor.disabled = true; renameVendor.textContent = '저장 중…';
+      B.adminRenameVendor(vendorId, nextVendorName).then(function () {
+        var targetVendor = vendById(vendorId);
+        if (targetVendor) targetVendor.company_name = nextVendorName;
+        render();
+        alert('업체명이 변경되었습니다.');
+      }).catch(function (err) {
+        renameVendor.disabled = false; renameVendor.textContent = '업체명 저장';
+        alert('업체명 변경 실패: ' + msg(err));
       });
       return;
     }
