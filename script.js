@@ -1023,8 +1023,14 @@
             // 마이페이지 헤더
             var nameEl = $('#myPageName');
             var emailEl = $('#myPageEmail');
+            var roleEl = $('#mpRoleChip');
+            var myPage = $('#myPageModal');
             if (nameEl) nameEl.textContent = user ? ((user.displayName || '회원') + '님') : '마이페이지';
             if (emailEl) emailEl.textContent = user ? (user.email || '') : '';
+            var roleKey = (info && info.isAdmin) ? 'admin' : ((info && info.role) || 'customer');
+            var roleName = roleKey === 'admin' ? '관리자' : (roleKey === 'vendor' ? '업체' : (roleKey === 'partner' ? '공급업체' : '고객'));
+            if (roleEl) roleEl.textContent = roleName;
+            if (myPage) myPage.dataset.accountRole = roleKey;
 
             // 프로필 아바타
             applyAvatar(user ? (user.avatarUrl || '') : '');
@@ -3854,7 +3860,7 @@
             card.dataset.saleactive = window.belloreSaleActive(it) ? '1' : '';
             card.dataset.cond = it.condition || '';
             card.innerHTML =
-                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
+                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt=""></div>' +
                 '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
                 brandModelLineHTML(it) +
                 specLineHTML(it) +
@@ -6213,6 +6219,23 @@
             $('#pmPrice').innerHTML = ppPriceHTML(d);
             var pno = d.product_no || d.no || '-';
             $('#pmNo').textContent = pno;
+            var identity = $('#pmIdentity');
+            if (identity) {
+                var identityBits = [];
+                if (d.model) identityBits.push(String(d.model));
+                if (d.size_mm) identityBits.push(String(d.size_mm).replace(/mm$/i, '') + 'mm');
+                if (pno && pno !== '-') identityBits.push('상품번호 ' + pno);
+                identity.textContent = identityBits.join(' · ');
+            }
+            var assurance = $('#pmAssurance');
+            if (assurance) {
+                var condText = String(d.condition || '중고 A급');
+                var packText = String(d.pack || d.accessories || '구성품 확인');
+                assurance.innerHTML =
+                    '<span class="is-primary">✓ 100% 정품보증</span>' +
+                    '<span>' + esc(condText) + '</span>' +
+                    '<span>' + esc(packText) + '</span>';
+            }
             var no2 = $('#pmNo2'); if (no2) no2.textContent = pno;
             var sm = $('#pmSaleMethod'); if (sm) sm.textContent = '벨로르 판매·결제 책임';
             var ship = $('#pmShip'); if (ship) ship.textContent = d.ship_info || '결제 후 2~4일 이내 발송';

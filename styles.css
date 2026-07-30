@@ -1,3 +1,11 @@
+@font-face {
+    font-family: 'Pretendard';
+    src: url('assets/fonts/pretendard/PretendardVariable.woff2') format('woff2-variations');
+    font-weight: 45 920;
+    font-style: normal;
+    font-display: swap;
+}
+
 /* ========== Reset & Base ========== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
@@ -9738,3 +9746,187 @@ body.login-open .tabbar { display: none; }
 .money-kor-hint { display: block; margin-top: 6px; font-size: 12.5px; font-weight: 700; color: #2f6fed; }
 .money-kor-hint:empty { display: none; }
 .auc-fig b { white-space: nowrap; }
+
+/* ============================================================
+   2026-07 Wanted 기반 핵심 화면 개편
+   ============================================================ */
+#myPageModal .login-content {
+    max-width: 660px;
+    padding-left: 20px;
+    padding-right: 20px;
+    background: #fff;
+}
+#myPageModal .mp-head {
+    max-width: 600px;
+    margin: 12px auto 20px;
+    padding: 16px 18px 22px;
+    border-radius: 18px;
+    background: #141517;
+    color: #fff;
+}
+#myPageModal .mp-head-bar { min-height: 36px; justify-content: flex-end; }
+#myPageModal .mp-head-ic { color: #fff; }
+#myPageModal .mp-head-ic:hover { background: rgba(255,255,255,.1); }
+#myPageModal .mp-profile { margin-top: 10px; }
+#myPageModal .mp-avatar { background: #2a2b2e; color: #a7a8ab; }
+#myPageModal .mpa-name {
+    color: #fff;
+    font-family: 'Pretendard', -apple-system, sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+}
+#myPageModal .mpa-id { color: rgba(255,255,255,.58); }
+#myPageModal .mp-name-pen { color: rgba(255,255,255,.72); }
+.mp-role-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 9px;
+    border: 1px solid rgba(255,255,255,.24);
+    border-radius: 7px;
+    background: rgba(255,255,255,.08);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+#myPageModal[data-account-role="vendor"] .mp-role-chip,
+#myPageModal[data-account-role="partner"] .mp-role-chip {
+    border-color: rgba(20,184,196,.44);
+    background: rgba(20,184,196,.18);
+    color: #bdf6f8;
+}
+#myPageModal[data-account-role="admin"] .mp-role-chip {
+    border-color: rgba(255,138,0,.48);
+    background: rgba(255,138,0,.18);
+    color: #ffd6a3;
+}
+#myPageModal .mp-cats,
+#myPageModal .mp-menu,
+#myPageModal .mp-banner {
+    width: 100%;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+#myPageModal .mp-menu,
+#myPageModal .admin-menu { border-radius: 14px; }
+#myPageModal .mp-menu-row,
+#myPageModal .admin-menu-row,
+#myPageModal .mypage-noti {
+    min-height: 54px;
+    padding: 0 16px;
+}
+#myPageModal .mypage-section h4 {
+    font-family: 'Pretendard', -apple-system, sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+#homeOnSale .hcard-img { background: #fff; overflow: hidden; }
+#homeOnSale .hcard-img img {
+    width: 88%;
+    height: 88%;
+    margin: 6% auto;
+    object-fit: contain;
+}
+#homeOnSale .hcard-timesale,
+#homeOnSale .hcard-sale-badge,
+#homeOnSale .hcard-new-badge,
+#homeOnSale .hcard-today-label,
+#homeOnSale .hcard-tag,
+#homeOnSale .hcard-view,
+#homeOnSale .hcard-views,
+#homeOnSale [data-view-count] {
+    display: none !important;
+}
+#homeOnSale .hcard { border: 0; box-shadow: none; }
+
+.pp-info { padding: 26px 20px 18px; }
+.pp-brand {
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: .02em;
+    color: #6b6b6b;
+}
+.pp-title {
+    margin-top: 12px;
+    font-size: clamp(24px, 5.5vw, 32px);
+    line-height: 1.3;
+    font-weight: 800;
+    color: #111;
+    letter-spacing: -.035em;
+}
+.pp-identity {
+    margin-top: 10px;
+    color: #9a9a9a;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.5;
+}
+.pp-price {
+    margin: 28px 0 24px;
+    font-size: clamp(32px, 7vw, 42px);
+    line-height: 1.15;
+    font-weight: 900;
+    letter-spacing: -.045em;
+    font-variant-numeric: tabular-nums;
+}
+.pp-price .won { font-size: .72em; }
+.pp-delivery-promise {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    color: #279647;
+    font-size: 15px;
+    font-weight: 800;
+}
+.pp-delivery-promise svg { flex: 0 0 auto; }
+.pp-assurance {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+.pp-assurance span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 42px;
+    padding: 0 14px;
+    border-radius: 12px;
+    background: #f2f3f5;
+    color: #1a1a1a;
+    font-size: 14px;
+    font-weight: 750;
+}
+.pp-assurance .is-primary { background: #eaf6ee; color: #287b45; }
+.pp-responsibility { border-radius: 14px; }
+.pp-panel { padding: 26px 20px 34px; }
+.pp-sec-title {
+    margin: 28px 0 14px;
+    font-family: 'Pretendard', -apple-system, sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+}
+.pp-acc { flex-wrap: wrap; }
+.pp-acc-item {
+    flex: 0 0 auto;
+    min-width: 0;
+    min-height: 46px;
+    padding: 0 15px;
+    border-radius: 999px;
+}
+.pp-acc-ic { display: none; }
+.pp-spec { border: 0; border-radius: 0; }
+.pp-spec-row { min-height: 52px; padding: 12px 2px; }
+.pp-spec-row > span { width: 28%; color: #6b6b6b; }
+.pp-spec-row > strong { width: 72%; font-size: 15px; }
+
+@media (max-width: 699px) {
+    #myPageModal .login-content {
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+    .pp-main { height: min(72vw, 430px); }
+}
