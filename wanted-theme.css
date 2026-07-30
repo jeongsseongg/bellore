@@ -1653,6 +1653,112 @@ html[data-width="full"] .hcard-grid {
   border: 1px solid #c8f4de;
 }
 
+.cqo-next {
+  margin-top: 12px;
+  padding: 16px;
+  color: var(--wanted-ink);
+  background: var(--wanted-soft-blue);
+  border: 1px solid #c8f4de;
+  border-radius: 12px;
+}
+
+.cqo-next > b {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 16px;
+}
+
+.cqo-next ol {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding-left: 21px;
+  color: var(--wanted-sub);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.cqo-next a {
+  display: inline-flex;
+  margin-top: 13px;
+  color: var(--wanted-blue);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.cqd-followup-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.cqd-followup-summary > div,
+.cqd-followup-contacts > a,
+.cqd-followup-contacts > div {
+  padding: 13px 14px;
+  background: #f7f7f8;
+  border: 1px solid var(--wanted-line);
+  border-radius: 10px;
+}
+
+.cqd-followup-summary span,
+.cqd-followup-contacts span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--wanted-sub);
+  font-size: 12px;
+}
+
+.cqd-followup-summary b,
+.cqd-followup-contacts b {
+  color: var(--wanted-ink);
+  font-size: 15px;
+}
+
+.cqd-followup-contacts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.cqd-followup-contacts a {
+  text-decoration: none;
+}
+
+.cqd-followup-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.cqd-followup-actions button {
+  min-height: 44px;
+  padding: 9px;
+  color: var(--wanted-blue);
+  background: #fff;
+  border: 1px solid #a6e8c9;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.cqd-followup-actions button.is-done,
+.cqd-followup-actions button.trade.is-done {
+  color: #fff;
+  background: var(--wanted-blue);
+  border-color: var(--wanted-blue);
+}
+
+.cqd-followup-actions button.trade {
+  color: #fff;
+  background: var(--wanted-ink);
+  border-color: var(--wanted-ink);
+}
+
 .cqo-locked,
 .cqd-locked {
   color: var(--wanted-sub);
@@ -1698,5 +1804,14 @@ html[data-width="full"] .hcard-grid {
   .cqd-form,
   .cqd-photo-section {
     padding: 15px;
+  }
+
+  .cqd-followup-summary,
+  .cqd-followup-contacts {
+    grid-template-columns: 1fr;
+  }
+
+  .cqd-followup-actions {
+    grid-template-columns: 1fr;
   }
 }

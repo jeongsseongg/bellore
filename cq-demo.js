@@ -6,6 +6,7 @@
   'use strict';
 
   var ADMIN_EMAIL = 'bellorekr@gmail.com';
+  var BELLORE_PHONE = '010-6293-6668';
   var B = window.NWBackend || null;
 
   function esc(s) {
@@ -66,7 +67,7 @@
   /* ===== 데이터 캐시 (구독으로 채움) ===== */
   var cust = { watches: [], loaded: false };
   var vend = { quotes: [], loaded: false };
-  var adm = { pending: [], open: [], suspended: [], vendors: [], accounts: [], loaded: false };
+  var adm = { pending: [], open: [], suspended: [], awarded: [], vendors: [], accounts: [], loaded: false };
   var reviews = [];
   var awardedVendorCache = {}; // quoteId → {company_name,...}
   var subs = [];
@@ -99,6 +100,7 @@
       if (B.subscribePending) subs.push(B.subscribePending(function (r) { adm.pending = r || []; adm.loaded = true; renderIfOpen(); }));
       if (B.subscribeOpenQuotes) subs.push(B.subscribeOpenQuotes(function (r) { adm.open = r || []; renderIfOpen(); }));
       if (B.subscribeSuspended) subs.push(B.subscribeSuspended(function (r) { adm.suspended = r || []; renderIfOpen(); }));
+      if (B.subscribeAwardedQuotes) subs.push(B.subscribeAwardedQuotes(function (r) { adm.awarded = r || []; renderIfOpen(); }));
       if (B.subscribeVendors) subs.push(B.subscribeVendors(function (r) { adm.vendors = r || []; renderIfOpen(); }));
       if (B.subscribeAccounts) subs.push(B.subscribeAccounts(function (r) { adm.accounts = r || []; renderIfOpen(); }));
       if (B.subscribeSupportThreads) subs.push(B.subscribeSupportThreads(function (r) { admChats.threads = r || []; admChats.loaded = true; renderIfOpen(); }));
@@ -762,8 +764,13 @@
     /* 제안 견적 카드 */
     var sellBtns;
     if (isThisAwarded) {
-      sellBtns = '<div class="cqo-confirmed">' + ICON_CHECK + ' 이 견적으로 판매가 확정되었습니다</div>' +
-        '<p class="cqo-locked">' + ICON_LOCK + ' 업체 연락처·주소는 공개되지 않습니다. 모든 거래는 <b>벨로르를 통해</b> 안전하게 진행됩니다.</p>';
+      sellBtns = '<div class="cqo-confirmed">' + ICON_CHECK + ' 판매가 확정되었습니다</div>' +
+        '<div class="cqo-next"><b>다음 단계</b>' +
+          '<p>벨로르 담당자가 등록하신 연락처로 직접 연락드립니다.</p>' +
+          '<ol><li>고객 확인 연락</li><li>선택 업체 일정 조율</li><li>실물 감정 및 안전 거래</li></ol>' +
+          '<a class="cqd-cta primary" href="tel:01062936668">벨로르 고객센터 ' + BELLORE_PHONE + '</a>' +
+        '</div>' +
+        '<p class="cqo-locked">' + ICON_LOCK + ' 업체 전화번호와 주소는 공개되지 않습니다. 연락과 거래는 <b>벨로르가 중간에서 진행</b>합니다.</p>';
     } else if (isAwarded) {
       sellBtns = '<p class="cqd-note" style="text-align:center">이미 다른 견적으로 판매가 확정되었습니다.</p>' +
         '<button type="button" class="cqd-cta ghost" data-cqd-go="c-bids" data-cqd-id="' + esc(q.id) + '">‹ 목록으로</button>';
@@ -1324,7 +1331,7 @@
     for (var i = 0; i < adm.vendors.length; i++) if (adm.vendors[i].id === id) return adm.vendors[i];
     return null;
   }
-  function allAdminQuotes() { return adm.pending.concat(adm.open).concat(adm.suspended); }
+  function allAdminQuotes() { return adm.pending.concat(adm.open).concat(adm.suspended).concat(adm.awarded); }
 
   SCREENS['a-dash'] = function () {
     titleEl.textContent = '관리자 · 비교견적';
@@ -1348,6 +1355,7 @@
     var pendRows = pend.map(admRow).join('');
     var openRows = adm.open.map(admRow).join('') || '<p class="cqd-note">진행중 견적이 없습니다.</p>';
     var suspRows = adm.suspended.map(admRow).join('');
+    var awardedRows = adm.awarded.map(admRow).join('');
     var pendBlock = pend.length
       ? '<p class="cqd-block-label hot">승인 대기 <span class="cqd-cnt">' + pend.length + '</span></p>' +
         '<div class="cqd-vlist cqd-vlist-pend">' + pendRows + '</div>'
@@ -1360,11 +1368,13 @@
       '<div class="cqd-stats">' +
         '<div class="cqd-stat"><b>' + adm.pending.length + '</b><span>승인 대기</span></div>' +
         '<div class="cqd-stat"><b>' + adm.open.length + '</b><span>입찰 진행</span></div>' +
+        '<div class="cqd-stat"><b>' + adm.awarded.length + '</b><span>거래 진행</span></div>' +
         '<div class="cqd-stat"><b>' + adm.suspended.length + '</b><span>정지</span></div>' +
       '</div>' +
       pendBlock +
       '<p class="cqd-block-label">입찰 진행중</p>' +
       '<div class="cqd-vlist">' + openRows + '</div>' +
+      (awardedRows ? '<p class="cqd-block-label">판매 확정 · 거래 진행</p><div class="cqd-vlist">' + awardedRows + '</div>' : '') +
       suspBlock +
     '</div>';
   };
@@ -1374,6 +1384,12 @@
     titleEl.textContent = '견적 상세';
     var c = accById(q.uid);
     var bids = q.bids || [];
+    var awardedBid = null;
+    bids.forEach(function (b) { if (String(b.id) === String(q.awarded_bid)) awardedBid = b; });
+    var awardedVendor = awardedBid ? vendById(awardedBid.vendor_id) : null;
+    var memoContact = String(q.memo || '').match(/\[연락처\]\s*([^\/\n]*)\/\s*([^\n]*)/);
+    var customerPhone = (c && c.phone) || (memoContact && memoContact[2] ? memoContact[2].trim() : '');
+    var vendorPhone = (awardedBid && awardedBid.vendor_phone) || (awardedVendor && awardedVendor.phone) || '';
     var rows = bids.map(function (b, i) {
       var v = vendById(b.vendor_id);
       var displayVendorName = bidVendorName(b, v);
@@ -1392,9 +1408,9 @@
       ? '<button type="button" class="cqd-actbtn ok" data-cqd-approve="' + esc(q.id) + '">견적 승인(입찰 시작)</button>' +
         '<button type="button" class="cqd-actbtn warn" data-cqd-reject="' + esc(q.id) + '">거부</button>'
       : '';
-    var suspBtn = q.status === 'suspended'
+    var suspBtn = q.status === 'awarded' ? '' : (q.status === 'suspended'
       ? '<button type="button" class="cqd-actbtn stop" data-cqd-unsuspendq="' + esc(q.id) + '">견적 정지 해제</button>'
-      : '<button type="button" class="cqd-actbtn stop" data-cqd-suspendq="' + esc(q.id) + '">견적 정지</button>';
+      : '<button type="button" class="cqd-actbtn stop" data-cqd-suspendq="' + esc(q.id) + '">견적 정지</button>');
     return '<div class="cqd-screen">' +
       watchCard(q) +
       quotePhotoStrip(q) +
@@ -1409,10 +1425,23 @@
       '<div class="cqd-actions">' + approveBtns + suspBtn +
         '<button type="button" class="cqd-actbtn warn" data-cqd-delq="' + esc(q.id) + '">견적 삭제</button>' +
       '</div>' +
+      (q.status === 'awarded' ? '<div class="cqd-form cqd-followup">' +
+        '<p class="cqd-cust-h">판매 확정 후속 처리</p>' +
+        '<div class="cqd-followup-summary"><div><span>선택 업체</span><b>' + esc(awardedBid ? bidVendorName(awardedBid, awardedVendor) : '-') + '</b></div>' +
+          '<div><span>확정 금액</span><b>' + (awardedBid ? won(awardedBid.amount) : '-') + '</b></div></div>' +
+        '<div class="cqd-followup-contacts"><a href="' + (customerPhone ? 'tel:' + esc(customerPhone.replace(/[^0-9+]/g, '')) : '#') + '"><span>고객 연락처</span><b>' + esc(customerPhone || '미등록') + '</b></a>' +
+          '<a href="' + (vendorPhone ? 'tel:' + esc(vendorPhone.replace(/[^0-9+]/g, '')) : '#') + '"><span>업체 연락처 · 관리자만</span><b>' + esc(vendorPhone || '직접 확인 필요') + '</b></a></div>' +
+        '<div class="cqd-followup-actions">' +
+          '<button type="button" class="' + (q.customerContacted ? 'is-done' : '') + '" data-cqd-followup="' + esc(q.id) + '" data-cqd-followup-field="customerContacted" data-cqd-followup-value="' + (q.customerContacted ? '0' : '1') + '">' + (q.customerContacted ? '✓ 고객 연락 완료' : '고객 연락 완료 처리') + '</button>' +
+          '<button type="button" class="' + (q.vendorContacted ? 'is-done' : '') + '" data-cqd-followup="' + esc(q.id) + '" data-cqd-followup-field="vendorContacted" data-cqd-followup-value="' + (q.vendorContacted ? '0' : '1') + '">' + (q.vendorContacted ? '✓ 업체 연락 완료' : '업체 연락 완료 처리') + '</button>' +
+          '<button type="button" class="trade ' + (q.tradeCompleted ? 'is-done' : '') + '" data-cqd-followup="' + esc(q.id) + '" data-cqd-followup-field="tradeCompleted" data-cqd-followup-value="' + (q.tradeCompleted ? '0' : '1') + '">' + (q.tradeCompleted ? '✓ 거래 완료' : '거래 완료 처리') + '</button>' +
+        '</div></div>' : '') +
       (q.status === 'open' ? '<div class="cqd-form cqd-admin-bid-form">' +
         '<p class="cqd-cust-h">메인관리자 중복 견적 추가</p>' +
         '<label for="cqdAdminBidVendor">표시할 업체명</label>' +
         '<input type="text" id="cqdAdminBidVendor" maxlength="80" placeholder="예: 강남 명품시계">' +
+        '<label for="cqdAdminBidPhone">업체 전화번호 · 관리자 전용</label>' +
+        '<input type="tel" id="cqdAdminBidPhone" placeholder="예: 010-0000-0000">' +
         '<label for="cqdAdminBidAmount">제안 금액 (원)</label>' +
         '<input type="tel" id="cqdAdminBidAmount" inputmode="numeric" placeholder="예: 21000000">' +
         '<label for="cqdAdminBidMessage">고객에게 전할 메모</label>' +
@@ -1708,14 +1737,16 @@
     if (adminAddBid) {
       var adminBidQuoteId = adminAddBid.getAttribute('data-cqd-adminaddbid');
       var adminBidVendorEl = overlay.querySelector('#cqdAdminBidVendor');
+      var adminBidPhoneEl = overlay.querySelector('#cqdAdminBidPhone');
       var adminBidAmountEl = overlay.querySelector('#cqdAdminBidAmount');
       var adminBidMessageEl = overlay.querySelector('#cqdAdminBidMessage');
       var adminBidVendor = adminBidVendorEl ? adminBidVendorEl.value.trim() : '';
+      var adminBidPhone = adminBidPhoneEl ? adminBidPhoneEl.value.trim() : '';
       var adminBidAmount = Number(String(adminBidAmountEl && adminBidAmountEl.value || '').replace(/[^0-9]/g, ''));
       if (!adminBidVendor) { alert('표시할 업체명을 입력해주세요.'); return; }
       if (!adminBidAmount) { alert('제안 금액을 입력해주세요.'); return; }
       adminAddBid.disabled = true; adminAddBid.textContent = '견적 추가 중…';
-      B.adminAddBid(adminBidQuoteId, adminBidVendor, adminBidAmount, adminBidMessageEl ? adminBidMessageEl.value.trim() : '')
+      B.adminAddBid(adminBidQuoteId, adminBidVendor, adminBidPhone, adminBidAmount, adminBidMessageEl ? adminBidMessageEl.value.trim() : '')
         .then(function () {
           alert(adminBidVendor + ' 이름으로 ' + won(adminBidAmount) + ' 견적을 추가했습니다.');
           render();
@@ -1723,6 +1754,27 @@
           adminAddBid.disabled = false; adminAddBid.textContent = '이 업체명으로 견적 추가';
           alert('중복 견적 추가 실패: ' + msg(err));
         });
+      return;
+    }
+
+    /* 메인관리자: 판매 확정 이후 고객/업체 연락 및 거래 완료 상태 */
+    var followup = e.target.closest('[data-cqd-followup]');
+    if (followup) {
+      var followupQuoteId = followup.getAttribute('data-cqd-followup');
+      var followupField = followup.getAttribute('data-cqd-followup-field');
+      var followupValue = followup.getAttribute('data-cqd-followup-value') === '1';
+      var followupLabel = followup.textContent;
+      followup.disabled = true;
+      followup.textContent = '저장 중…';
+      var followupValues = {};
+      followupValues[followupField] = followupValue;
+      B.adminUpdateQuoteFollowup(followupQuoteId, followupValues).then(function () {
+        render();
+      }).catch(function (err) {
+        followup.disabled = false;
+        followup.textContent = followupLabel;
+        alert('진행 상태 저장 실패: ' + msg(err));
+      });
       return;
     }
 

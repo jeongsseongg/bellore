@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v185-wanted-all-ui";
+const VERSION = "bellore-v186-quote-followup";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 

@@ -838,6 +838,10 @@
       photos: (q.photo_urls && q.photo_urls.length) ? q.photo_urls : (q.photo_url ? [q.photo_url] : []),
       photoCount: (q.photo_urls && q.photo_urls.length) || (q.photo_url ? 1 : 0),
       status: q.status, awarded_bid: q.awarded_bid,
+      customerContacted: !!q.customer_contacted,
+      vendorContacted: !!q.vendor_contacted,
+      tradeCompleted: !!q.trade_completed,
+      followupUpdatedAt: q.followup_updated_at || null,
       bids: bs, bidAmount: bs[0] ? Number(bs[0].amount) : 0,
       viewCount: Number(q.view_count || 0),
       createdAt: tsObj(q.created_at),
@@ -846,15 +850,31 @@
     };
   }
 
-  var QUOTE_SELECT = 'id,customer_id,item_name,item_brand,item_ref,item_year,item_grade,item_stamping,item_parts,item_detail,photo_urls,photo_url,status,awarded_bid,view_count,created_at';
+  var QUOTE_SELECT = 'id,customer_id,item_name,item_brand,item_ref,item_year,item_grade,item_stamping,item_parts,item_detail,photo_urls,photo_url,status,awarded_bid,customer_contacted,vendor_contacted,trade_completed,followup_updated_at,view_count,created_at';
   var BID_SELECT = 'id,quote_request_id,vendor_id,vendor_name,created_by_admin,amount,message,created_at';
 
-  function fetchBidsFor(ids) {
+  function fetchBidsFor(ids, includeAdminContacts) {
     if (!ids.length) return Promise.resolve({});
     return sb.from('bids').select(BID_SELECT).in('quote_request_id', ids)
       .then(function (res) {
+        if (res.error) throw res.error;
+        var rows = res.data || [];
+        if (!includeAdminContacts || !Backend.isAdmin() || !rows.length) return rows;
+        return sb.from('bid_admin_contacts').select('bid_id,vendor_phone')
+          .in('bid_id', rows.map(function (b) { return b.id; }))
+          .then(function (contactsRes) {
+            if (contactsRes.error) throw contactsRes.error;
+            var phones = {};
+            (contactsRes.data || []).forEach(function (contact) {
+              phones[String(contact.bid_id)] = contact.vendor_phone || '';
+            });
+            rows.forEach(function (b) { b.vendor_phone = phones[String(b.id)] || ''; });
+            return rows;
+          });
+      })
+      .then(function (rows) {
         var by = {};
-        (res.data || []).forEach(function (b) { (by[b.quote_request_id] = by[b.quote_request_id] || []).push(b); });
+        rows.forEach(function (b) { (by[b.quote_request_id] = by[b.quote_request_id] || []).push(b); });
         return by;
       });
   }
@@ -1046,6 +1066,23 @@
       });
   };
 
+  Backend.subscribeAwardedQuotes = function (cb) {
+    function load() {
+      sb.from('quote_requests').select(QUOTE_SELECT).eq('status', 'awarded')
+        .order('created_at', { ascending: false }).limit(100)
+        .then(function (res) {
+          var quotes = res.data || [];
+          fetchBidsFor(quotes.map(function (q) { return q.id; }), true).then(function (by) {
+            cb(quotes.map(function (q) { return mapQuote(q, by); }));
+          });
+        });
+    }
+    load();
+    var unsub = channelRefetch('awardedquotes', ['quote_requests', 'bids'], load);
+    quoteRefreshers.push(load);
+    return function () { unsub(); removeFrom(quoteRefreshers, load); };
+  };
+
   // VIP 업체 카톡 알림톡 발송 요청 (서버에서 대상/내용 재검증)
   function notifyVipKakao(quoteId) {
     try {
@@ -1096,7 +1133,7 @@
   };
 
   // 메인관리자: 등록 업체 계정과 무관한 업체명으로 동일 견적에 여러 제안 추가/이름 수정.
-  Backend.adminAddBid = function (quoteId, vendorName, amount, message) {
+  Backend.adminAddBid = function (quoteId, vendorName, vendorPhone, amount, message) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
     var name = String(vendorName || '').trim();
     if (!name) return Promise.reject(new Error('업체명을 입력해주세요.'));
@@ -1111,8 +1148,20 @@
     return sb.from('bids').insert(row).select(BID_SELECT).single()
       .then(function (res) {
         if (res.error) throw res.error;
+        var bid = res.data;
+        var phone = String(vendorPhone || '').trim();
+        if (!phone) return bid;
+        return sb.from('bid_admin_contacts').insert({ bid_id: bid.id, vendor_phone: phone })
+          .select('bid_id,vendor_phone').single()
+          .then(function (contactRes) {
+            if (contactRes.error) throw contactRes.error;
+            bid.vendor_phone = contactRes.data.vendor_phone;
+            return bid;
+          });
+      })
+      .then(function (bid) {
         refreshQuoteFeeds();
-        return res.data;
+        return bid;
       });
   };
   Backend.adminRenameBid = function (bidId, vendorName) {
@@ -1124,6 +1173,22 @@
       .then(function (res) {
         if (res.error) throw res.error;
         if (!res.data) throw new Error('변경할 견적을 찾지 못했습니다.');
+        refreshQuoteFeeds();
+        return res.data;
+      });
+  };
+
+  Backend.adminUpdateQuoteFollowup = function (quoteId, values) {
+    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    var patch = { followup_updated_at: new Date().toISOString() };
+    if (Object.prototype.hasOwnProperty.call(values || {}, 'customerContacted')) patch.customer_contacted = !!values.customerContacted;
+    if (Object.prototype.hasOwnProperty.call(values || {}, 'vendorContacted')) patch.vendor_contacted = !!values.vendorContacted;
+    if (Object.prototype.hasOwnProperty.call(values || {}, 'tradeCompleted')) patch.trade_completed = !!values.tradeCompleted;
+    return sb.from('quote_requests').update(patch).eq('id', quoteId).eq('status', 'awarded')
+      .select(QUOTE_SELECT).maybeSingle()
+      .then(function (res) {
+        if (res.error) throw res.error;
+        if (!res.data) throw new Error('판매 확정 견적을 찾지 못했습니다.');
         refreshQuoteFeeds();
         return res.data;
       });
