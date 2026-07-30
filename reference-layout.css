@@ -272,6 +272,7 @@ body > .footer {
 }
 
 /* Point / coupon: bright summary surfaces with one consistent 20px gutter. */
+#myPageModal #myPointSection,
 #myPageModal #myCouponSection {
   width: 100% !important;
   max-width: none !important;
@@ -280,8 +281,8 @@ body > .footer {
   background: #fff !important;
 }
 
-#myPageModal #myCouponSection .mp-point-card,
-#myPageModal #myCouponSection .mpcash {
+#myPageModal #myPointSection .mp-point-card,
+#myPageModal #myPointSection .mpcash {
   margin: 0 0 12px !important;
   padding: 20px !important;
   border: 1px solid #e5e5e7 !important;
@@ -291,23 +292,23 @@ body > .footer {
   box-shadow: none !important;
 }
 
-#myPageModal #myCouponSection .mp-point-label,
-#myPageModal #myCouponSection .mp-point-hint,
-#myPageModal #myCouponSection .mpcash-left span,
-#myPageModal #myCouponSection .mpcash-held,
-#myPageModal #myCouponSection .mpcash-note {
+#myPageModal #myPointSection .mp-point-label,
+#myPageModal #myPointSection .mp-point-hint,
+#myPageModal #myPointSection .mpcash-left span,
+#myPageModal #myPointSection .mpcash-held,
+#myPageModal #myPointSection .mpcash-note {
   color: #6b6b6f !important;
   opacity: 1 !important;
 }
 
-#myPageModal #myCouponSection .mp-point-val,
-#myPageModal #myCouponSection .mp-point-val b,
-#myPageModal #myCouponSection .mpcash-left b {
+#myPageModal #myPointSection .mp-point-val,
+#myPageModal #myPointSection .mp-point-val b,
+#myPageModal #myPointSection .mpcash-left b {
   color: #171719 !important;
   font-size: 28px !important;
 }
 
-#myPageModal #myCouponSection .mpcash-btn {
+#myPageModal #myPointSection .mpcash-btn {
   min-height: 42px;
   padding: 0 16px;
   border: 1px solid #d8d8dc;

@@ -44,7 +44,7 @@
     if (!it || (!it.brand && !it.model)) return;
     var id = String(it.id || (it.brand + '|' + it.model));
     var arr = lsGet(VIEWED_KEY).filter(function (x) { return String(x.id) !== id; });
-    arr.unshift({ id: id, brand: it.brand || '', model: it.model || '', price: it.price || 0, sale_price: it.sale_price || 0, img: it.img || it.image || '' });
+    arr.unshift({ id: id, brand: it.brand || '', model: it.model || '', price: it.price || 0, sale_price: it.sale_price || 0, img: it.img || it.image || '', ts: Date.now() });
     lsSet(VIEWED_KEY, arr.slice(0, 20));
   };
   function getViewed() { return lsGet(VIEWED_KEY); }

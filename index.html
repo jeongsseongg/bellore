@@ -72,10 +72,11 @@
     <!-- Pretendard 는 구글폰트에 없음 → 공식 CDN(jsdelivr)에서 로드해야 실제로 적용됨 -->
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=20260730-reference-fix">
+    <link rel="stylesheet" href="styles.css?v=20260731-mypick-reference">
     <link rel="stylesheet" href="wanted-theme.css?v=20260730-quote-wizard">
-    <link rel="stylesheet" href="reference-layout.css?v=20260730-admin-banner-bright">
+    <link rel="stylesheet" href="reference-layout.css?v=20260731-mypick-reference">
     <link rel="stylesheet" href="vendor-reference.css?v=20260731-html-exact-1">
+    <link rel="stylesheet" href="mypick.css?v=20260731-mypick-reference">
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
@@ -1557,30 +1558,60 @@
         <!-- ========== 찜 / 장바구니 (My Pick) ========== -->
         <section class="page" id="wishlist" data-page="wishlist">
             <div class="cat-page-header">
-                <h2 class="cat-page-title">MY PICK</h2>
-                <p class="cat-page-sub">찜한 시계와 장바구니를 한눈에</p>
+                <h2 class="cat-page-title">보관함</h2>
+                <p class="cat-page-sub">찜한 시계 · 장바구니 · 최근 본 시계를 한 곳에서</p>
             </div>
             <div class="container">
-                <button type="button" class="mp-auction-cta wish-auction-cta" data-auction-open>
+                <button type="button" class="mp-auction-cta wish-auction-cta" data-auction-open hidden>
                     <span class="mac-txt"><b>지금 경매</b><em>찜하신 상품의 경매 진행 여부를 확인하세요</em></span>
                     <span class="mac-arrow">›</span>
                 </button>
                 <div class="wish-tabs">
-                    <button type="button" class="wish-tab active" data-wishtab="wish">찜 목록 <b id="wishCount">0</b></button>
+                    <button type="button" class="wish-tab active" data-wishtab="wish">찜 <b id="wishCount">0</b></button>
                     <button type="button" class="wish-tab" data-wishtab="cart">장바구니 <b id="cartCount">0</b></button>
+                    <button type="button" class="wish-tab" data-wishtab="recent">최근 본 <b id="recentCount">0</b></button>
                 </div>
                 <div class="wish-panel" id="wishPanelWish">
                     <div class="hcard-grid" id="wishGrid"></div>
-                    <div class="wish-empty" id="wishEmpty" hidden>찜한 시계가 없습니다. 상품의 하트를 눌러 담아보세요.</div>
+                    <div class="wish-empty" id="wishEmpty" hidden>
+                        <span class="wish-empty-icon"><svg viewBox="0 0 24 24"><path d="M12 20.3s-7.5-4.6-7.5-9.7A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 3c0 5.1-7.5 9.7-7.5 9.7Z"/></svg></span>
+                        <strong>찜한 시계가 없습니다</strong>
+                        <p>상품의 하트를 눌러 관심 있는 시계를 보관해 보세요.</p>
+                        <button type="button" data-nav="collection">시계 둘러보기</button>
+                    </div>
+                    <div class="alerts-sec">
+                        <div class="wish-alert-head"><h4 class="alerts-title">소식 기다리는 시계 <b id="wishAlertCount">0</b></h4><span>입고·가격 알림</span></div>
+                        <div id="wishAlerts"></div>
+                    </div>
                 </div>
                 <div class="wish-panel" id="wishPanelCart" hidden>
-                    <div class="hcard-grid" id="cartGrid"></div>
-                    <div class="wish-empty" id="cartEmpty" hidden>장바구니가 비어 있습니다.</div>
+                    <div class="wish-cart-tools" id="cartTools" hidden>
+                        <button type="button" id="cartSelectAll"><span class="wish-check"></span>전체 선택</button>
+                        <button type="button" id="cartRemoveSelected">선택 삭제</button>
+                    </div>
+                    <div class="wish-cart-list" id="cartGrid"></div>
+                    <div class="wish-empty" id="cartEmpty" hidden>
+                        <span class="wish-empty-icon"><svg viewBox="0 0 24 24"><circle cx="9.5" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3h2.6l2.4 12.2a1.7 1.7 0 0 0 1.7 1.3h8.4a1.7 1.7 0 0 0 1.7-1.3L21 7H6"/></svg></span>
+                        <strong>장바구니가 비어 있습니다</strong>
+                        <p>구매할 시계를 담아 한 번에 확인해 보세요.</p>
+                        <button type="button" data-nav="collection">상품 보러가기</button>
+                    </div>
+                    <div class="wish-cart-summary" id="cartSummary" hidden>
+                        <div><span>선택 상품</span><b id="cartSelectedCount">0개</b></div>
+                        <div class="free"><span>배송비</span><b>전국 무료배송</b></div>
+                        <div class="total"><span>총 상품 금액</span><b id="cartSelectedTotal">0원</b></div>
+                        <button type="button" id="cartOrderSelected">선택 상품 주문하기</button>
+                    </div>
                     <div class="cart-npay" id="npay-cart-button-container" hidden></div>
                 </div>
-                <div class="alerts-sec">
-                    <h4 class="alerts-title">소식 기다리는 시계 <b id="wishAlertCount">0</b></h4>
-                    <div id="wishAlerts"></div>
+                <div class="wish-panel" id="wishPanelRecent" hidden>
+                    <div class="wish-recent-list" id="recentList"></div>
+                    <div class="wish-empty" id="recentEmpty" hidden>
+                        <span class="wish-empty-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M12 7.4V12l3 1.8"/></svg></span>
+                        <strong>최근 본 시계가 없습니다</strong>
+                        <p>최근 30일 동안 확인한 시계가 여기에 표시됩니다.</p>
+                        <button type="button" data-nav="collection">시계 둘러보기</button>
+                    </div>
                 </div>
             </div>
         </section>
@@ -2150,9 +2181,9 @@
                     </div>
                 </div>
                 <div class="mp-member-stats">
-                    <button type="button" data-myjump="#myCouponSection"><strong id="mpStatPoint">0P</strong><span>포인트</span></button>
+                    <button type="button" data-myjump="#myPointSection"><strong id="mpStatPoint">0P</strong><span>포인트</span></button>
                     <button type="button" data-myjump="#myCouponSection"><strong id="mpStatCoupon">0장</strong><span>쿠폰</span></button>
-                    <button type="button" data-myjump="#myInterestSection"><strong id="mpStatInterest">0</strong><span>내 관심</span></button>
+                    <button type="button" data-mpmenu="interest"><strong id="mpStatInterest">0</strong><span>내 관심</span></button>
                 </div>
             </div>
 
@@ -2167,12 +2198,12 @@
                     <span class="pl-ic has-img"><img src="assets/mypage/sell.png" alt="" loading="lazy"></span>
                     <span class="pl-label">시계판매</span>
                 </button>
-                <button type="button" class="pl-item" data-myjump="#myInterestSection">
+                <button type="button" class="pl-item" data-mpmenu="interest">
                     <span class="pl-ic has-img"><img src="assets/mypage/interest.png" alt="" loading="lazy"></span>
                     <span class="pl-label">내 관심</span>
                     <span class="pl-badge" id="pocketInterest" hidden>0</span>
                 </button>
-                <button type="button" class="pl-item" data-myjump="#myRecentSection">
+                <button type="button" class="pl-item" data-mpmenu="recent">
                     <span class="pl-ic has-img"><img src="assets/mypage/recent.png" alt="" loading="lazy"></span>
                     <span class="pl-label">최근 본 상품</span>
                 </button>
@@ -2317,15 +2348,18 @@
                 <div id="myStlList"></div>
             </div>
 
-            <!-- 포인트/쿠폰 (원형 '포인트/쿠폰'에서 서브페이지로 진입) -->
-            <div class="mypage-section mp-subsec" id="myCouponSection" hidden>
+            <!-- 포인트 — 쿠폰과 완전히 분리된 독립 페이지 -->
+            <div class="mypage-section mp-subsec" id="myPointSection" hidden>
                 <div class="mp-point-card">
                     <span class="mp-point-label">보유 포인트</span>
                     <strong class="mp-point-val"><b id="myPointVal">0</b> P</strong>
                     <span class="mp-point-hint">상품 결제 시 자동 적립됩니다.</span>
                 </div>
-                <!-- 벨로르 캐시(충전금) — 포인트와 별개 -->
                 <div id="mpCashCard" hidden></div>
+            </div>
+
+            <!-- 쿠폰 — 포인트와 완전히 분리된 독립 페이지 -->
+            <div class="mypage-section mp-subsec" id="myCouponSection" hidden>
                 <h4>내 쿠폰 <b id="myCouponCount">0</b></h4>
                 <div class="coupon-redeem">
                     <input type="text" id="couponCodeInput" placeholder="쿠폰 코드 입력">
@@ -3164,7 +3198,7 @@
                 <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
                 <b class="tab-wish-badge" id="tabWishBadge" hidden>0</b>
             </span>
-            <span>찜</span>
+            <span>보관함</span>
         </button>
         <button class="tab-item" data-nav="compare">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="12" r="5"/><path d="M7.5 7.3 7 4h7l-.5 3.3M7.5 16.7 7 20h7l-.5-3.3"/><path d="M10.5 12V9.6M10.5 12h2"/><path d="M19 15.5v-6m0 0-1.9 1.9M19 9.5l1.9 1.9"/></svg>
@@ -3185,11 +3219,11 @@
     <script src="supabase.js?v=20260731-vendor-created-at"></script>
     <script src="bellore-features.js"></script>
     <script src="cq-demo.js?v=20260731-vendor-html-exact"></script>
-    <script src="script.js?v=20260730-reference-fix"></script>
-    <script src="wishlist.js?v=20260730-reference-fix"></script>
+    <script src="script.js?v=20260731-mypick-reference"></script>
+    <script src="wishlist.js?v=20260731-mypick-reference"></script>
     <script src="alerts.js"></script>
     <script src="auction.js"></script>
-    <script src="search.js"></script>
+    <script src="search.js?v=20260731-mypick-reference"></script>
     <script src="ai-advisor.js?v=20260725-ai-log"></script>
     <script src="ai-advisor-admin.js?v=20260725-ai-log"></script>
     <script src="payments.js?v=20260727-card-naver-options"></script>
@@ -3200,7 +3234,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('sw.js?v=20260731-vendor-html-exact').catch(function (err) {
+                navigator.serviceWorker.register('sw.js?v=20260731-vendor-mypick').catch(function (err) {
                     console.warn('서비스워커 등록 실패:', err);
                 });
             });

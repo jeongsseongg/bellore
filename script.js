@@ -472,7 +472,7 @@
     window.BELLORE_openMyPage = openMyPage;
 
     // 마이페이지 서브페이지(쿠폰·소식시계 등): 스크롤 대신 해당 화면으로 전환
-    var MP_SUB_TITLE = { myCouponSection: '포인트/쿠폰', myInterestSection: '내 관심', myRecentSection: '최근 본 상품', partnerBox: '판매내역' };
+    var MP_SUB_TITLE = { myPointSection: '포인트', myCouponSection: '쿠폰', myInterestSection: '내 관심', myRecentSection: '최근 본 상품', partnerBox: '판매내역' };
     function openMpSub(id) {
         var mc = document.querySelector('#myPageModal .login-content');
         var sec = mc && mc.querySelector('#' + id);
@@ -596,8 +596,16 @@
                     if (act === 'orders') { openOrdersList(''); return; }
                     if (act === 'bids') { if (window.CQDemo && window.CQDemo.open) window.CQDemo.open(); return; }
                     if (act === 'sales') { openMpSub('partnerBox'); return; }
-                    if (act === 'interest') { openMpSub('myInterestSection'); return; }
-                    if (act === 'recent') { openMpSub('myRecentSection'); return; }
+                    if (act === 'point') { openMpSub('myPointSection'); return; }
+                    if (act === 'interest' || act === 'recent') {
+                        closeMyPage();
+                        location.hash = '#wishlist';
+                        setTimeout(function () {
+                            var wt = document.querySelector('.wish-tab[data-wishtab="' + (act === 'recent' ? 'recent' : 'wish') + '"]');
+                            if (wt) wt.click();
+                        }, 80);
+                        return;
+                    }
                     if (act === 'coupon') { openMpSub('myCouponSection'); return; }
                     if (act === 'cart') {
                         closeMyPage();

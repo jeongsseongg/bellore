@@ -8744,6 +8744,7 @@ body.cqd-photo-viewer-open { overflow: hidden; }
 .mp-sub-title { font-size: 16px; font-weight: 800; color: #1a1a1a; }
 .login-content.mp-sub > *:not(.mp-sub-bar) { display: none !important; }
 .login-content.mp-sub > .login-close { display: none !important; }
+.login-content.mp-sub[data-mpsub="myPointSection"] > #myPointSection,
 .login-content.mp-sub[data-mpsub="myCouponSection"] > #myCouponSection,
 .login-content.mp-sub[data-mpsub="myInterestSection"] > #myInterestSection,
 .login-content.mp-sub[data-mpsub="myRecentSection"] > #myRecentSection,

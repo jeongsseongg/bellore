@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v192-vendor-html-exact";
+const VERSION = "bellore-v193-vendor-mypick";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -10,6 +10,7 @@ const SHELL_ASSETS = [
   './styles.css',
   './vendor-reference.css',
   './reference-layout.css',
+  './mypick.css',
   './script.js',
   './payments.js',
   './naverpay.js',

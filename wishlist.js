@@ -16,6 +16,7 @@
   var WK = 'bellore_wish', CK = 'bellore_cart';
   var B = window.NWBackend;
   var state = { wish: [], cart: [] };   // 메모리 캐시(로그인=DB, 게스트=localStorage)
+  var selectedCart = {};
   var loggedIn = false;
 
   function lsLoad(k) { try { return JSON.parse(localStorage.getItem(k) || '[]'); } catch (e) { return []; } }
@@ -97,6 +98,11 @@
     if (i >= 0) { a.splice(i, 1); persist(kind, 'remove', id); }
     refreshAll();
   }
+  function viewedItems() {
+    var list = (window.BELLORE_getViewed && window.BELLORE_getViewed()) || [];
+    var cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    return list.filter(function (it) { return !it.ts || Number(it.ts) >= cutoff; });
+  }
 
   /* ---------- 카드에 찜/장바구니 버튼 부착 ---------- */
   function decorateCards() {
@@ -142,6 +148,76 @@
     }
   });
 
+  // 장바구니 선택·일괄 삭제·주문 / 최근 본에서 찜
+  document.addEventListener('click', function (e) {
+    var check = e.target.closest('[data-cart-check]');
+    if (check) {
+      var cid = check.getAttribute('data-cart-check');
+      selectedCart[cid] = !selectedCart[cid];
+      renderPage();
+      return;
+    }
+    if (e.target.closest('#cartSelectAll')) {
+      var cart = getCart(), shouldSelect = selectedItems().length !== cart.length;
+      cart.forEach(function (it) { selectedCart[idOf(it)] = shouldSelect; });
+      renderPage();
+      return;
+    }
+    if (e.target.closest('#cartRemoveSelected')) {
+      var picked = selectedItems();
+      if (!picked.length) { toast('삭제할 상품을 선택해 주세요'); return; }
+      bellConfirm('선택한 ' + picked.length + '개 상품을 삭제할까요?').then(function (ok) {
+        if (!ok) return;
+        picked.forEach(function (it) {
+          var id = idOf(it), idx = indexOf(state.cart, id);
+          if (idx >= 0) state.cart.splice(idx, 1);
+          persist('cart', 'remove', id);
+          delete selectedCart[id];
+        });
+        refreshAll();
+      });
+      return;
+    }
+    var rw = e.target.closest('[data-recent-wish]');
+    if (rw) {
+      var rid = rw.getAttribute('data-recent-wish');
+      var rit = viewedItems().filter(function (it) { return idOf(it) === rid; })[0];
+      if (rit) toast(toggleWish(rit) ? '찜에 담았어요' : '찜을 해제했어요');
+      return;
+    }
+    var order = e.target.closest('#cartOrderSelected');
+    if (order) {
+      var items = selectedItems();
+      if (!items.length) { toast('주문할 상품을 선택해 주세요'); return; }
+      if (items.length > 1) {
+        var npay = $('#npay-cart-button-container');
+        if (npay && !npay.hidden) {
+          npay.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          toast('여러 상품은 네이버페이 장바구니 결제를 이용해 주세요');
+        } else {
+          toast('여러 상품 주문은 고객센터에서 도와드릴게요');
+        }
+        return;
+      }
+      var it = items[0];
+      if (window.BELLORE_openCheckout) {
+        window.BELLORE_openCheckout({ listingId: it.id, brand: it.brand, model: it.model, price: it.price, image: it.img });
+      }
+      return;
+    }
+    var cartThumb = e.target.closest('.wish-cart-thumb');
+    if (cartThumb) {
+      var cartPid = cartThumb.getAttribute('data-pid');
+      if (cartPid && window.BELLORE_openProductById) window.BELLORE_openProductById(cartPid);
+      return;
+    }
+    var recentRow = e.target.closest('.wish-recent-row');
+    if (recentRow && !e.target.closest('button')) {
+      var pid = recentRow.getAttribute('data-pid');
+      if (pid && window.BELLORE_openProductById) window.BELLORE_openProductById(pid);
+    }
+  });
+
   // 상세 페이지 찜/장바구니
   document.addEventListener('click', function (e) {
     var w = e.target.closest('#pmWish, #pmWishTop'), c = e.target.closest('#pmCart');
@@ -174,16 +250,22 @@
   });
   function showView(v) {
     $$('.wish-tab').forEach(function (x) { x.classList.toggle('active', x.dataset.wishtab === v); });
-    var pw = $('#wishPanelWish'), pc = $('#wishPanelCart');
+    var pw = $('#wishPanelWish'), pc = $('#wishPanelCart'), pr = $('#wishPanelRecent');
     if (pw) pw.hidden = (v !== 'wish');
     if (pc) pc.hidden = (v !== 'cart');
+    if (pr) pr.hidden = (v !== 'recent');
     if (v === 'cart' && window.BELLORE_NPAY_RENDER_CART) {
       window.BELLORE_NPAY_RENDER_CART(getCart());
     }
   }
-  function curView() { var pc = $('#wishPanelCart'); return (pc && !pc.hidden) ? 'cart' : 'wish'; }
+  function curView() {
+    var pc = $('#wishPanelCart'), pr = $('#wishPanelRecent');
+    if (pc && !pc.hidden) return 'cart';
+    if (pr && !pr.hidden) return 'recent';
+    return 'wish';
+  }
 
-  // 하단 '찜' 탭: 처음 들어오면 찜목록, 이미 찜페이지면 장바구니로 토글
+  // 하단 보관함 탭은 항상 찜으로 진입한다. 장바구니·최근 본은 각 탭에서 명시적으로 선택한다.
   document.addEventListener('click', function (e) {
     var t = e.target.closest('[data-nav="wishlist"]'); if (!t) return;
     var page = $('#wishlist');
@@ -191,8 +273,7 @@
     var fromMyPage = (t.id === 'myCartLink');
     if (fromMyPage) { var mp = $('#myPageModal'); if (mp) { mp.hidden = true; document.body.style.overflow = ''; } }
     setTimeout(function () {
-      if (wasActive && !fromMyPage) showView(curView() === 'wish' ? 'cart' : 'wish');
-      else showView(fromMyPage ? 'cart' : 'wish');
+      showView(fromMyPage ? 'cart' : 'wish');
       renderPage();
     }, 0);
   }, true);
@@ -200,25 +281,73 @@
   /* ---------- 렌더 ---------- */
   function cardHTML(it, kind) {
     return '<article class="hcard wish-card" data-pid="' + esc(idOf(it)) + '" data-brand="' + esc(it.brand) + '" data-model="' + esc(it.model) + '" data-price="' + (it.price || 0) + '">' +
-      '<button type="button" class="wish-remove" data-kind="' + kind + '" data-id="' + esc(idOf(it)) + '" aria-label="삭제"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>' +
-      '<div class="hcard-img"><img src="' + esc(it.img || 'assets/images.jpg') + '" alt=""></div>' +
+      '<div class="hcard-img"><img src="' + esc(it.img || 'assets/images.jpg') + '" alt="">' +
+      '<button type="button" class="wish-remove wish-heart-on" data-kind="' + kind + '" data-id="' + esc(idOf(it)) + '" aria-label="찜 해제"><svg viewBox="0 0 24 24"><path d="M12 20.3s-7.5-4.6-7.5-9.7A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 3c0 5.1-7.5 9.7-7.5 9.7Z"/></svg></button></div>' +
       '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
       '<p class="hcard-model">' + esc(it.model) + '</p>' +
+      '<p class="wish-price-label">즉시 구매가</p>' +
       '<p class="hcard-price">' + (it.price ? fmt(it.price) + '<em>원</em>' : '가격 문의') + '</p>' +
-      (kind === 'wish' ? '<div class="wish-card-acts"><button type="button" class="wish-addcart" data-id="' + esc(idOf(it)) + '">장바구니 담기</button></div>' : '') +
       '</article>';
   }
+  function cartRowHTML(it) {
+    var id = idOf(it), on = !!selectedCart[id];
+    return '<article class="wish-cart-row" data-cart-id="' + esc(id) + '">' +
+      '<button type="button" class="wish-check-btn' + (on ? ' on' : '') + '" data-cart-check="' + esc(id) + '" aria-label="상품 선택"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7"/></svg></button>' +
+      '<button type="button" class="wish-cart-thumb" data-pid="' + esc(id) + '"><img src="' + esc(it.img || 'assets/images.jpg') + '" alt=""></button>' +
+      '<span class="wish-cart-copy"><b>' + esc(it.brand) + '</b><strong>' + esc(it.model) + '</strong><em>' + (it.price ? fmt(it.price) + '원' : '가격 문의') + '</em><small>전국 무료배송</small></span>' +
+      '<button type="button" class="wish-remove wish-cart-remove" data-kind="cart" data-id="' + esc(id) + '" aria-label="삭제"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>' +
+      '</article>';
+  }
+  function recentDay(ts) {
+    var d = new Date(Number(ts) || Date.now()), now = new Date();
+    var a = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    var b = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    var diff = Math.round((a - b) / 86400000);
+    if (diff === 0) return '오늘';
+    if (diff === 1) return '어제';
+    return (d.getMonth() + 1) + '월 ' + d.getDate() + '일';
+  }
+  function recentHTML(list) {
+    var last = '';
+    return list.map(function (it) {
+      var day = recentDay(it.ts), head = day !== last ? '<h4 class="wish-recent-day">' + day + '</h4>' : '';
+      last = day;
+      return head + '<article class="wish-recent-row" data-pid="' + esc(idOf(it)) + '" data-brand="' + esc(it.brand) + '" data-model="' + esc(it.model) + '">' +
+        '<span class="wish-recent-thumb"><img src="' + esc(it.img || 'assets/images.jpg') + '" alt=""></span>' +
+        '<span class="wish-recent-copy"><b>' + esc(it.brand) + '</b><strong>' + esc(it.model) + '</strong><em>' + (it.price ? fmt(it.price) + '원' : '가격 문의') + '</em></span>' +
+        '<button type="button" class="wish-recent-heart' + (has(getWish(), idOf(it)) ? ' on' : '') + '" data-recent-wish="' + esc(idOf(it)) + '" aria-label="찜"><svg viewBox="0 0 24 24"><path d="M12 20.3s-7.5-4.6-7.5-9.7A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 3c0 5.1-7.5 9.7-7.5 9.7Z"/></svg></button>' +
+        '</article>';
+    }).join('');
+  }
   function renderPage() {
-    var wish = getWish(), cart = getCart();
-    var wg = $('#wishGrid'), cg = $('#cartGrid');
+    var wish = getWish(), cart = getCart(), recent = viewedItems();
+    cart.forEach(function (it) { var id = idOf(it); if (!(id in selectedCart)) selectedCart[id] = true; });
+    Object.keys(selectedCart).forEach(function (id) { if (!findById(cart, id)) delete selectedCart[id]; });
+    var wg = $('#wishGrid'), cg = $('#cartGrid'), rg = $('#recentList');
     if (wg) wg.innerHTML = wish.map(function (it) { return cardHTML(it, 'wish'); }).join('');
-    if (cg) cg.innerHTML = cart.map(function (it) { return cardHTML(it, 'cart'); }).join('');
-    var we = $('#wishEmpty'), ce = $('#cartEmpty');
+    if (cg) cg.innerHTML = cart.map(cartRowHTML).join('');
+    if (rg) rg.innerHTML = recentHTML(recent);
+    var we = $('#wishEmpty'), ce = $('#cartEmpty'), re = $('#recentEmpty');
     if (we) we.hidden = wish.length > 0;
     if (ce) ce.hidden = cart.length > 0;
+    if (re) re.hidden = recent.length > 0;
     if (window.BELLORE_NPAY_RENDER_CART) window.BELLORE_NPAY_RENDER_CART(cart);
     if ($('#wishCount')) $('#wishCount').textContent = wish.length;
     if ($('#cartCount')) $('#cartCount').textContent = cart.length;
+    if ($('#recentCount')) $('#recentCount').textContent = recent.length;
+    renderCartSummary();
+  }
+  function selectedItems() { return getCart().filter(function (it) { return !!selectedCart[idOf(it)]; }); }
+  function renderCartSummary() {
+    var cart = getCart(), picked = selectedItems(), total = picked.reduce(function (sum, it) { return sum + Number(it.price || 0); }, 0);
+    var tools = $('#cartTools'), summary = $('#cartSummary'), all = $('#cartSelectAll');
+    if (tools) tools.hidden = !cart.length;
+    if (summary) summary.hidden = !cart.length;
+    if ($('#cartSelectedCount')) $('#cartSelectedCount').textContent = picked.length + '개';
+    if ($('#cartSelectedTotal')) $('#cartSelectedTotal').textContent = fmt(total) + '원';
+    if (all) all.classList.toggle('on', !!cart.length && picked.length === cart.length);
+    var order = $('#cartOrderSelected');
+    if (order) { order.disabled = !picked.length; order.textContent = picked.length ? picked.length + '개 상품 주문하기' : '상품을 선택해 주세요'; }
   }
   function updateBadge() {
     var b = $('#tabWishBadge');
