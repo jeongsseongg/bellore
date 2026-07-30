@@ -61,12 +61,13 @@
   var editId = null;      // (수정 모드) 대상 견적 id
   var newData = {};
   var vendLogoFile = null; // 업체 대표 이미지(직접 첨부한 File)
+  var vendorQuoteFilter = 'all';
   var PART_OPTS = ['보증서', '정품 박스', '설명서/책자', '추가 링크', '정품 택', '구매 영수증'];
   var GRADE_OPTS = ['S등급 (미착용/신품급)', 'A등급 (사용감 적음)', 'B등급 (일반 사용감)', 'C등급 (사용감 많음)'];
 
   /* ===== 데이터 캐시 (구독으로 채움) ===== */
   var cust = { watches: [], loaded: false };
-  var vend = { quotes: [], loaded: false };
+  var vend = { quotes: [], settlements: [], notifications: [], loaded: false };
   var adm = { pending: [], open: [], suspended: [], awarded: [], vendors: [], accounts: [], loaded: false };
   var reviews = [];
   var awardedVendorCache = {}; // quoteId → {company_name,...}
@@ -95,6 +96,10 @@
     }
     if (role === 'vendor' || role === 'admin') {
       if (B.subscribeOpenQuotes) subs.push(B.subscribeOpenQuotes(function (r) { vend.quotes = r || []; vend.loaded = true; renderIfOpen(); }));
+    }
+    if (role === 'vendor') {
+      if (B.subscribeNotifications) subs.push(B.subscribeNotifications(function (r) { vend.notifications = r || []; renderIfOpen(); }));
+      if (B.listMySettlements) B.listMySettlements().then(function (r) { vend.settlements = r || []; renderIfOpen(); });
     }
     if (role === 'admin') {
       if (B.subscribePending) subs.push(B.subscribePending(function (r) { adm.pending = r || []; adm.loaded = true; renderIfOpen(); }));
@@ -189,7 +194,7 @@
     for (var j = 0; j < bs.length; j++) bs[j].classList.toggle('is-on', bs[j].getAttribute('data-role') === viewRole);
   }
   function homeScreen() {
-    return viewRole === 'customer' ? 'c-watches' : viewRole === 'vendor' ? 'v-watches' : 'a-dash';
+    return viewRole === 'customer' ? 'c-watches' : viewRole === 'vendor' ? 'v-home' : 'a-dash';
   }
   function go(screen, param, replace) {
     if (replace) stack = [];
@@ -1232,85 +1237,170 @@
     '</div>';
   };
 
+  /* --- 업체 전용: 원티드형 업무 화면 --- */
+  function loadingBody() { return '<p class="cqd-note">불러오는 중…</p></div>'; }
+  function vendorPrimaryName() {
+    var info = AUTH.info || {};
+    return info.companyName || (AUTH.user && AUTH.user.displayName) || '내 업체';
+  }
+  function vendorBottomTabs(cur) {
+    return '<nav class="cqv-tabs" aria-label="업체 메뉴">' +
+      '<button type="button" class="' + (cur === 'v-home' ? 'is-on' : '') + '" data-cqd-go="v-home"><span>⌂</span>홈</button>' +
+      '<button type="button" class="' + (cur === 'v-watches' ? 'is-on' : '') + '" data-cqd-go="v-watches"><span>☷</span>입찰 요청</button>' +
+      '<button type="button" class="' + (cur === 'v-manage' ? 'is-on' : '') + '" data-cqd-go="v-manage"><span>▣</span>내 업체</button>' +
+    '</nav>';
+  }
+  function vendorStatusChip() {
+    var info = AUTH.info || {};
+    if (info.suspended) return '<span class="cqv-chip no">사용 정지</span>';
+    return info.isApprovedVendor ? '<span class="cqv-chip ok">승인</span>' : '<span class="cqv-chip wa">승인 대기</span>';
+  }
+  function quoteHighest(q) {
+    return (q.bids || []).reduce(function (m, b) { return Math.max(m, Number(b.amount) || 0); }, 0);
+  }
+  function quoteMyRank(q, mine) {
+    if (!mine) return 0;
+    var sorted = (q.bids || []).slice().sort(function (a, b) { return Number(b.amount) - Number(a.amount); });
+    for (var i = 0; i < sorted.length; i++) if (String(sorted[i].id) === String(mine.id)) return i + 1;
+    return 0;
+  }
+  function quoteDeadline(q) {
+    var left = Number(q.expiresMs || 0) - Date.now();
+    if (left <= 0) return '마감 임박';
+    var hours = Math.ceil(left / 3600000);
+    if (hours < 24) return hours + '시간 남음';
+    return Math.ceil(hours / 24) + '일 남음';
+  }
+  function pendingSettlementTotal() {
+    return (vend.settlements || []).reduce(function (sum, s) {
+      return sum + (s.status === 'paid' ? 0 : Number(s.net || 0));
+    }, 0);
+  }
+  function bidConditions(message) {
+    var m = String(message || '').match(/^\[거래조건\]\s*([^\n]+)/);
+    return m ? m[1].split('·').map(function (v) { return v.trim(); }) : [];
+  }
+  function cleanBidMessage(message) {
+    return String(message || '').replace(/^\[거래조건\]\s*[^\n]*\n?/, '').trim();
+  }
+
+  SCREENS['v-home'] = function () {
+    titleEl.textContent = '업체 홈';
+    var info = AUTH.info || {};
+    var name = vendorPrimaryName();
+    var openCount = vend.quotes.length;
+    var myBidCount = vend.quotes.filter(function (q) { return !!myBidOf(q); }).length;
+    var needBid = Math.max(0, openCount - myBidCount);
+    var notices = (vend.notifications || []).slice(0, 4).map(function (n) {
+      var ms = n.createdAt && n.createdAt.getTime ? n.createdAt.getTime() : Date.now();
+      return '<div class="cqv-notice"><i></i><div><b>' + esc(n.title || n.text || '벨로르 알림') + '</b>' +
+        (n.title && n.text && n.text !== n.title ? '<span>' + esc(n.text) + '</span>' : '') + '</div><time>' + chatTime(ms) + '</time></div>';
+    }).join('') || '<p class="cqv-empty">새로운 알림이 없습니다.</p>';
+    return '<div class="cqd-screen cqv cqv-home">' +
+      '<div class="cqv-who"><span class="cqv-avatar">' + esc(name.charAt(0).toUpperCase()) + '</span><b>' + esc(name) + '</b>' + vendorStatusChip() + '</div>' +
+      '<section class="cqv-hello"><h2>' + esc(name) + '님,<br>오늘도 좋은 거래를 시작하세요.</h2><p>새 견적과 내 입찰 현황을 한눈에 확인합니다.</p></section>' +
+      (info.suspended ? '<div class="cqv-alert no">사용 정지된 업체 계정입니다. 관리자에게 문의해주세요.</div>' :
+        (!info.isApprovedVendor ? '<div class="cqv-alert wa">업체 승인 대기중입니다. 승인 후 입찰할 수 있습니다.</div>' : '')) +
+      '<button type="button" class="cqv-todo" data-cqd-go="v-watches"><span>오늘 할 일</span><b>아직 제안하지 않은 견적 ' + needBid + '건</b><em>입찰 요청 확인하기</em></button>' +
+      '<section class="cqv-panel"><div class="cqv-panel-head"><b>현재 입찰 현황</b><span>실시간</span></div>' +
+        '<div class="cqv-kpis"><div><b>' + openCount + '</b><span>진행 견적</span></div><div><b>' + myBidCount + '</b><span>내 입찰</span></div><div><b>' + man(pendingSettlementTotal()) + '<small>원</small></b><span>정산 예정</span></div></div>' +
+      '</section>' +
+      '<section class="cqv-panel cqv-news"><div class="cqv-panel-head"><b>최근 알림</b></div>' + notices + '</section>' +
+      vendorBottomTabs('v-home') +
+    '</div>';
+  };
+
   /* --- 업체: 들어온 비교견적 --- */
   SCREENS['v-watches'] = function () {
-    titleEl.textContent = '들어온 비교견적';
+    titleEl.textContent = '입찰 요청';
     var approved = !!(AUTH.info && AUTH.info.isApprovedVendor);
     var suspended = !!(AUTH.info && AUTH.info.suspended);
     var notice = '';
-    if (suspended) notice = '<p class="cqd-state stop">사용정지된 업체 계정입니다. 입찰이 제한됩니다.</p>';
-    else if (!approved) notice = '<p class="cqd-state wait">업체 승인 대기중입니다. 승인 후 입찰할 수 있어요.</p>';
-    if (!vend.loaded) return '<div class="cqd-screen">' + vendorSubtabs('v-watches') + loadingBody();
-    var rows = vend.quotes.map(function (q) {
+    if (suspended) notice = '<div class="cqv-alert no">사용정지된 업체 계정입니다. 입찰이 제한됩니다.</div>';
+    else if (!approved) notice = '<div class="cqv-alert wa">업체 승인 대기중입니다. 승인 후 입찰할 수 있습니다.</div>';
+    if (!vend.loaded) return '<div class="cqd-screen cqv">' + loadingBody();
+    var bidCount = vend.quotes.filter(function (q) { return !!myBidOf(q); }).length;
+    var visibleQuotes = vend.quotes.filter(function (q) {
+      if (vendorQuoteFilter === 'mine') return !!myBidOf(q);
+      if (vendorQuoteFilter === 'new') return !myBidOf(q);
+      return true;
+    });
+    var rows = visibleQuotes.map(function (q) {
       var mine = myBidOf(q);
-      return '<button type="button" class="cqd-vrow" data-cqd-go="v-bid" data-cqd-id="' + esc(q.id) + '">' +
-        rowThumb(q) +
-        '<span class="cqd-vrow-main">' +
-          '<span class="cqd-vrow-name">' + esc((q.brand || '') + ' ' + (q.model || '')) + '</span>' +
-          '<span class="cqd-vrow-sub"><em>' + (q.ref ? 'Ref. ' + esc(q.ref) + ' · ' : '') + '입찰 ' + (q.bids || []).length + '건' + (mine ? ' · 내 입찰 ' + man(mine.amount) + '원' : '') + '</em></span>' +
-        '</span>' +
-        '<span class="cqd-vrow-amt">' + (mine ? '수정' : '입찰') + '<small>›</small></span>' +
+      var rank = quoteMyRank(q, mine);
+      return '<button type="button" class="cqv-qcard' + (mine ? ' mine' : '') + '" data-cqd-go="v-bid" data-cqd-id="' + esc(q.id) + '">' +
+        '<span class="cqv-qtop">' + rowThumb(q) + '<span><b>' + esc((q.brand || '') + ' ' + (q.model || '')) + '</b>' +
+          '<small>' + (q.ref ? 'Ref. ' + esc(q.ref) + ' · ' : '') + esc(q.year || '') + '</small></span>' +
+          '<em>' + quoteDeadline(q) + '</em></span>' +
+        '<span class="cqv-meta"><i>입찰 ' + (q.bids || []).length + '건</i>' + (mine ? '<i class="on">내 입찰</i>' + (rank ? '<i>' + rank + '위</i>' : '') : '<i class="hot">신규</i>') + '</span>' +
+        '<span class="cqv-qbottom"><span>현재 최고가<b>' + (quoteHighest(q) ? man(quoteHighest(q)) + '원' : '첫 입찰 대기') + '</b></span>' +
+          '<strong>' + (mine ? '입찰 수정' : '입찰하기') + '</strong></span>' +
       '</button>';
-    }).join('') || '<p class="cqd-note">현재 입찰 가능한 견적이 없습니다.</p>';
-    return '<div class="cqd-screen">' + vendorSubtabs('v-watches') + notice +
-      '<p class="cqd-note">진행중인 견적에 제안가를 입력하세요.</p>' +
-      '<div class="cqd-vlist">' + rows + '</div>' +
+    }).join('') || '<p class="cqv-empty">현재 입찰 가능한 견적이 없습니다.</p>';
+    return '<div class="cqd-screen cqv cqv-list">' +
+      '<div class="cqv-who"><span class="cqv-avatar">' + esc(vendorPrimaryName().charAt(0).toUpperCase()) + '</span><b>' + esc(vendorPrimaryName()) + '</b>' + vendorStatusChip() + '</div>' +
+      notice +
+      '<div class="cqv-kpis top"><div><b>' + vend.quotes.length + '</b><span>전체 요청</span></div><div><b>' + bidCount + '</b><span>내 입찰</span></div><div><b>' + Math.max(0, vend.quotes.length - bidCount) + '</b><span>입찰 필요</span></div></div>' +
+      '<div class="cqv-filter"><button type="button" class="' + (vendorQuoteFilter === 'all' ? 'is-on' : '') + '" data-cqv-filter="all">전체 <b>' + vend.quotes.length + '</b></button>' +
+        '<button type="button" class="' + (vendorQuoteFilter === 'new' ? 'is-on' : '') + '" data-cqv-filter="new">미참여 <b>' + Math.max(0, vend.quotes.length - bidCount) + '</b></button>' +
+        '<button type="button" class="' + (vendorQuoteFilter === 'mine' ? 'is-on' : '') + '" data-cqv-filter="mine">참여중 <b>' + bidCount + '</b></button></div>' +
+      '<div class="cqv-qlist">' + rows + '</div>' +
+      vendorBottomTabs('v-watches') +
     '</div>';
   };
-  function loadingBody() { return '<p class="cqd-note">불러오는 중…</p></div>'; }
-  function vendorSubtabs(cur) {
-    return '<div class="cqd-subtabs">' +
-      '<button type="button" class="' + (cur === 'v-watches' ? 'is-on' : '') + '" data-cqd-go="v-watches">입찰 요청</button>' +
-      '<button type="button" class="' + (cur === 'v-manage' ? 'is-on' : '') + '" data-cqd-go="v-manage">내 업체 관리</button>' +
-    '</div>';
-  }
 
   /* --- 업체: 입찰 입력 --- */
   SCREENS['v-bid'] = function (id) {
     if (!vend.loaded) return loadingBlock();
     var q = findIn(vend.quotes, id); if (!q) return '<div class="cqd-screen"><p class="cqd-note">정보 없음</p></div>';
-    titleEl.textContent = '제안가 입력';
-    /* 업체가 실제로 견적을 열어볼 때 조회수 +1 (세션당 1회) */
+    titleEl.textContent = '입찰 등록';
     if (!viewedQuotes[q.id]) { viewedQuotes[q.id] = 1; if (B && B.bumpQuoteView) B.bumpQuoteView(q.id); }
     var mine = myBidOf(q);
     var approved = !!(AUTH.info && AUTH.info.isApprovedVendor);
-    return '<div class="cqd-screen">' +
-      watchCard(q) + priceTrendCard() +
-      (approved ? '' : '<p class="cqd-state wait">업체 승인 후 입찰이 저장됩니다.</p>') +
-      '<div class="cqd-form">' +
-        '<label>제안 금액 (원)</label>' +
-        '<input type="tel" id="cqdBidAmt" value="' + (mine ? mine.amount : '') + '" placeholder="예: 21000000">' +
-        '<label>고객에게 전할 메모</label>' +
-        '<textarea id="cqdBidMsg" rows="3" placeholder="당일 현금 지급 가능합니다.">' + esc(mine ? (mine.message || '') : '') + '</textarea>' +
-        '<button type="button" class="cqd-cta primary" data-cqd-bidsave="' + esc(q.id) + '">' + (mine ? '입찰 수정하기' : '입찰 등록하기') + '</button>' +
-        '<button type="button" class="cqd-cta ghost" data-cqd-go="v-watches">‹ 취소</button>' +
+    var conds = bidConditions(mine && mine.message);
+    var opts = ['당일 현금', '방문 매입', '택배 매입', '검수 후 확정'].map(function (o) {
+      var checked = conds.indexOf(o) >= 0;
+      return '<label class="cqv-opt"><input type="checkbox" name="cqdBidCondition" value="' + esc(o) + '"' + (checked ? ' checked' : '') + '><span>✓</span>' + esc(o) + '</label>';
+    }).join('');
+    return '<div class="cqd-screen cqv cqv-bid">' +
+      '<section class="cqv-product">' + rowThumb(q) + '<div><b>' + esc((q.brand || '') + ' ' + (q.model || '')) + '</b><span>' + (q.ref ? 'Ref. ' + esc(q.ref) + ' · ' : '') + esc(q.year || '') + '</span></div><em>사진 ' + q.photoCount + '장</em></section>' +
+      '<div class="cqv-memo"><b>고객 메모</b><p>' + esc(cleanMemo(q.memo || '') || '등록된 메모가 없습니다.') + '</p></div>' +
+      '<div class="cqv-market">참고 정보 <b>현재 최고 입찰가 ' + (quoteHighest(q) ? won(quoteHighest(q)) : '없음') + '</b><span> · ' + quoteDeadline(q) + '</span></div>' +
+      (approved ? '' : '<div class="cqv-alert wa">업체 승인 후 입찰이 저장됩니다.</div>') +
+      '<div class="cqv-form">' +
+        '<label>제안 금액 <small>필수</small></label>' +
+        '<div class="cqv-money"><input type="tel" id="cqdBidAmt" inputmode="numeric" value="' + (mine ? mine.amount : '') + '" placeholder="예: 21000000"><span id="cqdBidMan">' + (mine ? '= ' + man(mine.amount) + '원' : '원 단위 입력') + '</span></div>' +
+        '<p class="cqv-help">고객에게는 만원 단위로 보입니다. 입력은 원 단위입니다.</p>' +
+        '<label>거래 조건 <small>선택</small></label><div class="cqv-options">' + opts + '</div>' +
+        '<label>고객에게 전할 메모 <small>선택</small></label>' +
+        '<textarea id="cqdBidMsg" rows="3" placeholder="당일 현금 지급 가능합니다.">' + esc(cleanBidMessage(mine ? mine.message : '')) + '</textarea>' +
+        '<p class="cqv-help">연락처·계좌번호는 넣지 마세요. 거래는 벨로르를 통해 진행됩니다.</p>' +
       '</div>' +
+      '<div class="cqv-submit"><button type="button" class="ghost" data-cqd-go="v-watches">취소</button><button type="button" data-cqd-bidsave="' + esc(q.id) + '">' + (mine ? '입찰 수정하기' : '입찰 등록하기') + '</button></div>' +
     '</div>';
   };
 
   /* --- 업체: 내 업체 관리 --- */
   SCREENS['v-manage'] = function () {
-    titleEl.textContent = '내 업체 관리';
+    titleEl.textContent = '내 업체';
     var info = AUTH.info || {};
-    var name = info.companyName || (AUTH.user && AUTH.user.displayName) || '내 업체';
+    var name = vendorPrimaryName();
     var logo = info.logoUrl || '';
-    var statusTxt = info.suspended ? '<span class="cqd-badge stop">정지</span>' : (info.isApprovedVendor ? '<span class="cqd-badge done">승인</span>' : '<span class="cqd-badge wait">승인대기</span>');
-    return '<div class="cqd-screen">' + vendorSubtabs('v-manage') +
-      '<div class="cqd-shop">' +
-        '<div class="cqd-shop-avatar">' + (logo ? '<img src="' + esc(logo) + '" alt="" onerror="this.remove()">' : esc(name.charAt(0).toUpperCase())) + '</div>' +
-        '<p class="cqd-shop-name">' + esc(name) + ' ' + statusTxt + '</p>' +
-        '<p class="cqd-mini">상호와 대표 이미지는 고객의 확정 화면에 표시됩니다.</p>' +
-      '</div>' +
-      '<div class="cqd-form">' +
-        '<label>업체명(상호)</label>' +
-        '<input type="text" id="cqdVName" value="' + esc(name) + '" placeholder="업체명">' +
-        '<label>대표 이미지 <small class="cqd-lbl-sub">PC·모바일에서 바로 첨부</small></label>' +
-        '<div class="cqd-logopick" id="cqdVLogoPick">' + vendorLogoPreview(logo) + '</div>' +
+    var myBidCount = vend.quotes.filter(function (q) { return !!myBidOf(q); }).length;
+    return '<div class="cqd-screen cqv cqv-manage">' +
+      '<section class="cqv-shop"><div class="cqv-shop-logo">' + (logo ? '<img src="' + esc(logo) + '" alt="" onerror="this.remove()">' : esc(name.charAt(0).toUpperCase())) + '</div>' +
+        '<div><h2>' + esc(name) + ' ' + vendorStatusChip() + '</h2><p>벨로르 파트너 업체</p></div></section>' +
+      '<div class="cqv-kpis top"><div><b>' + myBidCount + '</b><span>진행 입찰</span></div><div><b>' + reviews.length + '</b><span>후기</span></div><div><b>' + man(pendingSettlementTotal()) + '<small>원</small></b><span>정산 예정</span></div></div>' +
+      '<div class="cqv-form">' +
+        '<label>업체명(상호)</label><input type="text" id="cqdVName" value="' + esc(name) + '" placeholder="업체명">' +
+        '<p class="cqv-help">고객이 입찰을 확정한 뒤 이 이름이 표시됩니다.</p>' +
+        '<label>대표 이미지</label><div class="cqd-logopick cqv-upload" id="cqdVLogoPick">' + vendorLogoPreview(logo) + '</div>' +
         '<input type="file" id="cqdVLogoFile" accept="image/*" hidden>' +
-        '<button type="button" class="cqd-cta primary" data-cqd-vsave>업체 정보 저장</button>' +
+        '<button type="button" class="cqv-save" data-cqd-vsave>업체 정보 저장</button>' +
       '</div>' +
-      '<p class="cqd-block-label">벨로르 거래 후기</p>' +
-      '<ul class="cqd-news">' + reviewList() + '</ul>' +
+      '<section class="cqv-links"><p>거래</p><button type="button" data-cqd-go="v-watches">진행중 입찰 <span>' + myBidCount + '건 ›</span></button><button type="button">정산 예정 <span>' + man(pendingSettlementTotal()) + '원 ›</span></button></section>' +
+      '<section class="cqv-links"><p>계정</p><button type="button">담당자 · 연락처 <span>›</span></button><button type="button">알림 설정 <span>›</span></button><button type="button" data-cqd-cs>고객센터 문의 <span>›</span></button></section>' +
+      vendorBottomTabs('v-manage') +
     '</div>';
   };
 
@@ -1581,6 +1671,13 @@
       return;
     }
 
+    var vendorFilter = e.target.closest('[data-cqv-filter]');
+    if (vendorFilter) {
+      vendorQuoteFilter = vendorFilter.getAttribute('data-cqv-filter') || 'all';
+      render();
+      return;
+    }
+
     /* 상단 + 버튼 / 빈목록 CTA → 새 시계 등록(상태 초기화) */
     if (e.target.closest('.cqd-add') || e.target.closest('[data-cqd-new]')) {
       editId = null; editPhotos = []; newPhotos = []; newData = {};
@@ -1684,8 +1781,13 @@
       var msgEl = overlay.querySelector('#cqdBidMsg');
       var v = Number(String(amtEl && amtEl.value || '').replace(/[^0-9]/g, ''));
       if (!v) { alert('제안 금액을 입력해주세요.'); return; }
+      var conditionEls = overlay.querySelectorAll('input[name="cqdBidCondition"]:checked');
+      var conditions = [];
+      for (var ci = 0; ci < conditionEls.length; ci++) conditions.push(conditionEls[ci].value);
+      var bidMessage = msgEl ? msgEl.value.trim() : '';
+      if (conditions.length) bidMessage = '[거래조건] ' + conditions.join(' · ') + (bidMessage ? '\n' + bidMessage : '');
       bf.disabled = true;
-      B.placeBid({ id: bq.id }, v, msgEl ? msgEl.value.trim() : '').then(function () {
+      B.placeBid({ id: bq.id }, v, bidMessage).then(function () {
         alert(won(v) + '으로 입찰했습니다.'); back();
       }).catch(function (err) { alert('입찰 실패: ' + msg(err)); }).then(function () { bf.disabled = false; });
       return;
@@ -1872,6 +1974,10 @@
       if (nl) listEl.innerHTML = nl.innerHTML;
     } else if (e.target && e.target.id === 'cqChatInput') {
       chat.draft = e.target.value;
+    } else if (e.target && e.target.id === 'cqdBidAmt') {
+      var bidMan = overlay.querySelector('#cqdBidMan');
+      var bidValue = Number(String(e.target.value || '').replace(/[^0-9]/g, ''));
+      if (bidMan) bidMan.textContent = bidValue ? '= ' + man(bidValue) + '원' : '원 단위 입력';
     }
   }
   function onKey(e) {

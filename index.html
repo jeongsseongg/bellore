@@ -73,7 +73,7 @@
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css?v=20260730-reference-fix">
-    <link rel="stylesheet" href="wanted-theme.css?v=20260730-deep-green">
+    <link rel="stylesheet" href="wanted-theme.css?v=20260730-vendor-deep-green">
     <link rel="stylesheet" href="reference-layout.css?v=20260730-centered-icons">
 
     <!-- PWA -->
@@ -3160,7 +3160,7 @@
     <script src="brands.js"></script>
     <script src="supabase.js?v=20260730-quote-followup"></script>
     <script src="bellore-features.js"></script>
-    <script src="cq-demo.js?v=20260730-quote-followup"></script>
+    <script src="cq-demo.js?v=20260730-vendor-rebuild"></script>
     <script src="script.js?v=20260730-reference-fix"></script>
     <script src="wishlist.js?v=20260730-reference-fix"></script>
     <script src="alerts.js"></script>
@@ -3176,7 +3176,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('sw.js?v=20260730-centered-icons').catch(function (err) {
+                navigator.serviceWorker.register('sw.js?v=20260730-vendor-rebuild').catch(function (err) {
                     console.warn('서비스워커 등록 실패:', err);
                 });
             });
