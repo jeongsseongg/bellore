@@ -20,6 +20,7 @@ on:
           - diagnose
           - apply-discord-quote
           - apply-admin-multi-bids
+          - apply-quote-followup
 
 permissions:
   contents: read
@@ -61,6 +62,16 @@ jobs:
           docker run --rm -e PGCONN -v "$PWD:/repo:ro" postgres:17 \
             psql "$PGCONN" -v ON_ERROR_STOP=1 -f "/repo/admin_multi_bids.sql"
           echo "관리자 업체명·중복견적 DB 적용 완료"
+
+      - name: Apply quote followup SQL (재실행 안전)
+        if: inputs.task == 'apply-quote-followup'
+        env:
+          PGCONN: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          docker run --rm -e PGCONN -v "$PWD:/repo:ro" postgres:17 \
+            psql "$PGCONN" -v ON_ERROR_STOP=1 -f "/repo/quote_followup.sql"
+          echo "판매 확정 후속처리 DB 적용 완료"
 
       - name: Diagnose (읽기 전용)
         if: inputs.task == 'diagnose'
