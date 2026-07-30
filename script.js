@@ -316,8 +316,27 @@
         set('#psDone', cnt('delivered'));
         var pq = $('#pqUnpaid'); if (pq) pq.textContent = wait + '건';
         if (typeof renderMpMenu === 'function') renderMpMenu(_lastAuthInfo); // 주문 건수 갱신
+        renderMyOrderPreview();
         var om = $('#ordersModal');
         if (om && !om.hidden) renderOrdersList();   // 열려 있으면 즉시 갱신
+    }
+    function renderMyOrderPreview() {
+        var order = myOrdersCache && myOrdersCache.length ? myOrdersCache[0] : null;
+        var status = $('#mpOrderStatus'), img = $('#mpOrderImage');
+        var name = $('#mpOrderName'), meta = $('#mpOrderMeta');
+        if (!status || !img || !name || !meta) return;
+        if (!order) {
+            status.textContent = '최근 주문';
+            img.src = 'assets/images.jpg';
+            name.textContent = '주문 내역을 확인해 보세요';
+            meta.textContent = '결제·검수·배송 상태를 한곳에서 확인할 수 있습니다.';
+            return;
+        }
+        var st = order.status || 'pending';
+        status.textContent = O_LABEL[st] || st;
+        img.src = order.productImage || 'assets/images.jpg';
+        name.textContent = order.productName || '주문 상품';
+        meta.textContent = [order.orderNo || '', order.courier || '', order.trackingNo || ''].filter(Boolean).join(' · ');
     }
     // realtime 미활성 환경 대비: 취소/확정/반품 후 즉시 목록 재조회(클라 폴백)
     function refreshMyOrders() {
@@ -577,6 +596,22 @@
                     if (act === 'orders') { openOrdersList(''); return; }
                     if (act === 'bids') { if (window.CQDemo && window.CQDemo.open) window.CQDemo.open(); return; }
                     if (act === 'sales') { openMpSub('partnerBox'); return; }
+                    if (act === 'interest') { openMpSub('myInterestSection'); return; }
+                    if (act === 'recent') { openMpSub('myRecentSection'); return; }
+                    if (act === 'coupon') { openMpSub('myCouponSection'); return; }
+                    if (act === 'cart') {
+                        closeMyPage();
+                        location.hash = '#wishlist';
+                        setTimeout(function () {
+                            var ct = document.querySelector('.wish-tab[data-wishtab="cart"]');
+                            if (ct) ct.click();
+                        }, 80);
+                        return;
+                    }
+                    if (act === 'profile') {
+                        if (window.BELLORE_openProfile) window.BELLORE_openProfile('home', 'mypage');
+                        return;
+                    }
                     if (act === 'cs') { if (window.CQDemo && window.CQDemo.open) window.CQDemo.open({ screen: 'c-chat' }); return; }
                     return;
                 }
@@ -1031,12 +1066,22 @@
             var roleName = roleKey === 'admin' ? '관리자' : (roleKey === 'vendor' ? '업체' : (roleKey === 'partner' ? '공급업체' : '고객'));
             if (roleEl) roleEl.textContent = roleName;
             if (myPage) myPage.dataset.accountRole = roleKey;
+            var nextGrade = $('#mpNextGrade');
+            if (nextGrade) {
+                nextGrade.textContent = roleKey === 'admin' ? '운영 계정으로 접속 중입니다.'
+                    : (roleKey === 'vendor' ? '새 비교견적과 입찰 현황을 확인하세요.'
+                    : (roleKey === 'partner' ? '공급상품과 정산 현황을 확인하세요.'
+                    : '다음 등급까지 구매 1회 남았어요'));
+            }
 
             // 프로필 아바타
             applyAvatar(user ? (user.avatarUrl || '') : '');
             // 보유 포인트 (포인트/쿠폰 서브페이지)
             var pv = $('#myPointVal');
-            if (pv) pv.textContent = ((info && info.points) || 0).toLocaleString('ko-KR');
+            var pointN = (info && info.points) || 0;
+            if (pv) pv.textContent = pointN.toLocaleString('ko-KR');
+            var pointStat = $('#mpStatPoint');
+            if (pointStat) pointStat.textContent = pointN.toLocaleString('ko-KR') + 'P';
             // 역할별 하단 메뉴
             _lastAuthInfo = user ? info : null;
             renderMpMenu(_lastAuthInfo);
@@ -1377,6 +1422,8 @@
         var alertN = parseInt(($('#myAlertCount') && $('#myAlertCount').textContent) || '0', 10) || 0;
         var iBadge = $('#pocketInterest'), iTotal = wish.length + alertN;
         if (iBadge) { iBadge.textContent = iTotal; iBadge.hidden = iTotal === 0; }
+        var iStat = $('#mpStatInterest');
+        if (iStat) iStat.textContent = iTotal.toLocaleString('ko-KR');
         // 최근 본 상품
         var recent = (window.BELLORE_getViewed && window.BELLORE_getViewed()) || [];
         var rRow = $('#myRecentRow'), rEmpty = $('#myRecentEmpty');
@@ -1404,12 +1451,20 @@
         var role = info.role || 'customer';
         var orderN = (typeof myOrdersCache !== 'undefined' && myOrdersCache) ? myOrdersCache.length : 0;
         var rows = [];
-        rows.push({ act: 'orders', label: '주문내역', count: orderN });
+        rows.push({ cap: '거래' });
+        rows.push({ act: 'orders', label: '주문 내역', count: orderN });
         rows.push({ act: 'auction', label: '경매' });
-        if (role === 'vendor' || role === 'partner') rows.push({ act: 'bids', label: '입찰내역' });
-        if (role === 'partner') rows.push({ act: 'sales', label: '판매내역' });
+        if (role === 'customer') rows.push({ act: 'bids', label: '시계 판매 · 내 견적' });
+        if (role === 'vendor' || role === 'partner') rows.push({ act: 'bids', label: '비교견적 · 입찰 내역' });
+        if (role === 'partner') rows.push({ act: 'sales', label: '공급상품 · 정산 내역' });
+        rows.push({ act: 'cart', label: '장바구니' });
+        rows.push({ cap: '내 활동' });
+        rows.push({ act: 'interest', label: '내 관심' });
+        rows.push({ act: 'recent', label: '최근 본 상품' });
         rows.push({ act: 'cs', label: '고객센터' });
+        rows.push({ act: 'profile', label: '회원정보 수정' });
         box.innerHTML = rows.map(function (r) {
+            if (r.cap) return '<p class="mp-menu-cap">' + r.cap + '</p>';
             // 경매는 auction.js 가 data-auction-open 으로 처리
             var attr = (r.act === 'auction') ? 'data-auction-open' : ('data-mpmenu="' + r.act + '"');
             return '<button type="button" class="mp-menu-row" ' + attr + '>' +
@@ -1473,6 +1528,8 @@
             var active = list.filter(function (u) { return u.status === 'active' && u.coupon && !couponExpired(u.coupon); });
             var cnt = $('#myCouponCount'); if (cnt) cnt.textContent = active.length;
             var pcoup = $('#pocketCoupon'); if (pcoup) { pcoup.textContent = active.length; pcoup.hidden = active.length === 0; }
+            var couponStat = $('#mpStatCoupon');
+            if (couponStat) couponStat.textContent = active.length.toLocaleString('ko-KR') + '장';
             var el = $('#myCouponList');
             if (el) {
                 el.innerHTML = list.length
@@ -2724,7 +2781,7 @@
             if (window.belloreSetMypageBanners) window.belloreSetMypageBanners(_mpBnRaw);
             ['adminDashBox', 'adminMenuBox'].forEach(function (id) { var el = $('#' + id); if (el) el.hidden = !isAdmin; });
             // 관리자에겐 고객용 영역 숨김(원형 카테고리·역할 메뉴)
-            ['mpHubCats', 'mpMenuList'].forEach(function (id) {
+            ['mpHubCats', 'mpMenuList', 'mpOrderPreview', 'mpReferenceBanner'].forEach(function (id) {
                 var el = $('#' + id); if (el) el.hidden = isAdmin;
             });
             // 광고 배너: 관리자는 숨김(고객은 배너 렌더가 표시 여부 결정)
@@ -3700,7 +3757,7 @@
         var parts = [];
         if (it.size_mm) parts.push(it.size_mm + 'mm');
         if (it.dial_color) parts.push(it.dial_color);
-        return parts.length ? '<p class="hcard-pack">' + esc(parts.join(', ')) + '</p>' : '';
+        return '<p class="hcard-pack">' + (parts.length ? esc(parts.join(', ')) : '&nbsp;') + '</p>';
     }
     // 카드 하단 정보: 2줄 고정(구성품·등급 / 스탬핑·미리수). 값 없으면 '미표기'. (현재 목록 카드에는 미노출, 상세에서만 참고)
     function cardBadgesHTML(it) {
@@ -3864,8 +3921,7 @@
                 '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
                 brandModelLineHTML(it) +
                 specLineHTML(it) +
-                '<p class="hcard-price">' + priceHtml + '</p>' +
-                usedStatusHTML(it);
+                '<p class="hcard-price">' + priceHtml + '</p>';
             frag.appendChild(card);
         });
         grid.appendChild(frag);
