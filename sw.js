@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v187-reference-followup";
+const VERSION = "bellore-v188-centered-icons";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -8,6 +8,7 @@ const SHELL_ASSETS = [
   './',
   './index.html',
   './styles.css',
+  './reference-layout.css',
   './script.js',
   './payments.js',
   './naverpay.js',

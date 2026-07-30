@@ -1,0 +1,169 @@
+/*
+ * BELLORE final layout guard
+ * Wanted Sans visual language + centered 660px app canvas on desktop.
+ */
+:root {
+  --app-w: 100vw;
+  --container: 100vw;
+}
+
+body {
+  background: #ecebe9 !important;
+}
+
+body > .main-wrap,
+body > .bottom-cta-band,
+body > .footer {
+  width: 100%;
+  max-width: var(--app-w) !important;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.header,
+.header.scrolled,
+.header.light-page {
+  left: 50% !important;
+  right: auto !important;
+  width: 100% !important;
+  max-width: var(--app-w) !important;
+  transform: translateX(-50%) !important;
+}
+
+.header-inner,
+.cat-chips {
+  max-width: var(--app-w) !important;
+}
+
+.tabbar {
+  position: fixed !important;
+  top: auto !important;
+  right: auto !important;
+  bottom: 0 !important;
+  left: 50% !important;
+  width: 100% !important;
+  max-width: var(--app-w) !important;
+  height: 66px !important;
+  padding: 6px 8px max(5px, env(safe-area-inset-bottom)) !important;
+  transform: translateX(-50%) !important;
+  border-top: 1px solid #e8e8ea !important;
+  background: rgba(255, 255, 255, .98) !important;
+  box-shadow: 0 -4px 18px rgba(23, 23, 25, .04) !important;
+}
+
+.tab-item {
+  position: relative;
+  flex-direction: column !important;
+  justify-content: center;
+  gap: 2px !important;
+  height: 100% !important;
+  padding: 0 !important;
+}
+
+.tab-item svg,
+.tab-item .tab-wish-ic {
+  display: inline-flex !important;
+  width: 24px !important;
+  height: 24px !important;
+}
+
+.tab-item > span:last-child {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+.tab-item.active::after {
+  display: none !important;
+}
+
+.main-wrap {
+  padding-bottom: calc(66px + env(safe-area-inset-bottom)) !important;
+}
+
+/* Unicode chevrons are replaced by a consistent Wanted-style control icon. */
+.mr-arrow,
+.amr-arrow,
+.prof-row-a,
+.cat-brandbar-arrow,
+.mac-arrow,
+.cpadm-card-arrow,
+.cq-bid-arrow {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 24px !important;
+  height: 24px !important;
+  flex: 0 0 24px;
+  overflow: hidden;
+  color: transparent !important;
+  font-size: 0 !important;
+}
+
+.mr-arrow::before,
+.amr-arrow::before,
+.prof-row-a::before,
+.cat-brandbar-arrow::before,
+.mac-arrow::before,
+.cpadm-card-arrow::before,
+.cq-bid-arrow::before {
+  content: "";
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-top: 2px solid #8f8f95;
+  border-right: 2px solid #8f8f95;
+  translate: -2px 0;
+  rotate: 45deg;
+}
+
+.mp-menu-row,
+.admin-menu-row,
+.prof-row {
+  min-height: 58px !important;
+}
+
+.mp-head-ic,
+.header-icon,
+.header-ai-btn {
+  min-width: 40px !important;
+  min-height: 40px !important;
+}
+
+.mp-head-ic svg,
+.header-icon svg,
+.header-ai-btn svg {
+  width: 24px !important;
+  height: 24px !important;
+}
+
+@media (min-width: 700px) {
+  :root {
+    --app-w: 660px;
+    --container: 660px;
+  }
+
+  body {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  body::before {
+    display: block !important;
+    width: var(--app-w) !important;
+    background: #fff !important;
+    box-shadow: 0 0 52px rgba(0, 0, 0, .08) !important;
+  }
+
+  .header-inner {
+    padding: 0 18px !important;
+  }
+
+  .header-search {
+    max-width: none !important;
+  }
+
+  #homeOnSale .home-sale-grid {
+    max-width: 100% !important;
+  }
+}

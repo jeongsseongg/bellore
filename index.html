@@ -74,6 +74,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css?v=20260730-reference-fix">
     <link rel="stylesheet" href="wanted-theme.css?v=20260730-green-followup">
+    <link rel="stylesheet" href="reference-layout.css?v=20260730-centered-icons">
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
@@ -3175,7 +3176,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('sw.js?v=20260730-reference-fix').catch(function (err) {
+                navigator.serviceWorker.register('sw.js?v=20260730-centered-icons').catch(function (err) {
                     console.warn('서비스워커 등록 실패:', err);
                 });
             });
