@@ -19,6 +19,7 @@ on:
         options:
           - diagnose
           - apply-discord-quote
+          - apply-admin-multi-bids
 
 permissions:
   contents: read
@@ -50,6 +51,16 @@ jobs:
               psql "$PGCONN" -v ON_ERROR_STOP=1 -f "/repo/$f"
           done
           echo "모든 SQL 적용 완료"
+
+      - name: Apply admin multi-bids SQL (재실행 안전)
+        if: inputs.task == 'apply-admin-multi-bids'
+        env:
+          PGCONN: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          docker run --rm -e PGCONN -v "$PWD:/repo:ro" postgres:17 \
+            psql "$PGCONN" -v ON_ERROR_STOP=1 -f "/repo/admin_multi_bids.sql"
+          echo "관리자 업체명·중복견적 DB 적용 완료"
 
       - name: Diagnose (읽기 전용)
         if: inputs.task == 'diagnose'
