@@ -62,8 +62,7 @@
   var newData = {};
   var vendLogoFile = null; // 업체 대표 이미지(직접 첨부한 File)
   var vendorQuoteFilter = 'all';
-  var PART_OPTS = ['보증서', '정품 박스', '설명서/책자', '추가 링크', '정품 택', '구매 영수증'];
-  var GRADE_OPTS = ['S등급 (미착용/신품급)', 'A등급 (사용감 적음)', 'B등급 (일반 사용감)', 'C등급 (사용감 많음)'];
+  var PART_OPTS = ['풀세트', '보증서만', '박스만', '설명서/책자', '추가 링크', '정품 택', '구매 영수증'];
 
   /* ===== 데이터 캐시 (구독으로 채움) ===== */
   var cust = { watches: [], loaded: false };
@@ -207,6 +206,7 @@
   function render() {
     if (!overlay) return;
     var cur = stack[stack.length - 1]; if (!cur) return;
+    overlay.classList.toggle('cqd-vendor-reference', viewRole === 'vendor' && accountRole !== 'admin');
     backBtn.hidden = stack.length <= 1;
     if (addBtn) addBtn.hidden = !(cur.screen === 'c-watches');
     var isChat = (cur.screen === 'c-chat' || cur.screen === 'a-chat');
@@ -657,12 +657,13 @@
         '<p class="cqd-note">아직 판매 등록한 시계가 없습니다.</p>' +
         '<div class="cqd-empty-cta">' +
           '<p>시계를 등록하면 여러 업체가 금액을 제시해요.<br>여기에서 받은 견적을 확인하고 선택할 수 있어요.</p>' +
-          '<button type="button" class="cqd-cta primary" data-cqd-new>＋ 시계 등록하러 가기</button>' +
+          '<button type="button" class="cqd-cta primary" data-cqd-new>내 시계 판매하러 가기</button>' +
         '</div>' +
       '</div>';
     }
     return '<div class="cqd-screen">' +
       '<p class="cqd-note">판매 등록한 내 시계입니다. 시계를 눌러 받은 견적을 확인하세요.</p>' +
+      '<button type="button" class="cqd-cta primary cqd-sell-again" data-cqd-new>내 시계 판매하러 가기</button>' +
       '<div class="cqd-vlist">' + rows + '</div>' +
     '</div>';
   };
@@ -863,15 +864,11 @@
     var src = '';
     if (vendLogoFile) { try { src = URL.createObjectURL(vendLogoFile); } catch (e) {} }
     else if (logo) src = logo;
-    var thumb = src
-      ? '<span class="cqd-logo-thumb"><img src="' + esc(src) + '" alt="" onerror="this.style.visibility=\'hidden\'">' +
-        (vendLogoFile ? '<button type="button" class="cqd-photo-rm" data-cqd-vlogorm aria-label="삭제">×</button>' : '') + '</span>'
-      : '';
-    return thumb +
-      '<button type="button" class="cqd-logo-add" data-cqd-vlogopick>' +
-        svg24('<rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="9" cy="11" r="2"></circle><path d="m4 18 5-4 4 3 3-2 4 3"></path>') +
-        '<small>' + (src ? '이미지 변경' : '이미지 선택') + '</small>' +
-      '</button>';
+    return '<button type="button" class="upload" data-cqd-vlogopick>' +
+      '<span class="ph">' + (src ? '<img src="' + esc(src) + '" alt="" onerror="this.style.visibility=\'hidden\'">' : vendorIcon('cam')) + '</span>' +
+      '<span><span class="t">' + (src ? '사진 변경하기' : '사진 올리기') + '</span>' +
+        '<span class="s">정사각 권장 · 5MB 이하 · JPG/PNG</span></span>' +
+    '</button>';
   }
   function refreshVendorLogo() {
     var info = AUTH.info || {};
@@ -932,13 +929,6 @@
   /* 신청/수정 공통 입력 필드 (브랜드는 이미지 선택, 모델은 추천 datalist) */
   function formFields(d, nm, ph) {
     var brandName = d.brand || '';
-    var gradeChips = GRADE_OPTS.map(function (g) {
-      var on = d.grade === g ? ' is-on' : '';
-      var main = g.replace(/\s*\(.*\)\s*/, '');
-      var subm = (g.match(/\(([^)]*)\)/) || [])[1] || '';
-      return '<label class="cqd-grade-chip' + on + '"><input type="radio" name="cqdgrade" value="' + esc(g) + '"' + (d.grade === g ? ' checked' : '') + '>' +
-        '<b>' + esc(main) + '</b>' + (subm ? '<em>' + esc(subm) + '</em>' : '') + '</label>';
-    }).join('');
     var savedParts = (d.parts || '').split(',').map(function (s) { return s.trim(); });
     var partBoxes = PART_OPTS.map(function (p) {
       var on = savedParts.indexOf(p) >= 0;
@@ -983,8 +973,6 @@
       '</div>' +
       '<label>구매일 / 구입 시기</label>' +
       '<input type="text" id="cqdNewYear" value="' + esc(d.year || '') + '" placeholder="예: 2023년 05월">' +
-      '<label>상태 및 등급</label>' +
-      '<div class="cqd-gradegrid">' + gradeChips + '</div>' +
       '<label>구성품 <small class="cqd-lbl-sub">해당 항목을 모두 선택</small></label>' +
       '<div class="cqd-partgrid">' + partBoxes + '</div>' +
       '<label>특이사항 (수리이력 · 흠집 · 정품여부 등)</label>' +
@@ -1003,10 +991,129 @@
   // 구성품 아이콘(이미지 제공 전 임시 — 추후 이미지로 교체 가능)
   function partIcon(p) {
     var map = {
-      '보증서': '📄', '정품 박스': '📦', '설명서/책자': '📖',
+      '풀세트': '⌚', '보증서만': '📄', '박스만': '📦', '설명서/책자': '📖',
       '추가 링크': '🔗', '정품 택': '🏷️', '구매 영수증': '🧾'
     };
     return map[p] || '✔';
+  }
+
+  function wizardPartBoxes(d) {
+    var saved = (d.parts || '').split(',').map(function (s) { return s.trim(); });
+    return PART_OPTS.map(function (p) {
+      var on = saved.indexOf(p) >= 0;
+      return '<label class="cqw-part' + (on ? ' is-on' : '') + '">' +
+        '<input type="checkbox" name="cqdpart" value="' + esc(p) + '"' + (on ? ' checked' : '') + ' hidden>' +
+        '<span>' + partIcon(p) + '</span><b>' + esc(p) + '</b>' +
+      '</label>';
+    }).join('');
+  }
+
+  function wizardFields(d, nm, ph) {
+    var hasParts = d.hasParts || '';
+    var knowsModel = d.knowsModel || '';
+    return '<div class="cqw" data-cqw-root>' +
+      '<div class="cqw-progress"><span class="is-on"></span><span></span><span></span><em>1 / 3</em></div>' +
+      '<section class="cqw-step is-active" data-cqw-step="parts">' +
+        '<p class="cqw-kicker">첫 번째 질문</p>' +
+        '<h3>보증서 및 구성품이 있나요?</h3>' +
+        '<p class="cqw-help">현재 가지고 계신 구성품을 알려주세요.</p>' +
+        '<div class="cqw-answers">' +
+          '<button type="button" data-cqw-answer="parts" data-value="yes"' + (hasParts === 'yes' ? ' class="is-on"' : '') + '><span>✓</span><b>있어요</b><small>보증서·박스 등이 있어요</small></button>' +
+          '<button type="button" data-cqw-answer="parts" data-value="no"' + (hasParts === 'no' ? ' class="is-on"' : '') + '><span>–</span><b>없어요</b><small>시계 단품만 있어요</small></button>' +
+        '</div>' +
+        '<input type="hidden" id="cqdHasParts" value="' + esc(hasParts) + '">' +
+        '<div class="cqw-reveal" id="cqwPartsDetail"' + (hasParts === 'yes' ? '' : ' hidden') + '>' +
+          '<label>스템핑 <small>보증서에 적힌 날짜 또는 연도를 적어주세요</small></label>' +
+          '<input type="text" id="cqdNewStamp" value="' + esc(d.stamping || '') + '" placeholder="예: 2022년 8월 / 2022">' +
+          '<label>가지고 있는 구성품 <small>여러 개 선택할 수 있어요</small></label>' +
+          '<div class="cqw-parts">' + wizardPartBoxes(d) + '</div>' +
+          '<label>기타 구성품</label>' +
+          '<input type="text" id="cqdPartOther" value="' + esc(d.partOther || '') + '" placeholder="예: 여분 링크, 정품 택, 파우치">' +
+        '</div>' +
+        '<button type="button" class="cqw-next" data-cqw-next="model"' + (hasParts ? '' : ' hidden') + '>다음 질문</button>' +
+      '</section>' +
+      '<section class="cqw-step" data-cqw-step="model" hidden>' +
+        '<p class="cqw-kicker">두 번째 질문</p>' +
+        '<h3>모델과 정보를 알고 있나요?</h3>' +
+        '<p class="cqw-help">정확하지 않아도 괜찮아요. 모르면 사진으로 확인해 드립니다.</p>' +
+        '<div class="cqw-answers">' +
+          '<button type="button" data-cqw-answer="model" data-value="yes"' + (knowsModel === 'yes' ? ' class="is-on"' : '') + '><span>⌕</span><b>알아요</b><small>브랜드와 모델을 입력할게요</small></button>' +
+          '<button type="button" data-cqw-answer="model" data-value="no"' + (knowsModel === 'no' ? ' class="is-on"' : '') + '><span>?</span><b>몰라요</b><small>사진으로 확인해 주세요</small></button>' +
+        '</div>' +
+        '<input type="hidden" id="cqdKnowsModel" value="' + esc(knowsModel) + '">' +
+        '<div class="cqw-reveal" id="cqwModelDetail"' + (knowsModel === 'yes' ? '' : ' hidden') + '>' +
+          '<label>브랜드 선택</label>' +
+          '<input type="hidden" id="cqdNewBrand" value="' + esc(d.brand || '') + '">' +
+          '<div class="cqd-brandsheet cqw-brand-sheet" id="cqdBrandSheet">' + brandSheetHTML('') + '</div>' +
+          '<div class="cqd-row2">' +
+            '<div class="cqd-field"><label>모델명 *</label><input type="text" id="cqdNewModel" list="cqdModelList" value="' + esc(d.model || '') + '" placeholder="예: 서브마리너 데이트" autocomplete="off"><datalist id="cqdModelList"></datalist></div>' +
+            '<div class="cqd-field"><label>레퍼런스</label><input type="text" id="cqdNewRef" value="' + esc(d.ref || '') + '" placeholder="예: 126610LN"></div>' +
+          '</div>' +
+          '<label>구매일 / 구입 시기</label><input type="text" id="cqdNewYear" value="' + esc(d.year || '') + '" placeholder="예: 2023년 05월">' +
+        '</div>' +
+        '<button type="button" class="cqw-next" data-cqw-next="details"' + (knowsModel ? '' : ' hidden') + '>마지막 단계</button>' +
+      '</section>' +
+      '<section class="cqw-step" data-cqw-step="details" hidden>' +
+        '<p class="cqw-kicker">마지막 단계</p>' +
+        '<h3>사진과 특이사항을 확인해 주세요</h3>' +
+        '<p class="cqw-help">앞에서 답한 정보는 자동으로 신청서에 반영됩니다.</p>' +
+        '<div class="cqw-summary" id="cqwSummary"></div>' +
+        '<label>시계 사진 <small>최대 20장 · 첫 장이 대표사진</small></label>' +
+        '<div class="cqd-photos" id="cqdNewPhotos">' + photoGrid() + '</div>' +
+        '<input type="file" id="cqdNewFile" accept="image/*" multiple hidden>' +
+        photoGuide() +
+        '<label>특이사항 <small>수리 이력·흠집·정품 여부 등</small></label>' +
+        '<textarea id="cqdNewMemo" rows="4" placeholder="알고 계신 내용만 편하게 적어주세요.">' + esc(d.memo || '') + '</textarea>' +
+        '<div class="cqw-contact">' +
+          '<div class="cqd-field"><label>성함 *</label><input type="text" id="cqdNewName" value="' + esc(nm) + '" placeholder="홍길동"></div>' +
+          '<div class="cqd-field"><label>연락받을 전화번호 *' + (ph ? ' <small class="cqw-profile-chip">고객정보에서 불러옴</small>' : '') + '</label><input type="tel" id="cqdNewPhone" value="' + esc(ph) + '" placeholder="010-0000-0000"></div>' +
+          '<div class="cqw-phone-confirm"><span>✓</span><p><b>이 전화번호가 맞나요?</b><br>입찰이 끝나면 이 번호로 연락드려요.</p></div>' +
+        '</div>' +
+        '<button type="button" class="cqd-cta primary" data-cqd-preview>예상 견적 확인하기</button>' +
+      '</section>' +
+    '</div>';
+  }
+
+  function wizardPartsValue() {
+    var parts = [];
+    var checked = overlay.querySelectorAll('input[name="cqdpart"]:checked');
+    for (var i = 0; i < checked.length; i++) parts.push(checked[i].value);
+    var other = valOf('#cqdPartOther');
+    if (other) parts.push('기타: ' + other);
+    return parts.join(', ');
+  }
+
+  function paintWizardSummary() {
+    var box = overlay && overlay.querySelector('#cqwSummary');
+    if (!box) return;
+    var hasParts = valOf('#cqdHasParts');
+    var knows = valOf('#cqdKnowsModel');
+    var brand = valOf('#cqdNewBrand');
+    var model = valOf('#cqdNewModel');
+    var parts = hasParts === 'no' ? '구성품 없음' : (wizardPartsValue() || '있음 · 세부 구성품 미선택');
+    var watch = knows === 'no' ? '모델 정보 확인 필요' : ([brand, model].filter(Boolean).join(' ') || '입력 중');
+    box.innerHTML =
+      '<div><span>보증서·구성품</span><b>' + esc(parts) + '</b></div>' +
+      '<div><span>시계 정보</span><b>' + esc(watch) + '</b></div>';
+  }
+
+  function showWizardStep(name) {
+    var root = overlay && overlay.querySelector('[data-cqw-root]');
+    if (!root) return;
+    var order = ['parts', 'model', 'details'];
+    var idx = order.indexOf(name);
+    var steps = root.querySelectorAll('[data-cqw-step]');
+    for (var i = 0; i < steps.length; i++) {
+      var on = steps[i].getAttribute('data-cqw-step') === name;
+      steps[i].hidden = !on;
+      steps[i].classList.toggle('is-active', on);
+    }
+    var bars = root.querySelectorAll('.cqw-progress span');
+    for (var j = 0; j < bars.length; j++) bars[j].classList.toggle('is-on', j <= idx);
+    var count = root.querySelector('.cqw-progress em');
+    if (count) count.textContent = (idx + 1) + ' / 3';
+    if (name === 'details') paintWizardSummary();
+    if (bodyEl) bodyEl.scrollTop = 0;
   }
 
   SCREENS['c-new'] = function () {
@@ -1021,8 +1128,7 @@
         '<h2 class="cqd-newhero-title">내 시계 비교견적 신청</h2>' +
         '<p class="cqd-newhero-sub">사진과 정보만 등록하면 여러 업체가 금액을 제시합니다.<br>업체명·정보는 <b>확정 시에만</b> 공개됩니다.</p>' +
       '</div>' +
-      formFields(d, nm, ph) +
-        '<button type="button" class="cqd-cta primary" data-cqd-preview>예상 견적 확인하기</button>' +
+      wizardFields(d, nm, ph) +
         '<button type="button" class="cqd-cta ghost" data-cqd-go="c-watches">취소</button>' +
         '<p class="cqd-offer-foot">* 시작 후 정·가품 구별 및 감정 승인 절차가 진행됩니다.</p>' +
       '</div>' +
@@ -1243,17 +1349,67 @@
     var info = AUTH.info || {};
     return info.companyName || (AUTH.user && AUTH.user.displayName) || '내 업체';
   }
+  function vendorIcon(name, extra) {
+    var paths = {
+      back: '<path d="m15 5-7 7 7 7"/>',
+      bell: '<path d="M18 8a6 6 0 1 0-12 0c0 6-2.5 7-2.5 7h17S18 14 18 8Z"/><path d="M13.7 19a2 2 0 0 1-3.4 0"/>',
+      chev: '<path d="m9 5 7 7-7 7"/>',
+      cam: '<path d="M3 8.5h3.5L8 6h8l1.5 2.5H21v10H3z"/><circle cx="12" cy="13" r="3.2"/>',
+      home: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.7V20h13V9.7"/>',
+      list: '<path d="M8 6.5h13M8 12h13M8 17.5h13"/><circle cx="4" cy="6.5" r="1.3"/><circle cx="4" cy="12" r="1.3"/><circle cx="4" cy="17.5" r="1.3"/>',
+      shop: '<path d="M4 9.5V20h16V9.5"/><path d="M3 4.5h18l1 5H2z"/><path d="M9.5 20v-6h5v6"/>',
+      check: '<path d="m5 12.5 4.5 4.5L19 7"/>'
+    };
+    return '<svg class="ic' + (extra ? ' ' + extra : '') + '" viewBox="0 0 24 24" aria-hidden="true">' + (paths[name] || '') + '</svg>';
+  }
+  function vendorHeader(title, hasBack) {
+    return '<div class="st"><span class="num">9:41</span><span class="num">5G ▮▮▮ 82</span></div>' +
+      '<div class="hd">' + (hasBack ? '<button type="button" data-cqd-go="v-watches" aria-label="뒤로">' + vendorIcon('back') + '</button>' : '') +
+        '<span class="t">' + esc(title) + '</span>' +
+        (hasBack ? '' : '<span class="r"><button type="button" data-cqd-vclose aria-label="닫기">' + vendorIcon('bell') + '</button></span>') +
+      '</div>';
+  }
+  function vendorIdentity(showSwitch) {
+    var info = AUTH.info || {};
+    var name = vendorPrimaryName();
+    var logo = info.logoUrl || '';
+    return '<div class="who"><span class="av">' + (logo ? '<img src="' + esc(logo) + '" alt="" onerror="this.remove()">' : esc(name.charAt(0).toUpperCase())) + '</span>' +
+      '<span class="n">' + esc(name) + vendorStatusChip() + '</span>' +
+      (showSwitch ? '<button type="button" class="go" data-cqd-vclose>계정 전환</button>' : '') + '</div>';
+  }
   function vendorBottomTabs(cur) {
-    return '<nav class="cqv-tabs" aria-label="업체 메뉴">' +
-      '<button type="button" class="' + (cur === 'v-home' ? 'is-on' : '') + '" data-cqd-go="v-home"><span>⌂</span>홈</button>' +
-      '<button type="button" class="' + (cur === 'v-watches' ? 'is-on' : '') + '" data-cqd-go="v-watches"><span>☷</span>입찰 요청</button>' +
-      '<button type="button" class="' + (cur === 'v-manage' ? 'is-on' : '') + '" data-cqd-go="v-manage"><span>▣</span>내 업체</button>' +
+    return '<nav class="tab" aria-label="업체 메뉴">' +
+      '<button type="button" class="' + (cur === 'v-home' ? 'on' : '') + '" data-cqd-go="v-home">' + vendorIcon('home') + '<span>홈</span></button>' +
+      '<button type="button" class="' + (cur === 'v-watches' ? 'on' : '') + '" data-cqd-go="v-watches">' + vendorIcon('list') + '<span>입찰 요청</span></button>' +
+      '<button type="button" class="' + (cur === 'v-manage' ? 'on' : '') + '" data-cqd-go="v-manage">' + vendorIcon('shop') + '<span>내 업체</span></button>' +
     '</nav>';
   }
   function vendorStatusChip() {
     var info = AUTH.info || {};
-    if (info.suspended) return '<span class="cqv-chip no">사용 정지</span>';
-    return info.isApprovedVendor ? '<span class="cqv-chip ok">승인</span>' : '<span class="cqv-chip wa">승인 대기</span>';
+    if (info.suspended) return '<span class="chip no">사용 정지</span>';
+    return info.isApprovedVendor ? '<span class="chip ok">승인</span>' : '<span class="chip wa">승인 대기</span>';
+  }
+  function vendorThumb(q) {
+    var src = q.photos && q.photos[0];
+    return src ? '<span class="th"><img src="' + esc(src) + '" alt="" loading="lazy"></span>' : '<span class="th ph">사진 없음</span>';
+  }
+  function vendorBidWins() {
+    return (vend.notifications || []).filter(function (n) {
+      return /낙찰|선택|판매 확정/.test(String((n.title || '') + ' ' + (n.text || '')));
+    }).length;
+  }
+  function shortestDeadlineHours() {
+    var hours = vend.quotes.map(function (q) {
+      return Math.max(0, Math.ceil((Number(q.expiresMs || 0) - Date.now()) / 3600000));
+    }).filter(function (h) { return h > 0; });
+    return hours.length ? Math.min.apply(Math, hours) : 0;
+  }
+  function vendorJoinLabel() {
+    var raw = AUTH.info && AUTH.info.createdAt;
+    var d = raw ? new Date(raw) : null;
+    return d && !isNaN(d.getTime())
+      ? d.getFullYear() + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + String(d.getDate()).padStart(2, '0')
+      : '가입 정보 확인';
   }
   function quoteHighest(q) {
     return (q.bids || []).reduce(function (m, b) { return Math.max(m, Number(b.amount) || 0); }, 0);
@@ -1287,25 +1443,38 @@
   SCREENS['v-home'] = function () {
     titleEl.textContent = '업체 홈';
     var info = AUTH.info || {};
-    var name = vendorPrimaryName();
     var openCount = vend.quotes.length;
     var myBidCount = vend.quotes.filter(function (q) { return !!myBidOf(q); }).length;
     var needBid = Math.max(0, openCount - myBidCount);
-    var notices = (vend.notifications || []).slice(0, 4).map(function (n) {
+    var wins = vendorBidWins();
+    var rate = myBidCount ? Math.round(wins / myBidCount * 100) : 0;
+    var deadlineHours = shortestDeadlineHours();
+    var now = new Date();
+    var monthLabel = (now.getMonth() + 1) + '.01 ~ ' + (now.getMonth() + 1) + '.' + String(now.getDate()).padStart(2, '0');
+    var notices = (vend.notifications || []).slice(0, 2).map(function (n) {
       var ms = n.createdAt && n.createdAt.getTime ? n.createdAt.getTime() : Date.now();
-      return '<div class="cqv-notice"><i></i><div><b>' + esc(n.title || n.text || '벨로르 알림') + '</b>' +
-        (n.title && n.text && n.text !== n.title ? '<span>' + esc(n.text) + '</span>' : '') + '</div><time>' + chatTime(ms) + '</time></div>';
-    }).join('') || '<p class="cqv-empty">새로운 알림이 없습니다.</p>';
-    return '<div class="cqd-screen cqv cqv-home">' +
-      '<div class="cqv-who"><span class="cqv-avatar">' + esc(name.charAt(0).toUpperCase()) + '</span><b>' + esc(name) + '</b>' + vendorStatusChip() + '</div>' +
-      '<section class="cqv-hello"><h2>' + esc(name) + '님,<br>오늘도 좋은 거래를 시작하세요.</h2><p>새 견적과 내 입찰 현황을 한눈에 확인합니다.</p></section>' +
-      (info.suspended ? '<div class="cqv-alert no">사용 정지된 업체 계정입니다. 관리자에게 문의해주세요.</div>' :
-        (!info.isApprovedVendor ? '<div class="cqv-alert wa">업체 승인 대기중입니다. 승인 후 입찰할 수 있습니다.</div>' : '')) +
-      '<button type="button" class="cqv-todo" data-cqd-go="v-watches"><span>오늘 할 일</span><b>아직 제안하지 않은 견적 ' + needBid + '건</b><em>입찰 요청 확인하기</em></button>' +
-      '<section class="cqv-panel"><div class="cqv-panel-head"><b>현재 입찰 현황</b><span>실시간</span></div>' +
-        '<div class="cqv-kpis"><div><b>' + openCount + '</b><span>진행 견적</span></div><div><b>' + myBidCount + '</b><span>내 입찰</span></div><div><b>' + man(pendingSettlementTotal()) + '<small>원</small></b><span>정산 예정</span></div></div>' +
-      '</section>' +
-      '<section class="cqv-panel cqv-news"><div class="cqv-panel-head"><b>최근 알림</b></div>' + notices + '</section>' +
+      var wonNotice = /낙찰|선택|판매 확정/.test(String((n.title || '') + ' ' + (n.text || '')));
+      return '<div class="nrow"><i class="dot"' + (wonNotice ? ' style="background:#00b26b"' : '') + '></i>' +
+        '<span class="w"><span class="t">' + esc(n.title || n.text || '벨로르 알림') + '</span>' +
+        (n.title && n.text && n.text !== n.title ? '<span class="s">' + esc(n.text) + '</span>' : '') + '</span>' +
+        '<span class="tm">' + chatTime(ms) + '</span></div>';
+    }).join('') || '<div class="nrow"><i class="dot"></i><span class="w"><span class="t">새로운 알림이 없습니다</span></span></div>';
+    return '<div class="cqd-screen cqvr">' +
+      vendorHeader('BELLORE 파트너', false) +
+      vendorIdentity(true) +
+      '<div class="dash"><p class="hello">오늘 새 견적 <span class="num">' + openCount + '</span>건이<br>들어왔어요</p>' +
+        '<p class="sub">아직 입찰하지 않은 건이 <span class="num">' + needBid + '</span>건 있습니다.</p></div>' +
+      (info.suspended ? '<div class="cqv-alert no">사용 정지된 업체 계정입니다.</div>' : '') +
+      '<button type="button" class="todo" data-cqd-go="v-watches"><p class="l">지금 해야 할 일</p>' +
+        '<p class="t">미입찰 <span class="num">' + needBid + '</span>건 · 마감 <span class="num">' + (deadlineHours || '-') + '</span>시간 남음</p>' +
+        '<span class="btn">입찰하러 가기</span></button>' +
+      '<div class="perf"><div class="h"><span class="t">이번 달 실적</span><span class="m num">' + monthLabel + '</span></div>' +
+        '<div class="g"><div><p class="v num">' + myBidCount + '</p><p class="l">입찰</p></div>' +
+          '<div><p class="v bl num">' + wins + '</p><p class="l">낙찰</p></div>' +
+          '<div><p class="v num">' + rate + '<em>%</em></p><p class="l">낙찰률</p></div></div>' +
+        '<div class="bars"><i style="height:38%"></i><i style="height:52%"></i><i style="height:30%"></i><i style="height:64%"></i><i class="on" style="height:88%"></i><i style="height:46%"></i><i style="height:58%"></i></div>' +
+        '<div class="axis"><span>' + (now.getMonth() + 1) + '월 1주</span><span>4주</span></div></div>' +
+      '<div style="height:22px"></div><div class="recent-label">최근 알림</div>' + notices + '<div style="height:24px"></div>' +
       vendorBottomTabs('v-home') +
     '</div>';
   };
@@ -1318,33 +1487,42 @@
     var notice = '';
     if (suspended) notice = '<div class="cqv-alert no">사용정지된 업체 계정입니다. 입찰이 제한됩니다.</div>';
     else if (!approved) notice = '<div class="cqv-alert wa">업체 승인 대기중입니다. 승인 후 입찰할 수 있습니다.</div>';
-    if (!vend.loaded) return '<div class="cqd-screen cqv">' + loadingBody();
+    if (!vend.loaded) return '<div class="cqd-screen cqvr">' + vendorHeader('입찰 요청', false) + vendorIdentity(false) + '<p class="cqd-note">불러오는 중…</p></div>';
     var bidCount = vend.quotes.filter(function (q) { return !!myBidOf(q); }).length;
     var visibleQuotes = vend.quotes.filter(function (q) {
       if (vendorQuoteFilter === 'mine') return !!myBidOf(q);
       if (vendorQuoteFilter === 'new') return !myBidOf(q);
+      if (vendorQuoteFilter === 'urgent') {
+        var left = Number(q.expiresMs || 0) - Date.now();
+        return left > 0 && left <= 12 * 3600000;
+      }
       return true;
     });
     var rows = visibleQuotes.map(function (q) {
       var mine = myBidOf(q);
       var rank = quoteMyRank(q, mine);
-      return '<button type="button" class="cqv-qcard' + (mine ? ' mine' : '') + '" data-cqd-go="v-bid" data-cqd-id="' + esc(q.id) + '">' +
-        '<span class="cqv-qtop">' + rowThumb(q) + '<span><b>' + esc((q.brand || '') + ' ' + (q.model || '')) + '</b>' +
-          '<small>' + (q.ref ? 'Ref. ' + esc(q.ref) + ' · ' : '') + esc(q.year || '') + '</small></span>' +
-          '<em>' + quoteDeadline(q) + '</em></span>' +
-        '<span class="cqv-meta"><i>입찰 ' + (q.bids || []).length + '건</i>' + (mine ? '<i class="on">내 입찰</i>' + (rank ? '<i>' + rank + '위</i>' : '') : '<i class="hot">신규</i>') + '</span>' +
-        '<span class="cqv-qbottom"><span>현재 최고가<b>' + (quoteHighest(q) ? man(quoteHighest(q)) + '원' : '첫 입찰 대기') + '</b></span>' +
-          '<strong>' + (mine ? '입찰 수정' : '입찰하기') + '</strong></span>' +
+      var deadline = quoteDeadline(q).replace(' 남음', '');
+      return '<button type="button" class="qcard' + (mine ? ' mine' : '') + '" data-cqd-go="v-bid" data-cqd-id="' + esc(q.id) + '">' +
+        '<span class="qtop">' + vendorThumb(q) + '<span class="w"><span class="n">' + esc((q.brand || '') + ' ' + (q.model || '')) + '</span>' +
+          '<span class="r num">' + (q.ref ? 'Ref. ' + esc(q.ref) + ' · ' : '') + esc(q.year || '') + (q.parts ? ' · ' + esc(partsText(q)) : '') + '</span>' +
+          '<span class="qmeta"><span class="hot">마감 ' + esc(deadline) + '</span><span>입찰 <span class="num">' + (q.bids || []).length + '</span>건</span>' +
+          '<span>최고 <span class="num">' + (quoteHighest(q) ? man(quoteHighest(q)) : '-') + '</span></span>' +
+          (rank ? '<span>내 순위 <span class="num">' + rank + '위</span></span>' : '') + '</span></span></span>' +
+        '<span class="qbot"><span class="l">내 입찰<b>' + (mine ? man(mine.amount) + '원' : '미입찰') + '</b></span>' +
+          '<span class="btn' + (mine ? ' gh' : '') + '">' + (mine ? '수정하기' : '입찰하기') + '</span></span>' +
       '</button>';
-    }).join('') || '<p class="cqv-empty">현재 입찰 가능한 견적이 없습니다.</p>';
-    return '<div class="cqd-screen cqv cqv-list">' +
-      '<div class="cqv-who"><span class="cqv-avatar">' + esc(vendorPrimaryName().charAt(0).toUpperCase()) + '</span><b>' + esc(vendorPrimaryName()) + '</b>' + vendorStatusChip() + '</div>' +
+    }).join('') || '<p class="cqd-note" style="padding:20px">현재 입찰 가능한 견적이 없습니다.</p>';
+    return '<div class="cqd-screen cqvr">' +
+      vendorHeader('입찰 요청', false) + vendorIdentity(false) +
       notice +
-      '<div class="cqv-kpis top"><div><b>' + vend.quotes.length + '</b><span>전체 요청</span></div><div><b>' + bidCount + '</b><span>내 입찰</span></div><div><b>' + Math.max(0, vend.quotes.length - bidCount) + '</b><span>입찰 필요</span></div></div>' +
-      '<div class="cqv-filter"><button type="button" class="' + (vendorQuoteFilter === 'all' ? 'is-on' : '') + '" data-cqv-filter="all">전체 <b>' + vend.quotes.length + '</b></button>' +
-        '<button type="button" class="' + (vendorQuoteFilter === 'new' ? 'is-on' : '') + '" data-cqv-filter="new">미참여 <b>' + Math.max(0, vend.quotes.length - bidCount) + '</b></button>' +
-        '<button type="button" class="' + (vendorQuoteFilter === 'mine' ? 'is-on' : '') + '" data-cqv-filter="mine">참여중 <b>' + bidCount + '</b></button></div>' +
-      '<div class="cqv-qlist">' + rows + '</div>' +
+      '<div class="kpi"><div><p class="l">진행 중</p><p class="v num">' + vend.quotes.length + '</p></div>' +
+        '<div><p class="l">미입찰</p><p class="v blue num">' + Math.max(0, vend.quotes.length - bidCount) + '</p></div>' +
+        '<div><p class="l">내 입찰</p><p class="v num">' + bidCount + '</p></div></div>' +
+      '<div class="fchips"><button type="button" class="' + (vendorQuoteFilter === 'all' ? 'on' : '') + '" data-cqv-filter="all">전체 <b class="num">' + vend.quotes.length + '</b></button>' +
+        '<button type="button" class="' + (vendorQuoteFilter === 'new' ? 'on' : '') + '" data-cqv-filter="new">미입찰 <b class="num">' + Math.max(0, vend.quotes.length - bidCount) + '</b></button>' +
+        '<button type="button" class="' + (vendorQuoteFilter === 'mine' ? 'on' : '') + '" data-cqv-filter="mine">내 입찰 <b class="num">' + bidCount + '</b></button>' +
+        '<button type="button" class="' + (vendorQuoteFilter === 'urgent' ? 'on' : '') + '" data-cqv-filter="urgent">마감 임박</button></div>' +
+      '<div class="qlist">' + rows + '</div>' +
       vendorBottomTabs('v-watches') +
     '</div>';
   };
@@ -1360,23 +1538,28 @@
     var conds = bidConditions(mine && mine.message);
     var opts = ['당일 현금', '방문 매입', '택배 매입', '검수 후 확정'].map(function (o) {
       var checked = conds.indexOf(o) >= 0;
-      return '<label class="cqv-opt"><input type="checkbox" name="cqdBidCondition" value="' + esc(o) + '"' + (checked ? ' checked' : '') + '><span>✓</span>' + esc(o) + '</label>';
+      return '<label class="' + (checked ? 'on' : '') + '"><input type="checkbox" name="cqdBidCondition" value="' + esc(o) + '"' + (checked ? ' checked' : '') + '>' + vendorIcon('check', 'xs') + esc(o) + '</label>';
     }).join('');
-    return '<div class="cqd-screen cqv cqv-bid">' +
-      '<section class="cqv-product">' + rowThumb(q) + '<div><b>' + esc((q.brand || '') + ' ' + (q.model || '')) + '</b><span>' + (q.ref ? 'Ref. ' + esc(q.ref) + ' · ' : '') + esc(q.year || '') + '</span></div><em>사진 ' + q.photoCount + '장</em></section>' +
-      '<div class="cqv-memo"><b>고객 메모</b><p>' + esc(cleanMemo(q.memo || '') || '등록된 메모가 없습니다.') + '</p></div>' +
-      '<div class="cqv-market">참고 정보 <b>현재 최고 입찰가 ' + (quoteHighest(q) ? won(quoteHighest(q)) : '없음') + '</b><span> · ' + quoteDeadline(q) + '</span></div>' +
+    var photo = q.photos && q.photos[0];
+    return '<div class="cqd-screen cqvr">' +
+      vendorHeader('제안가 입력', true) +
+      '<div class="pcard"><div class="img' + (photo ? '' : ' ph') + '">' +
+        (photo ? '<img src="' + esc(photo) + '" alt="" loading="eager">' : '<span>등록 사진 없음</span>') +
+        '<span class="pg num">1 / ' + Math.max(1, q.photoCount) + '</span></div>' +
+        '<div class="b"><p class="n">' + esc((q.brand || '') + ' ' + (q.model || '')) + '</p>' +
+          '<p class="r num">' + (q.ref ? 'Ref. ' + esc(q.ref) + ' · ' : '') + esc(q.year || '') + (q.parts ? ' · ' + esc(partsText(q)) : '') + '</p>' +
+          '<div class="memo"><b>고객 메모</b><br>' + esc(cleanMemo(q.memo || '') || '등록된 메모가 없습니다.') + '</div></div></div>' +
+      '<div class="hintbox">입찰 참고 정보 · 현재 최고 입찰가 <b class="num">' + (quoteHighest(q) ? man(quoteHighest(q)) + '원' : '없음') + '</b> · ' + esc(quoteDeadline(q)) + '</div>' +
       (approved ? '' : '<div class="cqv-alert wa">업체 승인 후 입찰이 저장됩니다.</div>') +
-      '<div class="cqv-form">' +
-        '<label>제안 금액 <small>필수</small></label>' +
-        '<div class="cqv-money"><input type="tel" id="cqdBidAmt" inputmode="numeric" value="' + (mine ? mine.amount : '') + '" placeholder="예: 21000000"><span id="cqdBidMan">' + (mine ? '= ' + man(mine.amount) + '원' : '원 단위 입력') + '</span></div>' +
-        '<p class="cqv-help">고객에게는 만원 단위로 보입니다. 입력은 원 단위입니다.</p>' +
-        '<label>거래 조건 <small>선택</small></label><div class="cqv-options">' + opts + '</div>' +
-        '<label>고객에게 전할 메모 <small>선택</small></label>' +
-        '<textarea id="cqdBidMsg" rows="3" placeholder="당일 현금 지급 가능합니다.">' + esc(cleanBidMessage(mine ? mine.message : '')) + '</textarea>' +
-        '<p class="cqv-help">연락처·계좌번호는 넣지 마세요. 거래는 벨로르를 통해 진행됩니다.</p>' +
+      '<div class="form"><span class="lab">제안 금액 <em>필수</em></span>' +
+        '<div class="inp focus"><input type="tel" id="cqdBidAmt" inputmode="numeric" value="' + (mine ? num(mine.amount) : '') + '" placeholder="예: 21000000"><span class="won num" id="cqdBidMan">' + (mine ? '= ' + man(mine.amount) + '원' : '원 단위 입력') + '</span></div>' +
+        '<p class="help">고객에게는 <b>만원 단위</b>로 보입니다. 입력은 원 단위로 하시면 됩니다.</p>' +
+        '<div style="height:18px"></div><span class="lab">거래 조건 <em>선택</em></span><div class="opts">' + opts + '</div>' +
+        '<div style="height:18px"></div><span class="lab">고객에게 전할 메모 <em>선택</em></span>' +
+        '<textarea class="ta" id="cqdBidMsg" rows="3" placeholder="당일 현금 지급 가능합니다.">' + esc(cleanBidMessage(mine ? mine.message : '')) + '</textarea>' +
+        '<p class="help">연락처·계좌번호는 <b>넣지 마세요.</b> 거래는 벨로르를 통해 진행됩니다.</p>' +
       '</div>' +
-      '<div class="cqv-submit"><button type="button" class="ghost" data-cqd-go="v-watches">취소</button><button type="button" data-cqd-bidsave="' + esc(q.id) + '">' + (mine ? '입찰 수정하기' : '입찰 등록하기') + '</button></div>' +
+      '<div class="bar"><button type="button" class="gh" data-cqd-go="v-watches">취소</button><button type="button" class="cta" data-cqd-bidsave="' + esc(q.id) + '">' + (mine ? '입찰 수정하기' : '입찰 등록하기') + '</button></div>' +
     '</div>';
   };
 
@@ -1387,19 +1570,30 @@
     var name = vendorPrimaryName();
     var logo = info.logoUrl || '';
     var myBidCount = vend.quotes.filter(function (q) { return !!myBidOf(q); }).length;
-    return '<div class="cqd-screen cqv cqv-manage">' +
-      '<section class="cqv-shop"><div class="cqv-shop-logo">' + (logo ? '<img src="' + esc(logo) + '" alt="" onerror="this.remove()">' : esc(name.charAt(0).toUpperCase())) + '</div>' +
-        '<div><h2>' + esc(name) + ' ' + vendorStatusChip() + '</h2><p>벨로르 파트너 업체</p></div></section>' +
-      '<div class="cqv-kpis top"><div><b>' + myBidCount + '</b><span>진행 입찰</span></div><div><b>' + reviews.length + '</b><span>후기</span></div><div><b>' + man(pendingSettlementTotal()) + '<small>원</small></b><span>정산 예정</span></div></div>' +
-      '<div class="cqv-form">' +
-        '<label>업체명(상호)</label><input type="text" id="cqdVName" value="' + esc(name) + '" placeholder="업체명">' +
-        '<p class="cqv-help">고객이 입찰을 확정한 뒤 이 이름이 표시됩니다.</p>' +
-        '<label>대표 이미지</label><div class="cqd-logopick cqv-upload" id="cqdVLogoPick">' + vendorLogoPreview(logo) + '</div>' +
-        '<input type="file" id="cqdVLogoFile" accept="image/*" hidden>' +
-        '<button type="button" class="cqv-save" data-cqd-vsave>업체 정보 저장</button>' +
-      '</div>' +
-      '<section class="cqv-links"><p>거래</p><button type="button" data-cqd-go="v-watches">진행중 입찰 <span>' + myBidCount + '건 ›</span></button><button type="button">정산 예정 <span>' + man(pendingSettlementTotal()) + '원 ›</span></button></section>' +
-      '<section class="cqv-links"><p>계정</p><button type="button">담당자 · 연락처 <span>›</span></button><button type="button">알림 설정 <span>›</span></button><button type="button" data-cqd-cs>고객센터 문의 <span>›</span></button></section>' +
+    var wins = vendorBidWins();
+    return '<div class="cqd-screen cqvr">' +
+      vendorHeader('내 업체', false) +
+      '<div class="shop"><span class="av">' + (logo ? '<img src="' + esc(logo) + '" alt="" onerror="this.remove()">' : esc(name.charAt(0).toUpperCase())) + '</span>' +
+        '<span class="w"><span class="n">' + esc(name) + vendorStatusChip() + '</span>' +
+          '<span class="m">가입 <span class="num">' + esc(vendorJoinLabel()) + '</span> · 벨로르 파트너</span></span></div>' +
+      '<div class="stat"><div><p class="v num">' + myBidCount + '</p><p class="l">이번 달 입찰</p></div>' +
+        '<div><p class="v num">' + wins + '</p><p class="l">낙찰</p></div>' +
+        '<div><p class="v num">' + man(pendingSettlementTotal()) + '</p><p class="l">정산 예정</p></div></div>' +
+      '<div class="form" style="padding-top:24px"><span class="lab">업체명(상호)</span>' +
+        '<div class="inp"><input type="text" id="cqdVName" value="' + esc(name) + '" placeholder="업체명"></div>' +
+        '<p class="help">고객이 입찰을 확정한 뒤 이 이름이 표시됩니다.</p><div style="height:18px"></div>' +
+        '<span class="lab">대표 이미지</span><div id="cqdVLogoPick">' + vendorLogoPreview(logo) + '</div>' +
+        '<input type="file" id="cqdVLogoFile" accept="image/*" hidden></div>' +
+      '<div class="rows"><p class="gl">거래</p>' +
+        '<button type="button" data-cqd-go="v-watches">낙찰 내역 <span class="r"><span class="num">' + wins + '건</span>' + vendorIcon('chev', 'xs') + '</span></button>' +
+        '<button type="button">정산 내역 <span class="r"><span class="num">' + man(pendingSettlementTotal()) + '원 예정</span>' + vendorIcon('chev', 'xs') + '</span></button>' +
+        '<button type="button">정산 계좌 <span class="r"><span>' + (info.accountSubmitted ? '등록 완료' : '등록 필요') + '</span>' + vendorIcon('chev', 'xs') + '</span></button></div>' +
+      '<div class="rows" style="margin-top:26px"><p class="gl">계정</p>' +
+        '<button type="button">담당자 · 연락처 <span class="r">' + vendorIcon('chev', 'xs') + '</span></button>' +
+        '<button type="button">알림 설정 <span class="r"><span>새 견적 ' + (info.notifyQuotes === false ? 'OFF' : 'ON') + '</span>' + vendorIcon('chev', 'xs') + '</span></button>' +
+        '<button type="button" data-cqd-cs>고객센터 문의 <span class="r">' + vendorIcon('chev', 'xs') + '</span></button>' +
+        '<button type="button" data-cqd-vlogout>로그아웃 <span class="r">' + vendorIcon('chev', 'xs') + '</span></button></div>' +
+      '<div style="height:26px"></div>' +
       vendorBottomTabs('v-manage') +
     '</div>';
   };
@@ -1631,6 +1825,14 @@
   function onClick(e) {
     if (e.target.closest('.cqd-close')) { close(); return; }
     if (e.target.closest('.cqd-back')) { back(); return; }
+    if (e.target.closest('[data-cqd-vclose]')) { close(); return; }
+    if (e.target.closest('[data-cqd-vlogout]')) {
+      bellConfirm('로그아웃할까요?').then(function (ok) {
+        if (!ok) return;
+        if (B && B.signOut) B.signOut().then(function () { close(); location.reload(); });
+      });
+      return;
+    }
 
     var nav = e.target.closest('[data-cqd-go]');
     if (nav) { go(nav.getAttribute('data-cqd-go'), nav.getAttribute('data-cqd-id') || null); return; }
@@ -1684,6 +1886,51 @@
       go('c-new'); return;
     }
 
+    /* 신규 신청 스무고개형 단계 선택 */
+    var answer = e.target.closest('[data-cqw-answer]');
+    if (answer) {
+      var group = answer.getAttribute('data-cqw-answer');
+      var value = answer.getAttribute('data-value');
+      var buttons = overlay.querySelectorAll('[data-cqw-answer="' + group + '"]');
+      for (var ai = 0; ai < buttons.length; ai++) buttons[ai].classList.toggle('is-on', buttons[ai] === answer);
+      var hiddenAnswer = overlay.querySelector(group === 'parts' ? '#cqdHasParts' : '#cqdKnowsModel');
+      if (hiddenAnswer) hiddenAnswer.value = value;
+      var reveal = overlay.querySelector(group === 'parts' ? '#cqwPartsDetail' : '#cqwModelDetail');
+      if (reveal) reveal.hidden = value !== 'yes';
+      var next = answer.closest('.cqw-step').querySelector('[data-cqw-next]');
+      if (next) next.hidden = false;
+      if (group === 'parts' && value === 'no') {
+        var partChecks = overlay.querySelectorAll('input[name="cqdpart"]');
+        for (var pc = 0; pc < partChecks.length; pc++) {
+          partChecks[pc].checked = false;
+          partChecks[pc].closest('.cqw-part').classList.remove('is-on');
+        }
+      }
+      if (group === 'model' && value === 'no') {
+        var unknownBrand = overlay.querySelector('#cqdNewBrand');
+        var unknownModel = overlay.querySelector('#cqdNewModel');
+        if (unknownBrand) unknownBrand.value = '확인 필요';
+        if (unknownModel) unknownModel.value = '사진 확인 필요';
+      } else if (group === 'model' && value === 'yes') {
+        var knownBrand = overlay.querySelector('#cqdNewBrand');
+        var knownModel = overlay.querySelector('#cqdNewModel');
+        if (knownBrand && knownBrand.value === '확인 필요') knownBrand.value = '';
+        if (knownModel && knownModel.value === '사진 확인 필요') knownModel.value = '';
+      }
+      return;
+    }
+
+    var wizardNext = e.target.closest('[data-cqw-next]');
+    if (wizardNext) {
+      var nextStep = wizardNext.getAttribute('data-cqw-next');
+      if (nextStep === 'details' && valOf('#cqdKnowsModel') === 'yes') {
+        if (!valOf('#cqdNewBrand')) { alert('브랜드를 선택해주세요.'); return; }
+        if (!valOf('#cqdNewModel')) { alert('모델명을 입력해주세요.'); return; }
+      }
+      showWizardStep(nextStep);
+      return;
+    }
+
     /* 브랜드 선택 시트 토글 */
     if (e.target.closest('#cqdBrandBtn')) {
       var sh = overlay.querySelector('#cqdBrandSheet');
@@ -1708,7 +1955,11 @@
       if (bb) { bb.innerHTML = '<span class="cqd-brandbtn-logo" id="cqdBrandLogo"></span>' + esc(bname); bb.classList.add('on'); }
       setBrandLogo(bname);
       fillCqModels(bname);
-      if (sh2) sh2.hidden = true;
+      if (sh2 && !sh2.classList.contains('cqw-brand-sheet')) sh2.hidden = true;
+      if (sh2 && sh2.classList.contains('cqw-brand-sheet')) {
+        var brandOpts = sh2.querySelectorAll('[data-cqbrand]');
+        for (var bo = 0; bo < brandOpts.length; bo++) brandOpts[bo].classList.toggle('is-selected', brandOpts[bo] === bopt);
+      }
       return;
     }
 
@@ -1955,12 +2206,27 @@
       if (e.target.files && e.target.files[0]) vendLogoFile = e.target.files[0];
       e.target.value = '';
       refreshVendorLogo();
+      if (vendLogoFile && B && B.updateMyVendorProfile) {
+        var vendorNameInput = overlay.querySelector('#cqdVName');
+        B.updateMyVendorProfile({ company_name: vendorNameInput ? vendorNameInput.value.trim() : null, logoFile: vendLogoFile })
+          .then(function () { vendLogoFile = null; alert('대표 이미지가 저장되었습니다.'); render(); })
+          .catch(function (err) { alert('이미지 저장 실패: ' + msg(err)); });
+      }
+    } else if (e.target && e.target.id === 'cqdVName') {
+      var nextVendorName = e.target.value.trim();
+      if (nextVendorName && B && B.updateMyVendorProfile) {
+        B.updateMyVendorProfile({ company_name: nextVendorName })
+          .then(function () { alert('업체명이 저장되었습니다.'); })
+          .catch(function (err) { alert('업체명 저장 실패: ' + msg(err)); });
+      }
     } else if (e.target && e.target.name === 'cqdgrade') {
       var chips = overlay.querySelectorAll('.cqd-grade-chip');
       for (var g = 0; g < chips.length; g++) chips[g].classList.toggle('is-on', chips[g].contains(e.target) && e.target.checked);
     } else if (e.target && e.target.name === 'cqdpart') {
       var box = e.target.closest('.cqd-part-box');
       if (box) box.classList.toggle('is-on', e.target.checked);
+      var wizardBox = e.target.closest('.cqw-part');
+      if (wizardBox) wizardBox.classList.toggle('is-on', e.target.checked);
     }
   }
 
@@ -2004,10 +2270,16 @@
       var payload = {
         _subject: '[벨로르] 시계판매 ' + (isEdit ? '견적 수정(재승인 요청)' : '신규 비교견적 신청'),
         _template: 'table', _captcha: 'false',
-        구분: isEdit ? '수정·재승인 요청' : '신규 신청',
+        접수상태: isEdit ? '수정 접수 완료 · 재승인 필요' : '신규 비교견적 접수 완료',
         시계: (d.brand || '') + ' ' + (d.model || ''),
-        레퍼런스: d.ref || '-', 구매일: d.year || '-', 상태등급: d.grade || '-',
-        구성품: d.parts || '-', 신청자: (d.name || '') + ' / ' + (d.phone || '')
+        레퍼런스: d.ref || '-', 구매일: d.year || '-',
+        스템핑: d.stamping || '-',
+        구성품: d.parts || '-',
+        특이사항: d.memo || '-',
+        고객명: d.name || '-',
+        연락번호: d.phone || '-',
+        사진: (newPhotos.length + editPhotos.length) + '장 접수 완료',
+        사진안내: '사진은 메일에 첨부하지 않습니다. 벨로르 관리자 화면에서 확인해주세요.'
       };
       fetch('https://formsubmit.co/ajax/' + ADMIN_EMAIL, {
         method: 'POST',
@@ -2022,22 +2294,27 @@
     var parts = [];
     var chk = overlay.querySelectorAll('input[name="cqdpart"]:checked');
     for (var i = 0; i < chk.length; i++) parts.push(chk[i].value);
-    var gradeEl = overlay.querySelector('input[name="cqdgrade"]:checked');
+    var hasParts = valOf('#cqdHasParts');
+    var knowsModel = valOf('#cqdKnowsModel');
+    var otherPart = valOf('#cqdPartOther');
+    if (otherPart) parts.push('기타: ' + otherPart);
     var d = {
       brand: valOf('#cqdNewBrand'),
       model: valOf('#cqdNewModel'),
       ref: valOf('#cqdNewRef'),
       stamping: valOf('#cqdNewStamp'),
       year: valOf('#cqdNewYear'),
-      grade: gradeEl ? gradeEl.value : '',
-      parts: parts.join(', '),
+      grade: (newData && newData.grade) || '',
+      parts: hasParts === 'no' ? '구성품 없음' : parts.join(', '),
       memo: valOf('#cqdNewMemo'),
       name: valOf('#cqdNewName'),
-      phone: valOf('#cqdNewPhone')
+      phone: valOf('#cqdNewPhone'),
+      hasParts: hasParts,
+      knowsModel: knowsModel,
+      partOther: otherPart
     };
     if (!newPhotos.length && !editPhotos.length) { alert('시계 사진을 1장 이상 등록해주세요.'); return false; }
-    if (!d.brand) { alert('브랜드를 선택해주세요.'); return false; }
-    if (!d.model) { alert('모델명을 입력해주세요.'); return false; }
+    if (!d.brand || !d.model) { alert('모델 정보 질문을 먼저 완료해주세요.'); return false; }
     if (!d.name || !d.phone) { alert('성함과 연락처를 입력해주세요.'); return false; }
     newData = d;
     return true;
@@ -2133,6 +2410,10 @@
     var cs = e.target.closest('[data-cqd-cs-open]');
     if (cs) { e.preventDefault(); open({ screen: 'c-chat' }); return; }
     var t = e.target.closest('[data-cqd-open]');
-    if (t) { e.preventDefault(); open(); }
+    if (t) {
+      e.preventDefault();
+      var targetScreen = t.getAttribute('data-cqd-screen');
+      open(targetScreen ? { screen: targetScreen } : null);
+    }
   });
 })();

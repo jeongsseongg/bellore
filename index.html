@@ -73,8 +73,9 @@
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css?v=20260730-reference-fix">
-    <link rel="stylesheet" href="wanted-theme.css?v=20260730-vendor-deep-green">
+    <link rel="stylesheet" href="wanted-theme.css?v=20260730-quote-wizard">
     <link rel="stylesheet" href="reference-layout.css?v=20260730-admin-banner-bright">
+    <link rel="stylesheet" href="vendor-reference.css?v=20260731-html-exact-1">
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
@@ -501,8 +502,21 @@
 
         <!-- ========== 비교견적 (NEW) ========== -->
         <section class="page page-compare" id="compare">
+            <section class="compare-entry">
+                <div class="container">
+                    <div class="compare-entry-card">
+                        <p class="compare-entry-kicker">SELL MY WATCH</p>
+                        <h1>내 시계,<br>가장 좋은 조건으로 판매하세요</h1>
+                        <p>간단한 질문에 답하면 검증된 전문업체의 견적을 한곳에서 비교할 수 있습니다.</p>
+                        <button type="button" class="compare-entry-cta" data-cqd-open data-cqd-screen="c-new">
+                            내 시계 판매하러 가기 <span aria-hidden="true">→</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
             <!-- 1) 랜딩페이지 (매입 안내) — 최상단 -->
-            <section class="section compare-landing-soon compare-top-pad">
+            <section class="section compare-landing-soon compare-top-pad" hidden>
                 <div class="container">
                     <div class="wanted-page-intro wanted-page-intro--compare">
                         <span class="wanted-page-kicker">시계판매 · 비교견적</span>
@@ -517,7 +531,7 @@
             </section>
 
             <!-- 2) 비교견적 등록 폼 (입력폼) -->
-            <section class="section section-soft compare-form-top">
+            <section class="section section-soft compare-form-top" hidden>
                 <div class="container">
                     <div class="compare-form-hero">
                         <p class="eyebrow center">REQUEST QUOTE</p>
@@ -609,7 +623,7 @@
             </section>
 
             <!-- 3) LIVE 현재 진행중인 비교견적 (라이브) -->
-            <section class="section live-board-section" id="liveBidHome">
+            <section class="section live-board-section" id="liveBidHome" hidden>
                 <div class="container">
                     <div class="live-board-header">
                         <span class="live-badge"><span class="live-dot"></span>LIVE</span>
@@ -629,7 +643,7 @@
             </section>
 
             <!-- 4) 내 등록 매물 -->
-            <section class="section">
+            <section class="section" hidden>
                 <div class="container">
                     <p class="eyebrow">MY ITEMS</p>
                     <h2 class="section-title">내 등록 매물</h2>
@@ -2149,7 +2163,7 @@
                     <span class="pl-label">포인트/쿠폰</span>
                     <span class="pl-badge" id="pocketCoupon" hidden>0</span>
                 </button>
-                <button type="button" class="pl-item" data-cqd-open>
+                <button type="button" class="pl-item" data-cqd-open data-cqd-screen="c-new">
                     <span class="pl-ic has-img"><img src="assets/mypage/sell.png" alt="" loading="lazy"></span>
                     <span class="pl-label">시계판매</span>
                 </button>
@@ -2168,6 +2182,15 @@
                     <span class="pl-badge" id="pocketCart" hidden>0</span>
                 </button>
             </div>
+
+            <button type="button" class="mp-sell-watch-cta customer-only" data-cqd-open data-cqd-screen="c-new">
+                <span>
+                    <small>무료 비교견적</small>
+                    <strong>내 시계 판매하러 가기</strong>
+                    <em>몇 가지 질문에 답하면 바로 신청할 수 있어요</em>
+                </span>
+                <b aria-hidden="true">→</b>
+            </button>
 
             <section class="mp-order-preview customer-only" id="mpOrderPreview">
                 <div class="mp-order-status"><span class="mp-order-dot"></span><b id="mpOrderStatus">최근 주문</b></div>
@@ -3159,9 +3182,9 @@
     <script src="ui-dialog.js"></script>
     <script src="supabase-config.js?v=20260727-naverpay-order"></script>
     <script src="brands.js"></script>
-    <script src="supabase.js?v=20260730-quote-followup"></script>
+    <script src="supabase.js?v=20260731-vendor-created-at"></script>
     <script src="bellore-features.js"></script>
-    <script src="cq-demo.js?v=20260730-vendor-rebuild"></script>
+    <script src="cq-demo.js?v=20260731-vendor-html-exact"></script>
     <script src="script.js?v=20260730-reference-fix"></script>
     <script src="wishlist.js?v=20260730-reference-fix"></script>
     <script src="alerts.js"></script>
@@ -3177,7 +3200,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('sw.js?v=20260730-admin-banner-bright').catch(function (err) {
+                navigator.serviceWorker.register('sw.js?v=20260731-vendor-html-exact').catch(function (err) {
                     console.warn('서비스워커 등록 실패:', err);
                 });
             });

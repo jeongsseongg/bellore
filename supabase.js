@@ -277,6 +277,7 @@
       vip: !!(profile && profile.vip),
       companyName: (profile && profile.company_name) || '',
       logoUrl: (profile && profile.logo_url) || '',
+      createdAt: (profile && profile.created_at) || (rawUser && rawUser.created_at) || '',
       suspended: !!(profile && profile.suspended)
     };
   }
