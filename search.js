@@ -105,6 +105,7 @@
     '<nav class="sp-tabs">' +
       '<button type="button" class="sp-tab active" data-sptab="word">검색어</button>' +
       '<button type="button" class="sp-tab" data-sptab="cat">카테고리</button>' +
+      '<button type="button" class="sp-tab" data-sptab="sale">시계판매</button>' +
     '</nav>' +
     '<div class="sp-scroll">' +
       '<section class="sp-panel" data-sppanel="word"></section>' +
@@ -174,6 +175,14 @@
   window.BELLORE_openSearch = openPage;
 
   function switchTab(t) {
+    if (t === 'sale') {
+      closePage();
+      window.__belloreOpenCollectionFromSearch = true;
+      var saleTab = document.querySelector('.tab-item[data-nav="collection"]');
+      if (saleTab) saleTab.click(); else location.hash = '#collection';
+      window.__belloreOpenCollectionFromSearch = false;
+      return;
+    }
     $$('.sp-tab', page).forEach(function (x) { x.classList.toggle('active', x.dataset.sptab === t); });
     $$('.sp-panel', page).forEach(function (p) { p.hidden = p.dataset.sppanel !== t; });
     $('.sp-scroll', page).scrollTop = 0;
@@ -218,14 +227,8 @@
         '<div class="sp-sec-head"><h3>추천 검색어</h3><span class="sp-slot-badge">관리자 슬롯 · 랜덤</span></div>' +
         '<div class="sp-sugs">' + suggest + '</div>' +
       '</div>' +
-      '<div class="sp-sec sp-sec-market">' +
-        '<div class="sp-market-head"><div class="row"><h3>실시간 시세</h3><time>' + marketStamp() + ' 기준</time></div>' +
-          '<p>벨로르 최근 실거래 체결가</p></div>' +
-        '<div class="sp-market-pending">체결 데이터를 집계하고 있습니다. 데이터가 충분해지기 전에는 임의의 시세를 표시하지 않습니다.</div>' +
-        '<button type="button" class="sp-market-cta" data-spgo="compare">내 시계 시세 조회</button>' +
-      '</div>' +
       '<div class="sp-sec">' +
-        '<div class="sp-sec-head"><h3>인기 검색어</h3><button type="button" data-sptab="cat">전체보기</button></div>' +
+        '<div class="sp-sec-head"><h3>인기 검색어</h3></div>' +
         '<ol class="sp-pop" id="spPop"></ol>' +
       '</div>' +
       '<div class="sp-sec">' +
@@ -235,8 +238,8 @@
 
     popularNow(function (list) {
       var ol = $('#spPop', page); if (!ol) return;
-      var moves = ['up', '', 'up', 'down'];
-      ol.innerHTML = list.slice(0, 4).map(function (q, i) {
+      var moves = ['up', '', 'up', 'down', '', 'up', '', 'down', 'up', ''];
+      ol.innerHTML = list.slice(0, 10).map(function (q, i) {
         var move = moves[i] || '';
         return '<li><button type="button" class="sp-pop-item" data-q="' + esc(q) + '"><b>' + (i + 1) + '</b><span>' + esc(q) + '</span>' +
           '<i class="' + move + '">' + (move === 'up' ? '▲' : move === 'down' ? '▼' : '－') + '</i></button></li>';
@@ -434,16 +437,59 @@
     if (window.BELLORE_openProductCard) window.BELLORE_openProductCard(card);
   }
 
-  /* ---------- 헤더 검색 → 페이지 오픈 ---------- */
+  /* ---------- 홈 상단 검색은 인라인 자동완성 / 하단 검색 탭만 검색 페이지 ---------- */
   function wireHeader() {
     var hs = $('#headerSearch'), si = $('#searchInput');
-    if (si) { si.setAttribute('readonly', 'readonly'); si.removeAttribute('enterkeyhint'); }
-    function open(e) { if (e) { e.preventDefault(); } openPage('word'); }
-    if (hs) hs.addEventListener('submit', open);
-    if (si) { si.addEventListener('focus', open); si.addEventListener('click', open); }
-    if (hs) { var ic = hs.querySelector('.header-search-ic'); if (ic) ic.addEventListener('click', open); }
-    var ts = $('#tabSearch');
-    if (ts) ts.addEventListener('click', function (e) { e.preventDefault(); openPage('word'); });
+    var inlineBox = null;
+    if (hs && si) {
+      si.removeAttribute('readonly');
+      si.setAttribute('enterkeyhint', 'search');
+      inlineBox = document.createElement('div');
+      inlineBox.className = 'header-search-suggest';
+      inlineBox.hidden = true;
+      hs.appendChild(inlineBox);
+
+      function hideInline() {
+        inlineBox.hidden = true;
+        inlineBox.innerHTML = '';
+      }
+      function renderInline() {
+        var q = si.value.trim();
+        var list = matchAuto(q).slice(0, 6);
+        if (!q || !list.length) { hideInline(); return; }
+        inlineBox.innerHTML = list.map(function (it) {
+          return '<button type="button" class="sp-auto-item" data-hq="' + esc(it.q) + '">' +
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9a9a9f" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>' +
+            '<span>' + hl(it.label, q) + '</span></button>';
+        }).join('');
+        inlineBox.hidden = false;
+      }
+      hs.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var q = si.value.trim();
+        if (q) { hideInline(); runQuery(q); }
+      });
+      si.addEventListener('input', renderInline);
+      si.addEventListener('focus', renderInline);
+      inlineBox.addEventListener('click', function (e) {
+        var hit = e.target.closest('[data-hq]');
+        if (!hit) return;
+        si.value = hit.dataset.hq;
+        hideInline();
+        runQuery(hit.dataset.hq);
+      });
+      document.addEventListener('click', function (e) {
+        if (!e.target.closest('#headerSearch')) hideInline();
+      });
+    }
+
+    var ts = $('.tab-item[data-nav="collection"]');
+    if (ts) ts.addEventListener('click', function (e) {
+      if (window.__belloreOpenCollectionFromSearch) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      openPage('word');
+    }, true);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireHeader);
   else wireHeader();

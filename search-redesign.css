@@ -18,8 +18,8 @@
   right: 0 !important;
   z-index: 5000;
   width: 100%;
-  max-width: 520px;
-  height: auto;
+  max-width: 1140px;
+  height: 100dvh;
   margin: 0 auto;
   transform: none !important;
   display: flex;
@@ -28,7 +28,7 @@
   background: #fff;
   font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
   letter-spacing: -.015em;
-  box-shadow: 0 0 60px rgba(0,0,0,.12);
+  box-shadow: none;
 }
 .search-page[hidden] { display: none; }
 .search-page button { font: inherit; color: inherit; }
@@ -201,7 +201,7 @@
 .search-page .sp-pop {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: repeat(2, 34px);
+  grid-auto-rows: 34px;
   gap: 2px 20px;
 }
 .search-page .sp-pop-item {
@@ -304,9 +304,10 @@ body[data-page="collection"] > .main-wrap { padding-top: 0 !important; }
   border: 1px solid var(--sr-line);
   border-radius: var(--sr-radius);
   background: #fff;
-  cursor: pointer;
+  cursor: text;
 }
-#collection .cat-brand-search input { pointer-events: none; color: var(--sr-muted); font-size: 15px; }
+#collection .cat-brand-search input { pointer-events: auto; color: var(--sr-ink); font-size: 15px; }
+#collection .cat-brand-search input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
 #collection .cat-slot {
   width: calc(100% - 32px);
   min-height: 60px;
@@ -449,5 +450,36 @@ body[data-page="collection"] > .main-wrap { padding-top: 0 !important; }
 
 @media (min-width: 700px) {
   #collection > .section > .container { padding: 0 20px; }
-  #collection #panel-ny > .hcard-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
+
+/* 홈 최상단 검색: 화면 전환 없이 검색창 바로 아래에 연관검색어 표시 */
+.header-search { position: relative; }
+.header-search-suggest {
+  position: absolute;
+  top: calc(100% + 7px);
+  left: 0;
+  right: 0;
+  z-index: 5100;
+  overflow: hidden;
+  padding: 7px;
+  border: 1px solid var(--sr-line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 14px 32px rgba(0,0,0,.14);
+}
+.header-search-suggest[hidden] { display: none; }
+.header-search-suggest .sp-auto-item {
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: #fff;
+  color: var(--sr-ink);
+  text-align: left;
+}
+.header-search-suggest .sp-auto-item:hover { background: var(--sr-soft); }
+.header-search-suggest .sp-auto-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

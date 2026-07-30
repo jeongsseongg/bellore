@@ -1785,6 +1785,22 @@ html[data-width="full"] .hcard-grid {
 }
 
 @media (min-width: 900px) {
+  .cqd-overlay {
+    top: 24px;
+    bottom: 24px;
+    width: min(880px, calc(100vw - 48px));
+    max-width: 880px;
+    overflow: hidden;
+    border: 1px solid var(--wanted-line);
+    border-radius: 22px;
+    box-shadow: 0 24px 80px rgba(17, 24, 21, .22);
+  }
+
+  .cqd-frame {
+    overflow: hidden;
+    border-radius: inherit;
+  }
+
   .cqd-screen {
     padding-top: 28px;
   }
