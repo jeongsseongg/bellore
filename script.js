@@ -1235,7 +1235,7 @@
                         '<span class="noti-tag cat-' + notiCat(n.type) + '">' + esc(label) + '</span>' +
                         '<span class="noti-title">' + esc(title) + '</span>' +
                         (body ? '<span class="noti-text">' + esc(body) + '</span>' : '') +
-                        (notiTarget(n.type) ? '<span class="noti-arrow">바로가기 ›</span>' : '') +
+                        (notiTarget(n.type) ? '<span class="noti-arrow">바로가기 <i class="ui-chevron" aria-hidden="true"></i></span>' : '') +
                     '</div>' +
                 '</div>' +
                 (longBody ? '<button type="button" class="noti-expand"><span>펼치기</span> ▾</button>' : '') +
@@ -1491,9 +1491,14 @@
         if (!box || !track) return;
         _mpBnRaw = list || [];
         _mpBn = _mpBnRaw.filter(function (b) { return mpBannerImg(b); });
-        if (window.BELLORE_isAdmin) {
-            // 관리자 본인 마이페이지에선 고객용 배너 영역 숨김(배너는 별도 편집화면에서 관리)
-            box.hidden = true; box.classList.remove('is-empty'); track.innerHTML = ''; if (dots) dots.innerHTML = ''; mpBnStop(); return;
+        var isAdminPreview = !!window.BELLORE_isAdmin;
+        if (isAdminPreview && !_mpBn.length) {
+            _mpBn = [{
+                image: 'assets/m1263340002.png',
+                title: '마이페이지 배너',
+                subtitle: '배너 수정에서 이미지와 문구를 등록하세요.',
+                adminFallback: true
+            }];
         }
         if (!_mpBn.length) {
             // 등록된 배너가 없으면 바이버처럼 자리(테두리)만 유지
@@ -1507,7 +1512,7 @@
             var href = b.link ? (' href="' + esc(b.link) + '"') : '';
             var txt = b.title ? ('<span class="mpb-text"><span class="mpb-title">' + esc(b.title) + '</span>' +
                 (b.subtitle ? '<span class="mpb-sub">' + esc(b.subtitle) + '</span>' : '') + '</span>') : '';
-            return '<' + tag + ' class="mp-banner-slide"' + href + ' style="background-image:url(\'' + esc(mpBannerImg(b)) + '\')">' + txt + '</' + tag + '>';
+            return '<' + tag + ' class="mp-banner-slide' + (b.adminFallback ? ' mp-banner-fallback' : '') + '"' + href + ' style="background-image:url(\'' + esc(mpBannerImg(b)) + '\')">' + txt + '</' + tag + '>';
         }).join('');
         if (dots) dots.innerHTML = _mpBn.length > 1
             ? _mpBn.map(function (_, k) { return '<button type="button" class="mpb-dot' + (k === 0 ? ' on' : '') + '" data-mpbdot="' + k + '"></button>'; }).join('')
@@ -2157,7 +2162,7 @@
         var box = $('#adminDash');
         if (!box || !backendOn() || !NWBackend.adminOrderStats) return;
         function cell(val, label, status) {
-            return '<button type="button" class="admin-dash-cell" data-ostatus="' + (status || '') + '"><b>' + val + '</b><span>' + label + ' ›</span></button>';
+            return '<button type="button" class="admin-dash-cell" data-ostatus="' + (status || '') + '"><b>' + val + '</b><span>' + label + '<i class="ui-chevron" aria-hidden="true"></i></span></button>';
         }
         NWBackend.adminOrderStats().then(function (s) {
             box.innerHTML =
@@ -2758,7 +2763,7 @@
             var row = e.target.closest('#adminMenuBox [data-apv]');
             if (row) { openAdminPanel(row.dataset.apv, row.dataset.ofilter); return; }
             // 배너 관리 — bellore-features.js의 배너 모달 열기(마이페이지 배너 기본 선택)
-            if (e.target.closest('#adminBannerBtn')) {
+            if (e.target.closest('#adminBannerBtn') || e.target.closest('#mpBannerEdit')) {
                 if (window.belloreOpenBannerManager) window.belloreOpenBannerManager({ placement: 'mypage' });
                 else alert('배너 관리 기능을 불러오지 못했습니다.');
                 return;
@@ -2784,8 +2789,8 @@
             ['mpHubCats', 'mpMenuList', 'mpOrderPreview', 'mpReferenceBanner'].forEach(function (id) {
                 var el = $('#' + id); if (el) el.hidden = isAdmin;
             });
-            // 광고 배너: 관리자는 숨김(고객은 배너 렌더가 표시 여부 결정)
-            if (isAdmin) { var mb = $('#mpBanner'); if (mb) mb.hidden = true; }
+            // 마이페이지 배너는 관리자도 실제 노출 상태를 미리 보고 바로 수정할 수 있다.
+            if (window.belloreSetMypageBanners) window.belloreSetMypageBanners(_mpBnRaw);
             if (!isAdmin) { var p = $('#adminPanel'); if (p) p.hidden = true; }
             if (isAdmin) { renderAdminDash(); refreshAdminBadges(); startAdminOrderWatch(); }
             else { stopAdminOrderWatch(); }

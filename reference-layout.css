@@ -97,6 +97,18 @@ body > .footer {
   overflow: hidden;
   color: transparent !important;
   font-size: 0 !important;
+  background: center / 20px 20px no-repeat
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238f8f95' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
+}
+
+.ui-chevron {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  margin-left: 2px;
+  vertical-align: -5px;
+  background: center / 18px 18px no-repeat
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238f8f95' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
 }
 
 .mr-arrow::before,
@@ -106,14 +118,7 @@ body > .footer {
 .mac-arrow::before,
 .cpadm-card-arrow::before,
 .cq-bid-arrow::before {
-  content: "";
-  display: block;
-  width: 9px;
-  height: 9px;
-  border-top: 2px solid #8f8f95;
-  border-right: 2px solid #8f8f95;
-  translate: -2px 0;
-  rotate: 45deg;
+  content: none !important;
 }
 
 .mp-menu-row,
@@ -134,6 +139,256 @@ body > .footer {
 .header-ai-btn svg {
   width: 24px !important;
   height: 24px !important;
+}
+
+/* My page banner: the administrator sees the real placement and edits it in place. */
+#myPageModal .mp-banner {
+  position: relative;
+  width: calc(100% - 40px) !important;
+  min-height: 104px;
+  margin: 16px auto 8px !important;
+  border: 0 !important;
+  border-radius: 14px !important;
+  background: #303030;
+}
+
+#myPageModal .mp-banner-slide {
+  min-height: 104px;
+  aspect-ratio: auto !important;
+  background-size: cover;
+  background-position: center;
+}
+
+#myPageModal .mp-banner-fallback {
+  background-color: #303030;
+  background-size: 42% auto;
+  background-position: right 18px center;
+  background-repeat: no-repeat;
+}
+
+#myPageModal .mp-banner-fallback::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #242424 0%, rgba(36,36,36,.96) 48%, rgba(36,36,36,.2) 100%);
+}
+
+#myPageModal .mp-banner-fallback .mpb-text {
+  z-index: 1;
+}
+
+.mp-banner-admin-edit {
+  display: none;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 5;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(255,255,255,.58);
+  border-radius: 8px;
+  background: rgba(17,17,17,.72);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  backdrop-filter: blur(8px);
+}
+
+#myPageModal[data-account-role="admin"] .mp-banner-admin-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Admin overview: flat Wanted-style information hierarchy, not cards inside cards. */
+#myPageModal #adminDashBox,
+#myPageModal #adminMenuBox {
+  width: calc(100% - 40px) !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: #fff !important;
+}
+
+#myPageModal #adminDashBox > h4,
+#myPageModal #adminMenuBox > h4 {
+  margin: 26px 0 10px;
+  padding: 0;
+  border: 0;
+  font-size: 13px;
+  color: #8f8f95;
+}
+
+#myPageModal .admin-dash {
+  gap: 0 !important;
+  border: 0 !important;
+  border-top: 1px solid #e5e5e7 !important;
+  border-bottom: 1px solid #e5e5e7 !important;
+  border-radius: 0 !important;
+  background: #fff !important;
+}
+
+#myPageModal .admin-dash-cell {
+  min-height: 88px;
+  padding: 16px 6px !important;
+  border-right: 1px solid #eeeeef !important;
+}
+
+#myPageModal .admin-dash-cell:nth-child(3n) {
+  border-right: 0 !important;
+}
+
+#myPageModal .admin-dash-cell b {
+  font-size: 18px;
+  font-weight: 750;
+}
+
+#myPageModal .admin-dash-cell span {
+  font-size: 11px;
+  color: #8f8f95;
+}
+
+#myPageModal .admin-menu {
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+
+#myPageModal .admin-menu-row {
+  min-height: 58px !important;
+  padding: 0 !important;
+  border-bottom: 1px solid #e5e5e7 !important;
+}
+
+#myPageModal .admin-menu-cap {
+  margin: 24px 0 6px !important;
+}
+
+#myPageModal .amr-badge {
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  background: #171719;
+}
+
+/* Point / coupon: bright summary surfaces with one consistent 20px gutter. */
+#myPageModal #myCouponSection {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 20px 20px 42px !important;
+  background: #fff !important;
+}
+
+#myPageModal #myCouponSection .mp-point-card,
+#myPageModal #myCouponSection .mpcash {
+  margin: 0 0 12px !important;
+  padding: 20px !important;
+  border: 1px solid #e5e5e7 !important;
+  border-radius: 14px !important;
+  background: #f7f7f8 !important;
+  color: #171719 !important;
+  box-shadow: none !important;
+}
+
+#myPageModal #myCouponSection .mp-point-label,
+#myPageModal #myCouponSection .mp-point-hint,
+#myPageModal #myCouponSection .mpcash-left span,
+#myPageModal #myCouponSection .mpcash-held,
+#myPageModal #myCouponSection .mpcash-note {
+  color: #6b6b6f !important;
+  opacity: 1 !important;
+}
+
+#myPageModal #myCouponSection .mp-point-val,
+#myPageModal #myCouponSection .mp-point-val b,
+#myPageModal #myCouponSection .mpcash-left b {
+  color: #171719 !important;
+  font-size: 28px !important;
+}
+
+#myPageModal #myCouponSection .mpcash-btn {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid #d8d8dc;
+  border-radius: 10px;
+  background: #fff;
+  color: #171719;
+}
+
+#myPageModal #myCouponSection > h4 {
+  margin: 28px 0 12px !important;
+  font-size: 18px !important;
+}
+
+#myPageModal #myCouponSection .coupon-redeem {
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+#myPageModal #myCouponSection .coupon-redeem input {
+  height: 52px;
+  padding: 0 16px;
+  border: 1px solid #dedee1;
+  border-radius: 12px;
+  background: #fff;
+}
+
+#myPageModal #myCouponSection .coupon-redeem button {
+  min-width: 88px;
+  height: 52px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 12px;
+  background: #171719;
+  color: #fff;
+}
+
+#myPageModal #myCouponSection .coupon-card {
+  min-height: 112px;
+  margin-bottom: 10px;
+  padding: 18px;
+  border: 1px solid #e1e2e4;
+  border-radius: 14px;
+  background: #fff !important;
+}
+
+#myPageModal #myCouponSection .coupon-card .cc-val {
+  min-width: 72px;
+  font-size: 22px;
+}
+
+/* Sub pages and settings use the same restrained header and row rhythm. */
+#myPageModal .mp-sub-bar {
+  min-height: 60px !important;
+  padding: 0 20px !important;
+  border-bottom: 1px solid #e5e5e7;
+  background: #fff;
+}
+
+#myPageModal .mp-sub-back {
+  width: 40px !important;
+  height: 40px !important;
+  margin-left: -10px;
+}
+
+#myPageModal .mp-sub-back svg {
+  width: 24px !important;
+  height: 24px !important;
+}
+
+#myPageModal .mp-sub-title {
+  font-size: 19px !important;
+  font-weight: 750 !important;
+}
+
+#settingsPage .prof-row,
+#profilePage .prof-row {
+  min-height: 60px !important;
+  padding-left: 20px !important;
+  padding-right: 16px !important;
+  border-bottom: 1px solid #e5e5e7 !important;
+  background: #fff !important;
 }
 
 @media (min-width: 700px) {
