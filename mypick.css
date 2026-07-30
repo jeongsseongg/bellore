@@ -11,6 +11,16 @@
   color: var(--mypick-ink);
 }
 
+/* 마우스·터치로 연 하단 탭에는 브라우저 기본 금색 포커스 테두리를 남기지 않는다. */
+.tab-item:focus {
+  outline: none;
+}
+
+.tab-item:focus-visible {
+  outline: 2px solid #24312a;
+  outline-offset: -2px;
+}
+
 #wishlist .cat-page-header {
   padding: 28px 20px 20px;
   border-bottom: 1px solid var(--mypick-line);
