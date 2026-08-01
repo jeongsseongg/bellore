@@ -105,7 +105,6 @@
     '<nav class="sp-tabs">' +
       '<button type="button" class="sp-tab active" data-sptab="word">검색어</button>' +
       '<button type="button" class="sp-tab" data-sptab="cat">카테고리</button>' +
-      '<button type="button" class="sp-tab" data-sptab="sale">시계판매</button>' +
     '</nav>' +
     '<div class="sp-scroll">' +
       '<section class="sp-panel" data-sppanel="word"></section>' +
@@ -175,14 +174,6 @@
   window.BELLORE_openSearch = openPage;
 
   function switchTab(t) {
-    if (t === 'sale') {
-      closePage();
-      window.__belloreOpenCollectionFromSearch = true;
-      var saleTab = document.querySelector('.tab-item[data-nav="collection"]');
-      if (saleTab) saleTab.click(); else location.hash = '#collection';
-      window.__belloreOpenCollectionFromSearch = false;
-      return;
-    }
     $$('.sp-tab', page).forEach(function (x) { x.classList.toggle('active', x.dataset.sptab === t); });
     $$('.sp-panel', page).forEach(function (p) { p.hidden = p.dataset.sppanel !== t; });
     $('.sp-scroll', page).scrollTop = 0;
@@ -227,8 +218,14 @@
         '<div class="sp-sec-head"><h3>추천 검색어</h3><span class="sp-slot-badge">관리자 슬롯 · 랜덤</span></div>' +
         '<div class="sp-sugs">' + suggest + '</div>' +
       '</div>' +
+      '<div class="sp-sec sp-sec-market">' +
+        '<div class="sp-market-head"><div class="row"><h3>실시간 시세</h3><time>' + marketStamp() + ' 기준</time></div>' +
+          '<p>벨로르 최근 실거래 체결가</p></div>' +
+        '<div class="sp-market-pending">체결 데이터를 집계하고 있습니다. 데이터가 충분해지기 전에는 임의의 시세를 표시하지 않습니다.</div>' +
+        '<button type="button" class="sp-market-cta" data-spgo="compare">내 시계 시세 조회</button>' +
+      '</div>' +
       '<div class="sp-sec">' +
-        '<div class="sp-sec-head"><h3>인기 검색어</h3></div>' +
+        '<div class="sp-sec-head"><h3>인기 검색어</h3><button type="button" data-sptab="cat">전체보기</button></div>' +
         '<ol class="sp-pop" id="spPop"></ol>' +
       '</div>' +
       '<div class="sp-sec">' +
@@ -238,8 +235,8 @@
 
     popularNow(function (list) {
       var ol = $('#spPop', page); if (!ol) return;
-      var moves = ['up', '', 'up', 'down', '', 'up', '', 'down', 'up', ''];
-      ol.innerHTML = list.slice(0, 10).map(function (q, i) {
+      var moves = ['up', '', 'up', 'down'];
+      ol.innerHTML = list.slice(0, 4).map(function (q, i) {
         var move = moves[i] || '';
         return '<li><button type="button" class="sp-pop-item" data-q="' + esc(q) + '"><b>' + (i + 1) + '</b><span>' + esc(q) + '</span>' +
           '<i class="' + move + '">' + (move === 'up' ? '▲' : move === 'down' ? '▼' : '－') + '</i></button></li>';
