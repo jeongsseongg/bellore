@@ -58,10 +58,10 @@
     '랑에1', '오버시즈', '벤츄라', 'J12', '캡틴쿡', 'PRX'
   ];
   function suggestNow() {
-    // 3시간 단위 시드로 풀에서 8개 회전(4열 × 2행)
+    // 3시간 단위 시드로 풀에서 6개 회전
     var slot = Math.floor(Date.now() / (3 * 3600 * 1000));
     var out = [], n = SUGGEST_POOL.length, start = slot % n;
-    for (var i = 0; i < 8; i++) out.push(SUGGEST_POOL[(start + i) % n]);
+    for (var i = 0; i < 6; i++) out.push(SUGGEST_POOL[(start + i) % n]);
     return out;
   }
 
@@ -93,10 +93,7 @@
     '<header class="sp-top">' +
       '<form class="sp-bar" id="spForm">' +
         '<svg class="sp-bar-ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>' +
-        '<input type="search" id="spInput" placeholder="모델명 · 모델번호 검색" autocomplete="off" enterkeyhint="search">' +
-        '<button type="button" class="sp-clear-ic" data-spclear aria-label="검색어 지우기" hidden>' +
-          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></svg>' +
-        '</button>' +
+        '<input type="search" id="spInput" placeholder="검색어를 입력해 주세요." autocomplete="off" enterkeyhint="search">' +
       '</form>' +
       '<button type="button" class="sp-close" data-spclose aria-label="닫기">' +
         '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
@@ -105,6 +102,7 @@
     '<nav class="sp-tabs">' +
       '<button type="button" class="sp-tab active" data-sptab="word">검색어</button>' +
       '<button type="button" class="sp-tab" data-sptab="cat">카테고리</button>' +
+      '<button type="button" class="sp-tab" data-spgo="compare">시계판매</button>' +
     '</nav>' +
     '<div class="sp-scroll">' +
       '<section class="sp-panel" data-sppanel="word"></section>' +
@@ -191,7 +189,7 @@
           return '<button type="button" class="sp-chip" data-q="' + esc(q) + '">' + esc(q) +
             '<span class="sp-chip-x" data-rmq="' + esc(q) + '">×</span></button>';
         }).join('')
-      : '';
+      : '<p class="sp-empty">최근 검색어가 없습니다.</p>';
 
     var suggest = suggestNow().map(function (q) {
       return '<button type="button" class="sp-sug" data-q="' + esc(q) + '">' + esc(q) + '</button>';
@@ -210,22 +208,16 @@
       : '<p class="sp-empty">최근 확인한 상품이 없습니다.</p>';
 
     el.innerHTML =
-      (recent.length ? '<div class="sp-sec">' +
+      '<div class="sp-sec">' +
         '<div class="sp-sec-head"><h3>최근 검색어</h3>' + (recent.length ? '<button type="button" class="sp-clear" data-clearrecent>전체삭제</button>' : '') + '</div>' +
         '<div class="sp-chips">' + recentHTML + '</div>' +
-      '</div>' : '') +
+      '</div>' +
       '<div class="sp-sec">' +
-        '<div class="sp-sec-head"><h3>추천 검색어</h3><span class="sp-slot-badge">관리자 슬롯 · 랜덤</span></div>' +
+        '<div class="sp-sec-head"><h3>추천 검색어</h3></div>' +
         '<div class="sp-sugs">' + suggest + '</div>' +
       '</div>' +
-      '<div class="sp-sec sp-sec-market">' +
-        '<div class="sp-market-head"><div class="row"><h3>실시간 시세</h3><time>' + marketStamp() + ' 기준</time></div>' +
-          '<p>벨로르 최근 실거래 체결가</p></div>' +
-        '<div class="sp-market-pending">체결 데이터를 집계하고 있습니다. 데이터가 충분해지기 전에는 임의의 시세를 표시하지 않습니다.</div>' +
-        '<button type="button" class="sp-market-cta" data-spgo="compare">내 시계 시세 조회</button>' +
-      '</div>' +
       '<div class="sp-sec">' +
-        '<div class="sp-sec-head"><h3>인기 검색어</h3><button type="button" data-sptab="cat">전체보기</button></div>' +
+        '<div class="sp-sec-head"><h3>인기 검색어</h3><span class="sp-pop-note" id="spPopNote"></span></div>' +
         '<ol class="sp-pop" id="spPop"></ol>' +
       '</div>' +
       '<div class="sp-sec">' +
@@ -235,19 +227,10 @@
 
     popularNow(function (list) {
       var ol = $('#spPop', page); if (!ol) return;
-      var moves = ['up', '', 'up', 'down'];
-      ol.innerHTML = list.slice(0, 4).map(function (q, i) {
-        var move = moves[i] || '';
-        return '<li><button type="button" class="sp-pop-item" data-q="' + esc(q) + '"><b>' + (i + 1) + '</b><span>' + esc(q) + '</span>' +
-          '<i class="' + move + '">' + (move === 'up' ? '▲' : move === 'down' ? '▼' : '－') + '</i></button></li>';
+      ol.innerHTML = list.slice(0, 10).map(function (q, i) {
+        return '<li><button type="button" class="sp-pop-item" data-q="' + esc(q) + '"><b>' + (i + 1) + '</b><span>' + esc(q) + '</span></button></li>';
       }).join('');
     });
-  }
-
-  function marketStamp() {
-    var d = new Date();
-    return String(d.getMonth() + 1).padStart(2, '0') + '.' + String(d.getDate()).padStart(2, '0') + ' ' +
-      String(d.getHours()).padStart(2, '0') + ':00';
   }
 
   /* ---------- 카테고리 탭 (브랜드 → 모델) ---------- */
@@ -362,21 +345,10 @@
     }
   });
   input.addEventListener('search', function () { runQuery(input.value); });
-  input.addEventListener('input', function () {
-    var clear = $('[data-spclear]', page);
-    if (clear) clear.hidden = !input.value;
-    renderAuto(input.value);
-  });
+  input.addEventListener('input', function () { renderAuto(input.value); });
   page.addEventListener('click', function (e) {
     var ai = e.target.closest('.sp-auto-item'); if (ai) { runQuery(ai.dataset.q); return; }
     if (e.target.closest('[data-spclose]')) { closePage(); return; }
-    if (e.target.closest('[data-spclear]')) {
-      input.value = '';
-      e.target.closest('[data-spclear]').hidden = true;
-      hideAuto();
-      input.focus();
-      return;
-    }
     // '내시계팔기' 탭 — 패널 전환 대신 바로 내시계팔기로 이동
     var go = e.target.closest('[data-spgo]');
     if (go) {
