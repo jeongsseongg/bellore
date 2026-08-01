@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v199-search-flow-fix";
+const VERSION = "bellore-v198-mypick-search-reference";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
