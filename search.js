@@ -437,27 +437,59 @@
     if (window.BELLORE_openProductCard) window.BELLORE_openProductCard(card);
   }
 
-  /* ---------- 홈 상단 검색만 통합검색 오버레이를 연다 ---------- */
+  /* ---------- 홈 상단 검색은 인라인 자동완성 / 하단 검색 탭만 검색 페이지 ---------- */
   function wireHeader() {
     var hs = $('#headerSearch'), si = $('#searchInput');
-    if (si) {
-      si.value = '';
-      si.setAttribute('readonly', 'readonly');
-      si.removeAttribute('enterkeyhint');
+    var inlineBox = null;
+    if (hs && si) {
+      si.removeAttribute('readonly');
+      si.setAttribute('enterkeyhint', 'search');
+      inlineBox = document.createElement('div');
+      inlineBox.className = 'header-search-suggest';
+      inlineBox.hidden = true;
+      hs.appendChild(inlineBox);
+
+      function hideInline() {
+        inlineBox.hidden = true;
+        inlineBox.innerHTML = '';
+      }
+      function renderInline() {
+        var q = si.value.trim();
+        var list = matchAuto(q).slice(0, 6);
+        if (!q || !list.length) { hideInline(); return; }
+        inlineBox.innerHTML = list.map(function (it) {
+          return '<button type="button" class="sp-auto-item" data-hq="' + esc(it.q) + '">' +
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9a9a9f" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>' +
+            '<span>' + hl(it.label, q) + '</span></button>';
+        }).join('');
+        inlineBox.hidden = false;
+      }
+      hs.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var q = si.value.trim();
+        if (q) { hideInline(); runQuery(q); }
+      });
+      si.addEventListener('input', renderInline);
+      si.addEventListener('focus', renderInline);
+      inlineBox.addEventListener('click', function (e) {
+        var hit = e.target.closest('[data-hq]');
+        if (!hit) return;
+        si.value = hit.dataset.hq;
+        hideInline();
+        runQuery(hit.dataset.hq);
+      });
+      document.addEventListener('click', function (e) {
+        if (!e.target.closest('#headerSearch')) hideInline();
+      });
     }
-    function open(e) {
-      if (e) e.preventDefault();
+
+    var ts = $('.tab-item[data-nav="collection"]');
+    if (ts) ts.addEventListener('click', function (e) {
+      if (window.__belloreOpenCollectionFromSearch) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
       openPage('word');
-    }
-    if (hs) hs.addEventListener('submit', open);
-    if (si) {
-      si.addEventListener('focus', open);
-      si.addEventListener('click', open);
-    }
-    if (hs) {
-      var ic = hs.querySelector('.header-search-ic');
-      if (ic) ic.addEventListener('click', open);
-    }
+    }, true);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wireHeader);
   else wireHeader();
