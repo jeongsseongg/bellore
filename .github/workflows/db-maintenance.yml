@@ -21,6 +21,7 @@ on:
           - apply-discord-quote
           - apply-admin-multi-bids
           - apply-quote-followup
+          - apply-notif-guard
 
 permissions:
   contents: read
@@ -72,6 +73,16 @@ jobs:
           docker run --rm -e PGCONN -v "$PWD:/repo:ro" postgres:17 \
             psql "$PGCONN" -v ON_ERROR_STOP=1 -f "/repo/quote_followup.sql"
           echo "판매 확정 후속처리 DB 적용 완료"
+
+      - name: Apply notification NULL guard SQL (재실행 안전)
+        if: inputs.task == 'apply-notif-guard'
+        env:
+          PGCONN: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          docker run --rm -e PGCONN -v "$PWD:/repo:ro" postgres:17 \
+            psql "$PGCONN" -v ON_ERROR_STOP=1 -f "/repo/notif_null_guard.sql"
+          echo "알림 user_id NULL 방어 적용 완료 (비회원 견적 중복 견적 추가 가능)"
 
       - name: Diagnose (읽기 전용)
         if: inputs.task == 'diagnose'
