@@ -344,7 +344,9 @@ function productHtml(p) {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: p.name,
-    image: p.photos.length ? p.photos : [p.image],
+    // 검색봇이 모든 원본 사진을 반복 요청하지 않도록 구조화 데이터에는 대표 사진만 노출한다.
+    // 실제 서비스 화면에서는 기존처럼 전체 사진을 확인할 수 있다.
+    image: [p.image],
     description: desc,
     sku: p.productNo || String(p.id),
     brand: { '@type': 'Brand', name: p.brand || '벨로르' },
@@ -367,8 +369,10 @@ function productHtml(p) {
       { '@type': 'ListItem', position: 3, name: p.name, item: p.url },
     ],
   };
-  const gallery = p.photos.length
-    ? `<div class="gallery">${p.photos.map((u) => `<img src="${esc(u)}" alt="${esc(p.name)}" loading="lazy">`).join('')}</div>` : '';
+  // 정적 SEO 페이지는 대표 사진 한 장만 제공한다. 원본 다중 사진은 앱 화면에서만 지연 로드한다.
+  // 이렇게 하면 검색봇·미리보기 봇이 상품마다 최대 10장의 Storage 원본을 내려받는 것을 막을 수 있다.
+  const gallery = p.image
+    ? `<div class="gallery"><img src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy"></div>` : '';
   const priceBlock = (p.sale && p.sale < p.price)
     ? `<div class="price"><span class="was">${krw(p.price)}</span>${krw(p.now)}<span class="off">${Math.round((1 - p.now / p.price) * 100)}%↓</span></div>`
     : `<div class="price">${krw(p.now)}</div>`;
@@ -481,7 +485,7 @@ function googleMerchantFeed(products) {
       <g:title>${esc(p.name)}</g:title>
       <g:description>${esc(excerpt(p.desc || p.name, 4000))}</g:description>
       <g:link>${p.url}</g:link>
-      <g:image_link>${esc(p.image)}</g:image_link>${p.photos.slice(1, 11).map((u) => `\n      <g:additional_image_link>${esc(u)}</g:additional_image_link>`).join('')}
+      <g:image_link>${esc(p.image)}</g:image_link>
       <g:availability>in_stock</g:availability>
       <g:price>${p.price} KRW</g:price>${saleTag}
       <g:condition>${p.isNew ? 'new' : 'used'}</g:condition>
