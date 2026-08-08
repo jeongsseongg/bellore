@@ -319,6 +319,65 @@ body.big .jh{--fb:19px; --fl:17px; --fc:15px; --ft2:22px; --fh:32px; --fn:39px}
 .cart .l span{display:block;font-size:12px;opacity:.72;font-weight:500}
 .cart .go{background:#fff;color:var(--bs);min-height:46px;padding:0 18px;border-radius:13px;font-weight:700;font-size:var(--fl);display:inline-flex;align-items:center}
 
+/* 더보기 메뉴 */
+.ml{background:var(--c);border-radius:22px;overflow:hidden}
+.mi{display:flex;gap:14px;align-items:center;padding:16px 20px;text-decoration:none;color:inherit}
+.mi + .mi{box-shadow:inset 0 1px 0 var(--ln)}
+.mi .ico{width:42px;height:42px;border-radius:14px;background:var(--f);display:grid;place-items:center;flex:none}
+.mi .tx{flex:1;min-width:0}
+.mi .tx b{display:block;font-size:var(--fb);font-weight:700;letter-spacing:-.03em}
+.mi .tx span{display:block;font-size:var(--fc);color:var(--d);font-weight:500;margin-top:2px}
+.mi .ch{color:var(--ft)}
+.mi .wn{color:var(--r);font-size:var(--fc);font-weight:700;white-space:nowrap}
+.mgroup{font-size:var(--fc);font-weight:700;color:var(--d);padding:16px 6px 8px;display:block}
+
+/* 폼 */
+.fd{margin-bottom:16px}
+.fd:last-child{margin-bottom:0}
+.fd label{display:block;font-size:var(--fc);font-weight:600;color:var(--s);margin-bottom:8px}
+.fd .ip{width:100%;min-height:56px;border:0;border-radius:14px;background:var(--f);padding:0 18px;display:flex;align-items:center;font-size:var(--fb);color:var(--i);font-weight:600;letter-spacing:-.025em}
+.fd .ip.phd{color:var(--d);font-weight:500}
+.fd .hp{font-size:13px;color:var(--d);margin-top:8px;display:block;font-weight:500;line-height:1.5}
+.fd .hp.w{color:#C77400;font-weight:600}
+.prev{background:var(--f);border-radius:16px;padding:18px 20px;margin-top:18px}
+.prev .plb{font-size:13px;color:var(--d);font-weight:600;display:block;margin-bottom:11px}
+.prev .pb{background:var(--c);border-radius:13px;padding:16px 18px}
+
+/* 고객 상세 */
+.f3{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:16px}
+.f3 > *{min-width:0}
+.fct{background:var(--f);border-radius:16px;padding:14px 14px}
+.fct .l{font-size:12px;color:var(--s);font-weight:600;display:block}
+.fct .v{font-size:calc(var(--fb) + 2px);font-weight:800;display:block;margin-top:3px;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+.wbox{background:var(--aw);border-radius:16px;padding:16px 18px;margin-top:14px}
+.wbox b{display:block;font-size:var(--fl);color:#C77400;font-weight:700}
+.wbox span{display:block;font-size:13px;color:#8A5A10;margin-top:4px;font-weight:500;line-height:1.5}
+.memo{background:var(--f);border-radius:16px;padding:16px 18px;min-height:84px;color:var(--d);font-size:var(--fl);font-weight:500}
+
+/* 빈 상태 */
+.emp{padding:52px 24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px}
+.emp .il{width:76px;height:76px;border-radius:26px;background:var(--bw);display:grid;place-items:center;margin-bottom:8px}
+.emp h4{font-size:calc(var(--ft2) + 1px);font-weight:700;letter-spacing:-.038em;line-height:1.4}
+.emp p{color:var(--s);font-size:var(--fl);max-width:25em;font-weight:500;line-height:1.6}
+
+/* 로그인 */
+.lgn{padding:34px 20px 24px}
+.lgn .lgo{width:60px;height:60px;border-radius:20px;background:var(--b);color:#fff;display:grid;place-items:center;font-weight:800;font-size:20px;margin:0 auto 20px;letter-spacing:-.045em}
+.lgn h3{font-size:25px;font-weight:800;letter-spacing:-.045em;text-align:center;line-height:1.34}
+.lgn .ls{color:var(--s);font-size:var(--fl);margin:10px 0 24px;text-align:center;font-weight:500;line-height:1.55}
+.lgn .seg{display:flex;width:100%;margin-bottom:22px}
+.lgn .seg button{flex:1;justify-content:center}
+.lgn .alt{text-align:center;margin-top:16px;font-size:var(--fl)}
+.lgn .alt a{color:var(--s);font-weight:600;text-decoration:none}
+.lgn .fine{text-align:center;margin-top:18px;font-size:12.5px;color:var(--ft);font-weight:500}
+
+/* 로그인 기록 */
+.lrow{display:flex;align-items:center;gap:12px;padding:15px 20px}
+.lrow + .lrow{box-shadow:inset 0 1px 0 var(--ln)}
+.lrow .tx{flex:1;min-width:0}
+.lrow .tx b{display:block;font-size:var(--fl);font-weight:700}
+.lrow .tx span{display:block;font-size:12.5px;color:var(--d);font-weight:500;margin-top:2px;font-variant-numeric:tabular-nums}
+
 /* 데스크톱 */
 .dk{display:grid;grid-template-columns:216px 1fr;min-height:560px;background:var(--bg)}
 .dk-s{background:var(--c);padding:24px 12px}
@@ -481,7 +540,28 @@ footer b{color:var(--ink);font-weight:700}
     </div>
   </div>
 
+  <h4 class="mini">보내주신 화면 9개 → 개편 후 어디로 가나</h4>
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:38px"></th><th style="width:190px">지금 화면</th><th style="width:150px">개편 후 위치</th><th>달라지는 점</th></tr></thead>
+      <tbody>
+        <tr><td class="n">1</td><td><b>운영 현황</b></td><td><b>오늘</b> 탭</td><td>KPI 4개 나열 → <b>진행률 막대 + 할 일 단계</b>. 숫자는 아래로 내림</td></tr>
+        <tr><td class="n">2</td><td><b>상품 관리</b></td><td><b>상품</b> 탭</td><td>표 → 리스트. <b>색 점 + 재고 막대</b> 추가, 재고 0 자동 품절</td></tr>
+        <tr><td class="n">3</td><td><b>주문 관리</b></td><td><b>주문</b> 탭</td><td>카드마다 <b>다음 단계 버튼 하나</b>. 탭에 미처리 건수 배지</td></tr>
+        <tr><td class="n">4</td><td><b>고객 관리</b></td><td>더보기 → 고객</td><td><code class="inl">??? ???</code> 해결 + <b>「이름 없음」 칩</b>. 빈 오른쪽 절반 없앰</td></tr>
+        <tr><td class="n">5</td><td><b>주문·입금 설정</b></td><td>더보기 → 설정</td><td><b>세그먼트 3분할</b> + 고객 화면 미리보기 + 하단 저장 바</td></tr>
+        <tr><td class="n">6</td><td><b>계정 보안</b></td><td>더보기 → 보안</td><td>좌우 분리 → 한 덩어리. <b>로그인 기록 신설</b></td></tr>
+        <tr><td class="n">7</td><td><b>로그인 / 회원가입</b></td><td>고객 · 로그인</td><td>아래로 밀린 카드 → <b>세로 가운데</b>. 입력칸 56px, 버튼 가로 100%</td></tr>
+        <tr><td class="n">8</td><td><b>주문내역</b> (비로그인)</td><td>고객 · 주문내역</td><td>"로그인이 필요합니다" → <b>로그인 + 비회원 주문 조회</b> 두 갈래</td></tr>
+        <tr><td class="n">9</td><td><b>자주 주문 상품</b></td><td>고객 · 자주 주문</td><td><b>2열 격자</b>에서 수량·담기까지 완결. 하단 장바구니 바</td></tr>
+        <tr><td class="n">+</td><td><b>재고 한 번에 넣기</b></td><td>상품 → 일괄 입력</td><td><b>신설.</b> 70개를 수정 버튼으로 하나씩 여는 문제 해결</td></tr>
+        <tr><td class="n">+</td><td><b>더보기</b></td><td>더보기 탭</td><td><b>신설.</b> 4·5·6번을 담고, 손볼 게 있으면 빨간 표시</td></tr>
+      </tbody>
+    </table>
+  </div>
+
   <ul class="dot" style="margin-top:26px">
+    <li><b>사라지는 화면은 없습니다.</b> 9개 전부 그대로 있고, <b>어디에 있는지</b>와 <b>안에서 무엇을 먼저 보여주는지</b>만 바뀝니다.</li>
     <li><b>「오늘」이 새로 생기는 첫 화면</b>입니다. 켜자마자 지금 뭘 해야 하는지가 보입니다.</li>
     <li>고객·설정·보안은 <b>매일 쓰지 않으므로</b> 「더보기」로 내립니다. 하단 탭 자리를 차지할 이유가 없습니다.</li>
     <li>데스크톱도 <b>같은 4개</b>를 왼쪽에 폅니다. 기기를 바꿔도 위치가 같아야 헷갈리지 않습니다.</li>
@@ -995,6 +1075,309 @@ footer b{color:var(--ink);font-weight:700}
         </div>
       </div>
     </div></div>
+  </div>
+
+  <!-- 3-4 더보기 그룹 -->
+  <h3 class="sub" style="max-width:var(--maxw);margin:56px auto 16px">3-4 · 「더보기」 · 고객 관리 · 주문·입금 설정</h3>
+  <p class="body" style="max-width:var(--maxw);margin:0 auto 8px">
+    매일 쓰지 않는 3개(고객·설정·보안)는 <b>「더보기」 안</b>으로 들어갑니다. 사라지는 게 아니라
+    <b>한 단계 안쪽</b>으로 옮기는 것이고, 손봐야 할 게 있으면 <b>빨간 표시</b>로 알려줍니다.
+  </p>
+
+  <div class="shot">
+    <div class="scap"><b>휴대폰</b> 더보기 &nbsp;/&nbsp; 고객 관리 &nbsp;/&nbsp; 주문·입금 설정</div>
+    <div class="phones">
+
+      <!-- 더보기 -->
+      <div>
+        <div class="ph"><div class="ph-in"><div class="jh">
+          <div class="stat"><span class="num">11:20</span><span class="num">LTE 61%</span></div>
+          <div class="ah"><div><div class="t">더보기</div><b class="u">가끔 쓰는 설정을 모았어요</b></div></div>
+
+          <div class="body">
+            <div class="cd" style="padding:20px 22px;display:flex;gap:14px;align-items:center">
+              <span style="width:52px;height:52px;border-radius:18px;background:#E8F3FF;color:#1B64DA;display:grid;place-items:center;font-weight:800;font-size:18px;flex:none;letter-spacing:-.04em">JH</span>
+              <span style="flex:1;min-width:0">
+                <b style="display:block;font-size:19px;font-weight:700;letter-spacing:-.035em">진흥몰 관리자</b>
+                <span style="display:block;font-size:13px;color:#8B95A1;font-weight:500;margin-top:2px">jinflower</span>
+              </span>
+              <span style="color:#B0B8C1">›</span>
+            </div>
+
+            <span class="mgroup">가게 관리</span>
+            <div class="ml">
+              <a class="mi" href="#p">
+                <span class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4E5968" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c0-3.6 3.4-5.5 7.5-5.5s7.5 1.9 7.5 5.5"/></svg></span>
+                <span class="tx"><b>고객 관리</b><span>연락처·배송지·메모</span></span>
+                <span class="wn">이름 1건</span>
+              </a>
+              <a class="mi" href="#p">
+                <span class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4E5968" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10.5h18"/></svg></span>
+                <span class="tx"><b>주문·입금 설정</b><span>계좌·배송비·주문 접수</span></span>
+                <span class="wn">계좌 없음</span>
+              </a>
+              <a class="mi" href="#p">
+                <span class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4E5968" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+                <span class="tx"><b>계정 보안</b><span>비밀번호·로그인 기록</span></span>
+                <span class="ch">›</span>
+              </a>
+            </div>
+
+            <span class="mgroup">기타</span>
+            <div class="ml">
+              <a class="mi" href="#p">
+                <span class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4E5968" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
+                <span class="tx"><b>알림 설정</b><span>새 주문·입금 알림</span></span>
+                <span class="ch">›</span>
+              </a>
+              <a class="mi" href="#p">
+                <span class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#4E5968" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg></span>
+                <span class="tx"><b>로그아웃</b></span>
+                <span class="ch">›</span>
+              </a>
+            </div>
+          </div>
+
+          <div class="tabs">
+            <a href="#p"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.6 12 3.5l9 7.1V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9.5 21v-6h5v6"/></svg>오늘</a>
+            <a href="#p"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5h8l4 4V21a.5.5 0 0 1-.5.5h-11A.5.5 0 0 1 6 21z"/><path d="M13.5 2.5V7H18M9.5 13h5M9.5 16.5h3"/></svg>주문<span class="nb num">2</span></a>
+            <a href="#p"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.6"/><path d="M12 9.4V4.5M12 14.6V19.5M9.4 12H4.5M14.6 12H19.5"/></svg>상품</a>
+            <a class="on" href="#p"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>더보기</a>
+          </div>
+        </div></div></div>
+        <div class="ph-nt">「더보기」 — 새 탭</div>
+      </div>
+
+      <!-- 고객 관리 -->
+      <div>
+        <div class="ph"><div class="ph-in"><div class="jh">
+          <div class="stat"><span class="num">11:22</span><span class="num">LTE 61%</span></div>
+          <div class="ah">
+            <div><div class="t">고객</div><b class="u num">총 1명</b></div>
+            <div class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4E5968" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></div>
+          </div>
+
+          <div class="body">
+            <div class="cd cd-p">
+              <div style="display:flex;gap:13px;align-items:center">
+                <span style="width:52px;height:52px;border-radius:18px;background:#F2F4F6;color:#4E5968;display:grid;place-items:center;font-weight:700;font-size:19px;flex:none">j</span>
+                <span style="flex:1;min-width:0">
+                  <b style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;font-size:19px;font-weight:700;letter-spacing:-.038em">jinflower <span class="chip c-wait">이름 없음</span></b>
+                  <span style="display:block;font-size:13px;color:#8B95A1;font-weight:500;margin-top:3px">jinflower@login.jinheung.local</span>
+                </span>
+              </div>
+
+              <div class="f3">
+                <div class="fct"><span class="l">누적 구매</span><span class="v">0원</span></div>
+                <div class="fct"><span class="l">주문</span><span class="v">0회</span></div>
+                <div class="fct"><span class="l">최근</span><span class="v" style="font-size:16px;color:#B0B8C1">없음</span></div>
+              </div>
+
+              <div class="wbox">
+                <b>배송지가 등록되지 않았어요</b>
+                <span>배송지가 없으면 주문이 들어와도 운송장을 만들 수 없어요.</span>
+              </div>
+
+              <div style="margin-top:18px">
+                <label style="display:block;font-size:13.5px;font-weight:600;color:#4E5968;margin-bottom:8px">관리자 메모 · 고객에게는 안 보여요</label>
+                <div class="memo">거래하면서 기억할 점을 적어두세요.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cta"><button class="bt bt-p bt-f" type="button">메모 저장</button></div>
+
+          <div class="tabs">
+            <a href="#p"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.6 12 3.5l9 7.1V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9.5 21v-6h5v6"/></svg>오늘</a>
+            <a href="#p"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5h8l4 4V21a.5.5 0 0 1-.5.5h-11A.5.5 0 0 1 6 21z"/><path d="M13.5 2.5V7H18M9.5 13h5M9.5 16.5h3"/></svg>주문<span class="nb num">2</span></a>
+            <a href="#p"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.6"/><path d="M12 9.4V4.5M12 14.6V19.5M9.4 12H4.5M14.6 12H19.5"/></svg>상품</a>
+            <a class="on" href="#p"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>더보기</a>
+          </div>
+        </div></div></div>
+        <div class="ph-nt">「고객 관리」 — <code class="inl">???</code> 해결</div>
+      </div>
+
+      <!-- 설정 -->
+      <div>
+        <div class="ph"><div class="ph-in"><div class="jh">
+          <div class="stat"><span class="num">11:26</span><span class="num">LTE 60%</span></div>
+          <div class="ah"><div><div class="t">주문·입금 설정</div><b class="u">바꾼 값은 주문서에 바로 반영돼요</b></div></div>
+          <div class="segwrap">
+            <div class="seg" role="tablist" data-seg>
+              <button role="tab" aria-selected="false" type="button">주문 운영</button>
+              <button role="tab" aria-selected="true" type="button">입금 계좌 <span class="n" style="color:#F04452">!</span></button>
+              <button role="tab" aria-selected="false" type="button">배송비</button>
+            </div>
+          </div>
+
+          <div class="body">
+            <div class="cd cd-p">
+              <div class="fd">
+                <label>은행</label>
+                <div class="ip phd">국민은행</div>
+              </div>
+              <div class="fd">
+                <label>계좌번호</label>
+                <div class="ip phd">숫자만 입력해요</div>
+              </div>
+              <div class="fd">
+                <label>예금주</label>
+                <div class="ip phd">통장에 적힌 이름 그대로</div>
+                <span class="hp w">3개를 모두 채워야 주문서에 계좌가 나타나요. 지금은 안 보여요.</span>
+              </div>
+              <div class="prev">
+                <span class="plb">고객에게 이렇게 보여요</span>
+                <div class="pb">
+                  <b style="display:block;font-size:14.5px;font-weight:700;margin-bottom:6px">입금 계좌</b>
+                  <span style="color:#B0B8C1;font-size:15px;font-weight:500">은행 · 계좌번호 · 예금주</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="savebar">
+            <span class="info" style="color:#C77400;font-weight:600">저장하지 않으면<br>사라져요</span>
+            <button class="bt bt-g bt-s" type="button">되돌리기</button>
+            <button class="bt bt-p bt-s" type="button">저장</button>
+          </div>
+        </div></div></div>
+        <div class="ph-nt">「주문·입금 설정」 — 세그먼트 3분할</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="max-width:var(--maxw);margin:22px auto 0">
+    <h4 class="mini">개발 지시</h4>
+    <ul class="dot">
+      <li><b>「더보기」에 빨간 요약 표시</b>를 답니다 — "이름 1건", "계좌 없음". 한 단계 안쪽으로 옮겼으니 <b>안 들어가 봐도 문제를 알 수 있어야</b> 합니다.</li>
+      <li>고객 이름 <code class="inl">??? ???</code>는 <b>인코딩(UTF-8) 확인 → 없으면 이메일 앞부분으로 대체 → 「이름 없음」 칩</b> 순서로 고칩니다. 오류가 아니라 <b>채워야 할 항목</b>이라고 알려주는 게 목적입니다.</li>
+      <li>설정은 <b>세그먼트 3분할</b>(주문 운영 / 입금 계좌 / 배송비). 비어 있는 필수 항목이 있는 탭에 <b>빨간 <code class="inl">!</code></b>를 답니다.</li>
+      <li>설정 화면은 <b>설정값이 아니라 결과를 보여줍니다.</b> 계좌·배송비 모두 고객이 볼 화면을 그 자리에서 미리보기로 띄웁니다.</li>
+      <li>저장 바는 하단 고정. 값이 바뀌었을 때만 "저장하지 않으면 사라져요"가 뜹니다.</li>
+    </ul>
+  </div>
+
+  <!-- 3-5 -->
+  <h3 class="sub" style="max-width:var(--maxw);margin:56px auto 16px">3-5 · 계정 보안 · 고객 로그인 · 고객 주문내역</h3>
+  <div class="shot">
+    <div class="scap"><b>휴대폰</b> 계정 보안 &nbsp;/&nbsp; 고객 로그인 &nbsp;/&nbsp; 고객 주문내역(로그인 전)</div>
+    <div class="phones">
+
+      <!-- 계정 보안 -->
+      <div>
+        <div class="ph"><div class="ph-in"><div class="jh">
+          <div class="stat"><span class="num">11:31</span><span class="num">LTE 60%</span></div>
+          <div class="ah"><div><div class="t">계정 보안</div><b class="u">이 계정 하나로 주문과 고객 정보를 다 볼 수 있어요</b></div></div>
+
+          <div class="body">
+            <div class="cd cd-p">
+              <b style="display:block;font-size:var(--ft2);font-weight:700;letter-spacing:-.035em;margin-bottom:4px">비밀번호 바꾸기</b>
+              <span style="display:block;font-size:13.5px;color:#8B95A1;font-weight:500;margin-bottom:20px">비밀번호는 어디에도 그대로 저장되지 않아요.</span>
+              <div class="fd"><label>지금 비밀번호</label><div class="ip phd">현재 쓰고 계신 비밀번호</div></div>
+              <div class="fd"><label>새 비밀번호</label><div class="ip phd">8자 이상, 숫자와 영문을 함께</div>
+                <span class="hp">다른 사이트와 같은 비밀번호는 쓰지 마세요.</span></div>
+              <div class="fd"><label>새 비밀번호 확인</label><div class="ip phd">한 번 더 입력해주세요</div></div>
+              <button class="bt bt-p bt-f" style="margin-top:20px" type="button">비밀번호 바꾸기</button>
+            </div>
+
+            <div class="cd">
+              <div style="padding:22px 20px 14px">
+                <b style="display:block;font-size:var(--ft2);font-weight:700;letter-spacing:-.035em">로그인 기록</b>
+                <span style="display:block;font-size:13.5px;color:#8B95A1;font-weight:500;margin-top:4px">모르는 접속이 있으면 바로 비밀번호를 바꿔주세요.</span>
+              </div>
+              <div class="lrow">
+                <span class="tx"><b>이 휴대폰 · Chrome</b><span>오늘 11:31 · 서울</span></span>
+                <span class="chip c-done">접속중</span>
+              </div>
+              <div class="lrow">
+                <span class="tx"><b>Windows · Chrome</b><span>어제 10:02 · 서울</span></span>
+                <span class="chip c-off">종료됨</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="tabs">
+            <a href="#p"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.6 12 3.5l9 7.1V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9.5 21v-6h5v6"/></svg>오늘</a>
+            <a href="#p"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5h8l4 4V21a.5.5 0 0 1-.5.5h-11A.5.5 0 0 1 6 21z"/><path d="M13.5 2.5V7H18M9.5 13h5M9.5 16.5h3"/></svg>주문<span class="nb num">2</span></a>
+            <a href="#p"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.6"/><path d="M12 9.4V4.5M12 14.6V19.5M9.4 12H4.5M14.6 12H19.5"/></svg>상품</a>
+            <a class="on" href="#p"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>더보기</a>
+          </div>
+        </div></div></div>
+        <div class="ph-nt">「계정 보안」 — 로그인 기록 추가</div>
+      </div>
+
+      <!-- 고객 로그인 -->
+      <div>
+        <div class="ph"><div class="ph-in"><div class="jh">
+          <div class="stat"><span class="num">5:41</span><span class="num">LTE 94%</span></div>
+          <div class="ah" style="padding-bottom:0"><div><div class="t" style="font-size:22px">진흥몰</div></div></div>
+
+          <div class="lgn">
+            <div class="lgo">JH</div>
+            <h3>진흥몰에<br>오신 걸 환영해요</h3>
+            <p class="ls">로그인하면 장바구니와 주문 내역이<br>계정에 저장돼요.</p>
+            <div class="seg" role="tablist" data-seg>
+              <button role="tab" aria-selected="true" type="button">로그인</button>
+              <button role="tab" aria-selected="false" type="button">회원가입</button>
+            </div>
+            <div class="fd"><label>아이디 또는 이메일</label><div class="ip phd">example@email.com</div></div>
+            <div class="fd"><label>비밀번호</label><div class="ip phd">6자 이상 입력해주세요</div></div>
+            <button class="bt bt-p bt-f" style="margin-top:20px" type="button">로그인</button>
+            <p class="alt"><a href="#p">비밀번호가 기억나지 않아요</a></p>
+            <p class="fine">Supabase Auth로 안전하게 처리돼요</p>
+          </div>
+        </div></div></div>
+        <div class="ph-nt">고객 「로그인」 — 세로 가운데</div>
+      </div>
+
+      <!-- 고객 주문내역 -->
+      <div>
+        <div class="ph"><div class="ph-in"><div class="jh">
+          <div class="stat"><span class="num">5:44</span><span class="num">LTE 94%</span></div>
+          <div class="ah"><div><div class="t">주문내역</div><b class="u">주문 상태와 배송 조회를 한 곳에서</b></div></div>
+
+          <div class="body">
+            <div class="cd">
+              <div class="emp">
+                <div class="il"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#3182F6" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
+                <h4>로그인하면 주문 내역을<br>볼 수 있어요</h4>
+                <p>주문 상태, 배송 조회, 지난 주문 다시 담기를 한 곳에서 확인하실 수 있어요.</p>
+              </div>
+            </div>
+
+            <div class="cd cd-p" style="padding:20px 22px">
+              <b style="display:block;font-size:var(--fl);font-weight:700;letter-spacing:-.03em">비회원으로 주문하셨나요?</b>
+              <span style="display:block;font-size:13.5px;color:#8B95A1;font-weight:500;margin-top:5px;line-height:1.55">주문번호와 연락처만 있으면 로그인 없이 조회하실 수 있어요.</span>
+              <button class="bt bt-g bt-f" style="margin-top:14px" type="button">주문번호로 조회하기</button>
+            </div>
+          </div>
+
+          <div class="cta"><button class="bt bt-p bt-f" type="button">로그인하기</button></div>
+
+          <div class="tabs">
+            <a href="#p"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.6 12 3.5l9 7.1V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9.5 21v-6h5v6"/></svg>홈</a>
+            <a href="#p"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.6"/><path d="M12 9.4V4.5M12 14.6V19.5M9.4 12H4.5M14.6 12H19.5"/></svg>자주 주문</a>
+            <a class="on" href="#p"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2.5h8l4 4V21a.5.5 0 0 1-.5.5h-11A.5.5 0 0 1 6 21z"/><path d="M13.5 2.5V7H18M9.5 13h5"/></svg>주문내역</a>
+            <a href="#p"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c0-3.6 3.4-5.5 7.5-5.5s7.5 1.9 7.5 5.5"/></svg>내 정보</a>
+          </div>
+        </div></div></div>
+        <div class="ph-nt">고객 「주문내역」 — 막다른 길 없앰</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="max-width:var(--maxw);margin:22px auto 0">
+    <h4 class="mini">개발 지시</h4>
+    <ul class="dot">
+      <li><b>「로그인 기록」은 새로 추가</b>하는 항목입니다. 관리자 계정 하나로 모든 주문·고객 정보에 접근하므로 최소한의 안전장치가 필요합니다.</li>
+      <li>비밀번호 규칙은 <b>입력 전에</b> 보여줍니다("8자 이상, 숫자와 영문을 함께"). 틀린 뒤 빨간 글씨로 알려주는 건 늦습니다. 비밀번호 칸에는 <b>눈 아이콘(보기)</b>을 달고 누르는 영역은 44×44px.</li>
+      <li>로그인 실패 문구는 <b>"아이디 또는 비밀번호가 맞지 않아요"</b>로 통일합니다. 어느 쪽이 틀렸는지 알려주면 계정 존재 여부가 새어 나갑니다.</li>
+      <li>주문내역은 <b>지금 푸터에만 있는 「주문 조회」</b>를 화면 안으로 끌어올립니다. 비회원으로 주문한 분이 여기서 막히면 전화가 옵니다.</li>
+      <li>로그인 후에는 원래 보려던 곳으로 <b>되돌아옵니다</b>(<code class="inl">?redirect=/orders</code>). 홈으로 보내지 마세요.</li>
+      <li>고객 화면 하단 탭도 <b>4개</b>입니다 — 홈 · 자주 주문 · 주문내역 · 내 정보. 관리자와 같은 규칙입니다.</li>
+    </ul>
   </div>
 </section>
 
