@@ -18,6 +18,8 @@ assert.equal(acq('', 'https://blog.naver.com/example').channel, 'naver_blog');
 assert.equal(acq('', 'https://www.google.com/search?q=watch').channel, 'google_organic');
 assert.equal(acq('', 'https://bellore.co.kr/#home').channel, 'direct');
 assert.equal(acq('?utm_source=instagram&utm_medium=paid_social').channel, 'paid_social');
+assert.equal(acq('?n_query=%EB%A1%A4%EB%A0%89%EC%8A%A4&n_keyword=%EB%AA%85%ED%92%88%EC%8B%9C%EA%B3%84&utm_term=watch').n_query, '롤렉스');
+assert.equal(acq('?n_query=%EB%A1%A4%EB%A0%89%EC%8A%A4&n_keyword=%EB%AA%85%ED%92%88%EC%8B%9C%EA%B3%84&utm_term=watch').n_keyword, '명품시계');
 
 const pii = acq('?utm_source=naver&utm_medium=cpc&email=a%40b.com&phone=01012345678&token=secret');
 assert.equal(pii.email, undefined);
@@ -55,6 +57,11 @@ assert.match(sql, /'devices'/i);
 assert.match(sql, /'top_pages'/i);
 assert.match(sql, /'top_products'/i);
 assert.match(sql, /'recent_activity'/i);
+assert.match(sql, /'keywords'/i);
+assert.match(sql, /actual_query/i);
+assert.match(sql, /registered_keyword/i);
+assert.match(sql, /'source_performance'/i);
+assert.match(sql, /e\.received_at >= v_from[\s\S]*event_name not in/i);
 
 const collector = fs.readFileSync(path.join(root, 'supabase/functions/collect-analytics/index.ts'), 'utf8');
 assert.match(collector, /ANALYTICS_IP_HASH_KEY/);
@@ -77,12 +84,18 @@ assert.match(confirm, /admin\.rpc\("analytics_finalize_paid_order"/);
 assert.doesNotMatch(confirm, /\.from\("orders"\)\s*\.update\(\{\s*status:\s*"paid"/);
 
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const dashboard = fs.readFileSync(path.join(root, 'script.js'), 'utf8');
 assert.doesNotMatch(html, /<script[^>]+googletagmanager\.com\/gtag/i);
 assert.doesNotMatch(html, /<script[^>]+wcs\.naver\.net/i);
 assert.match(html, /analytics-client\.js/);
 assert.match(html, /analytics-client\.js\?v=20260810-premium-consent-v1/);
-assert.match(html, /styles\.css\?v=20260810-premium-consent-v1/);
-assert.match(html, /script\.js\?v=20260810-analytics-dashboard-v4/);
+assert.match(html, /styles\.css\?v=20260810-analytics-insights-v5/);
+assert.match(html, /script\.js\?v=20260810-analytics-insights-v5/);
 assert.match(html, /접속 IP 원문은 저장하지 않고/);
+assert.match(dashboard, /conic-gradient/);
+assert.match(dashboard, /저장된 유입 키워드/);
+assert.match(dashboard, /어디서 와서 구매했나/);
+assert.match(dashboard, /검색엔진 미제공/);
+assert.match(dashboard, /상세 행동 기록/);
 
 console.log('analytics-v3 invariants: ok');

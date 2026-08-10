@@ -9017,6 +9017,40 @@ body.mypage-open .tabbar { z-index: 2550; }
 .an3-class-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .an3-class-grid--two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .an3-class-grid > section { min-width: 0; }
+.an3-donut-section { margin-top: 2px; padding: 2px 0 4px; }
+.an3-donut-layout { display: grid; grid-template-columns: 180px minmax(0, 1fr); align-items: center; gap: 26px; padding: 18px 22px; border-radius: 14px; background: var(--bg-soft); }
+.an3-donut { position: relative; width: 166px; aspect-ratio: 1; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(17,17,17,.03); }
+.an3-donut::after { content: ''; position: absolute; inset: 31px; border-radius: 50%; background: var(--bg-soft); }
+.an3-donut > span { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.an3-donut b { font-size: 25px; line-height: 1; font-variant-numeric: tabular-nums; }
+.an3-donut small { margin-top: 6px; font-size: 11px; color: var(--text-3); }
+.an3-donut-legend { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 18px; }
+.an3-donut-item { display: grid; grid-template-columns: 9px minmax(0, 1fr) auto; align-items: center; gap: 8px; min-width: 0; font-size: 12px; }
+.an3-donut-item i { width: 9px; height: 9px; border-radius: 50%; }
+.an3-donut-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.an3-donut-item b { color: var(--text-3); font-size: 11px; font-variant-numeric: tabular-nums; }
+.an3-tablewrap { width: 100%; overflow-x: auto; border: 1px solid #e5e3df; border-radius: 12px; background: #fff; }
+.an3-table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 12px; white-space: nowrap; }
+.an3-table th { padding: 10px 12px; background: #f6f7f9; color: #667085; font-weight: 800; text-align: left; }
+.an3-table td { padding: 11px 12px; border-top: 1px solid #eceef1; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.an3-table td:first-child, .an3-table td b { color: var(--text); }
+.an3-table td small { display: block; max-width: 260px; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; color: var(--text-3); }
+.an3-type { display: inline-flex; padding: 3px 7px; border-radius: 999px; background: #eef5ff; color: #2563c9; font-size: 10.5px; font-weight: 800; }
+.an3-empty-note { display: flex; flex-direction: column; gap: 5px; padding: 15px 16px; border: 1px solid #e1e9f6; border-radius: 12px; background: #f6f9fe; }
+.an3-empty-note b { font-size: 12.5px; color: #264c7f; }
+.an3-empty-note span { font-size: 11.5px; line-height: 1.55; color: #607895; }
+.an3-funnel { display: flex; flex-direction: column; gap: 9px; padding: 14px; border-radius: 12px; background: var(--bg-soft); }
+.an3-funnel-row { display: grid; grid-template-columns: 150px 52px minmax(120px, 1fr); align-items: center; gap: 12px; }
+.an3-funnel-row > div { display: flex; flex-direction: column; gap: 2px; }
+.an3-funnel-row b { font-size: 12.5px; }
+.an3-funnel-row span { font-size: 10.5px; color: var(--text-3); }
+.an3-funnel-row strong { text-align: right; font-size: 15px; font-variant-numeric: tabular-nums; }
+.an3-funnel-row > i { height: 12px; overflow: hidden; border-radius: 999px; background: #e2e7ed; }
+.an3-funnel-row em { display: block; height: 100%; border-radius: inherit; background: #2d7ff9; }
+.an3-activity-table .an3-table { min-width: 900px; }
+.an3-activity-table td:nth-child(1) { width: 145px; color: var(--text-3); }
+.an3-activity-table td:nth-child(2) { width: 115px; }
+.an3-activity-table td:nth-child(3) { width: 110px; }
 .an3-activity .an-name { display: flex; flex-direction: column; gap: 2px; white-space: normal; }
 .an3-activity .an-name b { font-size: 12.5px; }
 .an3-activity .an-name small { color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -9030,11 +9064,16 @@ body.mypage-open .tabbar { z-index: 2550; }
 @media (max-width: 720px) {
   .an3-history { flex-direction: column; gap: 3px; }
   .an3-class-grid, .an3-class-grid--two { grid-template-columns: 1fr; }
+  .an3-donut-layout { grid-template-columns: 1fr; justify-items: center; gap: 18px; }
+  .an3-donut-legend { width: 100%; }
+  .an3-funnel-row { grid-template-columns: 104px 42px minmax(90px, 1fr); gap: 8px; }
 }
 @media (max-width: 480px) {
   .an3-kpis { grid-template-columns: repeat(2, 1fr); }
   .an3-activity { align-items: flex-start; }
   .an3-activity .an-num { padding-top: 3px; }
+  .an3-donut-layout { padding: 16px 14px; }
+  .an3-donut-legend { grid-template-columns: 1fr; }
 }
 
 /* ===== 관리자 메뉴 구분/회원관리 통합 ===== */

@@ -446,6 +446,112 @@ begin
       from public.analytics_events e where e.site_id='bellore' and e.event_name='product_view' and e.received_at >= v_from
     ), grouped as (select listing_id, max(brand) brand, max(model) model, count(*) views, count(distinct visitor_key) viewers from unified group by listing_id order by views desc limit 10)
     select jsonb_agg(to_jsonb(grouped) order by views desc) from grouped),'[]'::jsonb),
+    'keywords', coalesce((with session_touch as (
+      select distinct on (e.session_id)
+        e.session_id, e.anonymous_id,
+        coalesce(e.acquisition#>>'{session_touch,channel}','unclassified') raw_channel,
+        coalesce(e.acquisition#>>'{session_touch,referrer_host}','') ref_host,
+        nullif(trim(e.acquisition#>>'{session_touch,n_query}'),'') n_query,
+        nullif(trim(e.acquisition#>>'{session_touch,n_keyword}'),'') n_keyword,
+        nullif(trim(e.acquisition#>>'{session_touch,utm_term}'),'') utm_term
+      from public.analytics_events e
+      where e.site_id='bellore' and e.received_at >= v_from
+      order by e.session_id, e.received_at
+    ), terms as (
+      select distinct s.session_id, s.anonymous_id, s.raw_channel, s.ref_host, x.keyword, x.keyword_type
+      from session_touch s
+      cross join lateral (values
+        (s.n_query, 'actual_query'::text),
+        (s.n_keyword, 'registered_keyword'::text),
+        (s.utm_term, 'registered_keyword'::text)
+      ) x(keyword, keyword_type)
+      where x.keyword is not null
+    ), actions as (
+      select e.session_id,
+        count(*) filter (where e.event_name='product_view') product_views,
+        count(*) filter (where e.event_name='purchase_click') purchase_clicks
+      from public.analytics_events e
+      where e.site_id='bellore' and e.received_at >= v_from
+      group by e.session_id
+    ), conversions as (
+      select a.session_id, count(*) purchases
+      from public.analytics_conversion_attributions a
+      where a.site_id='bellore' and a.converted_at >= v_from and a.session_id is not null
+      group by a.session_id
+    ), normalized as (
+      select t.*,
+        case
+          when t.raw_channel like 'naver_paid%' then '네이버 광고'
+          when t.raw_channel='naver_place' or t.ref_host ~ '(^|\.)((pcmap|m)\.)?place\.naver\.com$' then '네이버 플레이스'
+          when t.raw_channel like 'naver_%' or t.ref_host ~ '(^|\.)(search\.)?naver\.com$' then '네이버 검색'
+          when t.raw_channel like 'google_paid%' then '구글 광고'
+          when t.raw_channel='google_organic' or t.ref_host ~ '(^|\.)google\.' then '구글 검색'
+          when t.raw_channel in ('paid_social','organic_social') or t.ref_host ~ 'instagram|facebook|threads|twitter|tiktok' then 'SNS'
+          when t.raw_channel='direct' or t.ref_host='' or t.ref_host in ('bellore.co.kr','www.bellore.co.kr') then '직접 유입'
+          when t.raw_channel='unclassified' then '미분류'
+          else '외부 사이트' end source
+      from terms t
+    ), grouped as (
+      select n.keyword, n.keyword_type, n.source,
+        count(distinct n.session_id) sessions,
+        count(distinct n.anonymous_id) visitors,
+        coalesce(sum(a.product_views),0) product_views,
+        coalesce(sum(a.purchase_clicks),0) purchase_clicks,
+        coalesce(sum(c.purchases),0) purchases
+      from normalized n
+      left join actions a using(session_id)
+      left join conversions c using(session_id)
+      group by n.keyword, n.keyword_type, n.source
+      order by sessions desc, purchases desc, n.keyword
+      limit 100
+    ) select jsonb_agg(to_jsonb(grouped) order by sessions desc, purchases desc, keyword) from grouped),'[]'::jsonb),
+    'source_performance', coalesce((with sessions as (
+      select distinct on (e.session_id)
+        e.session_id, e.anonymous_id,
+        coalesce(e.acquisition#>>'{session_touch,channel}','unclassified') raw_channel,
+        coalesce(e.acquisition#>>'{session_touch,referrer_host}','') ref_host
+      from public.analytics_events e
+      where e.site_id='bellore' and e.received_at >= v_from
+      order by e.session_id, e.received_at
+    ), normalized as (
+      select s.*,
+        case
+          when s.raw_channel like 'naver_paid%' then '네이버 광고'
+          when s.raw_channel='naver_place' or s.ref_host ~ '(^|\.)((pcmap|m)\.)?place\.naver\.com$' then '네이버 플레이스'
+          when s.raw_channel like 'naver_%' or s.ref_host ~ '(^|\.)(search\.)?naver\.com$' then '네이버 검색'
+          when s.raw_channel like 'google_paid%' then '구글 광고'
+          when s.raw_channel='google_organic' or s.ref_host ~ '(^|\.)google\.' then '구글 검색'
+          when s.ref_host ~ '(^|\.)chatgpt\.com$|(^|\.)perplexity\.ai$|(^|\.)claude\.ai$' then 'AI·ChatGPT'
+          when s.raw_channel in ('paid_social','organic_social') or s.ref_host ~ 'instagram|facebook|threads|twitter|tiktok' then 'SNS'
+          when s.ref_host ~ '(^|\.)mail\.' then '이메일'
+          when s.raw_channel='direct' or s.ref_host='' or s.ref_host in ('bellore.co.kr','www.bellore.co.kr') then '직접 유입'
+          when s.raw_channel='unclassified' then '미분류'
+          else '외부 사이트' end source
+      from sessions s
+    ), actions as (
+      select e.session_id,
+        count(*) filter (where e.event_name='product_view') product_views,
+        count(*) filter (where e.event_name='purchase_click') purchase_clicks
+      from public.analytics_events e
+      where e.site_id='bellore' and e.received_at >= v_from
+      group by e.session_id
+    ), conversions as (
+      select a.session_id, count(*) purchases, coalesce(sum(a.value),0) revenue
+      from public.analytics_conversion_attributions a
+      where a.site_id='bellore' and a.converted_at >= v_from and a.session_id is not null
+      group by a.session_id
+    ), grouped as (
+      select n.source, count(distinct n.session_id) sessions, count(distinct n.anonymous_id) visitors,
+        coalesce(sum(a.product_views),0) product_views,
+        coalesce(sum(a.purchase_clicks),0) purchase_clicks,
+        coalesce(sum(c.purchases),0) purchases,
+        coalesce(sum(c.revenue),0) revenue
+      from normalized n
+      left join actions a using(session_id)
+      left join conversions c using(session_id)
+      group by n.source
+      order by sessions desc, purchases desc
+    ) select jsonb_agg(to_jsonb(grouped) order by sessions desc, purchases desc) from grouped),'[]'::jsonb),
     'ip_clients', coalesce((select jsonb_agg(to_jsonb(i) order by i.last_seen desc) from (
       select e.ip_network::text ip_network, left(e.ip_hash,12) ip_key,
              (e.user_id is not null) is_member,
@@ -459,12 +565,16 @@ begin
     ) i),'[]'::jsonb),
     'recent_activity', coalesce((with activity as (
       select v.created_at occurred_at, 'navigation' category, '화면 방문' action, coalesce(nullif(v.path,''),'#home') subject,
-             (v.user_id is not null) is_member, case when v.user_id is not null then left(v.user_id::text,8) end member_ref, '기존 로그' source
-      from public.page_views v
+             (v.user_id is not null) is_member, case when v.user_id is not null then left(v.user_id::text,8) end member_ref, '기존 로그' source,
+             '기존 #' || left(coalesce(v.visitor_id,v.id::text),8) visitor, coalesce(nullif(v.path,''),'#home') page,
+             '화면 방문 · 기존 수집 기록' detail
+      from public.page_views v where v.created_at >= v_from
       union all
       select v.created_at, 'product', '상품 조회', trim(coalesce(v.brand,'') || ' ' || coalesce(v.model,'')),
-             (v.user_id is not null), case when v.user_id is not null then left(v.user_id::text,8) end, '기존 로그'
-      from public.product_views v
+             (v.user_id is not null), case when v.user_id is not null then left(v.user_id::text,8) end, '기존 로그',
+             '기존 #' || left(coalesce(v.visitor_id,v.id::text),8), '상품 상세',
+             trim(coalesce(v.brand,'') || ' ' || coalesce(v.model,'')) || ' 상품 조회'
+      from public.product_views v where v.created_at >= v_from
       union all
       select e.received_at,
              case when e.event_name in ('product_view','purchase_click','purchase_complete','purchase_failed') then 'commerce'
@@ -473,8 +583,23 @@ begin
                   when 'purchase_click' then '구매 클릭' when 'purchase_complete' then '구매 확정' when 'purchase_failed' then '구매 실패'
                   when 'quote_requested' then '견적 신청' when 'phone_call' then '전화 연결' when 'element_click' then '버튼 클릭' else '기타 활동' end,
              coalesce(nullif(e.properties->>'route',''),nullif(trim(coalesce(e.properties->>'brand','') || ' ' || coalesce(e.properties->>'model','')),''),nullif(e.target_id,''),nullif(e.view_id,''),'-'),
-             (e.user_id is not null), case when e.user_id is not null then left(e.user_id::text,8) end, '신규 분석'
-      from public.analytics_events e where e.site_id='bellore' and e.event_name not in ('view_dwell','page_exit','page_return','consent_updated')
+             (e.user_id is not null), case when e.user_id is not null then left(e.user_id::text,8) end,
+             case coalesce(e.acquisition#>>'{session_touch,channel}','unclassified')
+               when 'direct' then '직접 유입' when 'naver_paid' then '네이버 광고' when 'naver_place' then '네이버 플레이스'
+               when 'naver_organic' then '네이버 검색' when 'google_paid' then '구글 광고' when 'google_organic' then '구글 검색'
+               when 'unclassified' then '미분류' else coalesce(e.acquisition#>>'{session_touch,referrer_host}','신규 분석') end,
+             coalesce(e.ip_network::text, '가명 #' || left(coalesce(e.ip_hash,e.anonymous_id::text),8)),
+             coalesce(nullif(e.properties->>'route',''),'#' || coalesce(nullif(e.view_id,''),'home')),
+             case e.event_name
+               when 'session_start' then coalesce(e.properties->>'device_class','기기 미분류') || ' · 방문 시작'
+               when 'view_open' then coalesce(nullif(e.properties->>'route',''),'화면') || ' 이동'
+               when 'product_view' then trim(coalesce(e.properties->>'brand','') || ' ' || coalesce(e.properties->>'model','')) || ' 상품 조회'
+               when 'purchase_click' then '구매 버튼 클릭'
+               when 'purchase_complete' then '결제 완료·구매 확정'
+               when 'element_click' then coalesce(nullif(e.target_id,''),'요소') || ' 클릭'
+               else '분석 이벤트' end
+      from public.analytics_events e where e.site_id='bellore' and e.received_at >= v_from
+        and e.event_name not in ('view_dwell','page_exit','page_return','consent_updated')
     ) select jsonb_agg(to_jsonb(a) order by occurred_at desc) from (select * from activity order by occurred_at desc limit 80) a),'[]'::jsonb),
     'funnel', jsonb_build_array(
       jsonb_build_object('step','방문 세션','count',v_sessions),

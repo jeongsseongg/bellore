@@ -2572,6 +2572,20 @@
                         '</span><span class="an-num">' + an2Num(r[valueKey]) + '</span></div>';
                 }).join('') : '<p class="admin-empty">' + empty + '</p>';
             }
+            function donut(items) {
+                items = (items || []).filter(function (r) { return Number(r.sessions) > 0; });
+                var colors = ['#2d7ff9', '#76a7fa', '#aac9fc', '#d4e4fd', '#73839a', '#aab4c0', '#d8dde3'];
+                var total = items.reduce(function (s, r) { return s + (Number(r.sessions) || 0); }, 0);
+                if (!total) return '<p class="admin-empty">유입 데이터가 없습니다.</p>';
+                var cursor = 0, stops = [], legend = [];
+                items.forEach(function (r, i) {
+                    var start = cursor, pct = Number(r.sessions) * 100 / total; cursor += pct;
+                    var color = colors[i % colors.length];
+                    stops.push(color + ' ' + start.toFixed(2) + '% ' + cursor.toFixed(2) + '%');
+                    legend.push('<div class="an3-donut-item"><i style="background:' + color + '"></i><span>' + esc(r.channel || '미분류') + '</span><b>' + an2Num(r.sessions) + ' · ' + Math.round(pct) + '%</b></div>');
+                });
+                return '<div class="an3-donut-layout"><div class="an3-donut" style="background:conic-gradient(' + stops.join(',') + ')" role="img" aria-label="유입 채널 원형 그래프"><span><b>' + an2Num(total) + '</b><small>전체 세션</small></span></div><div class="an3-donut-legend">' + legend.join('') + '</div></div>';
+            }
             var complete = Number(k.purchases) || 0, attributed = Number(k.attributed_purchases) || 0;
             var topPages = (o.top_pages || []).map(function (r, i) {
                 return '<div class="an-row"><span class="an-rank">' + (i + 1) + '</span><span class="an-name">' + esc(an2PathName(r.path)) +
@@ -2582,13 +2596,30 @@
                 return '<div class="an-row"><span class="an-rank">' + (i + 1) + '</span><span class="an-name">' + esc(name) +
                     '</span><span class="an-num">' + an2Num(r.views) + '회 · ' + an2Num(r.viewers) + '명</span></div>';
             }).join('') || '<p class="admin-empty">해당 기간의 상품 조회가 없습니다.</p>';
+            var keywordRows = (o.keywords || []).map(function (r) {
+                var type = r.keyword_type === 'actual_query' ? '전달된 검색어' : '광고 등록 키워드';
+                return '<tr><td><b>' + esc(r.keyword || '-') + '</b></td><td><span class="an3-type">' + type + '</span></td><td>' + esc(r.source || '미분류') + '</td>' +
+                    '<td>' + an2Num(r.visitors) + '명 / ' + an2Num(r.sessions) + '회</td><td>' + an2Num(r.product_views) + '회</td><td>' + an2Num(r.purchase_clicks) + '건</td><td>' + an2Num(r.purchases) + '건</td></tr>';
+            }).join('');
+            var keywordTable = keywordRows ? '<div class="an3-tablewrap"><table class="an3-table"><thead><tr><th>키워드</th><th>구분</th><th>들어온 곳</th><th>방문</th><th>상품 조회</th><th>구매 클릭</th><th>구매 확정</th></tr></thead><tbody>' + keywordRows + '</tbody></table></div>' :
+                '<div class="an3-empty-note"><b>아직 전달된 검색 키워드가 없습니다.</b><span>네이버·구글이 실제 검색어를 전달한 방문부터 자동 저장됩니다. 검색엔진 미제공 및 과거 미수집 키워드는 추정하지 않습니다.</span></div>';
+            var sourceRows = (o.source_performance || []).map(function (r) {
+                var sessions = Number(r.sessions) || 0, purchases = Number(r.purchases) || 0;
+                var rate = sessions ? (purchases * 100 / sessions).toFixed(1) + '% (' + purchases + '/' + sessions + ')' : '0.0% (0/0)';
+                return '<tr><td><b>' + esc(r.source || '미분류') + '</b></td><td>' + an2Num(r.visitors) + '명</td><td>' + an2Num(sessions) + '회</td><td>' + an2Num(r.product_views) + '회</td><td>' + an2Num(r.purchase_clicks) + '건</td><td>' + an2Num(purchases) + '건</td><td>' + rate + '</td><td>' + an2Num(r.revenue) + '원</td></tr>';
+            }).join('');
+            var sourceTable = sourceRows ? '<div class="an3-tablewrap"><table class="an3-table"><thead><tr><th>들어온 곳</th><th>방문자</th><th>세션</th><th>상품 조회</th><th>구매 클릭</th><th>구매 확정</th><th>구매 전환</th><th>매출</th></tr></thead><tbody>' + sourceRows + '</tbody></table></div>' : '<p class="admin-empty">신규 분석 기준 유입처 데이터가 없습니다.</p>';
+            var funnelItems = o.funnel || [], funnelMax = Math.max.apply(null, funnelItems.map(function (r) { return Number(r.count) || 0; }).concat([1]));
+            var funnelRows = funnelItems.map(function (r, i) {
+                var count = Number(r.count) || 0, base = i ? (Number(funnelItems[i - 1].count) || 0) : count;
+                var rate = i ? (base ? (count * 100 / base).toFixed(1) + '% (' + count + '/' + base + ')' : '0.0% (0/' + base + ')') : an2Num(count) + ' 세션';
+                return '<div class="an3-funnel-row"><div><b>' + esc(r.step || '-') + '</b><span>' + rate + '</span></div><strong>' + an2Num(count) + '</strong><i><em style="width:' + Math.max(count ? 2 : 0, count * 100 / funnelMax) + '%"></em></i></div>';
+            }).join('') || '<p class="admin-empty">퍼널 데이터가 없습니다.</p>';
             var activityRows = (o.recent_activity || []).slice(0, 40).map(function (r) {
                 var who = r.is_member ? ('회원 #' + esc(r.member_ref || '-')) : '비회원';
-                var category = r.category === 'commerce' ? '구매' : (r.category === 'product' ? '상품' : (r.category === 'lead' ? '문의' : '방문'));
-                return '<div class="an-row an3-activity"><span class="an3-badge an3-' + esc(r.category || 'navigation') + '">' + esc(category) + '</span>' +
-                    '<span class="an-name"><b>' + esc(r.action || '활동') + '</b><small>' + esc(r.subject || '-') + ' · ' + who + ' · ' + esc(r.source || '') + '</small></span>' +
-                    '<span class="an-num">' + esc(an2Exact(r.occurred_at)) + '</span></div>';
-            }).join('') || '<p class="admin-empty">최근 활동 기록이 없습니다.</p>';
+                return '<tr><td>' + esc(an2Exact(r.occurred_at)) + '</td><td><b>' + esc(r.visitor || who) + '</b><small>' + who + '</small></td><td><span class="an3-badge an3-' + esc(r.category || 'navigation') + '">' + esc(r.action || '활동') + '</span></td><td>' + esc(an2PathName(r.page || r.subject || '-')) + '</td><td><b>' + esc(r.detail || r.subject || '-') + '</b><small>' + esc(r.source || '') + '</small></td></tr>';
+            }).join('');
+            var activityTable = activityRows ? '<div class="an3-tablewrap an3-activity-table"><table class="an3-table"><thead><tr><th>시간</th><th>방문자</th><th>행동</th><th>페이지</th><th>내용·유입</th></tr></thead><tbody>' + activityRows + '</tbody></table></div>' : '<p class="admin-empty">최근 활동 기록이 없습니다.</p>';
             var ipRows = (o.ip_clients || []).map(function (r) {
                 var who = r.is_member ? ('회원 #' + esc(r.member_ref || '-')) : '비회원';
                 var network = esc(r.ip_network || '마스킹 불가');
@@ -2603,15 +2634,18 @@
                 '<p class="an2-cap">증감은 ' + (_an2Days === 0 ? '어제 같은 시간대' : '직전 동일 기간') + ' 대비입니다. 기존 로그와 신규 분석을 합산했습니다.</p>' +
                 (_an2Days > 0 ? ('<h4 class="an-h">일별 방문 추이 <span class="an-mut">(조회수·방문자)</span></h4>' + an2TrendSVG(o.trend || [])) : '') +
                 '<h4 class="an-h">시간대별 활동 <span class="an-mut">(방문·상품조회)</span></h4>' + an2HourSVG(o.hours || []) +
-                '<div class="an3-class-grid"><section><h4 class="an-h">유입 분류 <span class="an-mut">(세션)</span></h4><div class="an-list">' + distribution(o.channels, 'channel', 'sessions', '유입 데이터가 없습니다.') + '</div></section>' +
+                '<section class="an3-donut-section"><h4 class="an-h">유입 분류 <span class="an-mut">(세션)</span></h4>' + donut(o.channels) + '</section>' +
+                '<div class="an3-class-grid"><section><h4 class="an-h">유입 순위 <span class="an-mut">(세션)</span></h4><div class="an-list">' + distribution(o.channels, 'channel', 'sessions', '유입 데이터가 없습니다.') + '</div></section>' +
                 '<section><h4 class="an-h">회원·비회원 분류</h4><div class="an-list">' + distribution(o.visitor_types, 'label', 'sessions', '방문자 데이터가 없습니다.') + '</div></section>' +
                 '<section><h4 class="an-h">기기 분류</h4><div class="an-list">' + distribution(o.devices, 'label', 'sessions', '기기 데이터가 없습니다.') + '</div></section></div>' +
                 '<div class="an3-class-grid an3-class-grid--two"><section><h4 class="an-h">많이 본 화면</h4><div class="an-list">' + topPages + '</div></section>' +
                 '<section><h4 class="an-h">인기 상품</h4><div class="an-list">' + topProducts + '</div></section></div>' +
+                '<h4 class="an-h">저장된 유입 키워드 <span class="an-mut">(실제 전달값만 · 최대 100개)</span></h4>' + keywordTable +
+                '<h4 class="an-h">어디서 와서 구매했나 <span class="an-mut">(신규 분석 세션 기준)</span></h4>' + sourceTable +
                 '<h4 class="an-h">구매 귀속</h4><div class="an-grid">' + card(attributed, '귀속') + card(k.unattributed_purchases, '미귀속') + card(complete, '원장 전체') + '</div>' +
                 '<p class="an2-cap">불변조건: 귀속 + 미귀속 = 원장 전체 · 현재 ' + (q.attribution_balanced ? '정상' : '확인 필요') + '</p>' +
-                '<h4 class="an-h">전환 퍼널</h4><div class="an-list">' + plainRows(o.funnel, 'step', 'count', '퍼널 데이터가 없습니다.') + '</div>' +
-                '<h4 class="an-h">최근 활동 상세 <span class="an-mut">(기존·신규 통합 최신 40건)</span></h4><div class="an-list">' + activityRows + '</div>' +
+                '<h4 class="an-h">전환 퍼널</h4><div class="an3-funnel">' + funnelRows + '</div>' +
+                '<h4 class="an-h">상세 행동 기록 <span class="an-mut">(선택 기간 · 최신 40건)</span></h4>' + activityTable +
                 '<details class="an3-details"><summary>회원·비회원 접속 IP <span class="an-mut">(원문 미저장 · 최근 100개)</span></summary><div class="an-list">' + ipRows + '</div></details>' +
                 '<details class="an3-details"><summary>데이터 품질</summary><div class="an-list">' +
                   '<div class="an-row"><span class="an-name">미분류 세션</span><span class="an-num">' + an2Num(q.unclassified_sessions) + '</span></div>' +
