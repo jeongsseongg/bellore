@@ -9010,6 +9010,33 @@ body.mypage-open .tabbar { z-index: 2550; }
 .an2-total { margin: 16px 0 4px; padding: 12px; border-radius: 12px; background: var(--bg-soft); font-size: 11.5px; line-height: 1.6; color: #6b6b6b; text-align: center; font-variant-numeric: tabular-nums; }
 .an2-notice { margin: 0 0 12px; padding: 12px 14px; border: 1px solid #e5e3df; border-radius: 12px; background: #fffdf5; font-size: 12.5px; line-height: 1.6; color: #1a1a1a; }
 
+/* ===== 관리자: 활동 로그 V3 통합 분석 ===== */
+.an3-history { display: flex; justify-content: space-between; gap: 12px; margin: 0 0 12px; padding: 12px 14px; border: 1px solid #dce8ff; border-radius: 12px; background: #f5f8ff; font-size: 12px; color: #31527f; }
+.an3-history b { color: #163d73; }
+.an3-kpis { grid-template-columns: repeat(3, 1fr); }
+.an3-class-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.an3-class-grid--two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.an3-class-grid > section { min-width: 0; }
+.an3-activity .an-name { display: flex; flex-direction: column; gap: 2px; white-space: normal; }
+.an3-activity .an-name b { font-size: 12.5px; }
+.an3-activity .an-name small { color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.an3-badge { flex: none; min-width: 34px; padding: 3px 7px; border-radius: 999px; background: #edf2f7; color: #52606d; font-size: 10.5px; font-weight: 800; text-align: center; }
+.an3-commerce { background: #fff0e8; color: #b45309; }
+.an3-product { background: #eef5ff; color: #2563c9; }
+.an3-lead { background: #edf9f0; color: #16803a; }
+.an3-details { margin-top: 16px; border: 1px solid #e5e3df; border-radius: 12px; overflow: hidden; }
+.an3-details summary { padding: 13px 14px; background: #faf9f7; font-size: 13px; font-weight: 800; cursor: pointer; }
+.an3-details .an-list { padding: 8px; }
+@media (max-width: 720px) {
+  .an3-history { flex-direction: column; gap: 3px; }
+  .an3-class-grid, .an3-class-grid--two { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .an3-kpis { grid-template-columns: repeat(2, 1fr); }
+  .an3-activity { align-items: flex-start; }
+  .an3-activity .an-num { padding-top: 3px; }
+}
+
 /* ===== 관리자 메뉴 구분/회원관리 통합 ===== */
 .admin-menu-cap { margin: 16px 2px 6px; font-size: 12px; font-weight: 800; color: var(--text-3); letter-spacing: .02em; }
 .amr-sub { display: block; margin-top: 2px; font-size: 11px; font-weight: 600; color: var(--text-3); font-style: normal; }
