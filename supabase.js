@@ -1474,6 +1474,9 @@
   }
   // 페이지 방문 적재(실패해도 무시). analytics.sql 미실행 시 자동 무시.
   Backend.logPageView = function (path) {
+    if (window.BelloreAnalytics && window.BelloreAnalytics.page) {
+      return window.BelloreAnalytics.page(path);
+    }
     return sb.from('page_views').insert({
       path: String(path || location.hash || '/').slice(0, 200),
       visitor_id: visitorId(),
@@ -1485,6 +1488,13 @@
   // 상품(시계) 조회 적재(실패해도 무시).
   Backend.logProductView = function (listingId, meta) {
     meta = meta || {};
+    if (window.BelloreAnalytics && window.BelloreAnalytics.track) {
+      return window.BelloreAnalytics.track('product_view', 'product_detail', {
+        listing_id: listingId != null ? String(listingId) : null,
+        brand: meta.brand || null,
+        model: meta.model || null
+      });
+    }
     return sb.from('product_views').insert({
       listing_id: (listingId != null ? String(listingId) : null),
       brand: (meta.brand || '').slice(0, 80),
@@ -1512,6 +1522,10 @@
   // 분석 V2(analytics_v2.sql). 미설치 시 reject → 클라이언트가 V1 폴백.
   Backend.analyticsOverviewV2 = function (days) {
     return sb.rpc('analytics_overview_v2', { days: days == null ? 7 : days })
+      .then(function (r) { if (r.error) throw r.error; return r.data || {}; });
+  };
+  Backend.analyticsDashboardV3 = function (days) {
+    return sb.rpc('analytics_dashboard_v3', { p_days: days == null ? 7 : days })
       .then(function (r) { if (r.error) throw r.error; return r.data || {}; });
   };
   Backend.viewsByHour = function (days) {
@@ -1975,23 +1989,40 @@
       memo: data.memo || null,
       status: 'pending'
     };
-    // 회원: RETURNING(본인 주문 select 정책)으로 행을 받아 매핑.
-    if (rawUser) {
+    if (data.attribution) {
+      row.analytics_session_id = data.attribution.session_id || null;
+      row.analytics_anonymous_id = data.attribution.anonymous_id || null;
+      row.analytics_attribution = data.attribution;
+    }
+    function withoutAnalyticsColumns() {
+      delete row.analytics_session_id;
+      delete row.analytics_anonymous_id;
+      delete row.analytics_attribution;
+    }
+    function insertMember() {
       return sb.from('orders').insert(row).select().single().then(function (res) {
-        if (res.error) throw res.error;
+        if (res.error) {
+          if (isMissingCol(res.error) && row.analytics_attribution) { withoutAnalyticsColumns(); return insertMember(); }
+          throw res.error;
+        }
         return mapOrder(res.data);
       });
     }
+    function insertGuest() {
+      return sb.from('orders').insert(row).then(function (res) {
+        if (res.error) {
+          if (isMissingCol(res.error) && row.analytics_attribution) { withoutAnalyticsColumns(); return insertGuest(); }
+          var ge = new Error('GUEST_CHECKOUT_DISABLED');
+          ge.guest = true; ge.cause = res.error; throw ge;
+        }
+        return { orderNo: orderNo, amount: data.amount, payType: 'full' };
+      });
+    }
+    // 회원: RETURNING(본인 주문 select 정책)으로 행을 받아 매핑.
+    if (rawUser) return insertMember();
     // 비회원: anon 에겐 select 권한이 없으므로 RETURNING 없이 insert 만 수행.
     // 이후 단계는 order_no 만 사용한다(서버 confirm-payment 가 service_role 로 검증).
-    return sb.from('orders').insert(row).then(function (res) {
-      if (res.error) {
-        var ge = new Error('GUEST_CHECKOUT_DISABLED'); // guest_checkout.sql 미실행 등
-        ge.guest = true; ge.cause = res.error;
-        throw ge;
-      }
-      return { orderNo: orderNo, amount: data.amount, payType: 'full' };
-    });
+    return insertGuest();
   };
 
   // 결제 승인(검증) — Edge Function 필수. 검증 함수가 없으면 결제를 성공 처리하지 않는다.
@@ -2009,7 +2040,8 @@
       },
       body: JSON.stringify({
         // 포트원: paymentId(=order_no) 만 보내고 금액/상태는 서버가 포트원 API로 검증
-        paymentId: params.paymentId || params.orderId
+        paymentId: params.paymentId || params.orderId,
+        attribution: params.attribution || null
       })
     }).then(function (r) { return r.json(); });
   };

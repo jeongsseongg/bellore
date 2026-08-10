@@ -2542,8 +2542,51 @@
             if (more) { more.disabled = false; more.textContent = '더 보기'; }
         });
     }
+    function renderAdminAnalyticsV3() {
+        var box = $('#adminAnalytics'); if (!box) return;
+        box.innerHTML = '<p class="admin-empty">강화 분석을 불러오는 중…</p>';
+        NWBackend.analyticsDashboardV3(_an2Days).then(function (o) {
+            o = o || {}; var k = o.kpis || {}, q = o.quality || {};
+            var tabs = [[0, '오늘'], [7, '7일'], [30, '30일'], [90, '90일']].map(function (t) {
+                return '<button type="button" class="an2-tab' + (t[0] === _an2Days ? ' on' : '') + '" data-andays="' + t[0] + '">' + t[1] + '</button>';
+            }).join('');
+            function card(value, label) { return '<div class="an-card an2-kpi"><b>' + an2Num(value) + '</b><span>' + label + '</span></div>'; }
+            function rows(items, nameKey, valueKey, empty) {
+                items = items || [];
+                return items.length ? items.map(function (r, i) {
+                    return '<div class="an-row"><span class="an-rank">' + (i + 1) + '</span><span class="an-name">' + esc(r[nameKey] || '미분류') + '</span><span class="an-num">' + an2Num(r[valueKey]) + '</span></div>';
+                }).join('') : '<p class="admin-empty">' + empty + '</p>';
+            }
+            var complete = Number(k.purchases) || 0, attributed = Number(k.attributed_purchases) || 0;
+            box.innerHTML = '<div class="an2-tabs">' + tabs + '</div>' +
+                '<div class="an-grid an2-grid">' + card(k.sessions, '세션') + card(k.visitors, '동의 방문자') + card(k.product_views, '상품 조회') + card(complete, '구매 확정') + '</div>' +
+                '<h4 class="an-h">유입 채널 <span class="an-mut">(세션 기준)</span></h4><div class="an-list">' + rows(o.channels, 'channel', 'sessions', '아직 유입 데이터가 없습니다.') + '</div>' +
+                '<h4 class="an-h">구매 귀속</h4><div class="an-grid">' + card(attributed, '귀속') + card(k.unattributed_purchases, '미귀속') + card(complete, '원장 전체') + '</div>' +
+                '<p class="an2-cap">불변조건: 귀속 + 미귀속 = 원장 전체 · 현재 ' + (q.attribution_balanced ? '정상' : '확인 필요') + '</p>' +
+                '<h4 class="an-h">전환 퍼널</h4><div class="an-list">' + rows(o.funnel, 'step', 'count', '퍼널 데이터가 없습니다.') + '</div>' +
+                '<h4 class="an-h">데이터 품질</h4><div class="an-list">' +
+                  '<div class="an-row"><span class="an-name">미분류 세션</span><span class="an-num">' + an2Num(q.unclassified_sessions) + '</span></div>' +
+                  '<div class="an-row"><span class="an-name">수집 지연(10분+)</span><span class="an-num">' + an2Num(q.delayed_events) + '</span></div>' +
+                  '<div class="an-row"><span class="an-name">중복 거부</span><span class="an-num">' + an2Num(q.duplicate_events) + '</span></div>' +
+                '</div><p class="an2-total">원시 이벤트 보관 ' + esc(String(o.raw_retention_days || '미정')) + '일 · 집계 최신 ' + esc(o.generated_at || '-') + '<br>상세 원시 로그는 승인된 관리자만 조회할 수 있습니다.</p>';
+            if (!box.dataset.an3Bound) {
+                box.dataset.an3Bound = '1';
+                box.addEventListener('click', function (e) {
+                    var dt = e.target.closest('[data-andays]');
+                    if (dt) { _an2Days = Number(dt.dataset.andays); renderAdminAnalytics(); }
+                });
+            }
+        }).catch(function () { renderAdminAnalyticsV2(); });
+    }
+    function renderAdminAnalyticsV2() {
+        var saved = NWBackend.analyticsDashboardV3;
+        NWBackend.analyticsDashboardV3 = null;
+        renderAdminAnalytics();
+        NWBackend.analyticsDashboardV3 = saved;
+    }
     function renderAdminAnalytics() {
         var box = $('#adminAnalytics'); if (!box) return;
+        if (backendOn() && NWBackend.analyticsDashboardV3) { renderAdminAnalyticsV3(); return; }
         if (!backendOn() || !NWBackend.analyticsOverviewV2) { renderAdminAnalyticsV1(); return; }
         box.innerHTML = '<p class="admin-empty">불러오는 중…</p>';
         NWBackend.analyticsOverviewV2(_an2Days).then(function (o) {
@@ -2581,7 +2624,7 @@
                 '<div id="an2Logs" class="an-list"></div>' +
                 '<button type="button" class="an2-more" id="an2More">더 보기</button>' +
                 '<p class="an2-total">전체 누적 — 방문 ' + an2Num(tot.visits) + ' · 방문자 ' + an2Num(tot.visitors) +
-                    ' · 시계 조회 ' + an2Num(tot.productViews) + '<br>' + sinceTxt + '부터 기록 중 · 로그는 삭제 없이 평생 보관됩니다.</p>';
+                    ' · 시계 조회 ' + an2Num(tot.productViews) + '<br>' + sinceTxt + '부터 기록 중 · V3 원시 이벤트는 90일 보관됩니다.</p>';
 
             an2BindTips(box);
             if (!box.dataset.an2Bound) {
@@ -4961,7 +5004,8 @@
         _lastLoggedPath = path;
         clearTimeout(_pvTimer);
         _pvTimer = setTimeout(function () {
-            if (window.NWBackend && NWBackend.logPageView) NWBackend.logPageView(path);
+            if (window.BelloreAnalytics && BelloreAnalytics.page) BelloreAnalytics.page(path);
+            else if (window.NWBackend && NWBackend.logPageView) NWBackend.logPageView(path);
         }, 300);
     }
 

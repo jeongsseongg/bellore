@@ -58,22 +58,7 @@
     <meta name="google-site-verification" content="yxngRyaIqnMPq0GTy8YTWBuqCcAAMrSbTNqnDtS4P9c">
     <meta name="naver-site-verification" content="2bb5966a074bd09c17d7bfea3dc74bf530fd1104">
 
-    <!-- Google Ads conversion tag -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18376230103"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', 'AW-18376230103');
-    </script>
-
-    <!-- 네이버페이 공통 유입 스크립트: 관리자 페이지를 제외한 전 화면 공통 -->
-    <script type="text/javascript" src="https://wcs.naver.net/wcslog.js"></script>
-    <script type="text/javascript">
-        if (!window.wcs_add) window.wcs_add = {};
-        window.wcs_add.wa = "s_ce48c59488b";
-        if (window.wcs && window.wcs.inflow) window.wcs.inflow("bellore.co.kr");
-    </script>
+    <!-- Google Ads/Naver WCS는 analytics-client.js가 광고 동의 후에만 로드합니다. -->
 
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <!-- 원티드랩 공식 오픈소스 서체 Wanted Sans를 전 화면에 적용한다. -->
@@ -255,9 +240,9 @@
                                 <span class="anim-line">한번에 진행하세요</span>
                             </h1>
                             <div class="hero-cta hero-cta-3 anim-line">
-                                <a href="#compare" class="btn btn-primary" data-nav="compare">시계 판매</a>
-                                <a href="#buy" class="btn btn-primary" data-nav="buy">시계 구입</a>
-                                <a href="#repair" class="btn btn-primary" data-nav="repair">시계 수리</a>
+                                <a href="#compare" class="btn btn-primary" data-nav="compare" data-analytics-id="hero_sell_watch">시계 판매</a>
+                                <a href="#buy" class="btn btn-primary" data-nav="buy" data-analytics-id="hero_buy_watch">시계 구입</a>
+                                <a href="#repair" class="btn btn-primary" data-nav="repair" data-analytics-id="hero_repair_watch">시계 수리</a>
                             </div>
                         </div>
                     </div>
@@ -626,7 +611,7 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="btn btn-primary btn-full">비교견적 신청하기</button>
+                        <button type="submit" class="btn btn-primary btn-full" data-analytics-id="quote_submit">비교견적 신청하기</button>
                         <p class="form-note">* 등록 후 정가품 구별 및 감정 승인 절차가 진행됩니다.</p>
                     </form>
                 </div>
@@ -1794,6 +1779,9 @@
           <p>회사는 이용자의 동의 없이 개인정보를 외부에 제공하지 않습니다. 다만 결제 처리를 위해 결제대행사(포트원 및 연동 PG사), 상품 배송을 위해 배송업체에 필요한 최소한의 정보를 위탁·제공할 수 있습니다.</p>
           <h4>5. 정보주체의 권리</h4>
           <p>이용자는 언제든지 자신의 개인정보 열람·정정·삭제·처리정지를 요청할 수 있으며, 회사는 관련 법령에 따라 지체 없이 조치합니다.</p>
+          <h4>5-1. 선택적 활동·유입 분석</h4>
+          <p>이용자가 선택 동의한 경우에만 임의로 생성한 익명 방문자 ID, 30분 비활동 기준 세션 ID, 화면·승인된 버튼·전화 링크 클릭, 상품 조회, 구매 전환, UTM 캠페인 값, 광고 클릭 식별자 및 외부 유입 도메인을 서비스 개선과 광고 성과 측정에 이용합니다. 이름·연락처·폼 입력값·전체 URL·전화번호 원문은 분석 이벤트에 저장하지 않습니다. Google Ads와 Naver WCS는 광고 성과 측정에 동의한 뒤에만 로드됩니다. 서버 원시 이벤트와 광고 클릭 식별자는 90일, 개인을 식별하지 않는 집계 지표는 730일 보관한 뒤 자동 삭제합니다. 동의를 철회하면 이후 수집을 중단하고 브라우저의 분석 식별자와 대기 이벤트를 삭제합니다.</p>
+          <p><button type="button" class="co-inline-link" data-analytics-settings>활동·광고 분석 설정 변경</button></p>
           <h4>6. 개인정보의 안전성 확보 조치</h4>
           <p>회사는 비밀번호 암호화, 접근권한 관리, 전송구간 암호화(SSL) 등 개인정보 보호를 위한 기술적·관리적 조치를 시행합니다.</p>
           <h4>7. 개인정보 보호책임자</h4>
@@ -2602,7 +2590,7 @@
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
             </button>
             <button class="pp-cart" id="pmCart">장바구니</button>
-            <button class="pp-buy" id="pmBuy">바로구매</button>
+            <button class="pp-buy" id="pmBuy" data-analytics-id="product_buy" data-analytics-event="purchase_click">바로구매</button>
         </div>
     </div>
 
@@ -2714,7 +2702,7 @@
                 <span>최종 결제금액</span>
                 <strong id="coTotal">0원</strong>
             </div>
-            <button class="co-pay-btn" id="coPayBtn">결제하기</button>
+            <button class="co-pay-btn" id="coPayBtn" data-analytics-id="checkout_payment" data-analytics-event="purchase_click">결제하기</button>
         </div>
     </div>
 
@@ -3237,6 +3225,8 @@
     <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
     <script src="ui-dialog.js"></script>
     <script src="supabase-config.js?v=20260727-naverpay-order"></script>
+    <script src="analytics-core.js?v=20260810-analytics-v3"></script>
+    <script src="analytics-client.js?v=20260810-analytics-v3"></script>
     <script src="brands.js"></script>
     <script src="supabase.js?v=20260731-vendor-created-at"></script>
     <script src="bellore-features.js"></script>
@@ -3250,9 +3240,6 @@
     <script src="ai-advisor-admin.js?v=20260725-ai-log"></script>
     <script src="payments.js?v=20260727-card-naver-options"></script>
     <script src="naverpay.js?v=20260728-naver-review-fixes-2"></script>
-    <script type="text/javascript">
-        if (window.wcs_do) window.wcs_do();
-    </script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
