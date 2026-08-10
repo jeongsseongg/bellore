@@ -1,7 +1,7 @@
 -- BELLORE 활동·유입 분석 V3 canonical migration
 -- 기준: 활동유입분석_타사이트_적용_실행지시서.md (2026-08-10)
 --
--- 운영 보관정책: 원시 이벤트 90일, 비식별 집계 730일, 광고 클릭 ID 90일.
+-- 운영 보관정책: 원시 이벤트·가명 IP 90일, 비식별 집계 730일, 광고 클릭 ID 90일.
 
 begin;
 
@@ -36,7 +36,7 @@ insert into public.analytics_settings (
   raw_event_retention_days, aggregate_retention_days, click_id_retention_days
 ) values (
   'bellore', true, array['bellore.co.kr','www.bellore.co.kr'],
-  array['localhost','127.0.0.1'], 'Asia/Seoul', '2026-08-10',
+  array['localhost','127.0.0.1'], 'Asia/Seoul', '2026-08-10-ip-v1',
   90, 730, 90
 ) on conflict (site_id) do update set
   enabled = excluded.enabled,
@@ -60,6 +60,8 @@ create table if not exists public.analytics_events (
   anonymous_id uuid,
   session_id uuid not null,
   user_id uuid references auth.users(id) on delete set null,
+  ip_hash text,
+  ip_network cidr,
   view_id text,
   target_id text,
   acquisition jsonb not null default '{}'::jsonb,
@@ -73,6 +75,11 @@ create table if not exists public.analytics_events (
   check (jsonb_typeof(consent) = 'object'),
   check (jsonb_typeof(properties) = 'object')
 );
+alter table public.analytics_events add column if not exists ip_hash text;
+alter table public.analytics_events add column if not exists ip_network cidr;
+alter table public.analytics_events drop constraint if exists analytics_events_ip_hash_format;
+alter table public.analytics_events add constraint analytics_events_ip_hash_format
+  check (ip_hash is null or ip_hash ~ '^[0-9a-f]{64}$');
 create index if not exists analytics_events_received_idx on public.analytics_events (site_id, received_at desc);
 create index if not exists analytics_events_session_idx on public.analytics_events (site_id, session_id, received_at);
 create index if not exists analytics_events_name_idx on public.analytics_events (site_id, event_name, received_at desc);
@@ -81,6 +88,9 @@ create unique index if not exists analytics_events_session_start_uidx
 create unique index if not exists analytics_events_conversion_uidx
   on public.analytics_events (site_id, (properties->>'conversion_id'))
   where event_name='purchase_complete' and properties ? 'conversion_id';
+create index if not exists analytics_events_ip_subject_idx
+  on public.analytics_events (site_id, ip_hash, user_id, received_at desc)
+  where ip_hash is not null;
 
 create table if not exists public.analytics_conversion_attributions (
   site_id text not null references public.analytics_settings(site_id),
@@ -137,7 +147,9 @@ end $$;
 create or replace function public.analytics_ingest_event(
   p_event jsonb,
   p_origin text,
-  p_authenticated_user uuid default null
+  p_authenticated_user uuid,
+  p_ip_hash text,
+  p_ip text
 ) returns jsonb
 language plpgsql
 security definer
@@ -151,6 +163,7 @@ declare
   v_inserted integer := 0;
   v_allowed text[];
   v_key text;
+  v_ip_network cidr;
 begin
   if p_event is null or length(p_event::text) > 16384 then raise exception 'payload_too_large'; end if;
   select * into v_settings from public.analytics_settings where site_id = v_site;
@@ -184,14 +197,24 @@ begin
     if not (v_key = any(v_allowed)) then raise exception 'property_not_allowed:%', v_key; end if;
   end loop;
 
+  if p_ip_hash is not null and p_ip_hash !~ '^[0-9a-f]{64}$' then raise exception 'invalid_ip_hash'; end if;
+  begin
+    if p_ip is not null and length(p_ip) <= 64 then
+      v_ip_network := set_masklen(p_ip::inet, case when family(p_ip::inet)=4 then 24 else 56 end)::cidr;
+    end if;
+  exception when invalid_text_representation then
+    v_ip_network := null;
+  end;
+
   insert into public.analytics_events (
     event_id, site_id, event_name, event_version, occurred_at, environment,
-    anonymous_id, session_id, user_id, view_id, target_id, acquisition, consent, properties
+    anonymous_id, session_id, user_id, ip_hash, ip_network,
+    view_id, target_id, acquisition, consent, properties
   ) values (
     (p_event->>'event_id')::uuid, v_site, v_name, coalesce((p_event->>'event_version')::smallint,1),
     greatest(now() - interval '24 hours', least((p_event->>'occurred_at')::timestamptz, now() + interval '5 minutes')),
     p_event->>'environment', nullif(p_event->>'anonymous_id','')::uuid,
-    (p_event->>'session_id')::uuid, p_authenticated_user,
+    (p_event->>'session_id')::uuid, p_authenticated_user, p_ip_hash, v_ip_network,
     nullif(p_event->>'view_id',''), nullif(p_event->>'target_id',''),
     coalesce(p_event->'acquisition','{}'::jsonb), coalesce(p_event->'consent','{}'::jsonb),
     coalesce(p_event->'properties','{}'::jsonb)
@@ -206,8 +229,9 @@ begin
 exception when invalid_text_representation or datetime_field_overflow then
   raise exception 'invalid_payload';
 end $$;
-revoke all on function public.analytics_ingest_event(jsonb,text,uuid) from public, anon, authenticated;
-grant execute on function public.analytics_ingest_event(jsonb,text,uuid) to service_role;
+revoke all on function public.analytics_ingest_event(jsonb,text,uuid,text,text) from public, anon, authenticated;
+grant execute on function public.analytics_ingest_event(jsonb,text,uuid,text,text) to service_role;
+drop function if exists public.analytics_ingest_event(jsonb,text,uuid);
 
 -- 결제 원장 확정과 귀속 스냅샷을 같은 DB transaction으로 처리한다.
 create or replace function public.analytics_finalize_paid_order(
@@ -285,6 +309,7 @@ begin
       'sessions', (select count(distinct e.session_id) from public.analytics_events e where e.site_id='bellore' and e.received_at >= v_from),
       'visitors', (select count(distinct e.anonymous_id) from public.analytics_events e where e.site_id='bellore' and e.received_at >= v_from and e.anonymous_id is not null),
       'product_views', (select count(*) from public.analytics_events e where e.site_id='bellore' and e.event_name='product_view' and e.received_at >= v_from),
+      'ip_subjects', (select count(distinct e.ip_hash || ':' || coalesce(e.user_id::text,'guest')) from public.analytics_events e where e.site_id='bellore' and e.received_at >= v_from and e.ip_hash is not null),
       'purchases', v_total, 'attributed_purchases', v_attributed, 'unattributed_purchases', greatest(v_total-v_attributed,0)
     ),
     'channels', coalesce((select jsonb_agg(to_jsonb(c) order by c.sessions desc) from (
@@ -292,6 +317,17 @@ begin
       from public.analytics_events e where e.site_id='bellore' and e.event_name='session_start' and e.received_at >= v_from
       group by 1 order by 2 desc limit 20
     ) c),'[]'::jsonb),
+    'ip_clients', coalesce((select jsonb_agg(to_jsonb(i) order by i.last_seen desc) from (
+      select e.ip_network::text ip_network, left(e.ip_hash,12) ip_key,
+             (e.user_id is not null) is_member,
+             case when e.user_id is not null then left(e.user_id::text,8) else null end member_ref,
+             count(distinct e.session_id) sessions, count(*) events,
+             min(e.received_at) first_seen, max(e.received_at) last_seen
+      from public.analytics_events e
+      where e.site_id='bellore' and e.received_at >= v_from and e.ip_hash is not null
+      group by e.ip_hash, e.ip_network, e.user_id
+      order by last_seen desc limit 100
+    ) i),'[]'::jsonb),
     'funnel', jsonb_build_array(
       jsonb_build_object('step','세션','count',(select count(distinct e.session_id) from public.analytics_events e where e.site_id='bellore' and e.received_at >= v_from)),
       jsonb_build_object('step','상품 조회','count',(select count(distinct e.session_id) from public.analytics_events e where e.site_id='bellore' and e.event_name='product_view' and e.received_at >= v_from)),
@@ -383,7 +419,7 @@ begin
   update public.orders o set analytics_session_id=null, analytics_anonymous_id=null, analytics_attribution=null
     where o.paid_at < now()-make_interval(days=>v_settings.aggregate_retention_days)
       and (o.analytics_session_id is not null or o.analytics_anonymous_id is not null or o.analytics_attribution is not null);
-  return jsonb_build_object('deleted',v_deleted,'click_ids_redacted',v_redacted,'ran_at',now());
+  return jsonb_build_object('deleted',v_deleted,'click_ids_redacted',v_redacted,'ip_data_retention_days',v_settings.raw_event_retention_days,'ran_at',now());
 end $$;
 revoke all on function public.analytics_purge_expired() from public, anon, authenticated;
 grant execute on function public.analytics_purge_expired() to service_role;

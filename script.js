@@ -2558,9 +2558,17 @@
                 }).join('') : '<p class="admin-empty">' + empty + '</p>';
             }
             var complete = Number(k.purchases) || 0, attributed = Number(k.attributed_purchases) || 0;
+            var ipRows = (o.ip_clients || []).map(function (r) {
+                var who = r.is_member ? ('회원 #' + esc(r.member_ref || '-')) : '비회원';
+                var network = esc(r.ip_network || '마스킹 불가');
+                var last = r.last_seen ? new Date(r.last_seen).toLocaleString('ko-KR') : '-';
+                return '<div class="an-row"><span class="an-name"><b>' + network + '</b><br><small>' + who + ' · 식별키 ' + esc(r.ip_key || '-') + '</small></span>' +
+                    '<span class="an-num">' + an2Num(r.sessions) + '세션 · ' + an2Num(r.events) + '건<br><small>' + esc(last) + '</small></span></div>';
+            }).join('') || '<p class="admin-empty">아직 IP 누적 데이터가 없습니다.</p>';
             box.innerHTML = '<div class="an2-tabs">' + tabs + '</div>' +
-                '<div class="an-grid an2-grid">' + card(k.sessions, '세션') + card(k.visitors, '동의 방문자') + card(k.product_views, '상품 조회') + card(complete, '구매 확정') + '</div>' +
+                '<div class="an-grid an2-grid">' + card(k.sessions, '세션') + card(k.visitors, '동의 방문자') + card(k.ip_subjects, 'IP 대상') + card(k.product_views, '상품 조회') + card(complete, '구매 확정') + '</div>' +
                 '<h4 class="an-h">유입 채널 <span class="an-mut">(세션 기준)</span></h4><div class="an-list">' + rows(o.channels, 'channel', 'sessions', '아직 유입 데이터가 없습니다.') + '</div>' +
+                '<h4 class="an-h">회원·비회원 접속 IP <span class="an-mut">(원문 미저장 · IPv4 /24, IPv6 /56 마스킹 · 최근 100개)</span></h4><div class="an-list">' + ipRows + '</div>' +
                 '<h4 class="an-h">구매 귀속</h4><div class="an-grid">' + card(attributed, '귀속') + card(k.unattributed_purchases, '미귀속') + card(complete, '원장 전체') + '</div>' +
                 '<p class="an2-cap">불변조건: 귀속 + 미귀속 = 원장 전체 · 현재 ' + (q.attribution_balanced ? '정상' : '확인 필요') + '</p>' +
                 '<h4 class="an-h">전환 퍼널</h4><div class="an-list">' + rows(o.funnel, 'step', 'count', '퍼널 데이터가 없습니다.') + '</div>' +
@@ -2568,7 +2576,7 @@
                   '<div class="an-row"><span class="an-name">미분류 세션</span><span class="an-num">' + an2Num(q.unclassified_sessions) + '</span></div>' +
                   '<div class="an-row"><span class="an-name">수집 지연(10분+)</span><span class="an-num">' + an2Num(q.delayed_events) + '</span></div>' +
                   '<div class="an-row"><span class="an-name">중복 거부</span><span class="an-num">' + an2Num(q.duplicate_events) + '</span></div>' +
-                '</div><p class="an2-total">원시 이벤트 보관 ' + esc(String(o.raw_retention_days || '미정')) + '일 · 집계 최신 ' + esc(o.generated_at || '-') + '<br>상세 원시 로그는 승인된 관리자만 조회할 수 있습니다.</p>';
+                '</div><p class="an2-total">원시 이벤트·가명 IP 보관 ' + esc(String(o.raw_retention_days || '미정')) + '일 · 집계 최신 ' + esc(o.generated_at || '-') + '<br>IP 원문은 저장하지 않으며 상세 정보는 승인된 관리자만 조회할 수 있습니다.</p>';
             if (!box.dataset.an3Bound) {
                 box.dataset.an3Bound = '1';
                 box.addEventListener('click', function (e) {

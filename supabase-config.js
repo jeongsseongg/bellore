@@ -21,7 +21,7 @@ window.BELLORE_ANALYTICS = {
   allowedHosts: ["bellore.co.kr", "www.bellore.co.kr"],
   previewHosts: ["localhost", "127.0.0.1"],
   sessionTimeoutMinutes: 30,
-  policyVersion: "2026-08-10",
+  policyVersion: "2026-08-10-ip-v1",
   collectUrl: "https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/collect-analytics",
   googleAdsId: "AW-18376230103",
   naverWcsId: "s_ce48c59488b"
