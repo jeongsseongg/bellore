@@ -120,8 +120,9 @@ jobs:
           docker run --rm -i -e PGCONN postgres:17 psql "$PGCONN" -v ON_ERROR_STOP=1 <<'SQL'
           select site_id, enabled, raw_event_retention_days, aggregate_retention_days, click_id_retention_days
             from public.analytics_settings where site_id='bellore';
-          select has_function_privilege('anon','public.analytics_ingest_event(jsonb,text,uuid)','execute') as anon_can_ingest,
-                 has_function_privilege('service_role','public.analytics_ingest_event(jsonb,text,uuid)','execute') as service_can_ingest;
+          select to_regprocedure('public.analytics_ingest_event(jsonb,text,uuid)') is null as legacy_ingest_removed,
+                 has_function_privilege('anon','public.analytics_ingest_event(jsonb,text,uuid,text,text)','execute') as anon_can_ingest,
+                 has_function_privilege('service_role','public.analytics_ingest_event(jsonb,text,uuid,text,text)','execute') as service_can_ingest;
           SQL
           echo "분석 V3 스키마 적용 완료 — 원시/클릭 ID 90일, 비식별 집계 730일"
 
