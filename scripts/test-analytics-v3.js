@@ -66,8 +66,11 @@ assert.match(maintenance, /analytics_ingest_event\(jsonb,text,uuid,text,text\)/)
 assert.match(maintenance, /legacy_ingest_removed/);
 
 const client = fs.readFileSync(path.join(root, 'analytics-client.js'), 'utf8');
-assert.match(client, /더 나은 벨로르 경험을 위해/);
-assert.match(client, /IP 원문은 저장하지 않으며, 선택은 언제든 바꿀 수 있어요/);
+assert.match(client, /당신의 취향이 더 빛나도록/);
+assert.match(client, /접속 IP 원문은 저장하지 않으며/);
+assert.match(client, /원치 않으면 필수 기능만으로 동일하게 이용할 수 있습니다/);
+assert.match(client, /data-consent="options"/);
+assert.match(client, /data-consent="essential"/);
 
 const confirm = fs.readFileSync(path.join(root, 'supabase/functions/confirm-payment/index.ts'), 'utf8');
 assert.match(confirm, /admin\.rpc\("analytics_finalize_paid_order"/);
@@ -77,8 +80,8 @@ const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 assert.doesNotMatch(html, /<script[^>]+googletagmanager\.com\/gtag/i);
 assert.doesNotMatch(html, /<script[^>]+wcs\.naver\.net/i);
 assert.match(html, /analytics-client\.js/);
-assert.match(html, /analytics-client\.js\?v=20260810-consent-copy-v2/);
-assert.match(html, /styles\.css\?v=20260810-analytics-dashboard-v4/);
+assert.match(html, /analytics-client\.js\?v=20260810-premium-consent-v1/);
+assert.match(html, /styles\.css\?v=20260810-premium-consent-v1/);
 assert.match(html, /script\.js\?v=20260810-analytics-dashboard-v4/);
 assert.match(html, /접속 IP 원문은 저장하지 않고/);
 
