@@ -291,32 +291,161 @@ set search_path = ''
 as $$
 declare
   v_from timestamptz;
+  v_prev_from timestamptz;
+  v_prev_to timestamptz;
   v_result jsonb;
   v_total bigint;
   v_attributed bigint;
+  v_sessions bigint;
+  v_visitors bigint;
+  v_page_views bigint;
+  v_product_views bigint;
+  v_member_sessions bigint;
+  v_guest_sessions bigint;
+  v_prev_sessions bigint;
+  v_prev_visitors bigint;
+  v_prev_page_views bigint;
+  v_prev_product_views bigint;
 begin
   if not exists (select 1 from public.profiles p where p.id = (select auth.uid()) and p.role = 'admin') then
     raise exception 'forbidden';
   end if;
   v_from := case when p_days <= 0 then date_trunc('day', now() at time zone 'Asia/Seoul') at time zone 'Asia/Seoul'
                  else now() - make_interval(days => least(p_days, 366)) end;
+  v_prev_from := case when p_days <= 0 then v_from - interval '1 day'
+                      else v_from - make_interval(days => least(p_days, 366)) end;
+  v_prev_to := case when p_days <= 0 then now() - interval '1 day' else v_from end;
+
+  select
+    (select count(distinct coalesce(v.session_id::text, coalesce(v.visitor_id,v.id::text) || ':' || (v.created_at at time zone 'Asia/Seoul')::date::text)) from public.page_views v where v.created_at >= v_from)
+      + (select count(distinct e.session_id) from public.analytics_events e where e.site_id='bellore' and e.event_name='session_start' and e.received_at >= v_from),
+    (select count(distinct coalesce(v.visitor_id,v.id::text)) from public.page_views v where v.created_at >= v_from)
+      + (select count(distinct e.anonymous_id) from public.analytics_events e where e.site_id='bellore' and e.received_at >= v_from and e.anonymous_id is not null),
+    (select count(*) from public.page_views v where v.created_at >= v_from)
+      + (select count(*) from public.analytics_events e where e.site_id='bellore' and e.event_name='view_open' and e.received_at >= v_from),
+    (select count(*) from public.product_views v where v.created_at >= v_from)
+      + (select count(*) from public.analytics_events e where e.site_id='bellore' and e.event_name='product_view' and e.received_at >= v_from),
+    (select count(distinct coalesce(v.session_id::text, coalesce(v.visitor_id,v.id::text) || ':' || (v.created_at at time zone 'Asia/Seoul')::date::text)) from public.page_views v where v.created_at >= v_from and v.user_id is not null)
+      + (select count(distinct e.session_id) from public.analytics_events e where e.site_id='bellore' and e.event_name='session_start' and e.received_at >= v_from and e.user_id is not null),
+    (select count(distinct coalesce(v.session_id::text, coalesce(v.visitor_id,v.id::text) || ':' || (v.created_at at time zone 'Asia/Seoul')::date::text)) from public.page_views v where v.created_at >= v_from and v.user_id is null)
+      + (select count(distinct e.session_id) from public.analytics_events e where e.site_id='bellore' and e.event_name='session_start' and e.received_at >= v_from and e.user_id is null)
+  into v_sessions, v_visitors, v_page_views, v_product_views, v_member_sessions, v_guest_sessions;
+
+  select
+    (select count(distinct coalesce(v.session_id::text, coalesce(v.visitor_id,v.id::text) || ':' || (v.created_at at time zone 'Asia/Seoul')::date::text)) from public.page_views v where v.created_at >= v_prev_from and v.created_at < v_prev_to)
+      + (select count(distinct e.session_id) from public.analytics_events e where e.site_id='bellore' and e.event_name='session_start' and e.received_at >= v_prev_from and e.received_at < v_prev_to),
+    (select count(distinct coalesce(v.visitor_id,v.id::text)) from public.page_views v where v.created_at >= v_prev_from and v.created_at < v_prev_to)
+      + (select count(distinct e.anonymous_id) from public.analytics_events e where e.site_id='bellore' and e.received_at >= v_prev_from and e.received_at < v_prev_to and e.anonymous_id is not null),
+    (select count(*) from public.page_views v where v.created_at >= v_prev_from and v.created_at < v_prev_to)
+      + (select count(*) from public.analytics_events e where e.site_id='bellore' and e.event_name='view_open' and e.received_at >= v_prev_from and e.received_at < v_prev_to),
+    (select count(*) from public.product_views v where v.created_at >= v_prev_from and v.created_at < v_prev_to)
+      + (select count(*) from public.analytics_events e where e.site_id='bellore' and e.event_name='product_view' and e.received_at >= v_prev_from and e.received_at < v_prev_to)
+  into v_prev_sessions, v_prev_visitors, v_prev_page_views, v_prev_product_views;
+
   select count(*) into v_total from public.orders o where o.status='paid' and o.paid_at >= v_from;
   select count(*) into v_attributed from public.analytics_conversion_attributions a where a.site_id='bellore' and a.converted_at >= v_from and a.session_id is not null;
   select jsonb_build_object(
     'generated_at', now(),
     'raw_retention_days', (select raw_event_retention_days from public.analytics_settings where site_id='bellore'),
+    'history', jsonb_build_object(
+      'legacy_page_views', (select count(*) from public.page_views),
+      'legacy_product_views', (select count(*) from public.product_views),
+      'v3_events', (select count(*) from public.analytics_events where site_id='bellore'),
+      'first_at', (select min(created_at) from public.page_views),
+      'cutover_at', (select min(received_at) from public.analytics_events where site_id='bellore')
+    ),
     'kpis', jsonb_build_object(
-      'sessions', (select count(distinct e.session_id) from public.analytics_events e where e.site_id='bellore' and e.received_at >= v_from),
-      'visitors', (select count(distinct e.anonymous_id) from public.analytics_events e where e.site_id='bellore' and e.received_at >= v_from and e.anonymous_id is not null),
-      'product_views', (select count(*) from public.analytics_events e where e.site_id='bellore' and e.event_name='product_view' and e.received_at >= v_from),
+      'sessions', v_sessions,
+      'visitors', v_visitors,
+      'page_views', v_page_views,
+      'product_views', v_product_views,
+      'member_sessions', v_member_sessions,
+      'guest_sessions', v_guest_sessions,
       'ip_subjects', (select count(distinct e.ip_hash || ':' || coalesce(e.user_id::text,'guest')) from public.analytics_events e where e.site_id='bellore' and e.received_at >= v_from and e.ip_hash is not null),
       'purchases', v_total, 'attributed_purchases', v_attributed, 'unattributed_purchases', greatest(v_total-v_attributed,0)
     ),
-    'channels', coalesce((select jsonb_agg(to_jsonb(c) order by c.sessions desc) from (
-      select coalesce(e.acquisition#>>'{session_touch,channel}','unclassified') channel, count(distinct e.session_id) sessions
+    'previous', jsonb_build_object('sessions',v_prev_sessions,'visitors',v_prev_visitors,'page_views',v_prev_page_views,'product_views',v_prev_product_views),
+    'trend', coalesce((with activity as (
+      select v.created_at ts, 'legacy:' || coalesce(v.visitor_id,v.id::text) visitor_key from public.page_views v where v.created_at >= v_from
+      union all
+      select e.received_at, 'v3:' || coalesce(e.anonymous_id::text,e.event_id::text) from public.analytics_events e where e.site_id='bellore' and e.event_name='view_open' and e.received_at >= v_from
+    ), days as (
+      select generate_series((v_from at time zone 'Asia/Seoul')::date, (now() at time zone 'Asia/Seoul')::date, interval '1 day')::date d
+    ), daily as (
+      select (a.ts at time zone 'Asia/Seoul')::date d, count(*) visits, count(distinct a.visitor_key) viewers from activity a group by 1
+    ) select jsonb_agg(jsonb_build_object('d',days.d,'visits',coalesce(daily.visits,0),'viewers',coalesce(daily.viewers,0)) order by days.d) from days left join daily using(d)),'[]'::jsonb),
+    'hours', coalesce((with hours as (select generate_series(0,23) h), visits as (
+      select extract(hour from x.ts at time zone 'Asia/Seoul')::int h, count(*) visits from (
+        select v.created_at ts from public.page_views v where v.created_at >= v_from
+        union all select e.received_at from public.analytics_events e where e.site_id='bellore' and e.event_name='view_open' and e.received_at >= v_from
+      ) x group by 1
+    ), products as (
+      select extract(hour from x.ts at time zone 'Asia/Seoul')::int h, count(*) product_views from (
+        select v.created_at ts from public.product_views v where v.created_at >= v_from
+        union all select e.received_at from public.analytics_events e where e.site_id='bellore' and e.event_name='product_view' and e.received_at >= v_from
+      ) x group by 1
+    ) select jsonb_agg(jsonb_build_object('h',hours.h,'visits',coalesce(visits.visits,0),'product_views',coalesce(products.product_views,0)) order by hours.h) from hours left join visits using(h) left join products using(h)),'[]'::jsonb),
+    'channels', coalesce((with legacy_sessions as (
+      select distinct on (session_key) session_key, raw_channel, ref_host from (
+        select coalesce(v.session_id::text, coalesce(v.visitor_id,v.id::text) || ':' || (v.created_at at time zone 'Asia/Seoul')::date::text) session_key,
+               coalesce(nullif(v.channel,''),v.acquisition->>'channel','') raw_channel,
+               lower(split_part(regexp_replace(coalesce(v.referrer,''),'^https?://','','i'),'/',1)) ref_host,
+               v.created_at
+        from public.page_views v where v.created_at >= v_from
+      ) s order by session_key, created_at
+    ), new_sessions as (
+      select e.session_id::text session_key, coalesce(e.acquisition#>>'{session_touch,channel}','unclassified') raw_channel,
+             coalesce(e.acquisition#>>'{session_touch,referrer_host}','') ref_host
       from public.analytics_events e where e.site_id='bellore' and e.event_name='session_start' and e.received_at >= v_from
-      group by 1 order by 2 desc limit 20
-    ) c),'[]'::jsonb),
+    ), classified as (
+      select case
+        when raw_channel like 'naver_paid%' then 'naver_paid'
+        when raw_channel='naver_place' or ref_host ~ '(^|\.)((pcmap|m)\.)?place\.naver\.com$' then 'naver_place'
+        when raw_channel like 'naver_%' or ref_host ~ '(^|\.)(search\.)?naver\.com$' then 'naver_organic'
+        when raw_channel like 'google_paid%' then 'google_paid'
+        when raw_channel='google_organic' or ref_host ~ '(^|\.)google\.' then 'google_organic'
+        when ref_host ~ '(^|\.)chatgpt\.com$|(^|\.)perplexity\.ai$|(^|\.)claude\.ai$' then 'ai'
+        when raw_channel in ('paid_social','organic_social') or ref_host ~ 'instagram|facebook|threads|twitter|tiktok' then 'social'
+        when ref_host ~ '(^|\.)mail\.' then 'email'
+        when raw_channel='direct' or ref_host='' or ref_host in ('bellore.co.kr','www.bellore.co.kr') then 'direct'
+        when raw_channel='unclassified' and ref_host='' then 'unclassified'
+        else 'referral' end channel_key
+      from (select * from legacy_sessions union all select * from new_sessions) u
+    ), grouped as (select channel_key, count(*) sessions from classified group by channel_key)
+    select jsonb_agg(jsonb_build_object('key',channel_key,'channel',case channel_key
+      when 'direct' then '직접 유입' when 'naver_paid' then '네이버 광고' when 'naver_place' then '네이버 플레이스'
+      when 'naver_organic' then '네이버 검색' when 'google_paid' then '구글 광고' when 'google_organic' then '구글 검색'
+      when 'ai' then 'AI·ChatGPT' when 'social' then 'SNS' when 'email' then '이메일'
+      when 'referral' then '외부 사이트' else '미분류' end,'sessions',sessions) order by sessions desc) from grouped),'[]'::jsonb),
+    'visitor_types', jsonb_build_array(
+      jsonb_build_object('key','member','label','회원','sessions',v_member_sessions),
+      jsonb_build_object('key','guest','label','비회원','sessions',v_guest_sessions)
+    ),
+    'devices', coalesce((with legacy_sessions as (
+      select distinct on (session_key) session_key, ua from (
+        select coalesce(v.session_id::text, coalesce(v.visitor_id,v.id::text) || ':' || (v.created_at at time zone 'Asia/Seoul')::date::text) session_key, coalesce(v.ua,'') ua, v.created_at
+        from public.page_views v where v.created_at >= v_from
+      ) s order by session_key, created_at
+    ), unified as (
+      select case when ua ~* 'ipad|tablet' then 'tablet' when ua ~* 'mobile|android|iphone' then 'mobile' else 'desktop' end device from legacy_sessions
+      union all
+      select coalesce(nullif(e.properties->>'device_class',''),'unknown') from public.analytics_events e where e.site_id='bellore' and e.event_name='session_start' and e.received_at >= v_from
+    ), grouped as (select device, count(*) sessions from unified group by device)
+    select jsonb_agg(jsonb_build_object('key',device,'label',case device when 'mobile' then '모바일' when 'tablet' then '태블릿' when 'desktop' then 'PC' else '기타' end,'sessions',sessions) order by sessions desc) from grouped),'[]'::jsonb),
+    'top_pages', coalesce((with unified as (
+      select coalesce(nullif(v.path,''),'#home') path, 'legacy:' || coalesce(v.visitor_id,v.id::text) visitor_key from public.page_views v where v.created_at >= v_from
+      union all
+      select coalesce(nullif(e.properties->>'route',''),'#' || coalesce(nullif(e.view_id,''),'home')), 'v3:' || coalesce(e.anonymous_id::text,e.event_id::text)
+      from public.analytics_events e where e.site_id='bellore' and e.event_name='view_open' and e.received_at >= v_from
+    ), grouped as (select path, count(*) views, count(distinct visitor_key) viewers from unified group by path order by views desc limit 10)
+    select jsonb_agg(to_jsonb(grouped) order by views desc) from grouped),'[]'::jsonb),
+    'top_products', coalesce((with unified as (
+      select coalesce(nullif(v.listing_id,''),'legacy:' || v.id::text) listing_id, v.brand, v.model, 'legacy:' || coalesce(v.visitor_id,v.id::text) visitor_key from public.product_views v where v.created_at >= v_from
+      union all
+      select coalesce(nullif(e.properties->>'listing_id',''),'v3:' || e.event_id::text), e.properties->>'brand', e.properties->>'model', 'v3:' || coalesce(e.anonymous_id::text,e.event_id::text)
+      from public.analytics_events e where e.site_id='bellore' and e.event_name='product_view' and e.received_at >= v_from
+    ), grouped as (select listing_id, max(brand) brand, max(model) model, count(*) views, count(distinct visitor_key) viewers from unified group by listing_id order by views desc limit 10)
+    select jsonb_agg(to_jsonb(grouped) order by views desc) from grouped),'[]'::jsonb),
     'ip_clients', coalesce((select jsonb_agg(to_jsonb(i) order by i.last_seen desc) from (
       select e.ip_network::text ip_network, left(e.ip_hash,12) ip_key,
              (e.user_id is not null) is_member,
@@ -328,9 +457,28 @@ begin
       group by e.ip_hash, e.ip_network, e.user_id
       order by last_seen desc limit 100
     ) i),'[]'::jsonb),
+    'recent_activity', coalesce((with activity as (
+      select v.created_at occurred_at, 'navigation' category, '화면 방문' action, coalesce(nullif(v.path,''),'#home') subject,
+             (v.user_id is not null) is_member, case when v.user_id is not null then left(v.user_id::text,8) end member_ref, '기존 로그' source
+      from public.page_views v
+      union all
+      select v.created_at, 'product', '상품 조회', trim(coalesce(v.brand,'') || ' ' || coalesce(v.model,'')),
+             (v.user_id is not null), case when v.user_id is not null then left(v.user_id::text,8) end, '기존 로그'
+      from public.product_views v
+      union all
+      select e.received_at,
+             case when e.event_name in ('product_view','purchase_click','purchase_complete','purchase_failed') then 'commerce'
+                  when e.event_name in ('quote_requested','phone_call') then 'lead' else 'navigation' end,
+             case e.event_name when 'session_start' then '방문 시작' when 'view_open' then '화면 방문' when 'product_view' then '상품 조회'
+                  when 'purchase_click' then '구매 클릭' when 'purchase_complete' then '구매 확정' when 'purchase_failed' then '구매 실패'
+                  when 'quote_requested' then '견적 신청' when 'phone_call' then '전화 연결' when 'element_click' then '버튼 클릭' else '기타 활동' end,
+             coalesce(nullif(e.properties->>'route',''),nullif(trim(coalesce(e.properties->>'brand','') || ' ' || coalesce(e.properties->>'model','')),''),nullif(e.target_id,''),nullif(e.view_id,''),'-'),
+             (e.user_id is not null), case when e.user_id is not null then left(e.user_id::text,8) end, '신규 분석'
+      from public.analytics_events e where e.site_id='bellore' and e.event_name not in ('view_dwell','page_exit','page_return','consent_updated')
+    ) select jsonb_agg(to_jsonb(a) order by occurred_at desc) from (select * from activity order by occurred_at desc limit 80) a),'[]'::jsonb),
     'funnel', jsonb_build_array(
-      jsonb_build_object('step','세션','count',(select count(distinct e.session_id) from public.analytics_events e where e.site_id='bellore' and e.received_at >= v_from)),
-      jsonb_build_object('step','상품 조회','count',(select count(distinct e.session_id) from public.analytics_events e where e.site_id='bellore' and e.event_name='product_view' and e.received_at >= v_from)),
+      jsonb_build_object('step','방문 세션','count',v_sessions),
+      jsonb_build_object('step','상품 조회','count',(select count(distinct coalesce(v.visitor_id,v.id::text)) from public.product_views v where v.created_at >= v_from) + (select count(distinct e.session_id) from public.analytics_events e where e.site_id='bellore' and e.event_name='product_view' and e.received_at >= v_from)),
       jsonb_build_object('step','구매 클릭','count',(select count(distinct e.session_id) from public.analytics_events e where e.site_id='bellore' and e.event_name='purchase_click' and e.received_at >= v_from)),
       jsonb_build_object('step','구매 확정','count',v_total)
     ),

@@ -47,6 +47,14 @@ assert.match(sql, /set_masklen\(p_ip::inet[\s\S]*24[\s\S]*56/i);
 assert.match(sql, /analytics_events_ip_subject_idx/i);
 assert.match(sql, /ip_clients/i);
 assert.match(sql, /drop function if exists public\.analytics_ingest_event\(jsonb,text,uuid\)/i);
+assert.match(sql, /legacy_page_views/i);
+assert.match(sql, /'trend'/i);
+assert.match(sql, /'hours'/i);
+assert.match(sql, /'visitor_types'/i);
+assert.match(sql, /'devices'/i);
+assert.match(sql, /'top_pages'/i);
+assert.match(sql, /'top_products'/i);
+assert.match(sql, /'recent_activity'/i);
 
 const collector = fs.readFileSync(path.join(root, 'supabase/functions/collect-analytics/index.ts'), 'utf8');
 assert.match(collector, /ANALYTICS_IP_HASH_KEY/);
@@ -70,6 +78,8 @@ assert.doesNotMatch(html, /<script[^>]+googletagmanager\.com\/gtag/i);
 assert.doesNotMatch(html, /<script[^>]+wcs\.naver\.net/i);
 assert.match(html, /analytics-client\.js/);
 assert.match(html, /analytics-client\.js\?v=20260810-consent-copy-v2/);
+assert.match(html, /styles\.css\?v=20260810-analytics-dashboard-v4/);
+assert.match(html, /script\.js\?v=20260810-analytics-dashboard-v4/);
 assert.match(html, /접속 IP 원문은 저장하지 않고/);
 
 console.log('analytics-v3 invariants: ok');
