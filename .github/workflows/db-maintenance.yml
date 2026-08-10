@@ -65,7 +65,7 @@ jobs:
           echo "모든 SQL 적용 완료"
 
       - name: Apply admin multi-bids SQL (재실행 안전)
-        if: inputs.task == 'apply-admin-multi-bids' || (github.event_name == 'push' && !contains(github.event.head_commit.modified, 'analytics_v3_canonical.sql') && !contains(github.event.head_commit.added, 'analytics_v3_canonical.sql'))
+        if: github.event_name == 'push' || inputs.task == 'apply-admin-multi-bids'
         env:
           PGCONN: ${{ secrets.SUPABASE_DB_URL }}
         run: |
@@ -110,7 +110,7 @@ jobs:
           echo "판매 확정 후속처리 DB 적용 완료"
 
       - name: Apply analytics V3 canonical SQL
-        if: inputs.task == 'apply-analytics-v3' || (github.event_name == 'push' && (contains(github.event.head_commit.modified, 'analytics_v3_canonical.sql') || contains(github.event.head_commit.added, 'analytics_v3_canonical.sql')))
+        if: github.event_name == 'push' || inputs.task == 'apply-analytics-v3'
         env:
           PGCONN: ${{ secrets.SUPABASE_DB_URL }}
         run: |
