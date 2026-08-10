@@ -69,6 +69,7 @@ const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 assert.doesNotMatch(html, /<script[^>]+googletagmanager\.com\/gtag/i);
 assert.doesNotMatch(html, /<script[^>]+wcs\.naver\.net/i);
 assert.match(html, /analytics-client\.js/);
+assert.match(html, /analytics-client\.js\?v=20260810-consent-copy-v2/);
 assert.match(html, /접속 IP 원문은 저장하지 않고/);
 
 console.log('analytics-v3 invariants: ok');
