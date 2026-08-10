@@ -33,7 +33,11 @@
     try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch (_e) { return false; }
   }
   function remove(key) { try { localStorage.removeItem(key); } catch (_e) {} }
-  function consent() { return read(CONSENT_KEY, { analytics: 'pending', ads: 'pending', policy_version: CFG.policyVersion || '2026-08-10' }); }
+  function consent() {
+    var current = CFG.policyVersion || '2026-08-10-ip-v1';
+    var value = read(CONSENT_KEY, null);
+    return value && value.policy_version === current ? value : { analytics: 'pending', ads: 'pending', policy_version: current };
+  }
   function analyticsGranted() { return consent().analytics === 'granted'; }
   function internalTraffic() { return !!(window.NWBackend && window.NWBackend.isAdmin && window.NWBackend.isAdmin()); }
   function hostAllowed() {
@@ -174,7 +178,7 @@
   }
   function applyConsent(next) {
     var previous = consent();
-    var value = { analytics: next.analytics, ads: next.ads, policy_version: CFG.policyVersion || '2026-08-10', updated_at: new Date().toISOString() };
+    var value = { analytics: next.analytics, ads: next.ads, policy_version: CFG.policyVersion || '2026-08-10-ip-v1', updated_at: new Date().toISOString() };
     write(CONSENT_KEY, value);
     if (value.analytics !== 'granted') {
       remove(VISITOR_KEY); remove(SESSION_KEY); remove(FIRST_TOUCH_KEY); remove(QUEUE_KEY); session = null;
@@ -192,9 +196,9 @@
     var c = consent(), el = document.createElement('section');
     el.id = 'analyticsConsent'; el.className = 'analytics-consent'; el.setAttribute('aria-label', '쿠키 및 분석 설정');
     el.innerHTML = '<div class="analytics-consent-card"><strong>개인정보와 선택권을 지켜요</strong>' +
-      '<p>서비스 개선용 익명 활동 분석과 광고 성과 측정은 동의한 경우에만 사용합니다. 필수 기능은 동의 없이 이용할 수 있습니다.</p>' +
+      '<p>서비스 개선·부정이용 방지용 활동·유입 분석(접속 IP의 HMAC·네트워크 마스킹 포함)과 광고 성과 측정은 동의한 경우에만 사용합니다. IP 원문은 저장하지 않고 가명 IP는 90일 보관하며, 거부해도 필수 기능은 이용할 수 있습니다.</p>' +
       '<details' + (force ? ' open' : '') + '><summary>직접 설정</summary>' +
-      '<label><input type="checkbox" data-consent-analytics' + (c.analytics === 'granted' ? ' checked' : '') + '> 익명 활동·유입 분석</label>' +
+      '<label><input type="checkbox" data-consent-analytics' + (c.analytics === 'granted' ? ' checked' : '') + '> 활동·유입 분석(가명 IP 포함)</label>' +
       '<label><input type="checkbox" data-consent-ads' + (c.ads === 'granted' ? ' checked' : '') + '> 광고 성과 측정(Google·Naver)</label></details>' +
       '<div><button type="button" data-consent="essential">필수만</button><button type="button" data-consent="save">설정 저장</button><button type="button" class="primary" data-consent="all">모두 허용</button></div></div>';
     document.body.appendChild(el);
@@ -210,6 +214,10 @@
   }
   function init() {
     if (started || !Core) return; started = true;
+    var storedConsent = read(CONSENT_KEY, null);
+    if (storedConsent && storedConsent.policy_version !== (CFG.policyVersion || '2026-08-10-ip-v1')) {
+      remove(VISITOR_KEY); remove(SESSION_KEY); remove(FIRST_TOUCH_KEY); remove(QUEUE_KEY); session = null;
+    }
     var backendReady = window.NWBackend && window.NWBackend.ready ? window.NWBackend.ready : Promise.resolve();
     backendReady.then(function () {
       if (analyticsGranted() && !internalTraffic()) { page(routeId()); flush(); }

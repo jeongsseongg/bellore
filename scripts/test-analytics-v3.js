@@ -41,6 +41,17 @@ assert.match(sql, /grant execute on function public\.analytics_ingest_event[\s\S
 assert.match(sql, /analytics_finalize_paid_order[\s\S]*analytics_conversion_attributions/i);
 assert.match(sql, /attribution_balanced/i);
 assert.match(sql, /raw_event_retention_days is not null/i);
+assert.match(sql, /ip_hash text/i);
+assert.match(sql, /ip_network cidr/i);
+assert.match(sql, /set_masklen\(p_ip::inet[\s\S]*24[\s\S]*56/i);
+assert.match(sql, /analytics_events_ip_subject_idx/i);
+assert.match(sql, /ip_clients/i);
+assert.match(sql, /drop function if exists public\.analytics_ingest_event\(jsonb,text,uuid\)/i);
+
+const collector = fs.readFileSync(path.join(root, 'supabase/functions/collect-analytics/index.ts'), 'utf8');
+assert.match(collector, /ANALYTICS_IP_HASH_KEY/);
+assert.match(collector, /crypto\.subtle\.sign\("HMAC"/);
+assert.doesNotMatch(collector, /console\.(log|info|warn|error)\([^\n]*ip/i);
 
 const confirm = fs.readFileSync(path.join(root, 'supabase/functions/confirm-payment/index.ts'), 'utf8');
 assert.match(confirm, /admin\.rpc\("analytics_finalize_paid_order"/);
@@ -50,5 +61,6 @@ const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 assert.doesNotMatch(html, /<script[^>]+googletagmanager\.com\/gtag/i);
 assert.doesNotMatch(html, /<script[^>]+wcs\.naver\.net/i);
 assert.match(html, /analytics-client\.js/);
+assert.match(html, /접속 IP 원문은 저장하지 않고/);
 
 console.log('analytics-v3 invariants: ok');

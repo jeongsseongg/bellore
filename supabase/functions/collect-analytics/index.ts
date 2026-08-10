@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const IP_HASH_KEY = Deno.env.get("ANALYTICS_IP_HASH_KEY") ?? "";
 const ALLOWED_ORIGINS = new Set(
   (Deno.env.get("ANALYTICS_ALLOWED_ORIGINS") ?? "https://bellore.co.kr,https://www.bellore.co.kr")
     .split(",").map((v) => v.trim()).filter(Boolean),
@@ -34,18 +35,34 @@ function rateLimited(key: string) {
   return entry.count > RATE_LIMIT;
 }
 
+function clientIp(req: Request) {
+  const value = req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for") ?? "";
+  return value.split(",")[0].trim().replace(/^\[|\]$/g, "").slice(0, 64) || null;
+}
+
+async function hmacIp(ip: string) {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw", encoder.encode(IP_HASH_KEY), { name: "HMAC", hash: "SHA-256" }, false, ["sign"],
+  );
+  const signed = await crypto.subtle.sign("HMAC", key, encoder.encode(`bellore:${ip}`));
+  return Array.from(new Uint8Array(signed)).map((v) => v.toString(16).padStart(2, "0")).join("");
+}
+
 Deno.serve(async (req) => {
   const origin = req.headers.get("origin") ?? "";
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors(origin) });
   if (req.method !== "POST") return json(origin, { error: "method_not_allowed" }, 405);
   if (!ALLOWED_ORIGINS.has(origin)) return json(origin, { error: "origin_not_allowed" }, 403);
-  if (!SUPABASE_URL || !SERVICE_ROLE) return json(origin, { error: "server_not_configured" }, 503);
+  if (!SUPABASE_URL || !SERVICE_ROLE || IP_HASH_KEY.length < 32) return json(origin, { error: "server_not_configured" }, 503);
   const contentLength = Number(req.headers.get("content-length") || 0);
   if (contentLength > MAX_BODY) return json(origin, { error: "payload_too_large" }, 413);
   const ua = req.headers.get("user-agent") ?? "";
   if (/bot|crawler|spider|headless|lighthouse/i.test(ua)) return json(origin, { accepted: false, reason: "bot" }, 202);
-  const ip = (req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "unknown").split(",")[0].trim();
-  if (rateLimited(`${origin}:${ip}`)) return json(origin, { error: "rate_limited" }, 429);
+  const ip = clientIp(req);
+  if (!ip) return json(origin, { error: "client_ip_unavailable" }, 503);
+  const ipHash = await hmacIp(ip);
+  if (rateLimited(`${origin}:${ipHash}`)) return json(origin, { error: "rate_limited" }, 429);
 
   try {
     const raw = await req.text();
@@ -60,6 +77,7 @@ Deno.serve(async (req) => {
     }
     const { data, error } = await admin.rpc("analytics_ingest_event", {
       p_event: event, p_origin: origin, p_authenticated_user: userId,
+      p_ip_hash: ipHash, p_ip: ip,
     });
     if (error) {
       const message = String(error.message || "rejected");
