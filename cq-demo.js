@@ -2108,7 +2108,8 @@
           render();
         }).catch(function (err) {
           adminAddBid.disabled = false; adminAddBid.textContent = '이 업체명으로 견적 추가';
-          alert('중복 견적 추가 실패: ' + msg(err));
+          console.error('[BELLORE] 관리자 중복 견적 추가 실패', err);
+          alert('견적을 추가하지 못했습니다. 잠시 후 다시 시도해주세요.');
         });
       return;
     }

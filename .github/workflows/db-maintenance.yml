@@ -10,6 +10,12 @@ name: DB Maintenance
 # 개인정보(이메일/전화)는 로그에 출력하지 않는다.
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - admin_multi_bids.sql
+      - bid_notify.sql
+      - .github/workflows/db-maintenance.yml
   workflow_dispatch:
     inputs:
       task:
@@ -54,14 +60,39 @@ jobs:
           echo "모든 SQL 적용 완료"
 
       - name: Apply admin multi-bids SQL (재실행 안전)
-        if: inputs.task == 'apply-admin-multi-bids'
+        if: github.event_name == 'push' || inputs.task == 'apply-admin-multi-bids'
         env:
           PGCONN: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           set -euo pipefail
-          docker run --rm -e PGCONN -v "$PWD:/repo:ro" postgres:17 \
-            psql "$PGCONN" -v ON_ERROR_STOP=1 -f "/repo/admin_multi_bids.sql"
-          echo "관리자 업체명·중복견적 DB 적용 완료"
+          for f in admin_multi_bids.sql bid_notify.sql; do
+            echo "=== $f ==="
+            docker run --rm -e PGCONN -v "$PWD:/repo:ro" postgres:17 \
+              psql "$PGCONN" -v ON_ERROR_STOP=1 -f "/repo/$f"
+          done
+
+          docker run --rm -i -e PGCONN postgres:17 psql "$PGCONN" -v ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          declare
+            fn text;
+          begin
+            select pg_get_functiondef('public.notify_customer_on_bid()'::regprocedure) into fn;
+            if position('not found or customer_id is null' in fn) = 0
+               or position('when others' in fn) = 0 then
+              raise exception 'notify_customer_on_bid verification failed';
+            end if;
+            if not exists (
+              select 1
+                from pg_trigger
+               where tgrelid = 'public.bids'::regclass
+                 and tgname = 'trg_notify_customer_on_bid'
+                 and not tgisinternal
+            ) then
+              raise exception 'trg_notify_customer_on_bid verification failed';
+            end if;
+          end $$;
+          SQL
+          echo "관리자 중복견적·고객 알림 DB 적용 및 검증 완료"
 
       - name: Apply quote followup SQL (재실행 안전)
         if: inputs.task == 'apply-quote-followup'

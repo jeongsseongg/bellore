@@ -14,32 +14,47 @@
 -- ============================================================
 
 create or replace function public.notify_customer_on_bid()
-returns trigger language plpgsql security definer set search_path = public as $$
+returns trigger language plpgsql security definer set search_path = pg_catalog, public as $$
 declare
-  q       public.quote_requests%rowtype;
-  label   text;
-  amt     text;
+  customer_id uuid;
+  label       text;
+  amt         text;
 begin
   -- 새 입찰이거나 금액이 바뀐 경우에만
   if tg_op = 'INSERT'
      or (tg_op = 'UPDATE' and new.amount is distinct from old.amount) then
 
-    select * into q from public.quote_requests where id = new.quote_request_id;
-    if q.customer_id is null then
+    select qr.customer_id,
+           coalesce(
+             nullif(trim(coalesce(qr.item_brand, '') || ' ' || coalesce(qr.item_name, '')), ''),
+             '시계'
+           )
+      into customer_id, label
+      from public.quote_requests qr
+     where qr.id = new.quote_request_id;
+
+    -- 비회원·디스코드 접수 견적은 알림 수신자가 없지만 입찰 자체는 정상 허용한다.
+    if not found or customer_id is null then
       return new;
     end if;
 
-    label := coalesce(nullif(trim(coalesce(q.item_brand,'') || ' ' || coalesce(q.item_name,'')), ''), '시계');
-    amt   := to_char(coalesce(new.amount, 0), 'FM999,999,999,999');
+    amt := to_char(coalesce(new.amount, 0), 'FM999,999,999,999');
 
-    insert into public.notifications (user_id, type, title, body, ref_id)
-    values (
-      q.customer_id,
-      'bid_new',
-      '새 입찰이 도착했어요',
-      label || '에 ' || amt || '원 견적이 들어왔습니다. 지금 비교해 보세요.',
-      new.quote_request_id::text
-    );
+    -- 알림은 부가 기능이다. 알림 저장 실패가 핵심 입찰 트랜잭션을 롤백시키지 않는다.
+    begin
+      insert into public.notifications (user_id, type, title, body, ref_id)
+      values (
+        customer_id,
+        'bid_new',
+        '새 입찰이 도착했어요',
+        label || '에 ' || amt || '원 견적이 들어왔습니다. 지금 비교해 보세요.',
+        new.quote_request_id::text
+      );
+    exception
+      when others then
+        raise warning 'bid notification skipped (quote_request_id=%, sqlstate=%): %',
+          new.quote_request_id, sqlstate, sqlerrm;
+    end;
   end if;
   return new;
 end $$;
