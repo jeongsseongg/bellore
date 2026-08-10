@@ -10396,3 +10396,12 @@ body.admin-mode #homeOnSale .hcard-actions {
         padding-right: 0;
     }
 }
+/* 동의 기반 활동·광고 분석 설정 */
+.analytics-consent{position:fixed;z-index:100000;left:16px;right:16px;bottom:max(16px,env(safe-area-inset-bottom));display:flex;justify-content:center;font-family:inherit}
+.analytics-consent-card{width:min(640px,100%);padding:18px;border:1px solid rgba(17,24,39,.12);border-radius:18px;background:rgba(255,255,255,.98);box-shadow:0 18px 60px rgba(15,23,42,.22);color:#111827}
+.analytics-consent-card>strong{display:block;font-size:16px;margin-bottom:6px}.analytics-consent-card p{margin:0 0 12px;font-size:13px;line-height:1.55;color:#4b5563}
+.analytics-consent-card details{margin:0 0 12px;padding:10px 12px;border-radius:12px;background:#f6f7f9;font-size:13px}.analytics-consent-card summary{cursor:pointer;font-weight:700}
+.analytics-consent-card label{display:block;margin-top:9px}.analytics-consent-card>div{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.analytics-consent-card button{min-height:40px;padding:0 14px;border:1px solid #d1d5db;border-radius:999px;background:#fff;color:#111827;font:inherit;font-weight:700;cursor:pointer}
+.analytics-consent-card button.primary{border-color:#111827;background:#111827;color:#fff}
+@media(max-width:480px){.analytics-consent{left:10px;right:10px}.analytics-consent-card{padding:15px}.analytics-consent-card>div{display:grid;grid-template-columns:1fr 1fr}.analytics-consent-card button.primary{grid-column:1/-1}}

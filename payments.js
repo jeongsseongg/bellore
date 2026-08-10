@@ -336,7 +336,9 @@
     payBtn.disabled = true;
     payBtn.textContent = '주문 생성 중...';
 
-    // 1) pending 주문 생성 → order_no 발급
+    // 1) pending 주문 생성 → order_no 발급. 귀속은 결제 확정 시 서버 transaction에서 고정한다.
+    var attribution = window.BelloreAnalytics && window.BelloreAnalytics.conversionContext
+      ? window.BelloreAnalytics.conversionContext() : null;
     var createOrder = window.NWBackend.createOrder({
           listingId: product.listingId,
           productName: orderName,
@@ -354,14 +356,16 @@
           shipPostcode: ship.postcode || null,
           shipAddr1: ship.addr1 || null,
           shipAddr2: ship.addr2 || null,
-          shipRequest: ship.request || null
+          shipRequest: ship.request || null,
+          attribution: attribution
         });
 
     createOrder.then(function (order) {
       // 주문번호/금액을 복귀 후 검증용으로 저장
       try {
         sessionStorage.setItem('bellore_pending_order', JSON.stringify({
-          orderNo: order.orderNo, amount: amount
+          orderNo: order.orderNo, amount: amount, listingId: product.listingId || null,
+          attribution: attribution
         }));
       } catch (e) {}
 
@@ -399,7 +403,7 @@
           return;
         }
         // 성공 → 서버 검증
-        verifyPayment(resp ? resp.paymentId : order.orderNo);
+        verifyPayment(resp ? resp.paymentId : order.orderNo, attribution, product.listingId || null);
       });
     }).catch(function (e) {
       console.warn('[BELLORE] 결제 요청 실패:', e);
@@ -418,15 +422,18 @@
   }
 
   // 결제 성공 후 서버(Edge Function) 검증
-  function verifyPayment(paymentId) {
+  function verifyPayment(paymentId, attribution, listingId) {
     showResult(true, '결제 승인 처리 중...', '잠시만 기다려 주세요.');
     if (!(backendOn() && window.NWBackend.confirmOrder && PAY.confirmUrl)) {
       showResult(false, '결제 승인 확인 불가', '서버 결제 검증이 준비되지 않았습니다. 고객센터로 문의해 주세요.');
       return;
     }
-    var doConfirm = window.NWBackend.confirmOrder({ paymentId: paymentId });
+    var doConfirm = window.NWBackend.confirmOrder({ paymentId: paymentId, attribution: attribution || null });
     doConfirm.then(function (res) {
       if (res && (res.ok || res.alreadyPaid)) {
+        if (window.BelloreAnalytics && window.BelloreAnalytics.purchaseComplete && res.order && res.order.id) {
+          window.BelloreAnalytics.purchaseComplete(res.order, res.order.amount, listingId || res.order.listing_id || null);
+        }
         if (window.belloreRefreshCoupons) window.belloreRefreshCoupons();
         showResult(true, '결제가 완료되었습니다',
           '주문번호 ' + (paymentId || '') + '\n마이페이지에서 주문 내역을 확인하실 수 있습니다.');
@@ -469,7 +476,9 @@
       showResult(false, '결제 실패', q.get('message') || '결제가 취소되었거나 실패했습니다.');
       return;
     }
-    verifyPayment(paymentId);
+    var pending = null;
+    try { pending = JSON.parse(sessionStorage.getItem('bellore_pending_order') || 'null'); } catch (_e) {}
+    verifyPayment(paymentId, pending && pending.attribution, pending && pending.listingId);
   }
 
   /* ---------------- 이벤트 바인딩 ---------------- */

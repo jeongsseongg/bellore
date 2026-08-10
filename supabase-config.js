@@ -10,6 +10,23 @@ window.BELLORE_SUPABASE = {
   anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml1bXNuYWN1eGdzc25uYmNrdXJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NDQ5ODQsImV4cCI6MjA5NjIyMDk4NH0.lwej8g4YCaiYuoQSXczwRp6ez-X26DD5d1ycMkYwpIk"
 };
 
+/* 활동·유입 분석 V3
+   - 분석/광고 동의 전에는 영구 식별자와 이벤트를 저장하지 않습니다.
+   - 원시 이벤트와 광고 클릭 ID는 90일, 비식별 집계는 730일 보관합니다. */
+window.BELLORE_ANALYTICS = {
+  enabled: true,
+  siteId: "bellore",
+  projectPrefix: "bellore",
+  primaryConversion: "purchase",
+  allowedHosts: ["bellore.co.kr", "www.bellore.co.kr"],
+  previewHosts: ["localhost", "127.0.0.1"],
+  sessionTimeoutMinutes: 30,
+  policyVersion: "2026-08-10",
+  collectUrl: "https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/collect-analytics",
+  googleAdsId: "AW-18376230103",
+  naverWcsId: "s_ce48c59488b"
+};
+
 /* 부트스트랩 관리자 이메일.
    - DB profiles.role = 'admin' 이 정식 관리자 판정 기준입니다.
    - 아래 이메일은 DB 역할이 아직 admin 으로 바뀌지 않았더라도

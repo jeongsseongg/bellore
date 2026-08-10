@@ -65,6 +65,27 @@ function couponDiscount(c: any, base: number): number {
   return Math.max(0, Math.min(d, base));
 }
 
+function sanitizeAttribution(value: any) {
+  if (!value || typeof value !== "object") return null;
+  const uuid = (v: unknown) => typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v) ? v : null;
+  const touch = (v: any) => {
+    if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+    const allowed = [
+      "utm_id", "utm_source", "utm_medium", "utm_campaign", "utm_source_platform", "utm_term", "utm_content",
+      "gclid", "dclid", "wbraid", "gbraid", "msclkid", "fbclid", "ttclid",
+      "n_media", "n_query", "n_keyword", "n_campaign", "n_campaign_type", "n_ad_group", "n_ad", "n_rank", "n_click_id",
+      "referrer_host", "channel",
+    ];
+    const out: Record<string, string> = {};
+    for (const key of allowed) if (typeof v[key] === "string" && v[key].trim()) out[key] = v[key].trim().slice(0, 200);
+    return out;
+  };
+  return {
+    event_id: uuid(value.event_id), anonymous_id: uuid(value.anonymous_id), session_id: uuid(value.session_id),
+    first_touch: touch(value.first_touch), session_touch: touch(value.session_touch), conversion_touch: touch(value.conversion_touch),
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
@@ -73,6 +94,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
     // 포트원: paymentId(=order_no) 로 검증. (구버전 orderId 도 허용)
     const paymentId: string = body.paymentId || body.orderId || "";
+    const attribution = sanitizeAttribution(body.attribution);
     if (!paymentId) return json({ error: "missing_params" }, 400);
     if (!PORTONE_API_SECRET) return json({ error: "not_configured" }, 400);
 
@@ -178,23 +200,22 @@ Deno.serve(async (req) => {
       return json({ error: "amount_mismatch", expected, got: paidAmount }, 400);
     }
 
-    // 6) 주문 확정 (서버 재계산값으로 amount/discount 를 정정 저장)
+    // 6) 주문 확정 + canonical orders.id 귀속 스냅샷을 단일 DB transaction으로 저장
     const method = payment?.method?.type ?? payment?.method?.provider ?? null;
     const receiptUrl = payment?.receiptUrl ?? null;
-    const { data: updated } = await admin
-      .from("orders")
-      .update({
-        status: "paid",
-        amount: expected,
-        discount: serverDiscount,
-        method,
-        payment_key: paymentId,
-        receipt_url: receiptUrl,
-        paid_at: new Date().toISOString(),
-      })
-      .eq("id", order.id)
-      .select()
-      .single();
+    const { data: finalized, error: finalizeError } = await admin.rpc("analytics_finalize_paid_order", {
+      p_order_id: order.id,
+      p_amount: expected,
+      p_discount: serverDiscount,
+      p_method: method,
+      p_payment_key: paymentId,
+      p_receipt_url: receiptUrl,
+      p_attribution: attribution,
+    });
+    if (finalizeError || !finalized?.order) {
+      return json({ error: "order_attribution_finalize_failed", detail: finalizeError?.message ?? "missing_order" }, 500);
+    }
+    const updated = finalized.order;
 
     // 7) 쿠폰 사용 확정 (결제 성공 시에만)
     if (order.coupon_user_id) {

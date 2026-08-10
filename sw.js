@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v203-bid-notify-fix";
+const VERSION = "bellore-v204-analytics-v3";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -16,6 +16,8 @@ const SHELL_ASSETS = [
   './naverpay.js',
   './ui-dialog.js',
   './supabase-config.js',
+  './analytics-core.js',
+  './analytics-client.js',
   './brands.js',
   './supabase.js',
   './bellore-features.js',

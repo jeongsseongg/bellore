@@ -10,11 +10,14 @@ name: DB Maintenance
 # 개인정보(이메일/전화)는 로그에 출력하지 않는다.
 
 on:
+  schedule:
+    - cron: '20 18 * * *' # 매일 03:20 KST, pg_cron 미설치 프로젝트의 보존정책 실행
   push:
     branches: [main]
     paths:
       - admin_multi_bids.sql
       - bid_notify.sql
+      - analytics_v3_canonical.sql
       - .github/workflows/db-maintenance.yml
   workflow_dispatch:
     inputs:
@@ -27,6 +30,8 @@ on:
           - apply-discord-quote
           - apply-admin-multi-bids
           - apply-quote-followup
+          - apply-analytics-v3
+          - purge-analytics-v3
 
 permissions:
   contents: read
@@ -60,7 +65,7 @@ jobs:
           echo "모든 SQL 적용 완료"
 
       - name: Apply admin multi-bids SQL (재실행 안전)
-        if: github.event_name == 'push' || inputs.task == 'apply-admin-multi-bids'
+        if: inputs.task == 'apply-admin-multi-bids' || (github.event_name == 'push' && !contains(github.event.head_commit.modified, 'analytics_v3_canonical.sql') && !contains(github.event.head_commit.added, 'analytics_v3_canonical.sql'))
         env:
           PGCONN: ${{ secrets.SUPABASE_DB_URL }}
         run: |
@@ -103,6 +108,33 @@ jobs:
           docker run --rm -e PGCONN -v "$PWD:/repo:ro" postgres:17 \
             psql "$PGCONN" -v ON_ERROR_STOP=1 -f "/repo/quote_followup.sql"
           echo "판매 확정 후속처리 DB 적용 완료"
+
+      - name: Apply analytics V3 canonical SQL
+        if: inputs.task == 'apply-analytics-v3' || (github.event_name == 'push' && (contains(github.event.head_commit.modified, 'analytics_v3_canonical.sql') || contains(github.event.head_commit.added, 'analytics_v3_canonical.sql')))
+        env:
+          PGCONN: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          docker run --rm -e PGCONN -v "$PWD:/repo:ro" postgres:17 \
+            psql "$PGCONN" -v ON_ERROR_STOP=1 -f "/repo/analytics_v3_canonical.sql"
+          docker run --rm -i -e PGCONN postgres:17 psql "$PGCONN" -v ON_ERROR_STOP=1 <<'SQL'
+          select site_id, enabled, raw_event_retention_days, aggregate_retention_days, click_id_retention_days
+            from public.analytics_settings where site_id='bellore';
+          select has_function_privilege('anon','public.analytics_ingest_event(jsonb,text,uuid)','execute') as anon_can_ingest,
+                 has_function_privilege('service_role','public.analytics_ingest_event(jsonb,text,uuid)','execute') as service_can_ingest;
+          SQL
+          echo "분석 V3 스키마 적용 완료 — 원시/클릭 ID 90일, 비식별 집계 730일"
+
+      - name: Purge expired analytics data
+        if: github.event_name == 'schedule' || inputs.task == 'purge-analytics-v3'
+        env:
+          PGCONN: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          docker run --rm -i -e PGCONN postgres:17 psql "$PGCONN" -v ON_ERROR_STOP=1 <<'SQL'
+          select public.analytics_purge_expired();
+          SQL
+          echo "분석 데이터 보존정책 실행 완료"
 
       - name: Diagnose (읽기 전용)
         if: inputs.task == 'diagnose'
