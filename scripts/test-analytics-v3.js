@@ -57,6 +57,10 @@ const maintenance = fs.readFileSync(path.join(root, '.github/workflows/db-mainte
 assert.match(maintenance, /analytics_ingest_event\(jsonb,text,uuid,text,text\)/);
 assert.match(maintenance, /legacy_ingest_removed/);
 
+const client = fs.readFileSync(path.join(root, 'analytics-client.js'), 'utf8');
+assert.match(client, /더 나은 벨로르 경험을 위해/);
+assert.match(client, /IP 원문은 저장하지 않으며, 선택은 언제든 바꿀 수 있어요/);
+
 const confirm = fs.readFileSync(path.join(root, 'supabase/functions/confirm-payment/index.ts'), 'utf8');
 assert.match(confirm, /admin\.rpc\("analytics_finalize_paid_order"/);
 assert.doesNotMatch(confirm, /\.from\("orders"\)\s*\.update\(\{\s*status:\s*"paid"/);

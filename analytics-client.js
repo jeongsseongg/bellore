@@ -195,12 +195,12 @@
     closeConsent();
     var c = consent(), el = document.createElement('section');
     el.id = 'analyticsConsent'; el.className = 'analytics-consent'; el.setAttribute('aria-label', '쿠키 및 분석 설정');
-    el.innerHTML = '<div class="analytics-consent-card"><strong>개인정보와 선택권을 지켜요</strong>' +
-      '<p>서비스 개선·부정이용 방지용 활동·유입 분석(접속 IP의 HMAC·네트워크 마스킹 포함)과 광고 성과 측정은 동의한 경우에만 사용합니다. IP 원문은 저장하지 않고 가명 IP는 90일 보관하며, 거부해도 필수 기능은 이용할 수 있습니다.</p>' +
-      '<details' + (force ? ' open' : '') + '><summary>직접 설정</summary>' +
+    el.innerHTML = '<div class="analytics-consent-card"><strong>더 나은 벨로르 경험을 위해</strong>' +
+      '<p>당신에게 더 잘 맞는 상품과 편리한 이용 경험을 제공하기 위해 이용 흐름을 분석해 서비스를 향상합니다. IP 원문은 저장하지 않으며, 선택은 언제든 바꿀 수 있어요.</p>' +
+      '<details' + (force ? ' open' : '') + '><summary>선택 설정</summary>' +
       '<label><input type="checkbox" data-consent-analytics' + (c.analytics === 'granted' ? ' checked' : '') + '> 활동·유입 분석(가명 IP 포함)</label>' +
       '<label><input type="checkbox" data-consent-ads' + (c.ads === 'granted' ? ' checked' : '') + '> 광고 성과 측정(Google·Naver)</label></details>' +
-      '<div><button type="button" data-consent="essential">필수만</button><button type="button" data-consent="save">설정 저장</button><button type="button" class="primary" data-consent="all">모두 허용</button></div></div>';
+      '<div><button type="button" data-consent="essential">필수 기능만</button><button type="button" data-consent="save">선택 저장</button><button type="button" class="primary" data-consent="all">경험 향상 동의</button></div></div>';
     document.body.appendChild(el);
     el.addEventListener('click', function (e) {
       var button = e.target.closest('[data-consent]'); if (!button) return;
