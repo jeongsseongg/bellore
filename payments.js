@@ -20,6 +20,13 @@
     return backendOn() && window.NWBackend.currentUser
       ? window.NWBackend.currentUser() : null;
   }
+  function paymentEmail(user) {
+    var accountEmail = user && String(user.email || '').trim();
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(accountEmail || '')) return accountEmail;
+    var fallbackEmail = String(PAY.fallbackBuyerEmail || '').trim();
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fallbackEmail)) return fallbackEmail;
+    return 'bellorekr@gmail.com';
+  }
 
   // 배송비: 기본 전국 무료. 단, 프리미엄배송 기준액(기본 500만원) 이상 고가 상품은
   //          안전·보험 프리미엄배송(기본 35,000원) 필수 가산. (약관/배송정책 특약)
@@ -382,7 +389,8 @@
         customer: {
           fullName: name,
           phoneNumber: phone.replace(/[^0-9]/g, ''),
-          email: (u && u.email) || undefined
+          // KG이니시스 V2 필수값. 고객 입력 없이 계정 이메일 또는 운영 메일을 사용한다.
+          email: paymentEmail(u)
         },
         // 모바일은 이 주소로 복귀하며 포트원이 결과 파라미터를 덧붙인다.
         redirectUrl: location.origin + location.pathname + '?pay=portone'

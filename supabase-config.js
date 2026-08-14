@@ -57,6 +57,9 @@ window.BELLORE_PAYMENTS = {
   provider: "portone",
   // 포트원 상점 ID (예: store-00000000-0000-0000-0000-000000000000)
   storeId: "store-c0c1bc9e-60c2-4ac6-9bb1-80c0ee7337ef",
+  // KG이니시스 V2는 구매자 이메일 형식을 필수로 요구합니다.
+  // 고객에게 별도 입력받지 않고, 로그인 이메일이 없을 때 아래 운영 메일을 전달합니다.
+  fallbackBuyerEmail: "bellorekr@gmail.com",
   // 결제수단 목록 — 각 항목의 channelKey 를 포트원 콘솔에서 복사해 채우세요.
   //   payMethod: 'CARD'(카드) | 'EASY_PAY'(간편결제) | 'TRANSFER'(계좌이체) | 'VIRTUAL_ACCOUNT'(가상계좌)
   //   easyPayProvider: 간편결제일 때 지정(아래 값 참고). 비우면 PG 기본 선택창.
