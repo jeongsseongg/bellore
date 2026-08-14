@@ -20,13 +20,6 @@
     return backendOn() && window.NWBackend.currentUser
       ? window.NWBackend.currentUser() : null;
   }
-  function paymentEmail(user) {
-    var accountEmail = user && String(user.email || '').trim();
-    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(accountEmail || '')) return accountEmail;
-    var fallbackEmail = String(PAY.fallbackBuyerEmail || '').trim();
-    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fallbackEmail)) return fallbackEmail;
-    return 'bellorekr@gmail.com';
-  }
 
   // 배송비: 기본 전국 무료. 단, 프리미엄배송 기준액(기본 500만원) 이상 고가 상품은
   //          안전·보험 프리미엄배송(기본 35,000원) 필수 가산. (약관/배송정책 특약)
@@ -227,6 +220,7 @@
     if (u) {
       if (!$('#coName').value) $('#coName').value = u.displayName || '';
       if (!$('#coPhone').value && u.phone) $('#coPhone').value = u.phone;
+      if (!$('#coEmail').value && u.email) $('#coEmail').value = u.email;
       // 가입 시 저장한 주소를 배송지에 미리 채움(수정 가능)
       if (u.postcode && $('#coPostcode') && !$('#coPostcode').value) {
         $('#coPostcode').value = u.postcode;
@@ -281,7 +275,9 @@
   function requestPay() {
     var name = $('#coName').value.trim();
     var phone = $('#coPhone').value.trim();
-    if (!name || !phone) { alert('이름과 연락처를 입력해 주세요.'); return; }
+    var email = ($('#coEmail').value || '').trim();
+    if (!name || !phone || !email) { alert('이름, 연락처, 이메일을 입력해 주세요.'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert('이메일 주소를 정확히 입력해 주세요.'); return; }
 
     var ship = {};
     ship.recipient = ($('#coShipName').value || '').trim() || name;
@@ -377,7 +373,6 @@
       } catch (e) {}
 
       payBtn.textContent = '결제 진행 중...';
-      var u = currentUser();
       var req = {
         storeId: PAY.storeId,
         channelKey: selectedChannel.channelKey,
@@ -389,8 +384,8 @@
         customer: {
           fullName: name,
           phoneNumber: phone.replace(/[^0-9]/g, ''),
-          // KG이니시스 V2 필수값. 고객 입력 없이 계정 이메일 또는 운영 메일을 사용한다.
-          email: paymentEmail(u)
+          // KG이니시스 V2 일반결제 필수값
+          email: email
         },
         // 모바일은 이 주소로 복귀하며 포트원이 결과 파라미터를 덧붙인다.
         redirectUrl: location.origin + location.pathname + '?pay=portone'

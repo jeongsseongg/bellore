@@ -2616,6 +2616,10 @@
                     <label>연락처</label>
                     <input type="tel" id="coPhone" placeholder="010-0000-0000">
                 </div>
+                <div class="co-field">
+                    <label>이메일</label>
+                    <input type="email" id="coEmail" placeholder="name@example.com" autocomplete="email" required>
+                </div>
             </section>
 
             <!-- 배송지 (전액 결제 시 노출) -->
@@ -2678,7 +2682,7 @@
                     <input type="checkbox" id="coAgreeOrder">
                     <span><b>[필수]</b> 중고 상품 상태, 배송비, 청약철회 조건 및 최종 결제금액을 확인했습니다.</span>
                 </label>
-                <p class="co-agree-summary">수집 항목: 이름·연락처·배송지 · 목적: 주문·결제·배송·환불 · 보유기간: 관계 법령상 보존기간</p>
+                <p class="co-agree-summary">수집 항목: 이름·연락처·이메일·배송지 · 목적: 주문·결제·배송·환불 · 보유기간: 관계 법령상 보존기간</p>
             </section>
         </div>
 
@@ -3224,7 +3228,7 @@
     <script src="search.js?v=20260814-kg-card-review"></script>
     <script src="ai-advisor.js?v=20260814-kg-card-review"></script>
     <script src="ai-advisor-admin.js?v=20260725-ai-log"></script>
-    <script src="payments.js?v=20260814-email-free-checkout"></script>
+    <script src="payments.js?v=20260814-buyer-email-input"></script>
     <script src="naverpay.js?v=20260728-naver-review-fixes-2"></script>
     <script>
         if ('serviceWorker' in navigator) {
