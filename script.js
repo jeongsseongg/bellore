@@ -1462,7 +1462,6 @@
         rows.push({ cap: '거래' });
         rows.push({ act: 'orders', label: '주문 내역', count: orderN });
         rows.push({ act: 'auction', label: '경매' });
-        if (role === 'customer') rows.push({ act: 'bids', label: '시계 판매 · 내 견적' });
         if (role === 'vendor' || role === 'partner') rows.push({ act: 'bids', label: '비교견적 · 입찰 내역' });
         if (role === 'partner') rows.push({ act: 'sales', label: '공급상품 · 정산 내역' });
         rows.push({ act: 'cart', label: '장바구니' });
@@ -5046,7 +5045,7 @@
     }
 
     /* ============ 1. 라우팅 ============ */
-    var VALID = ['home', 'compare', 'collection', 'insight', 'brand', 'about', 'contact', 'sell', 'buy', 'repair', 'cat-update', 'cat-sale', 'cat-new', 'cat-today', 'wishlist'];
+    var VALID = ['home', 'collection', 'insight', 'brand', 'about', 'contact', 'buy', 'repair', 'cat-update', 'cat-sale', 'cat-new', 'cat-today', 'wishlist'];
 
     // 하단 탭/네비게이션으로 이동하면 마이페이지 계열 풀스크린 오버레이를 모두 닫는다.
     // (마이페이지가 모달처럼 위에 남아 화면 이동이 안 되던 문제 해결 — X 없이 자연 이탈)
@@ -5096,6 +5095,7 @@
 
     function navigate(target) {
         if (!target) return;
+        if (target === 'compare' || target === 'sell') target = 'home';
         if (location.hash !== '#' + target) {
             history.pushState({ page: target }, '', '#' + target);
         }

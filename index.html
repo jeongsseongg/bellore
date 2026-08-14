@@ -66,7 +66,7 @@
     <!-- Pretendard 는 구글폰트에 없음 → 공식 CDN(jsdelivr)에서 로드해야 실제로 적용됨 -->
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=20260810-analytics-insights-v5">
+    <link rel="stylesheet" href="styles.css?v=20260814-kg-card-review">
     <link rel="stylesheet" href="wanted-theme.css?v=20260801-search-rollback">
     <link rel="stylesheet" href="reference-layout.css?v=20260731-mypick-reference">
     <link rel="stylesheet" href="vendor-reference.css?v=20260731-photo-viewer">
@@ -219,7 +219,6 @@
             <a href="#cat-sale" class="cat-chip" data-nav="cat-sale">TIME SALE</a>
             <a href="#cat-new" class="cat-chip" data-nav="cat-new">미사용신품</a>
             <a href="#cat-today" class="cat-chip" data-nav="cat-today">오늘의시계</a>
-            <a href="#compare" class="cat-chip" data-nav="compare">시계판매</a>
         </nav>
     </header>
 
@@ -240,7 +239,6 @@
                                 <span class="anim-line">한번에 진행하세요</span>
                             </h1>
                             <div class="hero-cta hero-cta-3 anim-line">
-                                <a href="#compare" class="btn btn-primary" data-nav="compare" data-analytics-id="hero_sell_watch">시계 판매</a>
                                 <a href="#buy" class="btn btn-primary" data-nav="buy" data-analytics-id="hero_buy_watch">시계 구입</a>
                                 <a href="#repair" class="btn btn-primary" data-nav="repair" data-analytics-id="hero_repair_watch">시계 수리</a>
                             </div>
@@ -1124,7 +1122,7 @@
                     <p class="brand-tagline">롤렉스의 역사 - 120년의 전설</p>
                     <p class="brand-body">1905년 한스 빌스도르프가 런던에서 창업한 롤렉스는 1926년 세계 최초의 방수 손목시계 '오이스터'를 개발하며 현대 손목시계의 표준을 만들었습니다.</p>
                     <p class="brand-body">데이트저스트, 서브마리너, 데이토나, GMT 마스터 등 아이콘 모델들을 탄생시켰으며, 매입 시장에서 가장 안정적인 가치를 유지하는 브랜드입니다.</p>
-                    <a href="#compare" class="link-arrow" data-nav="compare">롤렉스 비교견적 →</a>
+                    <a href="#collection" class="link-arrow" data-nav="collection">롤렉스 상품 보기 →</a>
                 </div>
             </section>
 
@@ -1521,11 +1519,11 @@
                             <p>친구 추가하고 시세 확인</p>
                             <small>채널 추가 →</small>
                         </a>
-                        <a href="#compare" class="contact-quick-card compare" data-nav="compare">
+                        <a href="#collection" class="contact-quick-card compare" data-nav="collection">
                             <span class="cq-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M5 7h14"/><path d="M6 7l-3 6a3 3 0 0 0 6 0z"/><path d="M18 7l-3 6a3 3 0 0 0 6 0z"/><path d="M8 21h8"/></svg></span>
-                            <strong>비교견적 받기</strong>
-                            <p>120곳 동시 입찰</p>
-                            <small>견적 신청 →</small>
+                            <strong>상품 둘러보기</strong>
+                            <p>벨로르 판매 상품 확인</p>
+                            <small>상품 보기 →</small>
                         </a>
                     </div>
 
@@ -1664,6 +1662,11 @@
                     <a href="tel:010-6293-6668" class="footer-tel-link">010-6293-6668</a>
                     <span>24시간 연중무휴</span>
                 </div>
+            </div>
+
+            <div class="footer-responsibility" role="note" aria-label="거래 및 민원 책임 안내">
+                <p>모든 거래에 대한 책임과 배송, 환불, 민원 등의 처리는 벨로르에서 진행합니다.</p>
+                <p>민원담당자: 정성호 · <a href="tel:010-6293-6668">010-6293-6668</a></p>
             </div>
 
             <div class="footer-legal-row">
@@ -2209,10 +2212,6 @@
                     <span class="pl-label">포인트/쿠폰</span>
                     <span class="pl-badge" id="pocketCoupon" hidden>0</span>
                 </button>
-                <button type="button" class="pl-item" data-cqd-open data-cqd-screen="c-new">
-                    <span class="pl-ic has-img"><img src="assets/mypage/sell.png" alt="" loading="lazy"></span>
-                    <span class="pl-label">시계판매</span>
-                </button>
                 <button type="button" class="pl-item" data-mpmenu="interest">
                     <span class="pl-ic has-img"><img src="assets/mypage/interest.png" alt="" loading="lazy"></span>
                     <span class="pl-label">내 관심</span>
@@ -2228,15 +2227,6 @@
                     <span class="pl-badge" id="pocketCart" hidden>0</span>
                 </button>
             </div>
-
-            <button type="button" class="mp-sell-watch-cta customer-only" data-cqd-open data-cqd-screen="c-new">
-                <span>
-                    <small>무료 비교견적</small>
-                    <strong>내 시계 판매하러 가기</strong>
-                    <em>몇 가지 질문에 답하면 바로 신청할 수 있어요</em>
-                </span>
-                <b aria-hidden="true">→</b>
-            </button>
 
             <section class="mp-order-preview customer-only" id="mpOrderPreview">
                 <div class="mp-order-status"><span class="mp-order-dot"></span><b id="mpOrderStatus">최근 주문</b></div>
@@ -3210,10 +3200,6 @@
             </span>
             <span>보관함</span>
         </button>
-        <button class="tab-item" data-nav="compare">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="12" r="5"/><path d="M7.5 7.3 7 4h7l-.5 3.3M7.5 16.7 7 20h7l-.5-3.3"/><path d="M10.5 12V9.6M10.5 12h2"/><path d="M19 15.5v-6m0 0-1.9 1.9M19 9.5l1.9 1.9"/></svg>
-            <span>시계판매</span>
-        </button>
         <button class="tab-item" type="button" id="tabMy">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
             <span>마이페이지</span>
@@ -3224,7 +3210,7 @@
     <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
     <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
     <script src="ui-dialog.js"></script>
-    <script src="supabase-config.js?v=20260727-naverpay-order"></script>
+    <script src="supabase-config.js?v=20260814-kg-card-review"></script>
     <script src="analytics-core.js?v=20260810-analytics-v3"></script>
     <script src="analytics-client.js?v=20260810-premium-consent-v1"></script>
     <script src="brands.js"></script>
@@ -3235,15 +3221,15 @@
     <script src="wishlist.js?v=20260731-mypick-reference-2"></script>
     <script src="alerts.js?v=20260731-mypick-reference-2"></script>
     <script src="auction.js"></script>
-    <script src="search.js?v=20260731-mypick-reference"></script>
-    <script src="ai-advisor.js?v=20260725-ai-log"></script>
+    <script src="search.js?v=20260814-kg-card-review"></script>
+    <script src="ai-advisor.js?v=20260814-kg-card-review"></script>
     <script src="ai-advisor-admin.js?v=20260725-ai-log"></script>
     <script src="payments.js?v=20260727-card-naver-options"></script>
     <script src="naverpay.js?v=20260728-naver-review-fixes-2"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('sw.js?v=20260801-search-rollback').catch(function (err) {
+                navigator.serviceWorker.register('sw.js?v=20260814-kg-card-review').catch(function (err) {
                     console.warn('서비스워커 등록 실패:', err);
                 });
             });

@@ -61,8 +61,9 @@ window.BELLORE_PAYMENTS = {
   //   payMethod: 'CARD'(카드) | 'EASY_PAY'(간편결제) | 'TRANSFER'(계좌이체) | 'VIRTUAL_ACCOUNT'(가상계좌)
   //   easyPayProvider: 간편결제일 때 지정(아래 값 참고). 비우면 PG 기본 선택창.
   //   test: true 인 채널은 localhost 또는 ?paymentTest=1 주소에서만 노출됩니다.
+  //   운영 심사용 신용카드 채널은 결제창에 항상 노출합니다.
   channels: [
-    { id: "card",     label: "신용·체크카드 (테스트)", payMethod: "CARD", channelKey: "channel-key-cf2d8c63-bc14-4341-a885-ce472b9fb07a", test: true },
+    { id: "card",     label: "신용·체크카드", payMethod: "CARD", channelKey: "channel-key-cf2d8c63-bc14-4341-a885-ce472b9fb07a" },
     { id: "kakaopay", label: "카카오페이",   payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_KAKAOPAY" },
     { id: "naverpay", label: "네이버페이",   payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_NAVERPAY" },
     { id: "tosspay",  label: "토스페이",     payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_TOSSPAY" },

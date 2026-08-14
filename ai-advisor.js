@@ -1137,7 +1137,6 @@
 
   var MENU = [
     { t: '시계 추천받기', q: '제 취향에 맞는 시계를 추천해주세요' },
-    { t: '내 시계 팔기', q: '__sell__' },
     { t: '시세 물어보기', q: '시세를 알고 싶어요' },
     { t: '입고 알림 설정', q: '입고 알림을 설정하고 싶어요' },
     { t: '내 취향 분석', q: '__profile__' },
@@ -1369,17 +1368,6 @@
         if (window.CQDemo && window.CQDemo.open) window.CQDemo.open({ screen: 'c-chat' });
         else toast('고객센터는 마이페이지 > 고객센터에서 이용하실 수 있어요');
       }, 500);
-      return;
-    }
-    if (q === '__sell__') {
-      addUser('내 시계 팔기');
-      addBot('시계 판매는 이렇게 진행돼요 😊\n1) 판매하실 모델·구성품(박스/보증서)을 알려주세요\n2) 감정사가 검토 후 매입가를 안내드려요\n3) 합의되면 안전하게 거래·정산까지 도와드려요\n\n지금 바로 접수하시겠어요?');
-      addActionButton('지금 판매하러 가기', function () {
-        closePanel();
-        if (window.CQDemo && window.CQDemo.open) window.CQDemo.open();
-        else toast('마이페이지 > 시계판매에서 접수하실 수 있어요');
-      });
-      track('sell_request', { value: { via: 'ai_assistant' } });
       return;
     }
     elInput.value = q; sendCurrent();
