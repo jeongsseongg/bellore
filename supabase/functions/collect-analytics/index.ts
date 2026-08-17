@@ -75,6 +75,23 @@ Deno.serve(async (req) => {
       const { data } = await admin.auth.getUser(bearer);
       userId = data.user?.id ?? null;
     }
+    if (userId) {
+      const { data: profile } = await admin.from("profiles").select("role").eq("id", userId).maybeSingle();
+      if (profile?.role === "admin") return json(origin, { accepted: false, reason: "internal" }, 202);
+    }
+    if (event?.aggregate_only === true) {
+      const consentState = String(event?.consent_state ?? "");
+      if (!['granted', 'denied'].includes(consentState)) return json(origin, { error: "invalid_consent_state" }, 400);
+      if (event?.site_id !== "bellore" || event?.environment !== "production") return json(origin, { error: "invalid_aggregate_payload" }, 400);
+      const { data, error } = await admin.rpc("analytics_record_consent_aggregate", {
+        p_site: event.site_id,
+        p_consent_state: consentState,
+        p_visitor_type: userId ? "member" : "guest",
+        p_occurred_at: event.occurred_at ?? new Date().toISOString(),
+      });
+      if (error) return json(origin, { error: String(error.message || "aggregate_rejected").slice(0, 160) }, 500);
+      return json(origin, data ?? { accepted: true, aggregate_only: true }, 202);
+    }
     const { data, error } = await admin.rpc("analytics_ingest_event", {
       p_event: event, p_origin: origin, p_authenticated_user: userId,
       p_ip_hash: ipHash, p_ip: ip,

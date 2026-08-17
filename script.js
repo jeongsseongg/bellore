@@ -2586,6 +2586,12 @@
                 return '<div class="an3-donut-layout"><div class="an3-donut" style="background:conic-gradient(' + stops.join(',') + ')" role="img" aria-label="유입 채널 원형 그래프"><span><b>' + an2Num(total) + '</b><small>전체 세션</small></span></div><div class="an3-donut-legend">' + legend.join('') + '</div></div>';
             }
             var complete = Number(k.purchases) || 0, attributed = Number(k.attributed_purchases) || 0;
+            var consentGroups = o.consent_groups || [];
+            function consentVisits(state, visitorType) {
+                var row = consentGroups.find(function (r) { return r.consent_state === state && r.visitor_type === visitorType; });
+                return row ? (Number(row.visits) || 0) : 0;
+            }
+            var consentTotal = Number(o.consent_total) || consentGroups.reduce(function (sum, r) { return sum + (Number(r.visits) || 0); }, 0);
             var topPages = (o.top_pages || []).map(function (r, i) {
                 return '<div class="an-row"><span class="an-rank">' + (i + 1) + '</span><span class="an-name">' + esc(an2PathName(r.path)) +
                     '</span><span class="an-num">' + an2Num(r.views) + '회 · ' + an2Num(r.viewers) + '명</span></div>';
@@ -2631,6 +2637,11 @@
                 '<div class="an-grid an3-kpis">' + card(k.sessions, '방문 세션', p.sessions) + card(k.visitors, '방문자', p.visitors) +
                     card(k.page_views, '화면 조회', p.page_views) + card(k.product_views, '상품 조회', p.product_views) + card(k.ip_subjects, 'IP 대상') + card(complete, '구매 확정') + '</div>' +
                 '<p class="an2-cap">증감은 ' + (_an2Days === 0 ? '어제 같은 시간대' : '직전 동일 기간') + ' 대비입니다. 기존 로그와 신규 분석을 합산했습니다.</p>' +
+                '<h4 class="an-h">분석 동의 상태별 방문 <span class="an-mut">(개인 식별 없이 전체 합산)</span></h4>' +
+                '<div class="an-grid an3-consent-grid">' + card(consentTotal, '전체 방문') +
+                    card(consentVisits('granted','member'), '동의 회원') + card(consentVisits('granted','guest'), '동의 비회원') +
+                    card(consentVisits('denied','member'), '비동의 회원') + card(consentVisits('denied','guest'), '비동의 비회원') + '</div>' +
+                '<p class="an2-cap">비동의 방문은 사용자 ID·IP·세션·행동 내역을 저장하지 않고 일별 숫자만 집계합니다. 이 항목은 기능 적용 이후 방문부터 계산됩니다.</p>' +
                 (_an2Days > 0 ? ('<h4 class="an-h">일별 방문 추이 <span class="an-mut">(조회수·방문자)</span></h4>' + an2TrendSVG(o.trend || [])) : '') +
                 '<h4 class="an-h">시간대별 활동 <span class="an-mut">(방문·상품조회)</span></h4>' + an2HourSVG(o.hours || []) +
                 '<section class="an3-donut-section"><h4 class="an-h">유입 분류 <span class="an-mut">(세션)</span></h4>' + donut(o.channels) + '</section>' +
@@ -3888,6 +3899,9 @@
         var line = (brandKR(it.brand) + ' ' + displayModelName(it)).trim();
         return '<p class="hcard-model">' + esc(line) + '</p>';
     }
+    function modelOnlyLineHTML(it) {
+        return '<p class="hcard-model">' + esc(displayModelName(it)) + '</p>';
+    }
     function usedStatusHTML(it) {
         if (isNewItem(it)) return '';
         return '<p class="hcard-used-row"><span class="hcard-used-badge">중고 상품</span></p>';
@@ -3898,6 +3912,17 @@
         if (it.size_mm) parts.push(it.size_mm + 'mm');
         if (it.dial_color) parts.push(it.dial_color);
         return '<p class="hcard-pack">' + (parts.length ? esc(parts.join(', ')) : '&nbsp;') + '</p>';
+    }
+    function collectionSpecLineHTML(it) {
+        var parts = [];
+        if (it.product_no) parts.push(it.product_no);
+        if (it.size_mm) parts.push(String(it.size_mm).replace(/mm$/i, '') + 'MM');
+        if (it.pack) parts.push(it.pack);
+        else if (it.accessories) parts.push(it.accessories);
+        return '<p class="hcard-pack">' + (parts.length ? esc(parts.slice(0, 3).join(' · ')) : '&nbsp;') + '</p>';
+    }
+    function collectionConditionHTML(it) {
+        return isNewItem(it) ? '<span class="hcard-condition">미착용</span>' : '';
     }
     // 카드 하단 정보: 2줄 고정(구성품·등급 / 스탬핑·미리수). 값 없으면 '미표기'. (현재 목록 카드에는 미노출, 상세에서만 참고)
     function cardBadgesHTML(it) {
@@ -4017,12 +4042,11 @@
             card.dataset.stampyear = stampYear(it.stamping);
             card.dataset.created = it.created_at ? (Date.parse(it.created_at) || 0) : 0;
             card.innerHTML =
-                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
+                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + collectionConditionHTML(it) + saleOverlayHTML(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
-                brandModelLineHTML(it) +
-                specLineHTML(it) +
+                modelOnlyLineHTML(it) +
+                collectionSpecLineHTML(it) +
                 '<p class="hcard-price">' + priceHtml + '</p>' +
-                usedStatusHTML(it) +
                 '<div class="hcard-admin">' +
                 '<button type="button" class="hcard-gear" aria-label="설정"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1l2.1-2.1M17 7l2.1-2.1\"/></svg></button>' +
                 '<div class="hcard-admin-menu" hidden>' +

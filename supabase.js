@@ -1525,8 +1525,20 @@
       .then(function (r) { if (r.error) throw r.error; return r.data || {}; });
   };
   Backend.analyticsDashboardV3 = function (days) {
-    return sb.rpc('analytics_dashboard_v3', { p_days: days == null ? 7 : days })
-      .then(function (r) { if (r.error) throw r.error; return r.data || {}; });
+    var period = days == null ? 7 : days;
+    return Promise.all([
+      sb.rpc('analytics_dashboard_v3', { p_days: period }),
+      sb.rpc('analytics_consent_dashboard_v1', { p_days: period })
+    ]).then(function (rows) {
+      if (rows[0].error) throw rows[0].error;
+      var dashboard = rows[0].data || {};
+      // 집계 RPC가 아직 반영되지 않은 짧은 배포 구간에는 기존 대시보드만 표시한다.
+      if (!rows[1].error && rows[1].data) {
+        dashboard.consent_total = rows[1].data.consent_total || 0;
+        dashboard.consent_groups = rows[1].data.consent_groups || [];
+      }
+      return dashboard;
+    });
   };
   Backend.viewsByHour = function (days) {
     return sb.rpc('views_by_hour', { days: days == null ? 7 : days })

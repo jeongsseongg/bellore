@@ -48,7 +48,66 @@
     lsSet(VIEWED_KEY, arr.slice(0, 20));
   };
   function getViewed() { return lsGet(VIEWED_KEY); }
+  function removeViewed(id) {
+    lsSet(VIEWED_KEY, getViewed().filter(function (x) { return String(x.id) !== String(id); }));
+  }
+  function clearViewed() { lsSet(VIEWED_KEY, []); }
   window.BELLORE_getViewed = getViewed;
+
+  /* ---------- 검색 홈 90일 시세 ---------- */
+  var MARKET_WATCHES = [
+    { rank: 1, model: '서브마리너 데이트', image: 'assets/KakaoTalk_20250515_135819220.jpg', change: '2.4%', direction: 'up' },
+    { rank: 2, model: '데이데이트 36', image: 'assets/m3362380004.png', change: '3.1%', direction: 'up' },
+    { rank: 3, model: '데이트저스트 36 다이아', image: 'assets/m126284rbr0011.png', change: '2.0%', direction: 'down' },
+    { rank: 4, model: '스카이드웰러 42', image: 'assets/m3369330001.png', change: '0.0%', direction: 'flat' }
+  ];
+
+  function shortWon(n) {
+    n = Number(n || 0);
+    if (!n) return '가격문의';
+    if (n >= 10000) return fmt(Math.round(n / 10000)) + '만';
+    return fmt(n) + '원';
+  }
+
+  function liveSaleWatches() {
+    var cards = $$('#panel-ny .col-grid-inner .hcard').filter(function (card) {
+      return card.style.display !== 'none' && !!$('.hcard-img img', card);
+    });
+    if (!cards.length) cards = $$('#homeOnSale .home-sale-grid .hcard').filter(function (card) {
+      return card.style.display !== 'none' && !!$('.hcard-img img', card);
+    });
+    return cards.slice(0, 4).map(function (card, index) {
+      var img = $('.hcard-img img', card);
+      var brand = ($('.hcard-brand', card) || {}).textContent || card.dataset.brand || '';
+      var model = ($('.hcard-model', card) || {}).textContent || card.dataset.model || '';
+      var spec = ($('.hcard-pack', card) || {}).textContent || card.dataset.no || '';
+      var listPrice = Number(card.dataset.listprice || card.dataset.price || 0);
+      var salePrice = Number(card.dataset.sprice || 0);
+      var price = salePrice && salePrice < listPrice ? salePrice : (Number(card.dataset.price || 0) || listPrice);
+      return {
+        id: card.dataset.pid || ('sale-' + index), rank: index + 1,
+        brand: brand.trim(), model: model.trim(), spec: spec.trim(),
+        price: listPrice || price, sale_price: salePrice || 0,
+        shown_price: price, img: img ? (img.getAttribute('src') || img.src) : '',
+        isNew: card.dataset.new === '1' || !!$('.hcard-condition', card)
+      };
+    }).filter(function (it) { return it.brand || it.model; });
+  }
+
+  function saleWatchHTML(it) {
+    return '<article class="sp-now-card" data-pid="' + esc(it.id) + '" data-brand="' + esc(it.brand) + '" data-model="' + esc(it.model) + '" data-price="' + (it.price || 0) + '" data-sprice="' + (it.sale_price || '') + '">' +
+      '<button type="button" class="sp-now-open" aria-label="' + esc(it.model || it.brand) + ' 상세 보기">' +
+        '<b class="sp-now-rank">' + it.rank + '</b>' +
+        '<span class="sp-now-img"><img src="' + esc(it.img || 'assets/images.jpg') + '" alt="" loading="lazy">' +
+          (it.isNew ? '<b class="sp-now-condition">미착용</b>' : '') +
+        '</span>' +
+        '<span class="sp-now-copy"><span class="sp-now-brand">' + esc(it.brand) + '</span>' +
+        '<span class="sp-now-model">' + esc(it.model) + '</span>' +
+        '<span class="sp-now-spec">' + esc(it.spec) + '</span></span>' +
+        '<span class="sp-now-price">' + shortWon(it.shown_price) + '</span>' +
+      '</button>' +
+    '</article>';
+  }
 
   /* ---------- 추천 검색어(3시간마다 회전) ---------- */
   var SUGGEST_POOL = [
@@ -198,13 +257,27 @@
     var viewedHTML = viewed.length
       ? '<div class="sp-viewed-row">' + viewed.map(function (it) {
           var price = it.sale_price && it.sale_price < it.price ? it.sale_price : it.price;
-          return '<button type="button" class="sp-viewed" data-pid="' + esc(it.id) + '" data-brand="' + esc(it.brand) + '" data-model="' + esc(it.model) + '" data-price="' + (it.price || 0) + '" data-sprice="' + (it.sale_price || '') + '">' +
-            '<span class="sp-viewed-img"><img src="' + esc(it.img || 'assets/images.jpg') + '" alt="" loading="lazy"></span>' +
-            '<span class="sp-viewed-brand">' + esc(it.brand) + '</span>' +
-            '<span class="sp-viewed-price">' + (price ? fmt(price) + '원' : '문의') + '</span>' +
-          '</button>';
+          return '<article class="sp-viewed" data-pid="' + esc(it.id) + '" data-brand="' + esc(it.brand) + '" data-model="' + esc(it.model) + '" data-price="' + (it.price || 0) + '" data-sprice="' + (it.sale_price || '') + '">' +
+            '<button type="button" class="sp-viewed-open" aria-label="' + esc(it.model || it.brand) + ' 상세 보기">' +
+              '<span class="sp-viewed-img"><img src="' + esc(it.img || 'assets/images.jpg') + '" alt="" loading="lazy"></span>' +
+              '<span class="sp-viewed-brand">' + esc(it.brand) + '</span>' +
+              '<span class="sp-viewed-model">' + esc(it.model) + '</span>' +
+              '<span class="sp-viewed-price">' + shortWon(price) + '</span>' +
+            '</button>' +
+            '<button type="button" class="sp-viewed-remove" data-rmviewed="' + esc(it.id) + '" aria-label="최근 본 시계에서 삭제">×</button>' +
+          '</article>';
         }).join('') + '</div>'
-      : '<p class="sp-empty">최근 확인한 상품이 없습니다.</p>';
+      : '<p class="sp-empty">최근 본 시계가 없습니다.</p>';
+
+    var marketHTML = MARKET_WATCHES.map(function (it) {
+      var symbol = it.direction === 'up' ? '▲' : (it.direction === 'down' ? '▼' : '');
+      return '<li class="sp-market-row"><button type="button" data-q="' + esc(it.model) + '">' +
+        '<b class="sp-market-rank">' + it.rank + '</b>' +
+        '<span class="sp-market-img"><img src="' + esc(it.image) + '" alt="" loading="lazy"></span>' +
+        '<strong>' + esc(it.model) + '</strong>' +
+        '<em class="sp-market-change ' + it.direction + '">' + symbol + (symbol ? ' ' : '') + it.change + '</em>' +
+      '</button></li>';
+    }).join('');
 
     el.innerHTML =
       '<div class="sp-sec">' +
@@ -215,12 +288,18 @@
         '<div class="sp-sec-head"><h3>추천 검색어</h3></div>' +
         '<div class="sp-sugs">' + suggest + '</div>' +
       '</div>' +
+      '<div class="sp-sec sp-market-sec">' +
+        '<p class="sp-section-kicker">TRENDING</p>' +
+        '<div class="sp-sec-head"><h3>지금 많이 찾는 시계</h3><span class="sp-market-note">90일 시세</span></div>' +
+        '<ol class="sp-market">' + marketHTML + '</ol>' +
+      '</div>' +
       '<div class="sp-sec">' +
         '<div class="sp-sec-head"><h3>인기 검색어</h3><span class="sp-pop-note" id="spPopNote"></span></div>' +
         '<ol class="sp-pop" id="spPop"></ol>' +
       '</div>' +
-      '<div class="sp-sec">' +
-        '<div class="sp-sec-head"><h3>최근 확인한 상품</h3></div>' +
+      '<div class="sp-sec sp-viewed-sec">' +
+        '<p class="sp-section-kicker">RECENTLY VIEWED</p>' +
+        '<div class="sp-sec-head"><h3>최근 본 시계</h3>' + (viewed.length ? '<button type="button" class="sp-clear" data-clearviewed>삭제</button>' : '') + '</div>' +
         viewedHTML +
       '</div>';
 
@@ -361,12 +440,16 @@
     // 최근검색어 삭제
     var rm = e.target.closest('[data-rmq]'); if (rm) { e.stopPropagation(); removeRecent(rm.dataset.rmq); renderWord(); return; }
     if (e.target.closest('[data-clearrecent]')) { clearRecent(); renderWord(); return; }
+    var rmViewed = e.target.closest('[data-rmviewed]');
+    if (rmViewed) { e.stopPropagation(); removeViewed(rmViewed.dataset.rmviewed); renderWord(); return; }
+    if (e.target.closest('[data-clearviewed]')) { clearViewed(); renderWord(); return; }
 
     // 검색어/추천/인기 클릭 → 검색 실행
     var q = e.target.closest('[data-q]'); if (q) { runQuery(q.dataset.q); return; }
 
     // 최근 확인한 상품 → 상세
-    var v = e.target.closest('.sp-viewed'); if (v) { openViewed(v); return; }
+    var v = e.target.closest('.sp-viewed-open'); if (v) { openViewed(v.closest('.sp-viewed')); return; }
+    var saleWatch = e.target.closest('.sp-now-open'); if (saleWatch) { openViewed(saleWatch.closest('.sp-now-card')); return; }
 
     // 카테고리 브랜드 선택 — 왼쪽 목록을 다시 그리지 않고(스크롤 위치 유지) 활성표시 + 모델만 갱신
     var bi = e.target.closest('[data-bi]'); if (bi) {
@@ -408,11 +491,13 @@
   /* ---------- 헤더 검색 → 페이지 오픈 ---------- */
   function wireHeader() {
     var hs = $('#headerSearch'), si = $('#searchInput');
+    var homeSearch = $('[data-home-search-open]');
     if (si) { si.setAttribute('readonly', 'readonly'); si.removeAttribute('enterkeyhint'); }
     function open(e) { if (e) { e.preventDefault(); } openPage('word'); }
     if (hs) hs.addEventListener('submit', open);
     if (si) { si.addEventListener('focus', open); si.addEventListener('click', open); }
     if (hs) { var ic = hs.querySelector('.header-search-ic'); if (ic) ic.addEventListener('click', open); }
+    if (homeSearch) homeSearch.addEventListener('click', open);
     var ts = $('#tabSearch');
     if (ts) ts.addEventListener('click', function (e) { e.preventDefault(); openPage('word'); });
   }

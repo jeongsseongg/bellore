@@ -18,6 +18,7 @@
   var navigationId = randomId();
   var viewId = routeId();
   var segmentId = randomId();
+  var aggregateSent = false;
 
   function randomId() {
     return window.crypto && crypto.randomUUID ? crypto.randomUUID() :
@@ -97,6 +98,26 @@
       if (token) headers.Authorization = 'Bearer ' + token;
       return headers;
     }).catch(function () { return headers; });
+  }
+  function sendConsentAggregate() {
+    var state = consent().analytics;
+    if (aggregateSent || !CFG.enabled || !hostAllowed() || internalTraffic() || !CFG.collectUrl || (state !== 'granted' && state !== 'denied')) return NOOP;
+    aggregateSent = true;
+    var payload = {
+      aggregate_only: true,
+      site_id: CFG.siteId,
+      environment: environment(),
+      occurred_at: new Date().toISOString(),
+      consent_state: state,
+      policy_version: consent().policy_version
+    };
+    return requestHeaders().then(function (headers) {
+      return fetch(CFG.collectUrl, {
+        method: 'POST', keepalive: true, headers: headers, body: JSON.stringify(payload)
+      });
+    }).then(function (r) {
+      if (!r.ok) throw new Error('analytics_aggregate_' + r.status); return true;
+    }).catch(function () { aggregateSent = false; return false; });
   }
   function send(payload, keepalive) {
     if (!CFG.enabled || !hostAllowed() || !analyticsGranted() || internalTraffic() || !CFG.collectUrl) return NOOP;
@@ -180,6 +201,7 @@
     var previous = consent();
     var value = { analytics: next.analytics, ads: next.ads, policy_version: CFG.policyVersion || '2026-08-10-ip-v1', updated_at: new Date().toISOString() };
     write(CONSENT_KEY, value);
+    sendConsentAggregate();
     if (value.analytics !== 'granted') {
       remove(VISITOR_KEY); remove(SESSION_KEY); remove(FIRST_TOUCH_KEY); remove(QUEUE_KEY); session = null;
     } else {
@@ -200,7 +222,7 @@
       '<header class="analytics-consent-head"><img src="assets/logo-bellore.png" alt="BELLORE"><span>PRIVACY &amp; EXPERIENCE</span></header>' +
       '<div class="analytics-consent-intro"><h2>당신의 취향이 더 빛나도록</h2>' +
       '<p>관심 있게 본 시계와 이용 흐름을 이해하면, 더 잘 맞는 상품과 한층 편리한 벨로르 경험을 준비할 수 있습니다.</p>' +
-      '<p class="analytics-consent-note">선택해 주신 정보는 서비스 개선과 광고 성과 확인에만 안전하게 사용합니다. 접속 IP 원문은 저장하지 않으며, 원치 않으면 필수 기능만으로 동일하게 이용할 수 있습니다.</p></div>' +
+      '<p class="analytics-consent-note">선택해 주신 정보는 서비스 개선과 광고 성과 확인에만 안전하게 사용합니다. 비동의 시에는 개인 식별 정보 없이 동의 상태별 방문 숫자만 합산하며, 필수 기능은 동일하게 이용할 수 있습니다.</p></div>' +
       '<div class="analytics-consent-options" data-consent-options' + (force ? '' : ' hidden') + '>' +
         '<div class="analytics-consent-options-head"><div><b>나에게 맞는 경험 설정</b><span>선택은 언제든 개인정보처리방침에서 변경할 수 있습니다.</span></div><button type="button" data-legal-open="privacy">자세히 보기</button></div>' +
         '<div class="analytics-purpose essential"><div><b>필수 기능</b><span>로그인·보관함·주문·보안 등 서비스 운영에 꼭 필요한 기능</span></div><em>항상 사용</em></div>' +
@@ -238,8 +260,10 @@
     }
     var backendReady = window.NWBackend && window.NWBackend.ready ? window.NWBackend.ready : Promise.resolve();
     backendReady.then(function () {
-      if (analyticsGranted() && !internalTraffic()) { page(routeId()); flush(); }
-      else if (!analyticsGranted()) showConsent(false);
+      var state = consent().analytics;
+      if (state === 'granted' && !internalTraffic()) { sendConsentAggregate(); page(routeId()); flush(); }
+      else if (state === 'denied' && !internalTraffic()) sendConsentAggregate();
+      else showConsent(false);
       syncMarketing();
     });
     document.addEventListener('click', function (e) {

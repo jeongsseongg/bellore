@@ -118,19 +118,32 @@ create table if not exists public.analytics_quality_daily (
   primary key (site_id, day)
 );
 
+-- 비동의 방문은 사용자·IP·세션·행동 원문 없이 일별 숫자로만 저장한다.
+create table if not exists public.analytics_consent_daily (
+  site_id text not null references public.analytics_settings(site_id),
+  day date not null,
+  consent_state text not null check (consent_state in ('granted','denied')),
+  visitor_type text not null check (visitor_type in ('member','guest')),
+  visits bigint not null default 0 check (visits >= 0),
+  primary key (site_id, day, consent_state, visitor_type)
+);
+
 alter table public.analytics_settings enable row level security;
 alter table public.analytics_events enable row level security;
 alter table public.analytics_conversion_attributions enable row level security;
 alter table public.analytics_quality_daily enable row level security;
+alter table public.analytics_consent_daily enable row level security;
 
 revoke all on public.analytics_settings from public, anon, authenticated;
 revoke all on public.analytics_events from public, anon, authenticated;
 revoke all on public.analytics_conversion_attributions from public, anon, authenticated;
 revoke all on public.analytics_quality_daily from public, anon, authenticated;
+revoke all on public.analytics_consent_daily from public, anon, authenticated;
 grant select, insert, update, delete on public.analytics_settings to service_role;
 grant select, insert, update, delete on public.analytics_events to service_role;
 grant select, insert, update, delete on public.analytics_conversion_attributions to service_role;
 grant select, insert, update, delete on public.analytics_quality_daily to service_role;
+grant select, insert, update, delete on public.analytics_consent_daily to service_role;
 
 -- V1/V2의 공개 직접 INSERT를 닫는다. V3 Edge Function이 유일한 수집 경로다.
 do $$ begin
@@ -143,6 +156,77 @@ do $$ begin
     execute 'revoke insert on public.product_views from anon, authenticated';
   end if;
 end $$;
+
+create or replace function public.analytics_record_consent_aggregate(
+  p_site text,
+  p_consent_state text,
+  p_visitor_type text,
+  p_occurred_at timestamptz default now()
+) returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_settings public.analytics_settings%rowtype;
+  v_day date;
+begin
+  select * into v_settings from public.analytics_settings where site_id=p_site and enabled=true;
+  if not found then raise exception 'analytics_not_configured'; end if;
+  if p_consent_state not in ('granted','denied') then raise exception 'invalid_consent_state'; end if;
+  if p_visitor_type not in ('member','guest') then raise exception 'invalid_visitor_type'; end if;
+  v_day := (greatest(now()-interval '24 hours', least(coalesce(p_occurred_at,now()), now()+interval '5 minutes')) at time zone v_settings.timezone)::date;
+  insert into public.analytics_consent_daily(site_id,day,consent_state,visitor_type,visits)
+  values(p_site,v_day,p_consent_state,p_visitor_type,1)
+  on conflict(site_id,day,consent_state,visitor_type)
+  do update set visits=public.analytics_consent_daily.visits+1;
+  return jsonb_build_object('accepted',true,'aggregate_only',true);
+end $$;
+revoke all on function public.analytics_record_consent_aggregate(text,text,text,timestamptz) from public, anon, authenticated;
+grant execute on function public.analytics_record_consent_aggregate(text,text,text,timestamptz) to service_role;
+
+create or replace function public.analytics_consent_dashboard_v1(p_days integer default 7)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_from_day date;
+begin
+  if not exists (
+    select 1 from public.profiles
+    where id=auth.uid() and role='admin'
+  ) then
+    raise exception 'admin_required';
+  end if;
+  v_from_day := case
+    when coalesce(p_days,7)=0 then (now() at time zone 'Asia/Seoul')::date
+    when p_days>=365 then date '2000-01-01'
+    else ((now() at time zone 'Asia/Seoul')::date - greatest(p_days,1) + 1)
+  end;
+  return jsonb_build_object(
+    'consent_total', coalesce((
+      select sum(c.visits) from public.analytics_consent_daily c
+      where c.site_id='bellore' and c.day>=v_from_day
+    ),0),
+    'consent_groups', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'consent_state',g.consent_state,
+        'visitor_type',g.visitor_type,
+        'visits',g.visits
+      ) order by g.consent_state,g.visitor_type)
+      from (
+        select c.consent_state,c.visitor_type,sum(c.visits) visits
+        from public.analytics_consent_daily c
+        where c.site_id='bellore' and c.day>=v_from_day
+        group by c.consent_state,c.visitor_type
+      ) g
+    ),'[]'::jsonb)
+  );
+end $$;
+revoke all on function public.analytics_consent_dashboard_v1(integer) from public, anon;
+grant execute on function public.analytics_consent_dashboard_v1(integer) to authenticated;
 
 create or replace function public.analytics_ingest_event(
   p_event jsonb,
@@ -365,6 +449,21 @@ begin
       'purchases', v_total, 'attributed_purchases', v_attributed, 'unattributed_purchases', greatest(v_total-v_attributed,0)
     ),
     'previous', jsonb_build_object('sessions',v_prev_sessions,'visitors',v_prev_visitors,'page_views',v_prev_page_views,'product_views',v_prev_product_views),
+    'consent_total', coalesce((
+      select sum(c.visits) from public.analytics_consent_daily c
+      where c.site_id='bellore' and c.day >= (v_from at time zone 'Asia/Seoul')::date
+    ),0),
+    'consent_groups', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'consent_state',g.consent_state,'visitor_type',g.visitor_type,'visits',g.visits
+      ) order by g.consent_state, g.visitor_type)
+      from (
+        select c.consent_state,c.visitor_type,sum(c.visits) visits
+        from public.analytics_consent_daily c
+        where c.site_id='bellore' and c.day >= (v_from at time zone 'Asia/Seoul')::date
+        group by c.consent_state,c.visitor_type
+      ) g
+    ),'[]'::jsonb),
     'trend', coalesce((with activity as (
       select v.created_at ts, 'legacy:' || coalesce(v.visitor_id,v.id::text) visitor_key from public.page_views v where v.created_at >= v_from
       union all
