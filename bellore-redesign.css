@@ -335,7 +335,7 @@
    판매 중인 시계: 중성 연그레이 배경 + 2열 상품 카드
    ============================================================ */
 .page-collection .section-soft {
-  background: var(--bellore-neutral-bg) !important;
+  background: #fff !important;
 }
 
 body[data-page="collection"] .main-wrap,
@@ -676,12 +676,12 @@ html[data-width="full"] .page-collection .col-grid-inner {
   overflow: hidden;
   border: 0 !important;
   border-radius: 0 !important;
-  /* 상품 사진 대부분이 흰 배경이라 타일도 흰색으로 둔다.
-     연회색을 쓰면 사진의 흰 배경이 겹쳐 '박스 안 박스'처럼 보인다. */
-  background: #fff !important;
+  background: #f2f3f5 !important;
   box-shadow: none !important;
 }
 
+/* 매물 사진은 대부분 흰 배경이라 곱하기로 합성한다.
+   그래야 연회색 타일 위에서 흰 사각형('박스 안 박스')이 보이지 않는다. */
 #homeOnSale .hcard-img img,
 .page-collection .col-grid-inner .hcard-img img {
   width: 100% !important;
@@ -689,6 +689,7 @@ html[data-width="full"] .page-collection .col-grid-inner {
   margin: 0 !important;
   padding: 6% !important;
   object-fit: contain !important;
+  mix-blend-mode: multiply;
 }
 
 /* 사진 왼쪽 위 배지 */
