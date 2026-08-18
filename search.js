@@ -244,7 +244,7 @@
     var el = $('.sp-panel[data-sppanel="word"]', page);
     if (!el) return;
     if (!String(q || '').trim()) { renderWord(); return; }
-    var list = (window.BELLORE_searchPreview ? window.BELLORE_searchPreview(q, 6) : []);
+    var list = (window.BELLORE_searchPreview ? window.BELLORE_searchPreview(q, 20) : []);
     var total = (window.BELLORE_searchPreviewCount ? window.BELLORE_searchPreviewCount(q) : list.length);
     var autos = matchAuto(q).slice(0, 6);
     var autoHTML = autos.length

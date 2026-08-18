@@ -949,18 +949,27 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
 /* 상품 미리보기 목록 */
 .sp-pv-sec .sp-sec-head { margin-bottom: 6px; }
 .sp-pv-note { color: #a5a5a5; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.sp-pv-list { margin: 0; }
+/* 화면을 다 가리지 않게: 처음엔 3개 높이만 보이고 나머지는 박스 안에서 스크롤 */
+.sp-pv-list {
+  margin: 0;
+  max-height: 267px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid #ececea;
+  border-radius: 12px;
+}
 .sp-pv-item {
   display: grid;
   grid-template-columns: 64px minmax(0, 1fr) auto;
   align-items: center;
   gap: 14px;
   width: 100%;
-  padding: 12px 0;
+  padding: 12px 14px;
   text-align: left;
   border-bottom: 1px solid #f1efec;
 }
-.sp-pv-item:last-of-type { border-bottom: 0; }
+.sp-pv-item:last-child { border-bottom: 0; }
 .sp-pv-img {
   position: relative;
   display: block;
