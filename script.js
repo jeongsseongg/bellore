@@ -6115,6 +6115,45 @@
         hideSearchEmpty();
         $$('#collection .hcard').forEach(function (c) { c.style.display = ''; });
     }
+    // 검색창 타이핑 중 실시간 상품 미리보기 — 이미 렌더된 판매시계 카드를 재사용한다(추가 DB 호출 없음).
+    function searchPreview(q, limit) {
+        var ql = String(q || '').trim().toLowerCase();
+        if (!ql) return [];
+        var out = [], seen = {};
+        var cards = $$('#panel-ny .col-grid-inner .hcard');
+        for (var i = 0; i < cards.length && out.length < (limit || 6); i++) {
+            var c = cards[i];
+            if (!cardMatches((c.textContent || '').toLowerCase(), ql)) continue;
+            var key = (c.dataset.pid || '') + '|' + (c.dataset.model || '');
+            if (seen[key]) continue; seen[key] = 1;
+            var img = c.querySelector('.hcard-img img');
+            out.push({
+                pid: c.dataset.pid || '',
+                brand: ((c.querySelector('.hcard-brand') || {}).textContent || c.dataset.brand || '').trim(),
+                model: ((c.querySelector('.hcard-model') || {}).textContent || c.dataset.model || '').trim(),
+                spec: ((c.querySelector('.hcard-pack') || {}).textContent || '').trim(),
+                priceHTML: (c.querySelector('.hcard-price') || {}).innerHTML || '',
+                img: img ? (img.getAttribute('src') || img.src) : '',
+                isNew: c.dataset.new === '1'
+            });
+        }
+        return out;
+    }
+    // 총 매칭 개수(전체 결과 보기 버튼용)
+    function searchPreviewCount(q) {
+        var ql = String(q || '').trim().toLowerCase();
+        if (!ql) return 0;
+        var n = 0, seen = {};
+        $$('#panel-ny .col-grid-inner .hcard').forEach(function (c) {
+            if (!cardMatches((c.textContent || '').toLowerCase(), ql)) return;
+            var key = (c.dataset.pid || '') + '|' + (c.dataset.model || '');
+            if (seen[key]) return; seen[key] = 1; n++;
+        });
+        return n;
+    }
+    window.BELLORE_searchPreview = searchPreview;
+    window.BELLORE_searchPreviewCount = searchPreviewCount;
+
     // 검색 페이지(search.js)에서 호출
     window.BELLORE_runSearch = runSearch;
     // 판매시계 브랜드→모델 필터는 index.html의 단일 필터 파이프라인에서 처리합니다.

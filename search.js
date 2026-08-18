@@ -238,6 +238,43 @@
     else renderPrice();
   }
 
+  /* ---------- 타이핑 중 상품 미리보기 ---------- */
+  function shortSpec(t) { return String(t || '').replace(/\s+/g, ' ').trim(); }
+  function renderPreview(q) {
+    var el = $('.sp-panel[data-sppanel="word"]', page);
+    if (!el) return;
+    if (!String(q || '').trim()) { renderWord(); return; }
+    var list = (window.BELLORE_searchPreview ? window.BELLORE_searchPreview(q, 6) : []);
+    var total = (window.BELLORE_searchPreviewCount ? window.BELLORE_searchPreviewCount(q) : list.length);
+    var autos = matchAuto(q).slice(0, 6);
+    var autoHTML = autos.length
+      ? '<div class="sp-sec"><div class="sp-pv-sugs">' + autos.map(function (it) {
+          return '<button type="button" class="sp-sug" data-q="' + esc(it.q) + '">' + hl(it.label, q) + '</button>';
+        }).join('') + '</div></div>'
+      : '';
+    var body;
+    if (list.length) {
+      body = '<div class="sp-sec sp-pv-sec">' +
+        '<div class="sp-sec-head"><h3>상품 미리보기</h3><span class="sp-pv-note">' + total + '건</span></div>' +
+        '<div class="sp-pv-list">' + list.map(function (it) {
+          return '<button type="button" class="sp-pv-item" data-pid="' + esc(it.pid) + '" data-brand="' + esc(it.brand) + '" data-model="' + esc(it.model) + '">' +
+            '<span class="sp-pv-img"><img src="' + esc(it.img || 'assets/images.jpg') + '" alt="" loading="lazy">' +
+              (it.isNew ? '<b class="sp-pv-new">미착용</b>' : '') + '</span>' +
+            '<span class="sp-pv-copy"><span class="sp-pv-brand">' + esc(it.brand) + '</span>' +
+              '<span class="sp-pv-model">' + esc(it.model) + '</span>' +
+              (it.spec ? '<span class="sp-pv-spec">' + esc(shortSpec(it.spec)) + '</span>' : '') + '</span>' +
+            '<span class="sp-pv-price">' + it.priceHTML + '</span>' +
+          '</button>';
+        }).join('') + '</div>' +
+        '<button type="button" class="sp-pv-all" data-q="' + esc(q) + '">‘' + esc(q) + '’ 전체 결과 보기 (' + total + ')</button>' +
+      '</div>';
+    } else {
+      body = '<div class="sp-sec"><p class="sp-empty">‘' + esc(q) + '’에 해당하는 상품이 없습니다.</p>' +
+        '<button type="button" class="sp-pv-all" data-q="' + esc(q) + '">그래도 ‘' + esc(q) + '’ 검색하기</button></div>';
+    }
+    el.innerHTML = autoHTML + body;
+  }
+
   /* ---------- 검색어 탭 ---------- */
   function renderWord() {
     var el = $('.sp-panel[data-sppanel="word"]', page);
@@ -423,7 +460,7 @@
     }
   });
   input.addEventListener('search', function () { runQuery(input.value); });
-  input.addEventListener('input', function () { renderAuto(input.value); });
+  input.addEventListener('input', function () { hideAuto(); renderPreview(input.value); });
   page.addEventListener('click', function (e) {
     var ai = e.target.closest('.sp-auto-item'); if (ai) { runQuery(ai.dataset.q); return; }
     if (e.target.closest('[data-spclose]')) { closePage(); return; }
@@ -450,6 +487,18 @@
     // 최근 확인한 상품 → 상세
     var v = e.target.closest('.sp-viewed-open'); if (v) { openViewed(v.closest('.sp-viewed')); return; }
     var saleWatch = e.target.closest('.sp-now-open'); if (saleWatch) { openViewed(saleWatch.closest('.sp-now-card')); return; }
+
+    // 상품 미리보기 → 실제 카드로 상세 열기(데이터 온전히 전달), 없으면 가상 카드 폴백
+    var pv = e.target.closest('.sp-pv-item');
+    if (pv) {
+      var pid = pv.dataset.pid, real = null;
+      if (pid) {
+        var rc = document.querySelectorAll('#panel-ny .col-grid-inner .hcard');
+        for (var ri = 0; ri < rc.length; ri++) { if (rc[ri].dataset.pid === pid) { real = rc[ri]; break; } }
+      }
+      if (real && window.BELLORE_openProductCard) { closePage(); window.BELLORE_openProductCard(real); return; }
+      openViewed(pv); return;
+    }
 
     // 카테고리 브랜드 선택 — 왼쪽 목록을 다시 그리지 않고(스크롤 위치 유지) 활성표시 + 모델만 갱신
     var bi = e.target.closest('[data-bi]'); if (bi) {
