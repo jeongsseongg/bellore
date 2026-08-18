@@ -71,7 +71,7 @@
     <link rel="stylesheet" href="reference-layout.css?v=20260731-mypick-reference">
     <link rel="stylesheet" href="vendor-reference.css?v=20260731-photo-viewer">
     <link rel="stylesheet" href="mypick.css?v=20260731-mypick-reference-4">
-    <link rel="stylesheet" href="bellore-redesign.css?v=20260817-bincl-home-v1">
+    <link rel="stylesheet" href="bellore-redesign.css?v=20260818-home-restore-v1">
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
@@ -260,36 +260,27 @@
             <section class="brand-quicklinks">
                 <div class="container">
                     <div class="brand-circle-grid" id="brandCircleRow">
-                        <a href="#collection" class="brand-circle brand-circle-all" data-nav="collection" data-brandfilter="all"><span class="brand-circle-img">ALL</span><span class="brand-circle-name">전체</span></a>
                         <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="롤렉스"><span class="brand-circle-img"><img src="assets/brands/rolex.png" alt="롤렉스" loading="lazy"></span><span class="brand-circle-name">롤렉스</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="오메가"><span class="brand-circle-img"><img src="assets/brands/omega.png" alt="오메가" loading="lazy"></span><span class="brand-circle-name">오메가</span></a>
                         <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="까르띠에"><span class="brand-circle-img"><img src="assets/brands/cartier.png" alt="까르띠에" loading="lazy"></span><span class="brand-circle-name">까르띠에</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="IWC"><span class="brand-circle-img"><img src="assets/brands/iwc.png" alt="IWC" loading="lazy"></span><span class="brand-circle-name">IWC</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="파텍필립"><span class="brand-circle-img"><img src="assets/brands/patek.png" alt="파텍필립" loading="lazy"></span><span class="brand-circle-name">파텍필립</span></a>
+                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="오메가"><span class="brand-circle-img"><img src="assets/brands/omega.png" alt="오메가" loading="lazy"></span><span class="brand-circle-name">오메가</span></a>
                         <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="튜더"><span class="brand-circle-img"><img src="assets/brands/tudor.png" alt="튜더" loading="lazy"></span><span class="brand-circle-name">튜더</span></a>
                         <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="태그호이어"><span class="brand-circle-img"><img src="assets/brands/tagheuer.png" alt="태그호이어" loading="lazy"></span><span class="brand-circle-name">태그호이어</span></a>
                         <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="샤넬"><span class="brand-circle-img"><img src="assets/brands/chanel.png" alt="샤넬" loading="lazy"></span><span class="brand-circle-name">샤넬</span></a>
+                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="불가리"><span class="brand-circle-img"><img src="assets/brands/bulgari.png" alt="불가리" loading="lazy"></span><span class="brand-circle-name">불가리</span></a>
+                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="해밀턴"><span class="brand-circle-img"><img src="assets/brands/hamilton.png" alt="해밀턴" loading="lazy"></span><span class="brand-circle-name">해밀턴</span></a>
+                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="파텍필립"><span class="brand-circle-img"><img src="assets/brands/patek.png" alt="파텍필립" loading="lazy"></span><span class="brand-circle-name">파텍필립</span></a>
+                        <a href="#collection" class="brand-circle brand-circle-all" data-nav="collection" data-brandfilter="all"><span class="brand-circle-img">ALL</span><span class="brand-circle-name">전체보기</span></a>
                     </div>
-                </div>
-            </section>
-
-            <section class="home-discovery" aria-label="상품 검색">
-                <div class="container">
-                    <button type="button" class="home-discovery-search" data-home-search-open>
-                        <span>브랜드, 모델명, 레퍼런스 번호 검색</span>
-                        <b>검색</b>
-                    </button>
                 </div>
             </section>
 
             <!-- 판매중인 시계 (2열 그리드) -->
             <section class="section" id="homeOnSale">
                 <div class="container">
-                    <div class="home-sale-heading">
-                        <div><span>BELLORE COLLECTION</span><h2>판매 중인 시계</h2></div>
-                        <a href="#collection" class="home-sale-more" data-nav="collection">전체 보기</a>
-                    </div>
                     <div class="home-sale-grid" aria-live="polite"></div>
+                    <div style="text-align:right;margin-top:12px">
+                        <a href="#collection" class="home-sale-more" data-nav="collection">전체 보기 →</a>
+                    </div>
                 </div>
             </section>
         </section>
@@ -3224,7 +3215,7 @@
     <script src="wishlist.js?v=20260731-mypick-reference-2"></script>
     <script src="alerts.js?v=20260731-mypick-reference-2"></script>
     <script src="auction.js"></script>
-    <script src="search.js?v=20260817-bincl-home-v1"></script>
+    <script src="search.js?v=20260818-home-restore-v1"></script>
     <script src="ai-advisor.js?v=20260814-kg-card-review"></script>
     <script src="ai-advisor-admin.js?v=20260725-ai-log"></script>
     <script src="payments.js?v=20260814-buyer-email-input"></script>
@@ -3232,7 +3223,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('sw.js?v=20260818-consent-aggregate-v1').catch(function (err) {
+                navigator.serviceWorker.register('sw.js?v=20260818-home-restore-v1').catch(function (err) {
                     console.warn('서비스워커 등록 실패:', err);
                 });
             });

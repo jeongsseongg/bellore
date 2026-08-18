@@ -491,13 +491,11 @@
   /* ---------- 헤더 검색 → 페이지 오픈 ---------- */
   function wireHeader() {
     var hs = $('#headerSearch'), si = $('#searchInput');
-    var homeSearch = $('[data-home-search-open]');
     if (si) { si.setAttribute('readonly', 'readonly'); si.removeAttribute('enterkeyhint'); }
     function open(e) { if (e) { e.preventDefault(); } openPage('word'); }
     if (hs) hs.addEventListener('submit', open);
     if (si) { si.addEventListener('focus', open); si.addEventListener('click', open); }
     if (hs) { var ic = hs.querySelector('.header-search-ic'); if (ic) ic.addEventListener('click', open); }
-    if (homeSearch) homeSearch.addEventListener('click', open);
     var ts = $('#tabSearch');
     if (ts) ts.addEventListener('click', function (e) { e.preventDefault(); openPage('word'); });
   }
