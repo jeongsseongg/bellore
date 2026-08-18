@@ -10473,7 +10473,7 @@ body.admin-mode #homeOnSale .hcard-actions {
     }
 }
 /* 프리미엄 개인정보·경험 설정 */
-.analytics-consent{position:fixed;z-index:100000;inset:0;display:flex;align-items:flex-end;justify-content:center;padding:18px;background:rgba(8,10,14,.28);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);font-family:"Wanted Sans",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+.analytics-consent{position:fixed;z-index:100000;inset:0;display:flex;align-items:flex-end;justify-content:center;padding:18px;background:rgba(8,10,14,.28);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);font-family:'Pretendard',-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
 .analytics-consent-card{width:min(720px,100%);max-height:min(78vh,720px);overflow:auto;padding:22px 28px 20px;border:1px solid rgba(255,255,255,.7);border-radius:16px;background:rgba(255,255,255,.985);box-shadow:0 16px 48px rgba(0,0,0,.24);color:#151515;scrollbar-width:thin}
 .analytics-consent-head{display:flex;flex-direction:column;align-items:center;gap:5px;margin-bottom:14px}.analytics-consent-head img{width:104px;height:auto}.analytics-consent-head span{font-size:8px;font-weight:700;letter-spacing:.24em;color:#9a7a3d}
 .analytics-consent-intro{text-align:center}.analytics-consent-intro h2{margin:0 0 8px;font-family:inherit;font-size:22px;font-weight:600;letter-spacing:-.02em}.analytics-consent-intro p{max-width:650px;margin:0 auto;font-size:13px;line-height:1.55;color:#343434}.analytics-consent-intro .analytics-consent-note{margin-top:5px;font-size:10.5px;line-height:1.5;color:#727272}

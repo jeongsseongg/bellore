@@ -33,7 +33,7 @@
   --container: var(--wanted-content);
   --header-h: 68px;
   --tabbar-h: 66px;
-  --serif: "Wanted Sans", -apple-system, BlinkMacSystemFont,
+  --serif: 'Pretendard', -apple-system, BlinkMacSystemFont,
     "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
 }
 
@@ -43,7 +43,7 @@ button,
 input,
 select,
 textarea {
-  font-family: "Wanted Sans", -apple-system,
+  font-family: 'Pretendard', -apple-system,
     BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic",
     sans-serif !important;
 }
@@ -1182,14 +1182,14 @@ html[data-width="full"] .hcard-grid {
   max-width: 100%;
   background: var(--wanted-soft);
   color: var(--wanted-ink);
-  font-family: "Wanted Sans", -apple-system, BlinkMacSystemFont,
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont,
     "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif !important;
   box-shadow: none;
 }
 
 .cqd-overlay *,
 .cqd-photo-viewer * {
-  font-family: "Wanted Sans", -apple-system, BlinkMacSystemFont,
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont,
     "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif !important;
   letter-spacing: -0.018em;
 }
@@ -1605,7 +1605,7 @@ html[data-width="full"] .hcard-grid {
 .cqe-bm-name,
 .cqo-shop-name,
 .cqo-shop-logo {
-  font-family: "Wanted Sans", sans-serif !important;
+  font-family: 'Pretendard', sans-serif !important;
 }
 
 .cqe-price {
@@ -1846,7 +1846,7 @@ html[data-width="full"] .hcard-grid {
   padding: 0 0 0;
   color: var(--cqv-ink);
   background: #fff;
-  font-family: "Wanted Sans", sans-serif;
+  font-family: 'Pretendard', sans-serif;
 }
 
 .cqv button,
