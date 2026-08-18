@@ -690,6 +690,9 @@ html[data-width="full"] .page-collection .col-grid-inner {
   padding: 6% !important;
   object-fit: contain !important;
   mix-blend-mode: multiply;
+  /* 배경이 투명한 공식 렌더 사진에는 시계 모양대로 그림자가 생긴다.
+     배경이 꽉 찬 실사(나무 배경 등)에는 영향이 없다. */
+  filter: drop-shadow(0 13px 13px rgba(20, 22, 28, .30));
 }
 
 /* 사진 왼쪽 위 배지 */
