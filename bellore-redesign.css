@@ -676,7 +676,9 @@ html[data-width="full"] .page-collection .col-grid-inner {
   overflow: hidden;
   border: 0 !important;
   border-radius: 0 !important;
-  background: #f4f4f5 !important;
+  /* 상품 사진 대부분이 흰 배경이라 타일도 흰색으로 둔다.
+     연회색을 쓰면 사진의 흰 배경이 겹쳐 '박스 안 박스'처럼 보인다. */
+  background: #fff !important;
   box-shadow: none !important;
 }
 
@@ -820,16 +822,19 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
   -webkit-line-clamp: unset;
 }
 
+/* 스펙은 한 줄 고정(넘치면 말줄임) — 두 줄로 밀리면 옆 카드와 가격 줄이 어긋난다 */
 #homeOnSale .hcard-pack,
 .page-collection .col-grid-inner .hcard-pack {
   min-height: 1.35em;
   margin-top: 2px;
   padding-top: 0;
+  overflow: hidden;
   color: #a09b98;
   font-size: 12.5px;
   line-height: 1.35;
   font-weight: 500;
-  white-space: normal;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 #homeOnSale .hcard-price,
@@ -891,9 +896,4 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
 #homeOnSale .hcard-today + .hcard-condition + .hcard-timesale,
 .page-collection .col-grid-inner .hcard-today + .hcard-condition + .hcard-timesale {
   top: 66px;
-}
-
-/* 판매시계 페이지는 배경이 연회색이므로 사진 타일을 흰색으로 (배경과 섞이지 않게) */
-.page-collection .col-grid-inner .hcard-img {
-  background: #fff !important;
 }

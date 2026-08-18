@@ -70,7 +70,7 @@
     <link rel="stylesheet" href="reference-layout.css?v=20260731-mypick-reference">
     <link rel="stylesheet" href="vendor-reference.css?v=20260731-photo-viewer">
     <link rel="stylesheet" href="mypick.css?v=20260731-mypick-reference-4">
-    <link rel="stylesheet" href="bellore-redesign.css?v=20260818-card-grid-v1">
+    <link rel="stylesheet" href="bellore-redesign.css?v=20260818-card-grid-v2">
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
@@ -3222,7 +3222,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('sw.js?v=20260818-card-grid-v1').catch(function (err) {
+                navigator.serviceWorker.register('sw.js?v=20260818-card-grid-v2').catch(function (err) {
                     console.warn('서비스워커 등록 실패:', err);
                 });
             });
