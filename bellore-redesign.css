@@ -680,6 +680,23 @@ html[data-width="full"] .page-collection .col-grid-inner {
   box-shadow: none !important;
 }
 
+/* 상품 바닥 그림자 — 사진 뒤에 은은한 타원. 투명 PNG 시계는 이 위에 떠 보이고,
+   배경이 꽉 찬 실사 사진에는 가려져 티가 나지 않는다(사각 그림자 문제 없음). */
+#homeOnSale .hcard-img::after,
+.page-collection .col-grid-inner .hcard-img::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 12%;
+  z-index: 0;
+  width: 46%;
+  height: 7%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse, rgba(22, 24, 30, .26), rgba(22, 24, 30, 0) 70%);
+  filter: blur(3px);
+  pointer-events: none;
+}
+
 /* 매물 사진은 대부분 흰 배경이라 곱하기로 합성한다.
    그래야 연회색 타일 위에서 흰 사각형('박스 안 박스')이 보이지 않는다. */
 #homeOnSale .hcard-img img,
@@ -689,10 +706,10 @@ html[data-width="full"] .page-collection .col-grid-inner {
   margin: 0 !important;
   padding: 6% !important;
   object-fit: contain !important;
+  /* 흰 배경 사진이 회색 타일과 곱해져 '박스 안 박스'로 보이지 않게 한다. */
   mix-blend-mode: multiply;
-  /* 배경이 투명한 공식 렌더 사진에는 시계 모양대로 그림자가 생긴다.
-     배경이 꽉 찬 실사(나무 배경 등)에는 영향이 없다. */
-  filter: drop-shadow(0 13px 13px rgba(20, 22, 28, .30));
+  position: relative;
+  z-index: 1;
 }
 
 /* 사진 왼쪽 위 배지 */
