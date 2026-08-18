@@ -376,157 +376,7 @@ body[data-page="collection"] #collection > .section-soft > .container {
   margin-left: auto;
 }
 
-.page-collection .col-grid-inner,
-html[data-width="full"] .page-collection .col-grid-inner {
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  column-gap: 24px !important;
-  row-gap: 54px !important;
-}
-
-.page-collection .col-grid-inner .hcard {
-  min-width: 0;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  overflow: visible;
-}
-
-.page-collection .col-grid-inner .hcard:hover {
-  transform: none;
-}
-
-.page-collection .col-grid-inner .hcard-img {
-  position: relative;
-  aspect-ratio: 1 / 1 !important;
-  height: auto !important;
-  padding: 0 !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: #fff !important;
-  box-shadow: none !important;
-  overflow: hidden;
-}
-
-.page-collection .col-grid-inner .hcard-img img {
-  width: 80% !important;
-  height: 80% !important;
-  margin: 10% auto !important;
-  padding: 0 !important;
-  object-fit: contain !important;
-}
-
-.page-collection .hcard-condition {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 3;
-  padding: 5px 9px;
-  border: 1px solid #111;
-  background: rgba(255,255,255,.92);
-  color: #111;
-  font-size: 11px;
-  line-height: 1;
-  font-weight: 750;
-}
-
-.page-collection .col-grid-inner .hcard-brand,
-.page-collection .col-grid-inner .hcard-model,
-.page-collection .col-grid-inner .hcard-pack,
-.page-collection .col-grid-inner .hcard-price {
-  padding-right: 0 !important;
-  padding-left: 0 !important;
-}
-
-.page-collection .col-grid-inner .hcard-brand {
-  margin-top: 18px;
-  padding-top: 0;
-  color: #8c8580;
-  font-size: 12px;
-  line-height: 1.3;
-  font-weight: 750;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-}
-
-.page-collection .col-grid-inner .hcard-model {
-  display: block;
-  min-height: 2.7em;
-  margin-top: 7px;
-  padding-top: 0;
-  overflow: visible;
-  color: #111;
-  font-size: 18px;
-  line-height: 1.35;
-  font-weight: 800;
-  letter-spacing: -.03em;
-  white-space: normal;
-  word-break: keep-all;
-  -webkit-line-clamp: unset;
-}
-
-.page-collection .col-grid-inner .hcard-pack {
-  min-height: 1.45em;
-  margin-top: 7px;
-  padding-top: 0;
-  color: #a09b98;
-  font-size: 13px;
-  line-height: 1.45;
-  font-weight: 500;
-  white-space: normal;
-}
-
-.page-collection .col-grid-inner .hcard-price {
-  margin-top: 10px;
-  padding-top: 0;
-  padding-bottom: 0;
-  color: #111;
-  font-size: 21px;
-  line-height: 1.25;
-  font-weight: 850;
-}
-
-.page-collection .col-grid-inner .hcard-used-row,
-.page-collection .col-grid-inner .hcard-used-badge,
-.page-collection .col-grid-inner [class*="market-same"],
-.page-collection .col-grid-inner [class*="market-lower"] {
-  display: none !important;
-}
-
-.page-collection .col-grid-inner .hcard-actions,
-body.admin-mode .page-collection .col-grid-inner .hcard-actions {
-  position: absolute;
-  top: auto;
-  right: 10px;
-  bottom: 10px;
-  z-index: 4;
-  display: block !important;
-}
-
-.page-collection .col-grid-inner .hcard-actions .hcard-cart {
-  display: none !important;
-}
-
-.page-collection .col-grid-inner .hcard-actions .hcard-wish {
-  display: inline-flex;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: #171717;
-  box-shadow: none;
-}
-
-.page-collection .col-grid-inner .hcard-actions .hcard-wish.on {
-  background: transparent;
-  color: #bf493f;
-}
-
-.page-collection .col-grid-inner .hcard-actions .hcard-wish.on svg {
-  fill: currentColor;
-}
+/* 판매시계 카드 규격은 아래 "상품 카드 2열 규격"으로 일원화됨 */
 
 /* ============================================================
    관리자 마이페이지: 흰 배경 유지 + 박스 없는 여유로운 목록
@@ -675,24 +525,6 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
 }
 
 @media (max-width: 699px) {
-  .page-collection .col-grid-inner,
-  html[data-width="full"] .page-collection .col-grid-inner {
-    column-gap: 16px !important;
-    row-gap: 44px !important;
-  }
-
-  .page-collection .col-grid-inner .hcard-model {
-    font-size: 16px;
-  }
-
-  .page-collection .col-grid-inner .hcard-pack {
-    font-size: 11.5px;
-  }
-
-  .page-collection .col-grid-inner .hcard-price {
-    font-size: 18px;
-  }
-
   #myPageModal[data-account-role="admin"] #adminDashBox,
   #myPageModal[data-account-role="admin"] #adminMenuBox {
     width: calc(100% - 40px);
@@ -798,4 +630,270 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
     padding: 16px !important;
     border-radius: 14px !important;
   }
+}
+
+/* ============================================================
+   2026-08-18 상품 카드 2열 규격 — 홈 · 판매시계 공용 단일 소스
+   사진은 타일을 꽉 채우고, 찜 하트는 사진 우상단, 글줄은 촘촘하게.
+   배지(오늘 등록 · 미착용 · 할인)는 사진 왼쪽 위.
+   ============================================================ */
+#homeOnSale .home-sale-grid,
+.page-collection .col-grid-inner,
+html[data-width="full"] .page-collection .col-grid-inner {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  column-gap: 20px !important;
+  row-gap: 24px !important;
+}
+
+#homeOnSale .home-sale-grid {
+  max-width: 760px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+#homeOnSale .hcard,
+.page-collection .col-grid-inner .hcard {
+  min-width: 0;
+  overflow: visible;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+#homeOnSale .hcard:hover,
+.page-collection .col-grid-inner .hcard:hover {
+  transform: none;
+}
+
+#homeOnSale .hcard-img,
+.page-collection .col-grid-inner .hcard-img {
+  position: relative;
+  display: block;
+  height: auto !important;
+  aspect-ratio: 1 / 1 !important;
+  padding: 0 !important;
+  overflow: hidden;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: #f4f4f5 !important;
+  box-shadow: none !important;
+}
+
+#homeOnSale .hcard-img img,
+.page-collection .col-grid-inner .hcard-img img {
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 6% !important;
+  object-fit: contain !important;
+}
+
+/* 사진 왼쪽 위 배지 */
+#homeOnSale .hcard-today,
+#homeOnSale .hcard-condition,
+.page-collection .hcard-today,
+.page-collection .hcard-condition {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 3;
+  padding: 4px 8px;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 750;
+  letter-spacing: -.01em;
+}
+
+#homeOnSale .hcard-condition,
+.page-collection .hcard-condition {
+  border: 1px solid #111;
+  background: rgba(255,255,255,.94);
+  color: #111;
+}
+
+#homeOnSale .hcard-today,
+.page-collection .hcard-today {
+  border: 0;
+  background: #c0392b;
+  color: #fff;
+}
+
+/* 오늘 등록과 미착용이 함께 붙으면 아래로 쌓는다 */
+#homeOnSale .hcard-today + .hcard-condition,
+.page-collection .hcard-today + .hcard-condition {
+  top: 38px;
+}
+
+/* 찜 하트 — 사진 우상단 */
+#homeOnSale .hcard-actions,
+body.admin-mode #homeOnSale .hcard-actions,
+.page-collection .col-grid-inner .hcard-actions,
+body.admin-mode .page-collection .col-grid-inner .hcard-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  bottom: auto;
+  left: auto;
+  z-index: 4;
+  display: block !important;
+}
+
+#homeOnSale .hcard-actions .hcard-cart,
+.page-collection .col-grid-inner .hcard-actions .hcard-cart {
+  display: none !important;
+}
+
+#homeOnSale .hcard-actions .hcard-wish,
+.page-collection .col-grid-inner .hcard-actions .hcard-wish {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255,255,255,.92);
+  color: #171717;
+  box-shadow: 0 1px 4px rgba(0,0,0,.1);
+}
+
+#homeOnSale .hcard-actions .hcard-wish svg,
+.page-collection .col-grid-inner .hcard-actions .hcard-wish svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.8;
+}
+
+#homeOnSale .hcard-actions .hcard-wish.on,
+.page-collection .col-grid-inner .hcard-actions .hcard-wish.on {
+  border: 0;
+  background: rgba(255,255,255,.92);
+  color: #bf493f;
+}
+
+#homeOnSale .hcard-actions .hcard-wish.on svg,
+.page-collection .col-grid-inner .hcard-actions .hcard-wish.on svg {
+  fill: currentColor;
+}
+
+/* 카드 글줄 — 브랜드 · 모델 · 스펙 · 가격 */
+#homeOnSale .hcard-brand,
+#homeOnSale .hcard-model,
+#homeOnSale .hcard-pack,
+#homeOnSale .hcard-price,
+.page-collection .col-grid-inner .hcard-brand,
+.page-collection .col-grid-inner .hcard-model,
+.page-collection .col-grid-inner .hcard-pack,
+.page-collection .col-grid-inner .hcard-price {
+  padding-right: 0 !important;
+  padding-left: 0 !important;
+}
+
+#homeOnSale .hcard-brand,
+.page-collection .col-grid-inner .hcard-brand {
+  margin-top: 8px;
+  padding-top: 0;
+  color: #8b8b8b;
+  font-size: 12px;
+  line-height: 1.3;
+  font-weight: 750;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+#homeOnSale .hcard-model,
+.page-collection .col-grid-inner .hcard-model {
+  display: block;
+  min-height: 1.35em;
+  margin-top: 2px;
+  padding-top: 0;
+  overflow: visible;
+  color: #111;
+  font-size: 15px;
+  line-height: 1.35;
+  font-weight: 700;
+  letter-spacing: -.025em;
+  white-space: normal;
+  word-break: keep-all;
+  -webkit-line-clamp: unset;
+}
+
+#homeOnSale .hcard-pack,
+.page-collection .col-grid-inner .hcard-pack {
+  min-height: 1.35em;
+  margin-top: 2px;
+  padding-top: 0;
+  color: #a09b98;
+  font-size: 12.5px;
+  line-height: 1.35;
+  font-weight: 500;
+  white-space: normal;
+}
+
+#homeOnSale .hcard-price,
+.page-collection .col-grid-inner .hcard-price {
+  margin-top: 5px;
+  padding-top: 0;
+  padding-bottom: 0;
+  color: #111;
+  font-size: 17px;
+  line-height: 1.3;
+  font-weight: 850;
+}
+
+/* 카드에서 쓰지 않는 요소 */
+#homeOnSale .hcard-used-row,
+#homeOnSale .hcard-used-badge,
+#homeOnSale .hcard-admin,
+#homeOnSale .hcard-tag,
+.page-collection .col-grid-inner .hcard-used-row,
+.page-collection .col-grid-inner .hcard-used-badge,
+.page-collection .col-grid-inner [class*="market-same"],
+.page-collection .col-grid-inner [class*="market-lower"] {
+  display: none !important;
+}
+
+@media (min-width: 700px) {
+  #homeOnSale .home-sale-grid,
+  .page-collection .col-grid-inner,
+  html[data-width="full"] .page-collection .col-grid-inner {
+    column-gap: 24px !important;
+    row-gap: 30px !important;
+  }
+
+  #homeOnSale .hcard-model,
+  .page-collection .col-grid-inner .hcard-model {
+    font-size: 16px;
+  }
+
+  #homeOnSale .hcard-price,
+  .page-collection .col-grid-inner .hcard-price {
+    font-size: 19px;
+  }
+}
+
+/* 배지가 겹칠 때 아래로 쌓기 (DOM 순서: 오늘 등록 → 미착용 → 타임세일) */
+#homeOnSale .hcard-timesale,
+.page-collection .col-grid-inner .hcard-timesale {
+  top: 10px;
+  left: 10px;
+}
+
+#homeOnSale .hcard-today + .hcard-timesale,
+#homeOnSale .hcard-condition + .hcard-timesale,
+.page-collection .col-grid-inner .hcard-today + .hcard-timesale,
+.page-collection .col-grid-inner .hcard-condition + .hcard-timesale {
+  top: 38px;
+}
+
+#homeOnSale .hcard-today + .hcard-condition + .hcard-timesale,
+.page-collection .col-grid-inner .hcard-today + .hcard-condition + .hcard-timesale {
+  top: 66px;
+}
+
+/* 판매시계 페이지는 배경이 연회색이므로 사진 타일을 흰색으로 (배경과 섞이지 않게) */
+.page-collection .col-grid-inner .hcard-img {
+  background: #fff !important;
 }

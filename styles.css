@@ -9903,24 +9903,6 @@ body.login-open .tabbar { display: none; }
     font-weight: 800;
 }
 
-#homeOnSale .hcard-img { background: #fff; overflow: hidden; }
-#homeOnSale .hcard-img img {
-    width: 88%;
-    height: 88%;
-    margin: 6% auto;
-    object-fit: contain;
-}
-#homeOnSale .hcard-timesale,
-#homeOnSale .hcard-sale-badge,
-#homeOnSale .hcard-new-badge,
-#homeOnSale .hcard-today-label,
-#homeOnSale .hcard-tag,
-#homeOnSale .hcard-view,
-#homeOnSale .hcard-views,
-#homeOnSale [data-view-count] {
-    display: none !important;
-}
-#homeOnSale .hcard { border: 0; box-shadow: none; }
 
 .pp-info { padding: 26px 20px 18px; }
 .pp-brand {
@@ -10028,124 +10010,7 @@ body.login-open .tabbar { display: none; }
 #homeOnSale {
     padding: 34px 0 46px;
 }
-#homeOnSale .home-sale-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    max-width: 760px;
-    margin-left: auto;
-    margin-right: auto;
-    column-gap: 28px;
-    row-gap: 54px;
-}
-#homeOnSale .hcard {
-    border: 0 !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    overflow: visible;
-}
-#homeOnSale .hcard-img {
-    aspect-ratio: 1 / 1 !important;
-    height: auto !important;
-    padding: 0 !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    overflow: visible;
-    position: relative;
-}
-#homeOnSale .hcard-img img {
-    width: 72% !important;
-    height: 72% !important;
-    margin: 14% auto !important;
-    padding: 0 !important;
-    object-fit: contain !important;
-}
-#homeOnSale .hcard-brand,
-#homeOnSale .hcard-model,
-#homeOnSale .hcard-pack,
-#homeOnSale .hcard-price {
-    padding-left: 0;
-    padding-right: 0;
-}
-#homeOnSale .hcard-brand {
-    margin-top: 18px;
-    padding-top: 0;
-    color: #6b6b6b;
-    font-size: 14px;
-    font-weight: 800;
-    letter-spacing: 0;
-}
-#homeOnSale .hcard-model {
-    min-height: 2.8em;
-    margin-top: 8px;
-    padding-top: 0;
-    font-size: 18px;
-    line-height: 1.4;
-    font-weight: 700;
-    letter-spacing: -.025em;
-}
-#homeOnSale .hcard-pack {
-    margin-top: 20px;
-    padding-top: 0;
-    color: #9a9a9a;
-    font-size: 15px;
-    font-weight: 500;
-}
-#homeOnSale .hcard-price {
-    margin-top: 14px;
-    padding-top: 0;
-    padding-bottom: 0;
-    color: #111;
-    font-size: 20px;
-    line-height: 1.3;
-    font-weight: 850;
-}
-#homeOnSale .hcard-used-row,
-#homeOnSale .hcard-used-badge,
-#homeOnSale .hcard-admin,
-#homeOnSale .hcard-cart,
-#homeOnSale .hcard-timesale,
-#homeOnSale .hcard-sale-badge,
-#homeOnSale .hcard-new-badge,
-#homeOnSale .hcard-today-label,
-#homeOnSale .hcard-tag,
-#homeOnSale .hcard-view,
-#homeOnSale .hcard-views,
-#homeOnSale [data-view-count] {
-    display: none !important;
-}
-#homeOnSale .hcard-actions,
-body.admin-mode #homeOnSale .hcard-actions {
-    display: block !important;
-    position: absolute;
-    top: auto;
-    right: 2px;
-    bottom: 2px;
-    z-index: 4;
-}
-#homeOnSale .hcard-actions .hcard-wish {
-    display: inline-flex;
-    width: 34px;
-    height: 34px;
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    color: #a4a4a4;
-    box-shadow: none;
-}
-#homeOnSale .hcard-actions .hcard-wish svg {
-    width: 25px;
-    height: 25px;
-    stroke-width: 1.8;
-}
-#homeOnSale .hcard-actions .hcard-wish.on {
-    border: 0;
-    background: transparent;
-    color: #d84a3a;
-}
-#homeOnSale .hcard-actions .hcard-wish.on svg {
-    fill: currentColor;
-}
+/* 홈 판매 카드 규격은 bellore-redesign.css의 "상품 카드 2열 규격"으로 일원화됨 */
 
 /* 마이페이지 전체 화면 구조 */
 #myPageModal {
@@ -10453,20 +10318,6 @@ body.admin-mode #homeOnSale .hcard-actions {
 }
 
 @media (max-width: 699px) {
-    #homeOnSale .home-sale-grid {
-        column-gap: 18px;
-        row-gap: 44px;
-    }
-    #homeOnSale .hcard-model {
-        font-size: 16px;
-    }
-    #homeOnSale .hcard-pack {
-        margin-top: 16px;
-        font-size: 13px;
-    }
-    #homeOnSale .hcard-price {
-        font-size: 17px;
-    }
     #myPageModal .login-content {
         padding-left: 0;
         padding-right: 0;
