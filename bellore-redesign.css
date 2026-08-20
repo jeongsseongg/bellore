@@ -1312,3 +1312,32 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
 /* 하단바에서 숨긴 공유·장바구니 버튼은 확실히 숨김(클래스 display 우선순위 회피) */
 .pp-bottom .pp-wish[hidden],
 .pp-bottom .pp-cart[hidden] { display: none !important; }
+
+/* 문의: 운영시간·문의 버튼 둘 다 풀폭 한 줄 */
+#productModal .pp-ask-line {
+  display: block;
+  width: 100%;
+  margin: 0 0 10px;
+  padding: 14px 16px;
+  border: 1px solid #ececea;
+  border-radius: 10px;
+  background: #f7f7f5;
+  color: #3a3833;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#productModal .pp-ask-btn {
+  display: block;
+  width: 100%;
+  padding: 15px 0;
+  border: 1px solid #141414;
+  border-radius: 10px;
+  background: #fff;
+  color: #141414;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+}
