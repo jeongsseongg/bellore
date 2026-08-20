@@ -1511,3 +1511,10 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
   width: max-content; max-width: min(300px, calc(100vw - 36px));
 }
 #productModal .pp-tip-box::after { display: none; }
+
+/* ============================================================
+   2026-08-20 하단 푸터(사업자·정보)는 홈에서만 노출
+   ============================================================ */
+.footer { display: none; }
+body[data-page="home"] .footer,
+body:not([data-page]) .footer { display: block; }
