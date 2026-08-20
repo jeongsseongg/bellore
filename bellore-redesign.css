@@ -1285,3 +1285,30 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
   color: #555;
   font-size: 13px;
 }
+
+/* ============================================================
+   2026-08-18 상품 상세 — 하단바 찜·금액·구매 · 상태 박스 딥그린
+   ============================================================ */
+.pp-bottom .pp-buyprice {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 0 2px;
+  font-size: 16.5px;
+  font-weight: 850;
+  letter-spacing: -.02em;
+  color: #141414;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.pp-bottom .pp-buyprice .won { font-weight: 850; }
+.pp-bottom .pp-wish { width: 54px; min-height: 54px; }
+.pp-bottom .pp-buy { min-height: 54px; flex: 1; min-width: 116px; }
+
+/* 제품 상태 배지: 남색 → 벨로르 딥그린 (팔레트 통일) */
+.pp-state-badge { background: #1a2925 !important; }
+.pp-state-badge.is-new { background: #1a5c43 !important; }
+
+/* 하단바에서 숨긴 공유·장바구니 버튼은 확실히 숨김(클래스 display 우선순위 회피) */
+.pp-bottom .pp-wish[hidden],
+.pp-bottom .pp-cart[hidden] { display: none !important; }

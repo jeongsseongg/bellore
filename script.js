@@ -6458,6 +6458,7 @@
             }
             var html = row('브랜드', brandKR(d.brand)) +
                 row('모델', d.model) +
+                row('레퍼런스 번호', d.ref_id || d.ref) +
                 row('컨디션', d.condition) +
                 row('구성품', d.accessories || d.pack) +
                 row('스탬핑 / 연식', d.stamping || d.purchase_year) +
@@ -6493,10 +6494,10 @@
             var identity = $('#pmIdentity');
             if (identity) {
                 var identityBits = [];
-                if (d.model) identityBits.push(String(d.model));
+                if (d.ref_id || d.ref) identityBits.push('Ref. ' + (d.ref_id || d.ref));
                 if (d.size_mm) identityBits.push(String(d.size_mm).replace(/mm$/i, '') + 'mm');
-                if (pno && pno !== '-') identityBits.push('상품번호 ' + pno);
                 identity.textContent = identityBits.join(' · ');
+                identity.hidden = !identityBits.length;
             }
             var assurance = $('#pmAssurance');
             if (assurance) {
@@ -6507,10 +6508,10 @@
                     '<span>' + esc(condText) + '</span>' +
                     '<span>' + esc(packText) + '</span>';
             }
-            var no2 = $('#pmNo2'); if (no2) no2.textContent = pno;
-            var sm = $('#pmSaleMethod'); if (sm) sm.textContent = '벨로르 판매·결제 책임';
+            var sm = $('#pmSaleMethod'); if (sm) sm.textContent = '벨로르가 직접 판매하고 결제까지 책임집니다';
             var ship = $('#pmShip'); if (ship) ship.textContent = d.ship_info || '결제 후 2~4일 이내 발송';
             $('#pmPoint').textContent = d.price ? (fmt(Math.round(d.price * 0.01)) + 'P 적립 (1%)') : '-';
+            var bp = $('#pmBuyPrice'); if (bp) bp.innerHTML = ppPriceHTML(d);
             paintAcc(d);
             paintChips(d);
             paintSpec(d);
@@ -6612,6 +6613,7 @@
                         components: it.components || '',
                         sale_method: it.sale_method || '',
                         product_no: it.product_no || '',
+                        ref_id: it.ref_id || it.ref || '',
                         ship_info: it.ship_info || '',
                         no: String(it.id).slice(0, 8).toUpperCase()
                     });
