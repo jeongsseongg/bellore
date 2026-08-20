@@ -1442,56 +1442,56 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
 /* 탭: 알약 → 언더라인(검색·상세와 통일) */
 #wishlist .wish-tabs { gap: 0; padding: 4px 0 0; border-bottom: 1px solid #ececea; }
 #wishlist .wish-tab {
-  flex: 1; padding: 13px 0 11px; border: 0; border-radius: 0;
-  background: none; color: #8a8781; font-size: 13.5px; font-weight: 700;
+  flex: 1; padding: 14px 0 12px; border: 0; border-radius: 0;
+  background: none; color: #8a8781; font-size: 14.5px; font-weight: 700;
 }
 #wishlist .wish-tab.active { background: none; color: #141414; font-weight: 800; box-shadow: inset 0 -2px 0 #141414; }
 #wishlist .wish-tab b { color: #a58649; margin-left: 3px; font-weight: 800; }
 
-/* 카드 그리드: 홈·판매시계와 동일한 2열 타일 규격 */
-#wishGrid { grid-template-columns: repeat(2, minmax(0,1fr)); column-gap: 16px; row-gap: 22px; padding: 16px 0 24px; }
+/* 카드 그리드: 홈·판매시계와 동일한 2열 타일 규격 — 시원시원(A안) */
+#wishGrid { grid-template-columns: repeat(2, minmax(0,1fr)); column-gap: 16px; row-gap: 28px; padding: 18px 0 28px; }
 #wishGrid .hcard { min-width: 0; overflow: visible; border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; }
 #wishGrid .hcard:hover { transform: none; }
 /* 사진 타일 + 바닥 그림자 + 곱하기 합성(박스 안 박스 방지) */
 #wishGrid .hcard-img {
   position: relative; display: block; height: auto !important; aspect-ratio: 1/1 !important;
-  padding: 0 !important; overflow: hidden; border: 0 !important; border-radius: 12px !important;
+  padding: 0 !important; overflow: hidden; border: 0 !important; border-radius: 14px !important;
   background: #f2f3f5 !important; box-shadow: none !important;
 }
 #wishGrid .hcard-img::after {
-  content: ''; position: absolute; left: 50%; bottom: 12%; z-index: 0; width: 46%; height: 7%;
-  transform: translateX(-50%); background: radial-gradient(ellipse, rgba(22,24,30,.24), rgba(22,24,30,0) 70%);
+  content: ''; position: absolute; left: 50%; bottom: 10%; z-index: 0; width: 50%; height: 7%;
+  transform: translateX(-50%); background: radial-gradient(ellipse, rgba(22,24,30,.22), rgba(22,24,30,0) 70%);
   filter: blur(3px); pointer-events: none;
 }
 #wishGrid .hcard-img img {
-  width: 100% !important; height: 100% !important; margin: 0 !important; padding: 12% !important;
+  width: 100% !important; height: 100% !important; margin: 0 !important; padding: 13% !important;
   object-fit: contain !important; mix-blend-mode: multiply; position: relative; z-index: 1;
 }
-/* 글줄 */
-#wishGrid .hcard-brand { margin: 10px 0 0; padding: 0; color: #8b8b8b; font-size: 11px; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+/* 글줄 — 시원시원하게 키움 */
+#wishGrid .hcard-brand { margin: 13px 0 0; padding: 0; color: #8b8b8b; font-size: 12px; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
 #wishGrid .hcard-model {
-  margin: 4px 0 0; padding: 0; min-height: 36px; color: #141414; font-size: 13.5px; line-height: 1.35;
-  font-weight: 700; letter-spacing: -.02em; white-space: normal; word-break: keep-all;
+  margin: 5px 0 0; padding: 0; min-height: 42px; color: #141414; font-size: 16px; line-height: 1.32;
+  font-weight: 750; letter-spacing: -.025em; white-space: normal; word-break: keep-all;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-#wishGrid .wish-price-label { margin: 9px 0 0; padding: 0; color: #adaaa4; font-size: 10.5px; font-weight: 600; }
-#wishGrid .hcard-price { margin: 1px 0 0; padding: 0; color: #141414; font-size: 16px; font-weight: 850; letter-spacing: -.02em; }
+#wishGrid .wish-price-label { margin: 12px 0 0; padding: 0; color: #adaaa4; font-size: 11.5px; font-weight: 600; }
+#wishGrid .hcard-price { margin: 2px 0 0; padding: 0; color: #141414; font-size: 20px; font-weight: 850; letter-spacing: -.03em; }
 #wishGrid .hcard-price em { font-style: normal; font-weight: 850; margin-left: 1px; }
 
 /* 찜 해제 하트(우상단, 채워진 하트) */
 #wishGrid .wish-card .wish-remove {
-  position: absolute; top: 8px; right: 8px; z-index: 4; width: 30px; height: 30px;
-  border-radius: 50%; background: rgba(255,255,255,.92); border: 0; box-shadow: 0 1px 4px rgba(0,0,0,.12);
+  position: absolute; top: 9px; right: 9px; z-index: 4; width: 32px; height: 32px;
+  border-radius: 50%; background: rgba(255,255,255,.94); border: 0; box-shadow: 0 1px 5px rgba(0,0,0,.12);
   display: grid; place-items: center;
 }
-#wishGrid .wish-card .wish-remove svg { width: 16px; height: 16px; fill: #141414; }
+#wishGrid .wish-card .wish-remove svg { width: 17px; height: 17px; fill: #141414; }
 #wishGrid .wish-card .wish-remove:active { transform: scale(.9); }
 
-/* 액션: 구매하기(딥그린) + 장바구니 담기(아웃라인) */
-#wishGrid .wish-card-acts { display: flex; flex-direction: column; gap: 7px; margin: 11px 0 0; padding: 0; }
-#wishGrid .wish-card-acts button { width: 100%; border-radius: 9px; font: inherit; font-weight: 750; cursor: pointer; }
-#wishGrid .wish-card-acts .wish-buy { padding: 10px 0; border: 0; background: #1a2925; color: #fff; font-size: 13px; }
-#wishGrid .wish-card-acts .wish-addcart { padding: 9px 0; border: 1px solid #ececea; background: #fff; color: #3a3833; font-size: 12.5px; font-weight: 700; }
+/* 액션: 구매하기(딥그린) + 장바구니 담기(아웃라인) — 큼직하게 */
+#wishGrid .wish-card-acts { display: flex; flex-direction: column; gap: 8px; margin: 14px 0 0; padding: 0; }
+#wishGrid .wish-card-acts button { width: 100%; border-radius: 11px; font: inherit; font-weight: 750; cursor: pointer; }
+#wishGrid .wish-card-acts .wish-buy { padding: 13px 0; border: 0; background: #1a2925; color: #fff; font-size: 14.5px; }
+#wishGrid .wish-card-acts .wish-addcart { padding: 11px 0; border: 1px solid #ececea; background: #fff; color: #3a3833; font-size: 13px; font-weight: 700; }
 
 /* 배송비 안내 물음표(툴팁 버튼) — 지저분한 줄글 대신 아이콘+말풍선 */
 #productModal .pp-meta-ship > strong { display: inline-flex; align-items: center; }
