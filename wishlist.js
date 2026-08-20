@@ -137,6 +137,17 @@
     else { addCart(it); toast('장바구니에 담았어요'); }
   });
 
+  // 찜페이지의 바로 구매 → 결제 진입점으로 연결
+  document.addEventListener('click', function (e) {
+    var buy = e.target.closest('.wish-buy');
+    if (!buy) return;
+    e.preventDefault(); e.stopPropagation();
+    var it = findById(getWish(), buy.getAttribute('data-buy'));
+    if (it && window.BELLORE_openCheckout) {
+      window.BELLORE_openCheckout({ listingId: it.id, brand: it.brand, model: it.model, price: it.price, image: it.img });
+    }
+  });
+
   // 찜페이지의 담기/삭제
   document.addEventListener('click', function (e) {
     var rm = e.target.closest('.wish-remove'), ac = e.target.closest('.wish-addcart');
@@ -315,6 +326,10 @@
       '<p class="hcard-model">' + esc(it.model) + '</p>' +
       '<p class="wish-price-label">즉시 구매가</p>' +
       '<p class="hcard-price">' + (it.price ? fmt(it.price) + '<em>원</em>' : '가격 문의') + '</p>' +
+      '<div class="wish-card-acts">' +
+        '<button type="button" class="wish-buy" data-buy="' + esc(idOf(it)) + '">구매하기</button>' +
+        '<button type="button" class="wish-addcart" data-id="' + esc(idOf(it)) + '">장바구니 담기</button>' +
+      '</div>' +
       '</article>';
   }
   function cartRowHTML(it) {
