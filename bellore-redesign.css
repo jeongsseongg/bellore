@@ -1403,3 +1403,35 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
 
 /* 문의 섹션 */
 #productModal .pp-sec-qna .pp-ask-desc { margin: 0 0 14px; color: #8a8781; font-size: 12.5px; line-height: 1.65; }
+
+/* ============================================================
+   2026-08-20 상단 핵심정보 — 구구스식 정적·모노톤(컬러 절제)
+   초록 배송문구/정품칩/책임박스, 분홍 EVENT 배지 → 차분한 뉴트럴로
+   ============================================================ */
+/* 배송 문구: 초록 → 차분한 그레이 */
+#productModal .pp-delivery-promise { color: #6b6b6b; font-size: 13px; font-weight: 600; margin-bottom: 16px; }
+#productModal .pp-delivery-promise svg { stroke: #a8a49d; }
+
+/* 신뢰 칩: 초록 필 → 옅은 뉴트럴 태그(균일하게) */
+#productModal .pp-assurance { gap: 6px; margin-bottom: 20px; }
+#productModal .pp-assurance span {
+  min-height: 33px; padding: 0 12px; border: 0; border-radius: 8px;
+  background: #f4f4f2; color: #3d3b37; font-size: 12.5px; font-weight: 650;
+}
+#productModal .pp-assurance .is-primary { background: #f4f4f2; color: #141414; font-weight: 750; }
+
+/* 판매·결제 책임 박스: 초록 틴트 → 뉴트럴 */
+#productModal .pp-responsibility {
+  border: 1px solid #ececea; border-radius: 10px; background: #fafafa;
+}
+#productModal .pp-responsibility strong { color: #141414; font-weight: 800; }
+#productModal .pp-responsibility span { color: #6f6c66; }
+
+/* 포인트 EVENT 배지: 분홍/빨강 → 뉴트럴 그레이 */
+#productModal .pp-event { color: #8a8781; background: #f0efec; font-weight: 700; letter-spacing: .3px; }
+
+/* 혜택 표: 라인·라벨 톤 정리 */
+#productModal .pp-meta { border-top-color: #ececea; }
+#productModal .pp-meta-row > span { color: #8a8781; }
+#productModal .pp-meta-row > strong { color: #141414; font-weight: 650; }
+#productModal .pp-ship-note { color: #adaaa4; }
