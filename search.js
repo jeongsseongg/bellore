@@ -150,18 +150,19 @@
   page.className = 'search-page'; page.id = 'searchPage'; page.hidden = true;
   page.innerHTML =
     '<header class="sp-top">' +
+      '<button type="button" class="sp-mode" data-spmode aria-label="검색·카테고리 전환">' +
+        '<svg class="sp-mode-ic ic-grid" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>' +
+        '<svg class="sp-mode-ic ic-search" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>' +
+        '<span class="sp-mode-label">카테고리</span>' +
+      '</button>' +
       '<form class="sp-bar" id="spForm">' +
         '<svg class="sp-bar-ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>' +
-        '<input type="search" id="spInput" placeholder="검색어를 입력해 주세요." autocomplete="off" enterkeyhint="search">' +
+        '<input type="search" id="spInput" placeholder="모델명, 레퍼런스 검색" autocomplete="off" enterkeyhint="search">' +
       '</form>' +
       '<button type="button" class="sp-close" data-spclose aria-label="닫기">' +
         '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
       '</button>' +
     '</header>' +
-    '<nav class="sp-tabs">' +
-      '<button type="button" class="sp-tab active" data-sptab="word">검색어</button>' +
-      '<button type="button" class="sp-tab" data-sptab="cat">카테고리</button>' +
-    '</nav>' +
     '<div class="sp-scroll">' +
       '<section class="sp-panel" data-sppanel="word"></section>' +
       '<section class="sp-panel" data-sppanel="cat" hidden></section>' +
@@ -229,9 +230,16 @@
   }
   window.BELLORE_openSearch = openPage;
 
+  var curTab = 'word';
   function switchTab(t) {
-    $$('.sp-tab', page).forEach(function (x) { x.classList.toggle('active', x.dataset.sptab === t); });
+    curTab = t;
     $$('.sp-panel', page).forEach(function (p) { p.hidden = p.dataset.sppanel !== t; });
+    var mb = $('[data-spmode]', page);
+    if (mb) {
+      var back = (t === 'cat');                 // 카테고리 화면이면 버튼은 '검색'으로
+      mb.classList.toggle('is-back', back);
+      var lab = $('.sp-mode-label', mb); if (lab) lab.textContent = back ? '검색' : '카테고리';
+    }
     $('.sp-scroll', page).scrollTop = 0;
     if (t === 'word') renderWord();
     else if (t === 'cat') renderCat();
@@ -307,43 +315,40 @@
       : '<p class="sp-empty">최근 본 시계가 없습니다.</p>';
 
     var marketHTML = MARKET_WATCHES.map(function (it) {
-      var symbol = it.direction === 'up' ? '▲' : (it.direction === 'down' ? '▼' : '');
       return '<li class="sp-market-row"><button type="button" data-q="' + esc(it.model) + '">' +
         '<b class="sp-market-rank">' + it.rank + '</b>' +
         '<span class="sp-market-img"><img src="' + esc(it.image) + '" alt="" loading="lazy"></span>' +
         '<strong>' + esc(it.model) + '</strong>' +
-        '<em class="sp-market-change ' + it.direction + '">' + symbol + (symbol ? ' ' : '') + it.change + '</em>' +
+        '<em class="sp-market-arw">›</em>' +
       '</button></li>';
     }).join('');
 
+    var sugList = suggestNow().slice(0, 6).map(function (q) {
+      return '<li><button type="button" class="sp-kwrow" data-q="' + esc(q) + '"><i class="sp-kwdot"></i><span>' + esc(q) + '</span></button></li>';
+    }).join('');
+
     el.innerHTML =
-      '<div class="sp-sec">' +
-        '<div class="sp-sec-head"><h3>최근 검색어</h3>' + (recent.length ? '<button type="button" class="sp-clear" data-clearrecent>전체삭제</button>' : '') + '</div>' +
-        '<div class="sp-chips">' + recentHTML + '</div>' +
-      '</div>' +
-      '<div class="sp-sec">' +
-        '<div class="sp-sec-head"><h3>추천 검색어</h3></div>' +
-        '<div class="sp-sugs">' + suggest + '</div>' +
+      '<div class="sp-sec sp-kw">' +
+        '<div class="sp-sec-head"><h3>최근검색어</h3>' + (recent.length ? '<button type="button" class="sp-clear" data-clearrecent>전체삭제</button>' : '') + '</div>' +
+        '<div class="sp-recent">' + recentHTML + '</div>' +
+        '<div class="sp-two">' +
+          '<div class="sp-col"><p class="sp-col-lab">인기 검색어</p><ol class="sp-poplist" id="spPopCol"></ol></div>' +
+          '<div class="sp-col"><p class="sp-col-lab">추천 검색어</p><ul class="sp-suglist">' + sugList + '</ul></div>' +
+        '</div>' +
       '</div>' +
       '<div class="sp-sec sp-market-sec">' +
-        '<p class="sp-section-kicker">TRENDING</p>' +
-        '<div class="sp-sec-head"><h3>지금 많이 찾는 시계</h3><span class="sp-market-note">90일 시세</span></div>' +
+        '<div class="sp-sec-head"><h3>많이 찾는 시계</h3></div>' +
         '<ol class="sp-market">' + marketHTML + '</ol>' +
       '</div>' +
-      '<div class="sp-sec">' +
-        '<div class="sp-sec-head"><h3>인기 검색어</h3><span class="sp-pop-note" id="spPopNote"></span></div>' +
-        '<ol class="sp-pop" id="spPop"></ol>' +
-      '</div>' +
       '<div class="sp-sec sp-viewed-sec">' +
-        '<p class="sp-section-kicker">RECENTLY VIEWED</p>' +
         '<div class="sp-sec-head"><h3>최근 본 시계</h3>' + (viewed.length ? '<button type="button" class="sp-clear" data-clearviewed>삭제</button>' : '') + '</div>' +
         viewedHTML +
       '</div>';
 
     popularNow(function (list) {
-      var ol = $('#spPop', page); if (!ol) return;
-      ol.innerHTML = list.slice(0, 10).map(function (q, i) {
-        return '<li><button type="button" class="sp-pop-item" data-q="' + esc(q) + '"><b>' + (i + 1) + '</b><span>' + esc(q) + '</span></button></li>';
+      var ol = $('#spPopCol', page); if (!ol) return;
+      ol.innerHTML = list.slice(0, 6).map(function (q, i) {
+        return '<li><button type="button" class="sp-kwrow" data-q="' + esc(q) + '"><b class="sp-kwno">' + (i + 1) + '</b><span>' + esc(q) + '</span></button></li>';
       }).join('');
     });
   }
@@ -472,6 +477,7 @@
       if (navEl) navEl.click(); else location.hash = '#' + go.dataset.spgo;
       return;
     }
+    var mode = e.target.closest('[data-spmode]'); if (mode) { switchTab(curTab === 'cat' ? 'word' : 'cat'); return; }
     var tab = e.target.closest('[data-sptab]'); if (tab) { switchTab(tab.dataset.sptab); return; }
 
     // 최근검색어 삭제

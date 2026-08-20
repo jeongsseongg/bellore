@@ -1048,3 +1048,228 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
   text-align: center;
 }
 .sp-pv-all:active { background: #f6f5f3; }
+
+/* ============================================================
+   2026-08-18 검색 화면 개편 — 모드 버튼 통합 · 인기/추천 2열 · 통일 규격
+   ============================================================ */
+/* 헤더: [모드 버튼] + [검색바(박스)] + [닫기] 한 줄 */
+.search-page .sp-top {
+  gap: 9px;
+  border-bottom: 1px solid #ececea;
+}
+.search-page .sp-mode {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid #141414;
+  border-radius: 12px;
+  background: #141414;
+  color: #fff;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.search-page .sp-mode.is-back {
+  background: #fff;
+  border-color: #d9d6d0;
+  color: #141414;
+}
+.search-page .sp-mode .ic-search { display: none; }
+.search-page .sp-mode.is-back .ic-grid { display: none; }
+.search-page .sp-mode.is-back .ic-search { display: inline-block; }
+
+.search-page .sp-bar {
+  flex: 1;
+  min-width: 0;
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid #ececea;
+  border-bottom: 1px solid #ececea;
+  border-radius: 12px;
+  background: #f7f7f5;
+}
+.search-page .sp-bar input { font-size: 14.5px; }
+.search-page .sp-bar-ic { color: #8a8781; }
+
+/* 섹션 제목 한 규격 */
+.search-page .sp-sec { padding: 20px 16px; border: 0; }
+.search-page .sp-sec + .sp-sec { border-top: 8px solid #f7f7f5; }
+.search-page .sp-sec-head { margin-bottom: 13px; }
+.search-page .sp-sec-head h3 {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  color: #141414;
+}
+.search-page .sp-clear { color: #adaaa4; font-size: 12px; font-weight: 600; }
+
+/* 최근검색어: 한 줄 가로 스크롤(스크롤바 숨김) */
+.search-page .sp-recent {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #ececea;
+}
+.search-page .sp-recent::-webkit-scrollbar { display: none; }
+.search-page .sp-recent .sp-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 13px;
+  border: 1px solid #ececea;
+  border-radius: 999px;
+  background: #fff;
+  color: #141414;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.search-page .sp-recent .sp-chip-x { color: #adaaa4; font-size: 14px; }
+.search-page .sp-recent .sp-empty { color: #adaaa4; font-size: 13px; padding: 2px 0; }
+
+/* 인기 / 추천 좌우 2열 */
+.search-page .sp-two { display: grid; grid-template-columns: 1fr 1fr; }
+.search-page .sp-col { min-width: 0; }
+.search-page .sp-col:first-child { padding-right: 18px; }
+.search-page .sp-col + .sp-col { padding-left: 18px; border-left: 1px solid #ececea; }
+.search-page .sp-col-lab {
+  margin: 0 0 6px;
+  color: #8a8781;
+  font-size: 12px;
+  font-weight: 800;
+}
+.search-page .sp-poplist,
+.search-page .sp-suglist { margin: 0; padding: 0; list-style: none; }
+.search-page .sp-kwrow {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 9px;
+  align-items: center;
+  width: 100%;
+  padding: 10px 0;
+  border: 0;
+  border-bottom: 1px solid #ececea;
+  background: none;
+  text-align: left;
+  font: inherit;
+}
+.search-page li:last-child .sp-kwrow { border-bottom: 0; }
+.search-page .sp-kwno {
+  color: #a58649;
+  font-size: 13px;
+  font-weight: 850;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.search-page .sp-kwdot {
+  width: 5px;
+  height: 5px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: #adaaa4;
+}
+.search-page .sp-kwrow span {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #141414;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 많이 찾는 시계 — 통일 순위 줄 */
+.search-page .sp-market { margin: 0; padding: 0; list-style: none; }
+.search-page .sp-market-row button {
+  display: grid;
+  grid-template-columns: 22px 58px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  min-height: 0;
+  padding: 11px 0;
+  border-bottom: 1px solid #ececea;
+  background: none;
+  text-align: left;
+}
+.search-page .sp-market-rank {
+  color: #a58649;
+  font-size: 14px;
+  font-weight: 850;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.search-page .sp-market-img {
+  width: 58px;
+  height: 58px;
+  background: #f2f3f5;
+  overflow: hidden;
+}
+.search-page .sp-market-img img {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+.search-page .sp-market-row strong {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  color: #141414;
+}
+.search-page .sp-market-arw {
+  color: #adaaa4;
+  font-size: 16px;
+  font-style: normal;
+}
+
+/* 최근 본 시계 — 박스 안 박스 제거(회색 타일 + 곱하기 + 바닥 그림자) */
+.search-page .sp-viewed-sec { margin-right: 0; }
+.search-page .sp-viewed-img {
+  position: relative;
+  width: 116px;
+  height: 116px;
+  border-radius: 0;
+  background: #f2f3f5;
+  overflow: hidden;
+}
+.search-page .sp-viewed-img img {
+  padding: 8%;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+  position: relative;
+  z-index: 1;
+}
+.search-page .sp-viewed-img::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 11%;
+  z-index: 0;
+  width: 46%;
+  height: 7%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse, rgba(22,24,30,.24), rgba(22,24,30,0) 70%);
+  filter: blur(3px);
+}
+.search-page .sp-viewed { width: 116px; flex: 0 0 116px; }
+.search-page .sp-viewed-brand { margin-top: 9px; font-size: 10px; letter-spacing: .12em; }
+.search-page .sp-viewed-model { min-height: 0; margin-top: 2px; font-size: 12.5px; -webkit-line-clamp: 1; }
+.search-page .sp-viewed-price { margin-top: 4px; font-size: 13px; }
+.search-page .sp-viewed-remove {
+  top: 6px; right: 6px;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.9);
+  color: #555;
+  font-size: 13px;
+}
