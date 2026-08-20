@@ -1147,8 +1147,20 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
   font-size: 12px;
   font-weight: 800;
 }
+/* 인기/추천 각 열: 세로 스크롤 박스(최대 20개), 스크롤바 숨김 */
 .search-page .sp-poplist,
-.search-page .sp-suglist { margin: 0; padding: 0; list-style: none; }
+.search-page .sp-suglist {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 320px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+.search-page .sp-poplist::-webkit-scrollbar,
+.search-page .sp-suglist::-webkit-scrollbar { display: none; }
 .search-page .sp-kwrow {
   display: grid;
   grid-template-columns: 16px 1fr;

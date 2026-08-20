@@ -119,17 +119,17 @@
   function suggestNow() {
     // 3시간 단위 시드로 풀에서 6개 회전
     var slot = Math.floor(Date.now() / (3 * 3600 * 1000));
-    var out = [], n = SUGGEST_POOL.length, start = slot % n;
-    for (var i = 0; i < 6; i++) out.push(SUGGEST_POOL[(start + i) % n]);
+    var out = [], n = SUGGEST_POOL.length, start = slot % n, cnt = Math.min(20, n);
+    for (var i = 0; i < cnt; i++) out.push(SUGGEST_POOL[(start + i) % n]);
     return out;
   }
 
   /* ---------- 인기 검색어(핫 브랜드 폴백) ---------- */
-  var HOT_BRANDS = ['롤렉스', '파텍필립', '오메가', '까르띠에', '오데마피게', '튜더', '위블로', '태그호이어', 'IWC', '브라이틀링'];
+  var HOT_BRANDS = ['롤렉스', '파텍필립', '오메가', '까르띠에', '오데마피게', '튜더', '위블로', '태그호이어', 'IWC', '브라이틀링', '바쉐론콘스탄틴', '예거르쿨트르', '리차드밀', '파네라이', '제니스', '브레게', '글라슈테', '노모스', '샤넬', '불가리'];
   function popularNow(cb) {
     // 검색기록 1000건 이상이면 실제 랭킹, 아니면 핫 브랜드
     if (window.NWBackend && NWBackend.popularSearches) {
-      NWBackend.popularSearches(10).then(function (rows) {
+      NWBackend.popularSearches(20).then(function (rows) {
         if (rows && rows.total >= 1000 && rows.list && rows.list.length) cb(rows.list.map(function (r) { return r.q; }));
         else cb(HOT_BRANDS);
       }).catch(function () { cb(HOT_BRANDS); });
@@ -218,12 +218,14 @@
   function openPage(tab) {
     page.hidden = false;
     document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';   /* PC: 뒤 페이지 스크롤바 숨김(오른쪽 1개만) */
     document.body.classList.add('is-searching');
     switchTab(tab || 'word');
     setTimeout(function () { if ((tab || 'word') === 'word') input.focus(); }, 50);
   }
   function closePage() {
     page.hidden = true; document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
     document.body.classList.remove('is-searching');
     if (input) input.value = '';
     hideAuto();
@@ -323,7 +325,7 @@
       '</button></li>';
     }).join('');
 
-    var sugList = suggestNow().slice(0, 6).map(function (q) {
+    var sugList = suggestNow().slice(0, 20).map(function (q) {
       return '<li><button type="button" class="sp-kwrow" data-q="' + esc(q) + '"><i class="sp-kwdot"></i><span>' + esc(q) + '</span></button></li>';
     }).join('');
 
@@ -347,7 +349,7 @@
 
     popularNow(function (list) {
       var ol = $('#spPopCol', page); if (!ol) return;
-      ol.innerHTML = list.slice(0, 6).map(function (q, i) {
+      ol.innerHTML = list.slice(0, 20).map(function (q, i) {
         return '<li><button type="button" class="sp-kwrow" data-q="' + esc(q) + '"><b class="sp-kwno">' + (i + 1) + '</b><span>' + esc(q) + '</span></button></li>';
       }).join('');
     });
