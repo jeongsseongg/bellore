@@ -6190,7 +6190,8 @@
                 var t = tab.dataset.ppscroll;
                 $$('.pp-tab', modal).forEach(function (x) { x.classList.toggle('active', x.dataset.ppscroll === t); });
                 var sc = modal.querySelector('.pp-scroll');
-                var target = (t === 'ask') ? $('#ppAsk') : (t === 'notice') ? $('#ppNotice') : $('.pp-panel', modal);
+                var secMap = { acc: 'ppAccSec', info: 'ppInfoSec', ask: 'ppAsk', notice: 'ppNotice' };
+                var target = $('#' + (secMap[t] || 'ppInfoSec'));
                 if (target && sc) {
                     var tabsH = (modal.querySelector('.pp-tabs') || {}).offsetHeight || 0;
                     var delta = target.getBoundingClientRect().top - sc.getBoundingClientRect().top;
@@ -6203,6 +6204,32 @@
             var th = e.target.closest('.pp-thumb');
             if (th) selectPhoto(parseInt(th.dataset.i, 10));
         });
+
+        // 스크롤 시 현재 구간 탭 자동 활성(스크롤 스파이)
+        (function () {
+            var sc = modal.querySelector('.pp-scroll');
+            if (!sc) return;
+            var secMap = { acc: 'ppAccSec', info: 'ppInfoSec', ask: 'ppAsk', notice: 'ppNotice' };
+            var raf = 0;
+            sc.addEventListener('scroll', function () {
+                if (raf) return;
+                raf = requestAnimationFrame(function () {
+                    raf = 0;
+                    var tabs = $$('.pp-tab', modal);
+                    if (!tabs.length) return;
+                    var tabsH = (modal.querySelector('.pp-tabs') || {}).offsetHeight || 0;
+                    var atBottom = sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 6;
+                    var scTop = sc.getBoundingClientRect().top;
+                    var cur = tabs[0];
+                    tabs.forEach(function (bn) {
+                        var t = $('#' + (secMap[bn.dataset.ppscroll] || ''));
+                        if (t && (t.getBoundingClientRect().top - scTop) <= tabsH + 24) cur = bn;
+                    });
+                    if (atBottom) cur = tabs[tabs.length - 1];
+                    tabs.forEach(function (bn) { bn.classList.toggle('active', bn === cur); });
+                });
+            }, { passive: true });
+        })();
 
         // 상품 공유 (상단/하단 공유 버튼 공용) — 현재 보고 있는 상품 정보 공유
         function shareCurrentProduct() {
@@ -6425,60 +6452,58 @@
                 el.classList.toggle('on', on);
                 el.classList.toggle('off', !on);
             });
+            // 그 외 부속품(정품 택 · 여분링크 등) 칩 — accessories 자유입력에서 기본 4종을 제외한 나머지
+            var etc = $('#pmAccEtc');
+            if (etc) {
+                var known = ['박스', '케이스', '개런티', '보증', 'box', 'case', 'card', 'warranty', '풀세트', '풀박스', '단품', '미들'];
+                var extras = String(d.accessories || '').split(/[,\n/·]/).map(function (s) { return s.trim(); }).filter(function (s) {
+                    if (!s) return false;
+                    for (var i = 0; i < known.length; i++) { if (s.indexOf(known[i]) !== -1) return false; }
+                    return true;
+                });
+                etc.innerHTML = extras.map(function (s) { return '<i>' + esc(s) + '</i>'; }).join('');
+                etc.style.display = extras.length ? '' : 'none';
+            }
         }
-        // 핵심 스펙 칩 (보증서 / 스탬핑 / 정품박스 / 특이사항)
-        function paintChips(d) {
-            var box = $('#pmChips');
-            if (!box) return;
-            var pack = String(d.pack || '');
-            var hasBox = String(d.components || '').split(',').indexOf('box') !== -1 ||
-                pack.indexOf('풀세트') !== -1 ||
-                (String(d.accessories || '').indexOf('박스') !== -1);
-            var rows = [
-                ['보증서', d.has_warranty ? '있음' : '미표기', !!d.has_warranty],
-                ['스탬핑', String(d.stamping || '').trim() || '미표기', !!String(d.stamping || '').trim()],
-                ['정품 박스', hasBox ? '있음' : '미표기', hasBox],
-                ['특이사항', String(d.special_note || '').trim() ? '있음' : '없음', !!String(d.special_note || '').trim()]
-            ];
-            box.innerHTML = rows.map(function (r) {
-                return '<div class="pp-chip">' +
-                    '<span class="pp-chip-l">' + r[0] + '</span>' +
-                    '<span class="pp-chip-v' + (r[2] ? '' : ' off') + '">' + esc(r[1]) + '</span>' +
-                    '</div>';
-            }).join('');
-        }
-        // 상품 기본정보 표 (값 있는 항목만 노출)
+        // 상품 기본정보 표 — 항목은 항상 노출하고, 값이 없으면 '미기재'로 표기(대량 등록 시 규격 일관)
         function paintSpec(d) {
             var box = $('#pmSpec');
             if (!box) return;
             function row(label, val) {
                 val = (val == null ? '' : String(val)).trim();
-                if (!val) return '';
-                return '<div class="pp-spec-row"><span>' + label + '</span><strong>' + esc(val) + '</strong></div>';
+                var cell = val ? esc(val) : '<em class="pp-na">미기재</em>';
+                return '<div class="pp-kv-row"><i>' + label + '</i><span>' + cell + '</span></div>';
             }
-            var html = row('브랜드', brandKR(d.brand)) +
+            var size = d.size_mm ? (String(d.size_mm).replace(/mm$/i, '').trim() + 'mm') : '';
+            box.innerHTML =
+                row('브랜드', brandKR(d.brand)) +
                 row('모델', d.model) +
                 row('레퍼런스 번호', d.ref_id || d.ref) +
-                row('컨디션', d.condition) +
-                row('구성품', d.accessories || d.pack) +
-                row('스탬핑 / 연식', d.stamping || d.purchase_year) +
-                row('미리수', d.misu);
-            box.innerHTML = html || '<div class="pp-spec-row"><span>정보</span><strong>등록된 상세 정보가 없습니다.</strong></div>';
+                row('사이즈', size) +
+                row('소재', d.material) +
+                row('다이얼 컬러', d.dial_color) +
+                row('다이아몬드', d.has_diamond ? '포함' : '없음') +
+                row('스탬핑 · 연식', d.stamping || d.purchase_year) +
+                row('미리수', d.misu) +
+                row('컨디션 · 등급', d.condition);
         }
-        // 제품 상태 (신품/중고 배지 + 설명글)
+        // 제품 상태 (상태 목록 + 신품/중고 상태 박스 + 검수 안내)
         function paintState(d) {
-            var badge = $('#pmStateBadge'), desc = $('#pmStateDesc');
-            if (!badge || !desc) return;
+            var badge = $('#pmStateBadge');
+            if (!badge) return;
             var cond = String(d.condition || '');
             var isNew = cond.indexOf('미착용') !== -1 || cond.indexOf('신품') !== -1;
             badge.textContent = isNew ? '미착용 (신품급) 상품입니다.' : '착용 이력이 있는 중고 상품입니다.';
             badge.classList.toggle('is-new', isNew);
-            // 연식·구성품은 위 '상품 기본정보' 표에 이미 있으므로 여기서는 중복 표기하지 않음
-            var lines = [];
-            if (String(d.detail_desc || '').trim()) lines.push(esc(String(d.detail_desc).trim()).replace(/\n/g, '<br>'));
-            if (String(d.special_note || '').trim()) lines.push('<b>특이사항</b> : ' + esc(String(d.special_note).trim()));
-            lines.push('<span class="pp-state-note">상품 상태 정보는 공급 자료와 벨로르의 검수 결과를 바탕으로 제공됩니다. 벨로르가 판매 당사자로서 정밀 검수 후 출고하며 교환·환불·분쟁 처리를 책임집니다. 중고 상품은 스크래치·찍힘 및 사용감이 있을 수 있습니다.</span>');
-            desc.innerHTML = lines.map(function (l) { return '<p>' + l + '</p>'; }).join('');
+            // 상태 목록: detail_desc 줄단위 + 특이사항 (연식·구성품은 위 표에 있으므로 중복 표기 안 함)
+            var items = [];
+            String(d.detail_desc || '').split(/\n+/).forEach(function (l) { l = l.trim(); if (l) items.push(esc(l)); });
+            if (String(d.special_note || '').trim()) items.push('특이사항 · ' + esc(String(d.special_note).trim()));
+            var list = $('#pmStateList'), head = $('#pmStateHead');
+            if (list) { list.innerHTML = items.map(function (l) { return '<li>' + l + '</li>'; }).join(''); list.style.display = items.length ? '' : 'none'; }
+            if (head) head.style.display = items.length ? '' : 'none';
+            var note = $('#pmStateNote');
+            if (note) note.textContent = '상품 상태 정보는 공급 자료와 벨로르의 검수 결과를 바탕으로 제공됩니다. 벨로르가 판매 당사자로서 정밀 검수 후 출고하며 교환·환불·분쟁 처리를 책임집니다. 중고 상품은 스크래치·찍힘 및 사용감이 있을 수 있습니다.';
         }
         function paint(d) {
             var photos = (d.photos && d.photos.length) ? d.photos : (d.img ? [d.img] : []);
@@ -6513,7 +6538,6 @@
             $('#pmPoint').textContent = d.price ? (fmt(Math.round(d.price * 0.01)) + 'P 적립 (1%)') : '-';
             var bp = $('#pmBuyPrice'); if (bp) bp.innerHTML = ppPriceHTML(d);
             paintAcc(d);
-            paintChips(d);
             paintSpec(d);
             paintState(d);
 
@@ -6581,7 +6605,6 @@
             modal.hidden = false;
             modal.querySelector('.pp-scroll').scrollTop = 0;
             $$('.pp-tab', modal).forEach(function (x, i) { x.classList.toggle('active', i === 0); });
-            $$('.pp-panel', modal).forEach(function (p) { p.hidden = p.dataset.pppanel !== 'info'; });
             document.body.style.overflow = 'hidden';
             // 새로고침해도 보던 상품이 유지되도록 기록(DB 매물만)
             try { if (pid) sessionStorage.setItem('bellore_view_product', pid); } catch (e) {}
@@ -6606,6 +6629,8 @@
                         pack: it.pack || '', has_warranty: !!it.has_warranty,
                         accessories: it.accessories || '',
                         condition: it.condition || '', size_mm: it.size_mm || 0,
+                        material: it.material || '', dial_color: it.dial_color || '',
+                        has_diamond: !!it.has_diamond,
                         stamping: it.stamping || '', misu: it.misu || '',
                         purchase_year: it.purchase_year || '',
                         special_note: it.special_note || '',
@@ -6671,7 +6696,6 @@
                 modal.hidden = false;
                 modal.querySelector('.pp-scroll').scrollTop = 0;
                 $$('.pp-tab', modal).forEach(function (x, i) { x.classList.toggle('active', i === 0); });
-                $$('.pp-panel', modal).forEach(function (p) { p.hidden = p.dataset.pppanel !== 'info'; });
                 document.body.style.overflow = 'hidden';
                 try { sessionStorage.setItem('bellore_view_product', it.id); } catch (e) {}
                 if (window.NWBackend && NWBackend.logProductView) {

@@ -1341,3 +1341,65 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
   font-size: 14px;
   font-weight: 800;
 }
+
+/* ============================================================
+   2026-08-20 상품 상세 v3 — 구구스식 개편안 실제 반영
+   부속품·상품정보·문의·유의사항 4탭 스크롤 · 아이콘 박스 · 항상 노출 표
+   ============================================================ */
+/* 탭: 4등분 · 활성은 잉크 밑줄 */
+#productModal .pp-tabs { border-top: 0; z-index: 5; }
+#productModal .pp-tab { padding: 13px 0 11px; font-size: 13px; font-weight: 750; color: #8a8781; }
+#productModal .pp-tab.active { color: #141414; font-weight: 800; border-bottom-color: #141414; }
+
+/* 섹션 구분 */
+#productModal .pp-sec { padding: 22px 16px; border-top: 8px solid #f7f7f5; }
+#productModal .pp-sec:first-of-type { border-top: 0; }
+#productModal .pp-sec-title { margin: 0 0 14px; font-size: 16px; font-weight: 800; letter-spacing: -.02em; }
+
+/* 부속품 아이콘 박스 */
+#productModal .pp-acc { display: flex; flex-wrap: wrap; gap: 18px; margin: 0; }
+#productModal .pp-acc-item {
+  flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 7px;
+  padding: 0; background: none; border: 0; border-radius: 0; text-align: center;
+  font-size: 12px; font-weight: 600; color: #141414; opacity: 1; filter: none;
+}
+#productModal .pp-acc-item.on { background: none; border: 0; color: #141414; }
+#productModal .pp-acc-item.on::after { content: none; }
+#productModal .pp-acc-ic {
+  display: grid; place-items: center; width: 46px; height: 46px; margin: 0;
+  border: 1px solid #ececea; border-radius: 10px; color: #141414; filter: none; font-size: 0;
+}
+#productModal .pp-acc-ic svg { width: 22px; height: 22px; }
+#productModal .pp-acc-item.off { color: #adaaa4; opacity: 1; filter: none; }
+#productModal .pp-acc-item.off .pp-acc-ic { color: #cfccc6; border-style: dashed; }
+#productModal .pp-acc-nm { display: block; }
+#productModal .pp-acc-etc { display: flex; flex-wrap: wrap; gap: 7px; margin: 14px 0 0; }
+#productModal .pp-acc-etc i { padding: 6px 11px; border: 1px solid #ececea; border-radius: 999px; color: #555; font-size: 12px; font-style: normal; }
+
+/* 상품 정보 표 — 항목 항상 노출, 값 없으면 '미기재' */
+#productModal .pp-kv { border-top: 1px solid #ececea; }
+#productModal .pp-kv-row {
+  display: grid; grid-template-columns: 104px 1fr; gap: 12px; align-items: start;
+  padding: 11px 2px; min-height: 0; border-bottom: 1px solid #ececea; font-size: 13px;
+}
+#productModal .pp-kv-row > i { color: #8a8781; font-style: normal; font-weight: 600; }
+#productModal .pp-kv-row > span { color: #141414; line-height: 1.5; word-break: keep-all; overflow-wrap: anywhere; }
+#productModal .pp-na { color: #b8b4ad; font-style: normal; font-weight: 500; }
+
+/* 소제목 · 스펙 목록(골드 불릿) */
+#productModal .pp-subh { margin: 22px 0 10px; font-size: 13.5px; font-weight: 800; color: #141414; }
+#productModal .pp-speclist { margin: 0; padding: 0; list-style: none; }
+#productModal .pp-speclist li { position: relative; padding: 6px 0 6px 14px; color: #4a4742; font-size: 12.5px; line-height: 1.6; }
+#productModal .pp-speclist li::before { content: ''; position: absolute; left: 2px; top: 12px; width: 4px; height: 4px; border-radius: 50%; background: #a58649; }
+
+/* 상태 박스(라이트 · 좌측 딥그린 액센트) + 검수 안내 */
+#productModal .pp-state-box {
+  display: block; margin: 16px 0 0; padding: 13px 15px;
+  border: 1px solid #ececea; border-left: 3px solid #1a2925; border-radius: 0 8px 8px 0;
+  background: #f7f7f5; color: #3a3833; font-size: 12.5px; font-weight: 600; line-height: 1.65;
+}
+#productModal .pp-state-box.is-new { border-left-color: #1a5c43; }
+#productModal .pp-state-note { display: block; margin: 12px 0 0; font-size: 12px; color: #9a958c; line-height: 1.6; }
+
+/* 문의 섹션 */
+#productModal .pp-sec-qna .pp-ask-desc { margin: 0 0 14px; color: #8a8781; font-size: 12.5px; line-height: 1.65; }

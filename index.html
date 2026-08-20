@@ -65,12 +65,12 @@
          네트워크 실패 시 styles.css의 로컬 @font-face(assets/fonts/pretendard)가 대체한다. -->
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css?v=20260818-detail-v2">
+    <link rel="stylesheet" href="styles.css?v=20260820-detail-v3">
     <link rel="stylesheet" href="wanted-theme.css?v=20260818-pretendard-v1">
     <link rel="stylesheet" href="reference-layout.css?v=20260731-mypick-reference">
     <link rel="stylesheet" href="vendor-reference.css?v=20260731-photo-viewer">
     <link rel="stylesheet" href="mypick.css?v=20260731-mypick-reference-4">
-    <link rel="stylesheet" href="bellore-redesign.css?v=20260818-detail-v2">
+    <link rel="stylesheet" href="bellore-redesign.css?v=20260820-detail-v3">
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
@@ -2503,60 +2503,61 @@
                 </div>
             </section>
 
-            <!-- 탭 (클릭 시 해당 섹션으로 스크롤) -->
-            <nav class="pp-tabs">
-                <button class="pp-tab active" data-ppscroll="info">상품정보</button>
-                <button class="pp-tab" data-ppscroll="ask">문의하기</button>
+            <!-- 탭 (클릭 시 해당 섹션으로 스크롤 · 스크롤 시 자동 활성) -->
+            <nav class="pp-tabs" id="ppTabs">
+                <button class="pp-tab active" data-ppscroll="acc">부속품</button>
+                <button class="pp-tab" data-ppscroll="info">상품정보</button>
+                <button class="pp-tab" data-ppscroll="ask">문의</button>
                 <button class="pp-tab" data-ppscroll="notice">유의사항</button>
             </nav>
 
-            <!-- 상품정보 -->
-            <section class="pp-panel" data-pppanel="info">
-                <!-- 핵심 스펙 칩 (보증서 / 스탬핑 / 정품박스 / 특이사항) -->
-                <div class="pp-chips" id="pmChips"></div>
-
-                <h3 class="pp-sec-title" id="ppSecInfo">구성품</h3>
+            <!-- 부속품 -->
+            <section class="pp-sec" id="ppAccSec">
+                <h3 class="pp-sec-title">부속품 정보</h3>
                 <div class="pp-acc" id="pmAcc">
-                    <div class="pp-acc-item off" data-acc="box"><span class="pp-acc-ic">📦</span>박스</div>
-                    <div class="pp-acc-item off" data-acc="case"><span class="pp-acc-ic">🧰</span>케이스</div>
-                    <div class="pp-acc-item off" data-acc="card"><span class="pp-acc-ic">🪪</span>개런티카드</div>
-                    <div class="pp-acc-item off" data-acc="warranty"><span class="pp-acc-ic">📄</span>보증서</div>
+                    <div class="pp-acc-item off" data-acc="box"><span class="pp-acc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 8l9-4 9 4-9 4-9-4z"/><path d="M3 8v8l9 4 9-4V8"/></svg></span><span class="pp-acc-nm">박스</span></div>
+                    <div class="pp-acc-item off" data-acc="case"><span class="pp-acc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 10h16"/></svg></span><span class="pp-acc-nm">케이스</span></div>
+                    <div class="pp-acc-item off" data-acc="card"><span class="pp-acc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h5"/></svg></span><span class="pp-acc-nm">개런티카드</span></div>
+                    <div class="pp-acc-item off" data-acc="warranty"><span class="pp-acc-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 4h9l3 3v13H6z"/><path d="M9 12h6M9 16h4"/></svg></span><span class="pp-acc-nm">보증서</span></div>
                 </div>
+                <div class="pp-acc-etc" id="pmAccEtc"></div>
+            </section>
 
-                <h3 class="pp-sec-title">배송 · 판매 정보</h3>
-                <div class="pp-spec">
-                    <div class="pp-spec-row"><span>배송 방식</span><strong id="pmShip">결제 후 2~4일 이내 발송</strong></div>
-                    <div class="pp-spec-row"><span>판매 방식</span><strong id="pmSaleMethod">벨로르가 직접 판매하고 결제까지 책임집니다</strong></div>
-                </div>
+            <!-- 상품정보 -->
+            <section class="pp-sec" id="ppInfoSec">
+                <h3 class="pp-sec-title">상품 정보</h3>
+                <div class="pp-kv" id="pmSpec"></div>
 
-                <h3 class="pp-sec-title">상품 기본정보</h3>
-                <div class="pp-spec" id="pmSpec"></div>
-
-                <h3 class="pp-sec-title">제품 상태</h3>
-                <div class="pp-state" id="pmState">
-                    <div class="pp-state-badge" id="pmStateBadge">제품 상태 정보 안내</div>
-                    <div class="pp-state-desc" id="pmStateDesc"></div>
-                </div>
+                <p class="pp-subh" id="pmStateHead">상태</p>
+                <ul class="pp-speclist" id="pmStateList"></ul>
+                <div class="pp-state-box" id="pmStateBadge">착용 이력이 있는 중고 상품입니다.</div>
+                <p class="pp-state-note" id="pmStateNote"></p>
 
                 <div class="pp-detail-imgs" id="pmDetailImgs"></div>
 
-                <!-- 문의하기 -->
-                <div class="pp-anchor" id="ppAsk">
-                    <h3 class="pp-sec-title">상품 문의</h3>
-                    <p class="pp-ask-desc">상품 정보·상태에 대해 확인이 필요하시면 문의해 주세요. 담당자가 확인 후 순차적으로 답변드립니다.</p>
-                    <div class="pp-ask-line">운영시간 · 평일 10:00 ~ 18:00 (주말·공휴일 휴무)</div>
-                    <button class="pp-ask-btn pm-ask" id="pmAsk">1:1 문의하기</button>
+                <p class="pp-subh">배송 · 판매</p>
+                <div class="pp-kv pp-ship-kv">
+                    <div class="pp-kv-row"><i>배송 방식</i><span id="pmShip">결제 후 2~4일 이내 발송</span></div>
+                    <div class="pp-kv-row"><i>판매 방식</i><span id="pmSaleMethod">벨로르가 직접 판매하고 결제까지 책임집니다</span></div>
                 </div>
+            </section>
 
-                <!-- 유의사항 -->
-                <div class="pp-anchor" id="ppNotice">
-                    <h3 class="pp-sec-title">유의사항</h3>
-                    <ul class="pp-notice">
-                        <li>실제 상품의 색상은 모니터 환경에 따라 다소 차이가 있을 수 있습니다.</li>
-                        <li>상품 수령 후 7일 이내 청약철회가 가능하며, 사용·훼손 등 법령상 제한 사유는 반품·환불 안내에서 확인할 수 있습니다.</li>
-                        <li>가품 의심 시 벨로르가 회수·재감정·결제취소와 분쟁 처리를 전담합니다.</li>
-                    </ul>
-                </div>
+            <!-- 문의 -->
+            <section class="pp-sec pp-sec-qna" id="ppAsk">
+                <h3 class="pp-sec-title">상품 문의</h3>
+                <p class="pp-ask-desc">상품 정보·상태에 대해 확인이 필요하시면 문의해 주세요. 담당자가 확인 후 순차적으로 답변드립니다.</p>
+                <div class="pp-ask-line">운영시간 · 평일 10:00 ~ 18:00 (주말·공휴일 휴무)</div>
+                <button class="pp-ask-btn pm-ask" id="pmAsk">1:1 문의하기</button>
+            </section>
+
+            <!-- 유의사항 -->
+            <section class="pp-sec" id="ppNotice">
+                <h3 class="pp-sec-title">유의사항</h3>
+                <ul class="pp-notice">
+                    <li>실제 상품의 색상은 모니터 환경에 따라 다소 차이가 있을 수 있습니다.</li>
+                    <li>상품 수령 후 7일 이내 청약철회가 가능하며, 사용·훼손 등 법령상 제한 사유는 반품·환불 안내에서 확인할 수 있습니다.</li>
+                    <li>가품 의심 시 벨로르가 회수·재감정·결제취소와 분쟁 처리를 전담합니다.</li>
+                </ul>
             </section>
         </div>
 
@@ -3209,7 +3210,7 @@
     <script src="supabase.js?v=20260820-prodno-v2"></script>
     <script src="bellore-features.js"></script>
     <script src="cq-demo.js?v=20260810-bid-notify-fix"></script>
-    <script src="script.js?v=20260818-detail-v1"></script>
+    <script src="script.js?v=20260820-detail-v3"></script>
     <script src="wishlist.js?v=20260731-mypick-reference-2"></script>
     <script src="alerts.js?v=20260731-mypick-reference-2"></script>
     <script src="auction.js"></script>
