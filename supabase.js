@@ -1302,30 +1302,31 @@
     delete o.product_no; delete o.ship_info;
     delete o.dial_color; delete o.material; delete o.has_diamond;
   }
-  // 상품번호 자동 생성: 00 + 등급(A/B/C/D) + YYMMDD(한국시간) + 그날 순번(3자리)
+  // 상품번호 자동 생성: 등급 + 일 + 연(끝1자리) + 월  (한국시간 기준)
+  //   등급(판매가): 100만↓ S / 500만↓ M / 1,000만↓ E / 3,000만↓ K / 1억↓ L / 1억↑ Q
+  //   일=그달 날짜(앞자리 0 없이: 1·2·…·9·10·11), 연=연도 끝 1자리(2026→6), 월=달(0 없이)
+  //   예) 2026-08-20 · K등급 → K2068  /  2026-08-08 · M등급 → M868
   function priceGrade(p) {
     p = Number(p) || 0;
-    return p >= 100000000 ? 'A' : p >= 10000000 ? 'B' : p >= 1000000 ? 'C' : 'D';
+    return p < 1000000 ? 'S'
+      : p < 5000000 ? 'M'
+      : p < 10000000 ? 'E'
+      : p < 30000000 ? 'K'
+      : p < 100000000 ? 'L'
+      : 'Q';
   }
-  function pad(n, w) { n = String(n); while (n.length < w) n = '0' + n; return n; }
-  function kstYmd() {
-    var t = new Date(Date.now() + 9 * 3600 * 1000);
-    return pad(t.getUTCFullYear() % 100, 2) + pad(t.getUTCMonth() + 1, 2) + pad(t.getUTCDate(), 2);
-  }
-  function kstDayStartISO() {
+  function makeProductNo(price) {
     var k = new Date(Date.now() + 9 * 3600 * 1000);
-    return new Date(Date.UTC(k.getUTCFullYear(), k.getUTCMonth(), k.getUTCDate()) - 9 * 3600 * 1000).toISOString();
+    return priceGrade(price)
+      + k.getUTCDate()                 // 일 (1~31, 앞자리 0 없음)
+      + (k.getUTCFullYear() % 10)      // 연 끝자리
+      + (k.getUTCMonth() + 1);         // 월 (1~12, 앞자리 0 없음)
   }
-  // product_no 가 비어 있으면 그날 등록 수를 세어 다음 순번으로 자동 생성
+  // product_no 가 비어 있으면 자동 생성
   function ensureProductNo(row) {
     if (row.product_no) return Promise.resolve(row);
-    return sb.from('listings').select('id', { count: 'exact', head: true })
-      .gte('created_at', kstDayStartISO())
-      .then(function (res) {
-        var seq = (res && res.count != null ? res.count : 0) + 1;
-        row.product_no = '00' + priceGrade(row.price) + kstYmd() + pad(seq, 3);
-        return row;
-      }, function () { row.product_no = '00' + priceGrade(row.price) + kstYmd() + '001'; return row; });
+    row.product_no = makeProductNo(row.price);
+    return Promise.resolve(row);
   }
   Backend.addProduct = function (data) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
