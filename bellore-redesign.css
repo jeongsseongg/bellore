@@ -1518,3 +1518,43 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
 .footer { display: none; }
 body[data-page="home"] .footer,
 body:not([data-page]) .footer { display: block; }
+
+/* ============================================================
+   2026-08-20 보관함 카테고리바 숨김 + 알림 대기중인 시계(소식받기 등록)
+   ============================================================ */
+/* 보관함 상단 카테고리바(UPDATE/TIME SALE…) 숨김 */
+body[data-page="wishlist"] #catBar { display: none; }
+
+/* 헤드의 소식받기 버튼 */
+.wish-alert-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.alerts-add-btn {
+  border: 1px solid #d4d1cb; border-radius: 999px; background: #fff; color: #3a3833;
+  font: inherit; font-size: 12.5px; font-weight: 700; padding: 6px 13px; cursor: pointer; white-space: nowrap;
+}
+.alerts-add-btn:active { transform: scale(.97); }
+#myInterestSection > h4 { display: flex; align-items: center; gap: 8px; }
+#myInterestSection > h4 .alerts-add-btn { margin-left: auto; }
+
+/* 빈 상태: 큰 노트+연필 아이콘 */
+.alert-empty { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 40px 20px 44px; color: #8a8781; }
+.alert-empty-ic { width: 62px; height: 62px; color: #cfccc6; margin-bottom: 16px; }
+.alert-empty-ic svg { width: 100%; height: 100%; }
+.alert-empty b { color: #141414; font-size: 15.5px; font-weight: 800; }
+.alert-empty p { margin: 8px 0 0; font-size: 13px; line-height: 1.6; color: #8a8781; }
+.alert-empty-btn { margin-top: 18px; padding: 12px 32px; border: 0; border-radius: 11px; background: #1a2925; color: #fff; font: inherit; font-size: 14px; font-weight: 750; cursor: pointer; }
+
+/* 소식받기 등록 모달 */
+.areg { position: fixed; inset: 0; z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.areg[hidden] { display: none; }
+.areg-dim { position: absolute; inset: 0; background: rgba(20,20,20,.5); }
+.areg-sheet { position: relative; width: 100%; max-width: 420px; background: #fff; border-radius: 18px; padding: 22px 20px 24px; box-shadow: 0 20px 60px rgba(0,0,0,.28); }
+.areg-head { display: flex; align-items: center; justify-content: space-between; }
+.areg-head h3 { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -.02em; }
+.areg-x { border: 0; background: none; color: #8a8781; padding: 2px; cursor: pointer; }
+.areg-desc { margin: 8px 0 18px; color: #8a8781; font-size: 12.5px; line-height: 1.6; }
+.areg-field { display: block; margin: 0 0 14px; }
+.areg-field > span { display: block; margin: 0 0 7px; font-size: 12.5px; font-weight: 750; color: #3a3833; }
+.areg-field > span em { color: #adaaa4; font-style: normal; font-weight: 600; }
+.areg-field input { width: 100%; padding: 13px 14px; border: 1px solid #e0ddd7; border-radius: 11px; background: #fafafa; font: inherit; font-size: 14.5px; color: #141414; }
+.areg-field input:focus { outline: none; border-color: #1a2925; background: #fff; }
+.areg-submit { width: 100%; margin-top: 4px; padding: 15px 0; border: 0; border-radius: 12px; background: #1a2925; color: #fff; font: inherit; font-size: 15px; font-weight: 750; cursor: pointer; }

@@ -5079,7 +5079,7 @@
     }
 
     /* ============ 1. 라우팅 ============ */
-    var VALID = ['home', 'collection', 'insight', 'brand', 'about', 'contact', 'buy', 'repair', 'cat-update', 'cat-sale', 'cat-new', 'cat-today', 'wishlist'];
+    var VALID = ['home', 'collection', 'compare', 'insight', 'brand', 'about', 'contact', 'buy', 'repair', 'cat-update', 'cat-sale', 'cat-new', 'cat-today', 'wishlist'];
 
     // 하단 탭/네비게이션으로 이동하면 마이페이지 계열 풀스크린 오버레이를 모두 닫는다.
     // (마이페이지가 모달처럼 위에 남아 화면 이동이 안 되던 문제 해결 — X 없이 자연 이탈)
@@ -5129,7 +5129,7 @@
 
     function navigate(target) {
         if (!target) return;
-        if (target === 'compare' || target === 'sell') target = 'home';
+        if (target === 'sell') target = 'home';
         if (location.hash !== '#' + target) {
             history.pushState({ page: target }, '', '#' + target);
         }

@@ -35,6 +35,8 @@
   }
 
   var BELL = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>';
+  // 빈 상태용 큰 아이콘 — 노트 + 연필
+  var PAD = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-4"/><path d="M8 8h5M8 12h4M8 16h3"/><path d="M18.5 3.5a2.12 2.12 0 0 1 3 3L15 13l-4 1 1-4 6.5-6.5z"/></svg>';
 
   function brandIc(it) {
     var b = window.BELLORE_BRAND_BY_NAME && window.BELLORE_BRAND_BY_NAME(it.brand);
@@ -64,7 +66,12 @@
       if (!box) return;
       box.innerHTML = items.length
         ? items.map(rowHTML).join('')
-        : '<p class="alert-empty"><b>신청한 모델이 없습니다</b><br>찾는 모델이 없을 때 <b>소식받기</b>를 누르면<br>입고 즉시 알려드립니다.</p>';
+        : '<div class="alert-empty">' +
+            '<span class="alert-empty-ic">' + PAD + '</span>' +
+            '<b>알림 대기중인 시계가 없어요</b>' +
+            '<p>찾는 모델을 등록해두면<br>입고·가격 변동 시 가장 먼저 알려드릴게요.</p>' +
+            '<button type="button" class="alert-empty-btn js-alert-open">소식받기</button>' +
+          '</div>';
     });
     var c1 = $('#wishAlertCount'); if (c1) c1.textContent = items.length;
     var c2 = $('#myAlertCount'); if (c2) c2.textContent = items.length;
@@ -121,8 +128,33 @@
     }
   }
 
+  /* ---------- 소식받기 등록창(모달) ---------- */
+  function openReg() {
+    var m = $('#alertRegModal'); if (!m) return;
+    m.hidden = false; document.body.style.overflow = 'hidden';
+    var b = $('#aregBrand'); if (b) setTimeout(function () { b.focus(); }, 40);
+  }
+  function closeReg() {
+    var m = $('#alertRegModal'); if (!m) return;
+    m.hidden = true; document.body.style.overflow = '';
+    var f = $('#alertRegForm'); if (f) f.reset();
+  }
+  document.addEventListener('submit', function (e) {
+    if (!e.target || e.target.id !== 'alertRegForm') return;
+    e.preventDefault();
+    var brand = (($('#aregBrand') || {}).value || '').trim();
+    var model = (($('#aregModel') || {}).value || '').trim();
+    var q = (($('#aregQ') || {}).value || '').trim();
+    if (!brand && !model && !q) { toast('브랜드·모델·키워드 중 하나는 입력해 주세요'); return; }
+    var ok = add({ brand: brand, model: model, q: q });
+    closeReg();
+    toast(ok ? '알림 대기중인 시계로 등록했어요. 입고되면 알려드릴게요' : '이미 등록한 시계예요');
+  });
+
   /* ---------- 클릭: 소식받기 신청 / 삭제 ---------- */
   document.addEventListener('click', function (e) {
+    if (e.target.closest('.js-alert-open')) { e.preventDefault(); openReg(); return; }
+    if (e.target.closest('[data-areg-close]')) { e.preventDefault(); closeReg(); return; }
     var addBtn = e.target.closest('.js-alert-add');
     if (addBtn) {
       e.preventDefault();
