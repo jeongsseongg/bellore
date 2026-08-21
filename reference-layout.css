@@ -43,8 +43,8 @@ body > .footer {
   left: 50% !important;
   width: 100% !important;
   max-width: var(--app-w) !important;
-  height: 66px !important;
-  padding: 6px 8px max(5px, env(safe-area-inset-bottom)) !important;
+  height: calc(66px + env(safe-area-inset-bottom)) !important;
+  padding: 6px 8px calc(5px + env(safe-area-inset-bottom)) !important;
   transform: translateX(-50%) !important;
   border-top: 1px solid #e8e8ea !important;
   background: rgba(255, 255, 255, .98) !important;
