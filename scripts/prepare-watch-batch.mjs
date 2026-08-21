@@ -10,14 +10,19 @@ const sharp = require('sharp');
 const SOURCE_ROOT = process.argv[2] || 'C:/Users/LS/Desktop/새 폴더';
 const REPO_ROOT = path.resolve(import.meta.dirname, '..');
 const PUBLIC_ROOT = 'https://bellore.co.kr';
-const BATCH_NAME = 'watch-batch-20260821';
+const FROM_SEQUENCE = Number(process.argv[3] || 2);
+const TO_SEQUENCE = Number(process.argv[4] || 70);
+const BATCH_NAME = process.argv[5] || 'watch-batch-20260821';
+const UPLOAD_START = process.argv[6] || '2026-05-01T03:00:00+09:00';
+const UPLOAD_END = process.argv[7] || '2026-08-21T11:30:00+09:00';
 const ASSET_ROOT = path.join(REPO_ROOT, 'assets', 'products', BATCH_NAME);
 const MANIFEST_PATH = path.join(REPO_ROOT, 'data', `${BATCH_NAME}.json`);
 const SHEET_ROOT = path.join(os.tmpdir(), 'bellore-watch-contact-sheets');
 
 const progress = JSON.parse(await fs.readFile(path.join(SOURCE_ROOT, 'bellore-watch-products-progress.json'), 'utf8'));
-const targets = progress.products.filter((item) => item.sequence >= 2 && item.sequence <= 70 && item.registrationStatus === 'completed');
-if (targets.length !== 69) throw new Error(`Expected 69 targets, found ${targets.length}`);
+const targets = progress.products.filter((item) => item.sequence >= FROM_SEQUENCE && item.sequence <= TO_SEQUENCE && item.registrationStatus === 'completed');
+const expectedTargetCount = TO_SEQUENCE - FROM_SEQUENCE + 1;
+if (targets.length !== expectedTargetCount) throw new Error(`Expected ${expectedTargetCount} targets, found ${targets.length}`);
 
 await fs.mkdir(ASSET_ROOT, { recursive: true });
 await fs.mkdir(path.dirname(MANIFEST_PATH), { recursive: true });
@@ -116,8 +121,8 @@ function initialConditionScore(text) {
 }
 
 function uploadDate(index, total) {
-  const start = Date.parse('2026-05-01T03:00:00+09:00');
-  const end = Date.parse('2026-08-21T11:30:00+09:00');
+  const start = Date.parse(UPLOAD_START);
+  const end = Date.parse(UPLOAD_END);
   return new Date(start + ((end - start) * index / Math.max(1, total - 1))).toISOString();
 }
 
@@ -212,7 +217,7 @@ await fs.writeFile(MANIFEST_PATH, JSON.stringify({
   schemaVersion: 1,
   generatedAt: new Date().toISOString(),
   sourceProgress: path.basename('bellore-watch-products-progress.json'),
-  range: { fromSequence: 2, toSequence: 70, count: manifest.length },
+  range: { fromSequence: FROM_SEQUENCE, toSequence: TO_SEQUENCE, count: manifest.length },
   productNumberRange: { first: manifest[0].productNo, last: manifest.at(-1).productNo },
   pricingRule: 'sourcePrice * 1.10, rounded to nearest won',
   products: manifest

@@ -2,16 +2,14 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..');
-const BATCH_NAME = 'watch-batch-20260821';
+const BATCH_NAME = process.argv[2] || 'watch-batch-20260821';
 const MANIFEST_PATH = path.join(REPO_ROOT, 'data', `${BATCH_NAME}.json`);
 const SQL_PATH = path.join(REPO_ROOT, 'scripts', 'generated', `${BATCH_NAME}.sql`);
 const OWNER_ID = '8ae9c0a1-065a-488b-8b06-7ac1a8fd10b1';
 
 // 실물 검수 시트와 원문 상태 표현을 함께 확인한 9점 상품.
-const SCORE_9 = new Set([
-  6, 7, 11, 13, 14, 16, 17, 18, 19, 20, 21, 24, 25, 26,
-  31, 35, 37, 41, 45, 47, 53, 54, 57, 60, 61, 66, 67
-]);
+const DEFAULT_SCORE_9 = '6,7,11,13,14,16,17,18,19,20,21,24,25,26,31,35,37,41,45,47,53,54,57,60,61,66,67';
+const SCORE_9 = new Set(String(process.argv[3] || DEFAULT_SCORE_9).split(',').filter(Boolean).map(Number));
 
 const manifest = JSON.parse(await fs.readFile(MANIFEST_PATH, 'utf8'));
 
@@ -76,7 +74,7 @@ const rows = manifest.products.map((product) => ({
   tags: [product.brand, product.modelName].filter(Boolean)
 }));
 
-const sql = `-- Bellore 69-watch idempotent bulk registration\n` +
+const sql = `-- Bellore ${rows.length}-watch idempotent bulk registration\n` +
 `with batch as (\n` +
 `  select * from jsonb_to_recordset($bellore$${JSON.stringify(rows)}$bellore$::jsonb) as x(\n` +
 `    product_no text, title text, description text, price numeric, condition text, condition_notes text,\n` +
@@ -100,7 +98,7 @@ const sql = `-- Bellore 69-watch idempotent bulk registration\n` +
 `where not exists (select 1 from public.listings existing where existing.product_no = b.product_no)\n` +
 `returning id, product_no, title, description, price, condition, created_at;\n\n` +
 `select count(*) as registered_count, min(product_no) as first_product_no, max(product_no) as last_product_no\n` +
-`from public.listings where product_no between 'K2169' and 'K2237';\n`;
+`from public.listings where product_no between '${rows[0].product_no}' and '${rows.at(-1).product_no}';\n`;
 
 await fs.mkdir(path.dirname(SQL_PATH), { recursive: true });
 await fs.writeFile(SQL_PATH, sql, 'utf8');
