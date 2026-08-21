@@ -6498,18 +6498,22 @@
                 return '<li>' + esc(r[0] + ' · ' + infoValue(r[1])) + '</li>';
             }).join('');
         }
-        // 상태는 설명문 대신 검증된 항목만 행 단위로 표시
+        // 별도 설명문 없이 새상품/중고 여부와 확인된 상태만 행 단위로 표시
         function paintState(d) {
             var list = $('#pmStateList'), badge = $('#pmStateBadge'), note = $('#pmStateNote');
             if (!list || !badge || !note) return;
             var raw = String(d.condition_notes || '').trim();
-            var lines = raw ? raw.split(/\r?\n/).map(function (v) { return v.trim(); }).filter(Boolean) : ['정보없음'];
+            var condition = String(d.condition || '').trim();
+            var isNew = /미사용|미착용|새상품|신품/.test(condition);
+            var lines = raw
+                ? raw.split(/\r?\n/).map(function (v) { return v.trim(); }).filter(Boolean)
+                : [isNew ? '미사용 새상품입니다.' : '착용 이력이 있는 중고 상품입니다.'];
             list.innerHTML = lines.map(function (line) { return '<li>' + esc(line) + '</li>'; }).join('');
             list.style.display = '';
             badge.textContent = raw
                 ? '상태·흠집은 아래 실물 검수 사진에서 그대로 확인하실 수 있습니다.'
-                : '확인된 상태 정보가 없습니다. 아래 실물 사진을 확인해 주세요.';
-            badge.classList.remove('is-new');
+                : (isNew ? '미사용 새상품으로 등록된 상품입니다.' : '아래 실물 사진에서 상태를 확인해 주세요.');
+            badge.classList.toggle('is-new', isNew);
             note.textContent = '';
         }
         function paint(d) {
@@ -6533,7 +6537,7 @@
             }
             var assurance = $('#pmAssurance');
             if (assurance) {
-                var condText = String(d.condition || '중고 A급');
+                var condText = String(d.condition || '중고');
                 var packText = String(d.pack || d.accessories || '구성품 확인');
                 assurance.innerHTML =
                     '<span class="is-primary">✓ 100% 정품보증</span>' +
@@ -6558,8 +6562,9 @@
             $('#pmIdx').textContent = '1';
             $('#pmImg').src = photos[0];
 
-            // 하단 상세 큰 이미지
-            $('#pmDetailImgs').innerHTML = photos.map(function (p) {
+            // 첫 누끼 이미지는 상단 대표 갤러리 전용이며 하단 실물 상세에서는 제외
+            var detailPhotos = photos.length > 1 ? photos.slice(1) : [];
+            $('#pmDetailImgs').innerHTML = detailPhotos.map(function (p) {
                 return '<img src="' + esc(p) + '" alt="" loading="lazy">';
             }).join('');
         }
