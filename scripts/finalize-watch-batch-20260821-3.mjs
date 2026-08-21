@@ -102,13 +102,13 @@ function compactDate(localDate) {
 
 function warrantyStatus(product) {
   const text = `${product.sourceTitle || ''} ${product.sourceDescription || ''}`.replace(/\s+/g, ' ');
-  if (/(보증서|개런티|게런티)\s*(빠진|없|무|미포함)|보증서가\s*없/.test(text)) return false;
+  if (/(보증서|개런티|게런티)(?:는|가|도)?\s*(빠진|빠져|없|없이|무|미포함|분실)/.test(text)) return false;
   if (/(보증서|개런티|게런티|보증카드)/.test(text) || /(풀셋|풀세트|풀박스)/.test(text)) return true;
   return null;
 }
 
 function finalizeAccessories(product, warranty) {
-  const values = String(product.accessories || '').split(' · ').filter(Boolean);
+  const values = String(product.accessories || '').split(' · ').filter((value) => value && !(warranty === false && value === '보증서'));
   const text = `${product.sourceTitle || ''} ${product.sourceDescription || ''}`;
   if (/(풀셋|풀세트)/.test(text) && !values.includes('풀세트')) values.unshift('풀세트');
   if (/풀박스/.test(text) && !values.includes('풀박스')) values.unshift('풀박스');
@@ -142,7 +142,7 @@ for (const [localDate, products] of newByDate) {
     const reason = REASONS.get(product.sequence);
     const brandCode = BRAND_CODES.get(product.brand);
     if (!brandCode) throw new Error(`Missing brand code: ${product.brand}`);
-    product.previousProductNo = product.productNo;
+    product.previousProductNo = product.previousProductNo || product.productNo;
     product.brandCode = brandCode;
     product.dayRank = (existingMaxRank.get(localDate) || 0) + index + 1;
     product.productNo = `${brandCode}-N${compactDate(localDate)}-${product.dayRank}`;
@@ -156,7 +156,7 @@ for (const [localDate, products] of newByDate) {
     const text = `${product.sourceTitle || ''} ${product.sourceDescription || ''}`;
     product.pack = /풀박스/.test(text) ? '풀박스' : (/(풀셋|풀세트)/.test(text) ? '풀세트' : (accessories.length ? '일부 구성' : '구성품 정보없음'));
     product.setGrade = `${accessories.length ? accessories.join(' · ') : '구성품 정보없음'} / 등급 정보없음`;
-    product.registrationStatus = 'ready';
+    product.registrationStatus = product.registrationStatus || 'ready';
   });
 }
 
