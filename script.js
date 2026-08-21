@@ -6404,8 +6404,9 @@
             var img = e.target.closest('img'); if (!img) return;
             var imgs = $$('#pmDetailImgs img');
             var di = Array.prototype.indexOf.call(imgs, img);
-            // 상세 이미지는 대표 사진과 동일 배열이므로 그대로 인덱스 사용
-            openLightbox(di >= 0 && di < curPhotos.length ? di : 0);
+            // 하단 상세는 첫 누끼 사진을 제외하므로 전체 갤러리 인덱스에 1을 더함
+            var galleryIndex = di + 1;
+            openLightbox(di >= 0 && galleryIndex < curPhotos.length ? galleryIndex : 0);
         });
         document.addEventListener('keydown', function (e) {
             if (!lb || lb.hidden) return;
