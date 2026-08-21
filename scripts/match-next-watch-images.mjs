@@ -18,6 +18,18 @@ const PRODUCT_CORRECTIONS = new Map([
   [95, { brand: '롤렉스', modelName: '서브마리너 116610' }],
   [99, { brand: '리브토만', modelName: '다이버 헐크 녹판 시계' }]
 ]);
+const LATE_BATCH_FILE_INDEX = new Map([
+  [152, 40],
+  [153, 42],
+  [154, 41],
+  [155, 43],
+  [157, 44],
+  [158, 45]
+]);
+const REPAIRED_FILES = new Map([
+  [151, 'Bellore repaired sequence 151.png'],
+  [156, 'Bellore repaired sequence 156.png']
+]);
 
 function rawImageOrder(name) {
   const match = name.match(/ChatGPT Image (\d{4})년 (\d{1,2})월 (\d{1,2})일 (오전|오후) (\d{1,2})_(\d{2})_(\d{2}) \((\d+)\)\.png$/);
@@ -43,10 +55,18 @@ async function fetchBuffer(url, attempt = 1) {
 
 const progress = JSON.parse(await fs.readFile(progressPath, 'utf8'));
 const targets = progress.products.filter((item) => item.sequence >= FROM_SEQUENCE && item.sequence <= TO_SEQUENCE);
-const files = (await fs.readdir(SOURCE_ROOT, { withFileTypes: true }))
+const allFiles = (await fs.readdir(SOURCE_ROOT, { withFileTypes: true }))
   .filter((entry) => entry.isFile() && rawImageOrder(entry.name))
   .map((entry) => ({ name: entry.name, ...rawImageOrder(entry.name) }))
   .sort((a, b) => a.timestamp - b.timestamp || a.index - b.index);
+const latestBatch = allFiles.slice(-49);
+const files = targets.map((target) => {
+  const repaired = REPAIRED_FILES.get(target.sequence);
+  if (repaired) return { name: repaired, timestamp: Number.MAX_SAFE_INTEGER, index: target.sequence };
+  const manualIndex = LATE_BATCH_FILE_INDEX.get(target.sequence);
+  if (manualIndex != null) return latestBatch[manualIndex];
+  return latestBatch[target.sequence - FROM_SEQUENCE];
+});
 
 if (targets.length !== TO_SEQUENCE - FROM_SEQUENCE + 1) throw new Error(`Expected target count mismatch: ${targets.length}`);
 if (files.length !== targets.length) throw new Error(`Expected ${targets.length} raw images, found ${files.length}`);

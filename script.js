@@ -3924,14 +3924,6 @@
     function collectionConditionHTML(it) {
         return isNewItem(it) ? '<span class="hcard-condition">미착용</span>' : '';
     }
-    // 오늘(KST) 등록된 상품에만 붙는 배지. 목록에서 새 매물을 바로 알아보게 한다.
-    function todayBadgeHTML(it) {
-        if (!it.created_at) return '';
-        var t = Date.parse(it.created_at);
-        if (!t) return '';
-        function kstDay(ms) { return Math.floor((ms + 9 * 3600 * 1000) / 86400000); }
-        return kstDay(t) === kstDay(Date.now()) ? '<span class="hcard-today">오늘 등록</span>' : '';
-    }
     // 카드 하단 정보: 2줄 고정(구성품·등급 / 스탬핑·미리수). 값 없으면 '미표기'. (현재 목록 카드에는 미노출, 상세에서만 참고)
     function cardBadgesHTML(it) {
         function v(x) {
@@ -4051,7 +4043,7 @@
             card.dataset.created = it.created_at ? (Date.parse(it.created_at) || 0) : 0;
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' +
-                    todayBadgeHTML(it) + collectionConditionHTML(it) + saleOverlayHTML(it) + '</div>' +
+                    collectionConditionHTML(it) + saleOverlayHTML(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
                 modelOnlyLineHTML(it) +
                 collectionSpecLineHTML(it) +
@@ -4091,7 +4083,7 @@
             card.dataset.cond = it.condition || '';
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' +
-                    todayBadgeHTML(it) + collectionConditionHTML(it) + saleOverlayHTML(it) + '</div>' +
+                    collectionConditionHTML(it) + saleOverlayHTML(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
                 modelOnlyLineHTML(it) +
                 collectionSpecLineHTML(it) +
