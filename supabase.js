@@ -1241,6 +1241,7 @@
       id: l.id,
       brand: l.title || '',
       model: l.description || '',
+      reference_no: l.reference_no || '',
       price: l.price || 0,
       sale_price: l.sale_price || null,
       category: l.category || CATS.listing.brand,
@@ -1254,6 +1255,11 @@
       has_diamond: !!l.has_diamond,
       has_warranty: !!l.has_warranty,
       accessories: l.accessories || '',
+      set_grade: l.set_grade || '',
+      movement: l.movement || '',
+      case_spec: l.case_spec || '',
+      band_spec: l.band_spec || '',
+      condition_notes: l.condition_notes || '',
       stamping: l.stamping || '',
       misu: l.misu || '',
       purchase_year: l.purchase_year || '',
@@ -1292,7 +1298,7 @@
   // 신규 컬럼(stamping·misu)이 아직 DB에 없을 때 발생하는 오류 감지
   function isMissingCol(err) {
     var m = (err && (err.message || err.hint || '')) + ' ' + (err && err.code || '');
-    return /stamping|misu|purchase_year|special_note|detail_desc|components|sale_method|product_no|ship_info|dial_color|material|has_diamond|ref_id|schema cache|PGRST204|find the .* column/i.test(m);
+    return /reference_no|set_grade|movement|case_spec|band_spec|condition_notes|stamping|misu|purchase_year|special_note|detail_desc|components|sale_method|product_no|ship_info|dial_color|material|has_diamond|ref_id|schema cache|PGRST204|find the .* column/i.test(m);
   }
   // 신규 속성 컬럼이 DB에 없을 때 제외하고 재시도하기 위한 목록
   function dropNewCols(o) {
@@ -1301,6 +1307,8 @@
     delete o.components; delete o.sale_method;
     delete o.product_no; delete o.ship_info;
     delete o.dial_color; delete o.material; delete o.has_diamond;
+    delete o.reference_no; delete o.set_grade; delete o.movement;
+    delete o.case_spec; delete o.band_spec; delete o.condition_notes;
   }
   // 상품번호 자동 생성: 등급 + 일 + 연(끝1자리) + 월  (한국시간 기준)
   //   등급(판매가): 100만↓ S / 500만↓ M / 1,000만↓ E / 3,000만↓ K / 1억↓ L / 1억↑ Q
@@ -1335,6 +1343,7 @@
         owner_id: rawUser.id,
         title: data.brand,
         description: data.model || null,
+        reference_no: data.reference_no || null,
         price: data.price || null,
         sale_price: data.sale_price || null,
         category: data.category || CATS.listing.brand,
@@ -1349,6 +1358,11 @@
         has_diamond: !!data.has_diamond,
         has_warranty: !!data.has_warranty,
         accessories: data.accessories || null,
+        set_grade: data.set_grade || null,
+        movement: data.movement || null,
+        case_spec: data.case_spec || null,
+        band_spec: data.band_spec || null,
+        condition_notes: data.condition_notes || null,
         stamping: data.stamping || null,
         misu: data.misu || null,
         purchase_year: data.purchase_year || null,
@@ -1401,6 +1415,7 @@
       var patch = { updated_at: new Date().toISOString() };
       if (data.brand != null) patch.title = data.brand;
       if (data.model != null) patch.description = data.model;
+      if (data.reference_no != null) patch.reference_no = data.reference_no;
       if (data.price != null) patch.price = data.price;
       if (data.sale_price !== undefined) patch.sale_price = data.sale_price;
       if (data.status != null) patch.status = data.status;
@@ -1415,6 +1430,11 @@
       if (data.has_diamond != null) patch.has_diamond = data.has_diamond;
       if (data.has_warranty != null) patch.has_warranty = data.has_warranty;
       if (data.accessories != null) patch.accessories = data.accessories;
+      if (data.set_grade != null) patch.set_grade = data.set_grade;
+      if (data.movement != null) patch.movement = data.movement;
+      if (data.case_spec != null) patch.case_spec = data.case_spec;
+      if (data.band_spec != null) patch.band_spec = data.band_spec;
+      if (data.condition_notes != null) patch.condition_notes = data.condition_notes;
       if (data.stamping != null) patch.stamping = data.stamping;
       if (data.misu != null) patch.misu = data.misu;
       if (data.purchase_year != null) patch.purchase_year = data.purchase_year;

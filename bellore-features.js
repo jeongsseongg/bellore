@@ -336,7 +336,8 @@
             '<input type="hidden" name="brand" id="lpBrandInput" value="' + esc(item ? item.brand : '') + '">' +
             '<div class="lp-brand-sheet" id="lpBrandSheet" hidden></div>' +
           '</label>' +
-          '<label><span>모델 / 레퍼런스 *</span><input name="model" id="lpModelInput" list="lpModelList" placeholder="브랜드 선택 시 대표 모델 추천" value="' + esc(item ? item.model : '') + '" required autocomplete="off"><datalist id="lpModelList"></datalist></label>' +
+          '<label><span>모델 *</span><input name="model" id="lpModelInput" list="lpModelList" placeholder="예: 데이저스트" value="' + esc(item ? item.model : '') + '" required autocomplete="off"><datalist id="lpModelList"></datalist></label>' +
+          '<label><span>레퍼런스 번호</span><input name="reference_no" placeholder="정보가 없으면 비워두세요" value="' + esc(item ? item.reference_no : '') + '"></label>' +
           '<label><span>상품번호 (선택 — 비우면 자동 생성: 00·등급·연월일·순번)</span><input name="product_no" placeholder="비우면 자동 생성 (예: 00A26061801)" value="' + esc(item ? item.product_no : '') + '"></label>' +
           '<label><span>판매가 (숫자, 비우면 가격문의)</span><input name="price" class="lp-money" type="text" inputmode="numeric" placeholder="예: 22,800,000" value="' + (item && item.price ? fmt(item.price) : '') + '"></label>' +
           '<label><span>할인 판매가 (선택) — 입력 시 정가에 취소선·할인율 표시</span><input name="sale_price" class="lp-money" type="text" inputmode="numeric" placeholder="예: 19,900,000" value="' + (item && item.sale_price ? fmt(item.sale_price) : '') + '"></label>' +
@@ -347,10 +348,13 @@
           '<label><span>사이즈 (mm · 선택 — 필터검색에 사용)</span><input name="size_mm" type="number" inputmode="numeric" min="15" max="60" placeholder="예: 40" value="' + esc(item && item.size_mm ? item.size_mm : '') + '"></label>' +
           '<label><span>다이얼 컬러 (선택 — 필터검색에 사용)</span><select name="dial_color">' + dialColorOptions(item ? item.dial_color : '') + '</select></label>' +
           '<label><span>소재 (선택 — 필터검색에 사용)</span><select name="material">' + materialOptions(item ? item.material : '') + '</select></label>' +
+          '<label><span>구성품 · 등급</span><input name="set_grade" placeholder="예: 시계 상자 · 책자 · 여분줄 · A급" value="' + esc(item ? item.set_grade : '') + '"></label>' +
+          '<label><span>무브먼트</span><input name="movement" placeholder="정보가 없으면 비워두세요" value="' + esc(item ? item.movement : '') + '"></label>' +
+          '<label><span>케이스</span><input name="case_spec" placeholder="정보가 없으면 비워두세요" value="' + esc(item ? item.case_spec : '') + '"></label>' +
+          '<label><span>밴드</span><input name="band_spec" placeholder="정보가 없으면 비워두세요" value="' + esc(item ? item.band_spec : '') + '"></label>' +
+          '<label><span>상태 (항목마다 줄바꿈)</span><textarea name="condition_notes" rows="4" placeholder="예: 케이스 · 잔스크래치 외 전체적으로 깨끗&#10;밴드 · 미세 사용감 있음">' + esc(item ? item.condition_notes : '') + '</textarea></label>' +
           '<label><span>판매 방식 (선택 — 비우면 “벨로르 직접 검수 판매”)</span><input name="sale_method" placeholder="예: 벨로르 직접 검수 판매 / 위탁 판매" value="' + esc(item ? item.sale_method : '') + '"></label>' +
           '<label><span>배송 예정일 (선택 — 비우면 “결제 후 2~4일 이내 발송”)</span><input name="ship_info" placeholder="예: 결제 후 3일 이내 발송 / 2024-07-15 발송 예정" value="' + esc(item ? item.ship_info : '') + '"></label>' +
-          '<label><span>특이사항 (선택 — 상세페이지 “제품 상태”에 표시)</span><input name="special_note" placeholder="예: 베젤 미세 스크래치 있음" value="' + esc(item ? item.special_note : '') + '"></label>' +
-          '<label><span>상세 설명 (선택 — 상세페이지 “제품 상태”에 표시)</span><textarea name="detail_desc" rows="4" placeholder="제품 상태·구성·착용감 등 자세한 설명을 적어주세요.">' + esc(item ? item.detail_desc : '') + '</textarea></label>' +
           '<div class="lp-tags"><span class="lp-tags-label">구성품 (체크한 항목으로 구성품·등급이 자동 표기됩니다)</span>' +
             '<label class="lp-tag"><input type="checkbox" name="comp_box"' + (compOn(item, 'box') ? ' checked' : '') + '><span>박스</span></label>' +
             '<label class="lp-tag"><input type="checkbox" name="comp_case"' + (compOn(item, 'case') ? ' checked' : '') + '><span>케이스</span></label>' +
@@ -398,7 +402,7 @@
         var accStr = accList.join('·');
         var packStr = accList.length >= 4 ? '풀세트' : (accList.length === 0 ? '단품(본체만)' : '일부 구성');
         var sizeMm = parseInt(String(fd.get('size_mm') || '').replace(/[^0-9]/g, ''), 10) || null;
-        var payload = { brand: brand, model: model, price: price, sale_price: salePrice, category: fd.get('category'), status: fd.get('status'), tags: tags, condition: String(fd.get('condition') || ''), has_warranty: hasWarranty, has_diamond: !!fd.get('has_diamond'), size_mm: sizeMm, dial_color: String(fd.get('dial_color') || ''), material: String(fd.get('material') || ''), accessories: accStr, stamping: String(fd.get('stamping') || '').trim(), misu: String(fd.get('misu') || '').trim(), pack: packStr, purchase_year: '', special_note: String(fd.get('special_note') || '').trim(), detail_desc: String(fd.get('detail_desc') || '').trim(), sale_method: String(fd.get('sale_method') || '').trim(), product_no: String(fd.get('product_no') || '').trim(), ship_info: String(fd.get('ship_info') || '').trim(), components: [compBox ? 'box' : '', compCase ? 'case' : '', compCard ? 'card' : ''].filter(Boolean).join(','), sale_started_at: saleStart, photos: lPicker.files };
+        var payload = { brand: brand, model: model, reference_no: String(fd.get('reference_no') || '').trim(), price: price, sale_price: salePrice, category: fd.get('category'), status: fd.get('status'), tags: tags, condition: String(fd.get('condition') || ''), has_warranty: hasWarranty, has_diamond: !!fd.get('has_diamond'), size_mm: sizeMm, dial_color: String(fd.get('dial_color') || ''), material: String(fd.get('material') || ''), accessories: accStr, stamping: String(fd.get('stamping') || '').trim(), misu: String(fd.get('misu') || '').trim(), pack: packStr, set_grade: String(fd.get('set_grade') || '').trim(), movement: String(fd.get('movement') || '').trim(), case_spec: String(fd.get('case_spec') || '').trim(), band_spec: String(fd.get('band_spec') || '').trim(), condition_notes: String(fd.get('condition_notes') || '').trim(), purchase_year: '', sale_method: String(fd.get('sale_method') || '').trim(), product_no: String(fd.get('product_no') || '').trim(), ship_info: String(fd.get('ship_info') || '').trim(), components: [compBox ? 'box' : '', compCase ? 'case' : '', compCard ? 'card' : ''].filter(Boolean).join(','), sale_started_at: saleStart, photos: lPicker.files };
         var btn = $('#lpSubmit', listingPage); btn.disabled = true; btn.textContent = '저장 중…';
         // 사진 picker가 기존 URL+새 사진을 모두 보유 → existingPhotos는 비우고 picker 결과로 통째 교체(삭제 반영)
         var p = lEditId

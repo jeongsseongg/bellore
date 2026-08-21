@@ -6465,45 +6465,52 @@
                 etc.style.display = extras.length ? '' : 'none';
             }
         }
-        // 상품 기본정보 표 — 항목은 항상 노출하고, 값이 없으면 '미기재'로 표기(대량 등록 시 규격 일관)
+        function infoValue(val) {
+            val = (val == null ? '' : String(val)).trim();
+            return val || '정보없음';
+        }
+        // 상품 정보는 필수 양식을 유지하고 빈 값은 "정보없음"으로 노출
         function paintSpec(d) {
             var box = $('#pmSpec');
             if (!box) return;
             function row(label, val) {
-                val = (val == null ? '' : String(val)).trim();
-                var cell = val ? esc(val) : '<em class="pp-na">미기재</em>';
-                return '<div class="pp-kv-row"><i>' + label + '</i><span>' + cell + '</span></div>';
+                return '<div class="pp-kv-row"><i>' + label + '</i><span>' + esc(infoValue(val)) + '</span></div>';
             }
             var size = d.size_mm ? (String(d.size_mm).replace(/mm$/i, '').trim() + 'mm') : '';
             box.innerHTML =
                 row('브랜드', brandKR(d.brand)) +
                 row('모델', d.model) +
-                row('레퍼런스 번호', d.ref_id || d.ref) +
+                row('레퍼런스 번호', d.reference_no || d.ref_id || d.ref) +
+                row('상품번호', d.product_no || d.no) +
                 row('사이즈', size) +
-                row('소재', d.material) +
-                row('다이얼 컬러', d.dial_color) +
-                row('다이아몬드', d.has_diamond ? '포함' : '없음') +
                 row('스탬핑 · 연식', d.stamping || d.purchase_year) +
-                row('미리수', d.misu) +
-                row('컨디션 · 등급', d.condition);
+                row('구성품 · 등급', d.set_grade || d.accessories || d.pack);
         }
-        // 제품 상태 (상태 목록 + 신품/중고 상태 박스 + 검수 안내)
+        function paintFacts(d) {
+            var box = $('#pmFacts');
+            if (!box) return;
+            var rows = [
+                ['무브먼트', d.movement],
+                ['케이스', d.case_spec],
+                ['밴드', d.band_spec]
+            ];
+            box.innerHTML = rows.map(function (r) {
+                return '<li>' + esc(r[0] + ' · ' + infoValue(r[1])) + '</li>';
+            }).join('');
+        }
+        // 상태는 설명문 대신 검증된 항목만 행 단위로 표시
         function paintState(d) {
-            var badge = $('#pmStateBadge');
-            if (!badge) return;
-            var cond = String(d.condition || '');
-            var isNew = cond.indexOf('미착용') !== -1 || cond.indexOf('신품') !== -1;
-            badge.textContent = isNew ? '미착용 (신품급) 상품입니다.' : '착용 이력이 있는 중고 상품입니다.';
-            badge.classList.toggle('is-new', isNew);
-            // 상태 목록: detail_desc 줄단위 + 특이사항 (연식·구성품은 위 표에 있으므로 중복 표기 안 함)
-            var items = [];
-            String(d.detail_desc || '').split(/\n+/).forEach(function (l) { l = l.trim(); if (l) items.push(esc(l)); });
-            if (String(d.special_note || '').trim()) items.push('특이사항 · ' + esc(String(d.special_note).trim()));
-            var list = $('#pmStateList'), head = $('#pmStateHead');
-            if (list) { list.innerHTML = items.map(function (l) { return '<li>' + l + '</li>'; }).join(''); list.style.display = items.length ? '' : 'none'; }
-            if (head) head.style.display = items.length ? '' : 'none';
-            var note = $('#pmStateNote');
-            if (note) note.textContent = '상품 상태 정보는 공급 자료와 벨로르의 검수 결과를 바탕으로 제공됩니다. 벨로르가 판매 당사자로서 정밀 검수 후 출고하며 교환·환불·분쟁 처리를 책임집니다. 중고 상품은 스크래치·찍힘 및 사용감이 있을 수 있습니다.';
+            var list = $('#pmStateList'), badge = $('#pmStateBadge'), note = $('#pmStateNote');
+            if (!list || !badge || !note) return;
+            var raw = String(d.condition_notes || '').trim();
+            var lines = raw ? raw.split(/\r?\n/).map(function (v) { return v.trim(); }).filter(Boolean) : ['정보없음'];
+            list.innerHTML = lines.map(function (line) { return '<li>' + esc(line) + '</li>'; }).join('');
+            list.style.display = '';
+            badge.textContent = raw
+                ? '상태·흠집은 아래 실물 검수 사진에서 그대로 확인하실 수 있습니다.'
+                : '확인된 상태 정보가 없습니다. 아래 실물 사진을 확인해 주세요.';
+            badge.classList.remove('is-new');
+            note.textContent = '';
         }
         function paint(d) {
             var photos = (d.photos && d.photos.length) ? d.photos : (d.img ? [d.img] : []);
@@ -6539,6 +6546,7 @@
             var bp = $('#pmBuyPrice'); if (bp) bp.innerHTML = ppPriceHTML(d);
             paintAcc(d);
             paintSpec(d);
+            paintFacts(d);
             paintState(d);
 
             // 썸네일
@@ -6621,13 +6629,16 @@
                 NWBackend.getListing(pid).then(function (it) {
                     if (modal.hidden) return;
                     paint({
-                        brand: it.brand, model: it.model, price: it.price,
+                        brand: it.brand, model: it.model, reference_no: it.reference_no || '', price: it.price,
                         sale_price: it.sale_price || 0,
                         tags: it.tags || [], sale_started_at: it.sale_started_at || null,
                         created_at: it.created_at || null,
                         photos: it.photos, category: it.category,
                         pack: it.pack || '', has_warranty: !!it.has_warranty,
                         accessories: it.accessories || '',
+                        set_grade: it.set_grade || '', movement: it.movement || '',
+                        case_spec: it.case_spec || '', band_spec: it.band_spec || '',
+                        condition_notes: it.condition_notes || '',
                         condition: it.condition || '', size_mm: it.size_mm || 0,
                         material: it.material || '', dial_color: it.dial_color || '',
                         has_diamond: !!it.has_diamond,
@@ -6674,11 +6685,13 @@
             NWBackend.getListing(pid).then(function (it) {
                 if (!it) return;
                 paint({
-                    brand: it.brand, model: it.model, price: it.price,
+                    brand: it.brand, model: it.model, reference_no: it.reference_no || '', price: it.price,
                     sale_price: it.sale_price || 0, photos: it.photos, category: it.category,
                     tags: it.tags || [], sale_started_at: it.sale_started_at || null,
                     created_at: it.created_at || null,
                     pack: it.pack || '', has_warranty: !!it.has_warranty, accessories: it.accessories || '',
+                    set_grade: it.set_grade || '', movement: it.movement || '', case_spec: it.case_spec || '',
+                    band_spec: it.band_spec || '', condition_notes: it.condition_notes || '',
                     condition: it.condition || '', size_mm: it.size_mm || 0, stamping: it.stamping || '',
                     misu: it.misu || '', purchase_year: it.purchase_year || '', special_note: it.special_note || '',
                     detail_desc: it.detail_desc || '', components: it.components || '', sale_method: it.sale_method || '',
