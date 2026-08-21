@@ -47,7 +47,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/002-tyzfa5ere5y7/03.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/002-tyzfa5ere5y7/04.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 3,
@@ -84,7 +86,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/003-pavz3kycwgk4/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/003-pavz3kycwgk4/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 4,
@@ -122,7 +126,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/004-fzvvnrbr16yv/05.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/004-fzvvnrbr16yv/06.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 5,
@@ -159,7 +165,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/005-3yzp2s8t9vgx/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/005-3yzp2s8t9vgx/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 6,
@@ -195,7 +203,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/006-anzpge7za7bw/03.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/006-anzpge7za7bw/04.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 7,
@@ -231,7 +241,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/007-ry1dfremtam2/03.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/007-ry1dfremtam2/04.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 8,
@@ -269,7 +281,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/008-bmu5185cvkqn/05.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/008-bmu5185cvkqn/06.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 9,
@@ -307,7 +321,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/009-eo528hfjf7mb/05.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/009-eo528hfjf7mb/06.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 10,
@@ -344,7 +360,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/010-hos9enuztxig/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/010-hos9enuztxig/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 11,
@@ -380,7 +398,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/011-jjhq5xwf7gxk/03.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/011-jjhq5xwf7gxk/04.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 12,
@@ -417,7 +437,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/012-6rgzznmagy11/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/012-6rgzznmagy11/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 13,
@@ -455,7 +477,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/013-txn553vq5t5i/05.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/013-txn553vq5t5i/06.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 14,
@@ -492,7 +516,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/014-3u8927j28j8c/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/014-3u8927j28j8c/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 15,
@@ -529,7 +555,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/015-z23xxv3vbqn5/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/015-z23xxv3vbqn5/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 16,
@@ -565,7 +593,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/016-ruqxpvdrz812/03.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/016-ruqxpvdrz812/04.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 17,
@@ -602,7 +632,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/017-uh69piw869xj/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/017-uh69piw869xj/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 18,
@@ -640,7 +672,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/018-jgfrb3tthuo2/05.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/018-jgfrb3tthuo2/06.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 19,
@@ -678,7 +712,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/019-fomuke6gc2zh/05.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/019-fomuke6gc2zh/06.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 20,
@@ -715,7 +751,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/020-pxc168ddio8d/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/020-pxc168ddio8d/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 21,
@@ -752,7 +790,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/021-v5trcckt4nvg/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/021-v5trcckt4nvg/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 22,
@@ -788,7 +828,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/022-ctxt72kz6i2a/03.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/022-ctxt72kz6i2a/04.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 23,
@@ -825,7 +867,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/023-ykwqb5nkwufs/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/023-ykwqb5nkwufs/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 24,
@@ -860,7 +904,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/024-dxvzvgjrht41/02.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/024-dxvzvgjrht41/03.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 25,
@@ -897,7 +943,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/025-pdjj9346een4/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/025-pdjj9346een4/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 26,
@@ -933,7 +981,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/026-qj9x9wzzu8up/03.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/026-qj9x9wzzu8up/04.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 27,
@@ -970,7 +1020,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/027-fqdzga23nm73/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/027-fqdzga23nm73/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 28,
@@ -1008,7 +1060,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/028-ddhm6qm2w98f/05.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/028-ddhm6qm2w98f/06.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 29,
@@ -1045,7 +1099,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/029-2m7nonit4t31/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/029-2m7nonit4t31/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 30,
@@ -1082,7 +1138,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/030-nd3o3cobpnbk/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/030-nd3o3cobpnbk/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 31,
@@ -1118,7 +1176,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/031-679ptv7yqmfq/03.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/031-679ptv7yqmfq/04.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 32,
@@ -1155,7 +1215,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/032-719diqyp7beu/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/032-719diqyp7beu/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 33,
@@ -1192,7 +1254,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/033-1dq6gdoi6ar3/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/033-1dq6gdoi6ar3/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 34,
@@ -1230,7 +1294,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/034-bs4pcn3wuq6b/05.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/034-bs4pcn3wuq6b/06.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 35,
@@ -1266,7 +1332,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/035-2gpwaavtnz22/03.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/035-2gpwaavtnz22/04.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 36,
@@ -1302,7 +1370,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/036-g3mc9oxtjahe/03.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/036-g3mc9oxtjahe/04.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 37,
@@ -1340,7 +1410,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/037-1e8zdhph8b8k/05.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/037-1e8zdhph8b8k/06.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 38,
@@ -1377,7 +1449,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/038-885sf3mi6f4c/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/038-885sf3mi6f4c/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 39,
@@ -1414,7 +1488,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/039-emktmqbk1uxi/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/039-emktmqbk1uxi/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 40,
@@ -1451,7 +1527,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/040-1zon9rutdtxn/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/040-1zon9rutdtxn/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 41,
@@ -1487,7 +1565,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/041-216nepsyb2nw/03.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/041-216nepsyb2nw/04.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 42,
@@ -1524,7 +1604,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/042-dvnoevkkjshs/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/042-dvnoevkkjshs/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 43,
@@ -1562,7 +1644,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/043-u65kx9czqo3o/05.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/043-u65kx9czqo3o/06.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 44,
@@ -1599,7 +1683,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/044-tu2d6as6q76e/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/044-tu2d6as6q76e/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 45,
@@ -1636,7 +1722,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/045-jrceypdp1kw4/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/045-jrceypdp1kw4/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 46,
@@ -1673,7 +1761,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/046-73z416gpjnks/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/046-73z416gpjnks/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 47,
@@ -1710,7 +1800,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/047-7qfjh5asio46/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/047-7qfjh5asio46/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 48,
@@ -1746,7 +1838,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/048-3mpyvd19x7fx/03.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/048-3mpyvd19x7fx/04.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 49,
@@ -1783,7 +1877,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/049-kcke9wm2wybg/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/049-kcke9wm2wybg/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 50,
@@ -1820,7 +1916,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/050-2sbyihr5cvpz/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/050-2sbyihr5cvpz/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 51,
@@ -1859,7 +1957,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/051-y5iw22jgufry/06.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/051-y5iw22jgufry/07.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 52,
@@ -1895,7 +1995,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/052-x86nqme3whee/03.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/052-x86nqme3whee/04.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 53,
@@ -1931,7 +2033,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/053-oqn919zrmvho/03.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/053-oqn919zrmvho/04.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 54,
@@ -1968,7 +2072,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/054-hyfda2u3731q/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/054-hyfda2u3731q/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 55,
@@ -2005,7 +2111,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/055-wsfy2awtazk8/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/055-wsfy2awtazk8/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 56,
@@ -2043,7 +2151,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/056-jpn28poh6vxq/05.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/056-jpn28poh6vxq/06.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 57,
@@ -2080,7 +2190,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/057-ssj6iw23c94d/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/057-ssj6iw23c94d/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 58,
@@ -2117,7 +2229,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/058-24b3qmv3mox2/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/058-24b3qmv3mox2/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 59,
@@ -2154,7 +2268,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/059-bq85avhimkr1/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/059-bq85avhimkr1/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 60,
@@ -2190,7 +2306,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/060-7e86fpg1hh5a/03.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/060-7e86fpg1hh5a/04.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 61,
@@ -2227,7 +2345,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/061-61zgdw17at1b/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/061-61zgdw17at1b/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 62,
@@ -2264,7 +2384,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/062-kebrq4dhsm63/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/062-kebrq4dhsm63/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 63,
@@ -2301,7 +2423,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/063-219wjw5gw84m/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/063-219wjw5gw84m/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 64,
@@ -2337,7 +2461,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/064-bzy7itgjnzdu/03.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/064-bzy7itgjnzdu/04.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 65,
@@ -2375,7 +2501,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/065-vpx31n1te9cr/05.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/065-vpx31n1te9cr/06.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 66,
@@ -2412,7 +2540,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/066-2bddztqko5p3/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/066-2bddztqko5p3/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 67,
@@ -2449,7 +2579,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/067-sp2m97y4wfuk/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/067-sp2m97y4wfuk/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 68,
@@ -2485,7 +2617,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/068-apuhb19x8q73/03.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/068-apuhb19x8q73/04.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 69,
@@ -2521,7 +2655,9 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/069-bx6a12wpurd9/03.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/069-bx6a12wpurd9/04.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     },
     {
       "sequence": 70,
@@ -2558,10 +2694,18 @@
         "https://bellore.co.kr/assets/products/watch-batch-20260821/070-31bchfuzu2qy/04.webp",
         "https://bellore.co.kr/assets/products/watch-batch-20260821/070-31bchfuzu2qy/05.webp"
       ],
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T04:20:55.086Z",
+      "deploymentCommit": "43df80e"
     }
   ],
   "finalizedAt": "2026-08-21T04:13:49.162Z",
   "conditionRule": "visual/source review: used 8/10 or 9/10; no severe-damage items found",
-  "warrantyRule": "true only when included/full-set is explicit; false when missing is explicit; null when unknown"
+  "warrantyRule": "true only when included/full-set is explicit; false when missing is explicit; null when unknown",
+  "registration": {
+    "status": "completed",
+    "registered": 69,
+    "completedAt": "2026-08-21T04:20:55.086Z",
+    "deploymentCommit": "43df80e"
+  }
 }
