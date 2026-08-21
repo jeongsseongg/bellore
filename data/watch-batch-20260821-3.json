@@ -52,7 +52,9 @@
       "brandCode": "TAG",
       "dayRank": 1,
       "conditionReason": "케이스·베젤·브레이슬릿에 큰 흠집이 거의 없고 전체 광택과 모서리가 매우 깔끔합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 112,
@@ -93,7 +95,9 @@
       "brandCode": "HAM",
       "dayRank": 1,
       "conditionReason": "케이스 측면과 브레이슬릿에 가벼운 생활 스크래치가 보이지만 전체 외관은 깔끔합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 113,
@@ -134,7 +138,9 @@
       "brandCode": "HAM",
       "dayRank": 1,
       "conditionReason": "가죽 스트랩의 주름과 버클 사용감이 뚜렷하고 케이스에 생활 스크래치가 보입니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 114,
@@ -175,7 +181,9 @@
       "brandCode": "ROL",
       "dayRank": 2,
       "conditionReason": "베젤과 브레이슬릿에 가벼운 헤어라인이 있으나 다이얼과 케이스 외관은 깔끔합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 115,
@@ -217,7 +225,9 @@
       "brandCode": "FRM",
       "dayRank": 1,
       "conditionReason": "가죽 스트랩의 눌림·주름과 케이스 측면의 사용감이 확인됩니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 116,
@@ -258,7 +268,9 @@
       "brandCode": "TAG",
       "dayRank": 2,
       "conditionReason": "가죽 스트랩에 가벼운 주름이 있고 케이스에 미세한 생활 스크래치가 보입니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 117,
@@ -300,7 +312,9 @@
       "brandCode": "CAR",
       "dayRank": 2,
       "conditionReason": "케이스 측면과 가죽 스트랩에 가벼운 사용감이 있으나 전체적으로 단정합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 118,
@@ -342,7 +356,9 @@
       "brandCode": "CAR",
       "dayRank": 4,
       "conditionReason": "러버 스트랩과 케이스 측면에 가벼운 사용 흔적이 있으나 외관은 깔끔합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 119,
@@ -383,7 +399,9 @@
       "brandCode": "BRT",
       "dayRank": 1,
       "conditionReason": "케이스와 베젤에 눈에 띄는 큰 흠집이 적고 스트랩 상태도 매우 깔끔합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 120,
@@ -426,7 +444,9 @@
       "brandCode": "ORI",
       "dayRank": 1,
       "conditionReason": "베젤·케이스에 가벼운 생활 스크래치가 있으나 러버 스트랩과 전체 외관은 양호합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 121,
@@ -468,7 +488,9 @@
       "brandCode": "OME",
       "dayRank": 1,
       "conditionReason": "빈티지 브레이슬릿과 케이스 전반에 사용감과 잔스크래치가 확인됩니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 122,
@@ -509,7 +531,9 @@
       "brandCode": "ROL",
       "dayRank": 3,
       "conditionReason": "콤비 브레이슬릿과 베젤에 가벼운 생활 스크래치가 있으나 전체 외관은 양호합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 123,
@@ -550,7 +574,9 @@
       "brandCode": "TAG",
       "dayRank": 1,
       "conditionReason": "케이스·베젤·브레이슬릿에 큰 흠집이 적고 전체 외관이 매우 깔끔합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 124,
@@ -592,7 +618,9 @@
       "brandCode": "JLC",
       "dayRank": 4,
       "conditionReason": "가죽 스트랩에 가벼운 주름이 있고 금통 케이스에 미세한 생활 스크래치가 보입니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 125,
@@ -633,7 +661,9 @@
       "brandCode": "ROL",
       "dayRank": 1,
       "conditionReason": "빈티지 다이얼 노화와 케이스·브레이슬릿의 반복된 스크래치 및 마모가 뚜렷합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 126,
@@ -674,7 +704,9 @@
       "brandCode": "ROL",
       "dayRank": 3,
       "conditionReason": "금통 케이스와 브레이슬릿에 큰 흠집이 적고 전체 광택이 매우 깔끔합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 127,
@@ -716,7 +748,9 @@
       "brandCode": "ROL",
       "dayRank": 4,
       "conditionReason": "베젤과 브레이슬릿에 가벼운 헤어라인이 있으나 전체 외관은 깔끔합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 128,
@@ -757,7 +791,9 @@
       "brandCode": "ROL",
       "dayRank": 1,
       "conditionReason": "콤비 브레이슬릿과 케이스에 가벼운 생활 스크래치가 있으나 상태가 양호합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 129,
@@ -799,7 +835,9 @@
       "brandCode": "IWC",
       "dayRank": 1,
       "conditionReason": "가죽 스트랩의 주름·마모와 케이스 측면의 사용감이 확인됩니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 130,
@@ -840,7 +878,9 @@
       "brandCode": "HAM",
       "dayRank": 2,
       "conditionReason": "가죽 스트랩의 주름과 케이스·베젤의 생활 스크래치가 뚜렷합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 131,
@@ -881,7 +921,9 @@
       "brandCode": "ROL",
       "dayRank": 1,
       "conditionReason": "케이스·베젤·브레이슬릿에 큰 흠집이 거의 없고 전체 외관이 매우 깔끔합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 132,
@@ -922,7 +964,9 @@
       "brandCode": "CHA",
       "dayRank": 3,
       "conditionReason": "세라믹 브레이슬릿과 베젤에 미세한 사용 흔적이 있으나 전체적으로 깔끔합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 133,
@@ -964,7 +1008,9 @@
       "brandCode": "CAR",
       "dayRank": 1,
       "conditionReason": "케이스 측면과 가죽 스트랩에 가벼운 사용감이 있으나 전체 외관은 단정합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 134,
@@ -1006,7 +1052,9 @@
       "brandCode": "CAR",
       "dayRank": 1,
       "conditionReason": "케이스와 브레이슬릿 전반에 뚜렷한 생활 스크래치와 사용감이 확인됩니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 135,
@@ -1047,7 +1095,9 @@
       "brandCode": "CAR",
       "dayRank": 2,
       "conditionReason": "가죽 스트랩의 주름·변색과 금통 케이스의 생활 스크래치가 보입니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 136,
@@ -1088,7 +1138,9 @@
       "brandCode": "SEI",
       "dayRank": 1,
       "conditionReason": "빈티지 가죽 스트랩의 마모·주름과 케이스의 노화 흔적이 뚜렷합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 137,
@@ -1129,7 +1181,9 @@
       "brandCode": "CON",
       "dayRank": 2,
       "conditionReason": "브레이슬릿과 케이스에 반복된 생활 스크래치와 사용감이 확인됩니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 138,
@@ -1170,7 +1224,9 @@
       "brandCode": "OME",
       "dayRank": 3,
       "conditionReason": "빈티지 다이얼의 노화와 케이스·스트랩 전반의 마모가 뚜렷합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 139,
@@ -1211,7 +1267,9 @@
       "brandCode": "OME",
       "dayRank": 2,
       "conditionReason": "빈티지 가죽 스트랩의 주름과 금통 케이스의 생활 스크래치가 확인됩니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 140,
@@ -1253,7 +1311,9 @@
       "brandCode": "OME",
       "dayRank": 1,
       "conditionReason": "빈티지 케이스·브레이슬릿에 넓은 스크래치와 마모가 보이고 다이얼에도 세월감이 있습니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 141,
@@ -1295,7 +1355,9 @@
       "brandCode": "PIA",
       "dayRank": 5,
       "conditionReason": "가죽 스트랩의 주름과 케이스 모서리의 생활 스크래치가 확인됩니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 142,
@@ -1336,7 +1398,9 @@
       "brandCode": "ROL",
       "dayRank": 1,
       "conditionReason": "빈티지 콤비 브레이슬릿과 케이스 전반에 뚜렷한 사용감과 스크래치가 보입니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 143,
@@ -1377,7 +1441,9 @@
       "brandCode": "ROL",
       "dayRank": 1,
       "conditionReason": "빈티지 금통 케이스와 가죽 스트랩에 뚜렷한 사용감과 잔스크래치가 있습니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 144,
@@ -1419,7 +1485,9 @@
       "brandCode": "CAR",
       "dayRank": 1,
       "conditionReason": "빈티지 도금 케이스와 가죽 스트랩에 사용감과 가장자리 마모가 확인됩니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 145,
@@ -1461,7 +1529,9 @@
       "brandCode": "OME",
       "dayRank": 1,
       "conditionReason": "빈티지 케이스와 브레이슬릿 전반에 반복된 스크래치·마모와 세월감이 뚜렷합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 146,
@@ -1502,7 +1572,9 @@
       "brandCode": "ROL",
       "dayRank": 2,
       "conditionReason": "콤비 브레이슬릿과 다이아 베젤 주변에 생활 스크래치와 사용감이 확인됩니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 147,
@@ -1544,7 +1616,9 @@
       "brandCode": "VAC",
       "dayRank": 2,
       "conditionReason": "가죽 스트랩의 주름·마모와 케이스 측면의 생활 스크래치가 보입니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 148,
@@ -1586,7 +1660,9 @@
       "brandCode": "CAR",
       "dayRank": 3,
       "conditionReason": "빈티지 다이얼의 노화, 케이스 가장자리 마모, 스트랩 주름이 뚜렷합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 149,
@@ -1627,7 +1703,9 @@
       "brandCode": "CAR",
       "dayRank": 1,
       "conditionReason": "브레이슬릿과 케이스 전반에 뚜렷한 생활 스크래치와 사용감이 확인됩니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 150,
@@ -1670,7 +1748,9 @@
       "brandCode": "HAM",
       "dayRank": 1,
       "conditionReason": "케이스와 브레이슬릿에 가벼운 생활 스크래치가 있으나 전체 외관은 깔끔합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 151,
@@ -1711,7 +1791,9 @@
       "brandCode": "ROL",
       "dayRank": 1,
       "conditionReason": "베젤과 브레이슬릿에 가벼운 생활 스크래치가 있으나 다이얼과 케이스는 양호합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 152,
@@ -1752,7 +1834,9 @@
       "brandCode": "ROL",
       "dayRank": 3,
       "conditionReason": "빈티지 다이얼의 노화와 금통 케이스·브레이슬릿의 마모 및 스크래치가 뚜렷합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 153,
@@ -1795,7 +1879,9 @@
       "brandCode": "HAM",
       "dayRank": 1,
       "conditionReason": "케이스와 가죽 스트랩에 가벼운 사용감이 있으나 전체 외관은 깔끔합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 154,
@@ -1837,7 +1923,9 @@
       "brandCode": "TAG",
       "dayRank": 2,
       "conditionReason": "가죽 스트랩의 주름·마모와 케이스 측면의 생활 스크래치가 확인됩니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 155,
@@ -1878,7 +1966,9 @@
       "brandCode": "ROL",
       "dayRank": 1,
       "conditionReason": "케이스·베젤·브레이슬릿에 큰 흠집이 적고 전체 외관이 매우 깔끔합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 156,
@@ -1920,7 +2010,9 @@
       "brandCode": "ROL",
       "dayRank": 3,
       "conditionReason": "빈티지 케이스와 브레이슬릿에 뚜렷한 생활 스크래치와 세월감이 보입니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 157,
@@ -1961,7 +2053,9 @@
       "brandCode": "CAR",
       "dayRank": 2,
       "conditionReason": "가죽 스트랩의 주름·마모와 금통 케이스의 생활 스크래치가 확인됩니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     },
     {
       "sequence": 158,
@@ -2002,7 +2096,9 @@
       "brandCode": "ROL",
       "dayRank": 4,
       "conditionReason": "베젤과 브레이슬릿에 가벼운 생활 스크래치가 있으나 전체 외관은 깔끔합니다.",
-      "registrationStatus": "ready"
+      "registrationStatus": "registered",
+      "registeredAt": "2026-08-21T07:21:11.897Z",
+      "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
     }
   ],
   "finalizedAt": "2026-08-21T07:10:01.914Z",
@@ -2012,5 +2108,11 @@
   "excludedSourceItem": {
     "sourceId": "yvri53nhkii8",
     "reason": "오데마피게 로얄오크 오프셔 금통 링크 여분코로 시계 상품이 아님"
+  },
+  "registration": {
+    "status": "completed",
+    "registered": 48,
+    "completedAt": "2026-08-21T07:21:11.897Z",
+    "deploymentCommit": "4d8c515037a4386f6fc9b15652c449a538c7e3d4"
   }
 }

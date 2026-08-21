@@ -13,6 +13,11 @@ const progressText = await fs.readFile(progressPath, 'utf8');
 const progress = JSON.parse(progressText);
 const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf8'));
 
+const excludedSourceId = manifest.excludedSourceItem?.sourceId || null;
+if (excludedSourceId) {
+  progress.products = progress.products.filter((product) => product.sourcePost?.id !== excludedSourceId);
+}
+
 try {
   await fs.access(backupPath);
 } catch {
@@ -21,18 +26,6 @@ try {
 
 const bySequence = new Map(manifest.products.map((product) => [product.sequence, product]));
 for (const product of progress.products) {
-  if (product.sequence === 1) {
-    product.siteRegistration = {
-      status: 'registered',
-      productNo: 'K2168',
-      sellingPrice: 18150000,
-      condition: '중고 9/10',
-      registeredAt: '2026-08-21T03:29:42.438033Z',
-      deploymentCommit: '4376e52',
-      imageCount: 7
-    };
-    continue;
-  }
   const registered = bySequence.get(product.sequence);
   if (!registered) continue;
   product.siteRegistration = {
@@ -51,6 +44,13 @@ for (const product of progress.products) {
 }
 
 progress.updatedAt = registeredAt;
+progress.counts = {
+  sourcePosts: progress.counts?.sourcePosts || progress.products.length,
+  watchProducts: progress.products.length,
+  excludedAccessories: (progress.counts?.sourcePosts || progress.products.length) - progress.products.length,
+  completed: progress.products.filter((product) => product.registrationStatus === 'completed').length,
+  pendingImage: progress.products.filter((product) => product.registrationStatus !== 'completed').length
+};
 const registeredProducts = progress.products.filter((product) => product.siteRegistration?.status === 'registered');
 progress.siteRegistration = {
   status: 'completed',
@@ -58,7 +58,9 @@ progress.siteRegistration = {
   firstProductNo: registeredProducts[0]?.siteRegistration?.productNo || null,
   lastProductNo: registeredProducts.at(-1)?.siteRegistration?.productNo || null,
   pricingRule: '원가에 10% 적용 후 원 단위 반올림',
-  uploadPeriod: '2026-05-01 ~ 2026-08-21',
+  uploadPeriod: '2026-01-01 ~ 2026-08-20',
+  todayRegistrationBadge: false,
+  merchandisingReference: '구구스형 상품 정보 중심 노출',
   deploymentCommit,
   completedAt: registeredAt
 };
