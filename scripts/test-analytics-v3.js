@@ -10,6 +10,13 @@ function acq(query, referrer) {
   return Core.parseAcquisition('https://bellore.co.kr/' + query, referrer || '', ['bellore.co.kr', 'www.bellore.co.kr']);
 }
 
+function assertVersionedAsset(document, asset) {
+  const escaped = asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = document.match(new RegExp(`(?:href|src)=["']${escaped}[?]v=([^"'&\\s>]+)["']`));
+  assert.ok(match, `${asset} must have a non-empty cache-buster in index.html`);
+  assert.match(match[1], /^[a-z0-9][a-z0-9._-]*$/i, `${asset} cache-buster has an unsafe shape`);
+}
+
 assert.equal(acq('').channel, 'direct');
 assert.equal(acq('?utm_source=naver&utm_medium=cpc').channel, 'naver_paid_search');
 assert.equal(acq('?gclid=abc').channel, 'google_paid_search');
@@ -100,9 +107,9 @@ const dashboard = fs.readFileSync(path.join(root, 'script.js'), 'utf8');
 assert.doesNotMatch(html, /<script[^>]+googletagmanager\.com\/gtag/i);
 assert.doesNotMatch(html, /<script[^>]+wcs\.naver\.net/i);
 assert.match(html, /analytics-client\.js/);
-assert.match(html, /analytics-client\.js\?v=20260818-consent-aggregate-v1/);
-assert.match(html, /styles\.css\?v=20260814-kg-card-review/);
-assert.match(html, /script\.js\?v=20260818-consent-aggregate-v1/);
+assertVersionedAsset(html, 'analytics-client.js');
+assertVersionedAsset(html, 'styles.css');
+assertVersionedAsset(html, 'script.js');
 assert.match(html, /접속 IP 원문은 저장하지 않고/);
 assert.match(html, /동의·비동의 및 회원·비회원 구분별 일별 방문 횟수/);
 assert.match(dashboard, /conic-gradient/);

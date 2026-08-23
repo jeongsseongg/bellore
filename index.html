@@ -1032,7 +1032,7 @@
 
                         <!-- 매입 후기 -->
                         <article class="insight-row insight-static" data-cat="review">
-                            <div class="insight-row-img"><img src="assets/KakaoTalk_20250428_224216035.jpg" alt="" loading="lazy"></div>
+                            <div class="insight-row-img"><img src="assets/KakaoTalk_20250428_224216035_03.jpg" alt="" loading="lazy"></div>
                             <div class="insight-row-body">
                                 <span class="tag-mini">매입 후기</span>
                                 <h3>바쉐론 오버시즈 퍼페추얼 캘린더 매입</h3>
@@ -1836,35 +1836,7 @@
       </div>
     </div>
 
-    <script>
-    (function () {
-      var map = {
-        biz: document.getElementById('bizInfoModal'),
-        terms: document.getElementById('termsModal'),
-        privacy: document.getElementById('privacyModal'),
-        refund: document.getElementById('refundModal'),
-        guide: document.getElementById('guideModal')
-      };
-      function show(m) { if (m) { m.hidden = false; document.body.style.overflow = 'hidden'; } }
-      function hideAll() {
-        Object.keys(map).forEach(function (k) { if (map[k]) map[k].hidden = true; });
-        document.body.style.overflow = '';
-      }
-      function showFromHash() {
-        if (location.hash === '#privacy-policy') show(map.privacy);
-      }
-      var legacy = document.getElementById('bizInfoOpen');
-      if (legacy) legacy.addEventListener('click', function () { show(map.biz); });
-      document.addEventListener('click', function (e) {
-        var op = e.target.closest('[data-legal-open]');
-        if (op) { show(map[op.getAttribute('data-legal-open')]); return; }
-        if (e.target.hasAttribute && e.target.hasAttribute('data-bizclose')) hideAll();
-      });
-      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hideAll(); });
-      window.addEventListener('hashchange', showFromHash);
-      showFromHash();
-    })();
-    </script>
+    <script type="module" src="app/bootstrap.js"></script>
 
     <!-- PWA 설치 모달 -->
     <div id="pwaInstallModal" hidden aria-modal="true" role="dialog">
@@ -3261,7 +3233,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('sw.js?v=20260821-no-today-badge-v1').catch(function (err) {
+                navigator.serviceWorker.register('sw.js?v=20260824-architecture-foundation-v1').catch(function (err) {
                     console.warn('서비스워커 등록 실패:', err);
                 });
             });

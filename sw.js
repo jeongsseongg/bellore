@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v245-no-today-badge";
+const VERSION = "bellore-v250-architecture-foundation";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -8,6 +8,7 @@ const SHELL_ASSETS = [
   './',
   './index.html',
   './styles.css',
+  './wanted-theme.css',
   './vendor-reference.css',
   './reference-layout.css',
   './mypick.css',
@@ -29,6 +30,8 @@ const SHELL_ASSETS = [
   './search.js',
   './ai-advisor.js',
   './ai-advisor-admin.js',
+  './app/bootstrap.js',
+  './app/features/legal/legal-modals.js',
   './manifest.json',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',

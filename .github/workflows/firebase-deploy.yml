@@ -26,6 +26,10 @@ jobs:
         with:
           node-version: '20'
 
+      # 로컬과 같은 검사가 실패하면 보조 Firebase live 배포를 시작하지 않는다.
+      - name: Project quality check
+        run: node scripts/check.mjs
+
       # Supabase(인사이트·판매상품) → 정적 페이지 + sitemap/rss
       #   + 구글 머천트 피드 + 상품 CSV 생성.
       # 실패해도 커밋된 sitemap/rss 가 폴백이라 배포는 계속된다.

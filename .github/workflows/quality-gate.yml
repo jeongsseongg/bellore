@@ -1,0 +1,28 @@
+name: Project Quality Check
+
+# 이 workflow는 검사 결과를 만든다. GitHub Pages 주 운영 배포를 실제로
+# 막으려면 main ruleset의 required check 또는 승인된 Pages Actions 전환이 별도로 필요하다.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: project-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run the same local project check
+        run: node scripts/check.mjs
