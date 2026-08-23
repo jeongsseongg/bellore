@@ -1,0 +1,61 @@
+/* 홈의 시계 줄 — 카테고리별 가로 스크롤 목록 */
+
+.hrow-block { margin: 22px 0; }
+.hrow-block[hidden] { display: none; }
+
+.hrow-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; padding: 0 16px; margin-bottom: 12px;
+}
+.hrow-title {
+  margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -.04em; color: #171719;
+}
+.hrow-more {
+  font-size: 12.5px; font-weight: 600; letter-spacing: -.02em; color: #8f8f95; white-space: nowrap;
+}
+
+.hrow-rail {
+  display: flex; gap: 12px; padding: 0 16px 2px; overflow-x: auto; overflow-y: hidden;
+  cursor: grab; scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.hrow-rail::-webkit-scrollbar { display: none; }
+.hrow-rail.drag { cursor: grabbing; scroll-snap-type: none; }
+
+.hrow-card {
+  flex: 0 0 148px; width: 148px; display: block; scroll-snap-align: start;
+  color: inherit; text-decoration: none;
+  -webkit-user-select: none; user-select: none;
+}
+.hrow-card, .hrow-card * { -webkit-user-drag: none; }
+
+.hrow-img {
+  display: block; width: 100%; aspect-ratio: 1; margin-bottom: 9px; border-radius: 12px;
+  background-color: #f2f3f5; background-size: cover; background-position: center;
+}
+.hrow-brand {
+  display: block; font-size: 10.5px; font-weight: 800; letter-spacing: .07em; color: #8f8f95;
+}
+.hrow-model {
+  display: -webkit-box; margin-top: 3px; font-size: 13.5px; font-weight: 650; line-height: 1.35;
+  letter-spacing: -.02em; color: #2a2a2e; min-height: 37px;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.hrow-spec {
+  display: block; margin-top: 3px; font-size: 11px; font-weight: 550; letter-spacing: -.02em;
+  color: #8f8f95; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hrow-price {
+  display: block; margin-top: 6px; font-size: 16px; font-weight: 850; letter-spacing: -.03em;
+  color: #171719;
+}
+.hrow-price i { font-style: normal; font-size: 12.5px; font-weight: 800; margin-left: 1px; }
+.hrow-rate { color: #c0392b; font-weight: 850; margin-right: 5px; }
+.hrow-old {
+  display: block; margin-top: 2px; font-size: 11.5px; font-weight: 550;
+  color: #b0b0b6; text-decoration: line-through;
+}
+
+@media (min-width: 520px) {
+  .hrow-card { flex-basis: 168px; width: 168px; }
+}

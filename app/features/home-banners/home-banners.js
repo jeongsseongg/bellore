@@ -2,10 +2,8 @@
    배경만 픽셀 이미지(assets/banners)이고 시계 사진·모델명·금액·문구는 실제 데이터로 그린다.
    매물은 홈 '판매 중인 시계' 그리드가 채워지는 것을 보고 그대로 읽어 쓴다. */
 
-import {
-  BUYIN_COPY, CATEGORY_BANNERS, FEATURED_MAX,
-  isCutoutPhoto, shuffled, stableIndex,
-} from './home-banner-data.js';
+import { BUYIN_COPY, CATEGORY_BANNERS, FEATURED_MAX, stableIndex } from './home-banner-data.js';
+import { badgeText, isCutoutPhoto, priceText, shuffled, specText } from '../../core/listing-display.js';
 
 const FABRICS = [
   'assets/banners/fab-1.jpg', 'assets/banners/fab-2.jpg', 'assets/banners/fab-3.jpg',
@@ -132,16 +130,17 @@ function createFeaturedRail({ doc, mount, collection }) {
     const picks = shuffled(listings).slice(0, FEATURED_MAX);
     rail.innerHTML = picks.map((item) => {
       const cutout = isCutoutPhoto(item.image);
+      const spec = specText(item);
       return `<a class="feat-card" href="#collection" draggable="false" data-pid="${item.id}">` +
         '<span class="bn-fx"></span>' +
         (cutout ? '<span class="feat-gs"></span>' : '') +
         `<span class="feat-ph${cutout ? '' : ' card'}"></span>` +
         '<span class="bn-tx">' +
-        `<span class="feat-tag">${item.badge}</span>` +
+        `<span class="feat-tag">${badgeText(item)}</span>` +
         `<span class="feat-br">${item.brand}</span>` +
         `<span class="feat-nm">${item.model}</span>` +
-        (item.spec ? `<span class="feat-sp">${item.spec}</span>` : '') +
-        `<span class="feat-pr">${item.price}<i>원</i></span>` +
+        (spec ? `<span class="feat-sp">${spec}</span>` : '') +
+        `<span class="feat-pr">${priceText(item.price)}<i>원</i></span>` +
         '</span></a>';
     }).join('');
     // 배경은 style 속성 대신 프로퍼티로 — 마크업에 style= 을 늘리지 않는다.
@@ -203,43 +202,5 @@ function createFeaturedRail({ doc, mount, collection }) {
 export function initHomeBanners({ document: doc, window: win, collection }) {
   initCategorySlider({ doc, mount: doc.getElementById('catBannerBlock'), collection });
   renderBuyinBanner({ doc, win, mount: doc.getElementById('buyBannerBlock') });
-
-  const featured = createFeaturedRail({ doc, mount: doc.getElementById('featBannerBlock'), collection });
-  const grid = doc.querySelector('#homeOnSale .home-sale-grid');
-  if (!grid) return;
-
-  const readGrid = () => featured.update(readListingCards(grid));
-  readGrid();
-  // 그리드 하나만 관찰한다. 관찰 대상을 콜백에서 되건드리지 않는다(v131 스플래시 사고 재발 방지).
-  new win.MutationObserver(readGrid).observe(grid, { childList: true });
-}
-
-/* 홈 그리드에 이미 렌더된 매물 카드를 그대로 읽는다. 백엔드를 다시 부르지 않는다. */
-function readListingCards(grid) {
-  return Array.from(grid.querySelectorAll('.hcard-dynamic')).map((card) => {
-    const image = card.querySelector('img');
-    const price = card.querySelector('.hcard-price');
-    return {
-      id: card.dataset.pid || '',
-      image: image ? image.getAttribute('src') : '',
-      brand: text(card, '.hcard-brand'),
-      model: text(card, '.hcard-model'),
-      spec: text(card, '.hcard-pack'),
-      price: price ? (price.querySelector('.hcard-now') || price).textContent.replace(/원\s*$/, '').trim() : '',
-      badge: badgeFor(card),
-    };
-  }).filter((item) => item.id && item.image && item.price);
-}
-
-function text(card, selector) {
-  const node = card.querySelector(selector);
-  return node ? node.textContent.trim() : '';
-}
-
-function badgeFor(card) {
-  if (card.dataset.saleactive) return '가격 내린 매물';
-  const condition = card.dataset.cond || '';
-  if (/미착용|신품/.test(condition)) return '미착용 신품 매물';
-  if (/풀세트/.test(text(card, '.hcard-pack'))) return '풀세트 검수 완료 매물';
-  return '오늘의 추천 매물';
+  return createFeaturedRail({ doc, mount: doc.getElementById('featBannerBlock'), collection });
 }

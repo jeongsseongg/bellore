@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v252-home-banners";
+const VERSION = "bellore-v253-home-rows";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -30,10 +30,14 @@ const SHELL_ASSETS = [
   './search.js',
   './ai-advisor.js',
   './ai-advisor-admin.js',
-  './app/bootstrap.js?v=20260824-home-banners-v1',
+  './app/bootstrap.js?v=20260824-home-rows-v1',
+  './app/core/listing-display.js',
   './app/features/home-banners/home-banners.js',
   './app/features/home-banners/home-banner-data.js',
-  './app/features/home-banners/home-banners.css?v=20260824-home-banners-v1',
+  './app/features/home-banners/home-banners.css?v=20260824-home-rows-v1',
+  './app/features/home-rows/home-rows.js',
+  './app/features/home-rows/home-rows.css?v=20260824-home-rows-v1',
+  './app/services/listings/listing-catalog-service.js',
   './app/legacy/legacy-collection.js',
   './app/features/legal/legal-modals.js',
   './app/ui/site-header.js',

@@ -71,7 +71,8 @@
     <link rel="stylesheet" href="vendor-reference.css?v=20260731-photo-viewer">
     <link rel="stylesheet" href="mypick.css?v=20260731-mypick-reference-4">
     <link rel="stylesheet" href="bellore-redesign.css?v=20260820-tabs-alerts-v1">
-    <link rel="stylesheet" href="app/features/home-banners/home-banners.css?v=20260824-home-banners-v1">
+    <link rel="stylesheet" href="app/features/home-banners/home-banners.css?v=20260824-home-rows-v1">
+    <link rel="stylesheet" href="app/features/home-rows/home-rows.css?v=20260824-home-rows-v1">
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
@@ -256,26 +257,12 @@
                 <button class="hero-manage-btn" id="heroManageBtn" type="button" hidden>＋ 배너 관리</button>
             </section>
 
-            <!-- 브랜드 바로가기 (그리드 2줄) -->
-            <section class="brand-quicklinks">
-                <div class="container">
-                    <div class="brand-circle-grid" id="brandCircleRow">
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="롤렉스"><span class="brand-circle-img"><img src="assets/brands/rolex.png" alt="롤렉스" loading="lazy"></span><span class="brand-circle-name">롤렉스</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="까르띠에"><span class="brand-circle-img"><img src="assets/brands/cartier.png" alt="까르띠에" loading="lazy"></span><span class="brand-circle-name">까르띠에</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="오메가"><span class="brand-circle-img"><img src="assets/brands/omega.png" alt="오메가" loading="lazy"></span><span class="brand-circle-name">오메가</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="튜더"><span class="brand-circle-img"><img src="assets/brands/tudor.png" alt="튜더" loading="lazy"></span><span class="brand-circle-name">튜더</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="태그호이어"><span class="brand-circle-img"><img src="assets/brands/tagheuer.png" alt="태그호이어" loading="lazy"></span><span class="brand-circle-name">태그호이어</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="샤넬"><span class="brand-circle-img"><img src="assets/brands/chanel.png" alt="샤넬" loading="lazy"></span><span class="brand-circle-name">샤넬</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="불가리"><span class="brand-circle-img"><img src="assets/brands/bulgari.png" alt="불가리" loading="lazy"></span><span class="brand-circle-name">불가리</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="해밀턴"><span class="brand-circle-img"><img src="assets/brands/hamilton.png" alt="해밀턴" loading="lazy"></span><span class="brand-circle-name">해밀턴</span></a>
-                        <a href="#collection" class="brand-circle" data-nav="collection" data-brandfilter="파텍필립"><span class="brand-circle-img"><img src="assets/brands/patek.png" alt="파텍필립" loading="lazy"></span><span class="brand-circle-name">파텍필립</span></a>
-                        <a href="#collection" class="brand-circle brand-circle-all" data-nav="collection" data-brandfilter="all"><span class="brand-circle-img">ALL</span><span class="brand-circle-name">전체보기</span></a>
-                    </div>
-                </div>
-            </section>
 
+            <section class="hrow-block" id="rowSaleBlock" hidden></section>
+            <section class="hrow-block" id="rowDropBlock" hidden></section>
             <section class="bn-block" id="catBannerBlock"></section>
             <section class="bn-block" id="featBannerBlock" hidden></section>
+            <section class="hrow-block" id="rowNewBlock" hidden></section>
             <!-- 판매중인 시계 (2열 그리드) -->
             <section class="section" id="homeOnSale">
                 <div class="container">
@@ -1840,7 +1827,7 @@
       </div>
     </div>
 
-    <script type="module" src="app/bootstrap.js?v=20260824-home-banners-v1"></script>
+    <script type="module" src="app/bootstrap.js?v=20260824-home-rows-v1"></script>
 
     <!-- PWA 설치 모달 -->
     <div id="pwaInstallModal" hidden aria-modal="true" role="dialog">

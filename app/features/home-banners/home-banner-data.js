@@ -43,18 +43,3 @@ export function stableIndex(id, length) {
   for (let i = 0; i < text.length; i += 1) hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
   return length > 0 ? hash % length : 0;
 }
-
-/* 누끼(투명 배경)로 올린 사진만 원단 위에 시계만 얹는다.
-   JPEG는 투명 채널이 없으므로 둥근 카드로 보여준다. */
-export function isCutoutPhoto(url) {
-  return /\.(png|webp)(\?|#|$)/i.test(String(url || ''));
-}
-
-export function shuffled(list, random = Math.random) {
-  const out = list.slice();
-  for (let i = out.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(random() * (i + 1));
-    [out[i], out[j]] = [out[j], out[i]];
-  }
-  return out;
-}
