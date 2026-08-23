@@ -22,6 +22,8 @@ node_modules/
 # Build
 dist/
 build/
+/_site/
+/.tmp-pages-*/
 
 # Temp
 *.tmp

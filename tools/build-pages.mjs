@@ -1,0 +1,216 @@
+import { cp, lstat, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { dirname, extname, basename, isAbsolute, join, relative, resolve } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+
+export const ROOT_RUNTIME_FILES = Object.freeze([
+  'index.html',
+  'styles.css',
+  'wanted-theme.css',
+  'reference-layout.css',
+  'vendor-reference.css',
+  'mypick.css',
+  'bellore-redesign.css',
+  'manifest.json',
+  'sw.js',
+  'ui-dialog.js',
+  'supabase-config.js',
+  'analytics-core.js',
+  'analytics-client.js',
+  'brands.js',
+  'supabase.js',
+  'bellore-features.js',
+  'cq-demo.js',
+  'script.js',
+  'wishlist.js',
+  'alerts.js',
+  'auction.js',
+  'search.js',
+  'ai-advisor.js',
+  'ai-advisor-admin.js',
+  'payments.js',
+  'naverpay.js',
+  'rss.xml',
+  'robots.txt',
+  'CNAME',
+]);
+
+export const APP_RUNTIME_FILES = Object.freeze([
+  'app/bootstrap.js',
+  'app/core/listing-display.js',
+  'app/features/home-banners/home-banner-data.js',
+  'app/features/home-banners/home-banners.css',
+  'app/features/home-banners/home-banners.js',
+  'app/features/home-rows/home-rows.css',
+  'app/features/home-rows/home-rows.js',
+  'app/features/insights/insight-reader.js',
+  'app/features/legal/legal-modals.js',
+  'app/legacy/legacy-collection.js',
+  'app/services/listings/listing-catalog-service.js',
+  'app/ui/site-header.js',
+]);
+
+const ASSET_EXTENSIONS = new Set([
+  '.avif', '.gif', '.ico', '.jpeg', '.jpg', '.otf', '.png', '.svg',
+  '.ttf', '.webp', '.woff', '.woff2',
+]);
+
+const FALLBACK_STYLE = `
+  :root{color-scheme:light;font-family:Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f7f6f2;color:#12231d}
+  main{width:min(520px,calc(100% - 40px));text-align:center;padding:56px 24px}
+  img{width:150px;max-width:52%;height:auto;margin-bottom:28px}
+  h1{font-size:clamp(26px,7vw,38px);margin:0 0 12px}
+  p{line-height:1.7;color:#5b625f;margin:0 0 26px}
+  a{display:inline-block;padding:13px 22px;border-radius:999px;background:#12231d;color:#fff;text-decoration:none;font-weight:700}
+`;
+
+function fallbackHtml({ title, message }) {
+  return `<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>${title} | BELLORE</title>
+  <style>${FALLBACK_STYLE}</style>
+</head>
+<body>
+  <main>
+    <img src="/assets/logo-bellore.png" alt="BELLORE">
+    <h1>${title}</h1>
+    <p>${message}</p>
+    <a href="/">벨로르 홈으로</a>
+  </main>
+</body>
+</html>
+`;
+}
+
+function resolveOutput(outputDir) {
+  const output = resolve(ROOT, outputDir || '_site');
+  const rel = relative(ROOT, output);
+  const folder = basename(output);
+  if (!rel || rel.startsWith('..') || isAbsolute(rel)) {
+    throw new Error(`출력 폴더는 저장소 내부여야 합니다: ${output}`);
+  }
+  if (!/^_site(?:[-_].*)?$/.test(folder) && !/^\.tmp-pages-/.test(folder)) {
+    throw new Error(`삭제 안전을 위해 출력 폴더명은 _site 또는 .tmp-pages-* 만 허용합니다: ${folder}`);
+  }
+  return output;
+}
+
+async function assertRegularFile(path) {
+  const info = await lstat(path);
+  if (!info.isFile() || info.isSymbolicLink()) {
+    throw new Error(`일반 파일이 아닌 항목은 배포할 수 없습니다: ${relative(ROOT, path)}`);
+  }
+}
+
+async function assertNoSymlinks(directory) {
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const path = join(directory, entry.name);
+    if (entry.isSymbolicLink()) {
+      throw new Error(`심볼릭 링크는 배포 자산에 허용되지 않습니다: ${relative(ROOT, path)}`);
+    }
+    if (entry.isDirectory()) await assertNoSymlinks(path);
+  }
+}
+
+async function copyFileFromRoot(sourceRelative, output) {
+  const source = join(ROOT, sourceRelative);
+  await assertRegularFile(source);
+  const target = join(output, sourceRelative);
+  await mkdir(dirname(target), { recursive: true });
+  await cp(source, target);
+}
+
+async function copyAssets(output) {
+  const source = join(ROOT, 'assets');
+  await assertNoSymlinks(source);
+  await cp(source, join(output, 'assets'), {
+    recursive: true,
+    filter(path) {
+      if (path === source) return true;
+      const extension = extname(path).toLowerCase();
+      if (!extension) return true;
+      return ASSET_EXTENSIONS.has(extension) || basename(path) === 'LICENSE.txt';
+    },
+  });
+}
+
+function runSeoGenerator(output) {
+  const generator = join(ROOT, 'tools', 'seo', 'build-market.mjs');
+  const result = spawnSync(process.execPath, [generator, '--out', output], {
+    cwd: ROOT,
+    env: process.env,
+    stdio: 'inherit',
+  });
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(`시장 SEO 생성기가 종료 코드 ${result.status}로 실패했습니다.`);
+  }
+}
+
+async function verifyGeneratedSeo(output) {
+  await Promise.all([
+    assertRegularFile(join(output, 'market', 'index.html')),
+    assertRegularFile(join(output, 'sitemap.xml')),
+  ]);
+  const sitemap = await readFile(join(output, 'sitemap.xml'), 'utf8');
+  if (!sitemap.includes('https://bellore.co.kr/market/')) {
+    throw new Error('생성된 sitemap.xml에 /market/ URL이 없습니다.');
+  }
+}
+
+export async function buildPages({ outputDir = '_site', skipSeo = false, quiet = false } = {}) {
+  const output = resolveOutput(outputDir);
+
+  await rm(output, { recursive: true, force: true });
+  await mkdir(output, { recursive: true });
+
+  for (const file of ROOT_RUNTIME_FILES) await copyFileFromRoot(file, output);
+  for (const file of APP_RUNTIME_FILES) await copyFileFromRoot(file, output);
+  await copyAssets(output);
+
+  await writeFile(join(output, '.nojekyll'), '');
+  await writeFile(join(output, '404.html'), fallbackHtml({
+    title: '페이지를 찾을 수 없습니다',
+    message: '주소가 변경되었거나 판매가 종료된 상품일 수 있습니다.',
+  }));
+  await writeFile(join(output, 'offline.html'), fallbackHtml({
+    title: '인터넷 연결을 확인해 주세요',
+    message: '연결이 복구되면 벨로르 상품을 다시 확인할 수 있습니다.',
+  }));
+
+  if (!skipSeo) {
+    runSeoGenerator(output);
+    await verifyGeneratedSeo(output);
+  }
+
+  if (!quiet) {
+    const mode = skipSeo ? 'static-only' : 'static+market';
+    console.log(`pages build: mode=${mode} output=${relative(ROOT, output)}`);
+  }
+  return output;
+}
+
+function parseArgs(argv) {
+  const options = { outputDir: '_site', skipSeo: false };
+  for (let i = 0; i < argv.length; i += 1) {
+    if (argv[i] === '--skip-seo') options.skipSeo = true;
+    else if (argv[i] === '--out' && argv[i + 1]) options.outputDir = argv[++i];
+    else throw new Error(`알 수 없는 인자: ${argv[i]}`);
+  }
+  return options;
+}
+
+const invokedPath = process.argv[1] ? pathToFileURL(resolve(process.argv[1])).href : '';
+if (invokedPath === import.meta.url) {
+  buildPages(parseArgs(process.argv.slice(2))).catch((error) => {
+    console.error(`pages build failed: ${error.message}`);
+    process.exitCode = 1;
+  });
+}

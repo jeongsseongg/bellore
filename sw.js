@@ -1,7 +1,8 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v254-insight-reader-module";
+const VERSION = "bellore-v255-seo-routes";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
+const OFFLINE_FALLBACK = './index.html';
 
 /* 오프라인에서도 첫 화면이 뜨도록 미리 캐시할 앱 셸 */
 const SHELL_ASSETS = [
@@ -72,18 +73,39 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
-  const isAppCode = req.mode === 'navigate' ||
-    /\.(?:js|css|html)(?:\?|$)/.test(url.pathname) ||
+  if (req.mode === 'navigate') {
+    event.respondWith(
+      fetch(req)
+        .then(async (res) => {
+          if (res && res.status === 200) {
+            const copy = res.clone();
+            const cache = await caches.open(RUNTIME_CACHE);
+            await cache.put(req, copy);
+          }
+          return res;
+        })
+        .catch(async () => {
+          const exactPage = await caches.match(req);
+          return exactPage || caches.match(OFFLINE_FALLBACK);
+        })
+    );
+    return;
+  }
+
+  const isAppCode = /\.(?:js|css|html)(?:\?|$)/.test(url.pathname) ||
     url.pathname === '/' || url.pathname.endsWith('/');
   if (isAppCode) {
     event.respondWith(
       fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(SHELL_CACHE).then((c) => c.put(req.mode === 'navigate' ? './index.html' : req, copy));
+        .then(async (res) => {
+          if (res && res.status === 200) {
+            const copy = res.clone();
+            const cache = await caches.open(SHELL_CACHE);
+            await cache.put(req, copy);
+          }
           return res;
         })
-        .catch(() => caches.match(req).then((r) => r || caches.match('./index.html')))
+        .catch(() => caches.match(req))
     );
     return;
   }
