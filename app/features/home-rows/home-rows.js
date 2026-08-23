@@ -1,37 +1,59 @@
 /* 홈의 시계 줄 — 카테고리별로 시계를 가로로 최대 20점까지 보여준다.
    모바일은 스와이프, PC는 마우스 드래그. 카드를 누르면 그 매물 상세로 간다. */
 
-import { discountRate, priceText, specText } from '../../core/listing-display.js';
+import { discountRate, dropAmountText, priceText } from '../../core/listing-display.js';
 
 const ROW_MAX = 20;
 const DRAG_THRESHOLD = 5;
+/* 할인 중인 매물을 두 줄로 나눈다. 위는 할인율이 큰 쪽, 아래는 나머지.
+   재고가 적어도 아래 줄이 비지 않도록 절반씩 나누되 위쪽은 여덟 점까지만 둔다. */
+const FEATURE_MAX = 8;
 
-/* 줄마다 어떤 매물을 담는지. 겹치지 않게 조건을 나눈다. */
 const ROWS = [
-  {
-    mount: 'rowSaleBlock', title: '이번 주 특별가', more: '지금 값이 내려간 시계',
-    select: (list) => list.filter((item) => item.saleActive),
-  },
-  {
-    mount: 'rowDropBlock', title: '새로워진 가격', more: '가격을 다시 매긴 시계',
-    select: (list) => list.filter((item) => item.priceLowered && !item.saleActive),
-  },
-  {
-    mount: 'rowNewBlock', title: '최근 등록된 시계', more: '방금 들어온 매물',
-    select: (list) => list,
-  },
+  { mount: 'rowSaleBlock', title: '이번 주 특별가', badge: 'rate' },
+  { mount: 'rowDropBlock', title: '새로워진 가격', badge: 'drop' },
+  { mount: 'rowNewBlock', title: '최근 등록된 시계', badge: 'new' },
 ];
 
-function cardMarkup(listing) {
+/* 겹치지 않게 나눈다. 두 줄 모두 손님이 실제로 내는 금액만 보여준다. */
+function splitRows(listings) {
+  const lowered = listings
+    .filter((item) => item.saleActive && discountRate(item) > 0)
+    .sort((a, b) => discountRate(b) - discountRate(a));
+  const split = Math.min(FEATURE_MAX, Math.ceil(lowered.length / 2));
+  return {
+    rowSaleBlock: lowered.slice(0, split),
+    rowDropBlock: lowered.slice(split),
+    rowNewBlock: listings,
+  };
+}
+
+/* 10억 이상은 자릿수가 길어 좁은 카드에서 줄이 깨진다. */
+function longPrice(amount) {
+  return priceText(amount).length >= 13;
+}
+
+function badgeMarkup(listing, kind) {
+  if (kind === 'rate') {
+    const rate = discountRate(listing);
+    return rate > 0 ? `<span class="hrow-badge is-rate">${rate}%</span>` : '';
+  }
+  if (kind === 'drop') {
+    const drop = dropAmountText(listing);
+    return drop ? `<span class="hrow-badge is-drop">↓ ${drop}</span>` : '';
+  }
+  if (kind === 'new' && listing.isNew) return '<span class="hrow-badge is-new">NEW</span>';
+  return '';
+}
+
+/* 할인율·내린 금액은 사진 위 뱃지가 이미 보여준다. 가격 줄은 금액만 둔다.
+   1억대 금액에 할인율까지 붙이면 좁은 화면에서 두 줄로 깨진다. */
+function cardMarkup(listing, kind) {
   const rate = discountRate(listing);
-  const spec = specText(listing);
   return `<a class="hrow-card" href="#collection" draggable="false" data-pid="${listing.id}">` +
-    '<span class="hrow-img"></span>' +
-    `<span class="hrow-brand">${listing.brand}</span>` +
+    `<span class="hrow-img">${badgeMarkup(listing, kind)}<span class="hrow-shadow"></span></span>` +
     `<span class="hrow-model">${listing.model}</span>` +
-    (spec ? `<span class="hrow-spec">${spec}</span>` : '') +
-    '<span class="hrow-price">' +
-    (rate > 0 ? `<b class="hrow-rate">${rate}%</b>` : '') +
+    `<span class="hrow-price${longPrice(listing.price) ? ' is-long' : ''}">` +
     `${priceText(listing.price)}<i>원</i></span>` +
     (rate > 0 ? `<span class="hrow-old">${priceText(listing.listPrice)}원</span>` : '') +
     '</a>';
@@ -41,7 +63,7 @@ function buildRow({ doc, mount, config, collection }) {
   mount.innerHTML =
     '<div class="hrow-head">' +
     `<h2 class="hrow-title">${config.title}</h2>` +
-    `<span class="hrow-more">${config.more}</span>` +
+    '<span class="hrow-more" aria-hidden="true">›</span>' +
     '</div><div class="hrow-rail"></div>';
   const rail = mount.querySelector('.hrow-rail');
   enableDrag({ doc, rail, collection });
@@ -94,11 +116,12 @@ export function initHomeRows({ document: doc, collection }) {
 
   return {
     update(listings) {
+      const buckets = splitRows(listings);
       rows.forEach(({ config, mount, rail }) => {
-        const picks = config.select(listings).slice(0, ROW_MAX);
+        const picks = (buckets[config.mount] || []).slice(0, ROW_MAX);
         if (!picks.length) { mount.hidden = true; rail.innerHTML = ''; return; }
         mount.hidden = false;
-        rail.innerHTML = picks.map(cardMarkup).join('');
+        rail.innerHTML = picks.map((item) => cardMarkup(item, config.badge)).join('');
         // 사진은 style 속성 대신 프로퍼티로 — 마크업에 style= 을 늘리지 않는다.
         Array.from(rail.children).forEach((card, index) => {
           card.querySelector('.hrow-img').style.backgroundImage = `url(${picks[index].image})`;

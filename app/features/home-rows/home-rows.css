@@ -1,18 +1,21 @@
-/* 홈의 시계 줄 — 카테고리별 가로 스크롤 목록 */
+/* 홈의 시계 줄 — 카테고리별 가로 스크롤 목록. 한 화면에 세 장이 보인다. */
 
-.hrow-block { margin: 22px 0; }
+.hrow-block { margin: 26px 0; }
 .hrow-block[hidden] { display: none; }
+/* 줄 사이 연한 구분 밴드 */
+.hrow-block + .hrow-block::before {
+  content: ''; display: block; height: 8px; margin: 0 0 26px;
+  background: #f4f5f6;
+}
 
 .hrow-head {
-  display: flex; align-items: baseline; justify-content: space-between;
-  gap: 12px; padding: 0 16px; margin-bottom: 12px;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 0 16px; margin-bottom: 14px;
 }
 .hrow-title {
-  margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -.04em; color: #171719;
+  margin: 0; font-size: 21px; font-weight: 800; letter-spacing: -.045em; color: #171719;
 }
-.hrow-more {
-  font-size: 12.5px; font-weight: 600; letter-spacing: -.02em; color: #8f8f95; white-space: nowrap;
-}
+.hrow-more { font-size: 22px; font-weight: 400; line-height: 1; color: #b0b0b6; }
 
 .hrow-rail {
   display: flex; gap: 12px; padding: 0 16px 2px; overflow-x: auto; overflow-y: hidden;
@@ -22,40 +25,59 @@
 .hrow-rail::-webkit-scrollbar { display: none; }
 .hrow-rail.drag { cursor: grabbing; scroll-snap-type: none; }
 
+/* 한 화면에 세 장 — 카드 3장 + 사이 여백 2칸(12px)이 딱 들어간다.
+   min-width:0 이 없으면 flex 자식이 글자 폭 아래로 안 줄어들어 카드가 커진다. */
 .hrow-card {
-  flex: 0 0 148px; width: 148px; display: block; scroll-snap-align: start;
+  flex: 0 0 calc((100% - 24px) / 3); min-width: 0; display: block; scroll-snap-align: start;
   color: inherit; text-decoration: none;
   -webkit-user-select: none; user-select: none;
 }
 .hrow-card, .hrow-card * { -webkit-user-drag: none; }
 
 .hrow-img {
-  display: block; width: 100%; aspect-ratio: 1; margin-bottom: 9px; border-radius: 12px;
-  background-color: #f2f3f5; background-size: cover; background-position: center;
+  position: relative; display: block; width: 100%; aspect-ratio: 1; margin-bottom: 11px;
+  border-radius: 14px; background-color: #f2f3f5;
+  /* 시계 크기·위치는 뱃지와 절대 겹치지 않는 값. 픽셀 비교로 확인한 조합이다. */
+  background-size: 68%; background-repeat: no-repeat; background-position: center 58%;
 }
-.hrow-brand {
-  display: block; font-size: 10.5px; font-weight: 800; letter-spacing: .07em; color: #8f8f95;
+/* 시계 아래 바닥 그림자 */
+.hrow-shadow {
+  position: absolute; left: 50%; bottom: 9%; transform: translateX(-50%);
+  width: 44%; height: 6.5%; border-radius: 50%; filter: blur(4px);
+  background: radial-gradient(ellipse, rgba(23, 23, 25, .22), rgba(23, 23, 25, 0) 70%);
 }
+/* 각진 네모. 타일 왼쪽 위에 두되 시계(가운데 74%)와 절대 겹치지 않는다. */
+.hrow-badge {
+  position: absolute; left: 6px; top: 6px; z-index: 2; padding: 3px 7px; border-radius: 0;
+  font-size: 10.5px; font-weight: 800; letter-spacing: -.02em; line-height: 1.5;
+  color: #fff; white-space: nowrap;
+}
+.hrow-badge.is-rate { background: #1a2925; }
+.hrow-badge.is-drop { background: #d4342a; }
+.hrow-badge.is-new { background: #1a2925; letter-spacing: .04em; }
+
+/* 추천 매물 — 기존 2열 그리드 위에 같은 모양의 제목을 얹는다 */
+#homeOnSale .hrow-head { padding: 0; }
+#homeOnSale > .container { padding-top: 4px; }
+
 .hrow-model {
-  display: -webkit-box; margin-top: 3px; font-size: 13.5px; font-weight: 650; line-height: 1.35;
-  letter-spacing: -.02em; color: #2a2a2e; min-height: 37px;
+  display: -webkit-box; font-size: 14px; font-weight: 650; line-height: 1.4;
+  letter-spacing: -.025em; color: #2a2a2e; min-height: 39px;
   -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.hrow-spec {
-  display: block; margin-top: 3px; font-size: 11px; font-weight: 550; letter-spacing: -.02em;
-  color: #8f8f95; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
 .hrow-price {
-  display: block; margin-top: 6px; font-size: 16px; font-weight: 850; letter-spacing: -.03em;
-  color: #171719;
+  display: block; margin-top: 7px; font-size: 14px; font-weight: 850; letter-spacing: -.045em;
+  color: #171719; white-space: nowrap;
 }
-.hrow-price i { font-style: normal; font-size: 12.5px; font-weight: 800; margin-left: 1px; }
-.hrow-rate { color: #c0392b; font-weight: 850; margin-right: 5px; }
+/* 10억대처럼 자릿수가 긴 금액은 좁은 화면에서 줄이 깨지므로 한 단계 줄인다 */
+.hrow-price.is-long { font-size: 11.5px; letter-spacing: -.05em; }
+.hrow-price.is-long i { font-size: 10px; }
+.hrow-price i { font-style: normal; font-size: 11.5px; font-weight: 800; margin-left: 1px; }
 .hrow-old {
-  display: block; margin-top: 2px; font-size: 11.5px; font-weight: 550;
+  display: block; margin-top: 3px; font-size: 11px; font-weight: 550; white-space: nowrap;
   color: #b0b0b6; text-decoration: line-through;
 }
 
 @media (min-width: 520px) {
-  .hrow-card { flex-basis: 168px; width: 168px; }
+  .hrow-card { flex-basis: calc((100% - 36px) / 4); }
 }

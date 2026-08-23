@@ -4,7 +4,7 @@
   "legacyLineCeilings": {
     "styles.css": 10454,
     "script.js": 6690,
-    "index.html": 3676,
+    "index.html": 3677,
     "wanted-theme.css": 3060,
     "supabase.js": 2626,
     "cq-demo.js": 2423,
@@ -89,6 +89,6 @@
     "wishlist.js"
   ],
   "legacyCeilingNotes": {
-    "index.html": "20260824 홈 배너·시계 줄: 홈 브랜드 로고 바로가기를 지우고 마운트 지점만 남겨 3685보다 낮췄다. 실행 로직은 app/features/ 아래에 있다."
+    "index.html": "20260824 홈 개편: 홈 브랜드 로고 바로가기를 지우고 배너·시계 줄 마운트와 추천 매물 제목만 남겼다(원래 3685에서 내려온 값). 실행 로직은 app/features/ 아래에 있다. 컬렉션이 기능 모듈로 옮겨지면 더 내린다."
   }
 }

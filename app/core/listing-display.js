@@ -18,6 +18,17 @@ export function specText(listing) {
   return parts.slice(0, 3).join(' · ');
 }
 
+/* 내려간 금액 뱃지 문구 — 프리뷰 시안대로 만원·억 단위로 읽는다 */
+export function dropAmountText(listing) {
+  const drop = (Number(listing.listPrice) || 0) - (Number(listing.price) || 0);
+  if (drop < 10000) return '';
+  const man = Math.floor(drop / 10000);
+  if (man < 10000) return `${man.toLocaleString('ko-KR')}만원`;
+  const eok = Math.floor(man / 10000);
+  const rest = man % 10000;
+  return rest ? `${eok}억 ${rest.toLocaleString('ko-KR')}만원` : `${eok}억원`;
+}
+
 /* 배너 뱃지 — 과장 없이 사실만 */
 export function badgeText(listing) {
   if (listing.saleActive) return '가격 내린 매물';

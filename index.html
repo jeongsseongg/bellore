@@ -72,7 +72,7 @@
     <link rel="stylesheet" href="mypick.css?v=20260731-mypick-reference-4">
     <link rel="stylesheet" href="bellore-redesign.css?v=20260820-tabs-alerts-v1">
     <link rel="stylesheet" href="app/features/home-banners/home-banners.css?v=20260824-home-rows-v1">
-    <link rel="stylesheet" href="app/features/home-rows/home-rows.css?v=20260824-home-rows-v1">
+    <link rel="stylesheet" href="app/features/home-rows/home-rows.css?v=20260824-home-rows-v2">
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
@@ -260,6 +260,7 @@
             <!-- 판매중인 시계 (2열 그리드) -->
             <section class="section" id="homeOnSale">
                 <div class="container">
+                    <div class="hrow-head"><h2 class="hrow-title">추천 매물</h2><span class="hrow-more" aria-hidden="true">›</span></div>
                     <div class="home-sale-grid" aria-live="polite"></div>
                     <div style="text-align:right;margin-top:12px">
                         <a href="#collection" class="home-sale-more" data-nav="collection">전체 보기 →</a>
@@ -1821,7 +1822,7 @@
       </div>
     </div>
 
-    <script type="module" src="app/bootstrap.js?v=20260824-insight-v1"></script>
+    <script type="module" src="app/bootstrap.js?v=20260824-insight-home-rows-v1"></script>
 
     <!-- PWA 설치 모달 -->
     <div id="pwaInstallModal" hidden aria-modal="true" role="dialog">
