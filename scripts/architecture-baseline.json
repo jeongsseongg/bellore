@@ -4,7 +4,7 @@
   "legacyLineCeilings": {
     "styles.css": 10454,
     "script.js": 6749,
-    "index.html": 3685,
+    "index.html": 3689,
     "wanted-theme.css": 3060,
     "supabase.js": 2626,
     "cq-demo.js": 2423,
@@ -29,10 +29,22 @@
     "localClassicScripts": 17
   },
   "newCodeBudgets": {
-    ".js": { "review": 320, "maximum": 400 },
-    ".mjs": { "review": 320, "maximum": 400 },
-    ".css": { "review": 400, "maximum": 500 },
-    ".html": { "review": 240, "maximum": 300 }
+    ".js": {
+      "review": 320,
+      "maximum": 400
+    },
+    ".mjs": {
+      "review": 320,
+      "maximum": 400
+    },
+    ".css": {
+      "review": 400,
+      "maximum": 500
+    },
+    ".html": {
+      "review": 240,
+      "maximum": 300
+    }
   },
   "newCodeExceptions": {},
   "knownMissingLocalAssets": [],
@@ -75,5 +87,8 @@
     "verify.html",
     "wanted-theme.css",
     "wishlist.js"
-  ]
+  ],
+  "legacyCeilingNotes": {
+    "index.html": "20260824 홈 배너: 셸에 마운트 3줄 + 모듈 CSS 링크 1줄만 추가(실행 로직 없음). 배너 실행 코드는 app/features/home-banners/에 있다. 컬렉션이 기능 모듈로 옮겨져 마운트를 부모 모듈이 만들게 되면 3685로 되돌린다."
+  }
 }
