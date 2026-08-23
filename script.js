@@ -37,8 +37,6 @@
 
     function init() {
         initRouter();
-        initHeaderScroll();
-        initHeaderHeight(); // 헤더 높이 → main-wrap padding-top 동기화
         initCollectionTabs();
         initFilterChips();
         initInsightFilter();
@@ -5147,18 +5145,6 @@
         });
     }
 
-    /* ============ 2. 헤더 스크롤 ============ */
-    function initHeaderHeight() {
-        var header = $('#header');
-        if (!header) return;
-        function sync() {
-            var h = header.getBoundingClientRect().height;
-            document.documentElement.style.setProperty('--header-real-h', h + 'px');
-        }
-        sync();
-        if (window.ResizeObserver) new ResizeObserver(sync).observe(header);
-    }
-
     /* ============ 타임세일 카운트다운 (초 단위 실시간) ============ */
     var _countdownTimer = null;
     function initCountdowns() {
@@ -5179,15 +5165,6 @@
         }
         tick();
         _countdownTimer = setInterval(tick, 1000);
-    }
-
-    function initHeaderScroll() {
-        var header = $('#header');
-        if (!header) return;
-        window.addEventListener('scroll', function () {
-            if (window.scrollY > 30) header.classList.add('scrolled');
-            else header.classList.remove('scrolled');
-        }, { passive: true });
     }
 
     /* ============ 3. 컬렉션 탭 ============ */

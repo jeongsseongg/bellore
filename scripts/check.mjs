@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { extname, join, relative, resolve, sep } from 'node:path';
+import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
@@ -165,6 +165,20 @@ function shellAssets(swSource) {
   return assets;
 }
 
+function staticLocalModuleReferences(moduleFiles) {
+  const references = new Set();
+  for (const file of moduleFiles) {
+    const source = sourceWithoutComments(readFileSync(file, 'utf8'));
+    for (const match of source.matchAll(/\b(?:import|export)\s+(?:[^"']*?\sfrom\s*)?["'](\.[^"']+)["']/g)) {
+      const specifier = match[1].split('#')[0].split('?')[0];
+      const absolute = resolve(dirname(file), specifier);
+      if (!existsSync(absolute)) addFailure(`missing local module import: ${toPosix(file)} -> ${specifier}`);
+      else references.add(toPosix(absolute));
+    }
+  }
+  return references;
+}
+
 function compareKnownDebt(label, actualValues, knownValues) {
   const actual = new Set(actualValues);
   const known = new Set(knownValues);
@@ -317,8 +331,17 @@ const missingSourceAssets = [...literalSourceAssetReferences(sourceAssetFiles)]
   .filter((reference) => !existsSync(join(root, reference)));
 compareKnownDebt('missing literal JS/CSS asset', missingSourceAssets, baseline.knownMissingSourceAssets);
 const shell = shellAssets(swSource);
+const missingShellAssets = [...shell].filter((entry) => !existsSync(join(root, entry)));
+if (missingShellAssets.length) addFailure(`missing service-worker shell assets: ${missingShellAssets.join(', ')}`);
+else addPass(`service-worker shell assets exist: ${shell.size}`);
 const uncachedEntrypoints = [...localShellEntrypoints(cleanHtml)].filter((entry) => !shell.has(entry));
 compareKnownDebt('HTML entrypoint absent from SW shell', uncachedEntrypoints, baseline.knownUncachedShellAssets);
+const appModuleImports = staticLocalModuleReferences(
+  appRuntime.filter((file) => ['.js', '.mjs'].includes(extname(file).toLowerCase()))
+);
+const uncachedAppImports = [...appModuleImports].filter((entry) => !shell.has(entry));
+if (uncachedAppImports.length) addFailure(`app module import absent from SW shell: ${uncachedAppImports.join(', ')}`);
+else addPass(`app module imports cached: ${appModuleImports.size}`);
 
 const ids = htmlAttributeValues(markupHtml, 'id');
 const duplicateIds = [...new Set(ids.filter((id, index) => ids.indexOf(id) !== index))];

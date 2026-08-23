@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v250-architecture-foundation";
+const VERSION = "bellore-v251-site-header-module";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 
@@ -13,7 +13,7 @@ const SHELL_ASSETS = [
   './reference-layout.css',
   './mypick.css',
   './bellore-redesign.css',
-  './script.js',
+  './script.js?v=20260824-site-header-v1',
   './payments.js',
   './naverpay.js',
   './ui-dialog.js',
@@ -30,8 +30,9 @@ const SHELL_ASSETS = [
   './search.js',
   './ai-advisor.js',
   './ai-advisor-admin.js',
-  './app/bootstrap.js',
+  './app/bootstrap.js?v=20260824-site-header-v1',
   './app/features/legal/legal-modals.js',
+  './app/ui/site-header.js',
   './manifest.json',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',

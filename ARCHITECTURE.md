@@ -87,6 +87,7 @@ app/services/payments/
 ## 추출 현황과 보류 대상
 
 - 완료(2026-08-24): 법적고지 모달을 `app/bootstrap.js`와 `app/features/legal/legal-modals.js`로 옮겼다. clean `main` 기준 `index.html`은 3,713→3,685줄, 인라인 실행 블록은 4→3, 줄바꿈을 LF로 정규화한 실행 본문은 34,049→32,747바이트이며 Node 테스트와 HTTP 브라우저 열기·닫기를 통과했다.
+- 2차 배포 범위(2026-08-24): 헤더 높이·30px 스크롤 표시 동작을 `app/ui/site-header.js`로 옮기고 `bootstrap`에서 조립한다. clean `main` 기준 `script.js`는 6,772→6,749줄이며 ResizeObserver 유무·정리 계약과 HTTP 데스크톱·390px 동작을 검증한다.
 - 다음 후보는 시작 시점의 dirty hunk와 호출 관계를 다시 재서 고른다. 낮은 상태·낮은 권한·독립 DOM 기능을 우선한다.
 - 보류: 현재 dirty worktree에서 작업 중인 검색 10개 무한스크롤, 추천 v2, 결제, `supabase.js`, 서비스워커 관련 대형 블록.
 - 기존 JS/CSS가 참조하지만 저장소에 없는 동적 이미지 9개는 별도 콘텐츠 부채다. 1차 구조 배포에서는 임의 대체하지 않고 baseline 경고로 고정해 추가 누락만 차단한다.

@@ -1,6 +1,8 @@
 import { initLegalModals } from './features/legal/legal-modals.js';
+import { initSiteHeader } from './ui/site-header.js';
 
 function bootstrap() {
+  initSiteHeader({ document, window });
   initLegalModals({ document, window });
 }
 
