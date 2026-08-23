@@ -1,3 +1,4 @@
+import { initInsightReader } from './features/insights/insight-reader.js';
 import { initLegalModals } from './features/legal/legal-modals.js';
 import { initSiteHeader } from './ui/site-header.js';
 import { initHomeBanners } from './features/home-banners/home-banners.js';
@@ -17,6 +18,7 @@ function bootstrap() {
     featured.update(listings);
     rows.update(listings);
   });
+  initInsightReader({ document });
 }
 
 if (document.readyState === 'loading') {
