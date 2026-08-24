@@ -46,10 +46,11 @@ async function validateDeployConfig() {
   const firebase = JSON.parse(await readFile(join(ROOT, 'firebase.json'), 'utf8'));
   assert.equal(firebase.hosting?.public, '_site', 'Firebase도 검증된 _site 허용목록만 배포해야 합니다.');
 
-  const [firebaseWorkflow, pagesWorkflow, qualityWorkflow] = await Promise.all([
+  const [firebaseWorkflow, pagesWorkflow, qualityWorkflow, databaseWorkflow] = await Promise.all([
     readFile(join(WORKFLOW_DIR, 'firebase-deploy.yml'), 'utf8'),
     readFile(join(WORKFLOW_DIR, 'pages-deploy.yml'), 'utf8'),
     readFile(join(WORKFLOW_DIR, 'quality-gate.yml'), 'utf8'),
+    readFile(join(WORKFLOW_DIR, 'db-maintenance.yml'), 'utf8'),
   ]);
 
   for (const [label, workflow] of [
@@ -66,11 +67,13 @@ async function validateDeployConfig() {
   assert.doesNotMatch(firebaseWorkflow, /tools\/generate-seo\.mjs/, 'Firebase가 레거시 루트 생성기를 사용하면 안 됩니다.');
   assert.match(firebaseWorkflow, /group:\s*firebase-hosting-live/, 'Firebase live 배포는 동시 실행을 막아야 합니다.');
   assert.match(firebaseWorkflow, /deploy:\s*\n\s+if:\s*github\.ref == 'refs\/heads\/main'/, 'Firebase live job은 main에서만 실행해야 합니다.');
+  assert.match(firebaseWorkflow, /deploy:\s*[\s\S]*?needs:\s*truth_guard/, 'Firebase live job은 Truth Guard를 직접 통과해야 합니다.');
 
   assert.match(pagesWorkflow, /branches:\s*\[main\]/, 'Pages push 배포는 main만 받아야 합니다.');
   assert.match(pagesWorkflow, /build:\s*\n\s+if:\s*github\.ref == 'refs\/heads\/main'/, 'Pages build job은 main에서만 실행해야 합니다.');
   assert.match(pagesWorkflow, /deploy:\s*\n\s+if:\s*github\.ref == 'refs\/heads\/main'/, 'Pages deploy job은 main에서만 실행해야 합니다.');
-  assert.match(pagesWorkflow, /needs:\s*build/, 'Pages deploy는 검증된 build job에 의존해야 합니다.');
+  assert.match(pagesWorkflow, /build:\s*[\s\S]*?needs:\s*truth_guard/, 'Pages build job은 Truth Guard를 먼저 통과해야 합니다.');
+  assert.match(pagesWorkflow, /deploy:\s*[\s\S]*?needs:\s*\[truth_guard,\s*build\]/, 'Pages deploy는 Truth Guard와 검증된 build job에 직접 의존해야 합니다.');
   assert.match(pagesWorkflow, /run:\s*node tools\/build-pages\.mjs/, 'Pages 배포 전 _site 빌드가 필요합니다.');
   assert.match(pagesWorkflow, /run:\s*node scripts\/test-pages-artifact\.mjs --site _site --expect-seo/, 'Pages 최종 artifact 검사가 필요합니다.');
   assert.match(pagesWorkflow, /group:\s*github-pages/, 'Pages live 배포는 동시 실행을 막아야 합니다.');
@@ -80,6 +83,8 @@ async function validateDeployConfig() {
   assert.match(qualityWorkflow, /pull_request:/, 'Quality 검사는 pull request에서 실행해야 합니다.');
   assert.match(qualityWorkflow, /branches:\s*\[main\]/, 'Quality push 검사는 main을 포함해야 합니다.');
   assert.doesNotMatch(qualityWorkflow, /deploy-pages|action-hosting-deploy/, 'Quality workflow는 배포 권한을 소유하면 안 됩니다.');
+
+  assert.match(databaseWorkflow, /run:\s*[\s\S]*?needs:\s*truth_guard/, '운영 DB 적용 job은 Truth Guard를 직접 통과해야 합니다.');
 
   await validatePinnedActions();
 }

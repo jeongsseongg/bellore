@@ -1,0 +1,78 @@
+name: Truth Guard
+
+"on":
+  workflow_call:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: gate
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.12"
+          check-latest: false
+
+      - name: Keep PR bundle pinned to protected base
+        if: github.event_name == 'pull_request'
+        shell: powershell
+        run: |
+          $baseSpec = '${{ github.event.pull_request.base.sha }}:tools/truth-guard/install.json'
+          $baseJson = git show $baseSpec | ConvertFrom-Json
+          $headJson = Get-Content -Raw -LiteralPath .\tools\truth-guard\install.json | ConvertFrom-Json
+          if ($baseJson.bundle_sha256 -ne $headJson.bundle_sha256) {
+            throw 'Truth Guard bundle upgrades require a separately reviewed protected-base bootstrap.'
+          }
+
+      - name: Verify pinned bundle bytes before execution
+        shell: powershell
+        run: |
+          $bundle = '.\tools\\truth-guard\\bundles\\f5a1423e5d2ec2a3688bedd12cf275de9999d5ce6565c887ecacb1f4c21823a6\\truth-guard.pyz'
+          $expected = 'f5a1423e5d2ec2a3688bedd12cf275de9999d5ce6565c887ecacb1f4c21823a6'
+          if (-not (Test-Path -LiteralPath $bundle -PathType Leaf)) { throw 'Truth Guard bundle is missing.' }
+          $actual = (Get-FileHash -LiteralPath $bundle -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $expected) { throw 'Truth Guard bundle SHA-256 mismatch before execution.' }
+          & python -B -I -S $bundle verify-bundle --expected-sha $expected
+          if ($LASTEXITCODE -ne 0) { throw 'Truth Guard internal bundle verification failed.' }
+
+      - name: Run closed deterministic regression suite
+        shell: powershell
+        run: |
+          $bundle = '.\tools\\truth-guard\\bundles\\f5a1423e5d2ec2a3688bedd12cf275de9999d5ce6565c887ecacb1f4c21823a6\\truth-guard.pyz'
+          $expected = 'f5a1423e5d2ec2a3688bedd12cf275de9999d5ce6565c887ecacb1f4c21823a6'
+          if (-not (Test-Path -LiteralPath $bundle -PathType Leaf)) { throw 'Truth Guard bundle is missing.' }
+          $actual = (Get-FileHash -LiteralPath $bundle -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $expected) { throw 'Truth Guard bundle SHA-256 mismatch before self-test execution.' }
+          & python -B -I -S $bundle self-test
+          if ($LASTEXITCODE -ne 0) { throw 'Truth Guard self-test failed.' }
+
+      - name: Gate marked Markdown from the Git index
+        shell: powershell
+        run: |
+          $bundle = '.\tools\\truth-guard\\bundles\\f5a1423e5d2ec2a3688bedd12cf275de9999d5ce6565c887ecacb1f4c21823a6\\truth-guard.pyz'
+          $expected = 'f5a1423e5d2ec2a3688bedd12cf275de9999d5ce6565c887ecacb1f4c21823a6'
+          if (-not (Test-Path -LiteralPath $bundle -PathType Leaf)) { throw 'Truth Guard bundle is missing.' }
+          $actual = (Get-FileHash -LiteralPath $bundle -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $expected) { throw 'Truth Guard bundle SHA-256 mismatch before gate execution.' }
+          & python -B -I -S $bundle git pre-commit --repo-root $env:GITHUB_WORKSPACE
+          if ($LASTEXITCODE -ne 0) { throw 'Truth Guard Git-index gate failed.' }
+
+      - name: Verify checks left checkout clean
+        shell: powershell
+        run: |
+          $dirty = @(git status --porcelain=v1 --untracked-files=all)
+          if ($LASTEXITCODE -ne 0) { throw 'Could not inspect checkout after Truth Guard.' }
+          if ($dirty.Count -ne 0) { throw "Truth Guard mutated checkout state: $($dirty -join ', ')" }

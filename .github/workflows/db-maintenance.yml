@@ -46,8 +46,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  truth_guard:
+    uses: ./.github/workflows/truth-guard.yml
+
   run:
     if: github.ref == 'refs/heads/main'
+    needs: truth_guard
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Truth Guard Project"
+  short_description: "설치된 HIGH/LOW/NONE 근거 무결성 절차 실행"
+  default_prompt: "Use $truth-guard-project to execute this repository's installed HIGH route."

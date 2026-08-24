@@ -15,8 +15,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  truth_guard:
+    uses: ./.github/workflows/truth-guard.yml
+
   build:
     if: github.ref == 'refs/heads/main' && vars.PRODUCTION_DEPLOY_ENABLED != 'false'
+    needs: truth_guard
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -59,7 +63,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    needs: build
+    needs: [truth_guard, build]
     timeout-minutes: 10
     steps:
       - name: Deploy to GitHub Pages
