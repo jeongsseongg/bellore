@@ -1,6 +1,7 @@
 name: Deploy to Firebase Hosting
 
-# main 에 푸시될 때마다 bellore.co.kr (Firebase Hosting) 로 자동 배포합니다.
+# main에 푸시될 때마다 보조 Firebase Hosting(newyork-watch/live)으로 자동 배포합니다.
+# bellore.co.kr의 주 운영 경로는 GitHub Pages이며 Firebase와 혼동하지 않습니다.
 # 필요한 GitHub Secret: FIREBASE_SERVICE_ACCOUNT
 #   (Firebase 콘솔 > 프로젝트 설정 > 서비스 계정 > 새 비공개 키 생성 으로 받은 JSON 전체)
 on:
@@ -22,25 +23,28 @@ concurrency:
 
 jobs:
   deploy:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && vars.PRODUCTION_DEPLOY_ENABLED != 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
 
-      # 로컬과 같은 검사가 실패하면 보조 Firebase live 배포를 시작하지 않는다.
-      - name: Project quality check
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        with:
+          deno-version: '2.9.5'
+
+      # 로컬·PR·두 운영 배포가 같은 한 줄 게이트를 사용한다.
+      - name: Project release gate
         run: node scripts/check.mjs
 
-      - name: Verify market SEO generator
-        run: node scripts/test-seo-market.mjs
-
-      - name: Verify clean Firebase allowlist
-        run: node scripts/test-pages-artifact.mjs
+      - name: Supabase Edge locked typecheck
+        run: node scripts/check-edge.mjs
 
       - name: Build clean Firebase artifact
         run: node tools/build-pages.mjs
@@ -57,7 +61,7 @@ jobs:
         run: node tools/prune-hosting.mjs
 
       - name: Deploy to Firebase Hosting (live)
-        uses: FirebaseExtended/action-hosting-deploy@v0
+        uses: FirebaseExtended/action-hosting-deploy@500ac625ca2dd40cbd15f7659af953801858032a # v0 peeled commit, node24
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}

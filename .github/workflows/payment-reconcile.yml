@@ -1,0 +1,37 @@
+name: Payment Reconcile
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  # DB migration and payment reconciliation must never mutate production at
+  # the same time. Keep this identical to db-maintenance.yml.
+  group: production-database-maintenance
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Reconcile stuck payment states
+        env:
+          PAYMENT_RECONCILE_TOKEN: ${{ secrets.PAYMENT_RECONCILE_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$PAYMENT_RECONCILE_TOKEN"
+          response="$(curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "x-reconcile-token: $PAYMENT_RECONCILE_TOKEN" \
+            https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/reconcile-payments)"
+          RESPONSE="$response" node - <<'NODE'
+          const result = JSON.parse(process.env.RESPONSE || '{}');
+          console.log(JSON.stringify(result));
+          if (!result.ok) process.exit(1);
+          NODE

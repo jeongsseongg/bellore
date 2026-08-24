@@ -99,7 +99,7 @@ assert.match(client, /aggregate_only:\s*true/);
 assert.match(backend, /analytics_consent_dashboard_v1/);
 
 const confirm = fs.readFileSync(path.join(root, 'supabase/functions/confirm-payment/index.ts'), 'utf8');
-assert.match(confirm, /admin\.rpc\("analytics_finalize_paid_order"/);
+assert.match(confirm, /admin\.rpc\("finalize_paid_order_v2"/);
 assert.doesNotMatch(confirm, /\.from\("orders"\)\s*\.update\(\{\s*status:\s*"paid"/);
 
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');

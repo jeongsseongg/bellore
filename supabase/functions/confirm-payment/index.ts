@@ -1,264 +1,278 @@
-// ============================================================
-// 벨로르(BELLORE) · 포트원(PortOne V2) 결제 검증 Edge Function
-// ------------------------------------------------------------
-// 배포:
-//   1) Supabase CLI 또는 대시보드로
-//   2) PORTONE_API_SECRET 시크릿 등록 (포트원 콘솔 > 결제연동 > API Keys 의 "V2 API Secret")
-//        supabase secrets set PORTONE_API_SECRET=xxxxxxxx
-//      supabase secrets set PORTONE_STORE_ID=store-... SHIPPING_FEE=35000
-//   3) supabase functions deploy confirm-payment --no-verify-jwt
-//
-// 보안 핵심(억대 거래 필수):
-//   - 결제금액·상품가는 프런트가 보낸 값이라 신뢰하지 않는다.
-//   - order.listing_id 로 DB의 진짜 시세(listings)를 직접 조회해
-//     전액/배송비/쿠폰할인을 "서버에서 다시 계산"한다.
-//   - 포트원 API로 실제 결제건(paymentId)을 조회해 status=PAID 이고
-//     결제금액이 서버 재계산값과 정확히 일치할 때만 주문을 확정한다.
-//   - 이렇게 해야 "1억 시계를 1,000원에 결제" 같은 금액 위·변조를 차단한다.
-// ============================================================
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
+import { hasConfirmedPaymentStatus } from "../_shared/order-payment-states.ts";
+import { cancelAndReconcile } from "../_shared/portone-cancellation.ts";
 
 const PORTONE_API_SECRET = Deno.env.get("PORTONE_API_SECRET") ?? "";
 const PORTONE_API_BASE = Deno.env.get("PORTONE_API_BASE") ?? "https://api.portone.io";
 const PORTONE_STORE_ID = Deno.env.get("PORTONE_STORE_ID") ?? "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const POINT_EARN_BPS = Number(Deno.env.get("POINT_EARN_BPS") ?? "0");
+const ALLOW_TEST_PAYMENTS = Deno.env.get("ALLOW_TEST_PAYMENTS") === "true";
+const ALLOWED_ORIGINS = new Set([
+  "https://bellore.co.kr",
+  "https://www.bellore.co.kr",
+  "http://localhost",
+  "http://127.0.0.1",
+]);
 
-// 결제 정책 상수 — 프런트(supabase-config.js / payments.js)와 반드시 동일하게 유지.
-const SHIPPING_FEE = Number(Deno.env.get("SHIPPING_FEE") ?? "35000");
-const PREMIUM_SHIP_THRESHOLD = Number(Deno.env.get("PREMIUM_SHIP_THRESHOLD") ?? "5000000");
-// 포인트 적립률 — 결제 확정 금액의 1%(기본). secrets 로 조정 가능. 0 이면 적립 안 함.
-const POINT_EARN_RATE = Number(Deno.env.get("POINT_EARN_RATE") ?? "0.01");
+type JsonRecord = Record<string, unknown>;
 
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+function allowedOrigin(req: Request): string | null {
+  const origin = req.headers.get("Origin");
+  if (!origin) return null;
+  try {
+    const url = new URL(origin);
+    const normalized = `${url.protocol}//${url.hostname}`;
+    return ALLOWED_ORIGINS.has(normalized) ? origin : null;
+  } catch {
+    return null;
+  }
+}
 
-function json(body: unknown, status = 200) {
+function cors(req: Request): HeadersInit {
+  const origin = allowedOrigin(req);
+  return {
+    ...(origin ? { "Access-Control-Allow-Origin": origin } : {}),
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
+}
+
+function json(req: Request, body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...CORS, "Content-Type": "application/json" },
+    headers: { ...cors(req), "Content-Type": "application/json" },
   });
 }
 
-function calcFull(price: number): number {
-  // 기본 무료배송. 프리미엄배송 기준액 이상 고가 상품만 프리미엄배송비 가산.
-  return price + (price >= PREMIUM_SHIP_THRESHOLD ? SHIPPING_FEE : 0);
+function safeText(value: unknown, max: number): string | null {
+  return typeof value === "string" && value.trim()
+    ? value.trim().slice(0, max)
+    : null;
 }
 
-// supabase.js couponDiscount 와 동일한 계산
-function couponDiscount(c: any, base: number): number {
-  base = Number(base) || 0;
-  if (!c || base <= 0) return 0;
-  if (c.expires_at && new Date(c.expires_at).getTime() < Date.now()) return 0;
-  if (c.min_order && base < Number(c.min_order)) return 0;
-  let d = 0;
-  if (c.discount_type === "percent") {
-    d = Math.floor((base * (Number(c.discount_value) || 0)) / 100);
-    if (c.max_discount) d = Math.min(d, Number(c.max_discount));
-  } else {
-    d = Number(c.discount_value) || 0;
-  }
-  return Math.max(0, Math.min(d, base));
-}
-
-function sanitizeAttribution(value: any) {
-  if (!value || typeof value !== "object") return null;
-  const uuid = (v: unknown) => typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v) ? v : null;
-  const touch = (v: any) => {
-    if (!v || typeof v !== "object" || Array.isArray(v)) return null;
-    const allowed = [
-      "utm_id", "utm_source", "utm_medium", "utm_campaign", "utm_source_platform", "utm_term", "utm_content",
-      "gclid", "dclid", "wbraid", "gbraid", "msclkid", "fbclid", "ttclid",
-      "n_media", "n_query", "n_keyword", "n_campaign", "n_campaign_type", "n_ad_group", "n_ad", "n_rank", "n_click_id",
+function sanitizeAttribution(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const source = value as JsonRecord;
+  const uuid = (candidate: unknown) =>
+    typeof candidate === "string" &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(candidate)
+      ? candidate
+      : null;
+  const touch = (candidate: unknown) => {
+    if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) return null;
+    const input = candidate as JsonRecord;
+    const keys = [
+      "utm_id", "utm_source", "utm_medium", "utm_campaign", "utm_source_platform",
+      "utm_term", "utm_content", "gclid", "dclid", "wbraid", "gbraid", "msclkid",
+      "fbclid", "ttclid", "n_media", "n_query", "n_keyword", "n_campaign",
+      "n_campaign_type", "n_ad_group", "n_ad", "n_rank", "n_click_id",
       "referrer_host", "channel",
     ];
-    const out: Record<string, string> = {};
-    for (const key of allowed) if (typeof v[key] === "string" && v[key].trim()) out[key] = v[key].trim().slice(0, 200);
-    return out;
+    const output: Record<string, string> = {};
+    for (const key of keys) {
+      const text = safeText(input[key], 200);
+      if (text) output[key] = text;
+    }
+    return output;
   };
   return {
-    event_id: uuid(value.event_id), anonymous_id: uuid(value.anonymous_id), session_id: uuid(value.session_id),
-    first_touch: touch(value.first_touch), session_touch: touch(value.session_touch), conversion_touch: touch(value.conversion_touch),
+    event_id: uuid(source.event_id),
+    anonymous_id: uuid(source.anonymous_id),
+    session_id: uuid(source.session_id),
+    first_touch: touch(source.first_touch),
+    session_touch: touch(source.session_touch),
+    conversion_touch: touch(source.conversion_touch),
+  };
+}
+
+async function sha256Hex(value: string): Promise<string> {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function publicOrder(order: JsonRecord | null | undefined) {
+  if (!order) return null;
+  return {
+    id: order.id,
+    order_no: order.order_no,
+    listing_id: order.listing_id,
+    status: order.status,
+    amount: order.amount,
+    paid_at: order.paid_at,
+    receipt_url: order.receipt_url,
   };
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
-  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+  if (req.method === "OPTIONS") {
+    if (!allowedOrigin(req)) return new Response(null, { status: 403 });
+    return new Response("ok", { headers: cors(req) });
+  }
+  if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
+  if (req.headers.get("Origin") && !allowedOrigin(req)) {
+    return json(req, { error: "origin_forbidden" }, 403);
+  }
+  if (!PORTONE_API_SECRET || !PORTONE_STORE_ID || !SUPABASE_URL || !SERVICE_ROLE) {
+    return json(req, { error: "server_not_configured" }, 503);
+  }
+  if (!Number.isInteger(POINT_EARN_BPS) || POINT_EARN_BPS < 0 || POINT_EARN_BPS > 10000) {
+    return json(req, { error: "point_policy_invalid" }, 503);
+  }
 
   try {
-    const body = await req.json();
-    // 포트원: paymentId(=order_no) 로 검증. (구버전 orderId 도 허용)
-    const paymentId: string = body.paymentId || body.orderId || "";
+    const body = await req.json() as JsonRecord;
+    const paymentId = safeText(body.paymentId ?? body.orderId, 160);
+    const checkoutToken = safeText(body.checkoutToken, 256);
     const attribution = sanitizeAttribution(body.attribution);
-    if (!paymentId) return json({ error: "missing_params" }, 400);
-    if (!PORTONE_API_SECRET) return json({ error: "not_configured" }, 400);
+    if (!paymentId) return json(req, { error: "missing_payment_id" }, 400);
 
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
-
-    // 1) 주문 조회
-    const { data: order, error: selErr } = await admin
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: order, error: orderError } = await admin
       .from("orders")
-      .select("*")
+      .select("id,order_no,customer_id,listing_id,amount,status,checkout_token_hash,payment_key,paid_at,receipt_url")
       .eq("order_no", paymentId)
       .single();
+    if (orderError || !order) return json(req, { error: "order_not_found" }, 404);
 
-    if (selErr || !order) return json({ error: "order_not_found" }, 404);
-    if (order.status === "paid") {
-      return json({ ok: true, alreadyPaid: true, order });
+    const authorization = req.headers.get("Authorization") ?? "";
+    const bearer = authorization.replace(/^Bearer\s+/i, "");
+    let callerId: string | null = null;
+    if (bearer) {
+      const { data } = await admin.auth.getUser(bearer);
+      callerId = data.user?.id ?? null;
+    }
+    if (order.customer_id) {
+      if (!callerId || callerId !== order.customer_id) {
+        return json(req, { error: "order_forbidden" }, 403);
+      }
+    } else if (!checkoutToken || await sha256Hex(checkoutToken) !== order.checkout_token_hash) {
+      return json(req, { error: "order_forbidden" }, 403);
     }
 
-    // 2) 서버 측 금액 재계산 (위·변조 방지의 핵심)
-    //    - 프런트가 보낸 order.amount / order.product_price 는 신뢰하지 않는다.
-    //    - listings의 실제 판매가(유효한 타임세일 포함)로 전액을 다시 계산한다.
-    if (!order.listing_id) {
-      return json({ error: "price_unverifiable_no_listing" }, 400);
+    if (order.status === "refund_pending") {
+      return json(req, { error: "payment_refund_pending" }, 409);
     }
-    const { data: listing, error: lErr } = await admin
-      .from("listings")
-      .select("price, sale_price, tags, sale_started_at, created_at")
-      .eq("id", order.listing_id)
-      .single();
-    if (lErr || !listing) return json({ error: "listing_not_found" }, 404);
-
-    const listPrice = Number(listing.price) || 0;
-    const salePrice = Number(listing.sale_price) || 0;
-    const saleBase = listing.sale_started_at || listing.created_at;
-    const saleActive =
-      Array.isArray(listing.tags) &&
-      listing.tags.includes("sale") &&
-      !!saleBase &&
-      new Date(saleBase).getTime() + 72 * 60 * 60 * 1000 > Date.now();
-    const truePrice =
-      saleActive && salePrice > 0 && salePrice < listPrice ? salePrice : listPrice;
-    if (truePrice <= 0) return json({ error: "invalid_listing_price" }, 400);
-
-    if (order.pay_type !== "full") {
-      return json({ error: "unsupported_pay_type" }, 400);
+    if (order.status === "refunded") {
+      return json(req, { error: "payment_refunded" }, 409);
     }
-    const base = calcFull(truePrice);
-
-    // 3) 쿠폰 할인도 서버에서 재검증 (프런트가 보낸 discount 무시)
-    let serverDiscount = 0;
-    if (order.coupon_user_id) {
-      const { data: uc } = await admin
-        .from("user_coupons")
-        .select("id, status, user_id, coupons:coupon_id(*)")
-        .eq("id", order.coupon_user_id)
-        .single();
-      const valid =
-        uc &&
-        uc.status === "active" &&
-        uc.user_id === order.customer_id &&
-        uc.coupons &&
-        (uc.coupons.apply_to === "order" || uc.coupons.apply_to === "both");
-      if (valid) serverDiscount = couponDiscount(uc.coupons, base);
+    if (hasConfirmedPaymentStatus(order.status)) {
+      return json(req, { ok: true, alreadyPaid: true, order: publicOrder(order) });
     }
 
-    const expected = Math.max(0, base - serverDiscount);
-
-    // 4) 포트원 API로 실제 결제건 조회 (결제금액·상태는 포트원이 진실의 원천)
-    const pres = await fetch(
+    const providerResponse = await fetch(
       `${PORTONE_API_BASE}/payments/${encodeURIComponent(paymentId)}`,
       { headers: { Authorization: `PortOne ${PORTONE_API_SECRET}` } },
     );
-    const payment = await pres.json();
+    let payment: JsonRecord;
+    try {
+      payment = await providerResponse.json() as JsonRecord;
+    } catch {
+      return json(req, { error: "provider_response_invalid" }, 502);
+    }
+    if (!providerResponse.ok) return json(req, { error: "provider_lookup_failed" }, 502);
 
-    if (!pres.ok) {
-      return json({ error: "portone_lookup_failed", detail: payment }, 400);
+    const providerPaymentId = safeText(payment.id ?? payment.paymentId, 160);
+    const channel = payment.channel && typeof payment.channel === "object"
+      ? payment.channel as JsonRecord
+      : null;
+    const channelType = safeText(channel?.type, 20);
+    const paidAmount = Number(
+      payment.amount && typeof payment.amount === "object"
+        ? (payment.amount as JsonRecord).total
+        : payment.amount,
+    );
+
+    if (providerPaymentId && providerPaymentId !== paymentId) {
+      return json(req, { error: "provider_payment_id_mismatch" }, 409);
     }
-    if (PORTONE_STORE_ID && payment?.storeId !== PORTONE_STORE_ID) {
-      return json({ error: "store_mismatch" }, 400);
+    if (payment.storeId !== PORTONE_STORE_ID) {
+      return json(req, { error: "provider_store_mismatch" }, 409);
+    }
+    if (payment.currency !== "KRW") {
+      return json(req, { error: "provider_currency_mismatch" }, 409);
+    }
+    if ((!ALLOW_TEST_PAYMENTS && channelType !== "LIVE") || (!channelType && !ALLOW_TEST_PAYMENTS)) {
+      return json(req, { error: "provider_channel_not_live" }, 409);
+    }
+    if (payment.status !== "PAID") {
+      if (payment.status === "FAILED") {
+        await admin.from("orders").update({ status: "failed" }).eq("id", order.id);
+      }
+      return json(req, { error: "payment_not_paid", status: payment.status }, 409);
+    }
+    if (!Number.isSafeInteger(paidAmount) || paidAmount !== Number(order.amount)) {
+      const cancellation = await cancelAndReconcile({
+        admin,
+        apiBase: PORTONE_API_BASE,
+        apiSecret: PORTONE_API_SECRET,
+        storeId: PORTONE_STORE_ID,
+        paymentId,
+        orderNo: paymentId,
+        orderAmount: Number(order.amount),
+        reason: "amount_mismatch_auto_cancel",
+      });
+      return json(req, {
+        error: "amount_mismatch",
+        cancellationState: cancellation.state,
+        providerRefunded: cancellation.providerRefunded,
+        recoveryTracked: cancellation.tracked,
+      }, cancellation.tracked ? 409 : 500);
     }
 
-    // 5) 상태/금액 대조 — PAID 이고 실제 결제금액이 서버 재계산값과 일치해야 함
-    const paidAmount = Number(payment?.amount?.total ?? payment?.amount ?? -1);
-    if (payment?.status !== "PAID") {
-      await admin.from("orders").update({ status: "failed" }).eq("id", order.id);
-      return json({ error: "not_paid", status: payment?.status }, 400);
-    }
-    if (paidAmount !== expected) {
-      // 금액 위·변조 의심 → 결제 취소 시도 후 실패 처리
-      try {
-        await fetch(
-          `${PORTONE_API_BASE}/payments/${encodeURIComponent(paymentId)}/cancel`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `PortOne ${PORTONE_API_SECRET}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ reason: "amount_mismatch_auto_cancel" }),
-          },
-        );
-      } catch (_e) { /* 취소 실패해도 주문은 확정하지 않음 */ }
-      await admin.from("orders").update({ status: "failed" }).eq("id", order.id);
-      return json({ error: "amount_mismatch", expected, got: paidAmount }, 400);
-    }
-
-    // 6) 주문 확정 + canonical orders.id 귀속 스냅샷을 단일 DB transaction으로 저장
-    const method = payment?.method?.type ?? payment?.method?.provider ?? null;
-    const receiptUrl = payment?.receiptUrl ?? null;
-    const { data: finalized, error: finalizeError } = await admin.rpc("analytics_finalize_paid_order", {
-      p_order_id: order.id,
-      p_amount: expected,
-      p_discount: serverDiscount,
+    const method = payment.method && typeof payment.method === "object"
+      ? safeText((payment.method as JsonRecord).type ?? (payment.method as JsonRecord).provider, 80)
+      : null;
+    const receiptUrl = safeText(payment.receiptUrl, 500);
+    const transactionId = safeText(payment.transactionId, 160);
+    const { data: finalized, error: finalizeError } = await admin.rpc("finalize_paid_order_v2", {
+      p_order_no: paymentId,
+      p_paid_amount: paidAmount,
       p_method: method,
       p_payment_key: paymentId,
+      p_provider_transaction_id: transactionId,
       p_receipt_url: receiptUrl,
       p_attribution: attribution,
+      p_point_earn_bps: POINT_EARN_BPS,
     });
     if (finalizeError || !finalized?.order) {
-      return json({ error: "order_attribution_finalize_failed", detail: finalizeError?.message ?? "missing_order" }, 500);
+      const cancellation = await cancelAndReconcile({
+        admin,
+        apiBase: PORTONE_API_BASE,
+        apiSecret: PORTONE_API_SECRET,
+        storeId: PORTONE_STORE_ID,
+        paymentId,
+        orderNo: paymentId,
+        orderAmount: Number(order.amount),
+        reason: `order_finalize_failed_auto_cancel:${finalizeError?.message ?? "unknown"}`,
+      });
+      return json(req, {
+        error: "order_finalize_failed",
+        cancellationState: cancellation.state,
+        providerRefunded: cancellation.providerRefunded,
+        recoveryTracked: cancellation.tracked,
+      }, cancellation.tracked ? 409 : 500);
     }
-    const updated = finalized.order;
 
-    // 7) 쿠폰 사용 확정 (결제 성공 시에만)
-    if (order.coupon_user_id) {
-      await admin
-        .from("user_coupons")
-        .update({
-          status: "used",
-          used_at: new Date().toISOString(),
-          order_id: order.id,
-          used_context: "order",
-        })
-        .eq("id", order.coupon_user_id)
-        .eq("status", "active");
-    }
-
-    // 8) 포인트 적립 (결제 확정 금액의 POINT_EARN_RATE) — 실패해도 결제는 성공 처리
-    //    profiles.points 를 올리고 point_ledger 에 내역을 남긴다(service_role = RLS 우회).
-    let earnedPoints = 0;
-    try {
-      if (POINT_EARN_RATE > 0 && order.customer_id) {
-        earnedPoints = Math.floor(expected * POINT_EARN_RATE);
-        if (earnedPoints > 0) {
-          const { data: prof } = await admin
-            .from("profiles")
-            .select("points")
-            .eq("id", order.customer_id)
-            .single();
-          const cur = Number(prof?.points) || 0;
-          const next = cur + earnedPoints;
-          await admin.from("profiles").update({ points: next }).eq("id", order.customer_id);
-          await admin.from("point_ledger").insert({
-            user_id: order.customer_id,
-            delta: earnedPoints,
-            balance_after: next,
-            reason: "order_earn",
-            order_id: order.id,
-          });
-        }
-      }
-    } catch (_e) { /* 포인트 적립 실패는 결제 확정에 영향 주지 않음 */ }
-
-    return json({ ok: true, order: updated, payment, earnedPoints });
-  } catch (e) {
-    return json({ error: "server_error", detail: String(e) }, 500);
+    return json(req, {
+      ok: true,
+      alreadyPaid: Boolean(finalized.alreadyPaid),
+      earnedPoints: Number(finalized.earnedPoints) || 0,
+      order: publicOrder(finalized.order),
+      payment: {
+        status: payment.status,
+        transactionId,
+        paidAt: payment.paidAt ?? null,
+        method,
+      },
+    });
+  } catch (error) {
+    console.error("confirm-payment", error instanceof Error ? error.message : String(error));
+    return json(req, { error: "server_error" }, 500);
   }
 });

@@ -14,12 +14,9 @@
 --     대조하므로, 클라이언트가 보낸 amount 는 신뢰하지 않는다(기존 보안 유지).
 --   - 그래서 anon 이 임의 amount 로 pending 행을 만들어도 결제 승인 단계에서 차단된다.
 
--- 비회원(anon) 의 주문 생성: customer_id 가 비어있고 상태가 pending 인 행만 허용
+-- 이전 직접 INSERT 정책은 amount/status 위조를 허용했다.
+-- 비회원도 create_checkout_order RPC를 사용하며 원문 토큰으로 본인성을 증명한다.
 drop policy if exists orders_insert_guest on public.orders;
-create policy orders_insert_guest on public.orders
-  for insert
-  to anon
-  with check (customer_id is null and status = 'pending');
+revoke insert on public.orders from anon, authenticated;
 
--- 참고: 회원 주문 생성 정책(orders_insert_own: auth.uid() = customer_id)과
---       관리자 정책(orders_admin_all)은 orders.sql 그대로 유지된다(추가 정책임).
+-- 실행 순서와 함수는 phase 7-8 migration이 유일한 정본이다.

@@ -70,6 +70,8 @@ window.BELLORE_PAYMENTS = {
     { id: "payco",    label: "페이코",       payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_PAYCO" },
     { id: "smilepay", label: "스마일페이",   payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_SMILEPAY" }
   ],
+  // 주문 예약·서버 capability 발급 Edge Function. 브라우저에서 DB RPC를 직접 호출하지 않습니다.
+  checkoutUrl: "https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/create-checkout",
   // 결제 검증 Edge Function. 비어 있거나 호출 불가하면 결제를 차단합니다.
   confirmUrl: "https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/confirm-payment",
   // 결제 취소/환불 Edge Function. 실제 포트원 취소 성공 후에만 환불 완료 처리합니다.

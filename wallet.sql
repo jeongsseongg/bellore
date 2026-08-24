@@ -66,12 +66,13 @@ end $$;
 --   · 관리자 수동충전(테스트) 또는 결제검증 Edge Function(service_role)에서 호출.
 create or replace function public.wallet_charge(p_uid uuid, p_amount bigint, p_memo text default null)
 returns bigint language plpgsql security definer set search_path = public as $$
-declare w public.wallets; is_admin boolean;
+declare w public.wallets; is_allowed boolean;
 begin
   if p_amount is null or p_amount <= 0 then raise exception '충전 금액이 올바르지 않습니다.'; end if;
-  -- 호출 권한: 관리자이거나 service_role(auth.uid() is null)
-  is_admin := (auth.uid() is null) or exists (select 1 from public.profiles where id = auth.uid() and role = 'admin');
-  if not is_admin then raise exception '충전 권한이 없습니다.'; end if;
+  -- auth.uid() IS NULL은 anon도 포함하므로 service_role 판정으로 쓰지 않는다.
+  is_allowed := coalesce(auth.role(),'') = 'service_role'
+    or exists (select 1 from public.profiles where id = auth.uid() and role = 'admin');
+  if not is_allowed then raise exception '충전 권한이 없습니다.'; end if;
 
   w := public._wallet_row(p_uid);
   update public.wallets set balance = balance + p_amount, updated_at = now() where user_id = p_uid
@@ -234,10 +235,14 @@ create policy dep_admin_all on public.auction_deposits for select
   using (exists (select 1 from public.profiles p where p.id = auth.uid() and p.role='admin'));
 
 -- ⑬ 실행 권한(RPC) -------------------------------------------
+revoke all on function public._wallet_row(uuid) from public, anon, authenticated;
+revoke all on function public._deposit_release(uuid, uuid) from public, anon, authenticated;
+revoke all on function public._deposit_forfeit(uuid, uuid) from public, anon, authenticated;
+revoke all on function public.release_deposits_on_end() from public, anon, authenticated;
 grant execute on function public.place_auction_bid(uuid, bigint)   to authenticated;
 grant execute on function public.wallet_refund_request(bigint)     to authenticated;
 grant execute on function public.auction_winner_cancel(uuid)       to authenticated;
-grant execute on function public.wallet_charge(uuid, bigint, text) to authenticated; -- 내부에서 관리자 검사
+grant execute on function public.wallet_charge(uuid, bigint, text) to authenticated, service_role;
 
 -- ============================================================
 -- ✅ 완료. 확인 순서

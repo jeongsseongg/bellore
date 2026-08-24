@@ -4,9 +4,9 @@
   "legacyLineCeilings": {
     "styles.css": 10454,
     "script.js": 6621,
-    "index.html": 3671,
+    "index.html": 3218,
     "wanted-theme.css": 3060,
-    "supabase.js": 2626,
+    "supabase.js": 2610,
     "cq-demo.js": 2423,
     "ai-advisor.js": 1529,
     "bellore-redesign.css": 1560,
@@ -15,18 +15,22 @@
     "ai-advisor-admin.js": 763,
     "mypick.css": 707,
     "wishlist.js": 473,
-    "payments.js": 547,
+    "payments.js": 541,
     "search.js": 575,
-    "reference-layout.css": 425
+    "reference-layout.css": 425,
+    "tools/generate-seo.mjs": 615,
+    "supabase/functions/ai-learn/index.ts": 481,
+    "tools/bellore-shop-ai.mjs": 460,
+    "scripts/check.mjs": 430
   },
   "legacyCeilings": {
-    "executableInlineScriptBlocks": 3,
-    "executableInlineScriptBytes": 32728,
-    "styleAttributes": 15,
+    "executableInlineScriptBlocks": 2,
+    "executableInlineScriptBytes": 1210,
+    "styleAttributes": 14,
     "importantTokens": 376,
     "windowAssignments": 91,
     "scriptStyleAttributeTokens": 83,
-    "localClassicScripts": 17
+    "localClassicScripts": 20
   },
   "newCodeBudgets": {
     ".js": {
@@ -34,6 +38,10 @@
       "maximum": 400
     },
     ".mjs": {
+      "review": 320,
+      "maximum": 400
+    },
+    ".ts": {
       "review": 320,
       "maximum": 400
     },
@@ -89,6 +97,7 @@
     "wishlist.js"
   ],
   "legacyCeilingNotes": {
-    "index.html": "20260824: 시계추천 배너(featBannerBlock) 마운트 한 줄 복원분. 실행 로직은 app/features/home-banners/에 있다."
+    "index.html": "20260824: 시계추천 배너(featBannerBlock) 마운트 한 줄 복원분. 실행 로직은 app/features/home-banners/에 있다.",
+    "verify.html": "20260824: 운영 artifact에서 제외하는 local-only 진단 페이지. file://에서도 실행되도록 외부 classic defer 스크립트 1개를 사용한다."
   }
 }

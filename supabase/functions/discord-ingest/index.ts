@@ -50,7 +50,9 @@
 //   (선택) 특정 채널만 견적으로 받으려면 Secrets 에
 //   DISCORD_QUOTE_CHANNELS=채널ID,채널ID … 설정. 미설정 시 수집 채널 전체.
 // ============================================================
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
+
+type SB = ReturnType<typeof createClient<any, "public">>;
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -155,7 +157,7 @@ function bidMessageFor(text: string, man: number): string {
 
 // 관리자 명의 1차 견적 입찰 등록/갱신 (upsert: 같은 견적에 다시 오면 금액 갱신)
 async function placeFirstBid(
-  admin: ReturnType<typeof createClient>,
+  admin: SB,
   quoteId: string,
   price: { man: number },
   text: string,
@@ -176,7 +178,7 @@ async function placeFirstBid(
 // 이미 1차 견적이 있으면 "만원" 표기가 명시된 경우에만 금액을 갱신(잡담 숫자로
 // 기존 견적이 덮이는 것 방지).
 async function attachPriceToRecentQuote(
-  admin: ReturnType<typeof createClient>,
+  admin: SB,
   it: { channel_id?: unknown },
   text: string,
 ) {
@@ -215,7 +217,7 @@ function isImageAttachment(att: { url?: string; file_name?: string; file_type?: 
 // 이미지+모델명 → 비회원 견적(open) 생성 + 금액 있으면 1차 견적 입찰
 // 반환: null=대상 아님(수집만), {id,...}=생성됨, {error}=실패(로그용)
 async function createGuestQuote(
-  admin: ReturnType<typeof createClient>,
+  admin: SB,
   it: { channel_id?: unknown; channel_name?: unknown; sender_name?: unknown },
   text: string,
   attachments: { url?: string; file_name?: string; file_type?: string }[],
@@ -279,7 +281,7 @@ async function createGuestQuote(
 }
 
 async function mirrorAttachment(
-  admin: ReturnType<typeof createClient>,
+  admin: SB,
   msgId: string,
   att: { url?: string; file_name?: string; file_type?: string; file_size?: number },
 ) {

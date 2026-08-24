@@ -122,6 +122,7 @@ function fakeEventTarget() {
   const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
   const buildPages = fs.readFileSync(path.join(root, 'tools', 'build-pages.mjs'), 'utf8');
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  const pageRuntime = fs.readFileSync(path.join(root, 'app', 'legacy', 'page-runtime.js'), 'utf8');
 
   assert.match(bootstrap, /import \{ initProductDetailRoute, initProductSharing \} from '\.\/features\/product-sharing\/product-sharing\.mjs';/);
   assert.match(bootstrap, /initProductSharing\(\{/);
@@ -151,13 +152,14 @@ function fakeEventTarget() {
     assert(buildPages.includes(`'${asset.slice(2)}'`), `Pages allowlist 누락: ${asset}`);
   }
   for (const [asset, releaseKey] of [
-    ['script.js', '20260824-home-v2'],
-    ['app/bootstrap.js', '20260824-home-v2'],
-    ['sw.js', '20260824-home-v2'],
+    ['script.js', '20260824-phase7-11-v1'],
+    ['app/bootstrap.js', '20260824-phase7-11-v1'],
+    ['sw.js', '20260824-phase7-11-v1'],
     ['wishlist.js', '20260824-purl-v2'],
     ['search.js', '20260824-purl-v2'],
   ]) {
-    assert(html.includes(`${asset}?v=${releaseKey}`), `HTML 캐시 키 누락: ${asset}`);
+    const registrationSource = asset === 'sw.js' ? pageRuntime : html;
+    assert(registrationSource.includes(`${asset}?v=${releaseKey}`), `런타임 캐시 키 누락: ${asset}`);
   }
 
   console.log('product sharing market URL invariants: ok');

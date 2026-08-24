@@ -12,13 +12,6 @@ name: DB Maintenance
 on:
   schedule:
     - cron: '20 18 * * *' # 매일 03:20 KST, pg_cron 미설치 프로젝트의 보존정책 실행
-  push:
-    branches: [main]
-    paths:
-      - admin_multi_bids.sql
-      - bid_notify.sql
-      - analytics_v3_canonical.sql
-      - .github/workflows/db-maintenance.yml
   workflow_dispatch:
     inputs:
       task:
@@ -31,17 +24,35 @@ on:
           - apply-admin-multi-bids
           - apply-quote-followup
           - apply-analytics-v3
+          - validate-authority-payment
+          - apply-authority-payment
           - purge-analytics-v3
+      confirm_sha:
+        description: "DB apply 때만: 이 workflow가 실행할 정확한 커밋 SHA"
+        type: string
+        required: false
+      backup_run_id:
+        description: "DB apply 때만: 24시간 이내 성공한 db-backup run ID"
+        type: string
+        required: false
 
 permissions:
   contents: read
+  actions: read
+
+concurrency:
+  group: production-database-maintenance
+  cancel-in-progress: false
 
 jobs:
   run:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Guard — 시크릿 없으면 중단
         env:
@@ -50,6 +61,53 @@ jobs:
           if [ -z "$DB_URL" ]; then
             echo "SUPABASE_DB_URL 시크릿 미설정 — 실행 불가"; exit 1
           fi
+
+      - name: Guard authority apply — exact SHA and recoverable backup
+        if: inputs.task == 'apply-authority-payment'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.confirm_sha }}
+          BACKUP_RUN_ID: ${{ inputs.backup_run_id }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          if [ -z "$EXPECTED_SHA" ] || [ "$EXPECTED_SHA" != "$GITHUB_SHA" ]; then
+            echo "confirm_sha must exactly match GITHUB_SHA"; exit 1
+          fi
+          if ! [[ "$BACKUP_RUN_ID" =~ ^[0-9]+$ ]]; then
+            echo "backup_run_id is required"; exit 1
+          fi
+          run_json=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$BACKUP_RUN_ID")
+          echo "$run_json" | jq -e \
+            '(.conclusion == "success") and (.head_branch == "main") and
+             ((.path == ".github/workflows/db-backup.yml") or
+              (.path | startswith(".github/workflows/db-backup.yml@"))) and
+             ((now - (.created_at | fromdateiso8601)) < 86400)' >/dev/null
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$BACKUP_RUN_ID/artifacts" \
+            --jq '[.artifacts[] | select(.name == "db-backup" and .expired == false and .size_in_bytes > 1024)] | length' \
+            | grep -qx '1'
+          if [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "BACKUP_PASSPHRASE is required to prove the artifact is recoverable"; exit 1
+          fi
+          umask 077
+          backup_dir="$(mktemp -d)"
+          trap 'rm -rf "$backup_dir"' EXIT
+          gh run download "$BACKUP_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --name db-backup --dir "$backup_dir"
+          mapfile -d '' backup_files < <(
+            find "$backup_dir" -type f -name 'bellore-*.sql.gz.gpg' -print0
+          )
+          if [ "${#backup_files[@]}" -ne 1 ]; then
+            echo "Expected exactly one encrypted SQL dump"; exit 1
+          fi
+          printf '%s' "$BACKUP_PASSPHRASE" | gpg --batch --yes --quiet \
+            --pinentry-mode loopback --passphrase-fd 0 \
+            --output "$backup_dir/backup.sql.gz" --decrypt "${backup_files[0]}"
+          gzip -t "$backup_dir/backup.sql.gz"
+          gzip -cd "$backup_dir/backup.sql.gz" > "$backup_dir/backup.sql"
+          grep -Eq '^-- PostgreSQL database dump|^CREATE (SCHEMA|TABLE)|^COPY ' \
+            "$backup_dir/backup.sql"
+          echo "Exact release SHA and decryptable, decompressible SQL backup verified"
 
       - name: Apply discord_quote SQL (재실행 안전)
         if: inputs.task == 'apply-discord-quote'
@@ -65,7 +123,7 @@ jobs:
           echo "모든 SQL 적용 완료"
 
       - name: Apply admin multi-bids SQL (재실행 안전)
-        if: github.event_name == 'push' || inputs.task == 'apply-admin-multi-bids'
+        if: inputs.task == 'apply-admin-multi-bids'
         env:
           PGCONN: ${{ secrets.SUPABASE_DB_URL }}
         run: |
@@ -110,7 +168,7 @@ jobs:
           echo "판매 확정 후속처리 DB 적용 완료"
 
       - name: Apply analytics V3 canonical SQL
-        if: github.event_name == 'push' || inputs.task == 'apply-analytics-v3'
+        if: inputs.task == 'apply-analytics-v3'
         env:
           PGCONN: ${{ secrets.SUPABASE_DB_URL }}
         run: |
@@ -125,6 +183,234 @@ jobs:
                  has_function_privilege('service_role','public.analytics_ingest_event(jsonb,text,uuid,text,text)','execute') as service_can_ingest;
           SQL
           echo "분석 V3 스키마 적용 완료 — 원시/클릭 ID 90일, 비식별 집계 730일"
+
+      - name: Validate authority and payment migration (always rollback)
+        if: inputs.task == 'validate-authority-payment' || inputs.task == 'apply-authority-payment'
+        env:
+          PGCONN: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          docker run --rm -i -e PGCONN -v "$PWD:/repo:ro" postgres:17 \
+            psql "$PGCONN" -v ON_ERROR_STOP=1 <<'SQL'
+          begin;
+          \i /repo/supabase/migrations/20260824090000_authority_payment_hardening.sql
+
+          do $$
+          begin
+            if has_table_privilege('anon','public.orders','insert')
+               or has_table_privilege('authenticated','public.orders','insert') then
+              raise exception 'orders direct insert is still open';
+            end if;
+            if has_function_privilege('anon','public._claim_coupon(public.coupons,uuid)','execute')
+               or has_function_privilege('authenticated','public._claim_coupon(public.coupons,uuid)','execute') then
+              raise exception 'internal coupon helper is still public';
+            end if;
+            if has_function_privilege('anon',
+              'public.create_checkout_order(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)','execute')
+               or has_function_privilege('authenticated',
+              'public.create_checkout_order(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)','execute')
+               or has_function_privilege('anon',
+              'public.create_checkout_order_edge_v1(text,uuid,uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb)','execute')
+               or has_function_privilege('authenticated',
+              'public.create_checkout_order_edge_v1(text,uuid,uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb)','execute')
+               or has_function_privilege('anon',
+              'public.consume_checkout_rate_limit(text)','execute')
+               or has_function_privilege('authenticated',
+              'public.consume_checkout_rate_limit(text)','execute') then
+              raise exception 'browser role bypasses checkout Edge gate';
+            end if;
+            if not has_function_privilege('service_role',
+              'public.create_checkout_order(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)','execute')
+               or not has_function_privilege('service_role',
+              'public.create_checkout_order_edge_v1(text,uuid,uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb)','execute') then
+              raise exception 'checkout RPC is not executable by service role';
+            end if;
+            if not has_function_privilege('service_role',
+              'public.consume_checkout_rate_limit(text)','execute') then
+              raise exception 'checkout rate limiter is not executable by service role';
+            end if;
+            if has_function_privilege('authenticated',
+              'public.finalize_paid_order_v2(text,bigint,text,text,text,text,jsonb,integer)','execute') then
+              raise exception 'payment finalizer leaked to browser role';
+            end if;
+            if not exists (
+              select 1 from pg_policies
+               where schemaname='storage' and tablename='objects'
+                 and policyname='photos_auth_delete'
+                 and qual like '%owner_id%'
+            ) then
+              raise exception 'storage ownership policy missing';
+            end if;
+          end $$;
+
+          select id as listing_id
+            from public.listings
+           where status='on_sale'
+           order by id limit 1 \gset
+          set local role service_role;
+          set local request.jwt.claims = '{"role":"service_role"}';
+          select public.create_checkout_order_edge_v1(
+            repeat('a',64), null, :'listing_id'::uuid, repeat('b',64)
+          );
+          select order_no, amount
+            from public.orders
+           where checkout_token_hash=repeat('b',64)
+           order by created_at desc limit 1 \gset
+          select public.finalize_paid_order_v2(
+            :'order_no', :'amount'::bigint, 'CARD', :'order_no', 'dry-run-tx', null, null, 0
+          );
+          select public.finalize_paid_order_v2(
+            :'order_no', :'amount'::bigint, 'CARD', :'order_no', 'dry-run-tx', null, null, 0
+          );
+          update public.orders set status='returning' where order_no=:'order_no';
+          select public.finalize_order_refund_v2(
+            :'order_no', :'amount'::bigint, 'dry-run', 'dry-run-cancel'
+          );
+          select public.finalize_order_refund_v2(
+            :'order_no', :'amount'::bigint, 'dry-run', 'dry-run-cancel'
+          );
+          reset role;
+
+          select exists (
+            select 1 from public.orders
+             where order_no=:'order_no' and status='refunded'
+               and refund_amount=:'amount'::bigint
+          ) and exists (
+            select 1 from public.listings
+             where id=:'listing_id'::uuid and status='on_sale'
+               and sold_order_id is null
+          ) as lifecycle_ok \gset
+          \if :lifecycle_ok
+            \echo 'payment/refund/listing lifecycle verified'
+          \else
+            \echo 'payment/refund/listing lifecycle verification failed'
+            \quit 1
+          \endif
+
+          do $$
+          declare
+            v_listing uuid;
+            v_index integer := 0;
+          begin
+            for v_listing in
+              select id from public.listings where status='on_sale' order by id limit 6
+            loop
+              v_index := v_index + 1;
+              if v_index <= 5 then
+                perform public.create_checkout_order_edge_v1(
+                  repeat('c',64), null, v_listing,
+                  lpad(v_index::text,64,'d')
+                );
+              else
+                begin
+                  perform public.create_checkout_order_edge_v1(
+                    repeat('c',64), null, v_listing, repeat('e',64)
+                  );
+                  raise exception 'checkout rate limit did not block attempt 6';
+                exception
+                  when others then
+                    if sqlerrm not like '%checkout_rate_limited%' then raise; end if;
+                end;
+              end if;
+            end loop;
+            if v_index < 6 then raise exception 'not enough listings for checkout rate test'; end if;
+          end $$;
+          rollback;
+          SQL
+          echo "운영 스키마 컴파일·ACL·결제/환불 멱등 테스트 완료(전체 rollback)"
+
+      - name: Apply authority and payment migration
+        if: inputs.task == 'apply-authority-payment'
+        env:
+          PGCONN: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          docker run --rm -e PGCONN -v "$PWD:/repo:ro" postgres:17 \
+            psql "$PGCONN" -v ON_ERROR_STOP=1 --single-transaction \
+              -f /repo/supabase/migrations/20260824090000_authority_payment_hardening.sql
+          docker run --rm -i -e PGCONN postgres:17 psql "$PGCONN" -v ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          begin
+            if has_table_privilege('anon','public.orders','insert')
+               or has_table_privilege('authenticated','public.orders','insert')
+               or has_function_privilege('anon','public._claim_coupon(public.coupons,uuid)','execute')
+               or to_regprocedure('public.finalize_paid_order_v2(text,bigint,text,text,text,text,jsonb,integer)') is null
+               or to_regprocedure('public.finalize_order_refund_v2(text,bigint,text,text)') is null
+               or has_function_privilege('anon',
+                 'public.create_checkout_order(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)','execute')
+               or has_function_privilege('authenticated',
+                 'public.create_checkout_order(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)','execute')
+               or has_function_privilege('anon',
+                 'public.create_checkout_order_edge_v1(text,uuid,uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb)','execute')
+               or has_function_privilege('authenticated',
+                 'public.create_checkout_order_edge_v1(text,uuid,uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb)','execute')
+               or has_function_privilege('anon',
+                 'public.consume_checkout_rate_limit(text)','execute')
+               or has_function_privilege('authenticated',
+                 'public.consume_checkout_rate_limit(text)','execute')
+               or not has_function_privilege('service_role',
+                 'public.create_checkout_order(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)','execute')
+               or not has_function_privilege('service_role',
+                 'public.create_checkout_order_edge_v1(text,uuid,uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb)','execute')
+               or not has_function_privilege('service_role',
+                 'public.consume_checkout_rate_limit(text)','execute')
+               or (select count(*) from pg_policies
+                    where schemaname='storage' and tablename='objects'
+                      and policyname in ('photos_auth_insert','photos_auth_update','photos_auth_delete')) <> 3 then
+              raise exception 'authority/payment post-apply verification failed';
+            end if;
+          end $$;
+          SQL
+          echo "권한·결제 마이그레이션 적용 및 사후 검증 완료"
+
+      - name: Verify checkout rate limit across concurrent DB sessions
+        if: inputs.task == 'apply-authority-payment'
+        env:
+          PGCONN: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          RATE_KEY="$(printf '%s' "${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" | sha256sum | cut -d' ' -f1)"
+          result_dir="$(mktemp -d)"
+          cleanup_rate() {
+            docker run --rm -e PGCONN postgres:17 \
+              psql "$PGCONN" -X -qAt -v ON_ERROR_STOP=1 \
+              -c "delete from public.checkout_rate_limits where key_hash='$RATE_KEY'" \
+              >/dev/null
+            rm -rf "$result_dir"
+          }
+          trap cleanup_rate EXIT
+
+          pids=()
+          for attempt in $(seq 1 10); do
+            (
+              if docker run --rm -e PGCONN \
+                -e "PGOPTIONS=-c role=service_role -c request.jwt.claim.role=service_role" \
+                postgres:17 psql "$PGCONN" -X -qAt -v ON_ERROR_STOP=1 \
+                -c "select public.consume_checkout_rate_limit('$RATE_KEY')" \
+                >"$result_dir/$attempt.out" 2>"$result_dir/$attempt.err"; then
+                : >"$result_dir/$attempt.ok"
+              elif grep -q 'checkout_rate_limited' "$result_dir/$attempt.err"; then
+                : >"$result_dir/$attempt.limited"
+              else
+                : >"$result_dir/$attempt.unexpected"
+              fi
+            ) &
+            pids+=("$!")
+          done
+          for pid in "${pids[@]}"; do wait "$pid"; done
+
+          success_count="$(find "$result_dir" -name '*.ok' -type f | wc -l | tr -d ' ')"
+          limited_count="$(find "$result_dir" -name '*.limited' -type f | wc -l | tr -d ' ')"
+          unexpected_count="$(find "$result_dir" -name '*.unexpected' -type f | wc -l | tr -d ' ')"
+          if [ "$success_count" != 5 ] || [ "$limited_count" != 5 ] || [ "$unexpected_count" != 0 ]; then
+            echo "Concurrent rate test failed: allowed=$success_count limited=$limited_count unexpected=$unexpected_count"
+            exit 1
+          fi
+          stored_count="$(docker run --rm -e PGCONN postgres:17 \
+            psql "$PGCONN" -X -qAt -v ON_ERROR_STOP=1 \
+            -c "select attempt_count from public.checkout_rate_limits where key_hash='$RATE_KEY'")"
+          test "$stored_count" = 5
+          echo "Concurrent checkout rate limit verified: allowed=5 limited=5 stored=5"
 
       - name: Purge expired analytics data
         if: github.event_name == 'schedule' || inputs.task == 'purge-analytics-v3'
