@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v260-insight-filter-module";
+const VERSION = "bellore-v261-feat-banner";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -14,7 +14,7 @@ const SHELL_ASSETS = [
   './reference-layout.css',
   './mypick.css',
   './bellore-redesign.css',
-  './script.js?v=20260824-insf-v1',
+  './script.js?v=20260824-feat-v2',
   './payments.js',
   './naverpay.js',
   './ui-dialog.js',
@@ -31,13 +31,13 @@ const SHELL_ASSETS = [
   './search.js',
   './ai-advisor.js',
   './ai-advisor-admin.js',
-  './app/bootstrap.js?v=20260824-insf-v1',
+  './app/bootstrap.js?v=20260824-feat-v2',
   './app/core/listing-display.js',
   './app/features/home-banners/home-banners.js',
   './app/features/home-banners/home-banner-data.js',
-  './app/features/home-banners/home-banners.css?v=20260824-3col-v1',
+  './app/features/home-banners/home-banners.css?v=20260824-feat-v2',
   './app/features/home-rows/home-rows.js',
-  './app/features/home-rows/home-rows.css?v=20260824-3col-v1',
+  './app/features/home-rows/home-rows.css?v=20260824-feat-v2',
   './app/services/listings/listing-catalog-service.js',
   './app/legacy/legacy-collection.js',
   './app/features/insights/insight-filter.js',

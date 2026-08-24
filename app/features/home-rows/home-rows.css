@@ -69,10 +69,6 @@
 /* 추천 매물 — 기존 그리드를 홈에서는 3열로(시계추천 배너를 여기로 흡수), 최대 6줄 */
 #homeOnSale .hrow-head { padding: 0; }
 #homeOnSale > .container { padding-top: 4px; }
-#homeOnSale .home-sale-grid { grid-template-columns: repeat(3, 1fr); gap: 12px 10px; }
-#homeOnSale .home-sale-grid .hcard-brand { font-size: 10px; }
-#homeOnSale .home-sale-grid .hcard-model { font-size: 12px; }
-#homeOnSale .home-sale-grid .hcard-price { font-size: 13.5px; }
 
 .hrow-model {
   display: -webkit-box; font-size: 14.5px; font-weight: 650; line-height: 1.4;
