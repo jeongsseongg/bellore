@@ -21,7 +21,7 @@
   },
   "legacyCeilings": {
     "executableInlineScriptBlocks": 3,
-    "executableInlineScriptBytes": 32728,
+    "executableInlineScriptBytes": 32742,
     "styleAttributes": 15,
     "importantTokens": 376,
     "windowAssignments": 91,
@@ -46,7 +46,12 @@
       "maximum": 300
     }
   },
-  "newCodeExceptions": {},
+  "newCodeExceptions": {
+    "app/vendor/recommendation-engine.js": {
+      "maximum": 720,
+      "reason": "Vendored Bellore Intent & Trust Rank v2 is kept byte-identifiable and is not mixed into feature modules."
+    }
+  },
   "knownMissingLocalAssets": [],
   "knownMissingSourceAssets": [
     "assets/6850CASA.jpg",
@@ -89,6 +94,7 @@
     "wishlist.js"
   ],
   "legacyCeilingNotes": {
-    "index.html": "20260824: 시계추천 배너(featBannerBlock) 마운트 한 줄 복원분. 실행 로직은 app/features/home-banners/에 있다."
+    "index.html": "20260824: 시계추천 배너(featBannerBlock) 마운트 한 줄 복원분. 실행 로직은 app/features/home-banners/에 있다.",
+    "executableInlineScriptBytes": "20260825: 서비스워커 등록의 릴리스 키 문자열 14바이트 증가이며 실행 로직 증가는 없다."
   }
 }

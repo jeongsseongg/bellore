@@ -16,12 +16,12 @@ const ROWS = [
 ];
 
 /* 겹치지 않게 나눈다. 두 줄 모두 손님이 실제로 내는 금액만 보여준다. */
-function splitRows(listings) {
+function splitRows(listings, weeklySpecial) {
   const lowered = listings
     .filter((item) => item.saleActive && discountRate(item) > 0)
     .sort((a, b) => discountRate(b) - discountRate(a));
   const split = Math.min(FEATURE_MAX, Math.ceil(lowered.length / 2));
-  const sale = lowered.slice(0, split);
+  const sale = (weeklySpecial && weeklySpecial.length ? weeklySpecial : lowered.slice(0, split));
   const drop = lowered.slice(split);
   const latest = listings.slice(0, ROW_MAX);
   const used = new Set(sale.map((item) => item.id));
@@ -148,8 +148,8 @@ export function initHomeRows({ document: doc, collection }) {
   rows.forEach((row) => { row.rail = buildRow({ doc, mount: row.mount, config: row.config, collection }); });
 
   return {
-    update(listings) {
-      const buckets = splitRows(listings);
+    update(listings, merchandising = {}) {
+      const buckets = splitRows(listings, merchandising.weeklySpecial);
       rows.forEach(({ config, mount, rail }) => {
         const picks = (buckets[config.mount] || []).slice(0, ROW_MAX);
         if (!picks.length) { mount.hidden = true; rail.innerHTML = ''; return; }

@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v265-home-spacing";
+const VERSION = "bellore-v266-home-merchandising";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -14,7 +14,7 @@ const SHELL_ASSETS = [
   './reference-layout.css',
   './mypick.css',
   './bellore-redesign.css',
-  './script.js?v=20260824-home-v2',
+  './script.js?v=20260825-home-merchandising-v1',
   './payments.js',
   './naverpay.js',
   './ui-dialog.js',
@@ -31,16 +31,18 @@ const SHELL_ASSETS = [
   './search.js?v=20260824-purl-v2',
   './ai-advisor.js',
   './ai-advisor-admin.js',
-  './app/bootstrap.js?v=20260824-home-v2',
+  './app/bootstrap.js?v=20260825-home-merchandising-v1',
   './app/core/listing-display.js',
   './app/core/market-product-url.mjs',
   './app/features/home-banners/home-banners.js',
   './app/features/home-banners/home-banner-data.js',
+  './app/features/home-merchandising/home-merchandising.js',
   './app/features/home-banners/home-banners.css?v=20260824-home-spacing-v2',
   './app/features/home-rows/home-rows.js',
   './app/features/home-rows/home-rows.css?v=20260824-home-spacing-v2',
   './app/services/listings/listing-catalog-service.js',
   './app/legacy/legacy-collection.js',
+  './app/legacy/home-merchandising-grid.js',
   './app/legacy/legacy-reveal.js',
   './app/features/insights/insight-filter.js',
   './app/features/insights/insight-reader.js',
@@ -49,6 +51,7 @@ const SHELL_ASSETS = [
   './app/ui/hero-parallax.js',
   './app/ui/reveal-effects.js',
   './app/ui/site-header.js',
+  './app/vendor/recommendation-engine.js',
   './manifest.json',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',

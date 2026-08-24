@@ -44,6 +44,7 @@ export const APP_RUNTIME_FILES = Object.freeze([
   'app/features/home-banners/home-banner-data.js',
   'app/features/home-banners/home-banners.css',
   'app/features/home-banners/home-banners.js',
+  'app/features/home-merchandising/home-merchandising.js',
   'app/features/home-rows/home-rows.css',
   'app/features/home-rows/home-rows.js',
   'app/features/insights/insight-filter.js',
@@ -51,11 +52,13 @@ export const APP_RUNTIME_FILES = Object.freeze([
   'app/features/legal/legal-modals.js',
   'app/features/product-sharing/product-sharing.mjs',
   'app/legacy/legacy-collection.js',
+  'app/legacy/home-merchandising-grid.js',
   'app/legacy/legacy-reveal.js',
   'app/services/listings/listing-catalog-service.js',
   'app/ui/hero-parallax.js',
   'app/ui/reveal-effects.js',
   'app/ui/site-header.js',
+  'app/vendor/recommendation-engine.js',
 ]);
 
 const ASSET_EXTENSIONS = new Set([
