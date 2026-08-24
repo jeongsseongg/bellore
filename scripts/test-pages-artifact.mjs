@@ -53,14 +53,41 @@ async function validateMarketArtifact(site) {
   const productDirs = (await readdir(marketRoot, { withFileTypes: true }))
     .filter((entry) => entry.isDirectory());
   const sitemap = await readFile(join(site, 'sitemap.xml'), 'utf8');
-  const sitemapUrls = (sitemap.match(/<loc>/g) || []).length;
+  const sitemapSet = new Set([...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]));
+  const sitemapUrls = sitemapSet.size;
   assert.equal(sitemapUrls, productDirs.length + 2, '사이트맵과 상품 디렉터리 수가 다릅니다.');
+  assert.equal((sitemap.match(/<loc>/g) || []).length, sitemapSet.size, '사이트맵 URL이 중복됩니다.');
+
+  const hub = await readFile(join(marketRoot, 'index.html'), 'utf8');
+  const hubLinks = new Set([...hub.matchAll(/<a class="product-card" href="([^"]+)"/g)]
+    .map((match) => new URL(match[1], 'https://bellore.co.kr/').href));
 
   let localImages = 0;
+  const canonicals = new Set();
+  const appListingIds = new Set();
   for (const entry of productDirs) {
     const html = await readFile(join(marketRoot, entry.name, 'index.html'), 'utf8');
     const canonical = html.match(/<link rel="canonical" href="([^"]+)"/)?.[1];
     assert.equal(canonical, `https://bellore.co.kr/market/${entry.name}/`, `canonical 불일치: ${entry.name}`);
+    assert(!canonical.includes('#'), `공개 공유 URL에 fragment가 있습니다: ${entry.name}`);
+    assert.equal(html.match(/<meta property="og:url" content="([^"]+)"/)?.[1], canonical, `OG URL 불일치: ${entry.name}`);
+    canonicals.add(canonical);
+
+    const data = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)]
+      .map((match) => JSON.parse(match[1]));
+    const product = data.find((item) => item['@type'] === 'Product');
+    const breadcrumb = data.find((item) => item['@type'] === 'BreadcrumbList');
+    assert(product, `Product JSON-LD 누락: ${entry.name}`);
+    assert(breadcrumb, `Breadcrumb JSON-LD 누락: ${entry.name}`);
+    assert.equal(String(product.sku).toLowerCase(), entry.name, `SKU/slug 불일치: ${entry.name}`);
+    assert.equal(product.offers?.url, canonical, `Offer URL 불일치: ${entry.name}`);
+    assert.equal(breadcrumb.itemListElement?.at(-1)?.item, canonical, `Breadcrumb URL 불일치: ${entry.name}`);
+
+    const appUrl = html.match(/<a class="cta" href="([^"]+)">벨로르에서 상품 보기<\/a>/)?.[1];
+    const appId = appUrl?.match(/^https:\/\/bellore\.co\.kr\/#p=([0-9a-f-]{36})$/)?.[1];
+    assert(appId, `앱 상품 딥링크 불일치: ${entry.name}`);
+    assert(!appListingIds.has(appId), `앱 상품 UUID 중복: ${appId}`);
+    appListingIds.add(appId);
 
     for (const match of html.matchAll(/<img\b[^>]*>/g)) {
       const tag = match[0];
@@ -75,10 +102,15 @@ async function validateMarketArtifact(site) {
       localImages += 1;
     }
 
-    for (const match of html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
-      assert.doesNotThrow(() => JSON.parse(match[1]), `JSON-LD 오류: ${entry.name}`);
-    }
   }
+  assert.equal(canonicals.size, productDirs.length, '상품 canonical이 중복됩니다.');
+  assert.equal(appListingIds.size, productDirs.length, '앱 딥링크가 상품 수와 다릅니다.');
+  assert.deepEqual([...hubLinks].sort(), [...canonicals].sort(), '마켓 허브 링크와 상품 canonical 집합이 다릅니다.');
+  assert.deepEqual(
+    [...sitemapSet].sort(),
+    ['https://bellore.co.kr/', 'https://bellore.co.kr/market/', ...canonicals].sort(),
+    '사이트맵이 홈·마켓·상품 canonical 집합과 다릅니다.',
+  );
   return { products: productDirs.length, localImages, sitemapUrls };
 }
 
@@ -102,7 +134,7 @@ async function validateArtifact(site, { expectSeo }) {
   assert(shellBlock, '서비스워커 SHELL_ASSETS를 찾지 못했습니다.');
   const shellAssets = [...shellBlock.matchAll(/['"](\.\/[^'"]+)['"]/g)]
     .map((match) => match[1].split(/[?#]/, 1)[0]);
-  assert.equal(shellAssets.length, 42, '서비스워커 셸 자산 개수가 기준과 다릅니다.');
+  assert.equal(shellAssets.length, 44, '서비스워커 셸 자산 개수가 기준과 다릅니다.');
   for (const asset of shellAssets) {
     await lstat(resolve(site, asset));
   }

@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v261-feat-banner";
+const VERSION = "bellore-v262-market-share";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -14,7 +14,7 @@ const SHELL_ASSETS = [
   './reference-layout.css',
   './mypick.css',
   './bellore-redesign.css',
-  './script.js?v=20260824-feat-v2',
+  './script.js?v=20260824-purl-v2',
   './payments.js',
   './naverpay.js',
   './ui-dialog.js',
@@ -25,14 +25,15 @@ const SHELL_ASSETS = [
   './supabase.js',
   './bellore-features.js',
   './cq-demo.js',
-  './wishlist.js',
+  './wishlist.js?v=20260824-purl-v2',
   './alerts.js',
   './auction.js',
-  './search.js',
+  './search.js?v=20260824-purl-v2',
   './ai-advisor.js',
   './ai-advisor-admin.js',
-  './app/bootstrap.js?v=20260824-feat-v2',
+  './app/bootstrap.js?v=20260824-purl-v2',
   './app/core/listing-display.js',
+  './app/core/market-product-url.mjs',
   './app/features/home-banners/home-banners.js',
   './app/features/home-banners/home-banner-data.js',
   './app/features/home-banners/home-banners.css?v=20260824-feat-v2',
@@ -43,6 +44,7 @@ const SHELL_ASSETS = [
   './app/features/insights/insight-filter.js',
   './app/features/insights/insight-reader.js',
   './app/features/legal/legal-modals.js',
+  './app/features/product-sharing/product-sharing.mjs',
   './app/ui/hero-parallax.js',
   './app/ui/site-header.js',
   './manifest.json',

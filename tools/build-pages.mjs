@@ -40,6 +40,7 @@ export const ROOT_RUNTIME_FILES = Object.freeze([
 export const APP_RUNTIME_FILES = Object.freeze([
   'app/bootstrap.js',
   'app/core/listing-display.js',
+  'app/core/market-product-url.mjs',
   'app/features/home-banners/home-banner-data.js',
   'app/features/home-banners/home-banners.css',
   'app/features/home-banners/home-banners.js',
@@ -48,6 +49,7 @@ export const APP_RUNTIME_FILES = Object.freeze([
   'app/features/insights/insight-filter.js',
   'app/features/insights/insight-reader.js',
   'app/features/legal/legal-modals.js',
+  'app/features/product-sharing/product-sharing.mjs',
   'app/legacy/legacy-collection.js',
   'app/services/listings/listing-catalog-service.js',
   'app/ui/hero-parallax.js',

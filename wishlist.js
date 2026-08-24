@@ -75,7 +75,7 @@
     var b = brand ? brand.textContent : (card.dataset.brand || '');
     var m = model ? model.textContent : (card.dataset.model || '');
     return {
-      id: card.dataset.pid || (b + '|' + m),
+      id: card.dataset.pid || (b + '|' + m), product_no: card.dataset.no || '',
       brand: b, model: m,
       price: parseInt(card.dataset.price, 10) || priceFromCard(card),
       img: img ? img.getAttribute('src') : ''
@@ -264,7 +264,7 @@
     var w = e.target.closest('#pmWish, #pmWishTop'), c = e.target.closest('#pmCart');
     if (!w && !c) return;
     var p = window.BELLORE_currentProduct; if (!p) return;
-    var it = { id: p.listingId || (p.brand + '|' + p.model), brand: p.brand, model: p.model, price: p.price, img: p.image };
+    var it = { id: p.listingId || (p.brand + '|' + p.model), product_no: p.productNo || '', brand: p.brand, model: p.model, price: p.price, img: p.image };
     if (w) {
       var added = toggleWish(it);
       $$('#pmWish, #pmWishTop').forEach(function (b) { b.classList.toggle('on', added); });
