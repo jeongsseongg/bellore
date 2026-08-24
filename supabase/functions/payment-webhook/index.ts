@@ -51,7 +51,11 @@ Deno.serve(async (req) => {
       return json({ ok: true, ignored: true });
     }
     if (notifiedStoreId !== PORTONE_STORE_ID) {
-      return json({ error: "webhook_identity_invalid" }, 400);
+      console.warn("payment-webhook store mismatch ignored", JSON.stringify({
+        eventType,
+        notifiedStoreIdPresent: Boolean(notifiedStoreId),
+      }));
+      return json({ ok: true, ignored: true, reason: "store_mismatch" });
     }
 
     const providerResponse = await fetch(
