@@ -54,7 +54,12 @@
       "maximum": 300
     }
   },
-  "newCodeExceptions": {},
+  "newCodeExceptions": {
+    "app/vendor/recommendation-engine.js": {
+      "maximum": 720,
+      "reason": "Vendored Bellore Intent & Trust Rank v2 is kept byte-identifiable and is not mixed into feature modules."
+    }
+  },
   "knownMissingLocalAssets": [],
   "knownMissingSourceAssets": [
     "assets/6850CASA.jpg",

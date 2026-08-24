@@ -1,3 +1,4 @@
+import './vendor/recommendation-engine.js';
 import { initInsightFilter } from './features/insights/insight-filter.js';
 import { initInsightReader } from './features/insights/insight-reader.js';
 import { initLegalModals } from './features/legal/legal-modals.js';
@@ -7,10 +8,12 @@ import { initSiteHeader } from './ui/site-header.js';
 import { initNavigationHistory } from './ui/navigation-history.js';
 import { initWidthPreference } from './ui/width-preference.js';
 import { initHomeBanners } from './features/home-banners/home-banners.js';
+import { createHomeMerchandising } from './features/home-merchandising/home-merchandising.js';
 import { initHomeRows } from './features/home-rows/home-rows.js';
 import { initProductDetailRoute, initProductSharing } from './features/product-sharing/product-sharing.mjs';
 import { createListingCatalog } from './services/listings/listing-catalog-service.js';
 import { createLegacyCollection } from './legacy/legacy-collection.js';
+import { initLegacyHomeMerchandisingGrid } from './legacy/home-merchandising-grid.js';
 import { installLegacyReveal } from './legacy/legacy-reveal.js';
 
 function bootstrap() {
@@ -32,10 +35,15 @@ function bootstrap() {
   const collection = createLegacyCollection({ document, window });
   const featured = initHomeBanners({ document, window, collection });
   const rows = initHomeRows({ document, window, collection });
+  const merchandising = createHomeMerchandising({ window });
+  const homeGrid = initLegacyHomeMerchandisingGrid({ document, window });
 
   createListingCatalog({ window }).subscribe((listings) => {
-    featured.update(listings);
-    rows.update(listings);
+    const ranked = merchandising.update(listings);
+    const recommended = ranked.recommended.items;
+    homeGrid.update(recommended, ranked.recommended.audit);
+    featured.update(recommended);
+    rows.update(listings, { weeklySpecial: ranked.weeklySpecial.items });
   });
   initInsightFilter({ document });
   initInsightReader({ document });

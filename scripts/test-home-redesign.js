@@ -11,6 +11,7 @@ const bannersCss = read('app/features/home-banners/home-banners.css');
 const rows = read('app/features/home-rows/home-rows.js');
 const rowAdmin = read('app/features/home-rows/home-row-admin.js');
 const rowsCss = read('app/features/home-rows/home-rows.css');
+const merchandising = read('app/features/home-merchandising/home-merchandising.js');
 const legacy = read('script.js');
 const buildPages = read('tools/build-pages.mjs');
 
@@ -49,10 +50,14 @@ assert.match(rows, /class="hrow-view-all"/);
 assert.doesNotMatch(rows, /hrow-more/);
 assert.doesNotMatch(index, /hrow-more/);
 assert.match(legacy, /rows\.slice\(0, 12\)/);
+assert.match(merchandising, /BelloreRecommendationEngine/);
+assert.match(merchandising, /personalized:\s*false/);
+assert.match(merchandising, /surface:\s*'weekly_special'/);
+assert.match(merchandising, /surface:\s*'recommended_listings'/);
 
 for (let i = 1; i <= 10; i += 1) {
   const file = `assets/banners/category-${String(i).padStart(2, '0')}.webp`;
   assert.ok(fs.existsSync(path.join(root, file)), file);
 }
 
-console.log('home redesign checks: 31 passed');
+console.log('home redesign checks: 35 passed');
