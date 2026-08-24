@@ -4065,7 +4065,7 @@
         if (!rows || !rows.length) { statics.forEach(function (c) { c.style.display = ''; }); return; }
         statics.forEach(function (c) { c.style.display = 'none'; });
         var frag = document.createDocumentFragment();
-        rows.slice(0, 12).forEach(function (it) {
+        rows.slice(0, 18).forEach(function (it) {
             var priceHtml = priceHTML(it);
             var card = document.createElement('article');
             card.className = 'hcard hcard-dynamic';

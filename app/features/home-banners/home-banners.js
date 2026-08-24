@@ -31,7 +31,7 @@ function writeMemory(win, key, value) {
 }
 
 /* ── 가격대·테마 슬라이더 ── */
-function initCategorySlider({ doc, mount, collection }) {
+function initCategorySlider({ doc, window: win, mount, collection }) {
   if (!mount) return;
   const total = CATEGORY_BANNERS.length;
   mount.innerHTML =
@@ -45,35 +45,26 @@ function initCategorySlider({ doc, mount, collection }) {
     )).join('') +
     '</div><div class="bn-ctl">' +
     `<span class="bn-num">${counterMarkup(1, total)}</span>` +
-    '<button type="button" class="bn-prev" aria-label="이전 배너">‹</button>' +
-    '<button type="button" class="bn-next" aria-label="다음 배너">›</button>' +
     '</div></div>';
 
   const track = mount.querySelector('.bn-track');
   const num = mount.querySelector('.bn-num');
-  const prev = mount.querySelector('.bn-prev');
-  const next = mount.querySelector('.bn-next');
   let index = 0;
 
-  function go(target) {
-    index = Math.max(0, Math.min(total - 1, target));
+  function show(target) {
+    index = ((target % total) + total) % total;
     track.style.transform = `translateX(${-index * 100}%)`;
     num.innerHTML = counterMarkup(index + 1, total);
-    prev.disabled = index === 0;
-    next.disabled = index === total - 1;
   }
-  prev.addEventListener('click', () => go(index - 1));
-  next.addEventListener('click', () => go(index + 1));
 
-  let touchX = null;
-  mount.addEventListener('touchstart', (event) => { touchX = event.touches[0].clientX; }, { passive: true });
-  mount.addEventListener('touchend', (event) => {
-    if (touchX === null) return;
-    const distance = event.changedTouches[0].clientX - touchX;
-    if (Math.abs(distance) > 40) go(distance < 0 ? index + 1 : index - 1);
-    touchX = null;
-  }, { passive: true });
+  // 15초마다 랜덤으로 바뀐다. 직전과 같은 배너는 피한다. 수동 조작은 없다.
+  win.setInterval(() => {
+    let next = index;
+    while (next === index && total > 1) next = Math.floor(Math.random() * total);
+    show(next);
+  }, 15000);
 
+  // 배너를 누르면 해당 가격대/테마로 이동(이건 조작이 아니라 링크다)
   track.addEventListener('click', (event) => {
     const button = event.target.closest('.bn-cat');
     if (!button) return;
@@ -83,7 +74,7 @@ function initCategorySlider({ doc, mount, collection }) {
     else collection.filterByPrice(banner.min, banner.max);
   });
 
-  go(0);
+  show(Math.floor(Math.random() * total));
 }
 
 /* ── 매입 안내 배너 ── */
@@ -200,7 +191,7 @@ function createFeaturedRail({ doc, mount, collection }) {
 }
 
 export function initHomeBanners({ document: doc, window: win, collection }) {
-  initCategorySlider({ doc, mount: doc.getElementById('catBannerBlock'), collection });
+  initCategorySlider({ doc, window: win, mount: doc.getElementById('catBannerBlock'), collection });
   renderBuyinBanner({ doc, win, mount: doc.getElementById('buyBannerBlock') });
   return createFeaturedRail({ doc, mount: doc.getElementById('featBannerBlock'), collection });
 }

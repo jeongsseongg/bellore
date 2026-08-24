@@ -70,9 +70,9 @@
     <link rel="stylesheet" href="reference-layout.css?v=20260821-tabbar-safe-area-v1">
     <link rel="stylesheet" href="vendor-reference.css?v=20260731-photo-viewer">
     <link rel="stylesheet" href="mypick.css?v=20260731-mypick-reference-4">
-    <link rel="stylesheet" href="bellore-redesign.css?v=20260820-tabs-alerts-v1">
-    <link rel="stylesheet" href="app/features/home-banners/home-banners.css?v=20260824-roomy-v1">
-    <link rel="stylesheet" href="app/features/home-rows/home-rows.css?v=20260824-roomy-v1">
+    <link rel="stylesheet" href="bellore-redesign.css?v=20260824-3col-v1">
+    <link rel="stylesheet" href="app/features/home-banners/home-banners.css?v=20260824-3col-v1">
+    <link rel="stylesheet" href="app/features/home-rows/home-rows.css?v=20260824-3col-v1">
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
@@ -255,7 +255,6 @@
             <section class="hrow-block" id="rowSaleBlock" hidden></section>
             <section class="hrow-block" id="rowDropBlock" hidden></section>
             <section class="bn-block" id="catBannerBlock"></section>
-            <section class="bn-block" id="featBannerBlock" hidden></section>
             <section class="hrow-block" id="rowNewBlock" hidden></section>
             <!-- 판매중인 시계 (2열 그리드) -->
             <section class="section" id="homeOnSale">
@@ -1822,7 +1821,7 @@
       </div>
     </div>
 
-    <script type="module" src="app/bootstrap.js?v=20260824-hero-v2"></script>
+    <script type="module" src="app/bootstrap.js?v=20260824-3col-v1"></script>
 
     <!-- PWA 설치 모달 -->
     <div id="pwaInstallModal" hidden aria-modal="true" role="dialog">
@@ -3207,7 +3206,7 @@
     <script src="supabase.js?v=20260821-product-detail-v1"></script>
     <script src="bellore-features.js?v=20260821-product-detail-v1"></script>
     <script src="cq-demo.js?v=20260810-bid-notify-fix"></script>
-    <script src="script.js?v=20260824-hero-v2"></script>
+    <script src="script.js?v=20260824-3col-v1"></script>
     <script src="wishlist.js?v=20260820-wish-v2"></script>
     <script src="alerts.js?v=20260820-tabs-alerts-v1"></script>
     <script src="auction.js"></script>
@@ -3219,7 +3218,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('sw.js?v=20260824-hero-v2').catch(function (err) {
+                navigator.serviceWorker.register('sw.js?v=20260824-3col-v1').catch(function (err) {
                     console.warn('서비스워커 등록 실패:', err);
                 });
             });

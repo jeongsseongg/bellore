@@ -25,6 +25,16 @@
 .hrow-rail::-webkit-scrollbar { display: none; }
 .hrow-rail.drag { cursor: grabbing; scroll-snap-type: none; }
 
+/* 바이버식 가로 스크롤 진행 표시 */
+.hrow-progress {
+  position: relative; height: 3px; margin: 12px 20px 0; border-radius: 999px;
+  background: #ececee; overflow: hidden;
+}
+.hrow-progress span {
+  position: absolute; top: 0; height: 100%; border-radius: 999px;
+  background: #1a2925; transition: left .06s linear;
+}
+
 /* 약 2.3장이 보이고 다음 카드가 살짝 걸쳐 스크롤을 유도한다.
    min-width:0 이 없으면 flex 자식이 글자 폭 아래로 안 줄어든다. */
 .hrow-card {
@@ -56,9 +66,13 @@
 .hrow-badge.is-drop { background: #d4342a; }
 .hrow-badge.is-new { background: #1a2925; letter-spacing: .04em; }
 
-/* 추천 매물 — 기존 2열 그리드 위에 같은 모양의 제목을 얹는다 */
+/* 추천 매물 — 기존 그리드를 홈에서는 3열로(시계추천 배너를 여기로 흡수), 최대 6줄 */
 #homeOnSale .hrow-head { padding: 0; }
 #homeOnSale > .container { padding-top: 4px; }
+#homeOnSale .home-sale-grid { grid-template-columns: repeat(3, 1fr); gap: 12px 10px; }
+#homeOnSale .home-sale-grid .hcard-brand { font-size: 10px; }
+#homeOnSale .home-sale-grid .hcard-model { font-size: 12px; }
+#homeOnSale .home-sale-grid .hcard-price { font-size: 13.5px; }
 
 .hrow-model {
   display: -webkit-box; font-size: 14.5px; font-weight: 650; line-height: 1.4;

@@ -64,9 +64,28 @@ function buildRow({ doc, mount, config, collection }) {
     '<div class="hrow-head">' +
     `<h2 class="hrow-title">${config.title}</h2>` +
     '<span class="hrow-more" aria-hidden="true">›</span>' +
-    '</div><div class="hrow-rail"></div>';
+    '</div><div class="hrow-rail"></div>' +
+    '<div class="hrow-progress"><span></span></div>';
   const rail = mount.querySelector('.hrow-rail');
+  const thumb = mount.querySelector('.hrow-progress span');
   enableDrag({ doc, rail, collection });
+  // 바이버식 진행 표시 — 가로로 어디까지 왔는지 얇은 막대로 보여준다
+  function syncProgress() {
+    const max = rail.scrollWidth - rail.clientWidth;
+    const bar = mount.querySelector('.hrow-progress');
+    if (max <= 1) { bar.style.visibility = 'hidden'; return; }
+    bar.style.visibility = 'visible';
+    const ratio = rail.clientWidth / rail.scrollWidth;
+    const width = Math.max(0.16, ratio);
+    thumb.style.width = `${width * 100}%`;
+    thumb.style.left = `${(rail.scrollLeft / max) * (1 - width) * 100}%`;
+  }
+  let raf = null;
+  rail.addEventListener('scroll', () => {
+    if (raf) return;
+    raf = requestAnimationFrame(() => { raf = null; syncProgress(); });
+  }, { passive: true });
+  rail._syncProgress = syncProgress;
   return rail;
 }
 
@@ -127,6 +146,7 @@ export function initHomeRows({ document: doc, collection }) {
           card.querySelector('.hrow-img').style.backgroundImage = `url(${picks[index].image})`;
         });
         rail.scrollLeft = 0;
+        if (rail._syncProgress) rail._syncProgress();
       });
     },
   };

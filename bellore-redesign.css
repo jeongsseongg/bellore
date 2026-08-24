@@ -637,7 +637,7 @@ body[data-page="collection"] #collection > .section-soft > .container {
    사진은 타일을 꽉 채우고, 찜 하트는 사진 우상단, 글줄은 촘촘하게.
    배지(오늘 등록 · 미착용 · 할인)는 사진 왼쪽 위.
    ============================================================ */
-#homeOnSale .home-sale-grid,
+/* 홈 추천매물은 home-rows.css에서 3열로 관리 → 여기선 컬렉션만 2열 */
 .page-collection .col-grid-inner,
 html[data-width="full"] .page-collection .col-grid-inner {
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -882,7 +882,6 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
 }
 
 @media (min-width: 700px) {
-  #homeOnSale .home-sale-grid,
   .page-collection .col-grid-inner,
   html[data-width="full"] .page-collection .col-grid-inner {
     column-gap: 24px !important;
