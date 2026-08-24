@@ -15,7 +15,7 @@
 // 키 미설정이면 { ok:false, code:"NOT_CONFIGURED" } 를 돌려주므로
 // 프런트는 "관리자 수동 확인"으로 폴백한다.
 // ============================================================
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
 
 const NTS_SERVICE_KEY = Deno.env.get("NTS_SERVICE_KEY") ?? "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";

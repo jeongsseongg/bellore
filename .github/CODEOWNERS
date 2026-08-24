@@ -1,0 +1,5 @@
+# CODEOWNERS는 책임자를 표시한다. required review 강제 여부는 원격 ruleset에서 별도로 확인한다.
+* @jeongsseongg
+/.github/ @jeongsseongg
+/supabase/ @jeongsseongg
+/*.sql @jeongsseongg

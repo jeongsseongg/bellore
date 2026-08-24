@@ -6,7 +6,8 @@
 
 필수 도구:
 
-- Node.js 20 이상 — 검사와 보조 스크립트
+- Node.js 22 이상 — CI 릴리스 검사는 Node 22를 공통 기준으로 사용
+- Deno 2.9.5 — Supabase Edge Function 잠긴 타입검사 기준
 - 정적 HTTP 서버 — 네이티브 모듈은 `file://`가 아니라 HTTP로 확인
 
 Windows 예시:
@@ -21,9 +22,10 @@ python -m http.server 8765 --bind 127.0.0.1
 
 ```powershell
 node scripts/check.mjs
+node scripts/check-edge.mjs
 ```
 
-이 명령은 JavaScript 문법, 현재 프로젝트 테스트, HTML ID·로컬 자산, 서비스워커 셸, 구조 래칫을 검사합니다. 브라우저 E2E, 모바일 실기기, 실제 Supabase RLS 역할별 접근, PostgreSQL 동시성, PortOne/KG 실결제는 별도 검증입니다.
+첫 명령은 JavaScript 문법, `scripts/test-*.js`와 `scripts/test-*.mjs` 전체, SEO 생성기, 정적 배포 allowlist, HTML ID·로컬 자산, 서비스워커 셸, 구조 래칫을 검사합니다. 두 번째 명령은 `supabase/deno.lock`을 고정한 상태로 Edge Function 전체를 타입검사합니다. 브라우저 E2E, 모바일 실기기, 실제 Supabase RLS 역할별 접근, PostgreSQL 동시성, PortOne/KG 실결제는 별도 검증입니다.
 
 ## 코드 구조
 
@@ -51,15 +53,15 @@ node scripts/check.mjs
 - Git 원격: `https://github.com/jeongsseongg/bellore.git`
 - 기준 브랜치: `main`
 - 도메인: `bellore.co.kr`
-- GitHub Pages branch-source가 현재 공개 트래픽을 제공합니다.
+- `.github/workflows/pages-deploy.yml`이 검증된 `_site` Actions artifact만 GitHub Pages에 게시하며 현재 공개 트래픽을 제공합니다.
 
 보조 운영:
 
 - `.github/workflows/firebase-deploy.yml`
 - Firebase 프로젝트 `newyork-watch`, 채널 `live`
-- 로컬과 같은 `node scripts/check.mjs`가 성공해야 Firebase 배포 단계로 진행합니다.
+- 주 운영과 같은 `_site` 허용목록을 별도로 게시하며 `bellore.co.kr`의 현재 DNS 연결처는 아닙니다.
 
-`quality-gate.yml`도 같은 검사를 실행하지만, branch-source GitHub Pages는 별도 workflow 실패만으로 자동 차단되지 않습니다. 주 운영 배포를 강제하려면 GitHub의 required check/PR ruleset 또는 승인된 Pages Actions 전환이 필요합니다.
+로컬, PR 품질검사, Pages, Firebase는 `node scripts/check.mjs`와 잠긴 Edge 타입검사를 같은 게이트로 사용합니다. Pages/Firebase job은 어느 하나라도 실패하면 산출물을 게시하지 않습니다. 저장소 변수 `PRODUCTION_DEPLOY_ENABLED=false`는 DB/Edge/웹 순차 전환 중 자동 게시를 잠그는 유지보수 스위치입니다. 다만 직접 push·merge 자체를 막는 required check/ruleset은 별도의 GitHub 원격 설정이며, 저장소 파일만으로 켜졌다고 간주하지 않습니다.
 
 `main` push는 운영 배포를 유발할 수 있습니다. 작업 전 `git status`, 대상 브랜치, `CNAME`, `sw.js` 버전, Pages 설정을 확인하고, 사용자 승인이 있을 때만 커밋·푸시합니다.
 
@@ -74,5 +76,6 @@ node scripts/check.mjs
 
 - `00_작업안내.md` — 저장소·파일 작업 안내
 - `DESIGN.md` — 벨로르 UI 기준
+- `RELEASE_RUNBOOK.md` — 배포 전 확인, 주·보조 배포 검증, 부분 롤백 순서
 
 과거 복사본 `bellore-mypick-fix`는 복구를 명시적으로 요청받은 경우에만 사용합니다.

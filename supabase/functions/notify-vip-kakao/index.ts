@@ -17,7 +17,7 @@
 //     솔라피 알림톡으로 발송합니다. 시크릿 미설정 시 조용히 skip.
 //   - 템플릿 변수: #{label} (예: "롤렉스 서브마리너")
 // ============================================================
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";

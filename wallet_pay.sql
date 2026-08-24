@@ -26,4 +26,6 @@ begin
     values (p_uid, 'capture', p_amount, w.balance, null, 'done', coalesce(p_memo, '상품 구매 캐시 사용'));
   return w.balance;
 end $$;
-grant execute on function public.wallet_capture(uuid, bigint, uuid, text) to authenticated;
+revoke all on function public.wallet_capture(uuid, bigint, uuid, text)
+  from public, anon, authenticated;
+grant execute on function public.wallet_capture(uuid, bigint, uuid, text) to service_role;

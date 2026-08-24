@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v265-home-spacing";
+const VERSION = "bellore-v266-inline-runtime-extraction";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -42,6 +42,7 @@ const SHELL_ASSETS = [
   './app/services/listings/listing-catalog-service.js',
   './app/legacy/legacy-collection.js',
   './app/legacy/legacy-reveal.js',
+  './app/legacy/page-runtime.js?v=20260824-home-v2',
   './app/features/insights/insight-filter.js',
   './app/features/insights/insight-reader.js',
   './app/features/legal/legal-modals.js',

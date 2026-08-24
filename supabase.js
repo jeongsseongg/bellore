@@ -99,6 +99,23 @@
     return (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
       : 'x' + Date.now() + Math.random().toString(16).slice(2);
   }
+  function secureCheckoutToken() {
+    if (!(window.crypto && crypto.getRandomValues && crypto.subtle)) {
+      return Promise.reject(new Error('SECURE_CHECKOUT_UNAVAILABLE'));
+    }
+    var bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    var binary = '';
+    for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    return Promise.resolve(btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, ''));
+  }
+  function sha256Hex(text) {
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)).then(function (buffer) {
+      return Array.prototype.map.call(new Uint8Array(buffer), function (byte) {
+        return byte.toString(16).padStart(2, '0');
+      }).join('');
+    });
+  }
   // 휴대폰 원본을 그대로 전송하면 견적 시작이 수십 초간 멈춘 것처럼 보이고
   // 이후 목록/상세 조회 때마다 Storage egress가 커진다. 판독 가능한 1600px WebP로
   // 한 번만 최적화해 영구 저장하고, 같은 URL은 1년간 브라우저/CDN 캐시한다.
@@ -1994,68 +2011,31 @@
 
   // 체크아웃: pending 주문 생성 → 포트원에 넘길 order_no 반환
   Backend.createOrder = function (data) {
-    // 비회원(rawUser 없음)도 구매 가능 — 네이버페이 주문형 요건.
-    // (orders.customer_id 는 NULL 허용. anon insert 는 guest_checkout.sql 의 RLS 정책 필요)
-    var orderNo = 'BLR' + Date.now().toString(36).toUpperCase() +
-      Math.random().toString(36).slice(2, 6).toUpperCase();
-    var row = {
-      order_no: orderNo,
-      customer_id: rawUser ? rawUser.id : null,
-      listing_id: data.listingId || null,
-      product_name: data.productName || '상품',
-      product_brand: data.productBrand || null,
-      product_image: data.productImage || null,
-      product_price: data.productPrice || null,
-      pay_type: 'full',
-      amount: data.amount,
-      coupon_user_id: data.couponUserId || null,
-      discount: data.discount || 0,
-      buyer_name: data.buyerName || (profile && profile.name) || null,
-      buyer_phone: data.buyerPhone || (profile && profile.phone) || null,
-      // 배송지
-      ship_recipient: data.shipRecipient || data.buyerName || null,
-      ship_phone: data.shipPhone || data.buyerPhone || null,
-      ship_postcode: data.shipPostcode || null,
-      ship_addr1: data.shipAddr1 || null,
-      ship_addr2: data.shipAddr2 || null,
-      ship_request: data.shipRequest || null,
-      memo: data.memo || null,
-      status: 'pending'
-    };
-    if (data.attribution) {
-      row.analytics_session_id = data.attribution.session_id || null;
-      row.analytics_anonymous_id = data.attribution.anonymous_id || null;
-      row.analytics_attribution = data.attribution;
-    }
-    function withoutAnalyticsColumns() {
-      delete row.analytics_session_id;
-      delete row.analytics_anonymous_id;
-      delete row.analytics_attribution;
-    }
-    function insertMember() {
-      return sb.from('orders').insert(row).select().single().then(function (res) {
-        if (res.error) {
-          if (isMissingCol(res.error) && row.analytics_attribution) { withoutAnalyticsColumns(); return insertMember(); }
-          throw res.error;
-        }
-        return mapOrder(res.data);
+    // 주문번호·상품가·할인·예약은 DB RPC가 한 트랜잭션에서 결정한다.
+    // 원문 체크아웃 토큰은 브라우저에만 남고 DB에는 SHA-256 해시만 저장된다.
+    return secureCheckoutToken().then(function (checkoutToken) {
+      return sha256Hex(checkoutToken).then(function (checkoutTokenHash) {
+        return sb.rpc('create_checkout_order', {
+          p_listing_id: data.listingId || null,
+          p_checkout_token_hash: checkoutTokenHash,
+          p_coupon_user_id: data.couponUserId || null,
+          p_buyer_name: data.buyerName || (profile && profile.display_name) || null,
+          p_buyer_phone: data.buyerPhone || (profile && profile.phone) || null,
+          p_ship_recipient: data.shipRecipient || data.buyerName || null,
+          p_ship_phone: data.shipPhone || data.buyerPhone || null,
+          p_ship_postcode: data.shipPostcode || null,
+          p_ship_addr1: data.shipAddr1 || null,
+          p_ship_addr2: data.shipAddr2 || null,
+          p_ship_request: data.shipRequest || null,
+          p_attribution: data.attribution || null
+        }).then(function (res) {
+          if (res.error) throw res.error;
+          var order = res.data || {};
+          order.checkoutToken = checkoutToken;
+          return order;
+        });
       });
-    }
-    function insertGuest() {
-      return sb.from('orders').insert(row).then(function (res) {
-        if (res.error) {
-          if (isMissingCol(res.error) && row.analytics_attribution) { withoutAnalyticsColumns(); return insertGuest(); }
-          var ge = new Error('GUEST_CHECKOUT_DISABLED');
-          ge.guest = true; ge.cause = res.error; throw ge;
-        }
-        return { orderNo: orderNo, amount: data.amount, payType: 'full' };
-      });
-    }
-    // 회원: RETURNING(본인 주문 select 정책)으로 행을 받아 매핑.
-    if (rawUser) return insertMember();
-    // 비회원: anon 에겐 select 권한이 없으므로 RETURNING 없이 insert 만 수행.
-    // 이후 단계는 order_no 만 사용한다(서버 confirm-payment 가 service_role 로 검증).
-    return insertGuest();
+    });
   };
 
   // 결제 승인(검증) — Edge Function 필수. 검증 함수가 없으면 결제를 성공 처리하지 않는다.
@@ -2064,19 +2044,23 @@
     if (!PAY.confirmUrl) {
       return Promise.reject(new Error('PAYMENT_CONFIRM_NOT_CONFIGURED'));
     }
-    return fetch(PAY.confirmUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + CFG.anonKey,
-        'apikey': CFG.anonKey
-      },
-      body: JSON.stringify({
-        // 포트원: paymentId(=order_no) 만 보내고 금액/상태는 서버가 포트원 API로 검증
-        paymentId: params.paymentId || params.orderId,
-        attribution: params.attribution || null
-      })
-    }).then(function (r) { return r.json(); });
+    return sb.auth.getSession().then(function (sessionResult) {
+      var token = (sessionResult && sessionResult.data && sessionResult.data.session &&
+        sessionResult.data.session.access_token) || CFG.anonKey;
+      return fetch(PAY.confirmUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token,
+          'apikey': CFG.anonKey
+        },
+        body: JSON.stringify({
+          paymentId: params.paymentId || params.orderId,
+          checkoutToken: params.checkoutToken || null,
+          attribution: params.attribution || null
+        })
+      }).then(function (r) { return r.json(); });
+    });
   };
 
   Backend.subscribeMyOrders = function (cb) {

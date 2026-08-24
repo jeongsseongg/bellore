@@ -52,6 +52,7 @@ export const APP_RUNTIME_FILES = Object.freeze([
   'app/features/product-sharing/product-sharing.mjs',
   'app/legacy/legacy-collection.js',
   'app/legacy/legacy-reveal.js',
+  'app/legacy/page-runtime.js',
   'app/services/listings/listing-catalog-service.js',
   'app/ui/hero-parallax.js',
   'app/ui/reveal-effects.js',

@@ -40,10 +40,10 @@ drop policy if exists orders_select_own on public.orders;
 create policy orders_select_own on public.orders
   for select using (auth.uid() = customer_id);
 
--- 본인 주문 생성 (체크아웃 시 pending 으로 insert)
+-- 주문 생성은 create_checkout_order RPC 하나로만 한다.
+-- 브라우저 직접 INSERT를 허용하면 amount/status 위조가 가능하다.
 drop policy if exists orders_insert_own on public.orders;
-create policy orders_insert_own on public.orders
-  for insert with check (auth.uid() = customer_id);
+revoke insert on public.orders from anon, authenticated;
 
 -- 관리자는 전체 조회/수정
 drop policy if exists orders_admin_all on public.orders;
@@ -53,6 +53,5 @@ create policy orders_admin_all on public.orders
             where p.id = auth.uid() and p.role = 'admin')
   );
 
--- NOTE: 결제 "승인"(pending → paid) 은 Edge Function(confirm-payment)이
---       service_role 키로 수행하므로 RLS 를 우회합니다. 클라이언트는
---       status 를 직접 'paid' 로 바꿀 수 없습니다.
+-- NOTE: 생성·결제·환불 정본은
+--       supabase/migrations/20260824090000_authority_payment_hardening.sql 을 따릅니다.

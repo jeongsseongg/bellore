@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -153,9 +153,9 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
   try {
     const body = await req.json();
-    const listingIds = Array.isArray(body.listingIds)
+    const listingIds = (Array.isArray(body.listingIds)
       ? [...new Set(body.listingIds.map((id: unknown) => String(id)))]
-      : [String(body.listingId || "")];
+      : [String(body.listingId || "")]) as string[];
     if (!listingIds.length || listingIds.length > 20
       || listingIds.some((id: string) => !/^[0-9a-f-]{36}$/i.test(id))) {
       return json({ error: "invalid_listing_id" }, 400);

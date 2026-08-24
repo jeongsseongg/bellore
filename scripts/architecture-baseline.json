@@ -4,7 +4,7 @@
   "legacyLineCeilings": {
     "styles.css": 10454,
     "script.js": 6621,
-    "index.html": 3671,
+    "index.html": 3218,
     "wanted-theme.css": 3060,
     "supabase.js": 2626,
     "cq-demo.js": 2423,
@@ -20,13 +20,13 @@
     "reference-layout.css": 425
   },
   "legacyCeilings": {
-    "executableInlineScriptBlocks": 3,
-    "executableInlineScriptBytes": 32728,
+    "executableInlineScriptBlocks": 2,
+    "executableInlineScriptBytes": 1210,
     "styleAttributes": 15,
     "importantTokens": 376,
     "windowAssignments": 91,
     "scriptStyleAttributeTokens": 83,
-    "localClassicScripts": 17
+    "localClassicScripts": 18
   },
   "newCodeBudgets": {
     ".js": {
@@ -46,7 +46,12 @@
       "maximum": 300
     }
   },
-  "newCodeExceptions": {},
+  "newCodeExceptions": {
+    "app/legacy/page-runtime.js": {
+      "maximum": 449,
+      "reason": "2026-08-24: 실행 순서와 브라우저 전역 계약을 보존한 31.5KB 인라인 블록의 순수 classic-script 외부화. 다음 단계에서 기능 단위로 분리한다."
+    }
+  },
   "knownMissingLocalAssets": [],
   "knownMissingSourceAssets": [
     "assets/6850CASA.jpg",

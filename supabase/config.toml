@@ -1,0 +1,23 @@
+project_id = "bellore"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 17
+
+[functions.confirm-payment]
+verify_jwt = true
+
+[functions.cancel-payment]
+verify_jwt = true
+
+# PortOne notifications carry no Supabase user JWT. The handler treats the body
+# only as a hint and re-fetches the payment with the server-side PortOne secret.
+[functions.payment-webhook]
+verify_jwt = false

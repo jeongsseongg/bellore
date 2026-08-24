@@ -18,24 +18,33 @@ create policy "photos_public_read"
   on storage.objects for select
   using (bucket_id = 'photos');
 
--- 3) 로그인한 사용자는 업로드 가능
+-- 3) 로그인 사용자는 반드시 <auth.uid()>/... 경로에만 업로드
 drop policy if exists "photos_auth_insert" on storage.objects;
 create policy "photos_auth_insert"
   on storage.objects for insert
   to authenticated
-  with check (bucket_id = 'photos');
+  with check (
+    bucket_id = 'photos'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
 
--- 4) 로그인한 사용자는 수정/덮어쓰기 가능
+-- 4) 자기 소유 객체(또는 관리자)만 수정
 drop policy if exists "photos_auth_update" on storage.objects;
 create policy "photos_auth_update"
   on storage.objects for update
   to authenticated
-  using (bucket_id = 'photos')
-  with check (bucket_id = 'photos');
+  using (bucket_id = 'photos' and (
+    owner_id = auth.uid()::text or public.is_admin_uid(auth.uid())
+  ))
+  with check (bucket_id = 'photos' and (
+    owner_id = auth.uid()::text or public.is_admin_uid(auth.uid())
+  ));
 
--- 5) 로그인한 사용자는 삭제 가능
+-- 5) 자기 소유 객체(또는 관리자)만 삭제
 drop policy if exists "photos_auth_delete" on storage.objects;
 create policy "photos_auth_delete"
   on storage.objects for delete
   to authenticated
-  using (bucket_id = 'photos');
+  using (bucket_id = 'photos' and (
+    owner_id = auth.uid()::text or public.is_admin_uid(auth.uid())
+  ));

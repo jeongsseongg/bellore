@@ -18,6 +18,7 @@ function eventTarget() {
 (async () => {
   const html = fs.readFileSync(path.resolve(__dirname, '..', 'index.html'), 'utf8');
   const serviceWorker = fs.readFileSync(path.resolve(__dirname, '..', 'sw.js'), 'utf8');
+  const pageRuntime = fs.readFileSync(path.resolve(__dirname, '..', 'app', 'legacy', 'page-runtime.js'), 'utf8');
   const sourcePath = path.resolve(__dirname, '..', 'app', 'ui', 'site-header.js');
   const source = fs.readFileSync(sourcePath, 'utf8');
   const moduleUrl = `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`;
@@ -25,7 +26,7 @@ function eventTarget() {
 
   const scriptUrl = html.match(/<script src="(script\.js\?v=[^"]+)"/)?.[1];
   const bootstrapUrl = html.match(/<script type="module" src="(app\/bootstrap\.js\?v=[^"]+)"/)?.[1];
-  const serviceWorkerUrl = html.match(/serviceWorker\.register\('(sw\.js\?v=[^']+)'\)/)?.[1];
+  const serviceWorkerUrl = pageRuntime.match(/serviceWorker\.register\('(sw\.js\?v=[^']+)'\)/)?.[1];
   assert(scriptUrl, 'legacy script URL has a release cache key');
   assert(bootstrapUrl, 'bootstrap URL has a release cache key');
   assert(serviceWorkerUrl, 'service worker registration has a release cache key');

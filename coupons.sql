@@ -95,6 +95,10 @@ begin
   return v_row;
 end; $$;
 
+-- 복합 행과 임의 user id를 받는 내부 helper는 직접 RPC로 공개하지 않는다.
+revoke all on function public._claim_coupon(public.coupons, uuid)
+  from public, anon, authenticated;
+
 -- 코드 입력으로 받기
 create or replace function public.claim_coupon_by_code(p_code text)
 returns public.user_coupons

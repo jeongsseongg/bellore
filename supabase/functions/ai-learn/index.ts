@@ -28,7 +28,7 @@
 // 정기 학습(누적 → 재요약)은 Supabase Scheduled Functions(pg_cron)로 매일 1회
 //   summarize_all / extract_knowledge 를 호출하도록 등록하면 된다(아래 SQL 주석 참고).
 // ============================================================
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -139,7 +139,7 @@ function safeJson(text: string): any {
   return null;
 }
 
-type SB = ReturnType<typeof createClient>;
+type SB = ReturnType<typeof createClient<any, "public">>;
 
 // 활성 응답 지침(플레이북)을 우선순위 순으로 묶어 시스템 프롬프트 조각으로 반환
 async function guidelinesText(admin: SB): Promise<string> {

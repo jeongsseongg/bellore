@@ -236,8 +236,14 @@ console.log('[1/6] repository invariants');
 const cname = readFileSync(join(root, 'CNAME'), 'utf8').trim();
 if (cname === 'bellore.co.kr') addPass('CNAME: bellore.co.kr');
 else addFailure(`CNAME changed: ${cname || '(empty)'}`);
-if (/navigator\.serviceWorker\.register\(\s*["']sw\.js/i.test(html)) addPass('service worker registration present');
-else addFailure('service worker registration missing from index.html');
+const localScriptEntrypoints = [...cleanHtml.matchAll(/<script\b([^>]*)>/gi)]
+  .map((match) => normalizeLocalReference(attributeValue(match[1], 'src')))
+  .filter((reference) => reference && ['.js', '.mjs'].includes(extname(reference).toLowerCase()))
+  .filter((reference) => existsSync(join(root, reference)));
+const serviceWorkerRegistrationSource = [html, ...localScriptEntrypoints.map((reference) => readFileSync(join(root, reference), 'utf8'))]
+  .find((source) => /navigator\.serviceWorker\.register\(\s*["']sw\.js/i.test(source));
+if (serviceWorkerRegistrationSource) addPass('service worker registration present in a loaded entrypoint');
+else addFailure('service worker registration missing from loaded entrypoints');
 
 const rootRuntimeExtensions = new Set(['.js', '.mjs', '.css', '.html']);
 const actualRootRuntime = readdirSync(root)
@@ -369,7 +375,10 @@ if (syntaxPassed === javascriptFiles.length + executableBlocks.length) {
 
 console.log('[6/6] project tests');
 const testFiles = allFiles
-  .filter((file) => toPosix(file).startsWith('scripts/test-') && extname(file).toLowerCase() === '.js')
+  .filter((file) => {
+    const extension = extname(file).toLowerCase();
+    return toPosix(file).startsWith('scripts/test-') && ['.js', '.mjs'].includes(extension);
+  })
   .sort();
 runTests(testFiles);
 
@@ -383,7 +392,7 @@ console.log('- browser DOM/E2E, accessibility, mobile device behavior');
 console.log('- Edge Function TypeScript type-check and deployed runtime');
 console.log('- PostgreSQL compile, RLS role matrix, two-session concurrency');
 console.log('- PortOne/KG live approval, cancellation, refund, idempotency');
-console.log('- remote GitHub Pages source, required checks, branch/ruleset enforcement');
+console.log('- remote GitHub Pages environment protection, required checks, branch/ruleset enforcement');
 
 console.log(`\nSUMMARY pass=${passes.length} warn=${warnings.length} fail=${failures.length}`);
 if (failures.length > 0) process.exitCode = 1;
