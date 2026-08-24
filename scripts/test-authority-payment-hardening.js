@@ -139,6 +139,7 @@ assert.match(config, /\[functions\.payment-webhook\][\s\S]*verify_jwt = false/);
 assert.match(config, /\[functions\.reconcile-payments\][\s\S]*verify_jwt = false/);
 assert.match(workflow, /validate-authority-payment/);
 assert.match(workflow, /apply-authority-payment/);
+assert.match(workflow, /verify-authority-payment-live/);
 assert.match(workflow, /always rollback/i);
 assert.match(workflow, /ON_ERROR_STOP=1/);
 assert.match(workflow, /has_table_privilege\('anon','public\.orders','insert'\)/);
@@ -157,6 +158,7 @@ assert.match(reconciliationWorkflow, /github\.ref == 'refs\/heads\/main'/);
 assert.match(reconciliationWorkflow, /group: production-database-maintenance/);
 assert.match(workflow, /Verify checkout rate limit across concurrent DB sessions/);
 assert.match(workflow, /allowed=5 limited=5 stored=5/);
+assert.match(workflow, /set request\.jwt\.claims = '\{\\"role\\":\\"service_role\\"\}'/);
 for (const role of ['anon', 'authenticated']) {
   assert.match(workflow, new RegExp(`has_function_privilege\\('${role}',[\\s\\S]*public\\.create_checkout_order\\(`));
   assert.match(workflow, new RegExp(`has_function_privilege\\('${role}',[\\s\\S]*public\\.create_checkout_order_edge_v1\\(`));

@@ -26,6 +26,7 @@ on:
           - apply-analytics-v3
           - validate-authority-payment
           - apply-authority-payment
+          - verify-authority-payment-live
           - purge-analytics-v3
       confirm_sha:
         description: "DB apply 때만: 이 workflow가 실행할 정확한 커밋 SHA"
@@ -328,6 +329,14 @@ jobs:
           docker run --rm -e PGCONN -v "$PWD:/repo:ro" postgres:17 \
             psql "$PGCONN" -v ON_ERROR_STOP=1 --single-transaction \
               -f /repo/supabase/migrations/20260824090000_authority_payment_hardening.sql
+          echo "권한·결제 마이그레이션 적용 완료"
+
+      - name: Verify live authority and payment ACL
+        if: inputs.task == 'apply-authority-payment' || inputs.task == 'verify-authority-payment-live'
+        env:
+          PGCONN: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
           docker run --rm -i -e PGCONN postgres:17 psql "$PGCONN" -v ON_ERROR_STOP=1 <<'SQL'
           do $$
           begin
@@ -361,10 +370,10 @@ jobs:
             end if;
           end $$;
           SQL
-          echo "권한·결제 마이그레이션 적용 및 사후 검증 완료"
+          echo "운영 권한·결제 ACL 사후 검증 완료"
 
       - name: Verify checkout rate limit across concurrent DB sessions
-        if: inputs.task == 'apply-authority-payment'
+        if: inputs.task == 'apply-authority-payment' || inputs.task == 'verify-authority-payment-live'
         env:
           PGCONN: ${{ secrets.SUPABASE_DB_URL }}
         run: |
@@ -384,9 +393,8 @@ jobs:
           for attempt in $(seq 1 10); do
             (
               if docker run --rm -e PGCONN \
-                -e "PGOPTIONS=-c role=service_role -c request.jwt.claim.role=service_role" \
                 postgres:17 psql "$PGCONN" -X -qAt -v ON_ERROR_STOP=1 \
-                -c "select public.consume_checkout_rate_limit('$RATE_KEY')" \
+                -c "set role service_role; set request.jwt.claims = '{\"role\":\"service_role\"}'; select public.consume_checkout_rate_limit('$RATE_KEY')" \
                 >"$result_dir/$attempt.out" 2>"$result_dir/$attempt.err"; then
                 : >"$result_dir/$attempt.ok"
               elif grep -q 'checkout_rate_limited' "$result_dir/$attempt.err"; then
@@ -404,6 +412,21 @@ jobs:
           unexpected_count="$(find "$result_dir" -name '*.unexpected' -type f | wc -l | tr -d ' ')"
           if [ "$success_count" != 5 ] || [ "$limited_count" != 5 ] || [ "$unexpected_count" != 0 ]; then
             echo "Concurrent rate test failed: allowed=$success_count limited=$limited_count unexpected=$unexpected_count"
+            for marker in "$result_dir"/*.unexpected; do
+              [ -e "$marker" ] || continue
+              err_file="${marker%.unexpected}.err"
+              if grep -q 'checkout_rate_forbidden' "$err_file"; then
+                echo "unexpected category: role-claim"
+              elif grep -qi 'permission denied' "$err_file"; then
+                echo "unexpected category: permission"
+              elif grep -qi 'too many clients\|remaining connection slots' "$err_file"; then
+                echo "unexpected category: connection-limit"
+              elif grep -qi 'could not connect\|connection refused\|timeout' "$err_file"; then
+                echo "unexpected category: connection"
+              else
+                echo "unexpected category: other"
+              fi
+            done | sort | uniq -c
             exit 1
           fi
           stored_count="$(docker run --rm -e PGCONN postgres:17 \
