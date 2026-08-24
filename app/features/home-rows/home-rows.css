@@ -15,8 +15,6 @@
 .hrow-title {
   margin: 0; font-size: 21px; font-weight: 800; letter-spacing: -.045em; color: #171719;
 }
-.hrow-more { font-size: 22px; font-weight: 400; line-height: 1; color: #b0b0b6; }
-
 .hrow-rail {
   display: flex; gap: 14px; padding: 0 20px 2px; overflow-x: auto; overflow-y: hidden;
   cursor: grab; scroll-snap-type: x proximity;
@@ -44,6 +42,20 @@
 }
 .hrow-card, .hrow-card * { -webkit-user-drag: none; }
 
+/* 마지막 상품 뒤에서만 나타나는 전체보기 종료 카드 */
+.hrow-view-all {
+  flex: 0 0 118px; min-width: 0; min-height: 218px; align-self: stretch;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  color: #45454a; text-decoration: none; scroll-snap-align: end;
+  -webkit-user-select: none; user-select: none;
+}
+.hrow-view-all-icon {
+  display: grid; place-items: center; width: 40px; height: 40px;
+  border: 1px solid #d9dadd; border-radius: 50%; background: #fff;
+  font-size: 19px; line-height: 1; color: #222326;
+}
+.hrow-view-all-label { font-size: 13px; font-weight: 750; letter-spacing: -.03em; }
+
 .hrow-img {
   position: relative; display: block; width: 100%; aspect-ratio: 1; margin-bottom: 11px;
   border-radius: 16px; background-color: #f2f3f5;
@@ -66,9 +78,19 @@
 .hrow-badge.is-drop { background: #d4342a; }
 .hrow-badge.is-new { background: #1a2925; letter-spacing: .04em; }
 
-/* 추천 매물 — 기존 그리드를 홈에서는 3열로(시계추천 배너를 여기로 흡수), 최대 6줄 */
+/* 추천 매물 — 모바일·데스크톱 모두 2열, 최대 6줄(12점) */
 #homeOnSale .hrow-head { padding: 0; }
 #homeOnSale > .container { padding-top: 4px; }
+#homeOnSale .home-sale-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px 12px;
+}
+.home-sale-footer { margin-top: 28px; text-align: center; }
+.home-sale-footer .home-sale-more {
+  display: inline-flex; width: min(100%, 360px); height: 52px; align-items: center; justify-content: center;
+  border: 1px solid #dedee2; border-radius: 12px; color: #171719; background: #fff;
+  font-size: 14px; font-weight: 750; text-decoration: none;
+}
 
 .hrow-model {
   display: -webkit-box; font-size: 14.5px; font-weight: 650; line-height: 1.4;
@@ -90,4 +112,5 @@
 
 @media (min-width: 520px) {
   .hrow-card { flex-basis: 180px; }
+  .hrow-view-all { flex-basis: 118px; min-height: 238px; }
 }

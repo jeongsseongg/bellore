@@ -71,8 +71,8 @@
     <link rel="stylesheet" href="vendor-reference.css?v=20260731-photo-viewer">
     <link rel="stylesheet" href="mypick.css?v=20260731-mypick-reference-4">
     <link rel="stylesheet" href="bellore-redesign.css?v=20260824-feat-v2">
-    <link rel="stylesheet" href="app/features/home-banners/home-banners.css?v=20260824-feat-v2">
-    <link rel="stylesheet" href="app/features/home-rows/home-rows.css?v=20260824-feat-v2">
+    <link rel="stylesheet" href="app/features/home-banners/home-banners.css?v=20260824-home-final-reference-v1">
+    <link rel="stylesheet" href="app/features/home-rows/home-rows.css?v=20260824-home-final-reference-v1">
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
@@ -228,12 +228,8 @@
                         <div class="hero-image"></div>
                         <div class="hero-gradient"></div>
                         <div class="container hero-content">
-                            <p class="hero-eyebrow anim-line">BELLORE · 공식 직영점</p>
-                            <h1 class="hero-title">
-                                <span class="anim-line">명품시계</span>
-                                <span class="anim-line"><span class="hl-green">구입 · 판매 · 수리</span>까지</span>
-                                <span class="anim-line">한번에 진행하세요</span>
-                            </h1>
+                            <p class="hero-eyebrow anim-line" id="heroSloganSub">검수 사진 · 구성품 · 가격까지 한눈에</p>
+                            <h1 class="hero-title anim-line" id="heroSloganTitle">실물 그대로 보고<br>고르는 명품시계</h1>
                             <div class="hero-cta hero-cta-3 anim-line">
                                 <a href="#buy" class="btn btn-primary" data-nav="buy" data-analytics-id="hero_buy_watch">시계 구입</a>
                                 <a href="#repair" class="btn btn-primary" data-nav="repair" data-analytics-id="hero_repair_watch">시계 수리</a>
@@ -255,19 +251,20 @@
             <section class="hrow-block" id="rowSaleBlock" hidden></section>
             <section class="hrow-block" id="rowDropBlock" hidden></section>
             <section class="bn-block" id="catBannerBlock"></section>
-            <section class="bn-block" id="featBannerBlock" hidden></section>
             <section class="hrow-block" id="rowNewBlock" hidden></section>
-            <!-- 판매중인 시계 (2열 그리드) -->
+            <section class="bn-block" id="buyBannerBlock"></section>
+
+            <!-- 추천 매물 (2열 · 최대 6줄) -->
             <section class="section" id="homeOnSale">
                 <div class="container">
-                    <div class="hrow-head"><h2 class="hrow-title">추천 매물</h2><span class="hrow-more" aria-hidden="true">›</span></div>
+                    <div class="hrow-head"><h2 class="hrow-title">추천 매물</h2></div>
                     <div class="home-sale-grid" aria-live="polite"></div>
-                    <div style="text-align:right;margin-top:12px">
-                        <a href="#collection" class="home-sale-more" data-nav="collection">전체 보기 →</a>
+                    <section class="bn-block" id="featBannerBlock" hidden></section>
+                    <div class="home-sale-footer">
+                        <a href="#collection" class="home-sale-more" data-nav="collection">추천 매물 더보기</a>
                     </div>
                 </div>
             </section>
-            <section class="bn-block" id="buyBannerBlock"></section>
         </section>
 
         <!-- ========== 판매 폼 ========== -->
@@ -1822,7 +1819,7 @@
       </div>
     </div>
 
-    <script type="module" src="app/bootstrap.js?v=20260824-revl-v3"></script>
+    <script type="module" src="app/bootstrap.js?v=20260824-home-v1"></script>
 
     <!-- PWA 설치 모달 -->
     <div id="pwaInstallModal" hidden aria-modal="true" role="dialog">
@@ -3207,7 +3204,7 @@
     <script src="supabase.js?v=20260821-product-detail-v1"></script>
     <script src="bellore-features.js?v=20260821-product-detail-v1"></script>
     <script src="cq-demo.js?v=20260810-bid-notify-fix"></script>
-    <script src="script.js?v=20260824-revl-v3"></script>
+    <script src="script.js?v=20260824-home-v1"></script>
     <script src="wishlist.js?v=20260824-purl-v2"></script>
     <script src="alerts.js?v=20260820-tabs-alerts-v1"></script>
     <script src="auction.js"></script>
@@ -3219,7 +3216,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('sw.js?v=20260824-revl-v3').catch(function (err) {
+                navigator.serviceWorker.register('sw.js?v=20260824-home-v1').catch(function (err) {
                     console.warn('서비스워커 등록 실패:', err);
                 });
             });

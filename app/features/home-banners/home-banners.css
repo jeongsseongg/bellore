@@ -34,53 +34,10 @@
   background-color: #20262b; background-size: cover; background-position: center;
   -webkit-user-select: none; user-select: none; font: inherit;
 }
-/* 배경 사진은 여기서만 바꾼다 — 카테고리별 실제 사진이 준비되면 이 URL을 교체한다. */
-.bn-cat[data-slug="under100"] { background-image: url(../../../assets/banners/fab-1.jpg); }
-.bn-cat[data-slug="under300"] { background-image: url(../../../assets/banners/fab-2.jpg); }
-.bn-cat[data-slug="under500"] { background-image: url(../../../assets/banners/fab-3.jpg); }
-.bn-cat[data-slug="under1000"] { background-image: url(../../../assets/banners/fab-4.jpg); }
-.bn-cat[data-slug="over1000"] { background-image: url(../../../assets/banners/fab-5.jpg); }
-.bn-cat[data-slug="wedding"] { background-image: url(../../../assets/banners/fab-1.jpg); }
-.bn-cat[data-slug="diver"] { background-image: url(../../../assets/banners/fab-3.jpg); }
-.bn-cat[data-slug="datejust"] { background-image: url(../../../assets/banners/fab-2.jpg); }
-.bn-cat[data-slug="women"] { background-image: url(../../../assets/banners/fab-4.jpg); }
-.bn-cat[data-slug="vintage"] { background-image: url(../../../assets/banners/fab-5.jpg); }
-
-.bn-ctl {
-  position: absolute; right: 12px; bottom: 12px; z-index: 5;
-  display: flex; align-items: center; gap: 2px; padding: 4px 4px 4px 12px;
-  border-radius: 999px; background: rgba(20, 24, 22, .55);
-  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+/* 추천매물 3번째 줄 뒤에 들어가는 단독 매물 배너 */
+#homeOnSale .home-sale-grid > .bn-block {
+  grid-column: 1 / -1; margin: 6px 0 10px; padding: 0;
 }
-.bn-num, .feat-num {
-  display: flex; align-items: center; gap: 5px; font-size: 11.5px;
-  font-variant-numeric: tabular-nums; letter-spacing: .01em;
-}
-.bn-num { margin-right: 6px; }
-.bn-num b, .feat-num b { color: #fff; font-weight: 800; }
-.bn-num s, .feat-num s { color: rgba(255, 255, 255, .6); font-weight: 600; text-decoration: none; }
-.bn-num em, .feat-num em { display: block; width: 1px; height: 9px; background: rgba(255, 255, 255, .35); }
-.bn-ctl button {
-  width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%;
-  background: rgba(255, 255, 255, .14); color: #fff; cursor: pointer;
-  display: grid; place-items: center; font-size: 15px; line-height: 1;
-}
-.bn-ctl button:disabled { opacity: .3; }
-
-/* 매물 배너 레일 — 모바일 스와이프 / PC 드래그, 좌우 버튼 없음 */
-.feat-wrap { position: relative; }
-.feat-rail {
-  display: flex; overflow-x: auto; overflow-y: hidden; cursor: grab;
-  scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none;
-}
-.feat-rail::-webkit-scrollbar { display: none; }
-.feat-rail.drag { cursor: grabbing; scroll-snap-type: none; }
-.feat-num {
-  position: absolute; right: 12px; bottom: 12px; z-index: 6; padding: 5px 11px;
-  border-radius: 999px; background: rgba(20, 24, 22, .55); pointer-events: none;
-  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
-}
-.feat-num[hidden] { display: none; }
 .feat-card {
   position: relative; display: block; flex: 0 0 100%; width: 100%; aspect-ratio: 430 / 135;
   overflow: hidden; scroll-snap-align: start; background-color: #1a2925;
@@ -154,4 +111,5 @@
 
 @media (min-width: 520px) {
   .bn-block { padding: 0 16px; }
+  #homeOnSale .home-sale-grid > .bn-block { padding: 0; }
 }
