@@ -9,8 +9,10 @@ const data = read('app/features/home-banners/home-banner-data.js');
 const banners = read('app/features/home-banners/home-banners.js');
 const bannersCss = read('app/features/home-banners/home-banners.css');
 const rows = read('app/features/home-rows/home-rows.js');
+const rowAdmin = read('app/features/home-rows/home-row-admin.js');
 const rowsCss = read('app/features/home-rows/home-rows.css');
 const legacy = read('script.js');
+const buildPages = read('tools/build-pages.mjs');
 
 const order = ['rowSaleBlock', 'rowDropBlock', 'catBannerBlock', 'rowNewBlock', 'buyBannerBlock', 'homeOnSale'];
 order.reduce((previous, id) => {
@@ -35,6 +37,14 @@ assert.match(rowsCss, /\.hrow-card \{ flex-basis: 180px; \}/);
 assert.match(rowsCss, /\.hrow-block \{ margin: 34px 0; \}/);
 assert.match(rowsCss, /\.hrow-card:first-child \{ margin-left: 20px; \}/);
 assert.match(rowsCss, /\.hrow-view-all:last-child \{ margin-right: 20px; \}/);
+assert.match(rows, /mount: 'rowDropBlock', key: 'home_row_drop', title: 'TIME SALE'/);
+assert.match(rows, /class="hrow-meta"/);
+assert.match(rowAdmin, /브랜드 · 상태 · 구성품/);
+assert.match(rowAdmin, /backend\.getSiteContent\(row\.config\.key\)/);
+assert.match(rowAdmin, /backend\.saveSiteContent\(activeRow\.config\.key/);
+assert.match(rowAdmin, /row\.settingsButton\.hidden = !isAdmin/);
+assert.match(rowsCss, /\.hrow-settings\[hidden\] \{ display: none; \}/);
+assert.match(buildPages, /'app\/features\/home-rows\/home-row-admin\.js'/);
 assert.match(rows, /class="hrow-view-all"/);
 assert.doesNotMatch(rows, /hrow-more/);
 assert.doesNotMatch(index, /hrow-more/);
@@ -45,4 +55,4 @@ for (let i = 1; i <= 10; i += 1) {
   assert.ok(fs.existsSync(path.join(root, file)), file);
 }
 
-console.log('home redesign checks: 23 passed');
+console.log('home redesign checks: 31 passed');

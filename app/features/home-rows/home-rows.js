@@ -2,6 +2,7 @@
    모바일은 스와이프, PC는 마우스 드래그. 카드를 누르면 그 매물 상세로 간다. */
 
 import { discountRate, dropAmountText, priceText } from '../../core/listing-display.js';
+import { initHomeRowAdmin } from './home-row-admin.js';
 
 const ROW_MAX = 20;
 const DRAG_THRESHOLD = 5;
@@ -10,9 +11,18 @@ const DRAG_THRESHOLD = 5;
 const FEATURE_MAX = 8;
 
 const ROWS = [
-  { mount: 'rowSaleBlock', title: '이번 주 특별가', badge: 'rate' },
-  { mount: 'rowDropBlock', title: '새로워진 가격', badge: 'drop' },
-  { mount: 'rowNewBlock', title: '최근 등록된 시계', badge: 'new' },
+  {
+    mount: 'rowSaleBlock', key: 'home_row_sale', title: '이번 주 특별가',
+    description: '이번 주, 가격이 좋아진 시계', badge: 'rate',
+  },
+  {
+    mount: 'rowDropBlock', key: 'home_row_drop', title: 'TIME SALE',
+    description: '지금만 만나는 한정 혜택', badge: 'drop',
+  },
+  {
+    mount: 'rowNewBlock', key: 'home_row_new', title: '최근 등록된 시계',
+    description: '검수를 마치고 새로 들어온 시계', badge: 'new',
+  },
 ];
 
 /* 겹치지 않게 나눈다. 두 줄 모두 손님이 실제로 내는 금액만 보여준다. */
@@ -40,6 +50,24 @@ function longPrice(amount) {
   return priceText(amount).length >= 13;
 }
 
+function escapeText(value) {
+  return String(value || '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  })[char]);
+}
+
+/* 상품명 다음 한 줄은 구매 판단에 필요한 브랜드·상태·구성만 짧게 보여준다. */
+function cardDescription(listing) {
+  const condition = String(listing.condition || '')
+    .replace(/^중고\s*/i, '')
+    .replace(/(\d+)\s*\/\s*10/g, '$1점')
+    .trim();
+  const pack = /풀세트/.test(listing.pack) ? '풀세트'
+    : /보증서/.test(listing.pack) ? '보증서 포함'
+      : /박스/.test(listing.pack) ? '박스 포함' : '';
+  return [listing.brand, condition, pack].filter(Boolean).slice(0, 3).join(' · ');
+}
+
 function badgeMarkup(listing, kind) {
   if (kind === 'rate') {
     const rate = discountRate(listing);
@@ -57,9 +85,11 @@ function badgeMarkup(listing, kind) {
    1억대 금액에 할인율까지 붙이면 좁은 화면에서 두 줄로 깨진다. */
 function cardMarkup(listing, kind) {
   const rate = discountRate(listing);
+  const description = cardDescription(listing);
   return `<a class="hrow-card" href="#collection" draggable="false" data-pid="${listing.id}">` +
     `<span class="hrow-img">${badgeMarkup(listing, kind)}<span class="hrow-shadow"></span></span>` +
     `<span class="hrow-model">${listing.model}</span>` +
+    (description ? `<span class="hrow-meta">${escapeText(description)}</span>` : '') +
     `<span class="hrow-price${longPrice(listing.price) ? ' is-long' : ''}">` +
     `${priceText(listing.price)}<i>원</i></span>` +
     (rate > 0 ? `<span class="hrow-old">${priceText(listing.listPrice)}원</span>` : '') +
@@ -77,7 +107,14 @@ function viewAllMarkup(title) {
 function buildRow({ doc, mount, config, collection }) {
   mount.innerHTML =
     '<div class="hrow-head">' +
+    '<div class="hrow-head-copy">' +
     `<h2 class="hrow-title">${config.title}</h2>` +
+    `<p class="hrow-description">${config.description}</p>` +
+    '</div>' +
+    '<button class="hrow-settings" type="button" hidden aria-label="섹션 설정" title="섹션 설정">' +
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle>' +
+    '<path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.09A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.12.37.34.7.64.96.3.25.67.39 1.06.4H21v4h-.09c-.39.01-.76.15-1.06.4-.3.26-.52.59-.64.96Z"></path></svg>' +
+    '</button>' +
     '</div><div class="hrow-rail"></div>' +
     '<div class="hrow-progress"><span></span></div>';
   const rail = mount.querySelector('.hrow-rail');
@@ -100,7 +137,12 @@ function buildRow({ doc, mount, config, collection }) {
     raf = requestAnimationFrame(() => { raf = null; syncProgress(); });
   }, { passive: true });
   rail._syncProgress = syncProgress;
-  return rail;
+  return {
+    rail,
+    title: mount.querySelector('.hrow-title'),
+    description: mount.querySelector('.hrow-description'),
+    settingsButton: mount.querySelector('.hrow-settings'),
+  };
 }
 
 /* PC 드래그. setPointerCapture는 클릭 타깃을 레일로 바꿔 카드 클릭을 죽이므로 쓰지 않는다. */
@@ -141,11 +183,21 @@ function enableDrag({ doc, rail, collection }) {
   }, true);
 }
 
-export function initHomeRows({ document: doc, collection }) {
+export function initHomeRows({ document: doc, window: win, collection }) {
   const rows = ROWS
-    .map((config) => ({ config, mount: doc.getElementById(config.mount) }))
+    .map((source) => ({
+      config: {
+        ...source,
+        defaultTitle: source.title,
+        defaultDescription: source.description,
+      },
+      mount: doc.getElementById(source.mount),
+    }))
     .filter((row) => row.mount);
-  rows.forEach((row) => { row.rail = buildRow({ doc, mount: row.mount, config: row.config, collection }); });
+  rows.forEach((row) => Object.assign(row, buildRow({
+    doc, mount: row.mount, config: row.config, collection,
+  })));
+  initHomeRowAdmin({ document: doc, window: win, rows });
 
   return {
     update(listings) {

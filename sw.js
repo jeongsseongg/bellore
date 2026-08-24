@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v268-phase7-11";
+const VERSION = "bellore-v269-home-row-admin";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -14,7 +14,7 @@ const SHELL_ASSETS = [
   './reference-layout.css?v=20260821-tabbar-safe-area-v1',
   './mypick.css?v=20260731-mypick-reference-4',
   './bellore-redesign.css?v=20260824-feat-v2',
-  './script.js?v=20260824-phase7-11-v1',
+  './script.js?v=20260824-home-admin-v1',
   './payments.js?v=20260814-buyer-email-input',
   './naverpay.js?v=20260728-naver-review-fixes-2',
   './ui-dialog.js',
@@ -31,18 +31,19 @@ const SHELL_ASSETS = [
   './search.js?v=20260824-purl-v2',
   './ai-advisor.js?v=20260814-kg-card-review',
   './ai-advisor-admin.js?v=20260725-ai-log',
-  './app/bootstrap.js?v=20260824-phase7-11-v1',
+  './app/bootstrap.js?v=20260824-home-admin-v1',
   './app/core/listing-display.js',
   './app/core/market-product-url.mjs',
   './app/features/home-banners/home-banners.js',
   './app/features/home-banners/home-banner-data.js',
   './app/features/home-banners/home-banners.css?v=20260824-home-spacing-v2',
   './app/features/home-rows/home-rows.js',
-  './app/features/home-rows/home-rows.css?v=20260824-home-spacing-v2',
+  './app/features/home-rows/home-rows.css?v=20260824-home-admin-v1',
+  './app/features/home-rows/home-row-admin.js',
   './app/services/listings/listing-catalog-service.js',
   './app/legacy/legacy-collection.js',
   './app/legacy/legacy-reveal.js',
-  './app/legacy/page-runtime.js?v=20260824-phase7-11-v1',
+  './app/legacy/page-runtime.js?v=20260824-home-admin-v1',
   './app/features/insights/insight-filter.js',
   './app/features/insights/insight-reader.js',
   './app/features/legal/legal-modals.js',

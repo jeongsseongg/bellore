@@ -12,9 +12,20 @@
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px; padding: 0 20px; margin-bottom: 16px;
 }
+.hrow-head-copy { min-width: 0; }
 .hrow-title {
   margin: 0; font-size: 21px; font-weight: 800; letter-spacing: -.045em; color: #171719;
 }
+.hrow-description {
+  margin: 5px 0 0; font-size: 12.5px; font-weight: 550; line-height: 1.4;
+  letter-spacing: -.025em; color: #8a8a90;
+}
+.hrow-settings {
+  flex: 0 0 36px; width: 36px; height: 36px; padding: 8px; border: 1px solid #dedee2;
+  border-radius: 50%; color: #55565b; background: #fff; cursor: pointer;
+}
+.hrow-settings[hidden] { display: none; }
+.hrow-settings svg { display: block; width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1.5; }
 .hrow-rail {
   display: flex; gap: 14px; padding: 0 0 2px; overflow-x: auto; overflow-y: hidden;
   cursor: grab; scroll-snap-type: x proximity;
@@ -100,6 +111,10 @@
   letter-spacing: -.025em; color: #2a2a2e; min-height: 41px;
   -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
+.hrow-meta {
+  display: block; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 11px; font-weight: 600; line-height: 1.45; letter-spacing: -.02em; color: #99999f;
+}
 .hrow-price {
   display: block; margin-top: 7px; font-size: 16px; font-weight: 850; letter-spacing: -.04em;
   color: #171719; white-space: nowrap;
@@ -117,3 +132,40 @@
   .hrow-card { flex-basis: 180px; }
   .hrow-view-all { flex-basis: 118px; min-height: 238px; }
 }
+
+body.hrow-settings-open { overflow: hidden; }
+.hrow-settings-modal {
+  position: fixed; inset: 0; z-index: 5200; display: grid; place-items: center; padding: 16px;
+}
+.hrow-settings-modal[hidden] { display: none; }
+.hrow-settings-backdrop { position: absolute; inset: 0; background: rgba(17, 17, 19, .48); }
+.hrow-settings-sheet {
+  position: relative; width: min(100%, 420px); max-height: calc(100vh - 32px); overflow: auto;
+  border-radius: 18px; background: #fff; box-shadow: 0 24px 70px rgba(0, 0, 0, .24);
+}
+.hrow-settings-sheet header {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 22px 22px 16px; border-bottom: 1px solid #eeeeef;
+}
+.hrow-settings-sheet header small { display: block; margin-bottom: 4px; font-size: 10px; font-weight: 750; letter-spacing: .12em; color: #929297; }
+.hrow-settings-sheet header h2 { margin: 0; font-size: 20px; letter-spacing: -.04em; }
+.hrow-settings-sheet header button {
+  width: 34px; height: 34px; padding: 0; border: 0; border-radius: 50%;
+  color: #55565b; background: #f3f3f5; font-size: 24px; line-height: 1; cursor: pointer;
+}
+.hrow-settings-sheet form { display: grid; gap: 16px; padding: 20px 22px 22px; }
+.hrow-settings-sheet label { display: grid; gap: 7px; }
+.hrow-settings-sheet label span { font-size: 12px; font-weight: 750; color: #55565b; }
+.hrow-settings-sheet input {
+  width: 100%; height: 46px; padding: 0 13px; border: 1px solid #dcdce0; border-radius: 10px;
+  color: #171719; background: #fff; font: inherit; font-size: 14px;
+}
+.hrow-settings-sheet input:focus { outline: 2px solid #1a2925; outline-offset: 1px; }
+.hrow-settings-sheet form > p { margin: -3px 0 0; font-size: 11.5px; line-height: 1.55; color: #89898f; }
+.hrow-settings-sheet footer { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 2px; }
+.hrow-settings-sheet footer button {
+  height: 46px; border: 1px solid #dedee2; border-radius: 10px; color: #333438;
+  background: #fff; font-size: 13px; font-weight: 750; cursor: pointer;
+}
+.hrow-settings-sheet footer .is-primary { border-color: #1a2925; color: #fff; background: #1a2925; }
+.hrow-settings-sheet footer button:disabled { opacity: .55; cursor: wait; }

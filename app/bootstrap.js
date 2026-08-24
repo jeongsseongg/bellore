@@ -31,7 +31,7 @@ function bootstrap() {
 
   const collection = createLegacyCollection({ document, window });
   const featured = initHomeBanners({ document, window, collection });
-  const rows = initHomeRows({ document, collection });
+  const rows = initHomeRows({ document, window, collection });
 
   createListingCatalog({ window }).subscribe((listings) => {
     featured.update(listings);
