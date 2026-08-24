@@ -29,7 +29,7 @@
 .bn-slider { position: relative; overflow: hidden; }
 .bn-track { display: flex; transition: transform .34s cubic-bezier(.22, .61, .36, 1); will-change: transform; }
 .bn-cat {
-  position: relative; flex: 0 0 100%; width: 100%; aspect-ratio: 430 / 104;
+  position: relative; flex: 0 0 100%; width: 100%; aspect-ratio: 430 / 125;
   overflow: hidden; display: block; padding: 0; border: 0; cursor: pointer;
   background-color: #20262b; background-size: cover; background-position: center;
   -webkit-user-select: none; user-select: none; font: inherit;
@@ -39,7 +39,7 @@
   grid-column: 1 / -1; margin: 6px 0 10px; padding: 0;
 }
 .feat-card {
-  position: relative; display: block; flex: 0 0 100%; width: 100%; aspect-ratio: 430 / 135;
+  position: relative; display: block; flex: 0 0 100%; width: 100%; aspect-ratio: 430 / 189;
   overflow: hidden; scroll-snap-align: start; background-color: #1a2925;
   background-size: cover; background-position: center;
   -webkit-user-select: none; user-select: none;
@@ -94,7 +94,7 @@
 
 /* 매입 안내 배너 */
 .bn-buy {
-  position: relative; display: block; width: 100%; aspect-ratio: 430 / 104; overflow: hidden;
+  position: relative; display: block; width: 100%; aspect-ratio: 430 / 125; overflow: hidden;
   background-color: #12211d; background-size: cover; background-position: center;
 }
 .bn-buy .bn-tx { width: 60%; }

@@ -28,10 +28,13 @@ assert.match(banners, /const ROTATION_MS = 15000;/);
 assert.match(banners, /const FEATURED_AFTER_CARD = 6;/);
 assert.match(banners, /shuffled\(listings\)\.slice\(0, FEATURED_MAX\)/);
 assert.doesNotMatch(banners, /bn-num|counterMarkup/);
-assert.match(bannersCss, /aspect-ratio: 430 \/ 104/);
+assert.equal((bannersCss.match(/aspect-ratio: 430 \/ 125/g) || []).length, 2, 'category and buy-in banners are 1.2x taller');
+assert.match(bannersCss, /\.feat-card \{[\s\S]*aspect-ratio: 430 \/ 189/, 'featured banner is 1.4x taller');
 assert.match(rowsCss, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
 assert.match(rowsCss, /\.hrow-card \{ flex-basis: 180px; \}/);
 assert.match(rowsCss, /\.hrow-block \{ margin: 34px 0; \}/);
+assert.match(rowsCss, /\.hrow-card:first-child \{ margin-left: 20px; \}/);
+assert.match(rowsCss, /\.hrow-view-all:last-child \{ margin-right: 20px; \}/);
 assert.match(rows, /class="hrow-view-all"/);
 assert.doesNotMatch(rows, /hrow-more/);
 assert.doesNotMatch(index, /hrow-more/);
@@ -42,4 +45,4 @@ for (let i = 1; i <= 10; i += 1) {
   assert.ok(fs.existsSync(path.join(root, file)), file);
 }
 
-console.log('home redesign checks: 20 passed');
+console.log('home redesign checks: 23 passed');
