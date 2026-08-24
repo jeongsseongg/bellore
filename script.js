@@ -52,7 +52,6 @@
         initAdminMode();
         initPartnerModal();
         initInquiryModal();
-        initReveal();
         initCoupons();
         initOrderUI();
         initAdminOrderUI();
@@ -5101,7 +5100,7 @@
             else header.classList.add('light-page');
         }
         window.scrollTo(0, 0);
-        setTimeout(refreshReveals, 50);
+        setTimeout(function () { if (window.refreshReveals) window.refreshReveals(); }, 50);
         logPageView('#' + target);
     }
 
@@ -6618,31 +6617,5 @@
             if (pid) setTimeout(function () { openProductById(pid); }, 400);
         })();
     }
-
-    /* ============ 11. 리빌 ============ */
-    var REVEAL_SEL = '.section-title, .eyebrow, .recent-card, .option-card, .product-card, .insight-row, .brand-card, .promise-card, .brand-prev, .two-col-img, .two-col-text, .store-card, .contact-quick-card, .repair-card, .partner-stat, .ach-card, .method-row';
-    var revealObserver = null;
-
-    function initReveal() {
-        if (!('IntersectionObserver' in window)) return;
-        revealObserver = new IntersectionObserver(function (entries) {
-            entries.forEach(function (entry, i) {
-                if (entry.isIntersecting) {
-                    setTimeout(function () { entry.target.classList.add('in'); }, i * 35);
-                    revealObserver.unobserve(entry.target);
-                }
-            });
-        }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
-        refreshReveals();
-    }
-
-    function refreshReveals() {
-        if (!revealObserver) return;
-        $$(REVEAL_SEL).forEach(function (el) {
-            if (!el.classList.contains('reveal')) el.classList.add('reveal');
-            if (!el.classList.contains('in')) revealObserver.observe(el);
-        });
-    }
-    window.refreshReveals = refreshReveals;
 
 })();

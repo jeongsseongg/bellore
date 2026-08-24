@@ -51,8 +51,10 @@ export const APP_RUNTIME_FILES = Object.freeze([
   'app/features/legal/legal-modals.js',
   'app/features/product-sharing/product-sharing.mjs',
   'app/legacy/legacy-collection.js',
+  'app/legacy/legacy-reveal.js',
   'app/services/listings/listing-catalog-service.js',
   'app/ui/hero-parallax.js',
+  'app/ui/reveal-effects.js',
   'app/ui/site-header.js',
 ]);
 

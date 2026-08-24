@@ -90,7 +90,8 @@ app/services/payments/
 - 2차 배포 완료(2026-08-24, `9ad683f`): 헤더 높이·30px 스크롤 표시 동작을 `app/ui/site-header.js`로 옮겨 clean `script.js`를 6,772→6,749줄로 줄였다. 품질검사·GitHub Pages·Firebase가 모두 성공했고 운영 데스크톱·390px에서 높이 동기화와 스크롤 상태를 확인했다.
 - 3차 배포 완료(2026-08-24, `fdcbe89`): 인사이트 글 읽기 모달을 `app/features/insights/insight-reader.js`로 옮겨 clean `script.js`를 6,749→6,690줄로 낮췄다. 자동검사 4개와 운영 데스크톱·390px 검증을 통과했고, 품질검사·GitHub Pages·Firebase가 모두 성공했다.
 - 4차 배포 완료(2026-08-24, `9e6fc02`): 홈 히어로 패럴랙스를 `app/ui/hero-parallax.js`로 옮겨 clean `script.js`를 6,690→6,677줄로 낮췄다. passive 스크롤·뷰포트 경계·정리 계약과 서비스워커 캐시를 고정했고, GitHub Pages·Firebase를 같은 검증된 `_site` 허용목록으로 배포하도록 통일했다.
-- 5차 추출(2026-08-24): 인사이트 카테고리 탭 필터를 `app/features/insights/insight-filter.js`로 옮겨 clean `script.js`를 6,677→6,649줄로 낮췄다. 전체·개별·제휴처·동적 행 재조회·정리 계약을 자동검사로 고정했다.
+- 5차 배포 완료(2026-08-24, `030aea1`): 인사이트 카테고리 탭 필터를 `app/features/insights/insight-filter.js`로 옮겨 clean `script.js`를 6,677→6,649줄로 낮췄다. 전체·개별·제휴처·동적 행 재조회·정리 계약을 자동검사로 고정했고 GitHub Pages·Firebase 배포를 검증했다.
+- 6차 로컬 후보(2026-08-24): 최신 `main`의 상품 공유 URL 변경 위에서 스크롤 리빌 효과를 `app/ui/reveal-effects.js`로 옮기고 `app/legacy/legacy-reveal.js`가 기존 `window.refreshReveals` 호출만 임시 보존한다. 현 기준 clean `script.js`는 6,648→6,621줄이며 observer 미지원·동적 요소·35ms stagger·정리 계약을 자동검사로 고정했다. 아직 배포하지 않았다.
 - 다음 후보는 시작 시점의 dirty hunk와 호출 관계를 다시 재서 고른다. 낮은 상태·낮은 권한·독립 DOM 기능을 우선한다.
 - 보류: 현재 dirty worktree에서 작업 중인 검색 10개 무한스크롤, 추천 v2, 결제, `supabase.js`, 서비스워커 관련 대형 블록.
 - 기존 JS/CSS가 참조하지만 저장소에 없는 동적 이미지 9개는 별도 콘텐츠 부채다. 1차 구조 배포에서는 임의 대체하지 않고 baseline 경고로 고정해 추가 누락만 차단한다.

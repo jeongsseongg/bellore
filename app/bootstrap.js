@@ -2,12 +2,14 @@ import { initInsightFilter } from './features/insights/insight-filter.js';
 import { initInsightReader } from './features/insights/insight-reader.js';
 import { initLegalModals } from './features/legal/legal-modals.js';
 import { initHeroParallax } from './ui/hero-parallax.js';
+import { initRevealEffects } from './ui/reveal-effects.js';
 import { initSiteHeader } from './ui/site-header.js';
 import { initHomeBanners } from './features/home-banners/home-banners.js';
 import { initHomeRows } from './features/home-rows/home-rows.js';
 import { initProductDetailRoute, initProductSharing } from './features/product-sharing/product-sharing.mjs';
 import { createListingCatalog } from './services/listings/listing-catalog-service.js';
 import { createLegacyCollection } from './legacy/legacy-collection.js';
+import { installLegacyReveal } from './legacy/legacy-reveal.js';
 
 function bootstrap() {
   initSiteHeader({ document, window });
@@ -20,6 +22,8 @@ function bootstrap() {
     notify: (message) => window.alert(message),
   });
   initProductDetailRoute({ document, window });
+  const reveal = initRevealEffects({ document, window });
+  installLegacyReveal({ window, reveal });
 
   const collection = createLegacyCollection({ document, window });
   const featured = initHomeBanners({ document, window, collection });

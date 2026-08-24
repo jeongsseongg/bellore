@@ -10,7 +10,7 @@ const baseline = JSON.parse(readFileSync(baselinePath, 'utf8'));
 const failures = [];
 const warnings = [];
 const passes = [];
-const excludedDirectories = new Set(['.git', 'node_modules', 'assets', 'data', 'design-refs']);
+const excludedDirectories = new Set(['.git', 'node_modules', 'assets', 'data', 'design-refs', '_site']);
 
 function toPosix(file) {
   return relative(root, file).split(sep).join('/');
@@ -18,7 +18,7 @@ function toPosix(file) {
 
 function walk(directory, output = []) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
-    if (entry.isDirectory() && excludedDirectories.has(entry.name)) continue;
+    if (entry.isDirectory() && (excludedDirectories.has(entry.name) || entry.name.startsWith('.tmp-pages-test-'))) continue;
     const absolute = join(directory, entry.name);
     if (entry.isDirectory()) walk(absolute, output);
     else if (entry.isFile()) output.push(absolute);

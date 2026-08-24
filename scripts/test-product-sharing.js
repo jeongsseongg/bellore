@@ -150,8 +150,14 @@ function fakeEventTarget() {
     assert(serviceWorker.includes(`'${asset}'`), `서비스워커 누락: ${asset}`);
     assert(buildPages.includes(`'${asset.slice(2)}'`), `Pages allowlist 누락: ${asset}`);
   }
-  for (const asset of ['script.js', 'wishlist.js', 'search.js', 'app/bootstrap.js', 'sw.js']) {
-    assert(html.includes(`${asset}?v=20260824-purl-v2`), `HTML 캐시 키 누락: ${asset}`);
+  for (const [asset, releaseKey] of [
+    ['script.js', '20260824-revl-v3'],
+    ['app/bootstrap.js', '20260824-revl-v3'],
+    ['sw.js', '20260824-revl-v3'],
+    ['wishlist.js', '20260824-purl-v2'],
+    ['search.js', '20260824-purl-v2'],
+  ]) {
+    assert(html.includes(`${asset}?v=${releaseKey}`), `HTML 캐시 키 누락: ${asset}`);
   }
 
   console.log('product sharing market URL invariants: ok');
