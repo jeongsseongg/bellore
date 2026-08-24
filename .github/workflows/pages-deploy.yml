@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      static_release_sha:
+        description: '검증된 프론트 전용 릴리스 SHA (비우면 main 전체 배포)'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -19,7 +24,10 @@ jobs:
     uses: ./.github/workflows/truth-guard.yml
 
   build:
-    if: github.ref == 'refs/heads/main' && vars.PRODUCTION_DEPLOY_ENABLED != 'false'
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (vars.PRODUCTION_DEPLOY_ENABLED != 'false' ||
+      (github.event_name == 'workflow_dispatch' && inputs.static_release_sha != ''))
     needs: truth_guard
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -27,12 +35,35 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
+          ref: ${{ inputs.static_release_sha || github.sha }}
+
+      - name: Validate static frontend release source
+        if: github.event_name == 'workflow_dispatch' && inputs.static_release_sha != ''
+        shell: bash
+        env:
+          STATIC_RELEASE_SHA: ${{ inputs.static_release_sha }}
+        run: |
+          if [[ ! "$STATIC_RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo 'static_release_sha must be a full lowercase commit SHA.' >&2
+            exit 1
+          fi
+          if [[ "$(git rev-parse HEAD)" != "$STATIC_RELEASE_SHA" ]]; then
+            echo 'Checked-out commit does not match static_release_sha.' >&2
+            exit 1
+          fi
+          git merge-base --is-ancestor f9885d81269a4a7bf73142d2d08f6e6e07e0692f "$STATIC_RELEASE_SHA"
+          if git merge-base --is-ancestor 69d17952a33bb93043dbdc836a9b6292832a969e "$STATIC_RELEASE_SHA"; then
+            echo 'Static frontend release must not include payment-authority changes.' >&2
+            exit 1
+          fi
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
 
       - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        if: inputs.static_release_sha == ''
         with:
           deno-version: '2.9.5'
 
@@ -41,6 +72,7 @@ jobs:
         run: node scripts/check.mjs
 
       - name: Supabase Edge locked typecheck
+        if: inputs.static_release_sha == ''
         run: node scripts/check-edge.mjs
 
       - name: Configure GitHub Pages
@@ -58,7 +90,10 @@ jobs:
           path: _site
 
   deploy:
-    if: github.ref == 'refs/heads/main' && vars.PRODUCTION_DEPLOY_ENABLED != 'false'
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (vars.PRODUCTION_DEPLOY_ENABLED != 'false' ||
+      (github.event_name == 'workflow_dispatch' && inputs.static_release_sha != ''))
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
