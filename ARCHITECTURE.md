@@ -82,13 +82,14 @@ app/services/payments/
 - no-build도 여러 CSS 링크와 네이티브 ESM으로 모듈 경계를 만들 수 있다.
 - HTML 부분 조립·해시 자산·번들 최적화가 실제 병목으로 확인되면 최소 조립기나 빌드 도구를 별도 결정한다.
 - `package.json` 자체가 GitHub Pages/Firebase의 빌드를 자동 전환하는 것은 아니다. 실제 영향은 Pages 게시원, Actions workflow, Firebase `public`/`ignore` 설정으로 검증한다.
-- 현재 primary Pages는 branch-source이므로 독립 `quality-gate.yml`은 검사 신호를 만들지만 게시를 선행 차단하지 못한다. 보조 Firebase workflow에는 동일 검사를 선행 단계로 연결했다. 주 운영 Pages 차단은 원격 브랜치 규칙 또는 승인된 Pages Actions 전환 작업으로 분리한다.
+- primary GitHub Pages는 공식 Actions artifact 방식이며 `quality → SEO/allowlist 검사 → _site 빌드·최종검사 → deploy` 의존 순서로 실패한 빌드를 게시하지 않는다. 보조 Firebase도 저장소 루트가 아니라 같은 `_site` 허용목록만 배포한다. 브랜치 직접 push 자체를 막는 보호 규칙은 별도 원격 계정 설정이다.
 
 ## 추출 현황과 보류 대상
 
 - 완료(2026-08-24): 법적고지 모달을 `app/bootstrap.js`와 `app/features/legal/legal-modals.js`로 옮겼다. clean `main` 기준 `index.html`은 3,713→3,685줄, 인라인 실행 블록은 4→3, 줄바꿈을 LF로 정규화한 실행 본문은 34,049→32,747바이트이며 Node 테스트와 HTTP 브라우저 열기·닫기를 통과했다.
 - 2차 배포 완료(2026-08-24, `9ad683f`): 헤더 높이·30px 스크롤 표시 동작을 `app/ui/site-header.js`로 옮겨 clean `script.js`를 6,772→6,749줄로 줄였다. 품질검사·GitHub Pages·Firebase가 모두 성공했고 운영 데스크톱·390px에서 높이 동기화와 스크롤 상태를 확인했다.
-- 3차 로컬 후보(2026-08-24): 인사이트 글 읽기 모달을 `app/features/insights/insight-reader.js`로 옮겨 clean `script.js`를 6,749→6,690줄로 낮췄다. 자동검사 4개로 본문 이스케이프·관리자 버튼·정리 계약을 고정했고, HTTP 데스크톱·390px에서 동적 글·닫기·Escape와 화면 경계를 확인했으며 아직 배포하지 않았다.
+- 3차 배포 완료(2026-08-24, `fdcbe89`): 인사이트 글 읽기 모달을 `app/features/insights/insight-reader.js`로 옮겨 clean `script.js`를 6,749→6,690줄로 낮췄다. 자동검사 4개와 운영 데스크톱·390px 검증을 통과했고, 품질검사·GitHub Pages·Firebase가 모두 성공했다.
+- 4차 추출 완료(2026-08-24): 홈 히어로 패럴랙스를 `app/ui/hero-parallax.js`로 옮겨 clean `script.js`를 6,690→6,677줄로 낮췄다. passive 스크롤·뷰포트 경계·정리 계약, Pages artifact 포함과 서비스워커 캐시를 자동검사로 고정했다.
 - 다음 후보는 시작 시점의 dirty hunk와 호출 관계를 다시 재서 고른다. 낮은 상태·낮은 권한·독립 DOM 기능을 우선한다.
 - 보류: 현재 dirty worktree에서 작업 중인 검색 10개 무한스크롤, 추천 v2, 결제, `supabase.js`, 서비스워커 관련 대형 블록.
 - 기존 JS/CSS가 참조하지만 저장소에 없는 동적 이미지 9개는 별도 콘텐츠 부채다. 1차 구조 배포에서는 임의 대체하지 않고 baseline 경고로 고정해 추가 누락만 차단한다.

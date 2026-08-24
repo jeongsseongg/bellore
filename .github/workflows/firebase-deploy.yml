@@ -16,25 +16,37 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: firebase-hosting-live
+  cancel-in-progress: false
+
 jobs:
   deploy:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       # 로컬과 같은 검사가 실패하면 보조 Firebase live 배포를 시작하지 않는다.
       - name: Project quality check
         run: node scripts/check.mjs
 
-      # Supabase(인사이트·판매상품) → 정적 페이지 + sitemap/rss
-      #   + 구글 머천트 피드 + 상품 CSV 생성.
-      # 실패해도 커밋된 sitemap/rss 가 폴백이라 배포는 계속된다.
-      - name: Generate SEO pages & feeds (insight + products)
-        run: node tools/generate-seo.mjs
+      - name: Verify market SEO generator
+        run: node scripts/test-seo-market.mjs
+
+      - name: Verify clean Firebase allowlist
+        run: node scripts/test-pages-artifact.mjs
+
+      - name: Build clean Firebase artifact
+        run: node tools/build-pages.mjs
+
+      - name: Verify final Firebase artifact
+        run: node scripts/test-pages-artifact.mjs --site _site --expect-seo
 
       # 배포 직전 옛 호스팅 버전 정리 → 저장용량 확보(429 RESOURCE_EXHAUSTED 방지).
       # 실패해도 배포는 계속 시도한다.

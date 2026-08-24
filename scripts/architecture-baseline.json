@@ -3,7 +3,7 @@
   "capturedAt": "2026-08-24",
   "legacyLineCeilings": {
     "styles.css": 10454,
-    "script.js": 6690,
+    "script.js": 6677,
     "index.html": 3677,
     "wanted-theme.css": 3060,
     "supabase.js": 2626,
@@ -21,7 +21,7 @@
   },
   "legacyCeilings": {
     "executableInlineScriptBlocks": 3,
-    "executableInlineScriptBytes": 32731,
+    "executableInlineScriptBytes": 32728,
     "styleAttributes": 15,
     "importantTokens": 376,
     "windowAssignments": 91,

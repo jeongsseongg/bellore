@@ -54,7 +54,6 @@
         initPartnerModal();
         initInquiryModal();
         initReveal();
-        initParallax();
         initCoupons();
         initOrderUI();
         initAdminOrderUI();
@@ -6674,17 +6673,5 @@
         });
     }
     window.refreshReveals = refreshReveals;
-
-    /* ============ 12. 패럴랙스 ============ */
-    function initParallax() {
-        var heroImage = $('.hero-image');
-        if (!heroImage) return;
-        window.addEventListener('scroll', function () {
-            var sc = window.scrollY;
-            if (sc < window.innerHeight) {
-                heroImage.style.transform = 'translateY(' + (sc * 0.3) + 'px) scale(1.05)';
-            }
-        }, { passive: true });
-    }
 
 })();

@@ -25,8 +25,13 @@ function eventTarget() {
 
   const scriptUrl = html.match(/<script src="(script\.js\?v=[^"]+)"/)?.[1];
   const bootstrapUrl = html.match(/<script type="module" src="(app\/bootstrap\.js\?v=[^"]+)"/)?.[1];
+  const serviceWorkerUrl = html.match(/serviceWorker\.register\('(sw\.js\?v=[^']+)'\)/)?.[1];
   assert(scriptUrl, 'legacy script URL has a release cache key');
   assert(bootstrapUrl, 'bootstrap URL has a release cache key');
+  assert(serviceWorkerUrl, 'service worker registration has a release cache key');
+  const releaseKey = (url) => url.match(/[?&]v=([^&]+)/)?.[1];
+  assert.equal(releaseKey(bootstrapUrl), releaseKey(scriptUrl), 'bootstrap and legacy script use one release key');
+  assert.equal(releaseKey(serviceWorkerUrl), releaseKey(scriptUrl), 'service worker registration uses the same release key');
   assert(serviceWorker.includes(`'./${scriptUrl}'`), 'service worker precaches the exact script URL');
   assert(serviceWorker.includes(`'./${bootstrapUrl}'`), 'service worker precaches the exact bootstrap URL');
   assert.match(serviceWorker, /\.\/app\/ui\/site-header\.js/, 'service worker precaches the imported header module');

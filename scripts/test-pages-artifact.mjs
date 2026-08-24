@@ -16,6 +16,18 @@ const FORBIDDEN_TOP_LEVEL = new Set([
 const FORBIDDEN_EXTENSIONS = new Set(['.md', '.sql', '.fig', '.yml', '.yaml']);
 const GENERATED_STATIC = ['.nojekyll', '404.html', 'offline.html'];
 
+async function validateDeployConfig() {
+  const firebase = JSON.parse(await readFile(join(ROOT, 'firebase.json'), 'utf8'));
+  assert.equal(firebase.hosting?.public, '_site', 'Firebase도 검증된 _site 허용목록만 배포해야 합니다.');
+
+  const workflow = await readFile(join(ROOT, '.github', 'workflows', 'firebase-deploy.yml'), 'utf8');
+  assert.match(workflow, /run:\s*node tools\/build-pages\.mjs/, 'Firebase 배포 전 _site 빌드가 필요합니다.');
+  assert.match(workflow, /run:\s*node scripts\/test-pages-artifact\.mjs --site _site --expect-seo/, 'Firebase 최종 artifact 검사가 필요합니다.');
+  assert.doesNotMatch(workflow, /tools\/generate-seo\.mjs/, 'Firebase가 레거시 루트 생성기를 사용하면 안 됩니다.');
+  assert.match(workflow, /group:\s*firebase-hosting-live/, 'Firebase live 배포는 동시 실행을 막아야 합니다.');
+  assert.match(workflow, /if:\s*github\.ref == 'refs\/heads\/main'/, 'Firebase live는 main만 배포해야 합니다.');
+}
+
 function parseArgs(argv) {
   const options = { site: '', expectSeo: false };
   for (let i = 0; i < argv.length; i += 1) {
@@ -90,7 +102,7 @@ async function validateArtifact(site, { expectSeo }) {
   assert(shellBlock, '서비스워커 SHELL_ASSETS를 찾지 못했습니다.');
   const shellAssets = [...shellBlock.matchAll(/['"](\.\/[^'"]+)['"]/g)]
     .map((match) => match[1].split(/[?#]/, 1)[0]);
-  assert.equal(shellAssets.length, 40, '서비스워커 셸 자산 개수가 기준과 다릅니다.');
+  assert.equal(shellAssets.length, 41, '서비스워커 셸 자산 개수가 기준과 다릅니다.');
   for (const asset of shellAssets) {
     await lstat(resolve(site, asset));
   }
@@ -127,6 +139,7 @@ async function validateArtifact(site, { expectSeo }) {
 }
 
 async function main() {
+  await validateDeployConfig();
   const options = parseArgs(process.argv.slice(2));
   if (options.site) {
     const site = resolve(ROOT, options.site);
