@@ -99,23 +99,6 @@
     return (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
       : 'x' + Date.now() + Math.random().toString(16).slice(2);
   }
-  function secureCheckoutToken() {
-    if (!(window.crypto && crypto.getRandomValues && crypto.subtle)) {
-      return Promise.reject(new Error('SECURE_CHECKOUT_UNAVAILABLE'));
-    }
-    var bytes = new Uint8Array(32);
-    crypto.getRandomValues(bytes);
-    var binary = '';
-    for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-    return Promise.resolve(btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, ''));
-  }
-  function sha256Hex(text) {
-    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)).then(function (buffer) {
-      return Array.prototype.map.call(new Uint8Array(buffer), function (byte) {
-        return byte.toString(16).padStart(2, '0');
-      }).join('');
-    });
-  }
   // 휴대폰 원본을 그대로 전송하면 견적 시작이 수십 초간 멈춘 것처럼 보이고
   // 이후 목록/상세 조회 때마다 Storage egress가 커진다. 판독 가능한 1600px WebP로
   // 한 번만 최적화해 영구 저장하고, 같은 URL은 1년간 브라우저/CDN 캐시한다.
@@ -2011,28 +1994,45 @@
 
   // 체크아웃: pending 주문 생성 → 포트원에 넘길 order_no 반환
   Backend.createOrder = function (data) {
-    // 주문번호·상품가·할인·예약은 DB RPC가 한 트랜잭션에서 결정한다.
-    // 원문 체크아웃 토큰은 브라우저에만 남고 DB에는 SHA-256 해시만 저장된다.
-    return secureCheckoutToken().then(function (checkoutToken) {
-      return sha256Hex(checkoutToken).then(function (checkoutTokenHash) {
-        return sb.rpc('create_checkout_order', {
-          p_listing_id: data.listingId || null,
-          p_checkout_token_hash: checkoutTokenHash,
-          p_coupon_user_id: data.couponUserId || null,
-          p_buyer_name: data.buyerName || (profile && profile.display_name) || null,
-          p_buyer_phone: data.buyerPhone || (profile && profile.phone) || null,
-          p_ship_recipient: data.shipRecipient || data.buyerName || null,
-          p_ship_phone: data.shipPhone || data.buyerPhone || null,
-          p_ship_postcode: data.shipPostcode || null,
-          p_ship_addr1: data.shipAddr1 || null,
-          p_ship_addr2: data.shipAddr2 || null,
-          p_ship_request: data.shipRequest || null,
-          p_attribution: data.attribution || null
-        }).then(function (res) {
-          if (res.error) throw res.error;
-          var order = res.data || {};
-          order.checkoutToken = checkoutToken;
-          return order;
+    // IP 제한·예약·가격·주문번호·체크아웃 capability는 서버가 한 경계에서 결정한다.
+    var PAY = window.BELLORE_PAYMENTS || {};
+    if (!PAY.checkoutUrl) {
+      return Promise.reject(new Error('PAYMENT_CHECKOUT_NOT_CONFIGURED'));
+    }
+    return sb.auth.getSession().then(function (sessionResult) {
+      var token = (sessionResult && sessionResult.data && sessionResult.data.session &&
+        sessionResult.data.session.access_token) || CFG.anonKey;
+      return fetch(PAY.checkoutUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token,
+          'apikey': CFG.anonKey
+        },
+        body: JSON.stringify({
+          listingId: data.listingId || null,
+          couponUserId: data.couponUserId || null,
+          buyerName: data.buyerName || (profile && profile.display_name) || null,
+          buyerPhone: data.buyerPhone || (profile && profile.phone) || null,
+          shipRecipient: data.shipRecipient || data.buyerName || null,
+          shipPhone: data.shipPhone || data.buyerPhone || null,
+          shipPostcode: data.shipPostcode || null,
+          shipAddr1: data.shipAddr1 || null,
+          shipAddr2: data.shipAddr2 || null,
+          shipRequest: data.shipRequest || null,
+          attribution: data.attribution || null
+        })
+      }).then(function (response) {
+        return response.json().catch(function () {
+          return { error: 'checkout_response_invalid' };
+        }).then(function (payload) {
+          if (!response.ok || !payload || !payload.orderNo || !payload.checkoutToken) {
+            var code = (payload && payload.error) || 'CHECKOUT_CREATE_FAILED', error = new Error(code);
+            error.code = code;
+            error.status = response.status;
+            throw error;
+          }
+          return payload;
         });
       });
     });

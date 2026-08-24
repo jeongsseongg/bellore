@@ -57,6 +57,8 @@ export const APP_RUNTIME_FILES = Object.freeze([
   'app/ui/hero-parallax.js',
   'app/ui/reveal-effects.js',
   'app/ui/site-header.js',
+  'app/ui/navigation-history.js',
+  'app/ui/width-preference.js',
 ]);
 
 const ASSET_EXTENSIONS = new Set([

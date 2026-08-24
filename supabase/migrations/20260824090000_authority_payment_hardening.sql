@@ -101,6 +101,21 @@ create trigger trg_guard_order_money_fields
   before update on public.orders
   for each row execute function public.guard_order_money_fields();
 
+create table if not exists public.checkout_rate_limits (
+  key_hash text primary key check (key_hash ~ '^[0-9a-f]{64}$'),
+  window_started_at timestamptz not null default now(),
+  attempt_count integer not null default 1 check (attempt_count > 0),
+  last_attempt_at timestamptz not null default now()
+);
+create index if not exists checkout_rate_limits_window_idx
+  on public.checkout_rate_limits(window_started_at);
+alter table public.checkout_rate_limits enable row level security;
+revoke all on public.checkout_rate_limits from public, anon, authenticated;
+grant select, insert, update, delete on public.checkout_rate_limits to service_role;
+
+drop function if exists public.create_checkout_order(
+  uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb
+);
 create or replace function public.create_checkout_order(
   p_listing_id uuid,
   p_checkout_token_hash text,
@@ -113,14 +128,15 @@ create or replace function public.create_checkout_order(
   p_ship_addr1 text default null,
   p_ship_addr2 text default null,
   p_ship_request text default null,
-  p_attribution jsonb default null
+  p_attribution jsonb default null,
+  p_customer_id uuid default null
 ) returns jsonb
 language plpgsql
 security definer
 set search_path = ''
 as $$
 declare
-  v_uid uuid := auth.uid();
+  v_uid uuid := p_customer_id;
   v_listing public.listings%rowtype;
   v_coupon public.user_coupons%rowtype;
   v_coupon_def public.coupons%rowtype;
@@ -242,11 +258,102 @@ exception
 end $$;
 
 revoke all on function public.create_checkout_order(
-  uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb
-) from public;
+  uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid
+) from public, anon, authenticated;
 grant execute on function public.create_checkout_order(
-  uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb
-) to anon, authenticated;
+  uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid
+) to service_role;
+
+create or replace function public.consume_checkout_rate_limit(p_rate_key text)
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare v_attempts integer;
+begin
+  if coalesce(auth.role(),'') <> 'service_role' then
+    raise exception 'checkout_rate_forbidden';
+  end if;
+  if p_rate_key is null or p_rate_key !~ '^[0-9a-f]{64}$' then
+    raise exception 'checkout_rate_key_invalid';
+  end if;
+  delete from public.checkout_rate_limits
+   where window_started_at < now() - interval '24 hours';
+  insert into public.checkout_rate_limits(key_hash,window_started_at,attempt_count,last_attempt_at)
+  values(p_rate_key,now(),1,now())
+  on conflict (key_hash) do update
+    set window_started_at = case
+          when public.checkout_rate_limits.window_started_at < now()-interval '15 minutes'
+            then now() else public.checkout_rate_limits.window_started_at end,
+        attempt_count = case
+          when public.checkout_rate_limits.window_started_at < now()-interval '15 minutes'
+            then 1 else public.checkout_rate_limits.attempt_count+1 end,
+        last_attempt_at = now()
+    where public.checkout_rate_limits.window_started_at < now()-interval '15 minutes'
+       or public.checkout_rate_limits.attempt_count < 5
+  returning attempt_count into v_attempts;
+  if v_attempts is null then raise exception 'checkout_rate_limited'; end if;
+  return v_attempts;
+end $$;
+revoke all on function public.consume_checkout_rate_limit(text)
+  from public, anon, authenticated;
+grant execute on function public.consume_checkout_rate_limit(text) to service_role;
+
+create or replace function public.create_checkout_order_edge_v1(
+  p_rate_key text,
+  p_customer_id uuid,
+  p_listing_id uuid,
+  p_checkout_token_hash text,
+  p_coupon_user_id uuid default null,
+  p_buyer_name text default null,
+  p_buyer_phone text default null,
+  p_ship_recipient text default null,
+  p_ship_phone text default null,
+  p_ship_postcode text default null,
+  p_ship_addr1 text default null,
+  p_ship_addr2 text default null,
+  p_ship_request text default null,
+  p_attribution jsonb default null
+) returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if coalesce(auth.role(),'') <> 'service_role' then
+    raise exception 'checkout_edge_forbidden';
+  end if;
+  if p_rate_key is null or p_rate_key !~ '^[0-9a-f]{64}$' then
+    raise exception 'checkout_rate_key_invalid';
+  end if;
+
+  perform public.consume_checkout_rate_limit(p_rate_key);
+  return public.create_checkout_order(
+    p_listing_id => p_listing_id,
+    p_checkout_token_hash => p_checkout_token_hash,
+    p_coupon_user_id => p_coupon_user_id,
+    p_buyer_name => p_buyer_name,
+    p_buyer_phone => p_buyer_phone,
+    p_ship_recipient => p_ship_recipient,
+    p_ship_phone => p_ship_phone,
+    p_ship_postcode => p_ship_postcode,
+    p_ship_addr1 => p_ship_addr1,
+    p_ship_addr2 => p_ship_addr2,
+    p_ship_request => p_ship_request,
+    p_attribution => p_attribution,
+    p_customer_id => p_customer_id
+  );
+end $$;
+revoke all on function public.create_checkout_order_edge_v1(
+  text,uuid,uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb
+) from public, anon, authenticated;
+grant execute on function public.create_checkout_order_edge_v1(
+  text,uuid,uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb
+) to service_role;
+revoke all on function public.consume_checkout_rate_limit(text)
+  from public, anon, authenticated;
+grant execute on function public.consume_checkout_rate_limit(text) to service_role;
 
 -- ---------------------------------------------------------------------------
 -- 2. Provider-paid order finalization is one idempotent DB transaction.
@@ -417,7 +524,11 @@ begin
     end if;
     return jsonb_build_object('ok',true,'alreadyRefunded',true);
   end if;
-  if v_order.status not in ('paid','inspecting','preparing','cancel_req','refund_pending') then
+  if v_order.status not in (
+    'pending','payment_review','failed','canceled','paid','inspecting','preparing',
+    'shipping','shipped','delivered','confirmed','cancel_req','cancel_requested',
+    'return_req','exchange_req','returning','done','refund_pending'
+  ) then
     raise exception 'refund_state_invalid:%', v_order.status;
   end if;
   if p_refund_amount <> v_order.amount then raise exception 'refund_amount_mismatch'; end if;
@@ -449,8 +560,13 @@ begin
   end if;
 
   update public.listings
-     set status='on_sale', sold_order_id=null, updated_at=now()
-   where id=v_order.listing_id and sold_order_id=v_order.id and status='sold';
+     set status='on_sale', sold_order_id=null,
+         reserved_order_id=null, reserved_until=null, updated_at=now()
+   where id=v_order.listing_id
+     and (
+       (sold_order_id=v_order.id and status='sold')
+       or reserved_order_id=v_order.id
+     );
 
   if to_regclass('public.settlements') is not null then
     update public.settlements
@@ -473,39 +589,81 @@ revoke all on function public.finalize_order_refund_v2(text,bigint,text,text)
 grant execute on function public.finalize_order_refund_v2(text,bigint,text,text)
   to service_role;
 
-create or replace function public.mark_order_payment_review(
+drop function if exists public.mark_order_payment_review(text,text);
+create function public.mark_order_payment_review(
   p_order_no text, p_reason text
-) returns void
+) returns boolean
 language plpgsql
 security definer
 set search_path = ''
 as $$
+declare v_count integer;
 begin
+  if coalesce(auth.role(),'') <> 'service_role' then
+    raise exception 'checkout_core_forbidden';
+  end if;
   update public.orders
      set status='payment_review', admin_memo=left(coalesce(p_reason,'payment_review'),1000)
-   where order_no=p_order_no and status in ('pending','failed','payment_review');
+   where order_no=p_order_no and status <> 'refunded';
+  get diagnostics v_count = row_count;
+  return v_count = 1;
 end $$;
 revoke all on function public.mark_order_payment_review(text,text)
   from public, anon, authenticated;
 grant execute on function public.mark_order_payment_review(text,text) to service_role;
 
-create or replace function public.mark_order_refund_pending(
+drop function if exists public.mark_order_refund_pending(text,text);
+create function public.mark_order_refund_pending(
   p_order_no text, p_reason text
-) returns void
+) returns boolean
 language plpgsql
 security definer
 set search_path = ''
 as $$
+declare v_count integer;
 begin
   update public.orders
      set status='refund_pending',
          admin_memo=left(coalesce(p_reason,'refund_recovery_required'),1000)
    where order_no=p_order_no
-     and status in ('paid','inspecting','preparing','cancel_req','refund_pending');
+     and status in (
+       'pending','payment_review','failed','canceled','paid','inspecting','preparing',
+       'shipping','shipped','delivered','confirmed','cancel_req','cancel_requested',
+       'return_req','exchange_req','returning','done','refund_pending'
+     );
+  get diagnostics v_count = row_count;
+  return v_count = 1;
 end $$;
 revoke all on function public.mark_order_refund_pending(text,text)
   from public, anon, authenticated;
 grant execute on function public.mark_order_refund_pending(text,text) to service_role;
+
+drop function if exists public.fail_unsettled_order(text,text);
+create function public.fail_unsettled_order(
+  p_order_no text, p_reason text
+) returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_order_id uuid;
+  v_listing_id uuid;
+begin
+  update public.orders
+     set status='failed', cancel_reason=left(coalesce(p_reason,'provider_payment_failed'),300)
+   where order_no=p_order_no
+     and status in ('pending','payment_review','refund_pending','failed')
+   returning id, listing_id into v_order_id, v_listing_id;
+  if v_order_id is null then return false; end if;
+  update public.listings
+     set reserved_order_id=null, reserved_until=null, updated_at=now()
+   where id=v_listing_id and reserved_order_id=v_order_id;
+  return true;
+end $$;
+revoke all on function public.fail_unsettled_order(text,text)
+  from public, anon, authenticated;
+grant execute on function public.fail_unsettled_order(text,text) to service_role;
 
 create or replace function public.release_expired_checkout_reservations()
 returns integer
@@ -607,10 +765,21 @@ grant execute on function public.is_admin_uid(uuid) to anon, authenticated;
 grant execute on function public.is_approved_vendor() to authenticated;
 grant execute on function public.email_for_username(text) to anon, authenticated;
 
--- Guest-capable AI and quote counters; each function enforces its own token/data bounds.
+-- Checkout is Edge-only. Browser roles must never bypass the IP rate gate.
+revoke all on function public.create_checkout_order(
+  uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid
+) from public, anon, authenticated;
 grant execute on function public.create_checkout_order(
-  uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb
-) to anon, authenticated;
+  uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid
+) to service_role;
+revoke all on function public.create_checkout_order_edge_v1(
+  text,uuid,uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb
+) from public, anon, authenticated;
+grant execute on function public.create_checkout_order_edge_v1(
+  text,uuid,uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb
+) to service_role;
+
+-- Guest-capable AI and quote counters; each function enforces its own token/data bounds.
 grant execute on function public.get_shop_ai_runtime_status() to anon, authenticated;
 grant execute on function public.submit_shop_ai_chat(jsonb) to anon, authenticated;
 grant execute on function public.get_shop_ai_chat_result(uuid) to anon, authenticated;

@@ -80,7 +80,7 @@
       backendOn() &&
       window.NWBackend.createOrder &&
       window.NWBackend.confirmOrder &&
-      PAY.confirmUrl
+      PAY.checkoutUrl && PAY.confirmUrl
     );
   }
 

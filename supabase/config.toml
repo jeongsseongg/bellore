@@ -11,6 +11,9 @@ max_rows = 1000
 port = 54322
 major_version = 17
 
+[functions.create-checkout]
+verify_jwt = true
+
 [functions.confirm-payment]
 verify_jwt = true
 
@@ -20,4 +23,7 @@ verify_jwt = true
 # PortOne notifications carry no Supabase user JWT. The handler treats the body
 # only as a hint and re-fetches the payment with the server-side PortOne secret.
 [functions.payment-webhook]
+verify_jwt = false
+
+[functions.reconcile-payments]
 verify_jwt = false

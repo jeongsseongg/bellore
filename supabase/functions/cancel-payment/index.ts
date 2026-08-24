@@ -1,4 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
+import { hasRefundablePaymentStatus } from "../_shared/order-payment-states.ts";
+import { cancelAndReconcile } from "../_shared/portone-cancellation.ts";
 
 const PORTONE_API_SECRET = Deno.env.get("PORTONE_API_SECRET") ?? "";
 const PORTONE_API_BASE = Deno.env.get("PORTONE_API_BASE") ?? "https://api.portone.io";
@@ -50,19 +52,6 @@ function safeText(value: unknown, max: number): string | null {
     : null;
 }
 
-async function lookupProviderPayment(paymentId: string): Promise<JsonRecord | null> {
-  const response = await fetch(
-    `${PORTONE_API_BASE}/payments/${encodeURIComponent(paymentId)}`,
-    { headers: { Authorization: `PortOne ${PORTONE_API_SECRET}` } },
-  );
-  if (!response.ok) return null;
-  try {
-    return await response.json() as JsonRecord;
-  } catch {
-    return null;
-  }
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     if (!allowedOrigin(req)) return new Response(null, { status: 403 });
@@ -106,77 +95,44 @@ Deno.serve(async (req) => {
     if (order.status === "refunded") {
       return json(req, { ok: true, alreadyRefunded: true });
     }
-    const refundableStates = new Set(["paid", "inspecting", "preparing", "cancel_req", "refund_pending"]);
-    if (!order.payment_key || !Number.isSafeInteger(Number(order.amount)) || !refundableStates.has(order.status)) {
+    if (!order.payment_key || !Number.isSafeInteger(Number(order.amount)) || !hasRefundablePaymentStatus(order.status)) {
       return json(req, { error: "paid_payment_not_found" }, 409);
     }
 
-    const finalizeRefund = async (cancellationId: string | null, recovered = false) => {
-      const { data: finalized, error: finalizeError } = await admin.rpc("finalize_order_refund_v2", {
-        p_order_no: orderNo,
-        p_refund_amount: Number(order.amount),
-        p_reason: reason,
-        p_provider_cancellation_id: cancellationId,
-      });
-      if (finalizeError || !finalized?.ok) {
-        await admin.rpc("mark_order_refund_pending", {
-          p_order_no: orderNo,
-          p_reason: `provider_refunded_db_finalize_failed:${finalizeError?.message ?? "unknown"}`,
-        });
-        return json(req, { error: "refund_finalize_failed", providerRefunded: true }, 500);
-      }
+    const cancellation = await cancelAndReconcile({
+      admin,
+      apiBase: PORTONE_API_BASE,
+      apiSecret: PORTONE_API_SECRET,
+      storeId: PORTONE_STORE_ID,
+      paymentId: order.payment_key,
+      orderNo,
+      orderAmount: Number(order.amount),
+      reason,
+    });
+    if (!cancellation.tracked) {
+      return json(req, {
+        error: "refund_recovery_not_recorded",
+        providerRefunded: cancellation.providerRefunded,
+      }, 500);
+    }
+    if (cancellation.state === "failed") {
+      return json(req, { error: "provider_cancel_failed", recoveryTracked: true }, 502);
+    }
+    if (cancellation.state === "requested") {
       return json(req, {
         ok: true,
-        recovered,
-        alreadyRefunded: Boolean(finalized.alreadyRefunded),
-        cancellation: { id: cancellationId, status: "SUCCEEDED" },
+        pending: true,
+        cancellation: { id: cancellation.cancellationId, status: "REQUESTED" },
       });
-    };
-
-    const cancelResponse = await fetch(
-      `${PORTONE_API_BASE}/payments/${encodeURIComponent(order.payment_key)}/cancel`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `PortOne ${PORTONE_API_SECRET}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ storeId: PORTONE_STORE_ID, reason }),
-      },
-    );
-    let cancelPayload: JsonRecord;
-    try {
-      cancelPayload = await cancelResponse.json() as JsonRecord;
-    } catch {
-      return json(req, { error: "provider_response_invalid" }, 502);
     }
-    if (!cancelResponse.ok) {
-      const providerPayment = await lookupProviderPayment(order.payment_key);
-      if (providerPayment?.storeId === PORTONE_STORE_ID && providerPayment.status === "CANCELLED") {
-        return await finalizeRefund(null, true);
-      }
-      return json(req, { error: "provider_cancel_failed" }, 502);
+    if (!cancellation.dbFinalized) {
+      return json(req, { error: "refund_finalize_failed", providerRefunded: true }, 500);
     }
-
-    const cancellation = cancelPayload.cancellation && typeof cancelPayload.cancellation === "object"
-      ? cancelPayload.cancellation as JsonRecord
-      : {};
-    const cancelStatus = safeText(cancellation.status, 40);
-    const cancellationId = safeText(cancellation.id, 160);
-    if (cancelStatus === "FAILED") return json(req, { error: "provider_cancel_failed" }, 409);
-    if (cancelStatus === "REQUESTED") {
-      const { error } = await admin.rpc("mark_order_refund_pending", {
-        p_order_no: orderNo,
-        p_reason: `provider_cancel_requested:${cancellationId ?? "pending"}`,
-      });
-      if (error) return json(req, { error: "refund_pending_record_failed" }, 500);
-      return json(req, { ok: true, pending: true, cancellation: { id: cancellationId, status: cancelStatus } });
-    }
-    if (cancelStatus !== "SUCCEEDED") {
-      return json(req, { error: "provider_cancel_status_unknown" }, 409);
-    }
-
-    return await finalizeRefund(cancellationId);
+    return json(req, {
+      ok: true,
+      recovered: cancellation.recovered,
+      cancellation: { id: cancellation.cancellationId, status: "SUCCEEDED" },
+    });
   } catch (error) {
     console.error("cancel-payment", error instanceof Error ? error.message : String(error));
     return json(req, { error: "server_error" }, 500);

@@ -1,0 +1,13 @@
+body{font-family:"Apple SD Gothic Neo",system-ui,sans-serif;max-width:680px;margin:32px auto;padding:0 16px;color:#222;line-height:1.6}
+h1{font-size:20px} h2{font-size:15px;margin:24px 0 8px}
+.row{display:flex;gap:8px;align-items:center;padding:8px 12px;border:1px solid #eee;border-radius:10px;margin:6px 0;font-size:14px}
+.dot{width:10px;height:10px;border-radius:50%;background:#ccc;flex:none}
+.ok .dot{background:#1a9e54}.bad .dot{background:#d23}.run .dot{background:#e6a700}
+pre{background:#f6f6f6;padding:10px;border-radius:8px;font-size:12px;overflow:auto;white-space:pre-wrap}
+input,button{font-size:14px;padding:9px 12px;border:1px solid #ccc;border-radius:9px}
+button{background:#222;color:#fff;border:0;cursor:pointer}
+.muted{color:#888;font-size:12.5px}
+fieldset{border:1px solid #eee;border-radius:10px;margin-top:8px}
+.verify-controls{display:flex;gap:8px;flex-wrap:wrap;padding:10px}
+.verify-controls input{flex:1}.verify-email{min-width:180px}.verify-password{min-width:140px}
+.verify-logout{background:#777}.verify-auth-row{margin:0 10px 10px}

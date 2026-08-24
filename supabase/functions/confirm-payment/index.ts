@@ -1,4 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
+import { hasConfirmedPaymentStatus } from "../_shared/order-payment-states.ts";
+import { cancelAndReconcile } from "../_shared/portone-cancellation.ts";
 
 const PORTONE_API_SECRET = Deno.env.get("PORTONE_API_SECRET") ?? "";
 const PORTONE_API_BASE = Deno.env.get("PORTONE_API_BASE") ?? "https://api.portone.io";
@@ -105,27 +107,6 @@ function publicOrder(order: JsonRecord | null | undefined) {
   };
 }
 
-async function cancelProviderPayment(paymentId: string, reason: string) {
-  const response = await fetch(
-    `${PORTONE_API_BASE}/payments/${encodeURIComponent(paymentId)}/cancel`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `PortOne ${PORTONE_API_SECRET}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ storeId: PORTONE_STORE_ID, reason }),
-    },
-  );
-  let payload: unknown = null;
-  try {
-    payload = await response.json();
-  } catch {
-    payload = null;
-  }
-  return { ok: response.ok, payload };
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     if (!allowedOrigin(req)) return new Response(null, { status: 403 });
@@ -174,11 +155,13 @@ Deno.serve(async (req) => {
       return json(req, { error: "order_forbidden" }, 403);
     }
 
-    const settledStatuses = new Set([
-      "paid", "inspecting", "preparing", "shipping", "shipped", "delivered",
-      "confirmed", "cancel_req", "refund_pending", "refunded",
-    ]);
-    if (settledStatuses.has(order.status)) {
+    if (order.status === "refund_pending") {
+      return json(req, { error: "payment_refund_pending" }, 409);
+    }
+    if (order.status === "refunded") {
+      return json(req, { error: "payment_refunded" }, 409);
+    }
+    if (hasConfirmedPaymentStatus(order.status)) {
       return json(req, { ok: true, alreadyPaid: true, order: publicOrder(order) });
     }
 
@@ -224,12 +207,22 @@ Deno.serve(async (req) => {
       return json(req, { error: "payment_not_paid", status: payment.status }, 409);
     }
     if (!Number.isSafeInteger(paidAmount) || paidAmount !== Number(order.amount)) {
-      const cancellation = await cancelProviderPayment(paymentId, "amount_mismatch_auto_cancel");
-      await admin.rpc("mark_order_payment_review", {
-        p_order_no: paymentId,
-        p_reason: cancellation.ok ? "amount_mismatch_cancelled" : "amount_mismatch_cancel_failed",
+      const cancellation = await cancelAndReconcile({
+        admin,
+        apiBase: PORTONE_API_BASE,
+        apiSecret: PORTONE_API_SECRET,
+        storeId: PORTONE_STORE_ID,
+        paymentId,
+        orderNo: paymentId,
+        orderAmount: Number(order.amount),
+        reason: "amount_mismatch_auto_cancel",
       });
-      return json(req, { error: "amount_mismatch", cancelled: cancellation.ok }, 409);
+      return json(req, {
+        error: "amount_mismatch",
+        cancellationState: cancellation.state,
+        providerRefunded: cancellation.providerRefunded,
+        recoveryTracked: cancellation.tracked,
+      }, cancellation.tracked ? 409 : 500);
     }
 
     const method = payment.method && typeof payment.method === "object"
@@ -248,14 +241,22 @@ Deno.serve(async (req) => {
       p_point_earn_bps: POINT_EARN_BPS,
     });
     if (finalizeError || !finalized?.order) {
-      const cancellation = await cancelProviderPayment(paymentId, "order_finalize_failed_auto_cancel");
-      await admin.rpc("mark_order_payment_review", {
-        p_order_no: paymentId,
-        p_reason: cancellation.ok
-          ? `finalize_failed_cancelled:${finalizeError?.message ?? "unknown"}`
-          : `finalize_failed_cancel_failed:${finalizeError?.message ?? "unknown"}`,
+      const cancellation = await cancelAndReconcile({
+        admin,
+        apiBase: PORTONE_API_BASE,
+        apiSecret: PORTONE_API_SECRET,
+        storeId: PORTONE_STORE_ID,
+        paymentId,
+        orderNo: paymentId,
+        orderAmount: Number(order.amount),
+        reason: `order_finalize_failed_auto_cancel:${finalizeError?.message ?? "unknown"}`,
       });
-      return json(req, { error: "order_finalize_failed", cancelled: cancellation.ok }, 409);
+      return json(req, {
+        error: "order_finalize_failed",
+        cancellationState: cancellation.state,
+        providerRefunded: cancellation.providerRefunded,
+        recoveryTracked: cancellation.tracked,
+      }, cancellation.tracked ? 409 : 500);
     }
 
     return json(req, {

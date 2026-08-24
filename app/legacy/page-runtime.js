@@ -1,24 +1,10 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('sw.js?v=20260824-home-v2').catch(function (err) {
+                navigator.serviceWorker.register('sw.js?v=20260824-phase7-11-v1').catch(function (err) {
                     console.warn('서비스워커 등록 실패:', err);
                 });
             });
         }
-
-        /* ===== 화면 설정: 와이드(꽉찬) 모드 토글 ===== */
-        (function () {
-            var root = document.documentElement;
-            var wide = document.getElementById('toggleWide');
-            if (!wide) return;
-            function sync() { wide.setAttribute('aria-checked', root.getAttribute('data-width') === 'full' ? 'true' : 'false'); }
-            wide.addEventListener('click', function () {
-                if (root.getAttribute('data-width') === 'full') { root.removeAttribute('data-width'); try { localStorage.setItem('bellore_width', 'app'); } catch (e) {} }
-                else { root.setAttribute('data-width', 'full'); try { localStorage.setItem('bellore_width', 'full'); } catch (e) {} }
-                sync();
-            });
-            sync();
-        })();
 
         /* ===== 판매시계: 검색 + 브랜드 + 빠른칩 + 정렬 + 필터검색(바이버식) ===== */
         (function () {
@@ -376,7 +362,6 @@
             setTimeout(applyFilters, 1500);
             setTimeout(applyFilters, 4000);
         })();
-
         /* 관리자 카드 톱니바퀴 메뉴 토글 */
         document.addEventListener('click', function (e) {
             var g = e.target.closest('.hcard-gear');
@@ -407,43 +392,4 @@
                 window.addEventListener('pointerup', function () { down = false; row.classList.remove('dragging'); });
                 row.addEventListener('click', function (e) { if (moved) { e.preventDefault(); e.stopPropagation(); } }, true);
             });
-        })();
-
-        /* 좌상단 뒤로가기 + 기기/브라우저 back 연동 (오버레이는 back으로 닫힘) */
-        (function () {
-            var OV = '#productModal, #listingPage, #checkoutModal, #ordersModal, #myPageModal, #loginModal, #notiModal, #pwaInstallModal, #postModal, #partnerModal, #inquiryModal';
-            var back = document.getElementById('headerBack');
-            function visibleOverlay() {
-                var els = document.querySelectorAll(OV);
-                for (var i = 0; i < els.length; i++) { if (!els[i].hidden) return els[i]; }
-                return null;
-            }
-            function closeOverlay(ov) {
-                var c = ov.querySelector('.pp-back, [data-pclose], [data-lpclose], .co-back, [data-myclose], [data-mclose], [data-noticlose], [data-pwa-close], [data-close], .login-close');
-                if (c) c.click(); else { ov.hidden = true; document.body.style.overflow = ''; }
-            }
-            function onHome() { return (!location.hash || location.hash === '#home'); }
-            function update() { if (back) back.hidden = (onHome() && !visibleOverlay()); }
-            if (back) back.addEventListener('click', function () {
-                var ov = visibleOverlay();
-                if (ov) { closeOverlay(ov); setTimeout(update, 30); return; }
-                history.back();
-            });
-            var pushed = false;
-            try {
-                var obs = new MutationObserver(function () {
-                    var ov = visibleOverlay();
-                    if (ov && !pushed) { pushed = true; history.pushState({ ov: 1 }, ''); }
-                    if (!ov) pushed = false;
-                    update();
-                });
-                document.querySelectorAll(OV).forEach(function (el) { obs.observe(el, { attributes: true, attributeFilter: ['hidden'] }); });
-            } catch (e) {}
-            window.addEventListener('popstate', function () {
-                var ov = visibleOverlay();
-                if (ov) { pushed = false; closeOverlay(ov); }
-                setTimeout(update, 30);
-            });
-            window.addEventListener('hashchange', update);
-            update();
         })();

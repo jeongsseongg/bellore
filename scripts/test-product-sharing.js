@@ -152,9 +152,9 @@ function fakeEventTarget() {
     assert(buildPages.includes(`'${asset.slice(2)}'`), `Pages allowlist 누락: ${asset}`);
   }
   for (const [asset, releaseKey] of [
-    ['script.js', '20260824-home-v2'],
-    ['app/bootstrap.js', '20260824-home-v2'],
-    ['sw.js', '20260824-home-v2'],
+    ['script.js', '20260824-phase7-11-v1'],
+    ['app/bootstrap.js', '20260824-phase7-11-v1'],
+    ['sw.js', '20260824-phase7-11-v1'],
     ['wishlist.js', '20260824-purl-v2'],
     ['search.js', '20260824-purl-v2'],
   ]) {

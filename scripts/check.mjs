@@ -117,6 +117,17 @@ function normalizeLocalReference(value) {
   }
 }
 
+function normalizeLocalCacheKey(value) {
+  if (!value || /^(?:[a-z]+:|\/\/|#)/i.test(value)) return null;
+  const clean = value.split('#')[0].replace(/^\.\//, '').replace(/^\//, '');
+  if (!clean || /[{}<>]/.test(clean)) return null;
+  try {
+    return decodeURIComponent(clean).replace(/\\/g, '/');
+  } catch {
+    return clean.replace(/\\/g, '/');
+  }
+}
+
 function localReferences(html) {
   const references = new Set();
   for (const match of html.matchAll(/\b(?:src|href)\s*=\s*["']([^"']+)["']/gi)) {
@@ -144,12 +155,12 @@ function localShellEntrypoints(html) {
   for (const match of html.matchAll(/<link\b([^>]+)>/gi)) {
     if (!/\brel\s*=\s*["'][^"']*stylesheet/i.test(match[1])) continue;
     const href = match[1].match(/\bhref\s*=\s*["']([^"']+)["']/i)?.[1];
-    const normalized = normalizeLocalReference(href);
+    const normalized = normalizeLocalCacheKey(href);
     if (normalized) entries.add(normalized);
   }
   for (const match of html.matchAll(/<script\b([^>]+)>/gi)) {
     const src = match[1].match(/\bsrc\s*=\s*["']([^"']+)["']/i)?.[1];
-    const normalized = normalizeLocalReference(src);
+    const normalized = normalizeLocalCacheKey(src);
     if (normalized) entries.add(normalized);
   }
   return entries;
@@ -159,7 +170,7 @@ function shellAssets(swSource) {
   const body = swSource.match(/const\s+SHELL_ASSETS\s*=\s*\[([\s\S]*?)\];/)?.[1] || '';
   const assets = new Set();
   for (const match of body.matchAll(/["']([^"']+)["']/g)) {
-    const normalized = normalizeLocalReference(match[1]);
+    const normalized = normalizeLocalCacheKey(match[1]);
     if (normalized) assets.add(normalized);
   }
   return assets;
@@ -230,6 +241,10 @@ const htmlPath = join(root, 'index.html');
 const html = readFileSync(htmlPath, 'utf8');
 const cleanHtml = htmlWithoutComments(html);
 const markupHtml = htmlMarkupWithoutEmbeddedCode(cleanHtml);
+const htmlDocuments = allFiles
+  .filter((file) => extname(file).toLowerCase() === '.html')
+  .map((file) => htmlWithoutComments(readFileSync(file, 'utf8')));
+const allMarkupHtml = htmlDocuments.map(htmlMarkupWithoutEmbeddedCode);
 const swSource = readFileSync(join(root, 'sw.js'), 'utf8');
 
 console.log('[1/6] repository invariants');
@@ -267,10 +282,26 @@ for (const [file, maximum] of Object.entries(baseline.legacyLineCeilings)) {
   ceiling(`lines ${file}`, lineCount(readFileSync(absolute, 'utf8')), maximum);
 }
 
-const executableBlocks = scriptBlocks(cleanHtml).filter(isExecutableInline);
+const universalBudgets = { '.js': 400, '.mjs': 400, '.ts': 400, '.css': 500, '.html': 300 };
+const knownOversizeFiles = new Set([
+  ...Object.keys(baseline.legacyLineCeilings),
+  ...Object.keys(baseline.newCodeExceptions)
+]);
+for (const file of allFiles) {
+  const extension = extname(file).toLowerCase();
+  const maximum = universalBudgets[extension];
+  if (!maximum) continue;
+  const fileRelative = toPosix(file);
+  const lines = lineCount(readFileSync(file, 'utf8'));
+  if (lines > maximum && !knownOversizeFiles.has(fileRelative)) {
+    addFailure(`unregistered oversized source ${fileRelative}: ${lines} > ${maximum}`);
+  }
+}
+
+const executableBlocks = htmlDocuments.flatMap((document) => scriptBlocks(document).filter(isExecutableInline));
 ceiling('executable inline script blocks', executableBlocks.length, baseline.legacyCeilings.executableInlineScriptBlocks);
 ceiling('executable inline script bytes', executableBlocks.reduce((sum, block) => sum + normalizedByteLength(block.body), 0), baseline.legacyCeilings.executableInlineScriptBytes);
-ceiling('style attributes', htmlAttributeValues(markupHtml, 'style').length, baseline.legacyCeilings.styleAttributes);
+ceiling('style attributes', allMarkupHtml.reduce((sum, document) => sum + htmlAttributeValues(document, 'style').length, 0), baseline.legacyCeilings.styleAttributes);
 
 const cssFiles = allFiles.filter((file) => extname(file).toLowerCase() === '.css');
 const importantTokens = cssFiles.reduce((sum, file) => {
@@ -292,16 +323,16 @@ const scriptStyleAttributeTokens = javascriptFiles.reduce((sum, file) => {
 }, 0);
 ceiling('script template style attributes', scriptStyleAttributeTokens, baseline.legacyCeilings.scriptStyleAttributeTokens);
 
-const localClassicScripts = [...cleanHtml.matchAll(/<script\b([^>]*)>/gi)].filter((match) => {
+const localClassicScripts = htmlDocuments.reduce((sum, document) => sum + [...document.matchAll(/<script\b([^>]*)>/gi)].filter((match) => {
   const src = attributeValue(match[1], 'src');
   return normalizeLocalReference(src) && (attributeValue(match[1], 'type') || '').toLowerCase() !== 'module';
-}).length;
+}).length, 0);
 ceiling('local classic scripts', localClassicScripts, baseline.legacyCeilings.localClassicScripts);
 
 console.log('[3/6] new app boundaries');
 const appRoot = join(root, 'app');
 const appFiles = existsSync(appRoot) ? walk(appRoot) : [];
-const appRuntime = appFiles.filter((file) => ['.js', '.mjs', '.css', '.html'].includes(extname(file).toLowerCase()));
+const appRuntime = appFiles.filter((file) => ['.js', '.mjs', '.ts', '.css', '.html'].includes(extname(file).toLowerCase()));
 if (appRuntime.length > 0 && !existsSync(join(appRoot, 'bootstrap.js')) && !existsSync(join(appRoot, 'bootstrap.mjs'))) {
   addFailure('app runtime exists without app/bootstrap.js or app/bootstrap.mjs composition root');
 }
@@ -337,11 +368,12 @@ const missingSourceAssets = [...literalSourceAssetReferences(sourceAssetFiles)]
   .filter((reference) => !existsSync(join(root, reference)));
 compareKnownDebt('missing literal JS/CSS asset', missingSourceAssets, baseline.knownMissingSourceAssets);
 const shell = shellAssets(swSource);
-const missingShellAssets = [...shell].filter((entry) => !existsSync(join(root, entry)));
+const missingShellAssets = [...shell].filter((entry) => !existsSync(join(root, entry.split('?')[0])));
 if (missingShellAssets.length) addFailure(`missing service-worker shell assets: ${missingShellAssets.join(', ')}`);
 else addPass(`service-worker shell assets exist: ${shell.size}`);
 const uncachedEntrypoints = [...localShellEntrypoints(cleanHtml)].filter((entry) => !shell.has(entry));
 compareKnownDebt('HTML entrypoint absent from SW shell', uncachedEntrypoints, baseline.knownUncachedShellAssets);
+if (uncachedEntrypoints.length === 0) addPass(`HTML entrypoint exact cache keys: ${localShellEntrypoints(cleanHtml).size}`);
 const appModuleImports = staticLocalModuleReferences(
   appRuntime.filter((file) => ['.js', '.mjs'].includes(extname(file).toLowerCase()))
 );

@@ -1,4 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
+import {
+  hasRefundablePaymentStatus,
+  hasSettledPaymentStatus,
+} from "../_shared/order-payment-states.ts";
+import { cancelAndReconcile } from "../_shared/portone-cancellation.ts";
 
 const PORTONE_API_SECRET = Deno.env.get("PORTONE_API_SECRET") ?? "";
 const PORTONE_API_BASE = Deno.env.get("PORTONE_API_BASE") ?? "https://api.portone.io";
@@ -21,21 +26,6 @@ function safeText(value: unknown, max: number): string | null {
   return typeof value === "string" && value.trim()
     ? value.trim().slice(0, max)
     : null;
-}
-
-async function cancelProviderPayment(paymentId: string, reason: string) {
-  const response = await fetch(
-    `${PORTONE_API_BASE}/payments/${encodeURIComponent(paymentId)}/cancel`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `PortOne ${PORTONE_API_SECRET}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ storeId: PORTONE_STORE_ID, reason }),
-    },
-  );
-  return response.ok;
 }
 
 Deno.serve(async (req) => {
@@ -99,9 +89,8 @@ Deno.serve(async (req) => {
     const cancellationId = safeText(data.cancellationId, 160);
     if (payment.status === "CANCELLED") {
       if (order.status === "refunded") return json({ ok: true, alreadyRefunded: true });
-      const refundableStates = new Set(["paid", "inspecting", "preparing", "cancel_req", "refund_pending"]);
-      if (!refundableStates.has(order.status)) {
-        return json({ ok: true, ignored: true, status: payment.status });
+      if (!hasRefundablePaymentStatus(order.status)) {
+        return json({ error: "refund_state_invalid", status: order.status }, 409);
       }
       const { data: refunded, error: refundError } = await admin.rpc("finalize_order_refund_v2", {
         p_order_no: paymentId,
@@ -110,29 +99,37 @@ Deno.serve(async (req) => {
         p_provider_cancellation_id: cancellationId,
       });
       if (refundError || !refunded?.ok) {
-        await admin.rpc("mark_order_refund_pending", {
+        const { data: marked, error: markError } = await admin.rpc("mark_order_refund_pending", {
           p_order_no: paymentId,
           p_reason: `cancelled_webhook_finalize_failed:${refundError?.message ?? "unknown"}`,
         });
+        if (markError || marked !== true) {
+          return json({ error: "refund_recovery_not_recorded" }, 500);
+        }
         return json({ error: "refund_finalize_failed" }, 500);
       }
       return json({ ok: true, alreadyRefunded: Boolean(refunded.alreadyRefunded) });
     }
-    if (payment.status === "PARTIAL_CANCELLED" || payment.status === "CANCEL_PENDING") {
-      await admin.rpc("mark_order_refund_pending", {
+    if (eventType === "Transaction.CancelPending") {
+      const { data: marked, error: markError } = await admin.rpc("mark_order_refund_pending", {
         p_order_no: paymentId,
-        p_reason: `${String(payment.status).toLowerCase()}:${cancellationId ?? "provider"}`,
+        p_reason: `cancel_pending:${cancellationId ?? "provider"}`,
       });
-      return json({ ok: true, pending: true, status: payment.status });
+      if (markError || marked !== true) return json({ error: "refund_pending_record_failed" }, 500);
+      return json({ ok: true, pending: true, status: eventType });
+    }
+    if (eventType === "Transaction.PartialCancelled" || payment.status === "PARTIAL_CANCELLED") {
+      const { data: marked, error: markError } = await admin.rpc("mark_order_payment_review", {
+        p_order_no: paymentId,
+        p_reason: `partial_cancel_review:${cancellationId ?? "provider"}`,
+      });
+      if (markError || marked !== true) return json({ error: "payment_review_record_failed" }, 500);
+      return json({ ok: true, reviewRequired: true, status: eventType });
     }
     if (payment.status !== "PAID") {
       return json({ ok: true, ignored: true, status: payment.status });
     }
-    const settledStatuses = new Set([
-      "paid", "inspecting", "preparing", "shipping", "shipped", "delivered",
-      "confirmed", "cancel_req", "refund_pending", "refunded",
-    ]);
-    if (settledStatuses.has(order.status)) return json({ ok: true, alreadyPaid: true });
+    if (hasSettledPaymentStatus(order.status)) return json({ ok: true, alreadyPaid: true });
 
     const paidAmount = Number(
       payment.amount && typeof payment.amount === "object"
@@ -140,12 +137,25 @@ Deno.serve(async (req) => {
         : payment.amount,
     );
     if (!Number.isSafeInteger(paidAmount) || paidAmount !== Number(order.amount)) {
-      const cancelled = await cancelProviderPayment(paymentId, "webhook_amount_mismatch_auto_cancel");
-      await admin.rpc("mark_order_payment_review", {
-        p_order_no: paymentId,
-        p_reason: cancelled ? "webhook_amount_mismatch_cancelled" : "webhook_amount_mismatch_cancel_failed",
+      const cancellation = await cancelAndReconcile({
+        admin,
+        apiBase: PORTONE_API_BASE,
+        apiSecret: PORTONE_API_SECRET,
+        storeId: PORTONE_STORE_ID,
+        paymentId,
+        orderNo: paymentId,
+        orderAmount: Number(order.amount),
+        reason: "webhook_amount_mismatch_auto_cancel",
       });
-      return json({ error: "amount_mismatch", cancelled }, 409);
+      const retry = !cancellation.tracked ||
+        (cancellation.providerRefunded && !cancellation.dbFinalized) ||
+        cancellation.state === "failed";
+      return json({
+        ok: !retry,
+        rejected: "amount_mismatch",
+        cancellationState: cancellation.state,
+        providerRefunded: cancellation.providerRefunded,
+      }, retry ? 500 : 200);
     }
 
     const method = payment.method && typeof payment.method === "object"
@@ -162,14 +172,26 @@ Deno.serve(async (req) => {
       p_point_earn_bps: POINT_EARN_BPS,
     });
     if (finalizeError || !finalized?.order) {
-      const cancelled = await cancelProviderPayment(paymentId, "webhook_finalize_failed_auto_cancel");
-      await admin.rpc("mark_order_payment_review", {
-        p_order_no: paymentId,
-        p_reason: cancelled
-          ? `webhook_finalize_failed_cancelled:${finalizeError?.message ?? "unknown"}`
-          : `webhook_finalize_failed_cancel_failed:${finalizeError?.message ?? "unknown"}`,
+      const cancellation = await cancelAndReconcile({
+        admin,
+        apiBase: PORTONE_API_BASE,
+        apiSecret: PORTONE_API_SECRET,
+        storeId: PORTONE_STORE_ID,
+        paymentId,
+        orderNo: paymentId,
+        orderAmount: Number(order.amount),
+        reason: "webhook_finalize_failed_auto_cancel",
       });
-      return json({ error: "order_finalize_failed", cancelled }, 409);
+      const retry = !cancellation.tracked ||
+        (cancellation.providerRefunded && !cancellation.dbFinalized) ||
+        cancellation.state === "failed";
+      return json({
+        ok: !retry,
+        rejected: "order_finalize_failed",
+        cancellationState: cancellation.state,
+        providerRefunded: cancellation.providerRefunded,
+        detail: finalizeError?.message ? "database_finalize_failed" : "database_result_invalid",
+      }, retry ? 500 : 200);
     }
     return json({ ok: true, alreadyPaid: Boolean(finalized.alreadyPaid) });
   } catch (error) {

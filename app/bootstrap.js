@@ -4,6 +4,8 @@ import { initLegalModals } from './features/legal/legal-modals.js';
 import { initHeroParallax } from './ui/hero-parallax.js';
 import { initRevealEffects } from './ui/reveal-effects.js';
 import { initSiteHeader } from './ui/site-header.js';
+import { initNavigationHistory } from './ui/navigation-history.js';
+import { initWidthPreference } from './ui/width-preference.js';
 import { initHomeBanners } from './features/home-banners/home-banners.js';
 import { initHomeRows } from './features/home-rows/home-rows.js';
 import { initProductDetailRoute, initProductSharing } from './features/product-sharing/product-sharing.mjs';
@@ -13,6 +15,8 @@ import { installLegacyReveal } from './legacy/legacy-reveal.js';
 
 function bootstrap() {
   initSiteHeader({ document, window });
+  initNavigationHistory({ document, window });
+  initWidthPreference({ document, getStorage: () => window.localStorage });
   initHeroParallax({ document, window });
   initLegalModals({ document, window });
   initProductSharing({
