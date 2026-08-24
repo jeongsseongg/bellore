@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "sources": [
+    {
+      "capture_meta_path": ".truth-guard/cache/REPLACE.meta.json",
+      "capture_meta_sha256": "REPLACE_WITH_META_FILE_SHA256",
+      "kind": "http_capture",
+      "owner_id": "REPLACE_WITH_SOURCE_OWNER",
+      "published_at": null,
+      "source_id": "SRC-001",
+      "url": "https://example.invalid/replace"
+    }
+  ]
+}

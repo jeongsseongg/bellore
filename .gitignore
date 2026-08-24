@@ -36,3 +36,7 @@ build/
 /insight/
 /product/
 /feed/
+
+# truth-guard:begin
+/.truth-guard/
+# truth-guard:end
