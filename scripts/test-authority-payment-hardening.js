@@ -100,6 +100,12 @@ assert.match(webhook, /payment\.status === "CANCELLED"/);
 assert.match(webhook, /payment\.status === "PARTIAL_CANCELLED"/);
 assert.match(webhook, /Transaction\.CancelPending/);
 assert.match(webhook, /finalize_order_refund_v2/);
+const mismatchGuard = webhook.indexOf('if (notifiedStoreId !== PORTONE_STORE_ID)');
+const mismatchIgnore = webhook.indexOf('reason: "store_mismatch"', mismatchGuard);
+const providerLookup = webhook.indexOf('const providerResponse = await fetch');
+assert.ok(mismatchGuard >= 0 && mismatchIgnore > mismatchGuard, 'wrong-store webhooks must be ignored');
+assert.ok(providerLookup > mismatchIgnore, 'wrong-store webhooks must stop before provider and database work');
+assert.doesNotMatch(webhook, /webhook_identity_invalid/);
 for (const status of ['shipping', 'delivered', 'confirmed', 'return_req', 'exchange_req', 'returning']) {
   assert.match(paymentStates, new RegExp(`"${status}"`), `paid lifecycle status ${status} must be reconciled`);
   assert.match(migration, new RegExp(`'${status}'`), `refund SQL must accept ${status}`);
