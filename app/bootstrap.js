@@ -1,3 +1,4 @@
+import { initInsightFilter } from './features/insights/insight-filter.js';
 import { initInsightReader } from './features/insights/insight-reader.js';
 import { initLegalModals } from './features/legal/legal-modals.js';
 import { initHeroParallax } from './ui/hero-parallax.js';
@@ -20,6 +21,7 @@ function bootstrap() {
     featured.update(listings);
     rows.update(listings);
   });
+  initInsightFilter({ document });
   initInsightReader({ document });
 }
 

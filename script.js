@@ -39,7 +39,6 @@
         initRouter();
         initCollectionTabs();
         initFilterChips();
-        initInsightFilter();
         initPhotoUpload();
         initCompareForm();
         initSellBuyRepairForms();
@@ -5188,33 +5187,6 @@
                 if (!p) return;
                 $$('.filter-chip', p).forEach(function (c) { c.classList.remove('active'); });
                 chip.classList.add('active');
-            });
-        });
-    }
-
-    /* ============ 5. 인사이트 카테고리 필터 ============ */
-    function initInsightFilter() {
-        var tabs = $$('.insight-tab');
-        var partnerGrid = $('#partnerGrid');
-
-        tabs.forEach(function (tab) {
-            tab.addEventListener('click', function () {
-                var cat = tab.dataset.cat;
-                // 동적으로 추가된 글/후기도 포함하도록 매 클릭 시 재조회
-                var rows = $$('.insight-row[data-cat]');
-                tabs.forEach(function (t) { t.classList.remove('active'); });
-                tab.classList.add('active');
-
-                if (cat === 'partner') {
-                    // 제휴처 탭: 제휴처 그리드만 표시, 글 리스트 숨김
-                    rows.forEach(function (row) { row.style.display = 'none'; });
-                    if (partnerGrid) partnerGrid.style.display = 'block';
-                } else {
-                    if (partnerGrid) partnerGrid.style.display = 'none';
-                    rows.forEach(function (row) {
-                        row.style.display = (cat === 'all' || row.dataset.cat === cat) ? '' : 'none';
-                    });
-                }
             });
         });
     }
