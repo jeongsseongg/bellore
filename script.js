@@ -6161,12 +6161,23 @@
             }
         });
         if (askBtn) askBtn.addEventListener('click', function () {
-            closeProduct();
-            navigate('contact');
+            closeProduct(function () { navigate('contact'); });
         });
 
         var curPhotos = [];
         var curIdx = 0;
+        function dispatchProductRoute(type, afterRestore) {
+            try {
+                document.dispatchEvent(new CustomEvent(type, {
+                    detail: {
+                        product: window.BELLORE_currentProduct,
+                        afterRestore: afterRestore
+                    }
+                }));
+            } catch (e) {
+                if (typeof afterRestore === 'function') afterRestore();
+            }
+        }
         function selectPhoto(i) {
             if (!curPhotos.length) return;
             i = Math.max(0, Math.min(i, curPhotos.length - 1));
@@ -6482,6 +6493,7 @@
             });
 
             modal.hidden = false;
+            dispatchProductRoute('bellore:product-open');
             modal.querySelector('.pp-scroll').scrollTop = 0;
             $$('.pp-tab', modal).forEach(function (x, i) { x.classList.toggle('active', i === 0); });
             document.body.style.overflow = 'hidden';
@@ -6532,6 +6544,7 @@
                         price: effectivePrice(it),
                         image: (it.photos && it.photos[0]) || ''
                     };
+                    dispatchProductRoute('bellore:product-open');
                     if (window.BELLORE_NPAY_RENDER) {
                         window.BELLORE_NPAY_RENDER(window.BELLORE_currentProduct);
                     }
@@ -6539,7 +6552,7 @@
             }
         }
 
-        function closeProduct() {
+        function closeProduct(afterRestore) {
             closeLightbox();
             window.BELLORE_currentProduct = null;
             if (window.BELLORE_NPAY_RENDER) {
@@ -6548,6 +6561,7 @@
             modal.hidden = true;
             document.body.style.overflow = '';
             try { sessionStorage.removeItem('bellore_view_product'); } catch (e) {}
+            dispatchProductRoute('bellore:product-close', afterRestore);
         }
 
         // id만으로 상세 열기(새로고침 복원 / 공유 링크)
@@ -6578,6 +6592,7 @@
                     window.BELLORE_NPAY_RENDER(window.BELLORE_currentProduct);
                 }
                 modal.hidden = false;
+                dispatchProductRoute('bellore:product-open');
                 modal.querySelector('.pp-scroll').scrollTop = 0;
                 $$('.pp-tab', modal).forEach(function (x, i) { x.classList.toggle('active', i === 0); });
                 document.body.style.overflow = 'hidden';

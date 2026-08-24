@@ -5,7 +5,7 @@ import { initHeroParallax } from './ui/hero-parallax.js';
 import { initSiteHeader } from './ui/site-header.js';
 import { initHomeBanners } from './features/home-banners/home-banners.js';
 import { initHomeRows } from './features/home-rows/home-rows.js';
-import { initProductSharing } from './features/product-sharing/product-sharing.mjs';
+import { initProductDetailRoute, initProductSharing } from './features/product-sharing/product-sharing.mjs';
 import { createListingCatalog } from './services/listings/listing-catalog-service.js';
 import { createLegacyCollection } from './legacy/legacy-collection.js';
 
@@ -19,6 +19,7 @@ function bootstrap() {
     getCurrentProduct: () => window.BELLORE_currentProduct,
     notify: (message) => window.alert(message),
   });
+  initProductDetailRoute({ document, window });
 
   const collection = createLegacyCollection({ document, window });
   const featured = initHomeBanners({ document, window, collection });

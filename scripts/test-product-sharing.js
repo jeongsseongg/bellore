@@ -13,6 +13,23 @@ function fakeButton() {
   };
 }
 
+function fakeEventTarget() {
+  const listeners = new Map();
+  return {
+    addEventListener(type, handler) {
+      const handlers = listeners.get(type) || [];
+      handlers.push(handler);
+      listeners.set(type, handlers);
+    },
+    removeEventListener(type, handler) {
+      listeners.set(type, (listeners.get(type) || []).filter((item) => item !== handler));
+    },
+    emit(type, detail = {}) {
+      for (const handler of [...(listeners.get(type) || [])]) handler({ type, detail });
+    },
+  };
+}
+
 (async () => {
   const root = path.resolve(__dirname, '..');
   const core = await import(pathToFileURL(path.join(root, 'app', 'core', 'market-product-url.mjs')).href);
@@ -65,6 +82,40 @@ function fakeButton() {
   assert.equal(top.hasClick(), false);
   assert.equal(bottom.hasClick(), false);
 
+  const routeDocument = fakeEventTarget();
+  const routeWindow = fakeEventTarget();
+  const routeCalls = [];
+  routeWindow.location = { origin: 'https://bellore.co.kr', hash: '#home' };
+  routeWindow.history = {
+    state: null,
+    pushState(state, _title, url) {
+      this.state = state;
+      routeCalls.push(['push', url]);
+      routeWindow.location.hash = new URL(url, routeWindow.location.origin).hash;
+    },
+    replaceState(state, _title, url) {
+      this.state = state;
+      routeCalls.push(['replace', url]);
+      routeWindow.location.hash = new URL(url, routeWindow.location.origin).hash;
+    },
+    back() { routeCalls.push(['back']); },
+  };
+  const routeController = sharing.initProductDetailRoute({ document: routeDocument, window: routeWindow });
+  routeDocument.emit('bellore:product-open', { product: screenshotProduct });
+  await Promise.resolve();
+  assert.deepEqual(routeCalls[0], ['push', '/market/rol-n21268-6/']);
+  assert.equal(routeWindow.history.state.belloreProduct, 1);
+  assert.equal(routeWindow.history.state.ov, 1);
+  routeDocument.emit('bellore:product-open', { product: screenshotProduct });
+  await Promise.resolve();
+  assert.deepEqual(routeCalls[1], ['replace', '/market/rol-n21268-6/'], '비동기 상세 보강은 새 이력을 만들지 않습니다.');
+  let afterRestore = 0;
+  routeDocument.emit('bellore:product-close', { afterRestore: () => { afterRestore += 1; } });
+  assert.deepEqual(routeCalls[2], ['back']);
+  routeWindow.emit('popstate');
+  assert.equal(afterRestore, 1);
+  routeController.destroy();
+
   const bootstrap = fs.readFileSync(path.join(root, 'app', 'bootstrap.js'), 'utf8');
   const legacy = fs.readFileSync(path.join(root, 'script.js'), 'utf8');
   const policy = fs.readFileSync(path.join(root, 'tools', 'seo', 'market-policy.mjs'), 'utf8');
@@ -72,8 +123,9 @@ function fakeButton() {
   const buildPages = fs.readFileSync(path.join(root, 'tools', 'build-pages.mjs'), 'utf8');
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 
-  assert.match(bootstrap, /import \{ initProductSharing \} from '\.\/features\/product-sharing\/product-sharing\.mjs';/);
+  assert.match(bootstrap, /import \{ initProductDetailRoute, initProductSharing \} from '\.\/features\/product-sharing\/product-sharing\.mjs';/);
   assert.match(bootstrap, /initProductSharing\(\{/);
+  assert.match(bootstrap, /initProductDetailRoute\(\{ document, window \}\);/);
   assert.doesNotMatch(legacy, /function shareCurrentProduct\(/, '레거시 UUID 공유 함수가 제거됩니다.');
   const currentProductBlocks = [...legacy.matchAll(/BELLORE_currentProduct\s*=\s*\{([\s\S]*?)\n\s*\};/g)];
   assert.equal(currentProductBlocks.length, 3, '현재 상품 상태 생성 지점 수가 바뀌면 검토가 필요합니다.');
@@ -88,6 +140,8 @@ function fakeButton() {
     /\bno: String\(it\.id\)\.slice\(0, 8\)\.toUpperCase\(\)/,
     '비동기 상세 조회가 상품번호를 UUID 앞자리로 덮어쓰면 안 됩니다.',
   );
+  assert.equal((legacy.match(/dispatchProductRoute\('bellore:product-open'\)/g) || []).length, 3);
+  assert.match(legacy, /dispatchProductRoute\('bellore:product-close', afterRestore\)/);
   assert.match(policy, /from '\.\.\/\.\.\/app\/core\/market-product-url\.mjs';/, 'SEO도 앱과 같은 URL 규칙을 사용합니다.');
   for (const asset of [
     './app/core/market-product-url.mjs',

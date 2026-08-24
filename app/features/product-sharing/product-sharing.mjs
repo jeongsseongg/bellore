@@ -60,3 +60,55 @@ export function initProductSharing({
     },
   };
 }
+
+export function initProductDetailRoute({
+  document: doc,
+  window: win,
+}) {
+  const productStateKey = 'belloreProduct';
+
+  function routeTarget(product) {
+    const url = new URL(productShareUrl(product, win.location.origin));
+    return `${url.pathname}${url.search}${url.hash}`;
+  }
+
+  function applyProductRoute(product) {
+    const target = routeTarget(product);
+    const state = { ...(win.history.state || {}), ov: 1, [productStateKey]: 1 };
+
+    if (/^#p=/.test(win.location.hash || '') && !win.history.state?.[productStateKey]) {
+      win.history.replaceState(win.history.state, '', '/#home');
+    }
+    if (win.history.state?.ov) {
+      win.history.replaceState(state, '', target);
+      return;
+    }
+    win.history.pushState(state, '', target);
+  }
+
+  function onProductOpen(event) {
+    const product = event.detail?.product || {};
+    Promise.resolve().then(() => applyProductRoute(product));
+  }
+
+  function onProductClose(event) {
+    const afterRestore = event.detail?.afterRestore;
+    if (!win.history.state?.[productStateKey]) {
+      if (typeof afterRestore === 'function') afterRestore();
+      return;
+    }
+    if (typeof afterRestore === 'function') {
+      win.addEventListener('popstate', afterRestore, { once: true });
+    }
+    win.history.back();
+  }
+
+  doc.addEventListener('bellore:product-open', onProductOpen);
+  doc.addEventListener('bellore:product-close', onProductClose);
+  return {
+    destroy() {
+      doc.removeEventListener('bellore:product-open', onProductOpen);
+      doc.removeEventListener('bellore:product-close', onProductClose);
+    },
+  };
+}
