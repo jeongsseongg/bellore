@@ -2197,7 +2197,7 @@
     /* data-resetpw 는 전역 핸들러(bellore-features.js)가 처리 */
   }
 
-  function msg(err) { return (err && (err.message || err.code)) || '오류'; }
+  function msg(err) { var f = window.BELLORE_CUSTOMER_FEEDBACK; return f && f.message ? f.message(err, 'general') : '요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.'; }
 
   /* 사진 선택(파일 input) */
   function onChange(e) {

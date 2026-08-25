@@ -203,7 +203,7 @@
 
   function renderLoading() { $('.auc-body', root).innerHTML = '<p class="auc-empty">불러오는 중…</p>'; }
   function dbHelp() {
-    return '<div class="auc-note">경매 테이블이 아직 없습니다. Supabase SQL Editor에서 <b>auction.sql</b>을 실행해 주세요.</div>';
+    return '<div class="auc-note">경매 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</div>';
   }
 
   function render() {
@@ -539,7 +539,7 @@
       refreshData().then(render);
     }).catch(function (e) {
       go.disabled = false; go.textContent = '경매 예약하기';
-      alert('예약 실패: ' + (e.message || e) + '\n(auction.sql 실행 여부를 확인해 주세요.)');
+      alert('경매 예약을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.');
     });
   }
 
@@ -547,7 +547,7 @@
   var tEl = null, tT = null;
   function toast(m) {
     if (!tEl) { tEl = document.createElement('div'); tEl.className = 'wish-toast'; document.body.appendChild(tEl); }
-    tEl.textContent = m; tEl.classList.add('show');
+    tEl.textContent = window.belloreCustomerMessage(m, 'general'); tEl.classList.add('show');
     clearTimeout(tT); tT = setTimeout(function () { tEl.classList.remove('show'); }, 2200);
   }
 
@@ -734,7 +734,7 @@
       if (amt <= 0) { toast('충전 금액을 선택해 주세요.'); return; }
       if (isAdm) {
         walletCharge(amt).then(function () { close(); toast(fmt(amt) + '원이 충전되었습니다.'); refreshWalletUI(); })
-          .catch(function (e) { alert('충전 실패: ' + (e.message || e) + '\n(wallet.sql 실행 여부 확인)'); });
+          .catch(function () { alert('충전을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.'); });
       } else if (canPay) {
         // 포트원 충전 연동 지점(승인 후): 결제창 → 검증 → wallet_charge(service_role)
         toast('카드 결제 연동 준비 중입니다.');

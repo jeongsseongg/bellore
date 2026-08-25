@@ -752,7 +752,7 @@
                         if (cr) cr.hidden = false;
                         NWBackend.sendEmailOtp(u.email).then(function () { if (st) { st.textContent = '인증번호를 이메일로 보냈어요.'; st.className = 'vrow-state'; } }).catch(function () { if (st) { st.textContent = '발송 실패'; st.className = 'vrow-state err'; } });
                     } else if (_pwMethod === 'phone' && VP.phone && VP.phone.enabled && NWBackend.verifyIdentityPortone) {
-                        NWBackend.verifyIdentityPortone({ phone: u.phone }).then(function () { _pwOk = true; gotoP('pw3'); }).catch(function (err) { if (st) { st.textContent = '인증 실패: ' + (err && err.message || err); st.className = 'vrow-state err'; } });
+                        NWBackend.verifyIdentityPortone({ phone: u.phone }).then(function () { _pwOk = true; gotoP('pw3'); }).catch(function (err) { if (st) { st.textContent = window.belloreCustomerMessage(err, 'identity'); st.className = 'vrow-state err'; } });
                     } else { _pwOk = true; gotoP('pw3'); } // 키 미설정(soft) → 즉시 통과
                     return;
                 }
@@ -762,7 +762,7 @@
                 var phone = ($('#pfPhone').value || '').trim(), st = $('#pfPhoneState');
                 if (phone.replace(/[^0-9]/g, '').length < 9) { alert('휴대폰 번호를 정확히 입력하세요.'); return; }
                 if (VP.phone && VP.phone.enabled && NWBackend.verifyIdentityPortone) {
-                    NWBackend.verifyIdentityPortone({ phone: phone }).then(function () { if (st) { st.textContent = '✓ 본인인증 완료'; st.className = 'vrow-state ok'; } }).catch(function (err) { if (st) { st.textContent = '인증 실패: ' + (err && err.message || err); st.className = 'vrow-state err'; } });
+                    NWBackend.verifyIdentityPortone({ phone: phone }).then(function () { if (st) { st.textContent = '✓ 본인인증 완료'; st.className = 'vrow-state ok'; } }).catch(function (err) { if (st) { st.textContent = window.belloreCustomerMessage(err, 'identity'); st.className = 'vrow-state err'; } });
                 } else if (st) { st.textContent = '준비 중 — 번호만 저장됩니다.'; st.className = 'vrow-state'; }
             });
             $('#pfPhoneConfirm').addEventListener('click', function () { var st = $('#pfPhoneState'); if (st) { st.textContent = '✓ 인증 완료'; st.className = 'vrow-state ok'; } });
@@ -790,7 +790,7 @@
                     btn.disabled = true; NWBackend.updateBankAccount({ bank: $('#pfBank').value, account: $('#pfAccount').value, holder: $('#pfHolder').value }).then(function () { setPV(); alert('계좌가 저장되었습니다.'); gotoP('home'); }).catch(fail);
                 } else if (_pStep === 'pw1') {
                     var cur = $('#pfCurPw').value || ''; if (!cur) { alert('현재 비밀번호를 입력하세요.'); return; }
-                    btn.disabled = true; NWBackend.verifyCurrentPassword(cur).then(function () { btn.disabled = false; gotoP('pw2'); }).catch(function (err) { btn.disabled = false; alert(err && err.message || '비밀번호가 일치하지 않습니다.'); });
+                    btn.disabled = true; NWBackend.verifyCurrentPassword(cur).then(function () { btn.disabled = false; gotoP('pw2'); }).catch(function (err) { btn.disabled = false; alert(window.belloreCustomerMessage(err, 'auth')); });
                 } else if (_pStep === 'pw3') {
                     if (!_pwOk) { alert('본인인증을 먼저 완료해 주세요.'); gotoP('pw2'); return; }
                     var p1 = $('#pfNewPw').value || '', p2 = $('#pfNewPw2').value || '';
@@ -3760,7 +3760,7 @@
         if (m.indexOf('password should be at least') !== -1) return '비밀번호는 6자 이상이어야 합니다.';
         if (m.indexOf('rate limit') !== -1) return '요청이 많습니다. 잠시 후 다시 시도해주세요.';
         if (m.indexOf('failed to fetch') !== -1 || m.indexOf('networkerror') !== -1) return '네트워크 연결을 확인해주세요.';
-        return msg || '알 수 없는 오류';
+        return window.BELLORE_CUSTOMER_FEEDBACK?.message?.(err, 'auth') || '로그인을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.';
     }
 
     function initBackendSync() {
@@ -4535,7 +4535,7 @@
                 var phone = ($('#fidPhone').value || '').trim(), st = $('#fidPhoneState');
                 if (phone.replace(/[^0-9]/g, '').length < 10) { setVS(st, '휴대폰 번호를 확인해 주세요.', 'err'); return; }
                 if (!phoneLive || !NWBackend.verifyIdentityPortone) {
-                    setVS(st, '휴대폰 본인인증은 준비 중입니다(키 등록 후 활성화). 지금은 “이메일로 찾기”를 이용해 주세요.', 'err');
+                    setVS(st, '현재 휴대폰 본인인증을 이용할 수 없습니다. 지금은 “이메일로 찾기”를 이용해 주세요.', 'err');
                     return;
                 }
                 setVS(st, '본인인증을 진행 중…', '');
@@ -4550,7 +4550,7 @@
                     } else {
                         showFidResult('계정 조회 기능 준비 중입니다. 이메일로 찾기를 이용해 주세요.');
                     }
-                }).catch(function (err) { setVS(st, '인증 실패: ' + (err && err.message || err), 'err'); });
+                }).catch(function (err) { setVS(st, window.belloreCustomerMessage(err, 'identity'), 'err'); });
             });
 
             /* ---------- 비밀번호 찾기(재설정) ---------- */
@@ -4588,14 +4588,14 @@
                 var phone = ($('#fpwPhone').value || '').trim(), st = $('#fpwPhoneState');
                 if (phone.replace(/[^0-9]/g, '').length < 10) { setVS(st, '휴대폰 번호를 확인해 주세요.', 'err'); return; }
                 if (!phoneLive) {
-                    setVS(st, '휴대폰 인증은 준비 중입니다(SMS 키 등록 후 활성화). 지금은 “이메일로 인증”을 이용해 주세요.', 'err');
+                    setVS(st, '현재 휴대폰 인증을 이용할 수 없습니다. 지금은 “이메일로 인증”을 이용해 주세요.', 'err');
                     return;
                 }
                 setVS(st, '본인인증을 진행 중…', '');
                 NWBackend.verifyIdentityPortone({ phone: phone }).then(function () {
                     // 휴대폰 인증만으로는 클라이언트에서 세션을 만들 수 없어(서버 함수 필요) 이메일 재설정으로 안내
                     setVS(st, '✓ 본인인증 완료 — 보안을 위해 가입 이메일로 재설정 링크를 보내드립니다.', 'ok');
-                }).catch(function (err) { setVS(st, '인증 실패: ' + (err && err.message || err), 'err'); });
+                }).catch(function (err) { setVS(st, window.belloreCustomerMessage(err, 'identity'), 'err'); });
             });
             var fpwSub = $('#fpwSubmit');
             if (fpwSub) fpwSub.addEventListener('click', function () {

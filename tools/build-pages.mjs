@@ -39,6 +39,7 @@ export const ROOT_RUNTIME_FILES = Object.freeze([
 
 export const APP_RUNTIME_FILES = Object.freeze([
   'app/bootstrap.js',
+  'app/core/customer-error.mjs',
   'app/core/listing-display.js',
   'app/core/market-product-url.mjs',
   'app/features/home-banners/home-banner-data.js',
@@ -56,6 +57,7 @@ export const APP_RUNTIME_FILES = Object.freeze([
   'app/features/product-sharing/product-sharing.mjs',
   'app/legacy/legacy-collection.js', 'app/legacy/payment-auth.js',
   'app/legacy/home-merchandising-grid.js',
+  'app/legacy/customer-feedback.js',
   'app/legacy/legacy-reveal.js',
   'app/legacy/page-runtime.js',
   'app/services/listings/listing-catalog-service.js', 'app/services/payments/payment-auth.js',
