@@ -37,6 +37,7 @@
   function consent() {
     var current = CFG.policyVersion || '2026-08-10-ip-v1';
     var value = read(CONSENT_KEY, null);
+    // 선택 전에는 상세 분석·광고를 실행하지 않고 간단한 선택 카드만 노출한다.
     return value && value.policy_version === current ? value : { analytics: 'pending', ads: 'pending', policy_version: current };
   }
   function analyticsGranted() { return consent().analytics === 'granted'; }
@@ -216,13 +217,14 @@
     if (!force && consent().analytics !== 'pending') return;
     closeConsent();
     var c = consent(), el = document.createElement('section');
-    el.id = 'analyticsConsent'; el.className = 'analytics-consent';
+    el.id = 'analyticsConsent'; el.className = 'analytics-consent' + (force ? ' is-customizing' : '');
     el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', '개인정보 및 경험 설정');
     el.innerHTML = '<div class="analytics-consent-card">' +
-      '<header class="analytics-consent-head"><img src="assets/logo-bellore.png" alt="BELLORE"><span>PRIVACY &amp; EXPERIENCE</span></header>' +
-      '<div class="analytics-consent-intro"><h2>당신의 취향이 더 빛나도록</h2>' +
-      '<p>관심 있게 본 시계와 이용 흐름을 이해하면, 더 잘 맞는 상품과 한층 편리한 벨로르 경험을 준비할 수 있습니다.</p>' +
+      '<header class="analytics-consent-head"><img src="assets/icons/icon-192.png" alt="BELLORE"><span>PRIVACY &amp; EXPERIENCE</span></header>' +
+      '<div class="analytics-consent-copy"><div class="analytics-consent-intro"><h2>벨로르 AI로, 원하는 시계에 더 가까이</h2>' +
+      '<p>허용하면 검색과 상품 조회 흐름을 바탕으로 관심 브랜드와 예산에 맞는 추천을 더 정교하게 보여드려요.</p>' +
       '<p class="analytics-consent-note">선택해 주신 정보는 서비스 개선과 광고 성과 확인에만 안전하게 사용합니다. 비동의 시에는 개인 식별 정보 없이 동의 상태별 방문 숫자만 합산하며, 필수 기능은 동일하게 이용할 수 있습니다.</p></div>' +
+      '<button type="button" class="analytics-consent-more" data-consent="options">상세 설정</button></div>' +
       '<div class="analytics-consent-options" data-consent-options' + (force ? '' : ' hidden') + '>' +
         '<div class="analytics-consent-options-head"><div><b>나에게 맞는 경험 설정</b><span>선택은 언제든 개인정보처리방침에서 변경할 수 있습니다.</span></div><button type="button" data-legal-open="privacy">자세히 보기</button></div>' +
         '<div class="analytics-purpose essential"><div><b>필수 기능</b><span>로그인·보관함·주문·보안 등 서비스 운영에 꼭 필요한 기능</span></div><em>항상 사용</em></div>' +
@@ -230,9 +232,8 @@
         '<label class="analytics-purpose"><div><b>광고 성과 측정</b><span>Google·Naver 캠페인의 성과를 확인해 더 유용한 소식을 전합니다.</span></div><input type="checkbox" data-consent-ads' + (c.ads === 'granted' ? ' checked' : '') + '><i aria-hidden="true"></i></label>' +
       '</div>' +
       '<div class="analytics-consent-actions">' +
-        '<button type="button" class="primary" data-consent="all">모두 동의</button>' +
-        '<button type="button" data-consent="essential">필수만 사용</button>' +
-        '<button type="button" class="more" data-consent="options">더 많은 옵션</button>' +
+        '<button type="button" class="primary" data-consent="all">허용</button>' +
+        '<button type="button" data-consent="essential">필수</button>' +
         '<button type="button" class="save" data-consent="save"' + (force ? '' : ' hidden') + '>선택 저장</button>' +
       '</div></div>';
     document.body.appendChild(el);

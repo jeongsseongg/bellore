@@ -18,6 +18,7 @@ function eventTarget() {
 (async () => {
   const html = fs.readFileSync(path.resolve(__dirname, '..', 'index.html'), 'utf8');
   const serviceWorker = fs.readFileSync(path.resolve(__dirname, '..', 'sw.js'), 'utf8');
+  const styles = fs.readFileSync(path.resolve(__dirname, '..', 'styles.css'), 'utf8');
   const pageRuntime = fs.readFileSync(path.resolve(__dirname, '..', 'app', 'legacy', 'page-runtime.js'), 'utf8');
   const sourcePath = path.resolve(__dirname, '..', 'app', 'ui', 'site-header.js');
   const source = fs.readFileSync(sourcePath, 'utf8');
@@ -36,6 +37,7 @@ function eventTarget() {
   assert(serviceWorker.includes(`'./${scriptUrl}'`), 'service worker precaches the exact script URL');
   assert(serviceWorker.includes(`'./${bootstrapUrl}'`), 'service worker precaches the exact bootstrap URL');
   assert.match(serviceWorker, /\.\/app\/ui\/site-header\.js/, 'service worker precaches the imported header module');
+  assert.doesNotMatch(styles, /body\.admin-mode \.main-wrap\s*\{[^}]*padding-top:\s*0/, 'admin login keeps the same header offset as customer home');
 
   let height = 84;
   const classes = new Set();

@@ -1,6 +1,6 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('sw.js?v=20260825-home-route-admin-v7').catch(function (err) {
+                navigator.serviceWorker.register('sw.js?v=20260826-search-checkout-address-v1').catch(function (err) {
                     console.warn('서비스워커 등록 실패:', err);
                 });
             });
@@ -11,7 +11,7 @@
             var grid = document.querySelector('#panel-ny .col-grid-inner');
             if (!grid) return;
             var countEl = document.getElementById('catCount'), totalCountEl = document.getElementById('catTotalCount'), filteredCountEl = document.getElementById('catFilteredCount');
-            var brands = document.querySelectorAll('#collection .cat-brand');
+            var brands = document.querySelectorAll('#collection .cat-brand'), brandWrap = document.querySelector('#collection .cat-brands');
             var catModels = document.getElementById('catModels');
             function esc2(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
             function num(v) { var n = parseInt(String(v == null ? '' : v).replace(/[^0-9]/g, ''), 10); return isNaN(n) ? null : n; }
@@ -36,7 +36,7 @@
             var cf = { sizeMin: null, sizeMax: null, priceMin: null, priceMax: null, yearMin: null, yearMax: null, warranty: '', diamond: '', colors: [], materials: [], grades: [] }; function containsAny(text, values) { text = String(text || '').toLowerCase(); return (values || []).some(function (value) { return text.indexOf(String(value).toLowerCase()) !== -1; }); }
             function matchCard(c) {
                 var el = c.querySelector('.hcard-brand');
-                var bd = (c.dataset.brand || (el ? el.textContent : '')).toUpperCase();
+                var bd = (c.dataset.brand || (el ? el.textContent : '')).toUpperCase(), bdSearch = [bd, window.BELLORE_BRAND_KR ? window.BELLORE_BRAND_KR(bd) : '', window.BELLORE_BRAND_EN ? window.BELLORE_BRAND_EN(bd) : ''].join(' ').toLowerCase();
                 var mel = c.querySelector('.hcard-model');
                 var md = ((c.dataset.model || (mel ? mel.textContent : '')) + '').toLowerCase();
                 var no = (c.getAttribute('data-no') || '').toLowerCase();
@@ -49,8 +49,8 @@
                 var mat = c.dataset.material || '';
                 var dia = c.dataset.diamond === '1';
                 var war = c.dataset.warranty === '1';
-                var isNew = c.getAttribute('data-new') === '1'; var hay = (bd + ' ' + md + ' ' + no + ' ' + color + ' ' + mat + ' ' + pk).toLowerCase();
-                if (fBrand && fBrand !== 'all' && bd.indexOf(fBrand.toUpperCase()) === -1) return false;
+                var isNew = c.getAttribute('data-new') === '1'; var hay = (bdSearch + ' ' + md + ' ' + no + ' ' + color + ' ' + mat + ' ' + pk).toLowerCase();
+                if (fBrand && fBrand !== 'all' && bdSearch.indexOf(fBrand.toLowerCase()) === -1) return false;
                 if (fModel && md.indexOf(fModel.toLowerCase()) === -1) return false;
                 if (fQuery) { var q = fQuery.toLowerCase(); if (hay.indexOf(q) === -1) return false; }
                 if (homeRule && ((homeRule.brandsAny && !containsAny(bd, homeRule.brandsAny)) || (homeRule.termsAny && !containsAny(hay, homeRule.termsAny)) || (homeRule.packsAny && homeRule.packsAny.indexOf(pk) === -1) || (homeRule.audience === 'women' && !(sz > 0 && sz <= 31) && !containsAny(md, ['여성', '레이디', '레이디스', '미니', '스몰'])) || (homeRule.vintage && c.dataset.vintage !== '1') || (homeRule.saleOnly && c.dataset.saleactive !== '1'))) return false;
@@ -98,8 +98,8 @@
             window.BELLORE_applyColFilters = applyFilters;
 
             /* ---- 브랜드 원형 ---- */
-            brands.forEach(function (btn) {
-                btn.addEventListener('click', function () {
+            if (brandWrap) brandWrap.addEventListener('click', function (event) {
+                    var btn = event.target.closest('.cat-brand'); if (!btn || !brandWrap.contains(btn)) return;
                     if (window.BELLORE_hideSearchEmpty) window.BELLORE_hideSearchEmpty();
                     brands.forEach(function (x) { x.classList.remove('active'); });
                     btn.classList.add('active');
@@ -109,14 +109,12 @@
                     hideSuggest();
                     // 선택한 브랜드의 결과(모델칩 + 그리드)가 하단에 보이도록 스크롤
                     if (fBrand && fBrand !== 'all') scrollToResults();
-                });
-            });
+            }, true);
             function scrollToResults() {
                 var anchor = document.getElementById('catModels');
                 if (!anchor || anchor.hidden) anchor = document.querySelector('#collection .cat-listhead') || document.getElementById('panel-ny');
                 if (anchor) setTimeout(function () { anchor.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60);
             }
-            var brandWrap = document.querySelector('#collection .cat-brands');
             function setBrandOpen(on) {
                 if (!brandWrap) return;
                 brandWrap.classList.toggle('is-collapsed', !on);
@@ -181,7 +179,7 @@
                 function runSearch(raw) {
                     var v = (raw == null ? bq.value : raw).trim();
                     window.__catFilterBrands(v);
-                    homeRule = null; fQuery = v ? aliasExpand(v) : '';   // 그리드: 별칭 확장(금통→골드 등)
+                    homeRule = null; fBrand = 'all'; fModel = ''; fQuery = v ? aliasExpand(v) : ''; brands.forEach(function (button) { button.classList.toggle('active', button.dataset.brand === 'all'); });   // 그리드: 별칭 확장(금통→골드 등)
                     if (clearBtn) clearBtn.hidden = !v;
                     applyFilters();
                 }

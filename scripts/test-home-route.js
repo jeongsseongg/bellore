@@ -10,7 +10,12 @@ const productRoute = read('app/features/product-sharing/product-sharing.mjs');
 const navigationHistory = read('app/ui/navigation-history.js');
 
 assert.doesNotMatch(html, /href="#home"/, 'home is the root URL without #home');
-assert.equal((html.match(/href="\/"[^>]+data-nav="home"/g) || []).length, 2);
+assert.match(html, /<a href="\/" class="logo" aria-label="BELLORE 홈">/,
+  'the header logo uses a native root link so every app state returns to the canonical home');
+assert.doesNotMatch(html, /<a href="\/" class="logo"[^>]+data-nav="home"/,
+  'the router must not intercept the header logo root navigation');
+assert.equal((html.match(/href="\/"[^>]+data-nav="home"/g) || []).length, 1,
+  'the footer may keep the in-app home navigation');
 assert.match(router, /function routeForPage\(target\)/);
 assert.match(router, /if \(target === 'home'\) return '\/';/);
 assert.match(router, /return '\/#' \+ target;/, 'app hashes are anchored at the site root');

@@ -33,10 +33,12 @@ function normalizedItems(content) {
     if (!Array.isArray(saved) || saved.length !== DEFAULTS.length) throw new Error('invalid category count');
     return saved.map((item, index) => {
       let image = content.images && content.images[item.imageIndex] || DEFAULTS[index].image;
+      let label = String(item.label || DEFAULTS[index].label).slice(0, 16);
       if (index === 0 && image === PREVIOUS_TIME_SALE_IMAGE) image = DEFAULTS[0].image;
       if (index === 3 && image === PREVIOUS_UNDER_300_IMAGE) image = DEFAULTS[3].image;
+      if (index === 3 && ['300만원 미만', '300만원 이하'].includes(label)) label = '300만원 ↓';
       return {
-        label: String(item.label || DEFAULTS[index].label).slice(0, 16),
+        label,
         action: ACTIONS.some((action) => action.value === item.action) ? item.action : DEFAULTS[index].action,
         image,
       };
@@ -114,7 +116,7 @@ export function initHomeQuicklinks({ document: doc, window: win, collection }) {
 
   function paint() {
     rail.innerHTML = items.map((item, index) =>
-      `<button type="button" class="hq-item" data-hq-index="${index}">` +
+      `<button type="button" class="hq-item" data-hq-index="${index}" data-hq-action="${escapeText(item.action)}">` +
       `<span class="hq-image"><img src="${escapeText(item.image)}" alt="" loading="${index < 3 ? 'eager' : 'lazy'}"></span>` +
       `<span class="hq-label">${escapeText(item.label)}</span></button>`
     ).join('');
@@ -125,7 +127,12 @@ export function initHomeQuicklinks({ document: doc, window: win, collection }) {
   function syncScrollbar() {
     if (!scrollbar || !scrollThumb) return;
     const maxScroll = Math.max(0, rail.scrollWidth - rail.clientWidth);
-    if (!maxScroll) { scrollbar.hidden = true; return; }
+    if (maxScroll <= 1) {
+      scrollbar.hidden = true;
+      scrollThumb.style.width = '';
+      scrollThumb.style.transform = 'translate3d(0,0,0)';
+      return;
+    }
     scrollbar.hidden = false;
     const trackWidth = scrollbar.clientWidth;
     const thumbWidth = Math.max(36, trackWidth * rail.clientWidth / rail.scrollWidth);

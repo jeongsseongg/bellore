@@ -1,0 +1,23 @@
+.co-section-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+.co-section-heading .co-sec-title { margin:0; }
+.co-text-button { border:1px solid var(--border); border-radius:999px; background:#fff; color:var(--text); min-height:34px; padding:0 13px; font:700 12px/1 Pretendard, sans-serif; }
+.co-same-buyer { display:flex; align-items:center; gap:8px; margin:0 0 14px; color:var(--text); font-size:13px; font-weight:700; }
+.co-same-buyer input, .co-default-check input { width:18px; height:18px; accent-color:#142b25; }
+.co-address-book { margin:0 0 14px; padding:12px; border:1px solid var(--border); border-radius:12px; background:#faf9f7; }
+.co-address-book-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+.co-address-book-head strong { font-size:13px; }
+.co-address-list { display:grid; gap:8px; max-height:280px; overflow:auto; }
+.co-address-card { padding:11px; border:1px solid #e4e0d8; border-radius:10px; background:#fff; }
+.co-address-card.is-default { border-color:#142b25; box-shadow:0 0 0 1px #142b25 inset; }
+.co-address-card strong { display:flex; align-items:center; gap:6px; font-size:13px; }
+.co-address-card strong em { padding:2px 6px; border-radius:999px; background:#142b25; color:#fff; font-size:10px; font-style:normal; }
+.co-address-card span, .co-address-card p { display:block; margin:4px 0 0; color:var(--text-2); font-size:12px; line-height:1.45; }
+.co-address-actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
+.co-address-actions button { min-height:30px; padding:0 9px; border:1px solid var(--border); border-radius:8px; background:#fff; font:700 11px/1 Pretendard, sans-serif; }
+.co-address-empty { margin:4px 0; color:var(--text-2); font-size:12px; }
+.co-address-save-row { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:8px; }
+.co-default-check { display:flex; align-items:center; gap:7px; font-size:12px; font-weight:700; }
+.co-address-save { min-height:38px; padding:0 14px; border-radius:9px; background:#142b25; color:#fff; font:800 12px/1 Pretendard, sans-serif; }
+.co-address-message { margin:8px 0 0; color:#256b4f; font-size:12px; }
+.co-address-message.is-error { color:#b43a31; }
+@media (max-width:480px) { .co-address-save-row { align-items:flex-start; flex-direction:column; } .co-address-save { width:100%; } }

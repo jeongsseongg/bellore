@@ -36,7 +36,7 @@ export const BUYIN_COPY = [
 export const FEATURED_MAX = 10;
 
 export const HERO_COPY = [
-  { title: ['최상급의 상태,', '처음 그대로의 구성'], sub: '9점 이상 · 박스와 보증서, 모든 구성품을 갖춘 시계' },
+  { title: ['검수가 끝난,', '미사용급 풀세트'], sub: '9점 이상 모든 구성품을 갖춘 시계' },
 ];
 export const HERO_FILTER = { packsAny: ['풀세트'], gradeMin: 9 };
 

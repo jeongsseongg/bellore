@@ -2497,7 +2497,7 @@ img { display: block; max-width: 100%; height: auto; }
 /* 관리자 모드: 상단 배너 제거 — 확인은 마이페이지에서만 */
 body.admin-mode::after { content: none; display: none; }
 body.admin-mode .header { top: 0; }
-body.admin-mode .main-wrap { padding-top: 0; }
+/* 로그인·관리자 상태에서도 고객 홈과 같은 헤더 여백을 유지한다. */
 
 /* ========== EXCLUSIVE PRICING 카드 슬라이드 (사용 안함 - 보존만) ========== */
 .exclusive-section {

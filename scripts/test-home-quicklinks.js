@@ -15,8 +15,8 @@ assert.match(index, /id="homeQuickCategories"/);
 assert.ok(index.indexOf('id="homeQuickCategories"') > index.indexOf('id="heroCarousel"'));
 assert.ok(index.indexOf('id="homeQuickCategories"') < index.indexOf('id="rowSaleBlock"'));
 assert.match(bootstrap, /initHomeQuicklinks\(\{ document, window, collection \}\)/);
-assert.match(bootstrap, /home-quicklinks\.js\?v=20260825-home-route-admin-v7/);
-assert.match(bootstrap, /legacy-collection\.js\?v=20260825-home-route-admin-v7/);
+assert.match(bootstrap, /home-quicklinks\.js\?v=20260826-home-compose-v1/);
+assert.match(bootstrap, /legacy-collection\.js\?v=20260825-home-typography-admin-layout-v8/);
 
 for (const label of ['TIME SALE', '브랜드', '빈티지', '300만원 ↓', '시계판매', '수리\/진단']) {
   assert.match(quicklinks, new RegExp(`label: '${label}'`));
@@ -49,19 +49,26 @@ assert.match(index, /id="catFilteredCount" hidden>현재 <b id="catCount">0<\/b>
 assert.match(css, /grid-template-columns: repeat\(6,/);
 assert.match(css, /border-radius: 50%/);
 assert.match(css, /aspect-ratio: 3155 \/ 1662/);
-assert.match(css, /background-size: contain/);
+assert.match(css, /background-size: contain, cover/);
 assert.match(css, /container-type: inline-size/);
 assert.doesNotMatch(css, /\.page-home \.hero-default \.hero-image \{[^}]*background-size: cover/);
 assert.match(css, /home-banner-1\.png/);
 assert.ok(fs.existsSync(path.join(root, 'assets', 'home-banner-1.png')), 'single home banner image');
 assert.match(css, /\.page-home \.hero-carousel \{[\s\S]*width: 100%;[\s\S]*max-width: none;[\s\S]*margin-left: 0;[\s\S]*margin-right: 0;[\s\S]*border-radius: 0;/);
-assert.match(css, /margin: calc\(18px \+ 4pt\) auto 30px/);
-assert.match(css, /margin-top: calc\(14px \+ 4pt\)/);
+assert.match(css, /margin: -16px auto 16px/);
+assert.match(css, /margin-top: -12px/);
 assert.match(css, /\.page-home \.hero-carousel \{[\s\S]*margin-top: 0;/);
 assert.doesNotMatch(index, /hero-fullset-link/);
 assert.match(index, /class="hq-scrollbar"[\s\S]*class="hq-scrollbar-thumb"/);
 assert.match(quicklinks, /rail\.addEventListener\('scroll', syncScrollbar, \{ passive: true \}\)/);
 assert.match(quicklinks, /thumbWidth = Math\.max\(36,/);
-assert.match(css, /\.hq-scrollbar \{ display: block; height: 3px;/);
+assert.match(quicklinks, /if \(maxScroll <= 1\) \{[\s\S]*scrollbar\.hidden = true;/);
+assert.match(quicklinks, /scrollbar\.hidden = false;[\s\S]*thumbWidth = Math\.max\(36,/);
+assert.doesNotMatch(quicklinks, /trackWidth \* 2 \/ 3/);
+assert.match(quicklinks, /data-hq-action="\$\{escapeText\(item\.action\)\}"/);
+assert.match(quicklinks, /\['300만원 미만', '300만원 이하'\]\.includes\(label\)\) label = '300만원 ↓'/);
+assert.match(css, /border-radius: 18px 18px 0 0/);
+assert.match(css, /\.hq-scrollbar \{ display: block; width: 66\.6667%; height: 3px; margin: 10px auto 0;/);
+assert.match(css, /\.hq-scrollbar \{ display: block; width: 66\.6667%; height: 3px; margin: 6px auto 0;/);
 
-console.log('home quicklinks checks: 54 passed');
+console.log('home quicklinks checks: 61 passed');

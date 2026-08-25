@@ -89,13 +89,22 @@ assert.match(maintenance, /legacy_ingest_removed/);
 
 const client = fs.readFileSync(path.join(root, 'analytics-client.js'), 'utf8');
 const backend = fs.readFileSync(path.join(root, 'supabase.js'), 'utf8');
-assert.match(client, /당신의 취향이 더 빛나도록/);
+assert.match(client, /벨로르 AI로, 원하는 시계에 더 가까이/);
 assert.match(client, /개인 식별 정보 없이 동의 상태별 방문 숫자만 합산/);
 assert.match(client, /필수 기능은 동일하게 이용할 수 있습니다/);
 assert.match(client, /data-consent="options"/);
 assert.match(client, /data-consent="essential"/);
 assert.match(client, /sendConsentAggregate/);
 assert.match(client, /aggregate_only:\s*true/);
+assert.match(client, /\{ analytics: 'pending', ads: 'pending', policy_version: current \}/,
+  'optional analytics and ads remain off while the compact first-visit choice is pending');
+assert.match(client, /else showConsent\(false\)/,
+  'the compact first-visit choice is shown until a choice is stored');
+assert.match(client, /data-consent="all">허용</);
+assert.match(client, /data-consent="essential">필수</);
+assert.match(client, /class="analytics-consent-more" data-consent="options">상세 설정</);
+assert.match(client, /openConsentSettings: function \(\) \{ showConsent\(true\); \}/,
+  'privacy settings still allow an explicit opt-in later');
 assert.match(backend, /analytics_consent_dashboard_v1/);
 
 const confirm = fs.readFileSync(path.join(root, 'supabase/functions/confirm-payment/index.ts'), 'utf8');
@@ -112,6 +121,7 @@ assertVersionedAsset(html, 'styles.css');
 assertVersionedAsset(html, 'script.js');
 assert.match(html, /접속 IP 원문은 저장하지 않고/);
 assert.match(html, /동의·비동의 및 회원·비회원 구분별 일별 방문 횟수/);
+assert.match(html, /첫 방문에는 선택 분석과 광고 측정을 기본 비활성화합니다/);
 assert.match(dashboard, /conic-gradient/);
 assert.match(dashboard, /저장된 유입 키워드/);
 assert.match(dashboard, /어디서 와서 구매했나/);

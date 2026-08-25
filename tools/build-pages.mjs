@@ -39,6 +39,9 @@ export const ROOT_RUNTIME_FILES = Object.freeze([
 
 export const APP_RUNTIME_FILES = Object.freeze([
   'app/bootstrap.js',
+  'app/features/analytics-consent/analytics-consent.css',
+  'app/features/checkout/checkout-addresses.css',
+  'app/features/checkout/checkout-addresses.mjs',
   'app/core/listing-display.js',
   'app/core/market-product-url.mjs',
   'app/features/home-banners/home-banner-data.js',

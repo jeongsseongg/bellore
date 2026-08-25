@@ -246,7 +246,7 @@
     var pm = $('#productModal');
     if (pm) pm.hidden = true;
     enableShippingAddress();
-    renderProduct();
+    renderProduct(); document.dispatchEvent(new CustomEvent('bellore:checkout-opened'));
     // 쿠폰 초기화 후 내 쿠폰 로드
     var cSel = $('#coCouponSelect'); if (cSel) cSel.value = '';
     var cCode = $('#coCouponCode'); if (cCode) cCode.value = '';

@@ -70,10 +70,12 @@
     <link rel="stylesheet" href="reference-layout.css?v=20260821-tabbar-safe-area-v1">
     <link rel="stylesheet" href="vendor-reference.css?v=20260731-photo-viewer">
     <link rel="stylesheet" href="mypick.css?v=20260731-mypick-reference-4">
-    <link rel="stylesheet" href="bellore-redesign.css?v=20260824-feat-v2">
-    <link rel="stylesheet" href="app/features/home-banners/home-banners.css?v=20260825-home-route-admin-v7">
+    <link rel="stylesheet" href="bellore-redesign.css?v=20260825-consent-compact-v1">
+    <link rel="stylesheet" href="app/features/home-banners/home-banners.css?v=20260825-home-typography-admin-layout-v8">
     <link rel="stylesheet" href="app/features/home-rows/home-rows.css?v=20260825-home-route-admin-v2">
-    <link rel="stylesheet" href="app/features/home-quicklinks/home-quicklinks.css?v=20260825-home-route-admin-v7">
+    <link rel="stylesheet" href="app/features/home-quicklinks/home-quicklinks.css?v=20260826-home-compose-v1">
+    <link rel="stylesheet" href="app/features/analytics-consent/analytics-consent.css?v=20260826-ai-consent-v1">
+    <link rel="stylesheet" href="app/features/checkout/checkout-addresses.css?v=20260826-checkout-addresses-v1">
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
@@ -199,7 +201,7 @@
             <button type="button" class="header-back" id="headerBack" aria-label="뒤로가기" hidden>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
-            <a href="/" class="logo" data-nav="home" aria-label="BELLORE 홈">
+            <a href="/" class="logo" aria-label="BELLORE 홈">
                 <img class="logo-img" src="assets/logo-bellore.png" alt="BELLORE KOREA">
             </a>
             <form class="header-search" id="headerSearch" role="search">
@@ -212,10 +214,7 @@
             <!-- 알림·장바구니는 마이페이지로 이동(상단에는 검색만 노출) -->
         </div>
         <nav class="cat-bar" id="catBar" aria-label="카테고리">
-            <a href="#cat-update" class="cat-chip" data-nav="cat-update">UPDATE</a>
             <a href="#cat-sale" class="cat-chip" data-nav="cat-sale">TIME SALE</a>
-            <a href="#cat-new" class="cat-chip" data-nav="cat-new">미사용신품</a>
-            <a href="#cat-today" class="cat-chip" data-nav="cat-today">오늘의시계</a>
         </nav>
     </header>
 
@@ -229,8 +228,8 @@
                         <div class="hero-image"></div>
                         <div class="hero-gradient"></div>
                         <div class="container hero-content">
-                            <h1 class="hero-title anim-line" id="heroSloganTitle">최상급의 상태,<br>처음 그대로의 구성</h1>
-                            <p class="hero-eyebrow anim-line" id="heroSloganSub">9점 이상 · 박스와 보증서, 모든 구성품을 갖춘 시계</p>
+                            <h1 class="hero-title anim-line" id="heroSloganTitle">검수가 끝난,<br>미사용급 풀세트</h1>
+                            <p class="hero-eyebrow anim-line" id="heroSloganSub">9점 이상 모든 구성품을 갖춘 시계</p>
                         </div>
                     </a>
                 </div>
@@ -1755,7 +1754,7 @@
           <p>이용자는 언제든지 자신의 개인정보 열람·정정·삭제·처리정지를 요청할 수 있으며, 회사는 관련 법령에 따라 지체 없이 조치합니다.</p>
           <h4>5-1. 선택적 활동·유입 분석</h4>
           <p>이용자가 선택 동의한 경우에만 임의로 생성한 익명 방문자 ID, 30분 비활동 기준 세션 ID, 회원 여부(회원은 내부 회원 식별값), 화면·승인된 버튼·전화 링크 클릭, 상품 조회, 구매 전환, UTM 캠페인 값, 광고 클릭 식별자, 외부 유입 도메인 및 접속 IP의 가명정보를 서비스 개선·부정이용 방지·광고 성과 측정에 이용합니다. 접속 IP 원문은 저장하지 않고 서버에서 비밀키 HMAC 식별값과 마스킹 네트워크(IPv4 /24, IPv6 /56)로 즉시 변환합니다. 이름·연락처·폼 입력값·전체 URL·전화번호 원문은 분석 이벤트에 저장하지 않습니다. Google Ads와 Naver WCS는 광고 성과 측정에 동의한 뒤에만 로드됩니다. 서버 원시 이벤트·가명 IP·광고 클릭 식별자는 90일, 개인을 식별하지 않는 집계 지표는 730일 보관한 뒤 자동 삭제합니다. 동의를 철회하면 이후 수집을 중단하고 브라우저의 분석 식별자와 대기 이벤트를 삭제합니다.</p>
-          <p>선택 동의 여부와 관계없이 서비스 운영 현황을 확인하기 위해 동의·비동의 및 회원·비회원 구분별 일별 방문 횟수를 숫자로만 합산합니다. 비동의 방문에는 사용자 ID, IP 주소·가명 IP, 세션 ID, 방문 화면, 상품 조회나 클릭 행동을 저장하지 않으며 개인별 기록으로 복원할 수 없습니다.</p>
+          <p>첫 방문에는 선택 분석과 광고 측정을 기본 비활성화합니다. 서비스 운영 현황을 확인하기 위해 동의·비동의 및 회원·비회원 구분별 일별 방문 횟수만 숫자로 합산합니다. 비동의 방문에는 사용자 ID, IP 주소·가명 IP, 세션 ID, 방문 화면, 상품 조회나 클릭 행동을 저장하지 않으며 개인별 기록으로 복원할 수 없습니다.</p>
           <p><button type="button" class="co-inline-link" data-analytics-settings>활동·광고 분석 설정 변경</button></p>
           <h4>6. 개인정보의 안전성 확보 조치</h4>
           <p>회사는 비밀번호 암호화, 접근권한 관리, 전송구간 암호화(SSL) 등 개인정보 보호를 위한 기술적·관리적 조치를 시행합니다.</p>
@@ -1819,7 +1818,7 @@
       </div>
     </div>
 
-    <script type="module" src="app/bootstrap.js?v=20260825-home-route-admin-v7"></script>
+    <script type="module" src="app/bootstrap.js?v=20260826-search-checkout-address-v1"></script>
 
     <!-- PWA 설치 모달 -->
     <div id="pwaInstallModal" hidden aria-modal="true" role="dialog">
@@ -2560,7 +2559,7 @@
                 </div>
                 <div class="co-field">
                     <label>연락처</label>
-                    <input type="tel" id="coPhone" placeholder="010-0000-0000">
+                    <input type="tel" id="coPhone" placeholder="010-0000-0000" inputmode="numeric" autocomplete="tel">
                 </div>
                 <div class="co-field">
                     <label>이메일</label>
@@ -2570,14 +2569,17 @@
 
             <!-- 배송지 (전액 결제 시 노출) -->
             <section class="co-sec" id="coShipSec" hidden>
-                <h3 class="co-sec-title">배송지</h3>
+                <div class="co-section-heading"><h3 class="co-sec-title">배송지</h3><button type="button" class="co-text-button" id="coManageAddresses">배송지 관리</button></div>
+                <label class="co-same-buyer"><input type="checkbox" id="coSameBuyer"><span>구매자 정보와 동일</span></label>
+                <div class="co-address-book" id="coAddressBook" hidden><div class="co-address-book-head"><strong>내 배송지 <span>(최대 10개)</span></strong><button type="button" class="co-text-button" id="coNewAddress">새 배송지</button></div><div class="co-address-list" id="coAddressList"></div></div>
+                <div class="co-field"><label>배송지 이름</label><input type="text" id="coAddressLabel" placeholder="예) 집, 회사" maxlength="30"><input type="hidden" id="coAddressEditId"></div>
                 <div class="co-field">
                     <label>받는 분</label>
                     <input type="text" id="coShipName" placeholder="수령인 이름">
                 </div>
                 <div class="co-field">
                     <label>받는 분 연락처</label>
-                    <input type="tel" id="coShipPhone" placeholder="010-0000-0000">
+                    <input type="tel" id="coShipPhone" placeholder="010-0000-0000" inputmode="numeric" autocomplete="tel">
                 </div>
                 <div class="co-field">
                     <label>주소</label>
@@ -2588,6 +2590,7 @@
                     <input type="text" id="coAddr1" placeholder="기본 주소" readonly>
                     <input type="text" id="coAddr2" placeholder="상세 주소 (동·호수 등)">
                 </div>
+                <div class="co-address-save-row"><label class="co-default-check"><input type="checkbox" id="coAddressDefault"><span>기본 배송지로 설정</span></label><button type="button" class="co-address-save" id="coSaveAddress">배송지 저장</button></div><p class="co-address-message" id="coAddressMessage" hidden></p>
                 <div class="co-field">
                     <label>배송 요청사항</label>
                     <input type="text" id="coShipReq" placeholder="예) 부재 시 경비실에 맡겨주세요">
@@ -3199,12 +3202,12 @@
     <script src="ui-dialog.js"></script>
     <script src="supabase-config.js?v=20260814-kg-card-review"></script>
     <script src="analytics-core.js?v=20260810-analytics-v3"></script>
-    <script src="analytics-client.js?v=20260818-consent-aggregate-v1"></script>
+    <script src="analytics-client.js?v=20260826-ai-consent-v1"></script>
     <script src="brands.js"></script>
     <script src="supabase.js?v=20260825-payment-session-v1"></script>
     <script src="bellore-features.js?v=20260821-product-detail-v1"></script>
     <script src="cq-demo.js?v=20260810-bid-notify-fix"></script>
-    <script src="script.js?v=20260825-home-route-admin-v7"></script>
+    <script src="script.js?v=20260826-search-checkout-address-v1"></script>
     <script src="wishlist.js?v=20260824-purl-v2"></script>
     <script src="alerts.js?v=20260820-tabs-alerts-v1"></script>
     <script src="auction.js"></script>
@@ -3213,6 +3216,6 @@
     <script src="ai-advisor-admin.js?v=20260725-ai-log"></script>
     <script src="payments.js?v=20260825-payment-session-v1"></script>
     <script src="naverpay.js?v=20260728-naver-review-fixes-2"></script>
-    <script src="app/legacy/page-runtime.js?v=20260825-home-route-admin-v7"></script>
+    <script src="app/legacy/page-runtime.js?v=20260826-search-checkout-address-v1"></script>
 </body>
 </html>

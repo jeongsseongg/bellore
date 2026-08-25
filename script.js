@@ -5955,7 +5955,7 @@
             var cards = $$('#collection .hcard');
             var hits = 0;
             cards.forEach(function (c) {
-                var hit = cardMatches((c.textContent || '').toLowerCase(), ql);
+                var hit = cardMatches(((c.textContent || '') + ' ' + (window.BELLORE_BRAND_KR ? window.BELLORE_BRAND_KR(c.dataset.brand) : '')).toLowerCase(), ql);
                 c.style.display = hit ? '' : 'none';
                 if (hit) hits++;
             });
@@ -6006,7 +6006,7 @@
         var cards = $$('#panel-ny .col-grid-inner .hcard');
         for (var i = 0; i < cards.length && out.length < (limit || 6); i++) {
             var c = cards[i];
-            if (!cardMatches((c.textContent || '').toLowerCase(), ql)) continue;
+            if (!cardMatches(((c.textContent || '') + ' ' + (window.BELLORE_BRAND_KR ? window.BELLORE_BRAND_KR(c.dataset.brand) : '')).toLowerCase(), ql)) continue;
             var key = (c.dataset.pid || '') + '|' + (c.dataset.model || '');
             if (seen[key]) continue; seen[key] = 1;
             var img = c.querySelector('.hcard-img img');
@@ -6028,7 +6028,7 @@
         if (!ql) return 0;
         var n = 0, seen = {};
         $$('#panel-ny .col-grid-inner .hcard').forEach(function (c) {
-            if (!cardMatches((c.textContent || '').toLowerCase(), ql)) return;
+            if (!cardMatches(((c.textContent || '') + ' ' + (window.BELLORE_BRAND_KR ? window.BELLORE_BRAND_KR(c.dataset.brand) : '')).toLowerCase(), ql)) return;
             var key = (c.dataset.pid || '') + '|' + (c.dataset.model || '');
             if (seen[key]) return; seen[key] = 1; n++;
         });

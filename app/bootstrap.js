@@ -2,22 +2,23 @@ import './vendor/recommendation-engine.js';
 import { initInsightFilter } from './features/insights/insight-filter.js';
 import { initInsightReader } from './features/insights/insight-reader.js';
 import { initLegalModals } from './features/legal/legal-modals.js';
-import { initHeroParallax } from './ui/hero-parallax.js?v=20260825-home-route-admin-v7';
+import { initHeroParallax } from './ui/hero-parallax.js?v=20260825-home-typography-admin-layout-v8';
 import { initRevealEffects } from './ui/reveal-effects.js';
 import { initSiteHeader } from './ui/site-header.js';
 import { initNavigationHistory } from './ui/navigation-history.js';
 import { initWidthPreference } from './ui/width-preference.js';
 import { initHomeBanners } from './features/home-banners/home-banners.js';
-import { initHomeQuicklinks } from './features/home-quicklinks/home-quicklinks.js?v=20260825-home-route-admin-v7';
+import { initHomeQuicklinks } from './features/home-quicklinks/home-quicklinks.js?v=20260826-home-compose-v1';
 import { createHomeMerchandising } from './features/home-merchandising/home-merchandising.js';
 import { initHomeRows } from './features/home-rows/home-rows.js';
 import { initProductDetailRoute, initProductSharing } from './features/product-sharing/product-sharing.mjs';
 import { createListingCatalog } from './services/listings/listing-catalog-service.js';
 import { createPaymentAccessToken } from './services/payments/payment-auth.js';
-import { createLegacyCollection } from './legacy/legacy-collection.js?v=20260825-home-route-admin-v7';
+import { createLegacyCollection } from './legacy/legacy-collection.js?v=20260825-home-typography-admin-layout-v8';
 import { initLegacyHomeMerchandisingGrid } from './legacy/home-merchandising-grid.js';
 import { installLegacyPaymentAuth } from './legacy/payment-auth.js';
 import { installLegacyReveal } from './legacy/legacy-reveal.js';
+import { initCheckoutAddresses } from './features/checkout/checkout-addresses.mjs';
 
 function bootstrap() {
   installLegacyPaymentAuth({
@@ -32,6 +33,7 @@ function bootstrap() {
   initWidthPreference({ document, getStorage: () => window.localStorage });
   initHeroParallax({ document, window });
   initLegalModals({ document, window });
+  initCheckoutAddresses({ document, window, getClient: () => window.sbClient, getUser: () => window.NWBackend?.currentUser?.() });
   initProductSharing({
     document,
     navigator: window.navigator,
