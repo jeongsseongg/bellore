@@ -1,6 +1,6 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('sw.js?v=20260824-home-admin-v1').catch(function (err) {
+                navigator.serviceWorker.register('sw.js?v=20260825-payment-session-v1').catch(function (err) {
                     console.warn('서비스워커 등록 실패:', err);
                 });
             });
