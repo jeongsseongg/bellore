@@ -15,6 +15,8 @@ assert.match(index, /id="homeQuickCategories"/);
 assert.ok(index.indexOf('id="homeQuickCategories"') > index.indexOf('id="heroCarousel"'));
 assert.ok(index.indexOf('id="homeQuickCategories"') < index.indexOf('id="rowSaleBlock"'));
 assert.match(bootstrap, /initHomeQuicklinks\(\{ document, window, collection \}\)/);
+assert.match(bootstrap, /home-quicklinks\.js\?v=20260825-home-search-unified-v5/);
+assert.match(bootstrap, /legacy-collection\.js\?v=20260825-home-search-unified-v5/);
 
 for (const label of ['TIME SALE', '브랜드', '빈티지', '300만원 ↓', '시계판매', '수리\/진단']) {
   assert.match(quicklinks, new RegExp(`label: '${label}'`));
@@ -59,4 +61,4 @@ assert.match(quicklinks, /rail\.addEventListener\('scroll', syncScrollbar, \{ pa
 assert.match(quicklinks, /thumbWidth = Math\.max\(36,/);
 assert.match(css, /\.hq-scrollbar \{ display: block; height: 3px;/);
 
-console.log('home quicklinks checks: 49 passed');
+console.log('home quicklinks checks: 51 passed');
