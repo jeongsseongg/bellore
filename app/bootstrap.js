@@ -10,10 +10,19 @@ import { initHomeBanners } from './features/home-banners/home-banners.js';
 import { initHomeRows } from './features/home-rows/home-rows.js';
 import { initProductDetailRoute, initProductSharing } from './features/product-sharing/product-sharing.mjs';
 import { createListingCatalog } from './services/listings/listing-catalog-service.js';
+import { createPaymentAccessToken } from './services/payments/payment-auth.js';
 import { createLegacyCollection } from './legacy/legacy-collection.js';
+import { installLegacyPaymentAuth } from './legacy/payment-auth.js';
 import { installLegacyReveal } from './legacy/legacy-reveal.js';
 
 function bootstrap() {
+  installLegacyPaymentAuth({
+    window,
+    tokenProvider: createPaymentAccessToken({
+      getAuth: () => window.sbClient?.auth,
+      getAnonKey: () => window.BELLORE_SUPABASE?.anonKey,
+    }),
+  });
   initSiteHeader({ document, window });
   initNavigationHistory({ document, window });
   initWidthPreference({ document, getStorage: () => window.localStorage });
