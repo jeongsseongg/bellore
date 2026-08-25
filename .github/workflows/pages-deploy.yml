@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       static_release_sha:
-        description: '검증된 프론트 전용 릴리스 SHA (비우면 main 전체 배포)'
+        description: 'main을 포함하는 잠금형 운영 릴리스 SHA'
         required: false
         type: string
 
@@ -43,6 +43,7 @@ jobs:
         shell: bash
         env:
           STATIC_RELEASE_SHA: ${{ inputs.static_release_sha }}
+          WORKFLOW_MAIN_SHA: ${{ github.sha }}
         run: |
           if [[ ! "$STATIC_RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
             echo 'static_release_sha must be a full lowercase commit SHA.' >&2
@@ -52,9 +53,13 @@ jobs:
             echo 'Checked-out commit does not match static_release_sha.' >&2
             exit 1
           fi
-          git merge-base --is-ancestor f9885d81269a4a7bf73142d2d08f6e6e07e0692f "$STATIC_RELEASE_SHA"
-          if git merge-base --is-ancestor 69d17952a33bb93043dbdc836a9b6292832a969e "$STATIC_RELEASE_SHA"; then
-            echo 'Static frontend release must not include payment-authority changes.' >&2
+          git fetch --no-tags origin refs/heads/codex/locked-pages-release
+          if [[ "$(git rev-parse FETCH_HEAD)" != "$STATIC_RELEASE_SHA" ]]; then
+            echo 'static_release_sha must equal the locked release branch head.' >&2
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$WORKFLOW_MAIN_SHA" "$STATIC_RELEASE_SHA"; then
+            echo 'Locked release must contain the exact workflow main revision.' >&2
             exit 1
           fi
 
@@ -63,7 +68,6 @@ jobs:
           node-version: '22'
 
       - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
-        if: inputs.static_release_sha == ''
         with:
           deno-version: '2.9.5'
 
@@ -72,7 +76,6 @@ jobs:
         run: node scripts/check.mjs
 
       - name: Supabase Edge locked typecheck
-        if: inputs.static_release_sha == ''
         run: node scripts/check-edge.mjs
 
       - name: Configure GitHub Pages
