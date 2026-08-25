@@ -298,7 +298,7 @@
           '<label><span>사이즈 (mm · 선택 — 필터검색에 사용)</span><input name="size_mm" type="number" inputmode="numeric" min="15" max="60" placeholder="예: 40" value="' + esc(item && item.size_mm ? item.size_mm : '') + '"></label>' +
           '<label><span>다이얼 컬러 (선택 — 필터검색에 사용)</span><select name="dial_color">' + dialColorOptions(item ? item.dial_color : '') + '</select></label>' +
           '<label><span>소재 (선택 — 필터검색에 사용)</span><select name="material">' + materialOptions(item ? item.material : '') + '</select></label>' +
-          '<label><span>구성품 · 등급</span><input name="set_grade" placeholder="예: 시계 상자 · 책자 · 여분줄 · A급" value="' + esc(item ? item.set_grade : '') + '"></label>' +
+          '<label><span>구성품</span><input name="set_grade" placeholder="예: 시계 상자 · 보증서 · 여분줄" value="' + esc(item ? item.set_grade : '') + '"></label>' +
           '<label><span>무브먼트</span><input name="movement" placeholder="정보가 없으면 비워두세요" value="' + esc(item ? item.movement : '') + '"></label>' +
           '<label><span>케이스</span><input name="case_spec" placeholder="정보가 없으면 비워두세요" value="' + esc(item ? item.case_spec : '') + '"></label>' +
           '<label><span>밴드</span><input name="band_spec" placeholder="정보가 없으면 비워두세요" value="' + esc(item ? item.band_spec : '') + '"></label>' +

@@ -86,7 +86,7 @@
 .hq-settings-sheet footer .is-primary { background: #17352c; color: #fff; }
 body.hq-settings-open { overflow: hidden; }
 
-/* 원본은 자르지 않고 배너 영역의 세로 높이만 기존 1893:831 대비 1.2배 늘린다. */
+/* 배너 틀과 원본을 1893:831로 일치시켜 잘림과 레터박스를 모두 없앤다. */
 .page-home .hero-carousel {
   width: 100%;
   max-width: none;
@@ -98,8 +98,8 @@ body.hq-settings-open { overflow: hidden; }
 }
 .page-home .hero-carousel.has-db { padding-top: 0; }
 .page-home { scroll-margin-top: 120px; }
-.page-home .hero-slide-db { height: auto; min-height: 0; max-height: none; aspect-ratio: 3155 / 1662; }
-.page-home .hero-slide.hero-default { min-height: 0; aspect-ratio: 3155 / 1662; padding: 0; box-sizing: border-box; color: #fff; text-decoration: none; }
+.page-home .hero-slide-db { height: auto; min-height: 0; max-height: none; aspect-ratio: 1893 / 831; }
+.page-home .hero-slide.hero-default { min-height: 0; aspect-ratio: 1893 / 831; padding: 0; box-sizing: border-box; color: #fff; text-decoration: none; }
 .page-home .hero-default .hero-image { inset: 0; background-color: #06120e; background-image: url('../../../assets/home-banner-1.png'); background-position: center; background-size: contain; background-repeat: no-repeat; filter: none; animation: none; will-change: auto; transform: none; }
 .page-home .hero-default .hero-gradient { background: linear-gradient(90deg, rgba(0,0,0,.68) 0%, rgba(0,0,0,.38) 37%, rgba(0,0,0,.08) 57%, rgba(0,0,0,0) 70%); }
 .page-home .hero-default .hero-content { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; width: 100%; max-width: none; height: 100%; margin: 0; box-sizing: border-box; text-align: left; padding: 0 0 0 4.6cqw; transform: none; }

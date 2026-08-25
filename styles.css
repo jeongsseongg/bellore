@@ -3775,6 +3775,7 @@ body.pp-lb-open { overflow: hidden; }
     /* 1줄·2줄 카드 높이를 항상 동일하게(2줄분 고정) → 줄바꿈으로 규격 깨지는 문제 방지 */
     min-height: calc(16px * 1.25 * 2);
 }
+.hcard-ref,
 .hcard-pack {
     font-size: 12px;
     font-weight: 600;

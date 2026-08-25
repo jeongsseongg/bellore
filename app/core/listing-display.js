@@ -9,6 +9,61 @@ export function discountRate(listing) {
   return Math.round((1 - listing.price / listing.listPrice) * 100);
 }
 
+function known(value) {
+  const text = String(value ?? '').trim().replace(/\s+/g, ' ');
+  return text && text !== '정보없음' ? text : '';
+}
+
+function escapePattern(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export function movementText(value) {
+  const raw = known(value);
+  if (!raw) return '';
+  if (/^오토$|오토매틱|자동/.test(raw)) return '오토매틱';
+  if (/쿼츠/.test(raw)) return '쿼츠';
+  if (/수동/.test(raw)) return '수동';
+  if (/스프링/.test(raw)) return '스프링 드라이브';
+  return raw;
+}
+
+/* 확정된 카드 위계: 브랜드 / 모델+사이즈 / Ref. / 핵심 특징+무브먼트. */
+export function listingPresentation(listing) {
+  const size = known(listing.sizeMm ?? listing.size_mm).replace(/mm$/i, '');
+  const reference = known(listing.referenceNumber ?? listing.reference_no ?? listing.ref_id ?? listing.ref);
+  let model = known(listing.model ?? listing.description).replace(/^\[?중고\]?\s*/i, '');
+  const brand = known(listing.brand);
+  if (brand) model = model.replace(new RegExp(`^${escapePattern(brand)}\\s+`, 'i'), '');
+
+  let feature = '';
+  if (reference) {
+    const index = model.toLowerCase().indexOf(reference.toLowerCase());
+    if (index >= 0) {
+      feature = model.slice(index + reference.length).trim();
+      model = model.slice(0, index).trim();
+    }
+  }
+  if (size) {
+    const sizePattern = new RegExp(`(^|\\s)${escapePattern(size)}(?:\\s*(?:mm|미리))?(?=$|\\s)`, 'ig');
+    model = model.replace(sizePattern, ' ').replace(/\s+/g, ' ').trim();
+    model = model.replace(new RegExp(`${escapePattern(size)}(?:mm|미리)?$`, 'i'), '').trim();
+  }
+  model = model.replace(/\s+/g, ' ').trim() || '모델 정보없음';
+  feature = feature.replace(/소재\s*기능|정보없음/g, '').replace(/\s+/g, ' ').trim();
+  const move = movementText(listing.movement);
+  return {
+    model,
+    size,
+    modelSize: [model, size].filter(Boolean).join(' '),
+    reference,
+    referenceText: reference ? `Ref. ${reference}` : '',
+    feature,
+    movement: move,
+    featureMovement: [feature, move].filter(Boolean).join(' · '),
+  };
+}
+
 /* 카드 아래 한 줄: 상품번호 · 사이즈 · 구성품 */
 export function specText(listing) {
   const parts = [];

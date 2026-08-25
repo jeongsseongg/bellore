@@ -48,7 +48,7 @@ assert.match(index, /전체 <b id="catTotalCount">0<\/b>개/);
 assert.match(index, /id="catFilteredCount" hidden>현재 <b id="catCount">0<\/b>개/);
 assert.match(css, /grid-template-columns: repeat\(6,/);
 assert.match(css, /border-radius: 50%/);
-assert.match(css, /aspect-ratio: 3155 \/ 1662/);
+assert.match(css, /aspect-ratio: 1893 \/ 831/);
 assert.match(css, /background-size: contain/);
 assert.match(css, /container-type: inline-size/);
 assert.doesNotMatch(css, /\.page-home \.hero-default \.hero-image \{[^}]*background-size: cover/);

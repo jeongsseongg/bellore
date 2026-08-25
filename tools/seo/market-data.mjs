@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { listingPresentation } from '../../app/core/listing-display.js';
 import {
   DEFAULT_MIN_PRODUCTS,
   SITE_ORIGIN,
@@ -97,7 +98,6 @@ export function normalizeListing(row) {
   const slug = normalizeProductNumber(productNumber);
   const brand = optionalText(row.title);
   const model = optionalText(row.description);
-  const name = [brand, model].filter(Boolean).join(' ') || productNumber;
   const price = positiveAmount(row.price, `${productNumber} price`);
   let salePrice = null;
   if (row.sale_price !== null && row.sale_price !== undefined && row.sale_price !== '') {
@@ -114,7 +114,7 @@ export function normalizeListing(row) {
     || notes.some((line) => /빈티지/.test(line));
   const canonicalPath = publicMarketPath(row);
 
-  return {
+  const product = {
     id,
     productNumber,
     slug,
@@ -123,7 +123,7 @@ export function normalizeListing(row) {
     appUrl: `${SITE_ORIGIN}/#p=${encodeURIComponent(id)}`,
     brand,
     model,
-    name,
+    name: '',
     referenceNumber: optionalText(row.reference_no),
     sizeMm: row.size_mm === null || row.size_mm === undefined ? '' : optionalText(row.size_mm),
     stamping: optionalText(row.stamping),
@@ -162,6 +162,14 @@ export function normalizeListing(row) {
     publishedAt: validDate(row.sale_started_at || row.created_at, `${productNumber} 등록일`),
     modifiedAt: validDate(row.updated_at || row.created_at, `${productNumber} 수정일`),
   };
+  product.presentation = listingPresentation(product);
+  product.name = [
+    product.brand,
+    product.presentation.modelSize,
+    product.presentation.reference,
+    product.presentation.feature,
+  ].filter(Boolean).join(' ') || productNumber;
+  return product;
 }
 
 export function prepareMarketListings(rows, options = {}) {
