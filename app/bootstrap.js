@@ -19,9 +19,11 @@ import { initLegacyHomeMerchandisingGrid } from './legacy/home-merchandising-gri
 import { installLegacyPaymentAuth } from './legacy/payment-auth.js';
 import { installLegacyReveal } from './legacy/legacy-reveal.js';
 import { installCustomerFeedback } from './legacy/customer-feedback.js';
+import { installLegacyCheckoutCoupon } from './legacy/checkout-coupon.js';
 
 function bootstrap() {
   installCustomerFeedback({ windowObject: window, logger: window.console });
+  installLegacyCheckoutCoupon({ windowObject: window, documentObject: document });
   installLegacyPaymentAuth({
     window,
     tokenProvider: createPaymentAccessToken({

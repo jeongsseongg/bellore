@@ -149,6 +149,7 @@
     for (var i = 0; i < myCoupons.length; i++) if (myCoupons[i].id === sel.value) return myCoupons[i];
     return null;
   }
+  function couponUi() { return window.BELLORE_CHECKOUT_COUPON_UI; }
   function currentDiscount(base) {
     var uc = getSelectedCoupon();
     if (!uc || !window.NWBackend || !window.NWBackend.couponDiscount) return 0;
@@ -157,10 +158,6 @@
   function baseAmount() {
     if (!product) return 0;
     return calcFull(product.price);
-  }
-  function currentAmount() {
-    var b = baseAmount();
-    return Math.max(0, b - currentDiscount(b));
   }
   // 구매결제에 쓸 수 있는 내 쿠폰을 셀렉트에 채운다
   function loadCoupons() {
@@ -198,6 +195,7 @@
   }
 
   function updateAmount() {
+    var ui = couponUi(); if (ui) ui.sync();
     var b = baseAmount();
     var disc = currentDiscount(b);
     var amt = Math.max(0, b - disc);
@@ -332,7 +330,7 @@
     var base = baseAmount();
     var discount = uc ? currentDiscount(base) : 0;
     var amount = Math.max(0, base - discount);
-    if (amount < 100) { alert('쿠폰 적용 후 결제금액은 100원 이상이어야 합니다. 쿠폰을 변경하거나 해제해 주세요.'); return; }
+    if (amount < 100) { alert(uc ? '선택한 쿠폰을 적용하면 결제금액이 100원 미만입니다. 쿠폰을 해제하거나 다른 쿠폰을 선택해 주세요.' : '결제금액은 100원 이상이어야 합니다. 상품 가격을 확인해 주세요.'); return; }
     var orderName = (product.brand ? product.brand + ' ' : '') + (product.model || '상품');
 
     var payBtn = $('#coPayBtn');
@@ -497,7 +495,9 @@
 
     // 쿠폰 선택 변경 → 금액 재계산
     var cSel = $('#coCouponSelect');
-    if (cSel) cSel.addEventListener('change', updateAmount);
+    if (cSel) cSel.addEventListener('change', function () { setCouponMsg('', true); updateAmount(); });
+    var cClear = $('#coCouponClear');
+    if (cClear) cClear.addEventListener('click', function () { var ui = couponUi(); if (ui) ui.clear(updateAmount); });
 
     // 쿠폰 코드 등록
     var cApply = $('#coCouponApply');

@@ -46,6 +46,17 @@ const CONTEXT_COPY = Object.freeze({
   }),
 });
 
+const PAYMENT_START_CODE_COPY = Object.freeze({
+  listing_reserved: '이 상품은 다른 결제 진행으로 잠시 예약되어 있습니다. 이전 결제를 취소하셨다면 최대 15분 후 다시 시도해 주세요.',
+  listing_unavailable: '현재 구매할 수 없는 상품입니다. 상품 상태를 다시 확인해 주세요.',
+  listing_not_found: '상품 정보를 찾지 못했습니다. 화면을 새로고침한 뒤 다시 시도해 주세요.',
+  coupon_invalid: '선택한 쿠폰을 사용할 수 없습니다. 쿠폰을 해제하거나 다른 쿠폰을 선택해 주세요.',
+  guest_coupon_not_allowed: '쿠폰은 로그인 후 사용할 수 있습니다. 로그인하거나 쿠폰을 해제해 주세요.',
+  checkout_amount_too_small: '결제금액은 100원 이상이어야 합니다. 쿠폰과 상품 가격을 확인해 주세요.',
+  checkout_rate_limited: '결제 요청이 여러 번 반복되어 잠시 제한되었습니다. 15분 후 다시 시도해 주세요.',
+  listing_price_invalid: '상품 가격을 다시 확인하고 결제를 진행해 주세요.',
+});
+
 function contextName(contextOrOptions) {
   const requested = typeof contextOrOptions === 'string'
     ? contextOrOptions
@@ -57,6 +68,11 @@ function scalarText(value) {
   if (value == null) return '';
   if (typeof value === 'string' || typeof value === 'number') return String(value).trim();
   return '';
+}
+
+function exactErrorCode(value) {
+  if (!value || typeof value !== 'object') return scalarText(value).toLowerCase();
+  return (scalarText(value.code) || scalarText(value.message) || scalarText(value.error)).toLowerCase();
 }
 
 function errorTexts(value) {
@@ -107,6 +123,14 @@ function copyFor(context, classification) {
 
 export function customerFeedback(value, contextOrOptions = 'general') {
   const context = contextName(contextOrOptions);
+  const exactCode = exactErrorCode(value);
+  if (context === 'payment_start' && PAYMENT_START_CODE_COPY[exactCode]) {
+    return Object.freeze({
+      classification: `payment_${exactCode}`,
+      context,
+      message: PAYMENT_START_CODE_COPY[exactCode],
+    });
+  }
   const texts = errorTexts(value);
   const combined = texts.join(' ');
   const classification = classify(combined);

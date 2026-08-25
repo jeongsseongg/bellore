@@ -15,11 +15,11 @@ const [payments, bootstrap, script, quotes, features, auction, dialog, html] = a
 
 const developerCopy = /PG 운영|서버 결제|샌드박스|Supabase|Edge Function|백엔드 연결|permission denied|unauthorized/i;
 
-assert.match(
-  payments,
-  /쿠폰 적용 후 결제금액은 100원 이상이어야 합니다\. 쿠폰을 변경하거나 해제해 주세요\./,
-  '쿠폰 제한은 실제 해결 행동을 안내해야 합니다.',
-);
+assert.match(payments, /선택한 쿠폰을 적용하면 결제금액이 100원 미만입니다\./, '쿠폰 적용 상태를 정확히 안내해야 합니다.');
+assert.match(payments, /결제금액은 100원 이상이어야 합니다\. 상품 가격을 확인해 주세요\./, '쿠폰이 없을 때 쿠폰 문제로 오인시키면 안 됩니다.');
+assert.match(html, /id="coCouponClear"[^>]*hidden[^>]*>쿠폰 해제<\/button>/, '고객이 찾을 수 있는 쿠폰 해제 버튼이 있어야 합니다.');
+assert.match(payments, /ui\.clear\(updateAmount\)/, '쿠폰 해제 버튼이 금액 재계산 동작에 연결되어야 합니다.');
+assert.match(bootstrap, /installLegacyCheckoutCoupon\(\{ windowObject: window, documentObject: document \}\)/, '쿠폰 UI 어댑터는 조립 지점에서 설치되어야 합니다.');
 assert.doesNotMatch(payments, /다른 결제 방식을 선택해 주세요/, '결제수단 변경은 쿠폰 오류의 해결책이 아닙니다.');
 
 const paymentCustomerStrings = [...payments.matchAll(/(['"])([가-힣][\s\S]*?)\1/g)].map((match) => match[2]);

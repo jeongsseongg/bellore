@@ -60,6 +60,29 @@ assert.match(customerMessage('JWT expired', { context: 'general' }), /다시 로
 assert.match(customerMessage('unauthorized', 'auth'), /로그인하지 못했습니다/);
 assert.match(customerMessage('PGRST500', 'identity'), /본인인증을 완료하지 못했습니다/);
 
+const checkoutBusinessCases = [
+  ['listing_reserved', /최대 15분 후/],
+  ['listing_unavailable', /현재 구매할 수 없는 상품/],
+  ['listing_not_found', /상품 정보를 찾지 못했습니다/],
+  ['coupon_invalid', /쿠폰을 해제하거나/],
+  ['guest_coupon_not_allowed', /로그인하거나 쿠폰을 해제/],
+  ['checkout_amount_too_small', /쿠폰과 상품 가격을 확인/],
+  ['checkout_rate_limited', /15분 후/],
+  ['listing_price_invalid', /상품 가격/],
+];
+for (const [code, expectedMessage] of checkoutBusinessCases) {
+  const feedback = customerFeedback({ code, message: code }, 'payment_start');
+  assert.equal(feedback.classification, `payment_${code}`);
+  assert.match(feedback.message, expectedMessage);
+  assert.doesNotMatch(feedback.message, forbiddenTechnicalText);
+  assert(!feedback.message.includes(code), 'customer message leaked checkout code: ' + code);
+}
+assert.equal(
+  customerFeedback({ code: 'listing_reserved' }, 'general').classification,
+  'internal_error',
+  '결제 시작 외 문맥에서 결제 오류 코드를 임의 해석하면 안 됩니다.',
+);
+
 const safeKorean = '쿠폰을 해제하거나 다른 쿠폰을 선택해 주세요.';
 const safeFeedback = customerFeedback(safeKorean, 'payment_start');
 assert.equal(safeFeedback.classification, 'safe_customer_message');
