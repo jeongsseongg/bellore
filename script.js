@@ -5115,17 +5115,18 @@
             else if (window.NWBackend && NWBackend.logPageView) NWBackend.logPageView(path);
         }, 300);
     }
-
+    function routeForPage(target) { if (target === 'home') return '/'; return '/#' + target; }
     function navigate(target) {
         if (!target) return;
         if (target === 'sell') target = 'home';
-        if (location.hash !== '#' + target) {
-            history.pushState({ page: target }, '', '#' + target);
+        var route = routeForPage(target);
+        if (location.pathname + location.search + location.hash !== route) {
+            history.pushState({ page: target }, '', route);
         }
         applyPage(target);
     }
-
     function initRouter() {
+        if (location.hash === '#home') history.replaceState({ page: 'home' }, '', '/');
         var initial = (location.hash || '#home').slice(1) || 'home';
         applyPage(initial);
 
@@ -5143,7 +5144,6 @@
             applyPage(t);
         });
     }
-
     /* ============ 타임세일 카운트다운 (초 단위 실시간) ============ */
     var _countdownTimer = null;
     function initCountdowns() {

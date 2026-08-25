@@ -15,8 +15,8 @@ assert.match(index, /id="homeQuickCategories"/);
 assert.ok(index.indexOf('id="homeQuickCategories"') > index.indexOf('id="heroCarousel"'));
 assert.ok(index.indexOf('id="homeQuickCategories"') < index.indexOf('id="rowSaleBlock"'));
 assert.match(bootstrap, /initHomeQuicklinks\(\{ document, window, collection \}\)/);
-assert.match(bootstrap, /home-quicklinks\.js\?v=20260825-home-search-unified-v5/);
-assert.match(bootstrap, /legacy-collection\.js\?v=20260825-home-search-unified-v5/);
+assert.match(bootstrap, /home-quicklinks\.js\?v=20260825-home-route-admin-v7/);
+assert.match(bootstrap, /legacy-collection\.js\?v=20260825-home-route-admin-v7/);
 
 for (const label of ['TIME SALE', '브랜드', '빈티지', '300만원 ↓', '시계판매', '수리\/진단']) {
   assert.match(quicklinks, new RegExp(`label: '${label}'`));
@@ -34,15 +34,18 @@ for (const image of ['time-sale.png', 'brand-search.png', 'vintage.png', 'under-
 assert.match(quicklinks, /CONTENT_KEY = 'home_quick_categories'/);
 assert.match(quicklinks, /backend\.saveSiteContent\(CONTENT_KEY/);
 assert.match(quicklinks, /settingsButton\.hidden = !isAdmin/);
-assert.match(quicklinks, /collection\.filterByPrice\(null, 3000000\)/);
+assert.match(quicklinks, /collection\.filter\(\{ maxInclusive: 3000000 \}\)/);
 assert.match(quicklinks, /collection\.filter\(\{ vintage: true \}\)/);
-assert.match(quicklinks, /collection\.open\(\)/);
+assert.match(quicklinks, /action === 'search'\) return collection\.filter\(\{\}\)/);
 assert.match(quicklinks, /collection\.filter\(\{ saleOnly: true \}\)/);
 assert.doesNotMatch(quicklinks, /getElementById\('searchInput'\)/);
 assert.doesNotMatch(quicklinks, /navigate\(doc, win, 'cat-sale'\)/);
 assert.match(collection, /open\(\) \{[\s\S]*openCollectionPage\(\);[\s\S]*return true;/);
 assert.match(collection, /querySelector\('\.tab-item\[data-nav="collection"\]'\) \|\| doc\.querySelector\('\[data-nav="collection"\]'\)/);
 assert.match(pageRuntime, /homeRule\.saleOnly && c\.dataset\.saleactive !== '1'/);
+assert.match(pageRuntime, /homeRule\.maxInclusive != null/);
+assert.match(index, /전체 <b id="catTotalCount">0<\/b>개/);
+assert.match(index, /id="catFilteredCount" hidden>현재 <b id="catCount">0<\/b>개/);
 assert.match(css, /grid-template-columns: repeat\(6,/);
 assert.match(css, /border-radius: 50%/);
 assert.match(css, /aspect-ratio: 3155 \/ 1662/);
@@ -61,4 +64,4 @@ assert.match(quicklinks, /rail\.addEventListener\('scroll', syncScrollbar, \{ pa
 assert.match(quicklinks, /thumbWidth = Math\.max\(36,/);
 assert.match(css, /\.hq-scrollbar \{ display: block; height: 3px;/);
 
-console.log('home quicklinks checks: 51 passed');
+console.log('home quicklinks checks: 54 passed');

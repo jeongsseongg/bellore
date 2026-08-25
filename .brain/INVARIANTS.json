@@ -1,0 +1,37 @@
+{
+  "invariants": [
+    {
+      "id": "home-is-root-url",
+      "files": ["index.html"],
+      "must_contain": [
+        "href=\"/\" class=\"logo\" data-nav=\"home\"",
+        "href=\"/\" class=\"footer-logo footer-logo-large\" data-nav=\"home\""
+      ],
+      "must_not_contain": ["href=\"#home\""],
+      "why": "홈의 정본 주소는 /이며 #home을 사용하지 않는다."
+    },
+    {
+      "id": "spa-navigation-never-stays-under-market",
+      "files": ["script.js"],
+      "must_contain": ["if (target === 'home') return '/';"],
+      "must_not_contain": ["history.pushState({ page: target }, '', '#' + target);"],
+      "why": "개별 상품 경로에서 홈이나 앱 화면으로 이동할 때 /market/.../#... 주소를 만들지 않는다."
+    },
+    {
+      "id": "legacy-product-route-restores-root-home",
+      "files": ["app/features/product-sharing/product-sharing.mjs"],
+      "must_contain": ["win.history.replaceState(win.history.state, '', '/');"],
+      "must_not_contain": ["'/#home'"],
+      "why": "레거시 상품 주소를 복원할 때 홈을 /로 정규화한다."
+    },
+    {
+      "id": "home-route-regression-test",
+      "files": ["scripts/test-home-route.js"],
+      "must_contain": [
+        "home is the root URL without #home",
+        "market paths never receive an app hash"
+      ],
+      "why": "홈 정본 URL과 개별 페이지 이탈 규칙을 자동 테스트로 고정한다."
+    }
+  ]
+}

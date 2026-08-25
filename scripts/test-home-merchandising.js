@@ -38,6 +38,7 @@ const catalog = Array.from({ length: 16 }, (_, index) => listing(index + 1, inde
 const feature = createHomeMerchandising({ window: { BelloreRecommendationEngine: engine } });
 const first = feature.update(catalog);
 const second = feature.update(catalog);
+const manual = feature.update(catalog, { weeklySpecialIds: ['watch-16', 'watch-2'] });
 
 assert.equal(first.weeklySpecial.audit.algorithm_version, 'bellore-reco-v2.0.0');
 assert.equal(first.recommended.audit.algorithm_version, 'bellore-reco-v2.0.0');
@@ -52,6 +53,13 @@ assert.equal(
   'weekly special and recommended listings must not overlap'
 );
 assert.deepEqual(first.recommended.items.map((item) => item.id), second.recommended.items.map((item) => item.id));
+assert.deepEqual(manual.weeklySpecial.items.slice(0, 2).map((item) => item.id), ['watch-16', 'watch-2']);
+assert.equal(manual.weeklySpecial.audit.manual_selected_count, 2);
+assert.equal(
+  manual.recommended.items.some((item) => ['watch-16', 'watch-2'].includes(item.id)),
+  false,
+  'manually selected weekly products must stay out of recommendations'
+);
 
 const noSale = feature.update(catalog.map((item) => ({ ...item, saleActive: false, listPrice: item.price })));
 assert.equal(noSale.weeklySpecial.items.length, 8);

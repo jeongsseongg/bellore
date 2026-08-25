@@ -1,6 +1,6 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('sw.js?v=20260825-home-search-unified-v5').catch(function (err) {
+                navigator.serviceWorker.register('sw.js?v=20260825-home-route-admin-v7').catch(function (err) {
                     console.warn('서비스워커 등록 실패:', err);
                 });
             });
@@ -10,7 +10,7 @@
         (function () {
             var grid = document.querySelector('#panel-ny .col-grid-inner');
             if (!grid) return;
-            var countEl = document.getElementById('catCount');
+            var countEl = document.getElementById('catCount'), totalCountEl = document.getElementById('catTotalCount'), filteredCountEl = document.getElementById('catFilteredCount');
             var brands = document.querySelectorAll('#collection .cat-brand');
             var catModels = document.getElementById('catModels');
             function esc2(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
@@ -60,7 +60,7 @@
                 if (cf.sizeMin != null && !(sz >= cf.sizeMin)) return false;
                 if (cf.sizeMax != null && !(sz > 0 && sz <= cf.sizeMax)) return false;
                 if (cf.priceMin != null && !(pr >= cf.priceMin)) return false;
-                if (cf.priceMax != null && !(pr > 0 && pr <= cf.priceMax)) return false; if (homeRule && homeRule.maxExclusive != null && !(pr > 0 && pr < homeRule.maxExclusive)) return false;
+                if (cf.priceMax != null && !(pr > 0 && pr <= cf.priceMax)) return false; if (homeRule && homeRule.maxExclusive != null && !(pr > 0 && pr < homeRule.maxExclusive)) return false; if (homeRule && homeRule.maxInclusive != null && !(pr > 0 && pr <= homeRule.maxInclusive)) return false;
                 if (cf.yearMin != null && !(yr >= cf.yearMin)) return false;
                 if (cf.yearMax != null && !(yr > 0 && yr <= cf.yearMax)) return false;
                 if (cf.warranty === '1' && !war) return false;
@@ -90,7 +90,7 @@
                 var shown = 0;
                 grid.querySelectorAll('.hcard').forEach(function (c) { var ok = matchCard(c); c.style.display = ok ? '' : 'none'; if (ok) shown++; });
                 sortCards();
-                if (countEl) countEl.textContent = shown;
+                if (countEl) countEl.textContent = shown; if (totalCountEl) totalCountEl.textContent = grid.querySelectorAll('.hcard').length; if (filteredCountEl) filteredCountEl.hidden = shown === grid.querySelectorAll('.hcard').length;
                 if (shown === 0 && (homeRule || fQuery || (fBrand && fBrand !== 'all') || fModel) && window.BELLORE_showCollectionEmpty) {
                     window.BELLORE_showCollectionEmpty(fBrand, fModel || fQuery, '');
                 }

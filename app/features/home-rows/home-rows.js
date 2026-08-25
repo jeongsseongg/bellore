@@ -13,15 +13,15 @@ const FEATURE_MAX = 8;
 const ROWS = [
   {
     mount: 'rowSaleBlock', key: 'home_row_sale', title: '이번 주 특별가',
-    description: '이번 주, 가격이 좋아진 시계', badge: 'rate',
+    description: '이번 주, 가격이 좋아진 시계', badge: 'rate', selectionLimit: FEATURE_MAX,
   },
   {
     mount: 'rowDropBlock', key: 'home_row_drop', title: 'TIME SALE',
-    description: '지금만 만나는 한정 혜택', badge: 'drop',
+    description: '지금만 만나는 한정 혜택', badge: 'drop', selectionLimit: ROW_MAX,
   },
   {
     mount: 'rowNewBlock', key: 'home_row_new', title: '최근 등록된 시계',
-    description: '검수를 마치고 새로 들어온 시계', badge: 'new',
+    description: '검수를 마치고 새로 들어온 시계', badge: 'new', selectionLimit: ROW_MAX,
   },
 ];
 
@@ -43,6 +43,13 @@ function splitRows(listings, weeklySpecial) {
     rowDropBlock: drop.length ? drop : unusedLatest.slice(0, FEATURE_MAX),
     rowNewBlock: latest,
   };
+}
+
+function manualFirst(listings, ids, fallback, limit) {
+  const byId = new Map(listings.map((item) => [String(item.id), item]));
+  const manual = (ids || []).map((id) => byId.get(String(id))).filter(Boolean);
+  const used = new Set(manual.map((item) => String(item.id)));
+  return [...manual, ...fallback.filter((item) => !used.has(String(item.id)))].slice(0, limit);
 }
 
 /* 10억 이상은 자릿수가 길어 좁은 카드에서 줄이 깨진다. */
@@ -111,10 +118,10 @@ function buildRow({ doc, mount, config, collection }) {
     `<h2 class="hrow-title">${config.title}</h2>` +
     `<p class="hrow-description">${config.description}</p>` +
     '</div>' +
-    '<button class="hrow-settings" type="button" hidden aria-label="섹션 설정" title="섹션 설정">' +
+    '<button class="hrow-settings" type="button" hidden aria-label="상품 설정" title="상품 설정">' +
     '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle>' +
     '<path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.09A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.09A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.09A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.12.37.34.7.64.96.3.25.67.39 1.06.4H21v4h-.09c-.39.01-.76.15-1.06.4-.3.26-.52.59-.64.96Z"></path></svg>' +
-    '</button>' +
+    '<span>상품 설정</span></button>' +
     '</div><div class="hrow-rail"></div>' +
     '<div class="hrow-progress"><span></span></div>';
   const rail = mount.querySelector('.hrow-rail');
@@ -197,24 +204,47 @@ export function initHomeRows({ document: doc, window: win, collection }) {
   rows.forEach((row) => Object.assign(row, buildRow({
     doc, mount: row.mount, config: row.config, collection,
   })));
-  initHomeRowAdmin({ document: doc, window: win, rows });
+  let latestListings = [];
+  let latestMerchandising = {};
+  let settingsHandler = () => {};
+
+  function render() {
+    const buckets = splitRows(latestListings, latestMerchandising.weeklySpecial);
+    rows.forEach(({ config, mount, rail }) => {
+      const picks = manualFirst(
+        latestListings, config.selectedIds, buckets[config.mount] || [], config.selectionLimit,
+      );
+      if (!picks.length) { mount.hidden = true; rail.innerHTML = ''; return; }
+      mount.hidden = false;
+      rail.innerHTML = picks.map((item) => cardMarkup(item, config.badge)).join('') +
+        viewAllMarkup(config.title);
+      Array.from(rail.querySelectorAll(':scope > .hrow-card')).forEach((card, index) => {
+        card.querySelector('.hrow-img').style.backgroundImage = `url(${picks[index].image})`;
+      });
+      rail.scrollLeft = 0;
+      if (rail._syncProgress) rail._syncProgress();
+    });
+  }
+
+  initHomeRowAdmin({
+    document: doc,
+    window: win,
+    rows,
+    getListings: () => latestListings,
+    onSettingsChange: () => settingsHandler(),
+  });
 
   return {
     update(listings, merchandising = {}) {
-      const buckets = splitRows(listings, merchandising.weeklySpecial);
-      rows.forEach(({ config, mount, rail }) => {
-        const picks = (buckets[config.mount] || []).slice(0, ROW_MAX);
-        if (!picks.length) { mount.hidden = true; rail.innerHTML = ''; return; }
-        mount.hidden = false;
-        rail.innerHTML = picks.map((item) => cardMarkup(item, config.badge)).join('') +
-          viewAllMarkup(config.title);
-        // 사진은 style 속성 대신 프로퍼티로 — 마크업에 style= 을 늘리지 않는다.
-        Array.from(rail.querySelectorAll(':scope > .hrow-card')).forEach((card, index) => {
-          card.querySelector('.hrow-img').style.backgroundImage = `url(${picks[index].image})`;
-        });
-        rail.scrollLeft = 0;
-        if (rail._syncProgress) rail._syncProgress();
-      });
+      latestListings = listings || [];
+      latestMerchandising = merchandising;
+      render();
+    },
+    weeklySpecialIds() {
+      return rows.find((row) => row.config.key === 'home_row_sale')?.config.selectedIds || [];
+    },
+    onSettingsChange(handler) {
+      settingsHandler = typeof handler === 'function' ? handler : () => {};
     },
   };
 }

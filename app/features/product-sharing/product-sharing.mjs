@@ -77,7 +77,7 @@ export function initProductDetailRoute({
     const state = { ...(win.history.state || {}), ov: 1, [productStateKey]: 1 };
 
     if (/^#p=/.test(win.location.hash || '') && !win.history.state?.[productStateKey]) {
-      win.history.replaceState(win.history.state, '', '/#home');
+      win.history.replaceState(win.history.state, '', '/');
     }
     if (win.history.state?.ov) {
       win.history.replaceState(state, '', target);

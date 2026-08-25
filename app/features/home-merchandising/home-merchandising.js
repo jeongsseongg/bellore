@@ -57,11 +57,24 @@ export function createHomeMerchandising({ window: win }) {
   }
 
   return {
-    update(listings) {
+    update(listings, { weeklySpecialIds = [] } = {}) {
       const current = listings || [];
-      const activeSale = current.filter((item) => item.saleActive);
-      const weeklyPool = activeSale.length ? activeSale : current;
-      const weeklySpecial = rank(weeklyPool, { limit: WEEKLY_LIMIT, surface: 'weekly_special' });
+      const byId = new Map(current.map((item) => [String(item.id), item]));
+      const manualWeekly = weeklySpecialIds
+        .map((id) => byId.get(String(id)))
+        .filter(Boolean)
+        .slice(0, WEEKLY_LIMIT);
+      const manualIds = new Set(manualWeekly.map((item) => String(item.id)));
+      const activeSale = current.filter((item) => item.saleActive && !manualIds.has(String(item.id)));
+      const weeklyPool = (activeSale.length ? activeSale : current)
+        .filter((item) => !manualIds.has(String(item.id)));
+      const rankedWeekly = rank(weeklyPool, {
+        limit: Math.max(0, WEEKLY_LIMIT - manualWeekly.length), surface: 'weekly_special',
+      });
+      const weeklySpecial = {
+        items: [...manualWeekly, ...rankedWeekly.items].slice(0, WEEKLY_LIMIT),
+        audit: { ...rankedWeekly.audit, manual_selected_count: manualWeekly.length },
+      };
       const weeklyIds = new Set(weeklySpecial.items.map((item) => String(item.id)));
       const recommendedPool = current.filter((item) => !weeklyIds.has(String(item.id)));
       return {

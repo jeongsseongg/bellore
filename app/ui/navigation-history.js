@@ -12,7 +12,8 @@ export function initNavigationHistory({ document, window }) {
       document.body.style.overflow = '';
     }
   };
-  const onHome = () => !window.location.hash || window.location.hash === '#home';
+  const onHome = () => window.location.pathname === '/' &&
+    (!window.location.hash || window.location.hash === '#home');
   const update = () => { if (back) back.hidden = onHome() && !visibleOverlay(); };
 
   back?.addEventListener('click', () => {

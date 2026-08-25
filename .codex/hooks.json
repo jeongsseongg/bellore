@@ -1,6 +1,20 @@
 {
   "description": "Project lifecycle hooks.",
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "apply_patch|Edit|Write",
+        "hooks": [
+          {
+            "command": "python3 \"C:/Users/LS/.codex/skills/brain/scripts/check_protected_invariants.py\"",
+            "commandWindows": "python \"C:/Users/LS/.codex/skills/brain/scripts/check_protected_invariants.py\"",
+            "statusMessage": "Checking protected project invariants",
+            "timeout": 30,
+            "type": "command"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
@@ -8,6 +22,31 @@
             "command": "repo_root=\"$(git rev-parse --show-toplevel)\" && bundle=\"$repo_root/tools/truth-guard/bundles/f5a1423e5d2ec2a3688bedd12cf275de9999d5ce6565c887ecacb1f4c21823a6/truth-guard.pyz\" && python3 -B -I -S -c 'import collections,hashlib,sys; h=hashlib.sha256(); stream=open(sys.argv[1],\"rb\"); collections.deque(map(h.update,iter(lambda:stream.read(1048576),b\"\")),maxlen=0); stream.close(); raise SystemExit(0 if h.hexdigest() == sys.argv[2] else 86)' \"$bundle\" f5a1423e5d2ec2a3688bedd12cf275de9999d5ce6565c887ecacb1f4c21823a6 && PYTHONUTF8=1 PYTHONIOENCODING=utf-8 python3 -B -I -S \"$bundle\" hook stop --repo-root \"$repo_root\"",
             "commandWindows": "$env:PYTHONUTF8='1'; $env:PYTHONIOENCODING='utf-8'; $root = (& git rev-parse --show-toplevel); if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; $bundle = Join-Path $root 'tools\\truth-guard\\bundles\\f5a1423e5d2ec2a3688bedd12cf275de9999d5ce6565c887ecacb1f4c21823a6\\truth-guard.pyz'; if (-not (Test-Path -LiteralPath $bundle -PathType Leaf)) { Write-Error 'Truth Guard bundle is missing.'; exit 86 }; $actual = (Get-FileHash -LiteralPath $bundle -Algorithm SHA256).Hash.ToLowerInvariant(); if ($actual -ne 'f5a1423e5d2ec2a3688bedd12cf275de9999d5ce6565c887ecacb1f4c21823a6') { Write-Error 'Truth Guard bundle SHA-256 mismatch before execution.'; exit 86 }; & python -B -I -S $bundle hook stop --repo-root $root; exit $LASTEXITCODE",
             "statusMessage": "Checking Truth Guard",
+            "timeout": 30,
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "command": "python3 \"C:/Users/LS/.codex/skills/brain/scripts/check_protected_invariants.py\" --check-current",
+            "commandWindows": "python \"C:/Users/LS/.codex/skills/brain/scripts/check_protected_invariants.py\" --check-current",
+            "statusMessage": "Verifying protected project invariants",
+            "timeout": 30,
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "command": "python3 \"C:/Users/LS/.codex/skills/brain/scripts/check_protected_invariants.py\" --check-current",
+            "commandWindows": "python \"C:/Users/LS/.codex/skills/brain/scripts/check_protected_invariants.py\" --check-current",
+            "statusMessage": "Verifying protected project invariants",
             "timeout": 30,
             "type": "command"
           }

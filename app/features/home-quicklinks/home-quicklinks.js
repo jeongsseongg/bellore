@@ -54,9 +54,9 @@ function navigate(doc, win, target) {
 
 function runAction({ action, doc, win, collection }) {
   if (action === 'timesale') return collection.filter({ saleOnly: true });
-  if (action === 'search') return collection.open();
+  if (action === 'search') return collection.filter({});
   if (action === 'vintage') return collection.filter({ vintage: true });
-  if (action === 'under300') return collection.filterByPrice(null, 3000000);
+  if (action === 'under300') return collection.filter({ maxInclusive: 3000000 });
   if (action === 'sell') return navigate(doc, win, 'compare');
   if (action === 'repair') return navigate(doc, win, 'repair');
 }

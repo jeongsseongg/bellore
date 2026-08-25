@@ -66,7 +66,7 @@ function eventTarget() {
   const bootstrap = fs.readFileSync(path.join(root, 'app', 'bootstrap.js'), 'utf8');
   const legacyScript = fs.readFileSync(path.join(root, 'script.js'), 'utf8');
   const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
-  assert.match(bootstrap, /import \{ initHeroParallax \} from '\.\/ui\/hero-parallax\.js\?v=20260825-home-search-unified-v5';/, 'bootstrap imports the fixed banner module with an exact release key');
+  assert.match(bootstrap, /import \{ initHeroParallax \} from '\.\/ui\/hero-parallax\.js\?v=20260825-home-route-admin-v7';/, 'bootstrap imports the fixed banner module with an exact release key');
   assert.match(bootstrap, /initHeroParallax\(\{ document, window \}\);/, 'bootstrap initializes the parallax module');
   assert.doesNotMatch(legacyScript, /initParallax/, 'legacy script no longer owns parallax');
   assert.match(serviceWorker, /\.\/app\/ui\/hero-parallax\.js/, 'service worker precaches the parallax module');
