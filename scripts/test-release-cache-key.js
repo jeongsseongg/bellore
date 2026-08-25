@@ -8,7 +8,7 @@ const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const runtime = fs.readFileSync(path.join(root, 'app', 'legacy', 'page-runtime.js'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
-const releaseKey = '20260824-home-admin-v1';
+const releaseKey = '20260825-payment-session-v1';
 
 const urls = {
   script: html.match(/<script src="(script\.js\?v=[^"]+)"/)?.[1],
