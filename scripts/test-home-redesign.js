@@ -25,22 +25,26 @@ order.reduce((previous, id) => {
 }, -1);
 
 assert.equal((data.match(/image: 'assets\/banners\/category-\d{2}\.webp'/g) || []).length, 10, '10 category images');
-assert.match(data, /export const FEATURED_MAX = 10;/);
+assert.match(data, /export const FEATURED_MAX = 30;/);
 assert.doesNotMatch(data, /FEATURED_BADGES/);
 assert.doesNotMatch(banners, /feat-tag|FEATURED_BADGES/);
 assert.doesNotMatch(bannersCss, /\.feat-tag/);
-assert.match(data, /export const HERO_COPY = \[/);
-assert.equal((data.match(/title: \['검수가 끝난,', '미사용급 풀세트'\]/g) || []).length, 1, 'one fixed hero slogan');
-assert.match(data, /9점 이상 모든 구성품을 갖춘 시계/);
-assert.match(data, /export const HERO_FILTER = \{ packsAny: \['풀세트'\], gradeMin: 9 \};/);
-assert.match(banners, /collection\.filter\(HERO_FILTER\)/);
+assert.match(data, /export const HERO_CAMPAIGNS = \[/);
+assert.equal((data.match(/image: 'assets\/banners\/hero-\d{2}\.webp'/g) || []).length, 10, '10 hero campaign images');
+assert.equal((data.match(/action: '[^']+'/g) || []).length, 10, '10 hero campaign actions');
+assert.match(data, /filter: \{ packsAny: \['풀세트'\], gradeMin: 9 \}/);
+assert.match(data, /filter: \{ saleOnly: true, sort: 'discount' \}/);
+assert.match(banners, /collection\.filter\(campaign\.filter\)/);
 assert.match(index, /class="hero-slide hero hero-new hero-default" href="#collection"/);
 assert.doesNotMatch(index, /id="heroManageBtn"/);
 const topCategoryNav = index.match(/<nav class="cat-bar"[\s\S]*?<\/nav>/)?.[0] || '';
 assert.equal((topCategoryNav.match(/class="cat-chip"/g) || []).length, 1, 'top category navigation keeps one item');
 assert.match(topCategoryNav, />TIME SALE<\/a>/);
 assert.doesNotMatch(topCategoryNav, /UPDATE|미사용신품|오늘의시계/);
-assert.match(legacy, /window\.belloreSetBanners = function \(list\) \{ list = \[\];/);
+assert.match(legacy, /window\.BELLORE_HOME_CAMPAIGNS \|\| \[\]/);
+assert.match(legacy, /dataset\.heroAction = b\.action/);
+assert.match(legacy, /hero-campaign-copy/);
+assert.match(bannersCss, /\.hero-campaign-copy \{/);
 for (const text of ['매일을 함께할 클래식', '1,000만원 이상의 명작', '깊이에서도 흔들리지 않는', '500만원 미만 컬렉션', '여성 명품시계', '1,000만원 미만 컬렉션', '예물 시계', '빈티지 컬렉션', '풀세트 컬렉션', '300만원 미만 컬렉션']) {
   assert.ok(data.includes(text), `category copy: ${text}`);
 }
@@ -51,15 +55,18 @@ assert.match(banners, /const ROTATION_MS = 15000;/);
 assert.match(banners, /const FEATURED_AFTER_CARD = 6;/);
 assert.match(banners, /shuffled\(listings\)\.slice\(0, FEATURED_MAX\)/);
 assert.match(banners, /collection\.filter\(banner\.filter\)/);
-assert.equal((data.match(/filter: \{/g) || []).length, 10, 'every category banner has an explicit filter contract');
+const categoryBlock = data.slice(data.indexOf('export const CATEGORY_BANNERS'), data.indexOf('export const BUYIN_COPY'));
+assert.equal((categoryBlock.match(/filter: \{/g) || []).length, 10, 'every category banner has an explicit filter contract');
 for (const rule of ['brandsAny', 'termsAny', 'maxExclusive', "audience: 'women'", 'vintage: true', "packsAny: ['풀세트']"]) assert.ok(data.includes(rule), `banner filter rule: ${rule}`);
 assert.match(legacy, /card\.dataset\.vintage = \/빈티지\//);
 assert.match(listingDisplay, /featuredMetaText/);
 assert.match(listingDisplay, /listing\.pack[\s\S]*'단품'/);
 assert.match(collection, /BELLORE_applyColFilters/);
 assert.doesNotMatch(banners, /bn-num|counterMarkup/);
-assert.equal((bannersCss.match(/aspect-ratio: 430 \/ 125/g) || []).length, 2, 'category and buy-in banners are 1.2x taller');
+assert.match(bannersCss, /\.bn-buy \{[\s\S]*aspect-ratio: 1846 \/ 852/, 'buy-in images keep their source ratio');
 assert.match(bannersCss, /\.feat-card \{[\s\S]*aspect-ratio: 430 \/ 189/, 'featured banner is 1.4x taller');
+assert.equal((banners.match(/assets\/banners\/product-stage-\d{2}\.webp/g) || []).length, 6, '6 product stages');
+assert.equal((banners.match(/assets\/banners\/buyin-\d{2}\.webp/g) || []).length, 6, '6 buy-in backgrounds');
 assert.match(rowsCss, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
 assert.match(rowsCss, /\.hrow-card \{ flex-basis: 180px; \}/);
 assert.match(rowsCss, /\.hrow-block \{ margin: 34px 0; \}/);
@@ -92,6 +99,11 @@ assert.match(merchandising, /surface:\s*'recommended_listings'/);
 for (let i = 1; i <= 10; i += 1) {
   const file = `assets/banners/category-${String(i).padStart(2, '0')}.webp`;
   assert.ok(fs.existsSync(path.join(root, file)), file);
+  assert.ok(fs.existsSync(path.join(root, `assets/banners/hero-${String(i).padStart(2, '0')}.webp`)), `hero image ${i}`);
+}
+for (let i = 1; i <= 6; i += 1) {
+  assert.ok(fs.existsSync(path.join(root, `assets/banners/product-stage-${String(i).padStart(2, '0')}.webp`)), `product stage ${i}`);
+  assert.ok(fs.existsSync(path.join(root, `assets/banners/buyin-${String(i).padStart(2, '0')}.webp`)), `buy-in image ${i}`);
 }
 
-console.log('home redesign checks: 39 passed');
+console.log('home redesign checks: hero, product and buy-in campaigns passed');

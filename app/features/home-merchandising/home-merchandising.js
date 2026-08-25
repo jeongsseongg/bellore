@@ -1,7 +1,7 @@
 /* 홈 진열 순서만 결정한다. 개인 행동·프로필은 읽지 않고 현재 판매 가능 재고를
    Bellore Intent & Trust Rank v2의 비개인화 품질·다양성 규칙으로 정렬한다. */
 
-import { listingIsPurchasable } from '../../core/listing-display.js?v=20260826-payment-recovery-v1';
+import { listingIsPurchasable } from '../../core/listing-display.js?v=20260826-payment-recovery-hero-v1';
 
 const RECOMMENDED_LIMIT = 12;
 const WEEKLY_LIMIT = 8;

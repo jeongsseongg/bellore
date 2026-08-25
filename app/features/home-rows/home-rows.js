@@ -1,7 +1,7 @@
 /* 홈의 시계 줄 — 카테고리별로 시계를 가로로 최대 20점까지 보여준다.
    모바일은 스와이프, PC는 마우스 드래그. 카드를 누르면 그 매물 상세로 간다. */
 
-import { discountRate, dropAmountText, listingAvailability, listingPresentation, priceText } from '../../core/listing-display.js?v=20260826-payment-recovery-v1';
+import { discountRate, dropAmountText, listingAvailability, listingPresentation, priceText } from '../../core/listing-display.js?v=20260826-payment-recovery-hero-v1';
 import { initHomeRowAdmin } from './home-row-admin.js';
 
 const ROW_MAX = 20;

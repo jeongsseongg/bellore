@@ -1,4 +1,4 @@
-import { effectiveListingStatus, listingAvailability } from '../../core/listing-display.js?v=20260826-payment-recovery-v1';
+import { effectiveListingStatus, listingAvailability } from '../../core/listing-display.js?v=20260826-payment-recovery-hero-v1';
 
 function diagnosticCode(value) {
   const raw = value && typeof value === 'object'

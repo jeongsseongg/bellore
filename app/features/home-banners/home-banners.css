@@ -3,6 +3,27 @@
 
 .bn-block { margin: 14px 0; }
 
+/* 캠페인 이미지를 원본 비율로 보이고, 비어 있는 영역에만 반응형 문구를 배치한다. */
+.hero-slide-db.is-campaign {
+  display: block; padding: 0; border: 0; color: inherit; background: #07100d;
+  cursor: pointer; font: inherit; text-align: left; container-type: inline-size;
+}
+.hero-slide-db.is-campaign .hero-slide-bg { background-size: contain; }
+.hero-campaign-copy {
+  position: absolute; z-index: 5; left: 5%; top: 50%; width: 43%; padding: 3.2cqw 3.5cqw;
+  transform: translateY(-50%); border-radius: clamp(8px, 2cqw, 16px); box-sizing: border-box;
+  color: #fff; background: rgba(5, 17, 13, .78); font-family: var(--font-sans, "Wanted Sans", sans-serif);
+  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+}
+.hero-campaign-copy small, .hero-campaign-copy strong, .hero-campaign-copy em { display: block; font-style: normal; word-break: keep-all; }
+.hero-campaign-copy small { margin-bottom: .7cqw; font-size: clamp(9px, 2.1cqw, 14px); font-weight: 720; opacity: .78; }
+.hero-campaign-copy strong { font-size: clamp(17px, 4.4cqw, 30px); font-weight: 850; letter-spacing: -.055em; line-height: 1.08; }
+.hero-campaign-copy em { margin-top: 1.1cqw; font-size: clamp(9px, 2cqw, 13px); font-weight: 650; line-height: 1.25; opacity: .8; }
+.hero-campaign-copy.is-light { color: #17221f; background: rgba(255, 255, 255, .84); }
+.hero-campaign-copy.is-right { left: auto; right: 5%; }
+.hero-campaign-copy.is-top-left { top: 8%; width: 37%; transform: none; }
+.hero-campaign-copy.is-compact { width: 34%; padding: 2.2cqw 2.6cqw; }
+
 /* 공통 오버레이·텍스트 */
 .bn-fx {
   position: absolute; inset: 0; z-index: 1;
@@ -42,18 +63,18 @@
   position: relative; display: block; flex: 0 0 100%; width: 100%; aspect-ratio: 430 / 189;
   overflow: hidden; scroll-snap-align: start; background-color: #1a2925;
   background-size: cover; background-position: center;
-  -webkit-user-select: none; user-select: none;
+  -webkit-user-select: none; user-select: none; container-type: inline-size;
 }
 .feat-card, .feat-card * { -webkit-user-drag: none; }
 .feat-card .bn-fx {
   background: linear-gradient(96deg, rgba(0, 0, 0, .34) 0%, rgba(0, 0, 0, .10) 46%, rgba(0, 0, 0, 0) 72%);
 }
-.feat-card .bn-tx { left: 7.5%; width: 53%; }
+.feat-card .bn-tx { left: 7.5%; width: 47%; }
 
 /* 누끼(투명 배경) 사진은 원단 위에 시계만 얹는다 */
 .feat-ph {
-  position: absolute; right: 2%; top: 50%; z-index: 3; height: 132%; width: auto; aspect-ratio: 1;
-  transform: translateY(-50%) rotate(-7deg);
+  position: absolute; right: 5%; top: 50%; z-index: 3; height: 112%; width: auto; aspect-ratio: 1;
+  transform: translateY(-50%) rotate(-4deg);
   background-size: contain; background-repeat: no-repeat; background-position: center;
   filter: drop-shadow(0 12px 20px rgba(0, 0, 0, .55));
 }
@@ -77,6 +98,10 @@
   line-height: 1.2; text-shadow: 0 2px 10px rgba(0, 0, 0, .5);
   -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
+.feat-ref {
+  display: block; margin-top: 5px; font-size: clamp(10.5px, 2.05vw, 13px); font-weight: 650;
+  color: rgba(255, 255, 255, .72); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .feat-sp {
   display: block; margin-top: 7px; font-size: clamp(11.5px, 2.2vw, 14px); font-weight: 650; letter-spacing: -.02em;
   color: rgba(255, 255, 255, .76); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -89,18 +114,18 @@
 
 /* 매입 안내 배너 */
 .bn-buy {
-  position: relative; display: block; width: 100%; aspect-ratio: 430 / 125; overflow: hidden;
-  background-color: #12211d; background-size: cover; background-position: center;
+  position: relative; display: block; width: 100%; aspect-ratio: 1846 / 852; overflow: hidden;
+  background-color: #12211d; background-size: cover; background-position: center; container-type: inline-size;
 }
-.bn-buy .bn-tx { left: 8%; width: 61%; }
+.bn-buy .bn-fx { background: linear-gradient(90deg, rgba(0, 0, 0, .42), rgba(0, 0, 0, .08) 46%, transparent 64%); }
+.bn-buy .bn-tx { left: 7%; width: 45%; }
 .bn-buy .bn-lead { line-height: 1.2; }
-.bn-buy .bn-t { font-size: clamp(18px, 3.7vw, 24px); line-height: 1.22; }
-.bn-watch {
-  position: absolute; right: 1%; top: 50%; z-index: 2; height: 128%; width: auto; aspect-ratio: 1;
-  transform: translateY(-50%) rotate(-13deg);
-  background-size: contain; background-repeat: no-repeat; background-position: center;
-  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, .5));
-}
+.bn-buy .bn-lead { font-size: clamp(11px, 2.35cqw, 15px); }
+.bn-buy .bn-t { font-size: clamp(17px, 4.25cqw, 28px); line-height: 1.18; }
+.bn-buy.is-dark-copy .bn-fx { background: linear-gradient(90deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .04) 50%, transparent 68%); }
+.bn-buy.is-dark-copy .bn-tx,
+.bn-buy.is-dark-copy .bn-lead { color: #20231f; }
+.bn-buy.is-dark-copy .bn-t { text-shadow: none; }
 
 /* 가격대 배너에서 컬렉션 필터를 대신 눌러줄 때 필터 화면이 깜빡이지 않게 */
 .bn-filter-silent #filterPage { visibility: hidden; }

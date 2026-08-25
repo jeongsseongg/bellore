@@ -1,4 +1,4 @@
-import { listingAvailability } from '../../core/listing-display.js?v=20260826-payment-recovery-v1';
+import { listingAvailability } from '../../core/listing-display.js?v=20260826-payment-recovery-hero-v1';
 
 function safeClass(value) {
   const normalized = String(value || '').toLowerCase();

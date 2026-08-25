@@ -1,7 +1,7 @@
 import {
   effectiveListingStatus,
   listingAvailability,
-} from '../../core/listing-display.js?v=20260826-payment-recovery-v1';
+} from '../../core/listing-display.js?v=20260826-payment-recovery-hero-v1';
 
 const SELECT_FIELDS = 'id,status,reserved_order_id,reserved_until';
 const ID_PATTERN = /^[0-9a-z-]{1,80}$/i;

@@ -1,6 +1,6 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('sw.js?v=20260826-payment-recovery-v1').catch(function (err) {
+                navigator.serviceWorker.register('sw.js?v=20260826-payment-recovery-hero-v1').catch(function (err) {
                     console.warn('서비스워커 등록 실패:', err);
                 });
             });
@@ -83,7 +83,7 @@
                 cards.forEach(function (c) { grid.appendChild(c); });
             }
             function applyFilters(options) {
-                if (options && options.homeCategory) { homeRule = options; fBrand = 'all'; fModel = ''; fQuery = ''; fNew = false; fGrade = ''; cf = { sizeMin: null, sizeMax: null, priceMin: options.min == null ? null : Number(options.min), priceMax: null, conditionMin: options.gradeMin == null ? null : Number(options.gradeMin), yearMin: null, yearMax: null, warranty: '', diamond: '', colors: [], materials: [], grades: [] }; }
+                if (options && options.homeCategory) { homeRule = options; fBrand = 'all'; fModel = ''; fQuery = ''; fNew = false; fGrade = ''; fSort = options.sort || 'latest'; cf = { sizeMin: null, sizeMax: null, priceMin: options.min == null ? null : Number(options.min), priceMax: null, conditionMin: options.gradeMin == null ? null : Number(options.gradeMin), yearMin: null, yearMax: null, warranty: '', diamond: '', colors: [], materials: [], grades: [] }; }
                 if (options && options.homeCategory) brands.forEach(function (button) { button.classList.toggle('active', button.dataset.brand === fBrand); });
                 if (options && options.homeCategory) renderModelChips(fBrand);
                 if (window.BELLORE_hideSearchEmpty) window.BELLORE_hideSearchEmpty();
