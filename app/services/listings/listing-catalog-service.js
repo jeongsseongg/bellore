@@ -23,6 +23,7 @@ export function createListingCatalog({ window: win }) {
       brand: brandLabel(row.brand),
       model: String(row.model || '').replace(/^\s*\[?중고\]?\s*/i, '').trim(),
       referenceNumber: row.reference_number || row.reference_no || '',
+      movement: row.movement || '',
       productNo: row.product_no || '',
       sizeMm: row.size_mm || '',
       pack: row.pack || row.accessories || '',

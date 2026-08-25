@@ -107,13 +107,22 @@
   font-size: 14px; font-weight: 750; text-decoration: none;
 }
 
+.hrow-brand {
+  display: block; min-height: 16px; margin-bottom: 2px; overflow: hidden;
+  color: #77797e; font-size: 12px; font-weight: 650; line-height: 1.35;
+  letter-spacing: .015em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap;
+}
 .hrow-model {
   display: -webkit-box; font-size: 14.5px; font-weight: 650; line-height: 1.4;
-  letter-spacing: -.025em; color: #2a2a2e; min-height: 41px;
+  letter-spacing: -.025em; color: #2a2a2e; min-height: 20px;
   -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
+.hrow-reference {
+  display: block; min-height: 16px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis;
+  color: #8a8c91; font-size: 11.5px; font-weight: 520; line-height: 1.35; white-space: nowrap;
+}
 .hrow-meta {
-  display: block; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  display: block; min-height: 16px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   font-size: 11px; font-weight: 600; line-height: 1.45; letter-spacing: -.02em; color: #99999f;
 }
 .hrow-price {

@@ -3775,6 +3775,7 @@ body.pp-lb-open { overflow: hidden; }
     /* 1줄·2줄 카드 높이를 항상 동일하게(2줄분 고정) → 줄바꿈으로 규격 깨지는 문제 방지 */
     min-height: calc(16px * 1.25 * 2);
 }
+.hcard-ref,
 .hcard-pack {
     font-size: 12px;
     font-weight: 600;
@@ -5914,7 +5915,7 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 /* ===== 공통 다이얼로그(ui-dialog.js): alert/confirm/prompt 대체 ===== */
 .bld-modal[hidden] { display: none; }
 .bld-modal {
-    position: fixed; inset: 0; z-index: 5000;
+    position: fixed; inset: 0; z-index: 2147483647;
     display: flex; align-items: center; justify-content: center;
     padding: 20px;
 }
@@ -5958,7 +5959,7 @@ body.admin-mode .hcard-dynamic .hcard-admin { display: flex; }
 /* 토스트 */
 .bld-toast {
     position: fixed; left: 50%; bottom: 88px; transform: translateX(-50%) translateY(10px);
-    z-index: 3100;
+    z-index: 2147483646;
     background: rgba(20,20,20,.94); color: #fff;
     padding: 12px 18px; border-radius: 24px; font-size: 13.5px;
     max-width: 88%; text-align: center;

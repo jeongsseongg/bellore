@@ -8,7 +8,7 @@ import { initSiteHeader } from './ui/site-header.js';
 import { initNavigationHistory } from './ui/navigation-history.js';
 import { initWidthPreference } from './ui/width-preference.js';
 import { initHomeBanners } from './features/home-banners/home-banners.js';
-import { initHomeQuicklinks } from './features/home-quicklinks/home-quicklinks.js?v=20260826-home-compose-v1';
+import { initHomeQuicklinks } from './features/home-quicklinks/home-quicklinks.js?v=20260826-home-compose-v2';
 import { createHomeMerchandising } from './features/home-merchandising/home-merchandising.js';
 import { initHomeRows } from './features/home-rows/home-rows.js';
 import { initProductDetailRoute, initProductSharing } from './features/product-sharing/product-sharing.mjs';
@@ -19,8 +19,10 @@ import { initLegacyHomeMerchandisingGrid } from './legacy/home-merchandising-gri
 import { installLegacyPaymentAuth } from './legacy/payment-auth.js';
 import { installLegacyReveal } from './legacy/legacy-reveal.js';
 import { initCheckoutAddresses } from './features/checkout/checkout-addresses.mjs';
+import { installCustomerFeedback } from './legacy/customer-feedback.js';
 
 function bootstrap() {
+  installCustomerFeedback({ windowObject: window, logger: window.console });
   installLegacyPaymentAuth({
     window,
     tokenProvider: createPaymentAccessToken({

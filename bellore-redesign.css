@@ -712,10 +712,12 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
 /* 카드 글줄 — 브랜드 · 모델 · 스펙 · 가격 */
 #homeOnSale .hcard-brand,
 #homeOnSale .hcard-model,
+#homeOnSale .hcard-ref,
 #homeOnSale .hcard-pack,
 #homeOnSale .hcard-price,
 .page-collection .col-grid-inner .hcard-brand,
 .page-collection .col-grid-inner .hcard-model,
+.page-collection .col-grid-inner .hcard-ref,
 .page-collection .col-grid-inner .hcard-pack,
 .page-collection .col-grid-inner .hcard-price {
   padding-right: 0 !important;
@@ -752,7 +754,9 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
 }
 
 /* 스펙은 한 줄 고정(넘치면 말줄임) — 두 줄로 밀리면 옆 카드와 가격 줄이 어긋난다 */
+#homeOnSale .hcard-ref,
 #homeOnSale .hcard-pack,
+.page-collection .col-grid-inner .hcard-ref,
 .page-collection .col-grid-inner .hcard-pack {
   min-height: 1.35em;
   margin-top: 2px;

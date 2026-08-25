@@ -198,7 +198,7 @@ async function validateArtifact(site, { expectSeo }) {
   assert(shellBlock, '서비스워커 SHELL_ASSETS를 찾지 못했습니다.');
   const shellAssets = [...shellBlock.matchAll(/['"](\.\/[^'"]+)['"]/g)]
     .map((match) => match[1].split(/[?#]/, 1)[0]);
-  assert.equal(shellAssets.length, 64, '서비스워커 셸 자산 개수가 기준과 다릅니다.');
+  assert.equal(shellAssets.length, 66, '서비스워커 셸 자산 개수가 기준과 다릅니다.');
   assert(shellAssets.includes('./app/features/analytics-consent/analytics-consent.css'),
     '독립 동의 카드 스타일이 서비스워커 셸에 포함되어야 합니다.');
   for (const asset of shellAssets) {

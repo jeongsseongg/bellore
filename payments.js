@@ -36,7 +36,7 @@
   var selectedChannel = null;   // 선택된 결제수단(config.channels 의 한 항목)
 
   function getModal() { return $('#checkoutModal'); }
-
+  function paymentCustomerMessage(value, context, provider) { var f = window.BELLORE_CUSTOMER_FEEDBACK; return f && provider && f.paymentProviderFeedback ? f.paymentProviderFeedback(value) : f && f.message ? f.message(value, context) : context === 'confirmation' || provider ? '결제 결과를 확인하지 못했습니다. 다시 결제하지 말고 고객센터로 문의해 주세요.' : '결제를 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.'; }
   function testPaymentsEnabled() {
     var host = (location.hostname || '').toLowerCase();
     if (host === 'localhost' || host === '127.0.0.1' || host === '[::1]') return true;
@@ -90,7 +90,7 @@
     if (!box) return;
     var chans = availableChannels();
     if (!chans.length) {
-      box.innerHTML = '<p class="co-methods-empty">결제 수단을 준비 중입니다. PG 운영 채널과 서버 결제 검증이 모두 활성화된 후 결제할 수 있습니다.</p>';
+      box.innerHTML = '<p class="co-methods-empty">현재 이용 가능한 결제 수단이 없습니다. 잠시 후 다시 확인해 주세요.</p>';
       selectedChannel = null;
       return;
     }
@@ -314,7 +314,7 @@
       naverBtn.textContent = '네이버페이 연결 중...';
       window.BELLORE_NPAY_START(product).catch(function (error) {
         console.warn('[BELLORE] 네이버페이 주문 시작 실패:', error);
-        alert('네이버페이 샌드박스 승인이 아직 완료되지 않았습니다.');
+        alert('현재 네이버페이를 이용할 수 없습니다. 다른 결제 수단을 선택해 주세요.');
       }).finally(function () {
         naverBtn.disabled = false;
         naverBtn.textContent = '결제하기';
@@ -323,7 +323,7 @@
     }
 
     if (!portoneReady()) {
-      alert('PG 운영 채널 또는 서버 결제 검증이 준비되지 않아 결제를 진행할 수 없습니다.');
+      alert('현재 카드 결제를 준비하지 못했습니다. 새로고침 후에도 같으면 고객센터로 문의해 주세요.');
       renderMethods();
       return;
     }
@@ -332,7 +332,7 @@
     var base = baseAmount();
     var discount = uc ? currentDiscount(base) : 0;
     var amount = Math.max(0, base - discount);
-    if (amount < 100) { alert('쿠폰 할인 후 결제금액이 너무 적습니다. 다른 결제 방식을 선택해 주세요.'); return; }
+    if (amount < 100) { alert('쿠폰 적용 후 결제금액은 100원 이상이어야 합니다. 쿠폰을 변경하거나 해제해 주세요.'); return; }
     var orderName = (product.brand ? product.brand + ' ' : '') + (product.model || '상품');
 
     var payBtn = $('#coPayBtn');
@@ -397,7 +397,7 @@
         payBtn.textContent = '결제하기';
         if (resp && resp.code != null) {
           if (!/CANCEL/i.test(resp.code || '')) {
-            showResult(false, '결제 실패', resp.message || '결제가 취소되었거나 실패했습니다.');
+            showResult(false, '결제 확인 필요', paymentCustomerMessage(resp, 'confirmation', true));
           }
           return;
         }
@@ -413,7 +413,7 @@
       }
       if (e && (e.code === 'PAYMENT_SESSION_EXPIRED' || e.message === 'PAYMENT_SESSION_EXPIRED')) { alert('로그인 정보가 만료되었습니다. 로그아웃 후 다시 로그인한 뒤 결제를 진행해 주세요.'); return; }
       if (e && e.code && !/CANCEL/i.test(e.code)) {
-        alert('결제를 시작할 수 없습니다: ' + (e.message || e.code));
+        alert(paymentCustomerMessage(e, 'payment_start', false));
       }
     });
   }
@@ -421,7 +421,7 @@
   function verifyPayment(paymentId, attribution, listingId, checkoutToken) {
     showResult(true, '결제 승인 처리 중...', '잠시만 기다려 주세요.');
     if (!(backendOn() && window.NWBackend.confirmOrder && PAY.confirmUrl)) {
-      showResult(false, '결제 승인 확인 불가', '서버 결제 검증이 준비되지 않았습니다. 고객센터로 문의해 주세요.');
+      showResult(false, '결제 확인 필요', '결제 결과를 확인할 수 없습니다. 다시 결제하지 말고 고객센터로 문의해 주세요.');
       return;
     }
     var doConfirm = window.NWBackend.confirmOrder({ paymentId: paymentId,
@@ -435,11 +435,11 @@
         showResult(true, '결제가 완료되었습니다',
           '주문번호 ' + (paymentId || '') + '\n마이페이지에서 주문 내역을 확인하실 수 있습니다.');
       } else {
-        showResult(false, '결제 승인 실패',
-          (res && res.error) ? res.error : '결제 검증 중 문제가 발생했습니다. 고객센터로 문의해 주세요.');
+        showResult(false, '결제 확인 필요',
+          paymentCustomerMessage((res && res.error) ? res.error : res, 'confirmation', false));
       }
     }).catch(function () {
-      showResult(false, '결제 승인 오류', '네트워크 오류로 승인을 확인하지 못했습니다.');
+      showResult(false, '결제 확인이 지연되고 있습니다', '인터넷 연결을 확인해 주세요. 다시 결제하지 말고 잠시 후 결제 내역을 확인해 주세요.');
     });
   }
 
@@ -470,7 +470,7 @@
     if (!paymentId) return; // pay=portone 만 있고 결과 없음(취소 등) → 조용히 종료
 
     if (code) {
-      showResult(false, '결제 실패', q.get('message') || '결제가 취소되었거나 실패했습니다.');
+      showResult(false, /CANCEL|FAILURE_TYPE_USER|PAY_PROCESS_CANCEL/i.test(code) ? '결제 취소' : '결제 확인 필요', paymentCustomerMessage({ code: code, message: q.get('message') || '' }, 'confirmation', true));
       return;
     }
     var pending = null;

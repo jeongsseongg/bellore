@@ -92,7 +92,7 @@
 .hq-settings-sheet footer .is-primary { background: #17352c; color: #fff; }
 body.hq-settings-open { overflow: hidden; }
 
-/* 원본은 자르지 않고 배너 영역의 세로 높이만 기존 1893:831 대비 1.2배 늘린다. */
+/* 배너 틀과 원본을 1893:831로 일치시켜 잘림과 레터박스를 모두 없앤다. */
 .page-home .hero-carousel {
   width: 100%;
   max-width: none;

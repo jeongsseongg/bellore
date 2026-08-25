@@ -1,7 +1,7 @@
 /* 홈의 시계 줄 — 카테고리별로 시계를 가로로 최대 20점까지 보여준다.
    모바일은 스와이프, PC는 마우스 드래그. 카드를 누르면 그 매물 상세로 간다. */
 
-import { discountRate, dropAmountText, priceText } from '../../core/listing-display.js';
+import { discountRate, dropAmountText, listingPresentation, priceText } from '../../core/listing-display.js';
 import { initHomeRowAdmin } from './home-row-admin.js';
 
 const ROW_MAX = 20;
@@ -63,18 +63,6 @@ function escapeText(value) {
   })[char]);
 }
 
-/* 상품명 다음 한 줄은 구매 판단에 필요한 브랜드·상태·구성만 짧게 보여준다. */
-function cardDescription(listing) {
-  const condition = String(listing.condition || '')
-    .replace(/^중고\s*/i, '')
-    .replace(/(\d+)\s*\/\s*10/g, '$1점')
-    .trim();
-  const pack = /풀세트/.test(listing.pack) ? '풀세트'
-    : /보증서/.test(listing.pack) ? '보증서 포함'
-      : /박스/.test(listing.pack) ? '박스 포함' : '';
-  return [listing.brand, condition, pack].filter(Boolean).slice(0, 3).join(' · ');
-}
-
 function badgeMarkup(listing, kind) {
   if (kind === 'rate') {
     const rate = discountRate(listing);
@@ -92,11 +80,13 @@ function badgeMarkup(listing, kind) {
    1억대 금액에 할인율까지 붙이면 좁은 화면에서 두 줄로 깨진다. */
 function cardMarkup(listing, kind) {
   const rate = discountRate(listing);
-  const description = cardDescription(listing);
+  const text = listingPresentation(listing);
   return `<a class="hrow-card" href="#collection" draggable="false" data-pid="${listing.id}">` +
     `<span class="hrow-img">${badgeMarkup(listing, kind)}<span class="hrow-shadow"></span></span>` +
-    `<span class="hrow-model">${listing.model}</span>` +
-    (description ? `<span class="hrow-meta">${escapeText(description)}</span>` : '') +
+    `<span class="hrow-brand">${escapeText(listing.brand)}</span>` +
+    `<span class="hrow-model">${escapeText(text.modelSize)}</span>` +
+    (text.referenceText ? `<span class="hrow-reference">${escapeText(text.referenceText)}</span>` : '') +
+    (text.featureMovement ? `<span class="hrow-meta">${escapeText(text.featureMovement)}</span>` : '') +
     `<span class="hrow-price${longPrice(listing.price) ? ' is-long' : ''}">` +
     `${priceText(listing.price)}<i>원</i></span>` +
     (rate > 0 ? `<span class="hrow-old">${priceText(listing.listPrice)}원</span>` : '') +

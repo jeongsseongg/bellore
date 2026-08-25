@@ -8,53 +8,6 @@
    디자인 톤(로그인 모달/업로드 그리드 클래스)을 재사용합니다.
    ============================================================ */
 
-/* ============================================================
-   벨로르 스타일 팝업 — 네이티브 alert/confirm 대체(브라우저 느낌 제거)
-   ============================================================ */
-(function () {
-  'use strict';
-  var mask;
-  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
-  function ensure() {
-    if (mask) return mask;
-    mask = document.createElement('div');
-    mask.className = 'bl-modal-mask'; mask.hidden = true;
-    mask.innerHTML =
-      '<div class="bl-modal" role="dialog" aria-modal="true">' +
-        '<div class="bl-modal-top">' +
-          '<img class="bl-modal-logo" src="assets/logo-bellore.png" alt="BELLORE">' +
-          '<p class="bl-modal-msg"></p>' +
-        '</div>' +
-        '<div class="bl-modal-acts"></div>' +
-      '</div>';
-    document.body.appendChild(mask);
-    mask.addEventListener('click', function (e) { if (e.target === mask) hide(); });
-    return mask;
-  }
-  function hide() { if (!mask) return; mask.classList.remove('show'); setTimeout(function () { if (mask) mask.hidden = true; }, 200); }
-  function show(msg, buttons) {
-    ensure();
-    mask.querySelector('.bl-modal-msg').innerHTML = esc(msg).replace(/\n/g, '<br>');
-    var acts = mask.querySelector('.bl-modal-acts'); acts.innerHTML = '';
-    buttons.forEach(function (b) {
-      var btn = document.createElement('button');
-      btn.className = b.cls || 'bl-ok'; btn.textContent = b.label;
-      btn.addEventListener('click', function () { hide(); if (b.cb) setTimeout(b.cb, 60); });
-      acts.appendChild(btn);
-    });
-    mask.hidden = false;
-    requestAnimationFrame(function () { mask.classList.add('show'); });
-  }
-  window.belloreAlert = function (msg, cb) { show(msg, [{ label: '확인', cls: 'bl-ok', cb: cb }]); };
-  window.belloreConfirm = function (msg, onOk, onCancel) {
-    show(msg, [{ label: '취소', cls: 'bl-cancel', cb: onCancel }, { label: '확인', cls: 'bl-ok', cb: onOk }]);
-  };
-  // 커스텀 버튼 팝업 — buttons: [{label, cls, cb}]
-  window.belloreModal = function (msg, buttons) { show(msg, buttons || [{ label: '확인', cls: 'bl-ok' }]); };
-  // 네이티브 alert를 벨로르 팝업으로 교체(반환값 없는 알림은 안전)
-  try { window.alert = function (m) { window.belloreAlert(m); }; } catch (e) {}
-})();
-
 (function () {
   'use strict';
 
@@ -67,10 +20,7 @@
   }
   var FALLBACK_IMG = 'assets/og-image.png';
   function errMsg(err) {
-    var m = (err && err.message) ? String(err.message) : String(err || '');
-    if (/row-level security|permission denied|not_admin/i.test(m))
-      return '관리자 권한이 없습니다. 이 계정이 admin으로 지정됐는지(아래 SQL) 확인하세요.';
-    return m || '알 수 없는 오류';
+    return window.belloreCustomerMessage(err, 'general');
   }
   function ready(fn) {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
@@ -348,7 +298,7 @@
           '<label><span>사이즈 (mm · 선택 — 필터검색에 사용)</span><input name="size_mm" type="number" inputmode="numeric" min="15" max="60" placeholder="예: 40" value="' + esc(item && item.size_mm ? item.size_mm : '') + '"></label>' +
           '<label><span>다이얼 컬러 (선택 — 필터검색에 사용)</span><select name="dial_color">' + dialColorOptions(item ? item.dial_color : '') + '</select></label>' +
           '<label><span>소재 (선택 — 필터검색에 사용)</span><select name="material">' + materialOptions(item ? item.material : '') + '</select></label>' +
-          '<label><span>구성품 · 등급</span><input name="set_grade" placeholder="예: 시계 상자 · 책자 · 여분줄 · A급" value="' + esc(item ? item.set_grade : '') + '"></label>' +
+          '<label><span>구성품</span><input name="set_grade" placeholder="예: 시계 상자 · 보증서 · 여분줄" value="' + esc(item ? item.set_grade : '') + '"></label>' +
           '<label><span>무브먼트</span><input name="movement" placeholder="정보가 없으면 비워두세요" value="' + esc(item ? item.movement : '') + '"></label>' +
           '<label><span>케이스</span><input name="case_spec" placeholder="정보가 없으면 비워두세요" value="' + esc(item ? item.case_spec : '') + '"></label>' +
           '<label><span>밴드</span><input name="band_spec" placeholder="정보가 없으면 비워두세요" value="' + esc(item ? item.band_spec : '') + '"></label>' +
@@ -1033,9 +983,12 @@
     function notConfiguredMsg(err) {
       var m = (err && err.message) || String(err || '');
       if (/NOT_CONFIGURED|provider|disabled|not enabled|SMS|phone_provider/i.test(m)) {
-        return '문자 인증이 아직 활성화되지 않았습니다.\n(관리자: Supabase에서 전화 인증 + SMS 제공자 설정 필요)';
+        return '현재 문자 인증을 이용할 수 없습니다. 잠시 후 다시 시도해 주세요.';
       }
-      return m;
+      var feedback = window.BELLORE_CUSTOMER_FEEDBACK;
+      return feedback && feedback.message
+        ? feedback.message(err, 'identity')
+        : '인증을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.';
     }
     window.belloreVerifyPhone = function (opts) {
       opts = opts || {};
@@ -1110,7 +1063,7 @@
         var btn = e.target.querySelector('.cms-save'); btn.disabled = true; btn.textContent = '제출 중…';
         B.submitVendorAccount({ holder: fd.get('holder'), bank: fd.get('bank'), account: fd.get('account'), bankbook: bankbook })
           .then(function () { closeModal(acctModal); belloreAlert('계좌 인증을 제출했습니다.\n관리자 승인 후 입찰 기능을 이용할 수 있습니다.'); if (opts.onDone) opts.onDone(); })
-          .catch(function (err) { btn.disabled = false; btn.textContent = '인증 제출'; am.textContent = '제출 실패: ' + ((err && err.message) || err); am.className = 'vf-msg err'; });
+          .catch(function (err) { btn.disabled = false; btn.textContent = '인증 제출'; am.textContent = window.belloreCustomerMessage(err, 'identity'); am.className = 'vf-msg err'; });
       });
       openModal(acctModal);
     };
@@ -1157,7 +1110,7 @@
             } else if (/MISMATCH|일치/i.test(m)) {
               setMsg('사업자번호·개업일·대표자명이 일치하지 않습니다. 다시 확인해주세요.');
             } else {
-              setMsg('인증 실패: ' + m);
+              setMsg(window.belloreCustomerMessage(err, 'identity'));
             }
           });
       });

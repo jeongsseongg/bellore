@@ -163,11 +163,13 @@ await test('product page has unique metadata, Product/Offer/Breadcrumb and every
   const html = renderProductPage(product);
   assert.equal(product.url, 'https://bellore.co.kr/market/tst-n1-1/');
   assert.equal(product.appUrl, 'https://bellore.co.kr/#p=listing-1');
-  assert.match(html, /<title>테스트브랜드 테스트모델 1 TST-N1-1 \| 벨로르<\/title>/);
+  assert.match(html, /<title>테스트브랜드 테스트모델 1 41 TST-N1-1 \| 벨로르<\/title>/);
   assert.match(html, /<link rel="canonical" href="https:\/\/bellore\.co\.kr\/market\/tst-n1-1\/">/);
   assert.match(html, /<meta property="og:url" content="https:\/\/bellore\.co\.kr\/market\/tst-n1-1\/">/);
   assert.match(html, /<a class="cta" href="https:\/\/bellore\.co\.kr\/#p=listing-1">벨로르에서 상품 보기<\/a>/);
   assert.doesNotMatch(html, /화면에 노출하면 안 되는 일반 상품 설명|추가 정보|평가 근거|상품화 처리/);
+  assert.doesNotMatch(html, /소재 · 기능|>케이스<|>밴드</);
+  assert.match(html, />무브먼트<\/dt><dd>오토매틱<\/dd>/);
   const images = [...html.matchAll(/<img\b[^>]*>/g)].map((match) => match[0]);
   assert.equal(images.length, product.photos.length);
   assert(images.every((tag) => /\balt="[^"]+"/.test(tag)));
