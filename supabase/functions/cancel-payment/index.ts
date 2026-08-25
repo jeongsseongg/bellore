@@ -1,12 +1,23 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
 import { hasRefundablePaymentStatus } from "../_shared/order-payment-states.ts";
-import { cancelAndReconcile } from "../_shared/portone-cancellation.ts";
+import {
+  cancelAndReconcile,
+  finalizeKnownProviderCancellation,
+} from "../_shared/portone-cancellation.ts";
+import { lookupPortOnePayment } from "../_shared/payment-recovery.ts";
+import {
+  adminCancellationAction,
+  providerCancelledAmount,
+  providerPaidAmount,
+  providerStatusKind,
+} from "../_shared/payment-recovery-policy.mjs";
 
 const PORTONE_API_SECRET = Deno.env.get("PORTONE_API_SECRET") ?? "";
 const PORTONE_API_BASE = Deno.env.get("PORTONE_API_BASE") ?? "https://api.portone.io";
 const PORTONE_STORE_ID = Deno.env.get("PORTONE_STORE_ID") ?? "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const ALLOW_TEST_PAYMENTS = Deno.env.get("ALLOW_TEST_PAYMENTS") === "true";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -99,6 +110,68 @@ Deno.serve(async (req) => {
       return json(req, { error: "paid_payment_not_found" }, 409);
     }
 
+    // The local order is not proof of a captured payment. Read the provider
+    // first and make every financial transition from that verified state.
+    const lookup = await lookupPortOnePayment({
+      apiBase: PORTONE_API_BASE,
+      apiSecret: PORTONE_API_SECRET,
+      storeId: PORTONE_STORE_ID,
+      paymentId: order.payment_key,
+      allowTestPayments: ALLOW_TEST_PAYMENTS,
+      timeoutMs: 10000,
+    });
+    if (!lookup.payment || lookup.result !== "found") {
+      return json(req, { error: lookup.error ?? "provider_lookup_failed" }, lookup.errorStatus || 502);
+    }
+    const providerStatus = providerStatusKind(lookup.payment.status);
+    const providerAmount = providerStatus === "paid"
+      ? providerPaidAmount(lookup.payment)
+      : providerStatus === "cancelled" ? providerCancelledAmount(lookup.payment) : null;
+    const action = adminCancellationAction(lookup.payment.status, providerAmount);
+
+    if (action === "wait") {
+      return json(req, { error: "provider_payment_processing" }, 409);
+    }
+    if (action === "close_unsettled") {
+      if (order.status === "failed" || order.status === "canceled") {
+        return json(req, { ok: true, alreadyCanceled: true, refunded: false });
+      }
+      if (!["pending", "payment_review"].includes(order.status)) {
+        return json(req, { error: "provider_order_state_mismatch" }, 409);
+      }
+      const { data: closed, error: closeError } = await admin.rpc("fail_unsettled_order", {
+        p_order_no: orderNo,
+        p_reason: "administrator_cancel_provider_failed",
+      });
+      if (closeError || closed !== true) return json(req, { error: "order_cancel_failed" }, 500);
+      return json(req, { ok: true, canceled: true, refunded: false });
+    }
+    if (action === "review") {
+      const { data: marked, error: markError } = await admin.rpc("mark_order_refund_pending", {
+        p_order_no: orderNo,
+        p_reason: "cancellation_intent:administrator_provider_review_required",
+      });
+      if (markError || marked !== true) {
+        return json(req, { error: "refund_recovery_not_recorded" }, 500);
+      }
+      return json(req, { error: "refund_requires_review", recoveryTracked: true }, 409);
+    }
+    if (action === "finalize_cancelled" && providerAmount !== null) {
+      const reconciliation = await finalizeKnownProviderCancellation({
+        admin, orderNo, refundAmount: providerAmount, reason,
+      });
+      if (!reconciliation.tracked) {
+        return json(req, { error: "refund_recovery_not_recorded", providerRefunded: true }, 500);
+      }
+      if (!reconciliation.dbFinalized) {
+        return json(req, { error: "refund_finalize_failed", providerRefunded: true }, 500);
+      }
+      return json(req, { ok: true, recovered: true, alreadyProviderCancelled: true });
+    }
+    if (action !== "cancel_paid" || providerAmount === null) {
+      return json(req, { error: "provider_payment_state_unsupported" }, 409);
+    }
+
     const cancellation = await cancelAndReconcile({
       admin,
       apiBase: PORTONE_API_BASE,
@@ -106,7 +179,8 @@ Deno.serve(async (req) => {
       storeId: PORTONE_STORE_ID,
       paymentId: order.payment_key,
       orderNo,
-      orderAmount: Number(order.amount),
+      refundAmount: providerAmount,
+      intentCode: "administrator_provider_verified_refund",
       reason,
     });
     if (!cancellation.tracked) {

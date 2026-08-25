@@ -172,10 +172,8 @@ export async function markPaymentReviewIfUnsettled(
   admin: SupabaseClient,
   orderId: string,
   reason: string,
-  includeRefundPending = false,
 ): Promise<boolean> {
   const statuses = ["pending", "failed", "canceled", "payment_review"];
-  if (includeRefundPending) statuses.push("refund_pending");
   const { data, error } = await admin
     .from("orders")
     .update({ status: "payment_review", admin_memo: reason.slice(0, 1000) })

@@ -3,7 +3,10 @@ import {
   hasConfirmedPaymentStatus,
   hasRefundablePaymentStatus,
 } from "../_shared/order-payment-states.ts";
-import { cancelAndReconcile } from "../_shared/portone-cancellation.ts";
+import {
+  cancelAndReconcile,
+  finalizeKnownProviderCancellation,
+} from "../_shared/portone-cancellation.ts";
 import {
   finalizePaidOrderFromProvider,
   lookupPortOnePayment,
@@ -15,8 +18,9 @@ import {
 } from "../_shared/payment-recovery.ts";
 import {
   paidRecoveryAction,
+  providerCancelledAmount,
+  providerPaidAmount,
   providerStatusKind,
-  providerTotalAmount,
 } from "../_shared/payment-recovery-policy.mjs";
 
 const PORTONE_API_SECRET = Deno.env.get("PORTONE_API_SECRET") ?? "";
@@ -138,23 +142,26 @@ Deno.serve(async (req) => {
       if (!hasRefundablePaymentStatus(order.status)) {
         return json({ error: "refund_state_invalid", status: order.status }, 409);
       }
-      const { data: refunded, error: refundError } = await admin.rpc("finalize_order_refund_v2", {
-        p_order_no: paymentId,
-        p_refund_amount: Number(order.amount),
-        p_reason: "portone_cancelled_webhook",
-        p_provider_cancellation_id: null,
-      });
-      if (refundError || !refunded?.ok) {
+      const cancelledAmount = providerCancelledAmount(payment);
+      if (cancelledAmount === null) {
         const { data: marked, error: markError } = await admin.rpc("mark_order_refund_pending", {
           p_order_no: paymentId,
-          p_reason: `cancelled_webhook_finalize_failed:${refundError?.message ?? "unknown"}`,
+          p_reason: "provider_cancelled_amount_missing",
         });
-        if (markError || marked !== true) {
-          return json({ error: "refund_recovery_not_recorded" }, 500);
-        }
+        if (markError || marked !== true) return json({ error: "refund_recovery_not_recorded" }, 500);
+        return json({ error: "refund_amount_review", reviewRequired: true }, 500);
+      }
+      const reconciliation = await finalizeKnownProviderCancellation({
+        admin, orderNo: paymentId, refundAmount: cancelledAmount,
+        reason: "portone_cancelled_webhook",
+      });
+      if (!reconciliation.tracked) {
+        return json({ error: "refund_recovery_not_recorded" }, 500);
+      }
+      if (!reconciliation.dbFinalized) {
         return json({ error: "refund_finalize_failed" }, 500);
       }
-      return json({ ok: true, alreadyRefunded: Boolean(refunded.alreadyRefunded) });
+      return json({ ok: true, recovered: true });
     }
     if (eventType === "Transaction.CancelPending") {
       if (order.status === "refund_pending") {
@@ -163,18 +170,28 @@ Deno.serve(async (req) => {
       return json({ ok: true, ignored: true, reason: "cancel_pending_without_local_request" });
     }
     if (statusKind === "partial_cancelled") {
-      const { data: marked, error: markError } = await admin.rpc("mark_order_payment_review", {
+      const markerName = order.status === "refund_pending"
+        ? "mark_order_refund_pending"
+        : "mark_order_payment_review";
+      const { data: marked, error: markError } = await admin.rpc(markerName, {
         p_order_no: paymentId,
-        p_reason: "partial_cancel_review:provider",
+        p_reason: order.status === "refund_pending"
+          ? "refund_pending_partial_cancel_review:provider"
+          : "partial_cancel_review:provider",
       });
       if (markError || marked !== true) return json({ error: "payment_review_record_failed" }, 500);
-      return json({ ok: true, reviewRequired: true, status: eventType });
+      return json({
+        ok: true,
+        reviewRequired: true,
+        refundPending: order.status === "refund_pending",
+        status: eventType,
+      });
     }
     if (statusKind !== "paid") {
       return json({ ok: true, ignored: true, status: payment.status });
     }
 
-    const paidAmount = providerTotalAmount(payment);
+    const paidAmount = providerPaidAmount(payment);
     if (hasConfirmedPaymentStatus(order.status)) {
       if (order.payment_key === paymentId && paidAmount === Number(order.amount)) {
         return json({ ok: true, alreadyPaid: true });
@@ -194,7 +211,6 @@ Deno.serve(async (req) => {
         admin,
         order.id,
         "provider_paid_amount_mismatch",
-        true,
       );
       console.error("payment-webhook amount mismatch requires review", JSON.stringify({
         paymentRef: paymentRef(paymentId),
@@ -204,6 +220,14 @@ Deno.serve(async (req) => {
       return json({ error: "amount_mismatch_review", reviewRequired: true }, 500);
     }
     if (recoveryAction === "continue_cancellation") {
+      if (paidAmount === null) {
+        const { data: marked, error: markError } = await admin.rpc("mark_order_refund_pending", {
+          p_order_no: paymentId,
+          p_reason: "refund_pending_provider_paid_amount_missing",
+        });
+        if (markError || marked !== true) return json({ error: "payment_recovery_not_recorded" }, 500);
+        return json({ error: "refund_amount_review", reviewRequired: true, refundPending: true }, 500);
+      }
       const cancellation = await cancelAndReconcile({
         admin,
         apiBase: PORTONE_API_BASE,
@@ -211,7 +235,8 @@ Deno.serve(async (req) => {
         storeId: PORTONE_STORE_ID,
         paymentId,
         orderNo: paymentId,
-        orderAmount: Number(order.amount),
+        refundAmount: paidAmount,
+        intentCode: "refund_pending_recovery",
         reason: "webhook_refund_pending_recovery",
       });
       const retry = !cancellation.tracked ||

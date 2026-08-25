@@ -12,7 +12,7 @@ import {
 } from "../_shared/payment-recovery.ts";
 import {
   CONFIRMATION_RETRY_DELAYS_MS,
-  providerTotalAmount,
+  providerPaidAmount,
   providerStatusKind,
 } from "../_shared/payment-recovery-policy.mjs";
 
@@ -210,7 +210,7 @@ Deno.serve(async (req) => {
       return json(req, { error: lookup.error ?? "provider_lookup_failed" }, lookup.errorStatus);
     }
     const payment = lookup.payment;
-    const paidAmount = providerTotalAmount(payment);
+    const paidAmount = providerPaidAmount(payment);
 
     const statusKind = providerStatusKind(payment.status);
     if (statusKind === "pending") {
@@ -262,7 +262,14 @@ Deno.serve(async (req) => {
       }));
       return json(req, { error: code, status: payment.status }, 409);
     }
-    if (paidAmount === null || paidAmount !== Number(order.amount)) {
+    if (paidAmount === null) {
+      const reviewRecorded = await markPaymentReviewIfUnsettled(
+        admin, order.id, "provider_paid_amount_missing",
+      );
+      if (!reviewRecorded) return json(req, { error: "payment_review_not_recorded" }, 500);
+      return json(req, { error: "payment_requires_review" }, 409);
+    }
+    if (paidAmount !== Number(order.amount)) {
       const cancellation = await cancelAndReconcile({
         admin,
         apiBase: PORTONE_API_BASE,
@@ -270,7 +277,8 @@ Deno.serve(async (req) => {
         storeId: PORTONE_STORE_ID,
         paymentId,
         orderNo: paymentId,
-        orderAmount: Number(order.amount),
+        refundAmount: paidAmount,
+        intentCode: "amount_mismatch_auto_cancel",
         reason: "amount_mismatch_auto_cancel",
       });
       return json(req, {

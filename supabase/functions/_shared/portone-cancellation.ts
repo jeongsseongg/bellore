@@ -1,4 +1,5 @@
 type JsonRecord = Record<string, unknown>;
+const PROVIDER_CANCELLATION_REASON = "벨로르 결제 취소";
 
 type RpcError = { message?: string } | null;
 type RpcResult = { data: unknown; error: RpcError };
@@ -52,7 +53,7 @@ export async function cancelPortOnePayment(input: {
       "Content-Type": "application/json",
       "Idempotency-Key": idempotencyKey,
     },
-    body: JSON.stringify({ storeId: input.storeId, reason: input.reason }),
+    body: JSON.stringify({ storeId: input.storeId, reason: PROVIDER_CANCELLATION_REASON }),
     signal: AbortSignal.timeout(10000),
   });
   const payload = await readJson(response);
@@ -87,14 +88,49 @@ export async function cancelAndReconcile(input: {
   storeId: string;
   paymentId: string;
   orderNo: string;
-  orderAmount: number;
+  refundAmount: number;
+  intentCode: string;
   reason: string;
 }): Promise<CancellationReconciliation> {
-  const cancellation = await cancelPortOnePayment(input);
+  // Persist the cancellation intent before touching the provider. If the
+  // provider accepts the POST but the response is lost, reconciliation still
+  // has a durable state to retry from.
+  const intentMarker = await input.admin.rpc("mark_order_refund_pending", {
+    p_order_no: input.orderNo,
+    p_reason: `cancellation_intent:${input.intentCode}`,
+  });
+  if (intentMarker.error || intentMarker.data !== true) {
+    return {
+      state: "failed",
+      cancellationId: null,
+      recovered: false,
+      dbFinalized: false,
+      tracked: false,
+      providerRefunded: false,
+    };
+  }
+
+  let cancellation: ProviderCancellation;
+  try {
+    cancellation = await cancelPortOnePayment(input);
+  } catch (error) {
+    console.error(
+      "portone-cancellation provider request failed",
+      error instanceof Error ? error.message : String(error),
+    );
+    return {
+      state: "failed",
+      cancellationId: null,
+      recovered: false,
+      dbFinalized: false,
+      tracked: true,
+      providerRefunded: false,
+    };
+  }
   if (cancellation.state === "succeeded") {
     const finalized = await input.admin.rpc("finalize_order_refund_v2", {
       p_order_no: input.orderNo,
-      p_refund_amount: input.orderAmount,
+      p_refund_amount: input.refundAmount,
       p_reason: input.reason,
       p_provider_cancellation_id: cancellation.cancellationId,
     });
@@ -103,7 +139,7 @@ export async function cancelAndReconcile(input: {
     }
     const pending = await input.admin.rpc("mark_order_refund_pending", {
       p_order_no: input.orderNo,
-      p_reason: `provider_refunded_db_finalize_failed:${finalized.error?.message ?? "unknown"}`,
+      p_reason: `cancellation_intent:${input.intentCode}|provider_refunded_db_finalize_failed:${finalized.error?.message ?? "unknown"}`,
     });
     return {
       ...cancellation,
@@ -116,16 +152,55 @@ export async function cancelAndReconcile(input: {
   const marker = cancellation.state === "requested"
     ? await input.admin.rpc("mark_order_refund_pending", {
       p_order_no: input.orderNo,
-      p_reason: `provider_cancel_requested:${cancellation.cancellationId ?? "pending"}`,
+      p_reason: `cancellation_intent:${input.intentCode}|provider_cancel_requested:${cancellation.cancellationId ?? "pending"}`,
     })
     : await input.admin.rpc("mark_order_refund_pending", {
       p_order_no: input.orderNo,
-      p_reason: "provider_cancel_failed",
+      p_reason: `cancellation_intent:${input.intentCode}|provider_cancel_failed`,
     });
   return {
     ...cancellation,
     dbFinalized: false,
     tracked: !marker.error && marker.data === true,
     providerRefunded: false,
+  };
+}
+
+export async function finalizeKnownProviderCancellation(input: {
+  admin: RpcClient;
+  orderNo: string;
+  refundAmount: number;
+  reason: string;
+}): Promise<CancellationReconciliation> {
+  const intentCode = "provider_already_cancelled_recovery";
+  const intentMarker = await input.admin.rpc("mark_order_refund_pending", {
+    p_order_no: input.orderNo,
+    p_reason: `cancellation_intent:${intentCode}`,
+  });
+  if (intentMarker.error || intentMarker.data !== true) {
+    return {
+      state: "succeeded", cancellationId: null, recovered: true,
+      dbFinalized: false, tracked: false, providerRefunded: true,
+    };
+  }
+  const finalized = await input.admin.rpc("finalize_order_refund_v2", {
+    p_order_no: input.orderNo,
+    p_refund_amount: input.refundAmount,
+    p_reason: input.reason,
+    p_provider_cancellation_id: null,
+  });
+  if (!finalized.error && Boolean((finalized.data as JsonRecord | null)?.ok)) {
+    return {
+      state: "succeeded", cancellationId: null, recovered: true,
+      dbFinalized: true, tracked: true, providerRefunded: true,
+    };
+  }
+  await input.admin.rpc("mark_order_refund_pending", {
+    p_order_no: input.orderNo,
+    p_reason: `cancellation_intent:${intentCode}|provider_refunded_db_finalize_failed:${finalized.error?.message ?? "unknown"}`,
+  });
+  return {
+    state: "succeeded", cancellationId: null, recovered: true,
+    dbFinalized: false, tracked: true, providerRefunded: true,
   };
 }

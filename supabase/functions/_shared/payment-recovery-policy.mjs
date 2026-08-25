@@ -19,16 +19,27 @@ export function providerStatusKind(value) {
   return 'unknown';
 }
 
-export function providerTotalAmount(payment) {
+function providerAmountField(payment, field) {
   if (!payment || typeof payment !== 'object' || Array.isArray(payment)) return null;
-  const rawAmount = payment.amount && typeof payment.amount === 'object' && !Array.isArray(payment.amount)
-    ? payment.amount.total
-    : payment.amount;
+  const amountRecord = payment.amount;
+  const rawAmount = amountRecord && typeof amountRecord === 'object' && !Array.isArray(amountRecord)
+    ? amountRecord[field]
+    : field === 'total' ? amountRecord : null;
   if (rawAmount === null || rawAmount === undefined ||
     (typeof rawAmount === 'string' && !rawAmount.trim())) return null;
   const amount = Number(rawAmount);
   return Number.isSafeInteger(amount) && amount >= 0 ? amount : null;
 }
+
+export const providerTotalAmount = (payment) => providerAmountField(payment, 'total');
+export const providerPaidAmount = (payment) => {
+  const amount = providerAmountField(payment, 'paid');
+  return amount !== null && amount > 0 ? amount : null;
+};
+export const providerCancelledAmount = (payment) => {
+  const amount = providerAmountField(payment, 'cancelled');
+  return amount !== null && amount > 0 ? amount : null;
+};
 
 export function shouldRetryConfirmation(status, attempt) {
   return providerStatusKind(status) === 'pending' &&
@@ -48,11 +59,21 @@ export function shouldFinalizeDuringRecovery(orderStatus, providerStatus) {
 }
 
 export function paidRecoveryAction(orderStatus, amountMatches) {
-  if (amountMatches !== true) return 'review_amount_mismatch';
   const status = String(orderStatus || '').trim().toLowerCase();
   if (status === 'refund_pending') return 'continue_cancellation';
+  if (amountMatches !== true) return 'review_amount_mismatch';
   if (status === 'pending' || status === 'payment_review') return 'finalize';
   return 'none';
+}
+
+export function adminCancellationAction(providerStatus, providerAmount) {
+  const statusKind = providerStatusKind(providerStatus);
+  const amountKnown = Number.isSafeInteger(providerAmount) && providerAmount > 0;
+  if (statusKind === 'paid') return amountKnown ? 'cancel_paid' : 'review';
+  if (statusKind === 'cancelled') return amountKnown ? 'finalize_cancelled' : 'review';
+  if (statusKind === 'failed') return 'close_unsettled';
+  if (statusKind === 'pending') return 'wait';
+  return 'review';
 }
 
 export function shouldExpirePendingOrder(orderStatus, createdAt, nowMs) {

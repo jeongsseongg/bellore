@@ -82,11 +82,13 @@ assert.match(migration, /text,text,uuid,jsonb,text,text\[\],text\[\],boolean,int
 for (const source of [confirm, webhook]) {
   assert.match(source, /PORTONE_STORE_ID/);
   assert.match(source, /providerStatusKind\(payment\.status\)/);
-  assert.match(source, /providerTotalAmount\(payment\)/);
   assert.match(source, /lookupPortOnePayment/);
   assert.match(source, /finalizePaidOrderFromProvider/);
   assert.doesNotMatch(source, /return json\([^\n]*payment\s*[,}]/);
 }
+assert.match(confirm, /providerPaidAmount\(payment\)/);
+assert.match(webhook, /providerPaidAmount\(payment\)/);
+assert.match(webhook, /providerCancelledAmount\(payment\)/);
 assert.match(recoveryAdapter, /input\.payment\.currency !== "KRW"/);
 assert.match(recoveryAdapter, /channelType !== "LIVE"/);
 assert.match(recoveryAdapter, /finalize_paid_order_v2/);
@@ -106,7 +108,18 @@ assert.match(confirm, /retryAfterMs: 2000/);
 assert.match(confirm, /provider_paid_finalize_retry/);
 assert.doesNotMatch(confirm, /order_finalize_failed_auto_cancel/);
 assert.match(cancel, /profile\?\.role !== "admin"/);
+assert.match(cancel, /lookupPortOnePayment/);
+assert.match(cancel, /providerPaidAmount/);
+assert.match(cancel, /providerCancelledAmount/);
+assert.match(cancel, /adminCancellationAction/);
 assert.match(cancel, /cancelAndReconcile/);
+assert.match(cancel, /refundAmount: providerAmount/);
+assert.doesNotMatch(cancel, /refundAmount: Number\(order\.amount\)/);
+assert.ok(
+  cancel.indexOf('const lookup = await lookupPortOnePayment') <
+    cancel.indexOf('const cancellation = await cancelAndReconcile'),
+  'administrator refunds must verify provider truth before cancellation'
+);
 assert.match(cancel, /providerRefunded: true/);
 assert.match(cancellation, /status === "SUCCEEDED"/);
 assert.match(cancellation, /status === "REQUESTED"/);
@@ -121,7 +134,7 @@ assert.match(webhook, /statusKind === "partial_cancelled"/);
 assert.match(webhook, /Transaction\.CancelPending/);
 assert.match(webhook, /order\.status === "refund_pending"/);
 assert.match(webhook, /cancel_pending_without_local_request/);
-assert.match(webhook, /finalize_order_refund_v2/);
+assert.match(webhook, /finalizeKnownProviderCancellation/);
 assert.match(webhook, /webhook_refund_pending_recovery/);
 assert.match(webhook, /provider_paid_finalize_retry/);
 assert.match(webhook, /order_finalize_pending/);
@@ -209,7 +222,7 @@ assert.doesNotMatch(reconciliation, /scheduled_amount_mismatch_auto_cancel/);
 assert.doesNotMatch(reconciliation, /scheduled_payment_reconciliation/);
 assert.strictEqual((reconciliation.match(/cancelAndReconcile\(\{/g) || []).length, 1);
 assert.match(recoveryPolicy, /status === 'pending' \|\| status === 'payment_review'/);
-assert.match(recoveryPolicy, /status === 'refund_pending'.*continue_cancellation/);
+assert.match(recoveryPolicy, /status === 'refund_pending'[\s\S]{0,120}continue_cancellation/);
 assert.match(recoveryPolicy, /PENDING_RECOVERY_EXPIRY_MS = 24 \* 60 \* 60 \* 1000/);
 assert.match(reconciliationWorkflow, /secrets\.PAYMENT_RECONCILE_TOKEN/);
 assert.match(reconciliationWorkflow, /github\.ref == 'refs\/heads\/main'/);

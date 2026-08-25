@@ -1,6 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
 import { hasRefundablePaymentStatus } from "../_shared/order-payment-states.ts";
-import { cancelAndReconcile } from "../_shared/portone-cancellation.ts";
+import {
+  cancelAndReconcile,
+  finalizeKnownProviderCancellation,
+} from "../_shared/portone-cancellation.ts";
 import {
   finalizePaidOrderFromProvider,
   lookupPortOnePayment,
@@ -12,8 +15,9 @@ import {
 import {
   fairReconciliationBatch,
   paidRecoveryAction,
+  providerCancelledAmount,
+  providerPaidAmount,
   providerStatusKind,
-  providerTotalAmount,
   reconciliationSummaryOk,
   rotatingReconciliationWindowOffset,
   shouldExpirePendingOrder,
@@ -28,8 +32,7 @@ const RECONCILE_TOKEN = Deno.env.get("PAYMENT_RECONCILE_TOKEN") ?? "";
 const POINT_EARN_BPS = Number(Deno.env.get("POINT_EARN_BPS") ?? "0");
 const ALLOW_TEST_PAYMENTS = Deno.env.get("ALLOW_TEST_PAYMENTS") === "true";
 const STALE_PENDING_AGE_MS = 60_000;
-const MAX_ORDERS_PER_GROUP = 20;
-const RECONCILE_CONCURRENCY = 5;
+const MAX_ORDERS_PER_GROUP = 6, RECONCILE_CONCURRENCY = 5;
 
 type SupabaseAdmin = ReturnType<typeof createClient>;
 type OrderRow = {
@@ -52,8 +55,7 @@ type Counters = {
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json" },
+    status, headers: { "Content-Type": "application/json" },
   });
 }
 
@@ -87,9 +89,7 @@ function addCounters(target: Counters, source: Counters): void {
   }
 }
 
-function isExpiredPending(order: OrderRow): boolean {
-  return shouldExpirePendingOrder(order.status, order.created_at, Date.now());
-}
+function isExpiredPending(order: OrderRow): boolean { return shouldExpirePendingOrder(order.status, order.created_at, Date.now()); }
 
 async function expirePendingOrder(
   admin: SupabaseAdmin,
@@ -123,6 +123,14 @@ function recordCancellation(
   } else {
     counters.reviewRequired += 1;
   }
+}
+
+async function preserveRefundPendingForReview(admin: SupabaseAdmin, orderNo: string, reason: string, counters: Counters) {
+  const { data: marked, error: markError } = await admin.rpc("mark_order_refund_pending", {
+    p_order_no: orderNo, p_reason: reason,
+  });
+  if (markError || marked !== true) counters.errors += 1;
+  counters.reviewRequired += 1;
 }
 
 async function reconcileOrder(admin: SupabaseAdmin, order: OrderRow): Promise<Counters> {
@@ -163,18 +171,10 @@ async function reconcileOrder(admin: SupabaseAdmin, order: OrderRow): Promise<Co
 
   const statusKind = providerStatusKind(payment.status);
   if (statusKind === "paid") {
-    const paidAmount = providerTotalAmount(payment);
-    const action = paidRecoveryAction(
-      order.status,
-      paidAmount !== null && paidAmount === Number(order.amount),
-    );
+    const paidAmount = providerPaidAmount(payment);
+    const action = paidRecoveryAction(order.status, paidAmount !== null && paidAmount === Number(order.amount));
     if (action === "review_amount_mismatch") {
-      const reviewRecorded = await markPaymentReviewIfUnsettled(
-        admin,
-        order.id,
-        "provider_paid_amount_mismatch",
-        true,
-      );
+      const reviewRecorded = await markPaymentReviewIfUnsettled(admin, order.id, "provider_paid_amount_mismatch");
       console.error("reconcile-payments amount mismatch requires review", JSON.stringify({
         paymentRef: paymentRef(paymentId),
         reviewRecorded,
@@ -184,6 +184,10 @@ async function reconcileOrder(admin: SupabaseAdmin, order: OrderRow): Promise<Co
       return counters;
     }
     if (action === "continue_cancellation") {
+      if (paidAmount === null) {
+        await preserveRefundPendingForReview(admin, order.order_no, "refund_pending_provider_paid_amount_missing", counters);
+        return counters;
+      }
       const cancellation = await cancelAndReconcile({
         admin,
         apiBase: PORTONE_API_BASE,
@@ -191,7 +195,8 @@ async function reconcileOrder(admin: SupabaseAdmin, order: OrderRow): Promise<Co
         storeId: PORTONE_STORE_ID,
         paymentId,
         orderNo: order.order_no,
-        orderAmount: Number(order.amount),
+        refundAmount: paidAmount,
+        intentCode: "refund_pending_recovery",
         reason: "scheduled_refund_pending_recovery",
       });
       recordCancellation(counters, cancellation);
@@ -242,26 +247,24 @@ async function reconcileOrder(admin: SupabaseAdmin, order: OrderRow): Promise<Co
   }
 
   if (statusKind === "cancelled" && hasRefundablePaymentStatus(order.status)) {
-    const { data: finalized, error: finalizeError } = await admin.rpc("finalize_order_refund_v2", {
-      p_order_no: order.order_no,
-      p_refund_amount: Number(order.amount),
-      p_reason: "scheduled_cancel_reconciliation",
-      p_provider_cancellation_id: null,
-    });
-    if (!finalizeError && finalized?.ok) {
-      counters.refunded += 1;
+    const cancelledAmount = providerCancelledAmount(payment);
+    if (cancelledAmount === null) {
+      await preserveRefundPendingForReview(admin, order.order_no, "provider_cancelled_amount_missing", counters);
       return counters;
     }
-    const { data: marked, error: markError } = await admin.rpc("mark_order_refund_pending", {
-      p_order_no: order.order_no,
-      p_reason: "scheduled_cancel_finalize_retry",
+    const reconciliation = await finalizeKnownProviderCancellation({
+      admin, orderNo: order.order_no, refundAmount: cancelledAmount,
+      reason: "scheduled_cancel_reconciliation",
     });
-    if (!markError && marked === true) counters.pending += 1;
-    else counters.errors += 1;
+    recordCancellation(counters, reconciliation);
     return counters;
   }
 
   if (statusKind === "partial_cancelled") {
+    if (order.status === "refund_pending") {
+      await preserveRefundPendingForReview(admin, order.order_no, "refund_pending_partial_cancel_requires_manual_review", counters);
+      return counters;
+    }
     const { data: marked, error: markError } = await admin.rpc("mark_order_payment_review", {
       p_order_no: order.order_no,
       p_reason: "partial_cancel_requires_manual_review",
@@ -272,6 +275,10 @@ async function reconcileOrder(admin: SupabaseAdmin, order: OrderRow): Promise<Co
   }
 
   if (statusKind === "failed") {
+    if (order.status === "refund_pending") {
+      await preserveRefundPendingForReview(admin, order.order_no, "refund_pending_provider_payment_failed", counters);
+      return counters;
+    }
     const { data: marked, error: markError } = await admin.rpc("fail_unsettled_order", {
       p_order_no: order.order_no,
       p_reason: "provider_payment_failed",
@@ -290,6 +297,11 @@ async function reconcileOrder(admin: SupabaseAdmin, order: OrderRow): Promise<Co
     return counters;
   }
 
+  if (order.status === "refund_pending") {
+    await preserveRefundPendingForReview(admin, order.order_no,
+      `refund_pending_unknown_provider_status:${safeText(payment.status, 80) ?? "missing"}`, counters);
+    return counters;
+  }
   const { data: marked, error: markError } = await admin.rpc("mark_order_payment_review", {
     p_order_no: order.order_no,
     p_reason: `unknown_provider_status:${safeText(payment.status, 80) ?? "missing"}`,

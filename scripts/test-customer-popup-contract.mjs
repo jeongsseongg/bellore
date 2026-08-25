@@ -47,6 +47,8 @@ assert.doesNotMatch(features, /관리자:\s*Supabase/, '고객 인증 화면에 
 assert.doesNotMatch(script, /st\.textContent\s*=\s*'인증 실패:\s*'\s*\+/, '본인인증 상태에 원문을 직접 붙이면 안 됩니다.');
 assert.doesNotMatch(script, /(?:SMS\s*)?키 등록 후 활성화/, '고객 인증 화면에 내부 설정 문구가 나오면 안 됩니다.');
 assert.doesNotMatch(script, /alert\(err\s*&&\s*err\.message/, '동적 인증 오류 문자열을 팝업에 직접 전달하면 안 됩니다.');
+assert.doesNotMatch(script, /환불 실패:\s*'\s*\+/, '관리자 환불 팝업에도 내부 오류 코드를 직접 붙이면 안 됩니다.');
+assert.match(script, /결제가 승인되지 않은 주문이라 결제 취소 없이 주문만 취소했습니다\./, '미승인 주문 취소와 실제 환불을 구분해서 안내해야 합니다.');
 assert.doesNotMatch(features, /am\.textContent\s*=\s*'제출 실패:\s*'\s*\+/, '계좌인증 상태에 원문을 직접 붙이면 안 됩니다.');
 assert.doesNotMatch(features, /setMsg\('인증 실패:\s*'\s*\+/, '사업자 인증 상태에 원문을 직접 붙이면 안 됩니다.');
 assert.match(auction, /tEl\.textContent\s*=\s*window\.belloreCustomerMessage/, '경매 토스트도 고객 문구 변환을 거쳐야 합니다.');

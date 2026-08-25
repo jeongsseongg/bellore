@@ -2106,8 +2106,9 @@
                     if (!ok) return;
                     NWBackend.adminRefund(_aOrderEditing, '관리자 환불').then(function (res) {
                         if (res && res.pending) { alert('환불 요청이 접수되었습니다. PG 처리 완료 후 상태를 확인해 주세요.'); closeAdminOrderPage(); }
+                        else if (res && res.refunded === false && (res.canceled || res.alreadyCanceled)) { alert('결제가 승인되지 않은 주문이라 결제 취소 없이 주문만 취소했습니다.'); closeAdminOrderPage(); }
                         else if (res && (res.ok || res.alreadyRefunded)) { alert('환불 처리되었습니다.'); closeAdminOrderPage(); }
-                        else alert('환불 실패: ' + ((res && res.error) || '알 수 없는 오류'));
+                        else { var refundMessage = { provider_payment_processing: '결제 상태를 확인 중입니다. 잠시 후 다시 시도해 주세요.', refund_requires_review: '결제 상태가 일치하지 않아 자동 환불하지 않았습니다. 주문은 안전하게 검토 상태로 보관했습니다.', provider_order_state_mismatch: '주문 상태와 결제 상태가 일치하지 않습니다. 결제 내역을 확인해 주세요.' }[(res && res.error) || ''] || '환불을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.'; alert(refundMessage); }
                     }).catch(function () { alert('환불 처리 중 오류가 발생했습니다.'); });
                 });
                 return;

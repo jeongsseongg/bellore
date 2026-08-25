@@ -3,9 +3,12 @@ import {
   CONFIRMATION_RETRY_DELAYS_MS,
   PENDING_RECOVERY_EXPIRY_MS,
   RECONCILIATION_ROTATION_MS,
+  adminCancellationAction,
   confirmationRetryDelayMs,
   fairReconciliationBatch,
   paidRecoveryAction,
+  providerCancelledAmount,
+  providerPaidAmount,
   providerStatusKind,
   providerTotalAmount,
   reconciliationSummaryOk,
@@ -48,13 +51,29 @@ assert.equal(providerTotalAmount({ amount: { total: -1 } }), null);
 assert.equal(providerTotalAmount({ amount: { total: null } }), null);
 assert.equal(providerTotalAmount({ amount: '' }), null);
 assert.equal(providerTotalAmount({}), null);
+assert.equal(providerPaidAmount({ amount: { total: 1500, paid: 1300, cancelled: 0 } }), 1300);
+assert.equal(providerCancelledAmount({ amount: { total: 1500, paid: 1300, cancelled: 1300 } }), 1300);
+assert.equal(providerPaidAmount({ amount: { total: 1300 } }), null);
+assert.equal(providerCancelledAmount({ amount: { total: 1300 } }), null);
+assert.equal(providerPaidAmount({ amount: { total: 1300, paid: 0 } }), null);
+assert.equal(providerCancelledAmount({ amount: { total: 1300, cancelled: 0 } }), null);
 
 assert.equal(paidRecoveryAction('pending', true), 'finalize');
 assert.equal(paidRecoveryAction('payment_review', true), 'finalize');
 assert.equal(paidRecoveryAction('refund_pending', true), 'continue_cancellation');
 assert.equal(paidRecoveryAction('paid', true), 'none');
 assert.equal(paidRecoveryAction('pending', false), 'review_amount_mismatch');
-assert.equal(paidRecoveryAction('refund_pending', false), 'review_amount_mismatch');
+assert.equal(paidRecoveryAction('refund_pending', false), 'continue_cancellation');
+
+assert.equal(adminCancellationAction('PAID', 1300), 'cancel_paid');
+assert.equal(adminCancellationAction('PAID', null), 'review');
+assert.equal(adminCancellationAction('PENDING', 1300), 'wait');
+assert.equal(adminCancellationAction('READY', 1300), 'wait');
+assert.equal(adminCancellationAction('FAILED', 1300), 'close_unsettled');
+assert.equal(adminCancellationAction('PARTIAL_CANCELLED', 1300), 'review');
+assert.equal(adminCancellationAction('CANCELLED', 1300), 'finalize_cancelled');
+assert.equal(adminCancellationAction('CANCELLED', null), 'review');
+assert.equal(adminCancellationAction('UNEXPECTED', 1300), 'review');
 
 const now = Date.parse('2026-08-26T12:00:00.000Z');
 assert.equal(shouldExpirePendingOrder('pending', now - PENDING_RECOVERY_EXPIRY_MS, now), true);
