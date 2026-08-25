@@ -45,11 +45,21 @@ assert.equal(first.weeklySpecial.audit.personalized, false);
 assert.equal(first.recommended.audit.personalized, false);
 assert(first.weeklySpecial.items.length > 0 && first.weeklySpecial.items.length <= 5);
 assert(first.weeklySpecial.items.every((item) => item.saleActive));
-assert.equal(first.recommended.items.length, 12);
+assert(first.recommended.items.length > 0 && first.recommended.items.length <= 12);
+assert.equal(
+  first.weeklySpecial.items.some((weekly) => first.recommended.items.some((recommended) => recommended.id === weekly.id)),
+  false,
+  'weekly special and recommended listings must not overlap'
+);
 assert.deepEqual(first.recommended.items.map((item) => item.id), second.recommended.items.map((item) => item.id));
 
 const noSale = feature.update(catalog.map((item) => ({ ...item, saleActive: false, listPrice: item.price })));
 assert.equal(noSale.weeklySpecial.items.length, 8);
 assert(noSale.weeklySpecial.items.every((item) => item.saleActive === false));
+assert.equal(
+  noSale.weeklySpecial.items.some((weekly) => noSale.recommended.items.some((recommended) => recommended.id === weekly.id)),
+  false,
+  'fallback weekly special and recommended listings must not overlap'
+);
 
 console.log('home merchandising algorithm tests passed');

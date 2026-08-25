@@ -12,6 +12,8 @@ const rows = read('app/features/home-rows/home-rows.js');
 const rowAdmin = read('app/features/home-rows/home-row-admin.js');
 const rowsCss = read('app/features/home-rows/home-rows.css');
 const merchandising = read('app/features/home-merchandising/home-merchandising.js');
+const listingDisplay = read('app/core/listing-display.js');
+const collection = read('app/legacy/legacy-collection.js');
 const legacy = read('script.js');
 const buildPages = read('tools/build-pages.mjs');
 
@@ -24,12 +26,29 @@ order.reduce((previous, id) => {
 
 assert.equal((data.match(/image: 'assets\/banners\/category-\d{2}\.webp'/g) || []).length, 10, '10 category images');
 assert.match(data, /export const FEATURED_MAX = 10;/);
-assert.match(data, /export const FEATURED_BADGES = \[/);
+assert.doesNotMatch(data, /FEATURED_BADGES/);
+assert.doesNotMatch(banners, /feat-tag|FEATURED_BADGES/);
+assert.doesNotMatch(bannersCss, /\.feat-tag/);
 assert.match(data, /export const HERO_COPY = \[/);
+assert.equal((data.match(/title: \['최상급의 상태,', '처음 그대로의 구성'\]/g) || []).length, 1, 'one fixed hero slogan');
+assert.match(data, /9점 이상 · 박스와 보증서, 모든 구성품을 갖춘 시계/);
+assert.match(banners, /collection\.filter\(\{ query: '풀세트', gradeMin: 9 \}\)/);
+assert.match(index, /class="hero-slide hero hero-new hero-default" href="#collection"/);
+assert.doesNotMatch(index, /id="heroManageBtn"/);
+assert.match(legacy, /window\.belloreSetBanners = function \(list\) \{ list = \[\];/);
+for (const text of ['매일을 함께할 클래식', '1,000만원 이상의 명작', '깊이에서도 흔들리지 않는', '500만원 미만 컬렉션', '여성 명품시계', '롤렉스 컬렉션', '예물 시계', '빈티지 컬렉션', '풀세트 컬렉션', '300만원 미만 컬렉션']) {
+  assert.ok(data.includes(text), `category copy: ${text}`);
+}
+const buyinBlock = data.slice(data.indexOf('export const BUYIN_COPY'), data.indexOf('export const FEATURED_MAX'));
+assert.equal((buyinBlock.match(/title: \['[^']+\?'\]/g) || []).length, 15, '15 buy-in questions');
 assert.doesNotMatch(data, /됩니다|그렇습니다|보여드립니다|늦지 않습니다/);
 assert.match(banners, /const ROTATION_MS = 15000;/);
 assert.match(banners, /const FEATURED_AFTER_CARD = 6;/);
 assert.match(banners, /shuffled\(listings\)\.slice\(0, FEATURED_MAX\)/);
+assert.match(banners, /collection\.filter\(\{ brand: banner\.brand, query: banner\.query, min: banner\.min, max: banner\.max \}\)/);
+assert.match(listingDisplay, /featuredMetaText/);
+assert.match(listingDisplay, /listing\.pack[\s\S]*'단품'/);
+assert.match(collection, /BELLORE_applyColFilters/);
 assert.doesNotMatch(banners, /bn-num|counterMarkup/);
 assert.equal((bannersCss.match(/aspect-ratio: 430 \/ 125/g) || []).length, 2, 'category and buy-in banners are 1.2x taller');
 assert.match(bannersCss, /\.feat-card \{[\s\S]*aspect-ratio: 430 \/ 189/, 'featured banner is 1.4x taller');

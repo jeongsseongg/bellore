@@ -8,6 +8,7 @@ import { initSiteHeader } from './ui/site-header.js';
 import { initNavigationHistory } from './ui/navigation-history.js';
 import { initWidthPreference } from './ui/width-preference.js';
 import { initHomeBanners } from './features/home-banners/home-banners.js';
+import { initHomeQuicklinks } from './features/home-quicklinks/home-quicklinks.js';
 import { createHomeMerchandising } from './features/home-merchandising/home-merchandising.js';
 import { initHomeRows } from './features/home-rows/home-rows.js';
 import { initProductDetailRoute, initProductSharing } from './features/product-sharing/product-sharing.mjs';
@@ -33,6 +34,7 @@ function bootstrap() {
   installLegacyReveal({ window, reveal });
 
   const collection = createLegacyCollection({ document, window });
+  initHomeQuicklinks({ document, window, collection });
   const featured = initHomeBanners({ document, window, collection });
   const rows = initHomeRows({ document, window, collection });
   const merchandising = createHomeMerchandising({ window });

@@ -1,6 +1,6 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('sw.js?v=20260825-home-algorithm-v1').catch(function (err) {
+                navigator.serviceWorker.register('sw.js?v=20260825-single-home-banner-v4').catch(function (err) {
                     console.warn('서비스워커 등록 실패:', err);
                 });
             });
@@ -42,6 +42,7 @@
                 var md = ((c.dataset.model || (mel ? mel.textContent : '')) + '').toLowerCase();
                 var no = (c.getAttribute('data-no') || '').toLowerCase();
                 var pk = c.dataset.pack || '';
+                var conditionScore = parseInt((c.dataset.cond || '').match(/\d+/), 10) || 0;
                 var sz = parseInt(c.dataset.size, 10) || 0;
                 var pr = parseInt(c.dataset.price, 10) || 0;
                 var yr = parseInt(c.getAttribute('data-stampyear'), 10) || 0;
@@ -55,6 +56,7 @@
                 if (fQuery) { var q = fQuery.toLowerCase(); var hay = (bd + ' ' + md + ' ' + no + ' ' + color + ' ' + mat + ' ' + pk).toLowerCase(); if (hay.indexOf(q) === -1) return false; }
                 if (fNew && !isNew) return false;
                 if (fGrade && pk !== fGrade) return false;
+                if (cf.conditionMin != null && conditionScore < cf.conditionMin) return false;
                 if (cf.sizeMin != null && !(sz >= cf.sizeMin)) return false;
                 if (cf.sizeMax != null && !(sz > 0 && sz <= cf.sizeMax)) return false;
                 if (cf.priceMin != null && !(pr >= cf.priceMin)) return false;
@@ -80,7 +82,10 @@
                 else cards.sort(function (a, b) { return createdMs(b) - createdMs(a); }); // latest / popular(데이터 없어 최신순)
                 cards.forEach(function (c) { grid.appendChild(c); });
             }
-            function applyFilters() {
+            function applyFilters(options) {
+                if (options && options.homeCategory) { fBrand = options.brand || 'all'; fModel = ''; fQuery = options.query || ''; fNew = false; fGrade = ''; cf = { sizeMin: null, sizeMax: null, priceMin: options.min == null ? null : Number(options.min), priceMax: options.max == null ? null : Number(options.max), conditionMin: options.gradeMin == null ? null : Number(options.gradeMin), yearMin: null, yearMax: null, warranty: '', diamond: '', colors: [], materials: [], grades: [] }; }
+                if (options && options.homeCategory) brands.forEach(function (button) { button.classList.toggle('active', button.dataset.brand === fBrand); });
+                if (options && options.homeCategory) renderModelChips(fBrand);
                 if (window.BELLORE_hideSearchEmpty) window.BELLORE_hideSearchEmpty();
                 var shown = 0;
                 grid.querySelectorAll('.hcard').forEach(function (c) { var ok = matchCard(c); c.style.display = ok ? '' : 'none'; if (ok) shown++; });

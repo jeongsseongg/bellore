@@ -10,7 +10,7 @@ const pagesBuilder = fs.readFileSync(path.join(root, 'tools', 'build-pages.mjs')
 const navigation = fs.readFileSync(path.join(root, 'app', 'ui', 'navigation-history.js'), 'utf8');
 const widthPreference = fs.readFileSync(path.join(root, 'app', 'ui', 'width-preference.js'), 'utf8');
 const baseline = JSON.parse(fs.readFileSync(path.join(root, 'scripts', 'architecture-baseline.json'), 'utf8'));
-const releaseKey = '20260825-home-algorithm-v1';
+const releaseKey = '20260825-single-home-banner-v4';
 
 const tag = `<script src="app/legacy/page-runtime.js?v=${releaseKey}"></script>`;
 assert.equal((html.match(/app\/legacy\/page-runtime\.js/g) || []).length, 1, 'page runtime must load exactly once');
@@ -21,6 +21,7 @@ assert.doesNotThrow(() => new Function(runtime), 'externalized classic runtime m
 
 for (const contract of [
   /window\.BELLORE_applyColFilters\s*=\s*applyFilters/,
+  /function applyFilters\(options\)/,
   /window\.__catFilterBrands\s*=\s*function/,
   /setTimeout\(applyFilters, 1500\)/,
   /setTimeout\(applyFilters, 4000\)/,
@@ -38,6 +39,6 @@ assert(pagesBuilder.includes("'app/legacy/page-runtime.js'"), 'Pages allowlist m
 assert.equal(baseline.newCodeExceptions['app/legacy/page-runtime.js'], undefined, 'page runtime must fit the normal module budget');
 assert.equal(baseline.legacyCeilings.executableInlineScriptBlocks, 2, 'inline block ceiling must ratchet down');
 assert.equal(baseline.legacyCeilings.executableInlineScriptBytes, 1210, 'inline byte ceiling must ratchet down');
-assert.equal(baseline.legacyLineCeilings['index.html'], 3218, 'HTML line ceiling must ratchet down');
+assert.equal(baseline.legacyLineCeilings['index.html'], 3223, 'HTML line ceiling records the intentional home quicklink mount');
 
 console.log('page runtime extraction invariants: ok');

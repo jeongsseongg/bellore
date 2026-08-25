@@ -45,6 +45,8 @@ export const APP_RUNTIME_FILES = Object.freeze([
   'app/features/home-banners/home-banners.css',
   'app/features/home-banners/home-banners.js',
   'app/features/home-merchandising/home-merchandising.js',
+  'app/features/home-quicklinks/home-quicklinks.css',
+  'app/features/home-quicklinks/home-quicklinks.js',
   'app/features/home-rows/home-rows.css',
   'app/features/home-rows/home-rows.js',
   'app/features/home-rows/home-row-admin.js',

@@ -25,6 +25,14 @@ export function createLegacyCollection({ document: doc, window: win }) {
       return false;
     },
 
+    filter(options) {
+      openCollectionPage();
+      const apply = win.BELLORE_applyColFilters;
+      if (typeof apply !== 'function') return false;
+      win.setTimeout(() => apply({ ...(options || {}), homeCategory: true }), 60);
+      return true;
+    },
+
     /* 컬렉션의 기존 필터 화면을 그대로 쓴다. 필터 화면은 열릴 때 배선되므로
        열기 → 금액 입력 → 적용 순서가 필요하다. 사용자에게는 보이지 않게 처리한다. */
     filterByPrice(min, max) {

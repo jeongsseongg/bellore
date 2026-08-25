@@ -190,7 +190,7 @@
         }
 
         // DB 배너 주입 (bellore-features.js 가 호출)
-        window.belloreSetBanners = function (list) {
+        window.belloreSetBanners = function (list) { list = []; // 홈 상단은 승인된 단일 로컬 배너만 사용
             $$('.hero-slide-db', track).forEach(function (n) { n.remove(); });
             var def = $('.hero-default', track);
             carousel.classList.toggle('has-db', !!(list && list.length));

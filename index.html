@@ -71,8 +71,9 @@
     <link rel="stylesheet" href="vendor-reference.css?v=20260731-photo-viewer">
     <link rel="stylesheet" href="mypick.css?v=20260731-mypick-reference-4">
     <link rel="stylesheet" href="bellore-redesign.css?v=20260824-feat-v2">
-    <link rel="stylesheet" href="app/features/home-banners/home-banners.css?v=20260824-home-spacing-v2">
+    <link rel="stylesheet" href="app/features/home-banners/home-banners.css?v=20260825-single-home-banner-v4">
     <link rel="stylesheet" href="app/features/home-rows/home-rows.css?v=20260824-home-admin-v1">
+    <link rel="stylesheet" href="app/features/home-quicklinks/home-quicklinks.css?v=20260825-single-home-banner-v4">
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
@@ -224,18 +225,15 @@
             <section class="hero-carousel" id="heroCarousel">
                 <div class="hero-track" id="heroTrack">
                     <!-- 기본 슬라이드 (배너가 없을 때 노출). DB 배너가 있으면 JS가 슬라이드를 추가/교체 -->
-                    <div class="hero-slide hero hero-new hero-default">
+                    <a class="hero-slide hero hero-new hero-default" href="#collection" aria-label="9점 이상 풀세트 컬렉션 보기">
                         <div class="hero-image"></div>
                         <div class="hero-gradient"></div>
                         <div class="container hero-content">
-                            <p class="hero-eyebrow anim-line" id="heroSloganSub">검수 사진 · 구성품 · 가격까지 한눈에</p>
-                            <h1 class="hero-title anim-line" id="heroSloganTitle">실물 그대로 보고<br>고르는 명품시계</h1>
-                            <div class="hero-cta hero-cta-3 anim-line">
-                                <a href="#buy" class="btn btn-primary" data-nav="buy" data-analytics-id="hero_buy_watch">시계 구입</a>
-                                <a href="#repair" class="btn btn-primary" data-nav="repair" data-analytics-id="hero_repair_watch">시계 수리</a>
-                            </div>
+                            <h1 class="hero-title anim-line" id="heroSloganTitle">최상급의 상태,<br>처음 그대로의 구성</h1>
+                            <p class="hero-eyebrow anim-line" id="heroSloganSub">9점 이상 · 박스와 보증서, 모든 구성품을 갖춘 시계</p>
+                            <span class="hero-fullset-link anim-line">9점 이상 풀세트 보기</span>
                         </div>
-                    </div>
+                    </a>
                 </div>
                 <button class="hero-nav hero-nav-prev" id="heroPrev" type="button" aria-label="이전 배너" hidden>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -244,9 +242,12 @@
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                 </button>
                 <div class="hero-dots" id="heroDots"></div>
-                <button class="hero-manage-btn" id="heroManageBtn" type="button" hidden>＋ 배너 관리</button>
             </section>
 
+            <section class="home-quick-categories" id="homeQuickCategories" aria-label="홈 바로가기">
+                <div class="hq-rail"></div>
+                <button class="hq-settings" type="button" hidden>⚙ 원형 카테고리 설정</button>
+            </section>
 
             <section class="hrow-block" id="rowSaleBlock" hidden></section>
             <section class="hrow-block" id="rowDropBlock" hidden></section>
@@ -1819,7 +1820,7 @@
       </div>
     </div>
 
-    <script type="module" src="app/bootstrap.js?v=20260825-home-algorithm-v1"></script>
+    <script type="module" src="app/bootstrap.js?v=20260825-single-home-banner-v4"></script>
 
     <!-- PWA 설치 모달 -->
     <div id="pwaInstallModal" hidden aria-modal="true" role="dialog">
@@ -3204,7 +3205,7 @@
     <script src="supabase.js?v=20260821-product-detail-v1"></script>
     <script src="bellore-features.js?v=20260821-product-detail-v1"></script>
     <script src="cq-demo.js?v=20260810-bid-notify-fix"></script>
-    <script src="script.js?v=20260825-home-algorithm-v1"></script>
+    <script src="script.js?v=20260825-single-home-banner-v4"></script>
     <script src="wishlist.js?v=20260824-purl-v2"></script>
     <script src="alerts.js?v=20260820-tabs-alerts-v1"></script>
     <script src="auction.js"></script>
@@ -3213,6 +3214,6 @@
     <script src="ai-advisor-admin.js?v=20260725-ai-log"></script>
     <script src="payments.js?v=20260814-buyer-email-input"></script>
     <script src="naverpay.js?v=20260728-naver-review-fixes-2"></script>
-    <script src="app/legacy/page-runtime.js?v=20260825-home-algorithm-v1"></script>
+    <script src="app/legacy/page-runtime.js?v=20260825-single-home-banner-v4"></script>
 </body>
 </html>

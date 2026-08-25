@@ -2,8 +2,8 @@
    배경만 픽셀 이미지(assets/banners)이고 시계 사진·모델명·금액·문구는 실제 데이터로 그린다.
    매물은 홈 '판매 중인 시계' 그리드가 채워지는 것을 보고 그대로 읽어 쓴다. */
 
-import { BUYIN_COPY, CATEGORY_BANNERS, FEATURED_BADGES, FEATURED_MAX, HERO_COPY, stableIndex } from './home-banner-data.js';
-import { isCutoutPhoto, priceText, shuffled, specText } from '../../core/listing-display.js';
+import { BUYIN_COPY, CATEGORY_BANNERS, FEATURED_MAX, HERO_COPY, stableIndex } from './home-banner-data.js';
+import { featuredMetaText, isCutoutPhoto, priceText, shuffled } from '../../core/listing-display.js';
 
 const FABRICS = [
   'assets/banners/fab-1.jpg', 'assets/banners/fab-2.jpg', 'assets/banners/fab-3.jpg',
@@ -27,7 +27,7 @@ function writeMemory(win, key, value) {
   try { win.localStorage.setItem(key, String(value)); } catch (error) { /* 시크릿 모드 등 */ }
 }
 
-function initHeroSlogans({ doc, win }) {
+function initHeroSlogans({ doc, win, collection }) {
   const title = doc.getElementById('heroSloganTitle');
   const sub = doc.getElementById('heroSloganSub');
   if (!title || !sub) return;
@@ -44,6 +44,11 @@ function initHeroSlogans({ doc, win }) {
     paint(next);
   }, ROTATION_MS);
   paint(0);
+  const hero = doc.querySelector('.hero-default');
+  if (hero) hero.addEventListener('click', (event) => {
+    event.preventDefault();
+    collection.filter({ query: '풀세트', gradeMin: 9 });
+  });
 }
 
 /* ── 가격대·테마 슬라이더 ── */
@@ -85,8 +90,7 @@ function initCategorySlider({ doc, window: win, mount, collection }) {
     if (!button) return;
     const banner = CATEGORY_BANNERS.find((item) => item.slug === button.dataset.slug);
     if (!banner) return;
-    if (banner.query) collection.search(banner.query);
-    else collection.filterByPrice(banner.min, banner.max);
+    collection.filter({ brand: banner.brand, query: banner.query, min: banner.min, max: banner.max });
   });
 
   show(Math.floor(Math.random() * total));
@@ -151,7 +155,7 @@ function createFeaturedBanner({ doc, window: win, mount, collection }) {
   function paint(item) {
     shownId = item.id;
     const cutout = isCutoutPhoto(item.image);
-    const spec = specText(item);
+    const spec = featuredMetaText(item);
     card.dataset.pid = item.id;
     card.style.backgroundImage = `url(${FABRICS[stableIndex(item.id, FABRICS.length)]})`;
     card.innerHTML =
@@ -159,7 +163,6 @@ function createFeaturedBanner({ doc, window: win, mount, collection }) {
       (cutout ? '<span class="feat-gs"></span>' : '') +
       `<span class="feat-ph${cutout ? '' : ' card'}"></span>` +
       '<span class="bn-tx">' +
-      `<span class="feat-tag">${FEATURED_BADGES[stableIndex(item.id, FEATURED_BADGES.length)]}</span>` +
       `<span class="feat-br">${item.brand}</span>` +
       `<span class="feat-nm">${item.model}</span>` +
       (spec ? `<span class="feat-sp">${spec}</span>` : '') +
@@ -199,7 +202,7 @@ function createFeaturedBanner({ doc, window: win, mount, collection }) {
 }
 
 export function initHomeBanners({ document: doc, window: win, collection }) {
-  initHeroSlogans({ doc, win });
+  initHeroSlogans({ doc, win, collection });
   initCategorySlider({ doc, window: win, mount: doc.getElementById('catBannerBlock'), collection });
   renderBuyinBanner({ doc, win, mount: doc.getElementById('buyBannerBlock') });
   return createFeaturedBanner({ doc, window: win, mount: doc.getElementById('featBannerBlock'), collection });

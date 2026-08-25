@@ -18,6 +18,14 @@ export function specText(listing) {
   return parts.slice(0, 3).join(' · ');
 }
 
+/* 단독 매물 배너: 추상적인 설명 대신 실제 구성품·사이즈·상품번호를 짧게 보여준다. */
+export function featuredMetaText(listing) {
+  const parts = [String(listing.pack || '').trim() || '단품'];
+  if (listing.sizeMm) parts.push(`${String(listing.sizeMm).replace(/mm$/i, '')}mm`);
+  if (listing.productNo) parts.push(listing.productNo);
+  return parts.slice(0, 3).join(' · ');
+}
+
 /* 내려간 금액 뱃지 문구 — 프리뷰 시안대로 만원·억 단위로 읽는다 */
 export function dropAmountText(listing) {
   const drop = (Number(listing.listPrice) || 0) - (Number(listing.price) || 0);

@@ -61,9 +61,12 @@ export function createHomeMerchandising({ window: win }) {
       const current = listings || [];
       const activeSale = current.filter((item) => item.saleActive);
       const weeklyPool = activeSale.length ? activeSale : current;
+      const weeklySpecial = rank(weeklyPool, { limit: WEEKLY_LIMIT, surface: 'weekly_special' });
+      const weeklyIds = new Set(weeklySpecial.items.map((item) => String(item.id)));
+      const recommendedPool = current.filter((item) => !weeklyIds.has(String(item.id)));
       return {
-        weeklySpecial: rank(weeklyPool, { limit: WEEKLY_LIMIT, surface: 'weekly_special' }),
-        recommended: rank(current, { limit: RECOMMENDED_LIMIT, surface: 'recommended_listings' }),
+        weeklySpecial,
+        recommended: rank(recommendedPool, { limit: RECOMMENDED_LIMIT, surface: 'recommended_listings' }),
       };
     },
   };

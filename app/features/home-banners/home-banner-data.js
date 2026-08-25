@@ -2,63 +2,41 @@
 
 /* 가격대·테마 10종. 배너 이미지는 왼쪽 문구 공간과 오른쪽 시계 구도가 맞는 순서로 연결한다. */
 export const CATEGORY_BANNERS = [
-  { slug: 'datejust', lead: '어디에나 어울리는', title: '데이트저스트', sub: '롤렉스 대표 라인업', query: '데이트저스트', image: 'assets/banners/category-01.webp' },
-  { slug: 'over1000', lead: '평생 곁에 둘', title: '1,000만원 이상', sub: '파텍필립 · 오데마피게 · 바쉐론', min: 10000000, image: 'assets/banners/category-02.webp' },
-  { slug: 'diver', lead: '물 위에서도 선명한', title: '다이버 워치', sub: '서브마리너 · 씨마스터 · 파네라이', query: '다이버', image: 'assets/banners/category-03.webp' },
-  { slug: 'under500', lead: '가장 많이 찾는', title: '500만원 미만', sub: '오메가 · 태그호이어 · 튜더', max: 5000000, image: 'assets/banners/category-04.webp' },
-  { slug: 'women', lead: '손목 위의 가벼운 빛', title: '여성 시계', sub: '까르띠에 · 샤넬 · 에르메스', query: '여성', image: 'assets/banners/category-05.webp' },
-  { slug: 'under1000', lead: '롤렉스를 만나는', title: '1,000만원 미만', sub: '롤렉스 · 까르띠에 · IWC', max: 10000000, image: 'assets/banners/category-06.webp' },
-  { slug: 'wedding', lead: '두 사람의 시작에', title: '예물 시계', sub: '까르띠에 · 샤넬 · 불가리', query: '예물', image: 'assets/banners/category-07.webp' },
-  { slug: 'vintage', lead: '세월이 만든', title: '빈티지 컬렉션', sub: '희귀 · 단종 모델', query: '빈티지', image: 'assets/banners/category-08.webp' },
-  { slug: 'fullset', lead: '상자까지 그대로인', title: '풀세트 매물', sub: '박스 · 개런티 완비', query: '풀세트', image: 'assets/banners/category-09.webp' },
-  { slug: 'under300', lead: '첫 명품시계로 좋은', title: '300만원 미만', sub: '해밀턴 · 론진 · 라도 · 구찌', max: 3000000, image: 'assets/banners/category-10.webp' },
+  { slug: 'datejust', lead: '매일을 함께할 클래식', title: '데이트저스트', sub: '롤렉스의 가장 대표적인 선택', query: '데이트저스트', image: 'assets/banners/category-01.webp' },
+  { slug: 'over1000', lead: '시간을 넘어 남는 이름', title: '1,000만원 이상의 명작', sub: '파텍필립 · 오데마피게 · 바쉐론 콘스탄틴', min: 10000000, image: 'assets/banners/category-02.webp' },
+  { slug: 'diver', lead: '깊이에서도 흔들리지 않는', title: '다이버 워치', sub: '서브마리너 · 씨마스터 · 파네라이', query: '다이버', image: 'assets/banners/category-03.webp' },
+  { slug: 'under500', lead: '가격보다 빛나는 선택', title: '500만원 미만 컬렉션', sub: '오메가 · 태그호이어 · 튜더', max: 5000000, image: 'assets/banners/category-04.webp' },
+  { slug: 'women', lead: '손목 위 가장 우아한 빛', title: '여성 명품시계', sub: '까르띠에 · 샤넬 · 에르메스', query: '여성', image: 'assets/banners/category-05.webp' },
+  { slug: 'under1000', lead: '천만원 아래에서 만나는', title: '롤렉스 컬렉션', sub: '롤렉스 · 까르띠에 · IWC', brand: '롤렉스', max: 10000000, image: 'assets/banners/category-06.webp' },
+  { slug: 'wedding', lead: '함께할 시간을 고르는 순간', title: '예물 시계', sub: '까르띠에 · 샤넬 · 불가리', query: '예물', image: 'assets/banners/category-07.webp' },
+  { slug: 'vintage', lead: '시간이 더해 만든 가치', title: '빈티지 컬렉션', sub: '희귀 모델부터 단종 모델까지', query: '빈티지', image: 'assets/banners/category-08.webp' },
+  { slug: 'fullset', lead: '처음의 모습 그대로', title: '풀세트 컬렉션', sub: '박스와 보증서를 갖춘 매물', query: '풀세트', image: 'assets/banners/category-09.webp' },
+  { slug: 'under300', lead: '첫 명품시계를 위한 시작', title: '300만원 미만 컬렉션', sub: '해밀턴 · 론진 · 라도 · 구찌', max: 3000000, image: 'assets/banners/category-10.webp' },
 ];
 
 /* 매입 배너 15종. 설명형 종결어미를 줄이고 짧은 슬로건으로 읽히게 한다. */
 export const BUYIN_COPY = [
-  { lead: '가치 확인부터, 부담 없이', title: ['서랍 속 그 시계,', '오늘은 얼마일까'] },
-  { lead: '서류보다 중요한 건 시계', title: ['보증서는 사라져도', '남아 있는 가치'] },
-  { lead: '시계 한 점으로 충분', title: ['박스도 서류도 없이,', '시계만으로'] },
-  { lead: '단품도 정식 감정', title: ['풀세트가 아니어도,', '가치는 온전히'] },
-  { lead: '오래 둘수록 다시 볼 가치', title: ['십 년을 건너온 시계,', '다시 보는 오늘'] },
-  { lead: '잠들어 있던 시간만큼', title: ['차지 않은 날들에도', '시세는 움직인다'] },
-  { lead: '오늘의 시세로', title: ['안 차는 시계,', '지금의 가치'] },
-  { lead: '연식보다 중요한 기준', title: ['오래된 시계일수록', '제대로 보는 눈'] },
-  { lead: '결정은 천천히', title: ['팔지 않아도 좋은,', '가치 확인부터'] },
-  { lead: '구성품 없이도', title: ['시계는 시계만으로', '이미 충분'] },
-  { lead: '여러 곳의 값을 한 번에', title: ['한 곳의 값만', '믿지 말 것'] },
-  { lead: '보관만 하고 있었다면', title: ['장롱 속에도', '매일의 시세'] },
-  { lead: '이어받은 시간까지', title: ['누군가 아꼈던 시계,', '이어지는 가치'] },
-  { lead: '사진 한 장으로 시작', title: ['가져오지 않아도', '먼저 보는 가치'] },
-  { lead: '지금 값을 알아둘 때', title: ['파는 날은 나중,', '가치는 오늘'] },
+  { lead: '내 명품시계', title: ['지금 판매하면 얼마일까요?'] },
+  { lead: '오랫동안 보관만 한 내 시계', title: ['지금 매입금액은 얼마일까요?'] },
+  { lead: '장롱 속에 잠든 명품시계', title: ['지금 한번 판매해볼까요?'] },
+  { lead: '요즘 잘 차지 않는 시계', title: ['현재 시세는 얼마일까요?'] },
+  { lead: '몇 년째 보관 중인 시계', title: ['그동안 가치는 얼마나 달라졌을까요?'] },
+  { lead: '새 시계로 바꾸고 싶다면', title: ['지금 시계는 얼마에 팔 수 있을까요?'] },
+  { lead: '보증서를 잃어버린 내 시계', title: ['그래도 판매할 수 있을까요?'] },
+  { lead: '박스 없이 시계만 있다면', title: ['매입금액은 얼마나 나올까요?'] },
+  { lead: '오래된 명품시계', title: ['지금도 제값을 받을 수 있을까요?'] },
+  { lead: '물려받아 보관 중인 시계', title: ['현재 가치는 얼마일까요?'] },
+  { lead: '고장 나서 차지 못하는 시계', title: ['이 상태로도 판매할 수 있을까요?'] },
+  { lead: '한 번도 시세를 알아보지 않은 시계', title: ['지금 가격이 궁금하지 않으신가요?'] },
+  { lead: '모델명을 모르는 내 시계', title: ['사진만으로도 견적을 받을 수 있을까요?'] },
+  { lead: '팔까 말까 고민 중이라면', title: ['현재 가치부터 확인해볼까요?'] },
+  { lead: '내가 받은 시계 견적', title: ['정말 가장 높은 금액일까요?'] },
 ];
 
 export const FEATURED_MAX = 10;
 
-export const FEATURED_BADGES = [
-  '오늘의 추천 매물', '검수 완료 매물', '이번 주 단 한 점', '단독 입고 매물',
-  '놓치기 아까운 컨디션', '사진 그대로의 상태', '실물 검수 완료',
-  '풀세트 그대로 입고', '미착용에 가까운', '다시 보기 어려운 구성',
-  '오늘 새로 들어온', '상태가 특히 좋은', '찾는 분이 많은 모델',
-  '재고 마지막 한 점', '지금 바로 출고 가능',
-];
-
 export const HERO_COPY = [
-  { title: ['실물 그대로 보고', '고르는 명품시계'], sub: '검수 사진 · 구성품 · 가격까지 한눈에' },
-  { title: ['사진으로 보는', '모든 상태'], sub: '흠집까지 숨기지 않는 투명한 기록' },
-  { title: ['보고 고르는', '확신'], sub: '실물 검수 사진 전부 공개' },
-  { title: ['상태를 알고 사는', '중고시계'], sub: '구성품 · 컨디션 · 가격까지 투명하게' },
-  { title: ['좋은 시계는', '조용히 온다'], sub: '매일 새로 들어오는 검수 완료 매물' },
-  { title: ['가품이라면', '전액 환불'], sub: '정품에 대한 벨로르의 책임' },
-  { title: ['살 때도, 팔 때도', '벨로르'], sub: '구입 · 판매 · 수리를 한 곳에서' },
-  { title: ['오늘 도착한', '새 매물'], sub: '검수를 마친 시계만 등록' },
-  { title: ['직접 보고 고르는', '확신'], sub: '서울 중구 매장 방문 가능' },
-  { title: ['손목까지 이어지는', '2~4일'], sub: '전국 무료배송' },
-  { title: ['급하지 않게', '고르는 시간'], sub: '상세페이지에 담은 모든 정보' },
-  { title: ['묻기 전에', '알 수 있게'], sub: '스펙 · 구성품 · 상태 모두 공개' },
-  { title: ['중고라도', '분명한 기준'], sub: '전문가 정밀 검수 후 등록' },
-  { title: ['첫 명품시계일수록', '신중하게'], sub: '예산별로 나누어 보는 컬렉션' },
-  { title: ['믿고 살 수 있는', '곳'], sub: '판매 당사자로 지는 벨로르의 책임' },
+  { title: ['최상급의 상태,', '처음 그대로의 구성'], sub: '9점 이상 · 박스와 보증서, 모든 구성품을 갖춘 시계' },
 ];
 
 /* 배너 배경은 매물 id로 고정한다 — 같은 시계는 늘 같은 원단 위에 올라온다. */

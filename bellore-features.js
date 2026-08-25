@@ -491,15 +491,15 @@
         '</select></label>' +
         '<label class="banner-active-row"><input type="checkbox" name="active"' + (!item || item.active ? ' checked' : '') + '> <span>노출하기</span></label>' +
         '<div class="banner-img-slot"><label><span>① 모바일 이미지 *</span></label>' +
-        '<p class="muted small">휴대폰 화면용 · 권장 <b>1220 × 1480px</b> · 어떤 비율이든 잘리지 않습니다</p>' +
+        '<p class="muted small">휴대폰 가로배너 · 권장 <b>1080 × 720px</b> · 3:2 비율</p>' +
         '<div class="banner-slot-body"><div class="banner-slot-pick" id="bannerPhoto"></div>' +
         '<div class="banner-slot-size"><span class="bss-label">현재 등록된 사진 사이즈</span><span class="bss-val" id="bannerSize">—</span></div></div></div>' +
         '<div class="banner-img-slot"><label><span>② 태블릿(와이드) 이미지</span></label>' +
-        '<p class="muted small">권장 <b>1800 × 1480px</b> · 없으면 모바일 이미지 사용</p>' +
+        '<p class="muted small">태블릿 가로배너 · 권장 <b>1600 × 900px</b> · 없으면 모바일 이미지 사용</p>' +
         '<div class="banner-slot-body"><div class="banner-slot-pick" id="bannerPhotoWide"></div>' +
         '<div class="banner-slot-size"><span class="bss-label">현재 등록된 사진 사이즈</span><span class="bss-val" id="bannerSizeWide">—</span></div></div></div>' +
         '<div class="banner-img-slot"><label><span>③ PC(웹) 이미지</span></label>' +
-        '<p class="muted small">권장 <b>1440 × 1480px</b> · 없으면 와이드/모바일 이미지 사용</p>' +
+        '<p class="muted small">PC 가로배너 · 권장 <b>1920 × 840px</b> · 없으면 와이드/모바일 이미지 사용</p>' +
         '<div class="banner-slot-body"><div class="banner-slot-pick" id="bannerPhotoPc"></div>' +
         '<div class="banner-slot-size"><span class="bss-label">현재 등록된 사진 사이즈</span><span class="bss-val" id="bannerSizePc">—</span></div></div></div>' +
         '<button type="submit" class="login-btn login-default">' + (item ? '수정 저장' : '등록') + '</button>' +

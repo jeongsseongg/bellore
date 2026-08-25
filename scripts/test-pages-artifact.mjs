@@ -198,7 +198,7 @@ async function validateArtifact(site, { expectSeo }) {
   assert(shellBlock, '서비스워커 SHELL_ASSETS를 찾지 못했습니다.');
   const shellAssets = [...shellBlock.matchAll(/['"](\.\/[^'"]+)['"]/g)]
     .map((match) => match[1].split(/[?#]/, 1)[0]);
-  assert.equal(shellAssets.length, 53, '서비스워커 셸 자산 개수가 기준과 다릅니다.');
+  assert.equal(shellAssets.length, 56, '서비스워커 셸 자산 개수가 기준과 다릅니다.');
   for (const asset of shellAssets) {
     await lstat(resolve(site, asset));
   }
