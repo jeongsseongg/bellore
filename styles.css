@@ -7839,29 +7839,6 @@ body.is-searching .tabbar { display: none !important; }
 .col-grid-inner .hcard-img,
 .hcard-grid .hcard-img { flex: 0 0 auto; }
 
-/* ============ 쿠폰 ============ */
-/* 체크아웃 쿠폰 영역 */
-.co-coupon-select {
-    width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px;
-    font-size: 14px; background: #fff; color: var(--text); margin-bottom: 10px;
-}
-.co-coupon-code { display: flex; gap: 8px; min-width: 0; }
-.co-coupon-code input {
-    flex: 1; min-width: 0; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; font-size: 14px;
-}
-.co-coupon-code button {
-    flex: 0 0 auto; white-space: nowrap; padding: 0 18px; border: 1px solid var(--text); border-radius: 10px;
-    background: var(--text); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer;
-}
-.co-coupon-msg { margin: 8px 0 0; font-size: 13px; }
-.co-coupon-msg.ok { color: #1a7f37; }
-.co-coupon-msg.err { color: #c0392b; }
-.co-discount-row {
-    display: flex; justify-content: space-between; align-items: center;
-    font-size: 14px; color: #c0392b; margin-bottom: 6px;
-}
-.co-discount-row strong { font-weight: 700; }
-
 /* 마이페이지 쿠폰 등록 */
 .coupon-redeem { display: flex; gap: 8px; margin-bottom: 14px; min-width: 0; }
 .coupon-redeem input {
