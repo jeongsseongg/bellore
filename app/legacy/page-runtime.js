@@ -1,6 +1,6 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('sw.js?v=20260825-home-banner-fit-v1').catch(function (err) {
+                navigator.serviceWorker.register('sw.js?v=20260825-banner-contract-v2').catch(function (err) {
                     console.warn('서비스워커 등록 실패:', err);
                 });
             });
@@ -32,9 +32,8 @@
             }
 
             /* ---- 필터 상태 ---- */
-            var fBrand = 'all', fModel = '', fQuery = '', fNew = false, fGrade = '', fSort = 'latest';
-            var cf = { sizeMin: null, sizeMax: null, priceMin: null, priceMax: null, yearMin: null, yearMax: null, warranty: '', diamond: '', colors: [], materials: [], grades: [] };
-
+            var fBrand = 'all', fModel = '', fQuery = '', fNew = false, fGrade = '', fSort = 'latest', homeRule = null;
+            var cf = { sizeMin: null, sizeMax: null, priceMin: null, priceMax: null, yearMin: null, yearMax: null, warranty: '', diamond: '', colors: [], materials: [], grades: [] }; function containsAny(text, values) { text = String(text || '').toLowerCase(); return (values || []).some(function (value) { return text.indexOf(String(value).toLowerCase()) !== -1; }); }
             function matchCard(c) {
                 var el = c.querySelector('.hcard-brand');
                 var bd = (c.dataset.brand || (el ? el.textContent : '')).toUpperCase();
@@ -50,17 +49,18 @@
                 var mat = c.dataset.material || '';
                 var dia = c.dataset.diamond === '1';
                 var war = c.dataset.warranty === '1';
-                var isNew = c.getAttribute('data-new') === '1';
+                var isNew = c.getAttribute('data-new') === '1'; var hay = (bd + ' ' + md + ' ' + no + ' ' + color + ' ' + mat + ' ' + pk).toLowerCase();
                 if (fBrand && fBrand !== 'all' && bd.indexOf(fBrand.toUpperCase()) === -1) return false;
                 if (fModel && md.indexOf(fModel.toLowerCase()) === -1) return false;
-                if (fQuery) { var q = fQuery.toLowerCase(); var hay = (bd + ' ' + md + ' ' + no + ' ' + color + ' ' + mat + ' ' + pk).toLowerCase(); if (hay.indexOf(q) === -1) return false; }
+                if (fQuery) { var q = fQuery.toLowerCase(); if (hay.indexOf(q) === -1) return false; }
+                if (homeRule && ((homeRule.brandsAny && !containsAny(bd, homeRule.brandsAny)) || (homeRule.termsAny && !containsAny(hay, homeRule.termsAny)) || (homeRule.packsAny && homeRule.packsAny.indexOf(pk) === -1) || (homeRule.audience === 'women' && !(sz > 0 && sz <= 31) && !containsAny(md, ['여성', '레이디', '레이디스', '미니', '스몰'])) || (homeRule.vintage && c.dataset.vintage !== '1'))) return false;
                 if (fNew && !isNew) return false;
                 if (fGrade && pk !== fGrade) return false;
                 if (cf.conditionMin != null && conditionScore < cf.conditionMin) return false;
                 if (cf.sizeMin != null && !(sz >= cf.sizeMin)) return false;
                 if (cf.sizeMax != null && !(sz > 0 && sz <= cf.sizeMax)) return false;
                 if (cf.priceMin != null && !(pr >= cf.priceMin)) return false;
-                if (cf.priceMax != null && !(pr > 0 && pr <= cf.priceMax)) return false;
+                if (cf.priceMax != null && !(pr > 0 && pr <= cf.priceMax)) return false; if (homeRule && homeRule.maxExclusive != null && !(pr > 0 && pr < homeRule.maxExclusive)) return false;
                 if (cf.yearMin != null && !(yr >= cf.yearMin)) return false;
                 if (cf.yearMax != null && !(yr > 0 && yr <= cf.yearMax)) return false;
                 if (cf.warranty === '1' && !war) return false;
@@ -83,7 +83,7 @@
                 cards.forEach(function (c) { grid.appendChild(c); });
             }
             function applyFilters(options) {
-                if (options && options.homeCategory) { fBrand = options.brand || 'all'; fModel = ''; fQuery = options.query || ''; fNew = false; fGrade = ''; cf = { sizeMin: null, sizeMax: null, priceMin: options.min == null ? null : Number(options.min), priceMax: options.max == null ? null : Number(options.max), conditionMin: options.gradeMin == null ? null : Number(options.gradeMin), yearMin: null, yearMax: null, warranty: '', diamond: '', colors: [], materials: [], grades: [] }; }
+                if (options && options.homeCategory) { homeRule = options; fBrand = 'all'; fModel = ''; fQuery = ''; fNew = false; fGrade = ''; cf = { sizeMin: null, sizeMax: null, priceMin: options.min == null ? null : Number(options.min), priceMax: null, conditionMin: options.gradeMin == null ? null : Number(options.gradeMin), yearMin: null, yearMax: null, warranty: '', diamond: '', colors: [], materials: [], grades: [] }; }
                 if (options && options.homeCategory) brands.forEach(function (button) { button.classList.toggle('active', button.dataset.brand === fBrand); });
                 if (options && options.homeCategory) renderModelChips(fBrand);
                 if (window.BELLORE_hideSearchEmpty) window.BELLORE_hideSearchEmpty();
@@ -91,7 +91,7 @@
                 grid.querySelectorAll('.hcard').forEach(function (c) { var ok = matchCard(c); c.style.display = ok ? '' : 'none'; if (ok) shown++; });
                 sortCards();
                 if (countEl) countEl.textContent = shown;
-                if (shown === 0 && (fQuery || (fBrand && fBrand !== 'all') || fModel) && window.BELLORE_showCollectionEmpty) {
+                if (shown === 0 && (homeRule || fQuery || (fBrand && fBrand !== 'all') || fModel) && window.BELLORE_showCollectionEmpty) {
                     window.BELLORE_showCollectionEmpty(fBrand, fModel || fQuery, '');
                 }
             }
@@ -103,7 +103,7 @@
                     if (window.BELLORE_hideSearchEmpty) window.BELLORE_hideSearchEmpty();
                     brands.forEach(function (x) { x.classList.remove('active'); });
                     btn.classList.add('active');
-                    fBrand = btn.dataset.brand; fModel = '';
+                    homeRule = null; fBrand = btn.dataset.brand; fModel = '';
                     renderModelChips(fBrand);
                     applyFilters();
                     hideSuggest();
@@ -181,7 +181,7 @@
                 function runSearch(raw) {
                     var v = (raw == null ? bq.value : raw).trim();
                     window.__catFilterBrands(v);
-                    fQuery = v ? aliasExpand(v) : '';   // 그리드: 별칭 확장(금통→골드 등)
+                    homeRule = null; fQuery = v ? aliasExpand(v) : '';   // 그리드: 별칭 확장(금통→골드 등)
                     if (clearBtn) clearBtn.hidden = !v;
                     applyFilters();
                 }
@@ -218,7 +218,7 @@
             if (catModels) catModels.addEventListener('click', function (e) {
                 var cm = e.target.closest('.cat-model'); if (!cm) return;
                 catModels.querySelectorAll('.cat-model').forEach(function (x) { x.classList.toggle('active', x === cm); });
-                fModel = cm.dataset.model || '';
+                homeRule = null; fModel = cm.dataset.model || '';
                 applyFilters();
             });
 

@@ -4027,7 +4027,7 @@
             card.dataset.sprice = it.sale_price || '';
             card.dataset.saleactive = window.belloreSaleActive(it) ? '1' : '';
             card.dataset.pack = it.pack || '';
-            card.dataset.size = it.size_mm || '';
+            card.dataset.size = it.size_mm || ''; card.dataset.vintage = /빈티지/.test((it.model || '') + ' ' + (it.condition_notes || '')) ? '1' : '';
             card.dataset.color = it.dial_color || '';
             card.dataset.material = it.material || '';
             card.dataset.diamond = it.has_diamond ? '1' : '';

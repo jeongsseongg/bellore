@@ -2,7 +2,7 @@
    배경만 픽셀 이미지(assets/banners)이고 시계 사진·모델명·금액·문구는 실제 데이터로 그린다.
    매물은 홈 '판매 중인 시계' 그리드가 채워지는 것을 보고 그대로 읽어 쓴다. */
 
-import { BUYIN_COPY, CATEGORY_BANNERS, FEATURED_MAX, HERO_COPY, stableIndex } from './home-banner-data.js';
+import { BUYIN_COPY, CATEGORY_BANNERS, FEATURED_MAX, HERO_COPY, HERO_FILTER, stableIndex } from './home-banner-data.js';
 import { featuredMetaText, isCutoutPhoto, priceText, shuffled } from '../../core/listing-display.js';
 
 const FABRICS = [
@@ -47,7 +47,7 @@ function initHeroSlogans({ doc, win, collection }) {
   const hero = doc.querySelector('.hero-default');
   if (hero) hero.addEventListener('click', (event) => {
     event.preventDefault();
-    collection.filter({ query: '풀세트', gradeMin: 9 });
+    collection.filter(HERO_FILTER);
   });
 }
 
@@ -90,7 +90,7 @@ function initCategorySlider({ doc, window: win, mount, collection }) {
     if (!button) return;
     const banner = CATEGORY_BANNERS.find((item) => item.slug === button.dataset.slug);
     if (!banner) return;
-    collection.filter({ brand: banner.brand, query: banner.query, min: banner.min, max: banner.max });
+    collection.filter(banner.filter);
   });
 
   show(Math.floor(Math.random() * total));
