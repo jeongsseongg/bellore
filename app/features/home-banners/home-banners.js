@@ -2,20 +2,23 @@
    배경만 픽셀 이미지(assets/banners)이고 시계 사진·모델명·금액·문구는 실제 데이터로 그린다.
    매물은 홈 '판매 중인 시계' 그리드가 채워지는 것을 보고 그대로 읽어 쓴다. */
 
-import { BUYIN_COPY, CATEGORY_BANNERS, FEATURED_MAX, HERO_COPY, HERO_FILTER, stableIndex } from './home-banner-data.js';
-import { featuredMetaText, isCutoutPhoto, priceText, shuffled } from '../../core/listing-display.js';
+import { BUYIN_COPY, CATEGORY_BANNERS, FEATURED_MAX, HERO_CAMPAIGNS, stableIndex } from './home-banner-data.js';
+import { featuredMetaText, isCutoutPhoto, listingPresentation, priceText, shuffled } from '../../core/listing-display.js';
 
-const FABRICS = [
-  'assets/banners/fab-1.jpg', 'assets/banners/fab-2.jpg', 'assets/banners/fab-3.jpg',
-  'assets/banners/fab-4.jpg', 'assets/banners/fab-5.jpg',
+const PRODUCT_STAGES = [
+  'assets/banners/product-stage-01.webp', 'assets/banners/product-stage-02.webp',
+  'assets/banners/product-stage-03.webp', 'assets/banners/product-stage-04.webp',
+  'assets/banners/product-stage-05.webp', 'assets/banners/product-stage-06.webp',
 ];
 const BUYIN_BACKGROUNDS = [
-  'assets/banners/buybg-1.jpg', 'assets/banners/buybg-2.jpg',
-  'assets/banners/buybg-3.jpg', 'assets/banners/buybg-4.jpg',
+  { image: 'assets/banners/buyin-01.webp', darkCopy: false },
+  { image: 'assets/banners/buyin-02.webp', darkCopy: true },
+  { image: 'assets/banners/buyin-03.webp', darkCopy: true },
+  { image: 'assets/banners/buyin-04.webp', darkCopy: false },
+  { image: 'assets/banners/buyin-05.webp', darkCopy: true },
+  { image: 'assets/banners/buyin-06.webp', darkCopy: false },
 ];
-const BUYIN_WATCHES = [
-  'assets/m2282380069.png', 'assets/m3362390002.png', 'assets/m3369350008.png',
-];
+const BUYIN_IMAGE_BY_COPY = [0, 3, 3, 0, 3, 5, 1, 1, 2, 3, 2, 5, 4, 5, 0];
 const BUYIN_MEMORY_KEY = 'bl_buyin_banner';
 const ROTATION_MS = 15000;
 const FEATURED_AFTER_CARD = 6;
@@ -27,28 +30,15 @@ function writeMemory(win, key, value) {
   try { win.localStorage.setItem(key, String(value)); } catch (error) { /* 시크릿 모드 등 */ }
 }
 
-function initHeroSlogans({ doc, win, collection }) {
-  const title = doc.getElementById('heroSloganTitle');
-  const sub = doc.getElementById('heroSloganSub');
-  if (!title || !sub) return;
-  let index = 0;
-  function paint(target) {
-    index = ((target % HERO_COPY.length) + HERO_COPY.length) % HERO_COPY.length;
-    const copy = HERO_COPY[index];
-    title.innerHTML = copy.title.join('<br>');
-    sub.textContent = copy.sub;
-  }
-  win.setInterval(() => {
-    let next = index;
-    while (next === index && HERO_COPY.length > 1) next = Math.floor(Math.random() * HERO_COPY.length);
-    paint(next);
-  }, ROTATION_MS);
-  paint(0);
-  const hero = doc.querySelector('.hero-default');
-  if (hero) hero.addEventListener('click', (event) => {
-    event.preventDefault();
-    collection.filter(HERO_FILTER);
-  });
+function initHeroCampaigns({ doc, win, collection }) {
+  const track = doc.getElementById('heroTrack');
+  if (!track) return;
+  win.BELLORE_HOME_CAMPAIGNS = HERO_CAMPAIGNS;
+  track._openHeroCampaign = (action) => {
+    const campaign = HERO_CAMPAIGNS.find((item) => item.action === action);
+    if (campaign) collection.filter(campaign.filter);
+  };
+  if (typeof win.belloreSetBanners === 'function') win.belloreSetBanners(HERO_CAMPAIGNS);
 }
 
 /* ── 가격대·테마 슬라이더 ── */
@@ -106,7 +96,7 @@ function renderBuyinBanner({ doc, win, mount }) {
 
   mount.innerHTML =
     '<a class="bn-buy" href="#compare" data-nav="compare">' +
-    '<span class="bn-fx"></span><span class="bn-watch"></span>' +
+    '<span class="bn-fx"></span>' +
     '<span class="bn-tx">' +
     '<span class="bn-lead"></span>' +
     '<span class="bn-t"></span>' +
@@ -117,11 +107,11 @@ function renderBuyinBanner({ doc, win, mount }) {
   function paint(target) {
     index = ((target % BUYIN_COPY.length) + BUYIN_COPY.length) % BUYIN_COPY.length;
     const copy = BUYIN_COPY[index];
+    const background = BUYIN_BACKGROUNDS[BUYIN_IMAGE_BY_COPY[index] % BUYIN_BACKGROUNDS.length];
     mount.querySelector('.bn-lead').textContent = copy.lead;
     mount.querySelector('.bn-t').innerHTML = copy.title.join('<br>');
-    banner.style.backgroundImage = `url(${BUYIN_BACKGROUNDS[index % BUYIN_BACKGROUNDS.length]})`;
-    mount.querySelector('.bn-watch').style.backgroundImage =
-      `url(${BUYIN_WATCHES[index % BUYIN_WATCHES.length]})`;
+    banner.style.backgroundImage = `url(${background.image})`;
+    banner.classList.toggle('is-dark-copy', background.darkCopy);
     writeMemory(win, BUYIN_MEMORY_KEY, index);
   }
   paint(index);
@@ -156,16 +146,19 @@ function createFeaturedBanner({ doc, window: win, mount, collection }) {
     shownId = item.id;
     const cutout = isCutoutPhoto(item.image);
     const spec = featuredMetaText(item);
+    const presentation = listingPresentation(item);
+    const detail = presentation.featureMovement || spec;
     card.dataset.pid = item.id;
-    card.style.backgroundImage = `url(${FABRICS[stableIndex(item.id, FABRICS.length)]})`;
+    card.style.backgroundImage = `url(${PRODUCT_STAGES[stableIndex(item.id, PRODUCT_STAGES.length)]})`;
     card.innerHTML =
       '<span class="bn-fx"></span>' +
       (cutout ? '<span class="feat-gs"></span>' : '') +
       `<span class="feat-ph${cutout ? '' : ' card'}"></span>` +
       '<span class="bn-tx">' +
       `<span class="feat-br">${item.brand}</span>` +
-      `<span class="feat-nm">${item.model}</span>` +
-      (spec ? `<span class="feat-sp">${spec}</span>` : '') +
+      `<span class="feat-nm">${presentation.modelSize}</span>` +
+      (presentation.referenceText ? `<span class="feat-ref">${presentation.referenceText}</span>` : '') +
+      (detail ? `<span class="feat-sp">${detail}</span>` : '') +
       `<span class="feat-pr">${priceText(item.price)}<i>원</i></span>` +
       '</span>';
     card.querySelector('.feat-ph').style.backgroundImage = `url(${item.image})`;
@@ -202,7 +195,7 @@ function createFeaturedBanner({ doc, window: win, mount, collection }) {
 }
 
 export function initHomeBanners({ document: doc, window: win, collection }) {
-  initHeroSlogans({ doc, win, collection });
+  initHeroCampaigns({ doc, win, collection });
   initCategorySlider({ doc, window: win, mount: doc.getElementById('catBannerBlock'), collection });
   renderBuyinBanner({ doc, win, mount: doc.getElementById('buyBannerBlock') });
   return createFeaturedBanner({ doc, window: win, mount: doc.getElementById('featBannerBlock'), collection });

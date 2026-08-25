@@ -8,7 +8,7 @@ import { initSiteHeader } from './ui/site-header.js';
 import { initNavigationHistory } from './ui/navigation-history.js';
 import { initWidthPreference } from './ui/width-preference.js';
 import { initHomeBanners } from './features/home-banners/home-banners.js';
-import { initHomeQuicklinks } from './features/home-quicklinks/home-quicklinks.js?v=20260826-home-compose-v3';
+import { initHomeQuicklinks } from './features/home-quicklinks/home-quicklinks.js?v=20260826-hero-campaigns-v4';
 import { createHomeMerchandising } from './features/home-merchandising/home-merchandising.js';
 import { initHomeRows } from './features/home-rows/home-rows.js';
 import { initProductDetailRoute, initProductSharing } from './features/product-sharing/product-sharing.mjs';

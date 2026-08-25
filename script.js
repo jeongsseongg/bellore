@@ -108,7 +108,7 @@
         function prev() { go(index - 1); }
         function restartAuto() {
             if (autoTimer) clearInterval(autoTimer);
-            if (slideEls().length > 1) autoTimer = setInterval(next, 6000);
+            if (slideEls().length > 1) autoTimer = setInterval(next, 15000);
         }
 
         if (prevBtn) prevBtn.addEventListener('click', prev);
@@ -190,32 +190,31 @@
         }
 
         // DB 배너 주입 (bellore-features.js 가 호출)
-        window.belloreSetBanners = function (list) { list = []; // 홈 상단은 승인된 단일 로컬 배너만 사용
+        window.belloreSetBanners = function (list) { list = window.BELLORE_HOME_CAMPAIGNS || []; // 원격 DB 대신 검수 캠페인
             $$('.hero-slide-db', track).forEach(function (n) { n.remove(); });
             var def = $('.hero-default', track);
             carousel.classList.toggle('has-db', !!(list && list.length));
             if (list && list.length) {
                 if (def) def.style.display = 'none';
                 list.forEach(function (b) {
-                    var slide = document.createElement(b.link ? 'a' : 'div');
-                    slide.className = 'hero-slide hero-slide-db';
-                    if (b.link) { slide.href = b.link; }
+                    var slide = document.createElement(b.action ? 'button' : (b.link ? 'a' : 'div'));
+                    slide.className = 'hero-slide hero-slide-db' + (b.action ? ' is-campaign' : '');
+                    if (b.link) slide.href = b.link; if (b.action) {
+                        slide.type = 'button'; slide.dataset.heroAction = b.action;
+                        slide.setAttribute('aria-label', (b.title || '컬렉션') + ' 보기'); slide.addEventListener('click', function (event) {
+                            if (typeof track._openHeroCampaign !== 'function') return;
+                            event.preventDefault(); track._openHeroCampaign(b.action);
+                        });
+                    }
                     slide._banner = b;
-                    // 문구(제목/부제목)를 넣으면 기본 히어로와 동일한 중앙 정렬 스타일로 노출
+                    var copyClass = 'hero-campaign-copy ' + (b.tone === 'light' ? 'is-light ' : '') + (b.position === 'right' ? 'is-right ' : '') + (b.position === 'top-left' ? 'is-top-left ' : '') + (b.compact ? 'is-compact' : '');
                     slide.innerHTML =
-                        '<div class="hero-slide-blur"></div>' +
-                        '<div class="hero-slide-bg"></div>' +
+                        '<div class="hero-slide-blur"></div><div class="hero-slide-bg"></div>' +
                         '<div class="hero-slide-ph" hidden>' +
                             '<span class="hero-slide-ph-logo">BELLORE</span>' +
                             '<span class="hero-slide-ph-text">이미지 업로드 중입니다</span>' +
                             '<span class="hero-slide-ph-sub">이 화면 규격 이미지가 아직 등록되지 않았어요</span>' +
-                        '</div>' +
-                        '<div class="hero-gradient"></div>' +
-                        '<div class="container hero-content hero-slide-text">' +
-                        (b.title ? '<h2 class="hero-slide-title">' + escapeHtml(b.title) + '</h2>' : '') +
-                        (b.subtitle ? '<p class="hero-slide-sub">' + escapeHtml(b.subtitle) + '</p>' : '') +
-                        (b.link ? '<div class="hero-cta hero-slide-cta"><span class="btn btn-primary">자세히 보기</span></div>' : '') +
-                        '</div>';
+                        '</div><span class="' + copyClass + '"><small>' + escapeHtml(b.lead) + '</small><strong>' + escapeHtml(b.title) + '</strong><em>' + escapeHtml(b.sub) + '</em></span>';
                     applySlideBg(slide);
                     track.appendChild(slide);
                 });
