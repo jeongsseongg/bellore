@@ -1245,7 +1245,7 @@
       price: l.price || 0,
       sale_price: l.sale_price || null,
       category: l.category || CATS.listing.brand,
-      status: l.status,
+      status: window.BELLORE_LISTING_AVAILABILITY ? window.BELLORE_LISTING_AVAILABILITY.effective(l) : l.status,
       tags: l.tags || [],
       condition: l.condition || '',
       pack: l.pack || '',
@@ -1289,7 +1289,7 @@
     return function () { removeFrom(listingRefreshers, load); };
   }
   function refreshListingFeeds() { listingRefreshers.slice().forEach(function (fn) { try { fn(); } catch (e) {} }); }
-
+  Backend.refreshListings = function () { refreshListingFeeds(); };
   // 벨로르 판매시계
   Backend.subscribeProducts = function (cb) { return subscribeListings(CATS.listing.brand, cb); };
   // 고객 판매 마켓 (검수 완료되어 게시된 매물)
@@ -2060,7 +2060,7 @@
           checkoutToken: params.checkoutToken || null,
           attribution: params.attribution || null
         })
-      }).then(function (r) { return r.json(); });
+      }).then(function (response) { return window.BELLORE_PAYMENT_FLOW.readResponse(response); });
     });
   };
 

@@ -1,7 +1,7 @@
 /* 홈의 시계 줄 — 카테고리별로 시계를 가로로 최대 20점까지 보여준다.
    모바일은 스와이프, PC는 마우스 드래그. 카드를 누르면 그 매물 상세로 간다. */
 
-import { discountRate, dropAmountText, listingPresentation, priceText } from '../../core/listing-display.js';
+import { discountRate, dropAmountText, listingAvailability, listingPresentation, priceText } from '../../core/listing-display.js?v=20260826-payment-recovery-v1';
 import { initHomeRowAdmin } from './home-row-admin.js';
 
 const ROW_MAX = 20;
@@ -64,6 +64,10 @@ function escapeText(value) {
 }
 
 function badgeMarkup(listing, kind) {
+  const availability = listingAvailability(listing.status);
+  if (availability.visible) {
+    return `<span class="hrow-sale-state is-${escapeText(availability.status)}">${escapeText(availability.label)}</span>`;
+  }
   if (kind === 'rate') {
     const rate = discountRate(listing);
     return rate > 0 ? `<span class="hrow-badge is-rate">${rate}%</span>` : '';
@@ -81,7 +85,8 @@ function badgeMarkup(listing, kind) {
 function cardMarkup(listing, kind) {
   const rate = discountRate(listing);
   const text = listingPresentation(listing);
-  return `<a class="hrow-card" href="#collection" draggable="false" data-pid="${listing.id}">` +
+  const availability = listingAvailability(listing.status);
+  return `<a class="hrow-card${availability.purchasable ? '' : ` is-${escapeText(availability.status)}`}" href="#collection" draggable="false" data-pid="${listing.id}" data-status="${escapeText(availability.status)}">` +
     `<span class="hrow-img">${badgeMarkup(listing, kind)}<span class="hrow-shadow"></span></span>` +
     `<span class="hrow-brand">${escapeText(listing.brand)}</span>` +
     `<span class="hrow-model">${escapeText(text.modelSize)}</span>` +

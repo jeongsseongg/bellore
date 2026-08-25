@@ -47,7 +47,7 @@ const CONTEXT_COPY = Object.freeze({
 });
 
 const PAYMENT_START_CODE_COPY = Object.freeze({
-  listing_reserved: '이 상품은 다른 결제 진행으로 잠시 예약되어 있습니다. 이전 결제를 취소하셨다면 최대 15분 후 다시 시도해 주세요.',
+  listing_reserved: '현재 구매가 진행 중인 상품입니다. 구매가 취소되면 다시 구매할 수 있습니다.',
   listing_unavailable: '현재 구매할 수 없는 상품입니다. 상품 상태를 다시 확인해 주세요.',
   listing_not_found: '상품 정보를 찾지 못했습니다. 화면을 새로고침한 뒤 다시 시도해 주세요.',
   coupon_invalid: '선택한 쿠폰을 사용할 수 없습니다. 쿠폰을 해제하거나 다른 쿠폰을 선택해 주세요.',
@@ -55,6 +55,11 @@ const PAYMENT_START_CODE_COPY = Object.freeze({
   checkout_amount_too_small: '결제금액은 100원 이상이어야 합니다. 쿠폰과 상품 가격을 확인해 주세요.',
   checkout_rate_limited: '결제 요청이 여러 번 반복되어 잠시 제한되었습니다. 15분 후 다시 시도해 주세요.',
   listing_price_invalid: '상품 가격을 다시 확인하고 결제를 진행해 주세요.',
+});
+
+const PAYMENT_CONFIRMATION_CODE_COPY = Object.freeze({
+  payment_confirmation_pending: '결제 승인 상태를 확인하고 있습니다. 다시 결제하지 말고 주문번호로 고객센터에 문의해 주세요.',
+  payment_confirmation_response_invalid: '결제 승인 상태를 확인하지 못했습니다. 다시 결제하지 말고 고객센터로 문의해 주세요.',
 });
 
 function contextName(contextOrOptions) {
@@ -129,6 +134,13 @@ export function customerFeedback(value, contextOrOptions = 'general') {
       classification: `payment_${exactCode}`,
       context,
       message: PAYMENT_START_CODE_COPY[exactCode],
+    });
+  }
+  if (context === 'confirmation' && PAYMENT_CONFIRMATION_CODE_COPY[exactCode]) {
+    return Object.freeze({
+      classification: exactCode,
+      context,
+      message: PAYMENT_CONFIRMATION_CODE_COPY[exactCode],
     });
   }
   const texts = errorTexts(value);

@@ -8,7 +8,9 @@ const engine = require(path.join(root, 'app', 'vendor', 'recommendation-engine.j
 const source = fs.readFileSync(
   path.join(root, 'app', 'features', 'home-merchandising', 'home-merchandising.js'),
   'utf8'
-).replace('export function createHomeMerchandising', 'function createHomeMerchandising') +
+).replace(/^import .*listingIsPurchasable.*;\r?\n/m,
+  "const listingIsPurchasable = (status) => !['reserved', 'sold', 'sold_out', 'hidden', 'unavailable'].includes(String(status || 'on_sale').toLowerCase());\n")
+  .replace('export function createHomeMerchandising', 'function createHomeMerchandising') +
   '\nmodule.exports = { createHomeMerchandising };';
 const sandbox = { module: { exports: {} }, exports: {}, console };
 vm.runInNewContext(source, sandbox, { filename: 'home-merchandising.js' });
@@ -30,6 +32,7 @@ function listing(index, saleActive) {
     pack: index % 2 ? '풀세트' : '단품',
     sizeMm: 40,
     material: '스틸',
+    status: 'on_sale',
     createdAt: `2026-08-${String(24 - (index % 10)).padStart(2, '0')}T00:00:00Z`,
   };
 }
@@ -51,6 +54,17 @@ assert.equal(
   first.weeklySpecial.items.some((weekly) => first.recommended.items.some((recommended) => recommended.id === weekly.id)),
   false,
   'weekly special and recommended listings must not overlap'
+);
+
+const unavailableCatalog = catalog.map((item) => ({ ...item }));
+unavailableCatalog[0].status = 'reserved';
+unavailableCatalog[1].status = 'sold';
+const unavailableResult = feature.update(unavailableCatalog, { weeklySpecialIds: ['watch-1', 'watch-2'] });
+assert.equal(
+  [...unavailableResult.weeklySpecial.items, ...unavailableResult.recommended.items]
+    .some((item) => ['watch-1', 'watch-2'].includes(item.id)),
+  false,
+  'reserved and sold listings must not be selected for home merchandising',
 );
 assert.deepEqual(first.recommended.items.map((item) => item.id), second.recommended.items.map((item) => item.id));
 assert.deepEqual(manual.weeklySpecial.items.slice(0, 2).map((item) => item.id), ['watch-16', 'watch-2']);

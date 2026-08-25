@@ -1,9 +1,23 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
 import {
+  hasConfirmedPaymentStatus,
   hasRefundablePaymentStatus,
-  hasSettledPaymentStatus,
 } from "../_shared/order-payment-states.ts";
 import { cancelAndReconcile } from "../_shared/portone-cancellation.ts";
+import {
+  finalizePaidOrderFromProvider,
+  lookupPortOnePayment,
+  markPaymentReviewIfUnsettled,
+  paymentRef,
+  readMatchingConfirmedOrder,
+  safeText,
+  type JsonRecord,
+} from "../_shared/payment-recovery.ts";
+import {
+  paidRecoveryAction,
+  providerStatusKind,
+  providerTotalAmount,
+} from "../_shared/payment-recovery-policy.mjs";
 
 const PORTONE_API_SECRET = Deno.env.get("PORTONE_API_SECRET") ?? "";
 const PORTONE_API_BASE = Deno.env.get("PORTONE_API_BASE") ?? "https://api.portone.io";
@@ -12,8 +26,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const POINT_EARN_BPS = Number(Deno.env.get("POINT_EARN_BPS") ?? "0");
 const ALLOW_TEST_PAYMENTS = Deno.env.get("ALLOW_TEST_PAYMENTS") === "true";
-
-type JsonRecord = Record<string, unknown>;
+const MAX_WEBHOOK_BYTES = 16_384;
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -22,10 +35,39 @@ function json(body: unknown, status = 200) {
   });
 }
 
-function safeText(value: unknown, max: number): string | null {
-  return typeof value === "string" && value.trim()
-    ? value.trim().slice(0, max)
-    : null;
+async function readWebhook(req: Request): Promise<{ body: JsonRecord | null; error: string | null }> {
+  const declared = Number(req.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declared) && declared > MAX_WEBHOOK_BYTES) {
+    return { body: null, error: "payload_too_large" };
+  }
+  if (!req.body) return { body: null, error: "invalid_payload" };
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > MAX_WEBHOOK_BYTES) {
+      await reader.cancel();
+      return { body: null, error: "payload_too_large" };
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  try {
+    const parsed = JSON.parse(new TextDecoder().decode(bytes));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? { body: parsed as JsonRecord, error: null }
+      : { body: null, error: "invalid_payload" };
+  } catch {
+    return { body: null, error: "invalid_payload" };
+  }
 }
 
 Deno.serve(async (req) => {
@@ -40,7 +82,11 @@ Deno.serve(async (req) => {
   try {
     // The webhook body is a notification, not proof. Every state transition below
     // is based on a fresh PortOne API lookup authenticated with the server secret.
-    const webhook = await req.json() as JsonRecord;
+    const parsed = await readWebhook(req);
+    if (!parsed.body) {
+      return json({ error: parsed.error }, parsed.error === "payload_too_large" ? 413 : 400);
+    }
+    const webhook = parsed.body;
     const eventType = safeText(webhook.type, 80);
     const data = webhook.data && typeof webhook.data === "object"
       ? webhook.data as JsonRecord
@@ -58,40 +104,36 @@ Deno.serve(async (req) => {
       return json({ ok: true, ignored: true, reason: "store_mismatch" });
     }
 
-    const providerResponse = await fetch(
-      `${PORTONE_API_BASE}/payments/${encodeURIComponent(paymentId)}`,
-      { headers: { Authorization: `PortOne ${PORTONE_API_SECRET}` } },
-    );
-    let payment: JsonRecord;
-    try {
-      payment = await providerResponse.json() as JsonRecord;
-    } catch {
-      return json({ error: "provider_response_invalid" }, 502);
-    }
-    if (!providerResponse.ok) return json({ error: "provider_lookup_failed" }, 502);
-    if (payment.storeId !== PORTONE_STORE_ID || payment.currency !== "KRW") {
-      return json({ error: "provider_identity_mismatch" }, 409);
-    }
-    const channel = payment.channel && typeof payment.channel === "object"
-      ? payment.channel as JsonRecord
-      : null;
-    const channelType = safeText(channel?.type, 20);
-    if (!ALLOW_TEST_PAYMENTS && channelType !== "LIVE") {
-      return json({ error: "provider_channel_not_live" }, 409);
-    }
-
+    // 먼저 존재하는 주문인지 확인해 임의 결제번호로 PortOne 조회를 남발하지 못하게 한다.
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
     const { data: order, error: orderError } = await admin
       .from("orders")
-      .select("id,order_no,amount,status")
+      .select("id,order_no,amount,status,payment_key,paid_at,receipt_url")
       .eq("order_no", paymentId)
       .single();
     if (orderError || !order) return json({ error: "order_not_found" }, 404);
 
-    const cancellationId = safeText(data.cancellationId, 160);
-    if (payment.status === "CANCELLED") {
+    const lookup = await lookupPortOnePayment({
+      apiBase: PORTONE_API_BASE,
+      apiSecret: PORTONE_API_SECRET,
+      storeId: PORTONE_STORE_ID,
+      paymentId,
+      allowTestPayments: ALLOW_TEST_PAYMENTS,
+      timeoutMs: 10000,
+    });
+    if (!lookup.payment) {
+      console.warn("payment-webhook provider rejected", JSON.stringify({
+        paymentRef: paymentRef(paymentId),
+        code: lookup.error ?? lookup.result,
+      }));
+      return json({ error: lookup.error ?? "provider_lookup_failed" }, lookup.errorStatus);
+    }
+    const payment = lookup.payment;
+
+    const statusKind = providerStatusKind(payment.status);
+    if (statusKind === "cancelled") {
       if (order.status === "refunded") return json({ ok: true, alreadyRefunded: true });
       if (!hasRefundablePaymentStatus(order.status)) {
         return json({ error: "refund_state_invalid", status: order.status }, 409);
@@ -100,7 +142,7 @@ Deno.serve(async (req) => {
         p_order_no: paymentId,
         p_refund_amount: Number(order.amount),
         p_reason: "portone_cancelled_webhook",
-        p_provider_cancellation_id: cancellationId,
+        p_provider_cancellation_id: null,
       });
       if (refundError || !refunded?.ok) {
         const { data: marked, error: markError } = await admin.rpc("mark_order_refund_pending", {
@@ -115,32 +157,53 @@ Deno.serve(async (req) => {
       return json({ ok: true, alreadyRefunded: Boolean(refunded.alreadyRefunded) });
     }
     if (eventType === "Transaction.CancelPending") {
-      const { data: marked, error: markError } = await admin.rpc("mark_order_refund_pending", {
-        p_order_no: paymentId,
-        p_reason: `cancel_pending:${cancellationId ?? "provider"}`,
-      });
-      if (markError || marked !== true) return json({ error: "refund_pending_record_failed" }, 500);
-      return json({ ok: true, pending: true, status: eventType });
+      if (order.status === "refund_pending") {
+        return json({ ok: true, pending: true, status: eventType });
+      }
+      return json({ ok: true, ignored: true, reason: "cancel_pending_without_local_request" });
     }
-    if (eventType === "Transaction.PartialCancelled" || payment.status === "PARTIAL_CANCELLED") {
+    if (statusKind === "partial_cancelled") {
       const { data: marked, error: markError } = await admin.rpc("mark_order_payment_review", {
         p_order_no: paymentId,
-        p_reason: `partial_cancel_review:${cancellationId ?? "provider"}`,
+        p_reason: "partial_cancel_review:provider",
       });
       if (markError || marked !== true) return json({ error: "payment_review_record_failed" }, 500);
       return json({ ok: true, reviewRequired: true, status: eventType });
     }
-    if (payment.status !== "PAID") {
+    if (statusKind !== "paid") {
       return json({ ok: true, ignored: true, status: payment.status });
     }
-    if (hasSettledPaymentStatus(order.status)) return json({ ok: true, alreadyPaid: true });
 
-    const paidAmount = Number(
-      payment.amount && typeof payment.amount === "object"
-        ? (payment.amount as JsonRecord).total
-        : payment.amount,
+    const paidAmount = providerTotalAmount(payment);
+    if (hasConfirmedPaymentStatus(order.status)) {
+      if (order.payment_key === paymentId && paidAmount === Number(order.amount)) {
+        return json({ ok: true, alreadyPaid: true });
+      }
+      console.error("payment-webhook confirmed order conflict", JSON.stringify({
+        paymentRef: paymentRef(paymentId),
+      }));
+      return json({ error: "confirmed_order_conflict" }, 409);
+    }
+
+    const recoveryAction = paidRecoveryAction(
+      order.status,
+      paidAmount !== null && paidAmount === Number(order.amount),
     );
-    if (!Number.isSafeInteger(paidAmount) || paidAmount !== Number(order.amount)) {
+    if (recoveryAction === "review_amount_mismatch") {
+      const reviewRecorded = await markPaymentReviewIfUnsettled(
+        admin,
+        order.id,
+        "provider_paid_amount_mismatch",
+        true,
+      );
+      console.error("payment-webhook amount mismatch requires review", JSON.stringify({
+        paymentRef: paymentRef(paymentId),
+        reviewRecorded,
+      }));
+      if (!reviewRecorded) return json({ error: "payment_recovery_not_recorded" }, 500);
+      return json({ error: "amount_mismatch_review", reviewRequired: true }, 500);
+    }
+    if (recoveryAction === "continue_cancellation") {
       const cancellation = await cancelAndReconcile({
         admin,
         apiBase: PORTONE_API_BASE,
@@ -149,53 +212,72 @@ Deno.serve(async (req) => {
         paymentId,
         orderNo: paymentId,
         orderAmount: Number(order.amount),
-        reason: "webhook_amount_mismatch_auto_cancel",
+        reason: "webhook_refund_pending_recovery",
       });
       const retry = !cancellation.tracked ||
         (cancellation.providerRefunded && !cancellation.dbFinalized) ||
         cancellation.state === "failed";
       return json({
         ok: !retry,
-        rejected: "amount_mismatch",
+        refundPending: !cancellation.dbFinalized,
         cancellationState: cancellation.state,
         providerRefunded: cancellation.providerRefunded,
       }, retry ? 500 : 200);
     }
-
-    const method = payment.method && typeof payment.method === "object"
-      ? safeText((payment.method as JsonRecord).type ?? (payment.method as JsonRecord).provider, 80)
-      : null;
-    const { data: finalized, error: finalizeError } = await admin.rpc("finalize_paid_order_v2", {
-      p_order_no: paymentId,
-      p_paid_amount: paidAmount,
-      p_method: method,
-      p_payment_key: paymentId,
-      p_provider_transaction_id: safeText(payment.transactionId, 160),
-      p_receipt_url: safeText(payment.receiptUrl, 500),
-      p_attribution: null,
-      p_point_earn_bps: POINT_EARN_BPS,
-    });
-    if (finalizeError || !finalized?.order) {
-      const cancellation = await cancelAndReconcile({
+    if (recoveryAction !== "finalize") {
+      const reviewRecorded = await markPaymentReviewIfUnsettled(
         admin,
-        apiBase: PORTONE_API_BASE,
-        apiSecret: PORTONE_API_SECRET,
-        storeId: PORTONE_STORE_ID,
-        paymentId,
-        orderNo: paymentId,
-        orderAmount: Number(order.amount),
-        reason: "webhook_finalize_failed_auto_cancel",
-      });
-      const retry = !cancellation.tracked ||
-        (cancellation.providerRefunded && !cancellation.dbFinalized) ||
-        cancellation.state === "failed";
-      return json({
-        ok: !retry,
-        rejected: "order_finalize_failed",
-        cancellationState: cancellation.state,
-        providerRefunded: cancellation.providerRefunded,
-        detail: finalizeError?.message ? "database_finalize_failed" : "database_result_invalid",
-      }, retry ? 500 : 200);
+        order.id,
+        `provider_paid_unexpected_order_state:${String(order.status).slice(0, 80)}`,
+      );
+      if (!reviewRecorded) return json({ error: "payment_recovery_not_recorded" }, 500);
+      return json({ error: "order_finalize_pending", retryable: true }, 500);
+    }
+    if (paidAmount === null) {
+      console.error("payment-webhook recovery policy invariant failed", JSON.stringify({
+        paymentRef: paymentRef(paymentId),
+      }));
+      return json({ error: "payment_recovery_policy_error" }, 500);
+    }
+
+    const finalized = await finalizePaidOrderFromProvider({
+      admin,
+      orderNo: paymentId,
+      paymentId,
+      paidAmount,
+      payment,
+      attribution: null,
+      pointEarnBps: POINT_EARN_BPS,
+    });
+    if (!finalized.order) {
+      const committed = await readMatchingConfirmedOrder(admin, paymentId, paymentId, paidAmount);
+      if (committed) return json({ ok: true, alreadyPaid: true });
+
+      const dbCode = finalized.errorCode ?? "invalid_result";
+      const reviewRecorded = await markPaymentReviewIfUnsettled(
+        admin,
+        order.id,
+        `provider_paid_finalize_retry:${dbCode}`,
+      );
+      if (!reviewRecorded) {
+        const committedAfterRace = await readMatchingConfirmedOrder(
+          admin,
+          paymentId,
+          paymentId,
+          paidAmount,
+        );
+        if (committedAfterRace) return json({ ok: true, alreadyPaid: true });
+        console.error("payment-webhook recovery state not recorded", JSON.stringify({
+          paymentRef: paymentRef(paymentId),
+          dbCode,
+        }));
+        return json({ error: "payment_recovery_not_recorded" }, 500);
+      }
+      console.warn("payment-webhook paid finalization deferred", JSON.stringify({
+        paymentRef: paymentRef(paymentId),
+        dbCode,
+      }));
+      return json({ error: "order_finalize_pending", retryable: true }, 500);
     }
     return json({ ok: true, alreadyPaid: Boolean(finalized.alreadyPaid) });
   } catch (error) {

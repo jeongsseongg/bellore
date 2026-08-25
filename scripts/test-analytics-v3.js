@@ -108,8 +108,11 @@ assert.match(client, /openConsentSettings: function \(\) \{ showConsent\(true\);
 assert.match(backend, /analytics_consent_dashboard_v1/);
 
 const confirm = fs.readFileSync(path.join(root, 'supabase/functions/confirm-payment/index.ts'), 'utf8');
-assert.match(confirm, /admin\.rpc\("finalize_paid_order_v2"/);
+const paymentRecovery = fs.readFileSync(path.join(root, 'supabase/functions/_shared/payment-recovery.ts'), 'utf8');
+assert.match(confirm, /finalizePaidOrderFromProvider/);
+assert.match(paymentRecovery, /input\.admin\.rpc\("finalize_paid_order_v2"/);
 assert.doesNotMatch(confirm, /\.from\("orders"\)\s*\.update\(\{\s*status:\s*"paid"/);
+assert.doesNotMatch(paymentRecovery, /\.from\("orders"\)\s*\.update\(\{\s*status:\s*"paid"/);
 
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const dashboard = fs.readFileSync(path.join(root, 'script.js'), 'utf8');

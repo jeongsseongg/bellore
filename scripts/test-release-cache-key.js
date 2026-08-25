@@ -8,7 +8,8 @@ const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const runtime = fs.readFileSync(path.join(root, 'app', 'legacy', 'page-runtime.js'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
-const releaseKey = '20260826-home-compose-v3';
+const bootstrap = fs.readFileSync(path.join(root, 'app', 'bootstrap.js'), 'utf8');
+const releaseKey = '20260826-payment-recovery-v1';
 
 const urls = {
   styles: html.match(/<link rel="stylesheet" href="(styles\.css\?v=[^"]+)"/)?.[1],
@@ -30,6 +31,28 @@ for (const [name, url] of Object.entries(urls)) {
 for (const name of ['styles', 'script', 'payments', 'dialog', 'features', 'quotes', 'auction', 'bootstrap', 'pageRuntime']) {
   assert(serviceWorker.includes(`'./${urls[name]}'`), `service worker must precache the exact ${name} URL`);
 }
-assert.match(serviceWorker, /const VERSION = "bellore-v291-home-compose-coupon";/, 'service-worker cache namespace must advance with the release');
+assert.match(serviceWorker, /const VERSION = "bellore-v292-payment-recovery";/, 'service-worker cache namespace must advance with the release');
+for (const asset of [
+  'app/vendor/recommendation-engine.js',
+  'app/features/home-merchandising/home-merchandising.js',
+  'app/features/home-rows/home-rows.js',
+  'app/features/listing-availability/listing-availability-ui.js',
+  'app/services/listings/listing-catalog-service.js',
+  'app/core/listing-display.js',
+  'app/features/checkout/payment-flow.js',
+  'app/legacy/customer-feedback.js',
+  'app/core/customer-error.mjs',
+  'app/features/listing-availability/market-static-status.js',
+]) {
+  assert(serviceWorker.includes(`'./${asset}?v=${releaseKey}'`), `service worker must precache exact ESM release URL: ${asset}`);
+}
+for (const specifier of [
+  './vendor/recommendation-engine.js', './features/home-merchandising/home-merchandising.js',
+  './features/home-rows/home-rows.js', './features/listing-availability/listing-availability-ui.js',
+  './services/listings/listing-catalog-service.js', './core/listing-display.js',
+  './features/checkout/payment-flow.js', './legacy/customer-feedback.js',
+]) {
+  assert(bootstrap.includes(`${specifier}?v=${releaseKey}`), `bootstrap must import exact ESM release URL: ${specifier}`);
+}
 
 console.log('phase 7-11 release cache-key invariants: ok');

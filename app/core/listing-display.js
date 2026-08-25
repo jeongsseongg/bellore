@@ -113,3 +113,40 @@ export function shuffled(list, random = Math.random) {
   }
   return out;
 }
+
+const SALE_STATES = Object.freeze({
+  on_sale: Object.freeze({ status: 'on_sale', label: '', message: '', purchasable: true, visible: false }),
+  reserved: Object.freeze({
+    status: 'reserved', label: '예약중', purchasable: false, visible: true,
+    message: '현재 구매가 진행 중인 상품입니다. 구매가 취소되면 다시 구매할 수 있습니다.',
+  }),
+  sold: Object.freeze({ status: 'sold', label: 'SOLD OUT', message: '판매가 완료된 상품입니다.', purchasable: false, visible: true }),
+  unavailable: Object.freeze({
+    status: 'unavailable', label: '구매불가', purchasable: false, visible: true,
+    message: '현재 구매할 수 없는 상품입니다. 상품 상태를 다시 확인해 주세요.',
+  }),
+});
+
+export function normalizeListingStatus(value) {
+  const raw = String(value == null ? '' : value).trim().toLowerCase();
+  if (!raw) return 'on_sale';
+  return ({ available: 'on_sale', active: 'on_sale', selling: 'on_sale', sold_out: 'sold', soldout: 'sold', confirmed: 'sold' })[raw] || raw;
+}
+
+export function effectiveListingStatus(row, now = Date.now()) {
+  const status = normalizeListingStatus(row?.status);
+  if (status !== 'on_sale' || !row?.reserved_order_id) return status;
+  const until = String(row.reserved_until == null ? '' : row.reserved_until).trim().toLowerCase();
+  if (until === 'infinity') return 'reserved';
+  const expiresAt = Date.parse(until);
+  return Number.isFinite(expiresAt) && expiresAt > Number(now) ? 'reserved' : status;
+}
+
+export function listingAvailability(value) {
+  const status = normalizeListingStatus(value);
+  return SALE_STATES[status] || Object.freeze({ ...SALE_STATES.unavailable, status });
+}
+
+export function listingIsPurchasable(value) {
+  return listingAvailability(value).purchasable;
+}

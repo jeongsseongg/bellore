@@ -3862,6 +3862,7 @@
         return salePrice > 0 && salePrice < price && window.belloreSaleActive(it)
             ? salePrice : price;
     }
+    function listingStatusUi() { return window.BELLORE_LISTING_UI; }
     // 가격 표시(할인 적용 시 정가 취소선 + 할인가 + 할인율)
     function priceHTML(it) {
         if (!it.price) return '가격 문의<em></em>';
@@ -4023,7 +4024,7 @@
         rows.forEach(function (it) {
             var priceHtml = it.price ? (fmt(it.price) + '<em>원</em>') : '감정가 산정<em></em>';
             var card = document.createElement('article');
-            card.className = 'hcard hcard-dynamic';
+            card.className = 'hcard hcard-dynamic'; listingStatusUi().decorateCard(card, it);
             card.dataset.pid = it.id;
             card.dataset.no = it.product_no || '';
             card.dataset.brand = it.brand;
@@ -4032,7 +4033,7 @@
             card.dataset.pack = it.pack || '';
             card.dataset.size = it.size_mm || '';
             card.innerHTML =
-                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
+                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + listingStatusUi().cardMarkup(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
                 recommendedCardLinesHTML(it) +
                 '<p class="hcard-price">' + priceHtml + '</p>' +
@@ -4060,7 +4061,7 @@
         rows.forEach(function (it) {
             var priceHtml = priceHTML(it);
             var card = document.createElement('article');
-            card.className = 'hcard hcard-dynamic';
+            card.className = 'hcard hcard-dynamic'; listingStatusUi().decorateCard(card, it);
             card.dataset.pid = it.id;
             card.dataset.no = it.product_no || '';
             card.dataset.brand = it.brand;
@@ -4081,7 +4082,7 @@
             card.dataset.created = it.created_at ? (Date.parse(it.created_at) || 0) : 0;
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' +
-                    collectionConditionHTML(it) + saleOverlayHTML(it) + '</div>' +
+                    collectionConditionHTML(it) + saleOverlayHTML(it) + listingStatusUi().cardMarkup(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
                 recommendedCardLinesHTML(it) +
                 '<p class="hcard-price">' + priceHtml + '</p>' +
@@ -4109,7 +4110,7 @@
         rows.slice(0, 12).forEach(function (it) {
             var priceHtml = priceHTML(it);
             var card = document.createElement('article');
-            card.className = 'hcard hcard-dynamic';
+            card.className = 'hcard hcard-dynamic'; listingStatusUi().decorateCard(card, it);
             card.dataset.pid = it.id;
             card.dataset.no = it.product_no || '';
             card.dataset.brand = it.brand;
@@ -4121,7 +4122,7 @@
             card.dataset.cond = it.condition || '';
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' +
-                    collectionConditionHTML(it) + saleOverlayHTML(it) + '</div>' +
+                    collectionConditionHTML(it) + saleOverlayHTML(it) + listingStatusUi().cardMarkup(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
                 recommendedCardLinesHTML(it) +
                 '<p class="hcard-price">' + priceHtml + '</p>';
@@ -4141,7 +4142,7 @@
         rows.forEach(function (it) {
             var priceHtml = priceHTML(it);
             var card = document.createElement('article');
-            card.className = 'hcard hcard-dynamic';
+            card.className = 'hcard hcard-dynamic'; listingStatusUi().decorateCard(card, it);
             card.dataset.pid = it.id;
             card.dataset.no = it.product_no || '';
             card.dataset.brand = it.brand;
@@ -4152,7 +4153,7 @@
             card.dataset.saleactive = window.belloreSaleActive(it) ? '1' : '';
             card.dataset.cond = it.condition || '';
             card.innerHTML =
-                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
+                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + listingStatusUi().cardMarkup(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
                 recommendedCardLinesHTML(it) +
                 '<p class="hcard-price">' + priceHtml + '</p>' +
@@ -6193,6 +6194,7 @@
         var buyBtn = $('#pmBuy');
         var askBtn = $('#pmAsk');
         if (buyBtn) buyBtn.addEventListener('click', function () {
+            if (!listingStatusUi().canPurchase(window.BELLORE_currentProduct && window.BELLORE_currentProduct.status)) return;
             if (window.BELLORE_openCheckout) {
                 window.BELLORE_openCheckout(window.BELLORE_currentProduct);
             } else {
@@ -6459,6 +6461,7 @@
             paintAcc(d);
             paintSpec(d);
             paintState(d);
+            listingStatusUi().paintDetail(d.status);
 
             // 썸네일
             var thumbs = $('#pmThumbs');
@@ -6495,6 +6498,7 @@
                 sale_price: parseInt(card.dataset.sprice, 10) || 0,
                 tags: card.dataset.saleactive === '1' ? ['sale'] : [],
                 sale_started_at: card.dataset.saleactive === '1' ? new Date().toISOString() : null,
+                status: card.dataset.status || 'on_sale',
                 img: img ? img.src : '',
                 no: card.dataset.no || (pid ? pid.slice(0, 8).toUpperCase() : '-')
             });
@@ -6505,12 +6509,10 @@
                 brand: brand ? brand.textContent : (card.dataset.brand || ''),
                 model: displayModelName({ model: rawModel, condition: condition }),
                 condition: condition,
-                price: parseInt(card.dataset.price, 10) || 0,
+                status: card.dataset.status || 'on_sale', price: parseInt(card.dataset.price, 10) || 0,
                 image: img ? img.src : ''
             };
-            if (window.BELLORE_NPAY_RENDER) {
-                window.BELLORE_NPAY_RENDER(window.BELLORE_currentProduct);
-            }
+            listingStatusUi().renderNaver(window.BELLORE_currentProduct);
 
             // 최근 확인한 상품 기록(검색 페이지에서 사용)
             if (window.BELLORE_recordView) window.BELLORE_recordView({
@@ -6520,7 +6522,7 @@
                 productNo: card.dataset.no || '',
                 price: parseInt(card.dataset.price, 10) || 0,
                 sale_price: parseInt(card.dataset.sprice, 10) || 0,
-                img: img ? img.src : ''
+                status: card.dataset.status || 'on_sale', img: img ? img.src : ''
             });
 
             modal.hidden = false;
@@ -6546,7 +6548,7 @@
                         brand: it.brand, model: it.model, reference_no: it.reference_no || '', price: it.price,
                         sale_price: it.sale_price || 0,
                         tags: it.tags || [], sale_started_at: it.sale_started_at || null,
-                        created_at: it.created_at || null,
+                        created_at: it.created_at || null, status: it.status || 'on_sale',
                         photos: it.photos, category: it.category,
                         pack: it.pack || '', has_warranty: !!it.has_warranty,
                         accessories: it.accessories || '',
@@ -6572,13 +6574,12 @@
                         brand: it.brand,
                         model: displayModelName(it),
                         condition: it.condition || '',
+                        status: it.status || 'on_sale',
                         price: effectivePrice(it),
                         image: (it.photos && it.photos[0]) || ''
                     };
                     dispatchProductRoute('bellore:product-open');
-                    if (window.BELLORE_NPAY_RENDER) {
-                        window.BELLORE_NPAY_RENDER(window.BELLORE_currentProduct);
-                    }
+                    listingStatusUi().renderNaver(window.BELLORE_currentProduct);
                 }).catch(function () {});
             }
         }
@@ -6604,7 +6605,7 @@
                     brand: it.brand, model: it.model, reference_no: it.reference_no || '', price: it.price,
                     sale_price: it.sale_price || 0, photos: it.photos, category: it.category,
                     tags: it.tags || [], sale_started_at: it.sale_started_at || null,
-                    created_at: it.created_at || null,
+                    created_at: it.created_at || null, status: it.status || 'on_sale',
                     pack: it.pack || '', has_warranty: !!it.has_warranty, accessories: it.accessories || '',
                     set_grade: it.set_grade || '', movement: it.movement || '', case_spec: it.case_spec || '',
                     band_spec: it.band_spec || '', condition_notes: it.condition_notes || '',
@@ -6617,11 +6618,10 @@
                 window.BELLORE_currentProduct = {
                     listingId: it.id, productNo: it.product_no || '', brand: it.brand, model: displayModelName(it),
                     condition: it.condition || '',
+                    status: it.status || 'on_sale',
                     price: effectivePrice(it), image: (it.photos && it.photos[0]) || ''
                 };
-                if (window.BELLORE_NPAY_RENDER) {
-                    window.BELLORE_NPAY_RENDER(window.BELLORE_currentProduct);
-                }
+                listingStatusUi().renderNaver(window.BELLORE_currentProduct);
                 modal.hidden = false;
                 dispatchProductRoute('bellore:product-open');
                 modal.querySelector('.pp-scroll').scrollTop = 0;

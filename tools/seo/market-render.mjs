@@ -27,6 +27,10 @@ function money(value) {
   return `${Number(value).toLocaleString('ko-KR')}원`;
 }
 
+function saleStateLabel(product) {
+  return product.status === 'sold' ? 'SOLD OUT' : product.statusLabel;
+}
+
 function shortDescription(product) {
   const reference = product.referenceNumber || '레퍼런스 정보없음';
   const condition = product.condition || '상태 정보없음';
@@ -78,6 +82,8 @@ ${blocks}
 ${header()}
 ${body}
 ${footer()}
+<script defer src="/supabase-config.js?v=20260814-kg-card-review"></script>
+<script type="module" src="/app/features/listing-availability/market-static-status.js?v=20260826-payment-recovery-v1"></script>
 </body>
 </html>`;
 }
@@ -173,7 +179,7 @@ function productBody(product) {
     <article class="product-summary">
       <p class="eyebrow">${escapeHtml(product.brand || 'BRAND')}</p>
       <div class="badges">
-        <span class="badge">${escapeHtml(product.statusLabel)}</span>
+        <span class="badge is-${escapeHtml(product.status)}" data-market-listing-status data-listing-id="${escapeHtml(product.id)}" data-status="${escapeHtml(product.status)}" data-show-on-sale="true" data-base-class="badge">${escapeHtml(saleStateLabel(product))}</span>
         ${product.isVintage ? '<span class="badge badge--vintage">빈티지</span>' : ''}
       </div>
       <h1>${escapeHtml(product.name)}</h1>
@@ -248,8 +254,9 @@ function marketStructuredData(products) {
 }
 
 export function renderMarketIndex(products) {
-  const cards = products.map((product) => `<a class="product-card" href="${escapeHtml(product.canonicalPath)}">
+  const cards = products.map((product) => `<a class="product-card" href="${escapeHtml(product.canonicalPath)}" data-market-listing-card data-status="${escapeHtml(product.status)}">
     <img class="product-card__image" src="${escapeHtml(product.heroImage)}" alt="${escapeHtml(`${product.name} ${product.productNumber} 정면 이미지`)}" loading="lazy" decoding="async">
+    <span class="product-card__status is-${escapeHtml(product.status)}" data-market-listing-status data-listing-id="${escapeHtml(product.id)}" data-status="${escapeHtml(product.status)}" data-base-class="product-card__status"${product.status === 'on_sale' ? ' hidden' : ''}>${escapeHtml(saleStateLabel(product))}</span>
     <p class="product-card__brand">${escapeHtml(product.brand || '정보없음')}</p>
     <h2 class="product-card__name">${escapeHtml(product.presentation.modelSize)}</h2>
     ${product.presentation.referenceText ? `<p class="product-card__reference">${escapeHtml(product.presentation.referenceText)}</p>` : ''}

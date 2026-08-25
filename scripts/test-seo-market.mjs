@@ -118,7 +118,7 @@ await test('duplicate product numbers, unknown statuses and partial drops stop t
     /중복 상품번호/,
   );
   assert.throws(
-    () => prepareMarketListings([listing(1, { status: 'reserved' })], { minProducts: 1 }),
+    () => prepareMarketListings([listing(1, { status: 'unknown' })], { minProducts: 1 }),
     /지원하지 않는 상품 상태/,
   );
   assert.throws(
@@ -132,6 +132,20 @@ await test('supported sold status maps to OutOfStock and hidden listings are omi
   const result = prepareMarketListings(rows, { minProducts: 1 });
   assert.equal(result.metrics.hidden, 1);
   assert.equal(result.products[0].availability, 'https://schema.org/OutOfStock');
+});
+
+await test('reserved listings stay discoverable but advertise limited availability', () => {
+  const rows = [
+    listing(1, { status: 'reserved' }),
+    listing(2, {
+      status: 'on_sale',
+      reserved_order_id: 'order-review',
+      reserved_until: 'infinity',
+    }),
+  ];
+  const result = prepareMarketListings(rows, { minProducts: 1 });
+  assert(result.products.every((product) => product.statusLabel === '예약중'));
+  assert(result.products.every((product) => product.availability === 'https://schema.org/LimitedAvailability'));
 });
 
 await test('missing or ambiguous image sets stop the build', () => {
@@ -167,6 +181,8 @@ await test('product page has unique metadata, Product/Offer/Breadcrumb and every
   assert.match(html, /<link rel="canonical" href="https:\/\/bellore\.co\.kr\/market\/tst-n1-1\/">/);
   assert.match(html, /<meta property="og:url" content="https:\/\/bellore\.co\.kr\/market\/tst-n1-1\/">/);
   assert.match(html, /<a class="cta" href="https:\/\/bellore\.co\.kr\/#p=listing-1">벨로르에서 상품 보기<\/a>/);
+  assert.match(html, /data-market-listing-status/);
+  assert.match(html, /market-static-status\.js\?v=20260826-payment-recovery-v1/);
   assert.doesNotMatch(html, /화면에 노출하면 안 되는 일반 상품 설명|추가 정보|평가 근거|상품화 처리/);
   assert.doesNotMatch(html, /소재 · 기능|>케이스<|>밴드</);
   assert.match(html, />무브먼트<\/dt><dd>오토매틱<\/dd>/);
@@ -192,6 +208,7 @@ await test('market hub uses crawlable product anchors and non-empty image alt te
     assert(html.includes(`href="${product.canonicalPath}"`));
     assert(html.includes(`alt="${product.name} ${product.productNumber} 정면 이미지"`));
   }
+  assert.equal((html.match(/data-market-listing-status/g) || []).length, products.length);
   assert.equal(structuredData(html)[0].mainEntity.numberOfItems, 2);
 });
 
@@ -216,4 +233,4 @@ await test('artifact publish removes stale market pages and emits no merchant fe
   }
 });
 
-if (!process.exitCode) console.log(`SEO market tests: ${passed}/10 passed`);
+if (!process.exitCode) console.log(`SEO market tests: ${passed}/11 passed`);

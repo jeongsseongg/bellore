@@ -61,7 +61,7 @@ assert.match(customerMessage('unauthorized', 'auth'), /로그인하지 못했습
 assert.match(customerMessage('PGRST500', 'identity'), /본인인증을 완료하지 못했습니다/);
 
 const checkoutBusinessCases = [
-  ['listing_reserved', /최대 15분 후/],
+  ['listing_reserved', /현재 구매가 진행 중인 상품/],
   ['listing_unavailable', /현재 구매할 수 없는 상품/],
   ['listing_not_found', /상품 정보를 찾지 못했습니다/],
   ['coupon_invalid', /쿠폰을 해제하거나/],
@@ -77,6 +77,11 @@ for (const [code, expectedMessage] of checkoutBusinessCases) {
   assert.doesNotMatch(feedback.message, forbiddenTechnicalText);
   assert(!feedback.message.includes(code), 'customer message leaked checkout code: ' + code);
 }
+const pendingConfirmation = customerFeedback({ code: 'payment_confirmation_pending' }, 'confirmation');
+assert.equal(pendingConfirmation.classification, 'payment_confirmation_pending');
+assert.match(pendingConfirmation.message, /다시 결제하지 말고/);
+assert.doesNotMatch(pendingConfirmation.message, forbiddenTechnicalText);
+assert(!pendingConfirmation.message.includes('payment_confirmation_pending'));
 assert.equal(
   customerFeedback({ code: 'listing_reserved' }, 'general').classification,
   'internal_error',

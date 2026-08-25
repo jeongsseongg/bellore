@@ -1,7 +1,7 @@
 import {
   customerFeedback,
   paymentProviderCustomerFeedback,
-} from '../core/customer-error.mjs';
+} from '../core/customer-error.mjs?v=20260826-payment-recovery-v1';
 
 function warnClassification(logger, feedback) {
   if (feedback.classification === 'safe_customer_message') return;

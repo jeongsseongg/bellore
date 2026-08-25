@@ -61,7 +61,7 @@ function navigationRequest(pathname) {
   const swPath = path.resolve(__dirname, '..', 'sw.js');
   const source = fs.readFileSync(swPath, 'utf8');
   const version = source.match(/const VERSION = "([^"]+)";/)?.[1];
-  assert.equal(version, 'bellore-v291-home-compose-coupon', 'merged home composition and coupon release advances the cache version');
+  assert.equal(version, 'bellore-v292-payment-recovery', 'payment recovery release advances the cache version');
   assert.doesNotMatch(source, /req\.mode === 'navigate' \? '\.\/index\.html'/, 'navigation never overwrites the home cache key');
 
   const listeners = new Map();

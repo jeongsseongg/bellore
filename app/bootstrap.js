@@ -1,4 +1,4 @@
-import './vendor/recommendation-engine.js';
+import './vendor/recommendation-engine.js?v=20260826-payment-recovery-v1';
 import { initInsightFilter } from './features/insights/insight-filter.js';
 import { initInsightReader } from './features/insights/insight-reader.js';
 import { initLegalModals } from './features/legal/legal-modals.js';
@@ -9,18 +9,28 @@ import { initNavigationHistory } from './ui/navigation-history.js';
 import { initWidthPreference } from './ui/width-preference.js';
 import { initHomeBanners } from './features/home-banners/home-banners.js';
 import { initHomeQuicklinks } from './features/home-quicklinks/home-quicklinks.js?v=20260826-home-compose-v3';
-import { createHomeMerchandising } from './features/home-merchandising/home-merchandising.js';
-import { initHomeRows } from './features/home-rows/home-rows.js';
+import { createHomeMerchandising } from './features/home-merchandising/home-merchandising.js?v=20260826-payment-recovery-v1';
+import { initHomeRows } from './features/home-rows/home-rows.js?v=20260826-payment-recovery-v1';
+import { createListingAvailabilityUi } from './features/listing-availability/listing-availability-ui.js?v=20260826-payment-recovery-v1';
 import { initProductDetailRoute, initProductSharing } from './features/product-sharing/product-sharing.mjs';
-import { createListingCatalog } from './services/listings/listing-catalog-service.js';
+import { createListingCatalog } from './services/listings/listing-catalog-service.js?v=20260826-payment-recovery-v1';
+import { effectiveListingStatus, listingAvailability, listingIsPurchasable, normalizeListingStatus } from './core/listing-display.js?v=20260826-payment-recovery-v1';
 import { createPaymentAccessToken } from './services/payments/payment-auth.js';
 import { createLegacyCollection } from './legacy/legacy-collection.js?v=20260825-home-typography-admin-layout-v8';
 import { initLegacyHomeMerchandisingGrid } from './legacy/home-merchandising-grid.js';
 import { installLegacyPaymentAuth } from './legacy/payment-auth.js';
 import { installLegacyReveal } from './legacy/legacy-reveal.js';
 import { initCheckoutAddresses } from './features/checkout/checkout-addresses.mjs';
-import { installCustomerFeedback } from './legacy/customer-feedback.js';
+import { createPaymentFlow } from './features/checkout/payment-flow.js?v=20260826-payment-recovery-v1';
+import { installCustomerFeedback } from './legacy/customer-feedback.js?v=20260826-payment-recovery-v1';
 import { installLegacyCheckoutCoupon } from './legacy/checkout-coupon.js';
+
+// 레거시 상품 카드가 DOMContentLoaded에서 그려지기 전에 동일한 판매 상태 규칙을 노출한다.
+Object.defineProperty(window, 'BELLORE_LISTING_AVAILABILITY', { configurable: true, value: Object.freeze({
+  effective: effectiveListingStatus, get: listingAvailability, isPurchasable: listingIsPurchasable, normalize: normalizeListingStatus,
+}) });
+Object.defineProperty(window, 'BELLORE_LISTING_UI', { configurable: true, value: createListingAvailabilityUi({ document, window }) });
+Object.defineProperty(window, 'BELLORE_PAYMENT_FLOW', { configurable: true, value: createPaymentFlow({ window }) });
 
 function bootstrap() {
   installCustomerFeedback({ windowObject: window, logger: window.console });

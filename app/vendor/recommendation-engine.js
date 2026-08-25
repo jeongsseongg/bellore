@@ -57,7 +57,7 @@
   };
 
   var REJECTED_STATUSES = {
-    sold: 1, sold_out: 1, hidden: 1, inactive: 1, unavailable: 1,
+    reserved: 1, sold: 1, sold_out: 1, hidden: 1, inactive: 1, unavailable: 1,
     deleted: 1, draft: 1, off: 1, '\uD310\uB9E4\uC644\uB8CC': 1, '\uD488\uC808': 1, '\uBE44\uACF5\uAC1C': 1
   };
 

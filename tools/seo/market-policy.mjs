@@ -27,6 +27,11 @@ export const LISTING_STATUS = Object.freeze({
     availability: 'https://schema.org/InStock',
     publish: true,
   }),
+  reserved: Object.freeze({
+    label: '예약중',
+    availability: 'https://schema.org/LimitedAvailability',
+    publish: true,
+  }),
   sold: Object.freeze({
     label: '판매완료',
     availability: 'https://schema.org/OutOfStock',
@@ -44,6 +49,15 @@ export function statusPolicy(value) {
   const policy = LISTING_STATUS[status];
   if (!policy) throw new Error(`지원하지 않는 상품 상태: ${status || '(없음)'}`);
   return { status, ...policy };
+}
+
+export function effectiveListingStatus(row, nowMs = Date.now()) {
+  const status = String(row?.status ?? '').trim();
+  if (status !== 'on_sale' || !row?.reserved_order_id) return status;
+  const reservedUntil = String(row.reserved_until ?? '').trim().toLowerCase();
+  if (reservedUntil === 'infinity') return 'reserved';
+  const reservedUntilMs = Date.parse(reservedUntil);
+  return Number.isFinite(reservedUntilMs) && reservedUntilMs > nowMs ? 'reserved' : status;
 }
 
 export function absoluteImageUrl(value) {

@@ -43,13 +43,17 @@ export async function cancelPortOnePayment(input: {
   reason: string;
 }): Promise<ProviderCancellation> {
   const endpoint = `${input.apiBase}/payments/${encodeURIComponent(input.paymentId)}`;
+  const idempotencyKeyRaw = `bellore-cancel-${input.paymentId}`.slice(0, 254);
+  const idempotencyKey = `\"${idempotencyKeyRaw}\"`;
   const response = await fetch(`${endpoint}/cancel`, {
     method: "POST",
     headers: {
       Authorization: `PortOne ${input.apiSecret}`,
       "Content-Type": "application/json",
+      "Idempotency-Key": idempotencyKey,
     },
     body: JSON.stringify({ storeId: input.storeId, reason: input.reason }),
+    signal: AbortSignal.timeout(10000),
   });
   const payload = await readJson(response);
   const cancellation = payload?.cancellation && typeof payload.cancellation === "object"
@@ -67,6 +71,7 @@ export async function cancelPortOnePayment(input: {
 
   const lookup = await fetch(endpoint, {
     headers: { Authorization: `PortOne ${input.apiSecret}` },
+    signal: AbortSignal.timeout(10000),
   });
   const payment = await readJson(lookup);
   if (lookup.ok && payment?.storeId === input.storeId && payment.status === "CANCELLED") {
@@ -113,7 +118,7 @@ export async function cancelAndReconcile(input: {
       p_order_no: input.orderNo,
       p_reason: `provider_cancel_requested:${cancellation.cancellationId ?? "pending"}`,
     })
-    : await input.admin.rpc("mark_order_payment_review", {
+    : await input.admin.rpc("mark_order_refund_pending", {
       p_order_no: input.orderNo,
       p_reason: "provider_cancel_failed",
     });

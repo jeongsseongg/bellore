@@ -620,6 +620,32 @@ html[data-width="full"] .page-collection .col-grid-inner {
   z-index: 1;
 }
 
+/* 결제·구매확정 상태는 할인/컨디션 배지와 분리해 사진 오른쪽 위에 고정한다. */
+#homeOnSale .listing-sale-state,
+.page-collection .listing-sale-state {
+  position: absolute;
+  top: 50px;
+  right: 10px;
+  z-index: 4;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(26, 41, 37, .94);
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.2;
+  letter-spacing: -.02em;
+}
+#homeOnSale .listing-sale-state.is-sold,
+.page-collection .listing-sale-state.is-sold {
+  background: rgba(17, 17, 17, .9);
+  letter-spacing: .04em;
+}
+#homeOnSale .hcard.is-listing-sold .hcard-img img,
+.page-collection .hcard.is-listing-sold .hcard-img img { opacity: .58; }
+#homeOnSale .hcard.is-listing-reserved .hcard-img img,
+.page-collection .hcard.is-listing-reserved .hcard-img img { opacity: .78; }
+
 /* 사진 왼쪽 위 배지 */
 #homeOnSale .hcard-today,
 #homeOnSale .hcard-condition,
@@ -1216,6 +1242,27 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
 .pp-bottom .pp-buyprice .won { font-weight: 850; }
 .pp-bottom .pp-wish { width: 54px; min-height: 54px; }
 .pp-bottom .pp-buy { min-height: 54px; flex: 1; min-width: 116px; }
+.pp-sale-state {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  margin: 8px 0 2px;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: #fff;
+  background: #1a2925;
+  font-size: 13px;
+  font-weight: 850;
+  letter-spacing: -.02em;
+}
+.pp-sale-state[hidden] { display: none !important; }
+.pp-sale-state.is-sold { background: #171719; letter-spacing: .04em; }
+.pp-bottom .pp-buy:disabled {
+  border-color: #d9dadd;
+  color: #77797e;
+  background: #ececee;
+  cursor: not-allowed;
+}
 
 /* 제품 상태 배지: 남색 → 벨로르 딥그린 (팔레트 통일) */
 .pp-state-badge { background: #1a2925 !important; }

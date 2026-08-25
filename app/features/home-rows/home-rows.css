@@ -92,6 +92,14 @@
 .hrow-badge.is-rate { background: #1a2925; }
 .hrow-badge.is-drop { background: #d4342a; }
 .hrow-badge.is-new { background: #1a2925; letter-spacing: .04em; }
+.hrow-sale-state {
+  position: absolute; top: 8px; right: 8px; z-index: 3;
+  padding: 5px 9px; border-radius: 999px; color: #fff; background: rgba(26, 41, 37, .92);
+  font-size: 10.5px; font-weight: 850; line-height: 1.2; letter-spacing: -.02em;
+}
+.hrow-sale-state.is-sold { background: rgba(17, 17, 17, .88); letter-spacing: .04em; }
+.hrow-card.is-reserved .hrow-img,
+.hrow-card.is-sold .hrow-img { background-color: #e8e9ea; }
 
 /* 추천 매물 — 모바일·데스크톱 모두 2열, 최대 6줄(12점) */
 #homeOnSale .hrow-head { padding: 0; }

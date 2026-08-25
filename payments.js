@@ -36,7 +36,7 @@
   var selectedChannel = null;   // 선택된 결제수단(config.channels 의 한 항목)
 
   function getModal() { return $('#checkoutModal'); }
-  function paymentCustomerMessage(value, context, provider) { var f = window.BELLORE_CUSTOMER_FEEDBACK; return f && provider && f.paymentProviderFeedback ? f.paymentProviderFeedback(value) : f && f.message ? f.message(value, context) : context === 'confirmation' || provider ? '결제 결과를 확인하지 못했습니다. 다시 결제하지 말고 고객센터로 문의해 주세요.' : '결제를 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.'; }
+  function paymentFlow() { return window.BELLORE_PAYMENT_FLOW; }
   function testPaymentsEnabled() {
     var host = (location.hostname || '').toLowerCase();
     if (host === 'localhost' || host === '127.0.0.1' || host === '[::1]') return true;
@@ -232,12 +232,14 @@
 
   function openCheckout(p) {
     // 비회원도 구매 가능(네이버페이 주문형 요건). 주문 생성은 게스트 분기로 처리한다.
-    product = p || window.BELLORE_currentProduct;
-    if (!product || !product.price) {
+    var candidate = p || window.BELLORE_currentProduct;
+    if (!candidate || !candidate.price) {
       alert('가격 문의 상품입니다. 카카오톡 상담으로 안내드릴게요.');
       window.open('https://open.kakao.com/o/sMuCaAFh', '_blank');
       return;
     }
+    if (!paymentFlow().canOpen(candidate.status)) return;
+    product = candidate;
     modal = getModal();
     if (!modal) return;
     // 상품상세 모달이 떠 있으면 닫기(겹침 방지)
@@ -270,7 +272,7 @@
   }
 
   // 결제 요청
-  function requestPay() {
+  function requestPay(listingChecked) {
     var name = $('#coName').value.trim();
     var phone = $('#coPhone').value.trim();
     var email = ($('#coEmail').value || '').trim();
@@ -302,6 +304,17 @@
       return;
     }
 
+    var uc = getSelectedCoupon();
+    var base = baseAmount();
+    var discount = uc ? currentDiscount(base) : 0;
+    var amount = Math.max(0, base - discount);
+    if (amount < 100) { alert(uc ? '선택한 쿠폰을 적용하면 결제금액이 100원 미만입니다. 쿠폰을 해제하거나 다른 쿠폰을 선택해 주세요.' : '결제금액은 100원 이상이어야 합니다. 상품 가격을 확인해 주세요.'); return; }
+
+    if (!listingChecked) {
+      paymentFlow().guard(product, $('#coPayBtn')).then(function (ok) { if (ok) requestPay(true); });
+      return;
+    }
+
     if (selectedChannel.kind === 'naver-order') {
       if (!window.BELLORE_NPAY_START) {
         alert('네이버페이 연결을 준비 중입니다. 잠시 후 다시 시도해 주세요.');
@@ -311,7 +324,7 @@
       naverBtn.disabled = true;
       naverBtn.textContent = '네이버페이 연결 중...';
       window.BELLORE_NPAY_START(product).catch(function (error) {
-        console.warn('[BELLORE] 네이버페이 주문 시작 실패:', error);
+        paymentFlow().log('naver_payment_start', error);
         alert('현재 네이버페이를 이용할 수 없습니다. 다른 결제 수단을 선택해 주세요.');
       }).finally(function () {
         naverBtn.disabled = false;
@@ -326,11 +339,6 @@
       return;
     }
 
-    var uc = getSelectedCoupon();
-    var base = baseAmount();
-    var discount = uc ? currentDiscount(base) : 0;
-    var amount = Math.max(0, base - discount);
-    if (amount < 100) { alert(uc ? '선택한 쿠폰을 적용하면 결제금액이 100원 미만입니다. 쿠폰을 해제하거나 다른 쿠폰을 선택해 주세요.' : '결제금액은 100원 이상이어야 합니다. 상품 가격을 확인해 주세요.'); return; }
     var orderName = (product.brand ? product.brand + ' ' : '') + (product.model || '상품');
 
     var payBtn = $('#coPayBtn');
@@ -384,7 +392,7 @@
           phoneNumber: phone.replace(/[^0-9]/g, ''),
           email: email
         },
-        redirectUrl: location.origin + location.pathname + '?pay=portone'
+        redirectUrl: location.origin + '/?pay=portone'
       };
       if (selectedChannel.easyPayProvider) {
         req.easyPay = { easyPayProvider: selectedChannel.easyPayProvider };
@@ -395,25 +403,13 @@
         payBtn.textContent = '결제하기';
         if (resp && resp.code != null) {
           if (!/CANCEL/i.test(resp.code || '')) {
-            showResult(false, '결제 확인 필요', paymentCustomerMessage(resp, 'confirmation', true));
+            showResult(false, '결제 확인 필요', paymentFlow().customerMessage(resp, 'confirmation', true));
           }
           return;
         }
         verifyPayment(resp ? resp.paymentId : order.orderNo, attribution, product.listingId || null, order.checkoutToken || null);
       });
-    }).catch(function (e) {
-      console.warn('[BELLORE] 결제 요청 실패:', e);
-      payBtn.disabled = false;
-      payBtn.textContent = '결제하기';
-      if (e && e.message === 'CHECKOUT_AMOUNT_CHANGED') {
-        alert('결제 직전 상품가 또는 할인이 변경되었습니다. 화면을 새로고침한 뒤 다시 확인해 주세요.');
-        return;
-      }
-      if (e && (e.code === 'PAYMENT_SESSION_EXPIRED' || e.message === 'PAYMENT_SESSION_EXPIRED')) { alert('로그인 정보가 만료되었습니다. 로그아웃 후 다시 로그인한 뒤 결제를 진행해 주세요.'); return; }
-      if (e && e.code && !/CANCEL/i.test(e.code)) {
-        alert(paymentCustomerMessage(e, 'payment_start', false));
-      }
-    });
+    }).catch(function (e) { paymentFlow().startFailure(e, payBtn); });
   }
   // 결제 성공 후 서버(Edge Function) 검증
   function verifyPayment(paymentId, attribution, listingId, checkoutToken) {
@@ -422,21 +418,25 @@
       showResult(false, '결제 확인 필요', '결제 결과를 확인할 수 없습니다. 다시 결제하지 말고 고객센터로 문의해 주세요.');
       return;
     }
-    var doConfirm = window.NWBackend.confirmOrder({ paymentId: paymentId,
-      checkoutToken: checkoutToken || null, attribution: attribution || null });
-    doConfirm.then(function (res) {
+    paymentFlow().confirm({ paymentId: paymentId, checkoutToken: checkoutToken || null, attribution: attribution || null }, 3).then(function (res) {
       if (res && (res.ok || res.alreadyPaid)) {
         if (window.BelloreAnalytics && window.BelloreAnalytics.purchaseComplete && res.order && res.order.id) {
           window.BelloreAnalytics.purchaseComplete(res.order, res.order.amount, listingId || res.order.listing_id || null);
         }
-        if (window.belloreRefreshCoupons) window.belloreRefreshCoupons();
+        if (window.belloreRefreshCoupons) window.belloreRefreshCoupons(); if (window.NWBackend && window.NWBackend.refreshListings) window.NWBackend.refreshListings();
+        try { sessionStorage.removeItem('bellore_pending_order'); } catch (_e) {}
         showResult(true, '결제가 완료되었습니다',
-          '주문번호 ' + (paymentId || '') + '\n마이페이지에서 주문 내역을 확인하실 수 있습니다.');
+          '주문번호 ' + (paymentId || '') + '\n주문번호를 보관해 주세요. 배송 관련 문의 시 빠르게 확인해 드립니다.');
+      } else if (res && (res.pending === true || Number(res.httpStatus) === 202)) {
+        showResult(false, '결제 확인 중',
+          '주문번호 ' + (paymentId || '') + '\n승인 상태를 확인하고 있습니다. 다시 결제하지 말고 고객센터에 주문번호로 문의해 주세요.');
       } else {
+        paymentFlow().log('confirmation_failed', res);
         showResult(false, '결제 확인 필요',
-          paymentCustomerMessage((res && res.error) ? res.error : res, 'confirmation', false));
+          paymentFlow().customerMessage((res && res.error) ? res.error : res, 'confirmation', false));
       }
-    }).catch(function () {
+    }).catch(function (error) {
+      paymentFlow().log('confirmation_network', error);
       showResult(false, '결제 확인이 지연되고 있습니다', '인터넷 연결을 확인해 주세요. 다시 결제하지 말고 잠시 후 결제 내역을 확인해 주세요.');
     });
   }
@@ -468,7 +468,7 @@
     if (!paymentId) return; // pay=portone 만 있고 결과 없음(취소 등) → 조용히 종료
 
     if (code) {
-      showResult(false, /CANCEL|FAILURE_TYPE_USER|PAY_PROCESS_CANCEL/i.test(code) ? '결제 취소' : '결제 확인 필요', paymentCustomerMessage({ code: code, message: q.get('message') || '' }, 'confirmation', true));
+      showResult(false, /CANCEL|FAILURE_TYPE_USER|PAY_PROCESS_CANCEL/i.test(code) ? '결제 취소' : '결제 확인 필요', paymentFlow().customerMessage({ code: code, message: q.get('message') || '' }, 'confirmation', true));
       return;
     }
     var pending = null;
@@ -482,7 +482,7 @@
     if (closeBtn) closeBtn.addEventListener('click', closeCheckout);
 
     var payBtn = $('#coPayBtn');
-    if (payBtn) payBtn.addEventListener('click', requestPay);
+    if (payBtn) payBtn.addEventListener('click', function () { requestPay(false); });
 
     var methodsBox = $('#coMethods');
     if (methodsBox) methodsBox.addEventListener('click', function (e) {

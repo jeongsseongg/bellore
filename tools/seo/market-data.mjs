@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { listingPresentation } from '../../app/core/listing-display.js';
 import {
+  effectiveListingStatus,
   DEFAULT_MIN_PRODUCTS,
   SITE_ORIGIN,
   absoluteImageUrl,
@@ -105,7 +106,7 @@ export function normalizeListing(row) {
     if (salePrice > price) throw new Error(`${productNumber} 할인가가 정상가보다 큽니다.`);
   }
   const currentPrice = salePrice || price;
-  const policy = statusPolicy(row.status);
+  const policy = statusPolicy(effectiveListingStatus(row));
   const photos = normalizePhotos(row, productNumber);
   const notes = conditionLines(row.condition_notes);
   const tags = Array.isArray(row.tags) ? row.tags.map(optionalText).filter(Boolean) : [];
@@ -189,7 +190,7 @@ export function prepareMarketListings(rows, options = {}) {
     const id = requiredText(row?.id, 'listing.id');
     if (ids.has(id)) throw new Error(`중복 listing.id: ${id}`);
     ids.add(id);
-    const policy = statusPolicy(row?.status);
+    const policy = statusPolicy(effectiveListingStatus(row));
     if (legacyDemoMatch(row)) {
       excludedLegacyDemos += 1;
       continue;
