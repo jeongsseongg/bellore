@@ -15,7 +15,7 @@ import {
   providerStatusKind,
   providerTotalAmount,
   reconciliationSummaryOk,
-  rotatingPendingWindowOffset,
+  rotatingReconciliationWindowOffset,
   shouldExpirePendingOrder,
 } from "../_shared/payment-recovery-policy.mjs";
 
@@ -316,46 +316,47 @@ Deno.serve(async (req) => {
   });
   const nowMs = Date.now();
   const staleBefore = new Date(nowMs - STALE_PENDING_AGE_MS).toISOString();
-  // 각 상태가 독립 quota를 갖게 한다. payment_review의 오래된 20건이
-  // refund_pending을, 또는 추적 상태가 pending 복구를 가로막으면 안 된다.
-  const [paymentReviewResult, refundPendingResult, pendingCountResult] = await Promise.all([
+  // 각 상태의 고정된 앞 20건이 같은 상태의 다음 결제를 가로막지 않게 count를 먼저 구한다.
+  const [paymentReviewCountResult, refundPendingCountResult, pendingCountResult] = await Promise.all([
     admin
       .from("orders")
-      .select("id,order_no,amount,status,payment_key,created_at")
-      .eq("status", "payment_review")
-      .order("created_at", { ascending: true })
-      .limit(MAX_ORDERS_PER_GROUP),
+      .select("id", { count: "exact", head: true })
+      .eq("status", "payment_review"),
     admin
       .from("orders")
-      .select("id,order_no,amount,status,payment_key,created_at")
-      .eq("status", "refund_pending")
-      .order("created_at", { ascending: true })
-      .limit(MAX_ORDERS_PER_GROUP),
+      .select("id", { count: "exact", head: true })
+      .eq("status", "refund_pending"),
     admin
       .from("orders")
       .select("id", { count: "exact", head: true })
       .eq("status", "pending")
       .lt("created_at", staleBefore),
   ]);
-  if ([paymentReviewResult, refundPendingResult, pendingCountResult].some((result) => result.error) ||
-    pendingCountResult.count === null) {
+  const countResults = [paymentReviewCountResult, refundPendingCountResult, pendingCountResult];
+  if (countResults.some((result) => result.error || result.count === null)) {
     return json({ error: "orders_lookup_failed" }, 500);
   }
-  const pendingOffset = rotatingPendingWindowOffset(
-    pendingCountResult.count,
-    MAX_ORDERS_PER_GROUP,
-    nowMs,
+  const [paymentReviewOffset, refundPendingOffset, pendingOffset] = countResults.map((result) =>
+    rotatingReconciliationWindowOffset(result.count, MAX_ORDERS_PER_GROUP, nowMs)
   );
-  // READY/404는 행을 갱신하지 않으므로 5분마다 안정 정렬된 다음 window를 조회한다.
-  const pendingResult = await admin
-    .from("orders")
-    .select("id,order_no,amount,status,payment_key,created_at")
-    .eq("status", "pending")
-    .lt("created_at", staleBefore)
-    .order("created_at", { ascending: true })
-    .order("id", { ascending: true })
-    .range(pendingOffset, pendingOffset + MAX_ORDERS_PER_GROUP - 1);
-  if (pendingResult.error) return json({ error: "orders_lookup_failed" }, 500);
+  // 5분마다 created_at/id 안정 정렬의 다음 window를 세 상태 모두 독립 조회한다.
+  const [paymentReviewResult, refundPendingResult, pendingResult] = await Promise.all([
+    admin.from("orders").select("id,order_no,amount,status,payment_key,created_at")
+      .eq("status", "payment_review").order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(paymentReviewOffset, paymentReviewOffset + MAX_ORDERS_PER_GROUP - 1),
+    admin.from("orders").select("id,order_no,amount,status,payment_key,created_at")
+      .eq("status", "refund_pending").order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(refundPendingOffset, refundPendingOffset + MAX_ORDERS_PER_GROUP - 1),
+    admin.from("orders").select("id,order_no,amount,status,payment_key,created_at")
+      .eq("status", "pending").lt("created_at", staleBefore)
+      .order("created_at", { ascending: true }).order("id", { ascending: true })
+      .range(pendingOffset, pendingOffset + MAX_ORDERS_PER_GROUP - 1),
+  ]);
+  if ([paymentReviewResult, refundPendingResult, pendingResult].some((result) => result.error)) {
+    return json({ error: "orders_lookup_failed" }, 500);
+  }
 
   // 별도 query 사이에 상태가 바뀌어 중복 관측되면 취소 의도가 결제확정보다 우선한다.
   const groupResults = [refundPendingResult, paymentReviewResult, pendingResult];

@@ -2,14 +2,14 @@ import assert from 'node:assert/strict';
 import {
   CONFIRMATION_RETRY_DELAYS_MS,
   PENDING_RECOVERY_EXPIRY_MS,
-  PENDING_RECOVERY_ROTATION_MS,
+  RECONCILIATION_ROTATION_MS,
   confirmationRetryDelayMs,
   fairReconciliationBatch,
   paidRecoveryAction,
   providerStatusKind,
   providerTotalAmount,
   reconciliationSummaryOk,
-  rotatingPendingWindowOffset,
+  rotatingReconciliationWindowOffset,
   shouldExpirePendingOrder,
   shouldFinalizeDuringRecovery,
   shouldRetryConfirmation,
@@ -17,7 +17,7 @@ import {
 
 assert.deepEqual(CONFIRMATION_RETRY_DELAYS_MS, [400, 800, 1200]);
 assert.equal(PENDING_RECOVERY_EXPIRY_MS, 86_400_000);
-assert.equal(PENDING_RECOVERY_ROTATION_MS, 300_000);
+assert.equal(RECONCILIATION_ROTATION_MS, 300_000);
 assert.equal(providerStatusKind('PAID'), 'paid');
 assert.equal(providerStatusKind('READY'), 'pending');
 assert.equal(providerStatusKind('PENDING'), 'pending');
@@ -85,23 +85,28 @@ assert.deepEqual(
   'the first, safety-priority status wins when two queries observe one transitioning order',
 );
 
-const pendingRows = Array.from({ length: 45 }, (_, index) => ({ index }));
-const repeatedOffsets = [0, 1, 2, 3].map((slot) =>
-  rotatingPendingWindowOffset(pendingRows.length, 20, slot * PENDING_RECOVERY_ROTATION_MS)
-);
-assert.deepEqual(repeatedOffsets, [0, 20, 40, 0]);
-const visitedPendingIndexes = new Set(
-  repeatedOffsets.slice(0, 3).flatMap((offset) =>
-    pendingRows.slice(offset, offset + 20).map((row) => row.index)
-  ),
-);
-assert.equal(visitedPendingIndexes.size, 45, 'three scheduled runs must visit every pending row');
-assert.equal(
-  pendingRows.slice(repeatedOffsets[1], repeatedOffsets[1] + 20).some((row) => row.index === 20),
-  true,
-  'twenty unchanged READY/404 rows must not hide the twenty-first PAID row on the next run',
-);
-assert.equal(rotatingPendingWindowOffset(45, 20, Number.NaN), 0);
+for (const status of ['payment_review', 'refund_pending', 'pending']) {
+  const rows = Array.from({ length: 45 }, (_, index) => ({
+    status,
+    index,
+    providerStatus: index === 20 ? 'PAID' : 'UNCHANGED',
+  }));
+  const repeatedOffsets = [0, 1, 2, 3].map((slot) =>
+    rotatingReconciliationWindowOffset(rows.length, 20, slot * RECONCILIATION_ROTATION_MS)
+  );
+  assert.deepEqual(repeatedOffsets, [0, 20, 40, 0]);
+  const visitedIndexes = new Set(repeatedOffsets.slice(0, 3).flatMap((offset) =>
+    rows.slice(offset, offset + 20).map((row) => row.index)
+  ));
+  assert.equal(visitedIndexes.size, 45, `three runs must visit every ${status} row`);
+  assert.equal(
+    rows.slice(repeatedOffsets[1], repeatedOffsets[1] + 20)
+      .some((row) => row.index === 20 && row.providerStatus === 'PAID'),
+    true,
+    `twenty unchanged ${status} rows must not hide the twenty-first PAID row`,
+  );
+}
+assert.equal(rotatingReconciliationWindowOffset(45, 20, Number.NaN), 0);
 
 assert.equal(reconciliationSummaryOk({ pending: 7, errors: 0, reviewRequired: 0 }), true);
 assert.equal(reconciliationSummaryOk({ pending: 7, errors: 1, reviewRequired: 0 }), false);

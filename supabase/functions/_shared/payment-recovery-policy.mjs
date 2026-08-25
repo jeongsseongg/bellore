@@ -7,7 +7,7 @@ const PROVIDER_PENDING_STATUSES = new Set([
 
 export const CONFIRMATION_RETRY_DELAYS_MS = Object.freeze([400, 800, 1200]);
 export const PENDING_RECOVERY_EXPIRY_MS = 24 * 60 * 60 * 1000;
-export const PENDING_RECOVERY_ROTATION_MS = 5 * 60 * 1000;
+export const RECONCILIATION_ROTATION_MS = 5 * 60 * 1000;
 
 export function providerStatusKind(value) {
   const status = String(value || '').trim().toUpperCase();
@@ -83,7 +83,7 @@ export function fairReconciliationBatch(groups, perGroupLimit) {
   return batch;
 }
 
-export function rotatingPendingWindowOffset(totalRows, pageSize, nowMs) {
+export function rotatingReconciliationWindowOffset(totalRows, pageSize, nowMs) {
   const total = Number(totalRows);
   const size = Number(pageSize);
   const referenceMs = Number(nowMs);
@@ -91,7 +91,7 @@ export function rotatingPendingWindowOffset(totalRows, pageSize, nowMs) {
     !Number.isSafeInteger(size) || size <= 0 ||
     !Number.isFinite(referenceMs) || referenceMs < 0) return 0;
   const pageCount = Math.ceil(total / size);
-  const timeSlot = Math.floor(referenceMs / PENDING_RECOVERY_ROTATION_MS);
+  const timeSlot = Math.floor(referenceMs / RECONCILIATION_ROTATION_MS);
   return (timeSlot % pageCount) * size;
 }
 

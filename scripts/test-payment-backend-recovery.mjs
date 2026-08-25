@@ -57,25 +57,32 @@ assert.match(webhook, /MAX_WEBHOOK_BYTES = 16_384/);
 assert.match(webhook, /order_not_found/);
 assert(webhook.indexOf('order_not_found') < webhook.indexOf('lookupPortOnePayment({'), 'unknown orders must be rejected before provider lookup');
 
-for (const status of ['payment_review', 'refund_pending']) {
+for (const status of ['payment_review', 'refund_pending', 'pending']) {
   assert.match(
     reconcile,
-    new RegExp(`\\.eq\\("status", "${status}"\\)[\\s\\S]{0,180}\\.limit\\(MAX_ORDERS_PER_GROUP\\)`),
-    `${status} must have its own oldest-first reconciliation quota`,
+    new RegExp(`\\.select\\("id", \\{ count: "exact", head: true \\}\\)[\\s\\S]{0,100}\\.eq\\("status", "${status}"\\)`),
+    `${status} must have its own exact count for rotating quota`,
   );
 }
+assert.equal(occurrences(reconcile, /\.select\("id", \{ count: "exact", head: true \}\)/g), 3);
+assert.equal(occurrences(reconcile, /\.limit\(MAX_ORDERS_PER_GROUP\)/g), 0);
 assert.equal(
-  occurrences(reconcile, /\.limit\(MAX_ORDERS_PER_GROUP\)/g),
-  2,
-  'tracked reconciliation statuses must each receive an independent quota',
+  occurrences(reconcile, /\.range\(\w+Offset, \w+Offset \+ MAX_ORDERS_PER_GROUP - 1\)/g),
+  3,
+  'every reconciliation status must receive an independent rotating range',
 );
-assert.match(reconcile, /\.select\("id", \{ count: "exact", head: true \}\)[\s\S]{0,100}\.eq\("status", "pending"\)/);
-assert.match(reconcile, /rotatingPendingWindowOffset\([\s\S]{0,120}MAX_ORDERS_PER_GROUP[\s\S]{0,120}nowMs/);
-assert.match(
-  reconcile,
-  /\.eq\("status", "pending"\)[\s\S]{0,220}\.order\("created_at", \{ ascending: true \}\)[\s\S]{0,100}\.order\("id", \{ ascending: true \}\)[\s\S]{0,120}\.range\(pendingOffset, pendingOffset \+ MAX_ORDERS_PER_GROUP - 1\)/,
-  'pending recovery must rotate a stable, bounded window instead of repeating the oldest 20 rows',
-);
+assert.equal(occurrences(reconcile, /rotatingReconciliationWindowOffset\(/g), 1);
+for (const [status, offset] of [
+  ['payment_review', 'paymentReviewOffset'],
+  ['refund_pending', 'refundPendingOffset'],
+  ['pending', 'pendingOffset'],
+]) {
+  assert.match(
+    reconcile,
+    new RegExp(`\\.eq\\("status", "${status}"\\)[\\s\\S]{0,240}\\.order\\("created_at", \\{ ascending: true \\}\\)[\\s\\S]{0,100}\\.order\\("id", \\{ ascending: true \\}\\)[\\s\\S]{0,130}\\.range\\(${offset}, ${offset} \\+ MAX_ORDERS_PER_GROUP - 1\\)`),
+    `${offset} must use stable ordering and a bounded rotating range`,
+  );
+}
 assert.doesNotMatch(
   reconcile,
   /\.in\("status", \["payment_review", "refund_pending"\]\)/,
@@ -101,8 +108,8 @@ assert.match(policy, /status === 'refund_pending'.*continue_cancellation/);
 assert.match(policy, /review_amount_mismatch/);
 assert.match(policy, /PENDING_RECOVERY_EXPIRY_MS = 24 \* 60 \* 60 \* 1000/);
 assert.match(policy, /export function fairReconciliationBatch/);
-assert.match(policy, /export function rotatingPendingWindowOffset/);
-assert.match(policy, /PENDING_RECOVERY_ROTATION_MS = 5 \* 60 \* 1000/);
+assert.match(policy, /export function rotatingReconciliationWindowOffset/);
+assert.match(policy, /RECONCILIATION_ROTATION_MS = 5 \* 60 \* 1000/);
 assert.match(reconcileWorkflow, /cron: ['"]\*\/5 \* \* \* \*['"]/);
 
 console.log('payment backend recovery contracts: ok');
