@@ -1,6 +1,10 @@
 export function initHeroParallax({ document, window: browserWindow }) {
   const heroImage = document.querySelector('.hero-image');
   if (!heroImage) return { destroy() {} };
+  if (heroImage.closest?.('.hero-default')) {
+    heroImage.style.transform = 'none';
+    return { destroy() {} };
+  }
 
   function syncScroll() {
     const scrollY = browserWindow.scrollY;

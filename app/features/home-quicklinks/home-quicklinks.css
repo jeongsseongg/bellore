@@ -91,17 +91,20 @@ body.hq-settings-open { overflow: hidden; }
   margin-right: 0;
   margin-top: 0;
   border-radius: 0;
+  container-type: inline-size;
 }
 .page-home .hero-carousel.has-db { padding-top: 0; }
-.page-home .hero-slide-db { height: auto; min-height: 0; max-height: none; aspect-ratio: 40 / 21; }
-.page-home .hero-slide.hero-default { min-height: 0; aspect-ratio: 40 / 21; padding: 0; box-sizing: border-box; color: #fff; text-decoration: none; }
-.page-home .hero-default .hero-image { background-image: url('../../../assets/home-banner-1.png'); background-position: center; background-size: cover; }
-.page-home .hero-default .hero-gradient { background: linear-gradient(90deg, rgba(0,0,0,.72) 0%, rgba(0,0,0,.38) 43%, rgba(0,0,0,.04) 70%); }
-.page-home .hero-default .hero-content { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; width: 100%; max-width: none; height: 100%; margin: 0; box-sizing: border-box; text-align: left; padding: 0 0 0 clamp(24px, 7vw, 88px); }
-.page-home .hero-default .hero-eyebrow { max-width: 46%; margin: 10px 0 0; padding: 0; font-family: inherit; font-size: clamp(12px, 1.8vw, 18px); line-height: 1.45; letter-spacing: -.02em; color: rgba(255,255,255,.78); word-break: keep-all; }
+.page-home { scroll-margin-top: 120px; }
+.page-home .hero-slide-db { height: auto; min-height: 0; max-height: none; aspect-ratio: 1893 / 831; }
+.page-home .hero-slide.hero-default { min-height: 0; aspect-ratio: 1893 / 831; padding: 0; box-sizing: border-box; color: #fff; text-decoration: none; }
+.page-home .hero-default .hero-image { inset: 0; background-color: #06120e; background-image: url('../../../assets/home-banner-1.png'); background-position: center; background-size: contain; background-repeat: no-repeat; filter: none; animation: none; will-change: auto; transform: none; }
+.page-home .hero-default .hero-gradient { background: linear-gradient(90deg, rgba(0,0,0,.68) 0%, rgba(0,0,0,.38) 37%, rgba(0,0,0,.08) 57%, rgba(0,0,0,0) 70%); }
+.page-home .hero-default .hero-content { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; width: 100%; max-width: none; height: 100%; margin: 0; box-sizing: border-box; text-align: left; padding: 0 0 0 4.6cqw; transform: none; }
+.page-home .hero-default .anim-line { animation: none; opacity: 1; transform: none; }
+.page-home .hero-default .hero-eyebrow { max-width: 45cqw; margin: clamp(5px, 1.1cqw, 10px) 0 0; padding: 0; font-family: inherit; font-size: clamp(9px, 1.6cqw, 14px); font-weight: 600; line-height: 1.42; letter-spacing: -.02em; color: rgba(255,255,255,.82); word-break: keep-all; }
 .page-home .hero-default .hero-eyebrow::before { display: none; }
-.page-home .hero-default .hero-title { max-width: 46%; margin: 0; font-size: clamp(27px, 4.4vw, 54px); line-height: 1.12; word-break: keep-all; }
-.hero-fullset-link { display: inline-flex; margin-top: 20px; padding: 10px 16px; border: 1px solid rgba(255,255,255,.55); border-radius: 999px; font-size: clamp(12px, 1.6vw, 15px); font-weight: 750; }
+.page-home .hero-default .hero-title { max-width: 45cqw; margin: 0; font-size: clamp(18px, 4.5cqw, 40px); font-weight: 800; line-height: 1.14; letter-spacing: -.045em; word-break: keep-all; }
+.hero-fullset-link { display: inline-flex; margin-top: clamp(8px, 1.8cqw, 16px); padding: clamp(6px, 1cqw, 9px) clamp(10px, 1.6cqw, 15px); border: 1px solid rgba(255,255,255,.6); border-radius: 999px; font-size: clamp(9px, 1.4cqw, 13px); line-height: 1.2; font-weight: 700; }
 .page-home .hero-dots { bottom: 14px; }
 .page-home .hero-manage-btn { top: 12px; right: 12px; }
 
@@ -113,13 +116,6 @@ body.hq-settings-open { overflow: hidden; }
   .hq-image { width: 72px; }
   .hq-label { font-size: 13px; }
   .page-home .hero-carousel { width: 100%; margin-left: 0; margin-right: 0; }
-  .page-home .hero-slide-db, .page-home .hero-slide.hero-default { aspect-ratio: 5 / 4; }
-  .page-home .hero-slide-db .hero-slide-text { padding: 0 18px 30px; }
-  .page-home .hero-default .hero-image { background-position: 58% center; }
-  .page-home .hero-default .hero-content { padding: 0 18px; justify-content: center; transform: translateY(28px); }
-  .page-home .hero-default .hero-eyebrow, .page-home .hero-default .hero-title { max-width: 72%; }
-  .page-home .hero-default .hero-title { font-size: clamp(26px, 8.3vw, 34px); }
-  .hero-fullset-link { margin-top: 14px; padding: 8px 13px; }
   .hq-settings { right: 16px; }
   .hq-settings-row { grid-template-columns: 22px 58px 1fr; gap: 9px; }
   .hq-settings-preview { width: 56px; height: 56px; }

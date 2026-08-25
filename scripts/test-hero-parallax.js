@@ -30,6 +30,16 @@ function eventTarget() {
   assert.equal(noHeroWindow.listeners.size, 0, 'missing hero installs no listener');
   assert.doesNotThrow(() => noHero.destroy(), 'missing hero returns a safe controller');
 
+  const staticHeroImage = { style: { transform: 'scale(1.05)' }, closest: () => ({}) };
+  const staticHeroWindow = { ...eventTarget(), scrollY: 100, innerHeight: 800 };
+  const staticHero = initHeroParallax({
+    document: { querySelector: () => staticHeroImage },
+    window: staticHeroWindow
+  });
+  assert.equal(staticHeroImage.style.transform, 'none', 'fixed home banner always shows the complete source image');
+  assert.equal(staticHeroWindow.listeners.size, 0, 'fixed home banner installs no crop-inducing parallax listener');
+  assert.doesNotThrow(() => staticHero.destroy(), 'fixed home banner returns a safe controller');
+
   const heroImage = { style: { transform: '' } };
   const browserWindow = { ...eventTarget(), scrollY: 0, innerHeight: 800 };
   const controller = initHeroParallax({
@@ -56,7 +66,7 @@ function eventTarget() {
   const bootstrap = fs.readFileSync(path.join(root, 'app', 'bootstrap.js'), 'utf8');
   const legacyScript = fs.readFileSync(path.join(root, 'script.js'), 'utf8');
   const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
-  assert.match(bootstrap, /import \{ initHeroParallax \} from '\.\/ui\/hero-parallax\.js';/, 'bootstrap imports the parallax module');
+  assert.match(bootstrap, /import \{ initHeroParallax \} from '\.\/ui\/hero-parallax\.js\?v=20260825-home-banner-fit-v1';/, 'bootstrap imports the fixed banner module with an exact release key');
   assert.match(bootstrap, /initHeroParallax\(\{ document, window \}\);/, 'bootstrap initializes the parallax module');
   assert.doesNotMatch(legacyScript, /initParallax/, 'legacy script no longer owns parallax');
   assert.match(serviceWorker, /\.\/app\/ui\/hero-parallax\.js/, 'service worker precaches the parallax module');
