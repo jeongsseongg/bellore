@@ -3,8 +3,8 @@ const PREVIOUS_TIME_SALE_IMAGE = 'assets/home-quicklinks/time-sale.png';
 const PREVIOUS_UNDER_300_IMAGE = 'assets/home-quicklinks/under-300.png';
 
 const ACTIONS = [
-  { value: 'timesale', label: 'TIME SALE 상품' },
-  { value: 'search', label: '검색 화면' },
+  { value: 'timesale', label: '하단 검색 · TIME SALE 상품' },
+  { value: 'search', label: '하단 검색 화면' },
   { value: 'vintage', label: '빈티지 상품' },
   { value: 'under300', label: '300만원 이하 상품' },
   { value: 'sell', label: '시계판매 페이지' },
@@ -53,13 +53,9 @@ function navigate(doc, win, target) {
 }
 
 function runAction({ action, doc, win, collection }) {
-  if (action === 'timesale') return navigate(doc, win, 'cat-sale');
-  if (action === 'search') {
-    const search = doc.getElementById('searchInput');
-    if (search) search.click();
-    return;
-  }
-  if (action === 'vintage') return collection.search('빈티지');
+  if (action === 'timesale') return collection.filter({ saleOnly: true });
+  if (action === 'search') return collection.open();
+  if (action === 'vintage') return collection.filter({ vintage: true });
   if (action === 'under300') return collection.filterByPrice(null, 3000000);
   if (action === 'sell') return navigate(doc, win, 'compare');
   if (action === 'repair') return navigate(doc, win, 'repair');
@@ -110,6 +106,8 @@ export function initHomeQuicklinks({ document: doc, window: win, collection }) {
   const backend = win.NWBackend;
   const settingsButton = mount.querySelector('.hq-settings');
   const rail = mount.querySelector('.hq-rail');
+  const scrollbar = mount.querySelector('.hq-scrollbar');
+  const scrollThumb = scrollbar && scrollbar.querySelector('.hq-scrollbar-thumb');
   let items = DEFAULTS.map((item) => ({ ...item }));
   let modal = null;
   let isAdmin = false;
@@ -120,6 +118,20 @@ export function initHomeQuicklinks({ document: doc, window: win, collection }) {
       `<span class="hq-image"><img src="${escapeText(item.image)}" alt="" loading="${index < 3 ? 'eager' : 'lazy'}"></span>` +
       `<span class="hq-label">${escapeText(item.label)}</span></button>`
     ).join('');
+    if (typeof win.requestAnimationFrame === 'function') win.requestAnimationFrame(syncScrollbar);
+    else win.setTimeout(syncScrollbar, 0);
+  }
+
+  function syncScrollbar() {
+    if (!scrollbar || !scrollThumb) return;
+    const maxScroll = Math.max(0, rail.scrollWidth - rail.clientWidth);
+    if (!maxScroll) { scrollbar.hidden = true; return; }
+    scrollbar.hidden = false;
+    const trackWidth = scrollbar.clientWidth;
+    const thumbWidth = Math.max(36, trackWidth * rail.clientWidth / rail.scrollWidth);
+    const left = (trackWidth - thumbWidth) * Math.min(1, Math.max(0, rail.scrollLeft / maxScroll));
+    scrollThumb.style.width = `${thumbWidth}px`;
+    scrollThumb.style.transform = `translate3d(${left}px,0,0)`;
   }
 
   function notify(message) {
@@ -193,6 +205,8 @@ export function initHomeQuicklinks({ document: doc, window: win, collection }) {
     const item = items[Number(button.dataset.hqIndex)];
     if (item) runAction({ action: item.action, doc, win, collection });
   });
+  rail.addEventListener('scroll', syncScrollbar, { passive: true });
+  win.addEventListener('resize', syncScrollbar, { passive: true });
   settingsButton.addEventListener('click', openSettings);
   doc.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && modal && !modal.hidden) closeModal();

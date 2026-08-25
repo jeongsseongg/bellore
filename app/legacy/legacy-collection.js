@@ -4,12 +4,17 @@
 
 export function createLegacyCollection({ document: doc, window: win }) {
   function openCollectionPage() {
-    const link = doc.querySelector('.tab-item[data-nav="collection"], [data-nav="collection"]');
+    const link = doc.querySelector('.tab-item[data-nav="collection"]') || doc.querySelector('[data-nav="collection"]');
     if (link) link.click();
     else win.location.hash = '#collection';
   }
 
   return {
+    open() {
+      openCollectionPage();
+      return true;
+    },
+
     openProduct(productId) {
       if (!productId) return false;
       const open = win.BELLORE_openProductById;

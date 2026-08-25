@@ -9,6 +9,9 @@
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 22px;
 }
+.hq-scrollbar { display: none; }
+.hq-scrollbar[hidden] { display: none; }
+.hq-scrollbar-thumb { display: block; height: 100%; border-radius: inherit; background: #17352c; transform: translate3d(0,0,0); }
 .hq-item {
   min-width: 0;
   padding: 0;
@@ -83,7 +86,7 @@
 .hq-settings-sheet footer .is-primary { background: #17352c; color: #fff; }
 body.hq-settings-open { overflow: hidden; }
 
-/* 참고 이미지처럼 홈배너는 길게 늘어뜨리지 않고 가로 이미지 중심으로 보인다. */
+/* 원본은 자르지 않고 배너 영역의 세로 높이만 기존 1893:831 대비 1.2배 늘린다. */
 .page-home .hero-carousel {
   width: 100%;
   max-width: none;
@@ -95,8 +98,8 @@ body.hq-settings-open { overflow: hidden; }
 }
 .page-home .hero-carousel.has-db { padding-top: 0; }
 .page-home { scroll-margin-top: 120px; }
-.page-home .hero-slide-db { height: auto; min-height: 0; max-height: none; aspect-ratio: 1893 / 831; }
-.page-home .hero-slide.hero-default { min-height: 0; aspect-ratio: 1893 / 831; padding: 0; box-sizing: border-box; color: #fff; text-decoration: none; }
+.page-home .hero-slide-db { height: auto; min-height: 0; max-height: none; aspect-ratio: 3155 / 1662; }
+.page-home .hero-slide.hero-default { min-height: 0; aspect-ratio: 3155 / 1662; padding: 0; box-sizing: border-box; color: #fff; text-decoration: none; }
 .page-home .hero-default .hero-image { inset: 0; background-color: #06120e; background-image: url('../../../assets/home-banner-1.png'); background-position: center; background-size: contain; background-repeat: no-repeat; filter: none; animation: none; will-change: auto; transform: none; }
 .page-home .hero-default .hero-gradient { background: linear-gradient(90deg, rgba(0,0,0,.68) 0%, rgba(0,0,0,.38) 37%, rgba(0,0,0,.08) 57%, rgba(0,0,0,0) 70%); }
 .page-home .hero-default .hero-content { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; width: 100%; max-width: none; height: 100%; margin: 0; box-sizing: border-box; text-align: left; padding: 0 0 0 4.6cqw; transform: none; }
@@ -104,7 +107,6 @@ body.hq-settings-open { overflow: hidden; }
 .page-home .hero-default .hero-eyebrow { max-width: 45cqw; margin: clamp(5px, 1.1cqw, 10px) 0 0; padding: 0; font-family: inherit; font-size: clamp(9px, 1.6cqw, 14px); font-weight: 600; line-height: 1.42; letter-spacing: -.02em; color: rgba(255,255,255,.82); word-break: keep-all; }
 .page-home .hero-default .hero-eyebrow::before { display: none; }
 .page-home .hero-default .hero-title { max-width: 45cqw; margin: 0; font-size: clamp(18px, 4.5cqw, 40px); font-weight: 800; line-height: 1.14; letter-spacing: -.045em; word-break: keep-all; }
-.hero-fullset-link { display: inline-flex; margin-top: clamp(8px, 1.8cqw, 16px); padding: clamp(6px, 1cqw, 9px) clamp(10px, 1.6cqw, 15px); border: 1px solid rgba(255,255,255,.6); border-radius: 999px; font-size: clamp(9px, 1.4cqw, 13px); line-height: 1.2; font-weight: 700; }
 .page-home .hero-dots { bottom: 14px; }
 .page-home .hero-manage-btn { top: 12px; right: 12px; }
 
@@ -112,6 +114,7 @@ body.hq-settings-open { overflow: hidden; }
   .home-quick-categories { margin-top: calc(14px + 4pt); margin-bottom: 24px; padding: 0 16px; overflow: hidden; }
   .hq-rail { display: flex; gap: 14px; overflow-x: auto; padding: 0 4px 8px; scrollbar-width: none; scroll-snap-type: x proximity; }
   .hq-rail::-webkit-scrollbar { display: none; }
+  .hq-scrollbar { display: block; height: 3px; margin: 6px 4px 0; overflow: hidden; border-radius: 999px; background: #e7e8e8; }
   .hq-item { flex: 0 0 76px; scroll-snap-align: start; gap: 8px; }
   .hq-image { width: 72px; }
   .hq-label { font-size: 13px; }

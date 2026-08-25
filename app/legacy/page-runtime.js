@@ -1,6 +1,6 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('sw.js?v=20260825-banner-contract-v2').catch(function (err) {
+                navigator.serviceWorker.register('sw.js?v=20260825-home-search-unified-v4').catch(function (err) {
                     console.warn('서비스워커 등록 실패:', err);
                 });
             });
@@ -53,7 +53,7 @@
                 if (fBrand && fBrand !== 'all' && bd.indexOf(fBrand.toUpperCase()) === -1) return false;
                 if (fModel && md.indexOf(fModel.toLowerCase()) === -1) return false;
                 if (fQuery) { var q = fQuery.toLowerCase(); if (hay.indexOf(q) === -1) return false; }
-                if (homeRule && ((homeRule.brandsAny && !containsAny(bd, homeRule.brandsAny)) || (homeRule.termsAny && !containsAny(hay, homeRule.termsAny)) || (homeRule.packsAny && homeRule.packsAny.indexOf(pk) === -1) || (homeRule.audience === 'women' && !(sz > 0 && sz <= 31) && !containsAny(md, ['여성', '레이디', '레이디스', '미니', '스몰'])) || (homeRule.vintage && c.dataset.vintage !== '1'))) return false;
+                if (homeRule && ((homeRule.brandsAny && !containsAny(bd, homeRule.brandsAny)) || (homeRule.termsAny && !containsAny(hay, homeRule.termsAny)) || (homeRule.packsAny && homeRule.packsAny.indexOf(pk) === -1) || (homeRule.audience === 'women' && !(sz > 0 && sz <= 31) && !containsAny(md, ['여성', '레이디', '레이디스', '미니', '스몰'])) || (homeRule.vintage && c.dataset.vintage !== '1') || (homeRule.saleOnly && c.dataset.saleactive !== '1'))) return false;
                 if (fNew && !isNew) return false;
                 if (fGrade && pk !== fGrade) return false;
                 if (cf.conditionMin != null && conditionScore < cf.conditionMin) return false;

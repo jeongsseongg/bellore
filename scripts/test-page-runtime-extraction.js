@@ -10,7 +10,7 @@ const pagesBuilder = fs.readFileSync(path.join(root, 'tools', 'build-pages.mjs')
 const navigation = fs.readFileSync(path.join(root, 'app', 'ui', 'navigation-history.js'), 'utf8');
 const widthPreference = fs.readFileSync(path.join(root, 'app', 'ui', 'width-preference.js'), 'utf8');
 const baseline = JSON.parse(fs.readFileSync(path.join(root, 'scripts', 'architecture-baseline.json'), 'utf8'));
-const releaseKey = '20260825-banner-contract-v2';
+const releaseKey = '20260825-home-search-unified-v4';
 
 const tag = `<script src="app/legacy/page-runtime.js?v=${releaseKey}"></script>`;
 assert.equal((html.match(/app\/legacy\/page-runtime\.js/g) || []).length, 1, 'page runtime must load exactly once');
