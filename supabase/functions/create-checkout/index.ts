@@ -1,7 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
+import {
+  classifyCheckoutJwtClaims,
+  decodeGatewayVerifiedJwtClaims,
+} from "../_shared/checkout-auth.mjs";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
-const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const RATE_KEY_SECRET = Deno.env.get("CHECKOUT_RATE_KEY_SECRET") ?? "";
 
@@ -138,7 +141,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
   // This endpoint is browser-only. A missing Origin is not silently trusted.
   if (!allowedOrigin(req)) return json(req, { error: "origin_forbidden" }, 403);
-  if (!SUPABASE_URL || !ANON_KEY || !SERVICE_ROLE || RATE_KEY_SECRET.length < 32) {
+  if (!SUPABASE_URL || !SERVICE_ROLE || RATE_KEY_SECRET.length < 32) {
     return json(req, { error: "server_not_configured" }, 503);
   }
 
@@ -172,11 +175,21 @@ Deno.serve(async (req) => {
       auth: { persistSession: false, autoRefreshToken: false },
     });
     const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+    const tokenContext = classifyCheckoutJwtClaims(decodeGatewayVerifiedJwtClaims(bearer));
     let callerId: string | null = null;
-    if (bearer && bearer !== ANON_KEY) {
+    if (tokenContext.kind === "user") {
       const { data, error } = await admin.auth.getUser(bearer);
-      if (error || !data.user) return json(req, { error: "unauthorized" }, 401);
+      if (error || !data.user || data.user.id.toLowerCase() !== tokenContext.subject) {
+        console.warn("create-checkout user token rejected", {
+          authCode: safeText(error?.code, 40),
+          subjectMatched: false,
+        });
+        return json(req, { error: "session_invalid" }, 401);
+      }
       callerId = data.user.id;
+    } else if (tokenContext.kind !== "guest") {
+      console.warn("create-checkout token rejected", { reason: tokenContext.reason });
+      return json(req, { error: "unauthorized" }, 401);
     }
 
     const checkoutToken = randomCapability();

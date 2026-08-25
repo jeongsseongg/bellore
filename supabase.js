@@ -1991,6 +1991,11 @@
       paidAt: o.paid_at ? tsObj(o.paid_at) : null
     };
   }
+  function paymentAccessToken() {
+    return typeof Backend.paymentAccessToken === 'function'
+      ? Backend.paymentAccessToken()
+      : Promise.reject(new Error('PAYMENT_AUTH_NOT_READY'));
+  }
 
   // 체크아웃: pending 주문 생성 → 포트원에 넘길 order_no 반환
   Backend.createOrder = function (data) {
@@ -1999,9 +2004,7 @@
     if (!PAY.checkoutUrl) {
       return Promise.reject(new Error('PAYMENT_CHECKOUT_NOT_CONFIGURED'));
     }
-    return sb.auth.getSession().then(function (sessionResult) {
-      var token = (sessionResult && sessionResult.data && sessionResult.data.session &&
-        sessionResult.data.session.access_token) || CFG.anonKey;
+    return paymentAccessToken().then(function (token) {
       return fetch(PAY.checkoutUrl, {
         method: 'POST',
         headers: {
@@ -2044,9 +2047,7 @@
     if (!PAY.confirmUrl) {
       return Promise.reject(new Error('PAYMENT_CONFIRM_NOT_CONFIGURED'));
     }
-    return sb.auth.getSession().then(function (sessionResult) {
-      var token = (sessionResult && sessionResult.data && sessionResult.data.session &&
-        sessionResult.data.session.access_token) || CFG.anonKey;
+    return paymentAccessToken().then(function (token) {
       return fetch(PAY.confirmUrl, {
         method: 'POST',
         headers: {
@@ -2206,8 +2207,7 @@
     if (!PAY.cancelUrl) {
       return Promise.reject(new Error('PAYMENT_CANCEL_NOT_CONFIGURED'));
     }
-    return sb.auth.getSession().then(function (s) {
-      var token = (s && s.data && s.data.session && s.data.session.access_token) || CFG.anonKey;
+    return paymentAccessToken().then(function (token) {
       return fetch(PAY.cancelUrl, {
         method: 'POST',
         headers: {

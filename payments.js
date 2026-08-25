@@ -411,12 +411,12 @@
         alert('결제 직전 상품가 또는 할인이 변경되었습니다. 화면을 새로고침한 뒤 다시 확인해 주세요.');
         return;
       }
+      if (e && (e.code === 'PAYMENT_SESSION_EXPIRED' || e.message === 'PAYMENT_SESSION_EXPIRED')) { alert('로그인 정보가 만료되었습니다. 로그아웃 후 다시 로그인한 뒤 결제를 진행해 주세요.'); return; }
       if (e && e.code && !/CANCEL/i.test(e.code)) {
         alert('결제를 시작할 수 없습니다: ' + (e.message || e.code));
       }
     });
   }
-
   // 결제 성공 후 서버(Edge Function) 검증
   function verifyPayment(paymentId, attribution, listingId, checkoutToken) {
     showResult(true, '결제 승인 처리 중...', '잠시만 기다려 주세요.');
