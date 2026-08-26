@@ -7,7 +7,7 @@ const ACTIONS = [
   { value: 'search', label: '하단 검색 화면' },
   { value: 'vintage', label: '빈티지 상품' },
   { value: 'under300', label: '300만원 이하 상품' },
-  { value: 'sell', label: '시계판매 페이지' },
+  { value: 'sell', label: '시계판매 방식 팝업' },
   { value: 'repair', label: '수리 / 진단 페이지' },
 ];
 
@@ -54,12 +54,18 @@ function navigate(doc, win, target) {
   else win.location.hash = `#${target}`;
 }
 
+function openSellMethod(doc, win) {
+  const trigger = doc.querySelector('[data-sell-method-open]');
+  if (trigger) return trigger.click();
+  win.location.hash = '#home';
+}
+
 function runAction({ action, doc, win, collection }) {
   if (action === 'timesale') return collection.filter({ saleOnly: true });
   if (action === 'search') return collection.filter({});
   if (action === 'vintage') return collection.filter({ vintage: true });
   if (action === 'under300') return collection.filter({ maxInclusive: 3000000 });
-  if (action === 'sell') return navigate(doc, win, 'compare');
+  if (action === 'sell') return openSellMethod(doc, win);
   if (action === 'repair') return navigate(doc, win, 'repair');
 }
 
