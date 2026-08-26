@@ -1267,7 +1267,7 @@ jobs:
             p_rate_key => repeat('8',64),
             p_customer_id => null,
             p_listing_id => :'listing_id'::uuid,
-            p_checkout_request_key_hash => repeat('2',64),
+            p_checkout_request_key_hash => repeat('9',64),
             p_checkout_token_hash => repeat('7',64),
             p_expected_amount => :'expected_amount'::bigint,
             p_buyer_name => '닫힌 주문 검증 구매자',
