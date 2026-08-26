@@ -85,6 +85,32 @@ jobs:
             echo "SUPABASE_DB_URL 시크릿 미설정 — 실행 불가"; exit 1
           fi
 
+      - name: Guard — Bellore Supabase 프로젝트만 허용
+        if: github.ref == 'refs/heads/main' || inputs.task == 'validate-authority-payment'
+        env:
+          PRODUCTION_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          expected_project_ref='iumsnacuxgssnnbckurq'
+          if ! PRODUCTION_DB_URL="$PRODUCTION_DB_URL" EXPECTED_PROJECT_REF="$expected_project_ref" node <<'NODE'
+          const raw = process.env.PRODUCTION_DB_URL || '';
+          const expected = process.env.EXPECTED_PROJECT_REF || '';
+          let target;
+          try {
+            target = new URL(raw);
+          } catch {
+            process.exit(1);
+          }
+          const host = target.hostname.toLowerCase();
+          const user = decodeURIComponent(target.username);
+          const direct = host === `db.${expected}.supabase.co`;
+          const pooler = host.endsWith('.pooler.supabase.com') && user === `postgres.${expected}`;
+          process.exit(direct || pooler ? 0 : 1);
+          NODE
+          then
+            echo "SUPABASE_DB_URL이 Bellore 프로젝트를 가리키지 않습니다"; exit 1
+          fi
+
       - name: Prepare — 데이터 없는 일회성 Supabase 검증 DB
         if: inputs.task == 'validate-authority-payment'
         env:
@@ -163,13 +189,22 @@ jobs:
           grep -Eq 'TABLE public orders ' "$schema_dir/production-schema.toc"
           grep -Eq 'TABLE public listings ' "$schema_dir/production-schema.toc"
 
-          # Supabase Cloud provisions the realtime owner outside the pinned
-          # self-hosted image. The schema archive also retains a legacy ACL
-          # grant to supabase_functions_admin even though that role is absent
-          # from the current Cloud role catalog. Recreate both names only as
-          # inert, non-login placeholders inside this disposable validation DB.
+          # Supabase Cloud provisions service roles outside the pinned
+          # self-hosted image. Recreate only the identifiers required to replay
+          # schema ownership and ACLs. Deliberately do not mirror Cloud login or
+          # role-creation capability into this disposable validation database.
           docker exec --env PGPASSWORD="$validation_password" -i "$validation_container" \
             psql -h localhost -U supabase_admin -d postgres -X -v ON_ERROR_STOP=1 <<'SQL'
+          -- The pinned self-hosted image grants Supabase API roles through its
+          -- own public-schema defaults. Neutralize those target-only defaults
+          -- before restore so the Cloud archive's object ACLs are authoritative.
+          alter default privileges for role supabase_admin in schema public
+            revoke all privileges on tables from anon, authenticated, service_role;
+          alter default privileges for role supabase_admin in schema public
+            revoke all privileges on sequences from anon, authenticated, service_role;
+          alter default privileges for role supabase_admin in schema public
+            revoke all privileges on functions from anon, authenticated, service_role;
+
           do $role$
           begin
             if not exists (select 1 from pg_catalog.pg_roles where rolname='supabase_realtime_admin') then

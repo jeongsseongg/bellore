@@ -143,8 +143,19 @@ assert.equal(
 const validateStart = workflow.indexOf('Validate authority and payment migration (always rollback)');
 const rollback = workflow.indexOf('          rollback;', validateStart);
 assert(validateStart >= 0 && rollback > validateStart, 'rollback validation step must exist');
+const projectGuardStart = workflow.indexOf('Guard — Bellore Supabase 프로젝트만 허용');
 const prepareStart = workflow.indexOf('Prepare — 데이터 없는 일회성 Supabase 검증 DB');
 const prepareBlock = workflow.slice(prepareStart, validateStart);
+const projectGuardBlock = workflow.slice(projectGuardStart, prepareStart);
+assert(projectGuardStart >= 0 && projectGuardStart < prepareStart,
+  'the exact Bellore project guard must run before schema access');
+assert.match(projectGuardBlock, /expected_project_ref='iumsnacuxgssnnbckurq'/);
+assert.match(projectGuardBlock, /host === `db\.\$\{expected\}\.supabase\.co`/,
+  'direct database URLs must match the exact Bellore host');
+assert.match(projectGuardBlock, /host\.endsWith\('\.pooler\.supabase\.com'\) && user === `postgres\.\$\{expected\}`/,
+  'pooler URLs must match the exact Bellore project-qualified username');
+assert.doesNotMatch(projectGuardBlock, /console\.(log|error)|echo "\$PRODUCTION_DB_URL"/,
+  'the project guard must not print the database URL');
 assert(prepareStart >= 0 && prepareStart < validateStart, 'isolated validation DB must be prepared first');
 assert.match(prepareBlock, /supabase\/postgres@sha256:3e2a7ab48783077d0122dc72ed5174afb543110c38266c845716c51d130658e4/);
 assert.match(prepareBlock, /postgres@sha256:d13db94ae661d517c5ed57c509a578d5ea64aae639871ba25294f4f42d83de28/);
@@ -169,6 +180,12 @@ assert.match(prepareBlock, /\(SUBSCRIPTION\( TABLE\)\?\|USER MAPPING\)/,
   'full TOC must reject subscription and user-mapping external connections');
 assert.doesNotMatch(prepareBlock, /grep -Eiq|TABLE DATA\|SEQUENCE SET|BLOB\|BLOB COMMENTS|LARGE OBJECT\|SUBSCRIPTION/,
   'archive safety must not use case-insensitive object-name substring matching');
+assert.match(prepareBlock, /alter default privileges for role supabase_admin in schema public\s+revoke all privileges on tables from anon, authenticated, service_role/,
+  'target-image table defaults must not add privileges absent from the Cloud archive');
+assert.match(prepareBlock, /alter default privileges for role supabase_admin in schema public\s+revoke all privileges on sequences from anon, authenticated, service_role/,
+  'target-image sequence defaults must not add privileges absent from the Cloud archive');
+assert.match(prepareBlock, /alter default privileges for role supabase_admin in schema public\s+revoke all privileges on functions from anon, authenticated, service_role/,
+  'target-image function defaults must not add privileges absent from the Cloud archive');
 assert.match(prepareBlock, /if not exists \(select 1 from pg_catalog\.pg_roles where rolname='supabase_realtime_admin'\)/);
 assert.match(prepareBlock, /create role supabase_realtime_admin\s+nologin nosuperuser nocreatedb nocreaterole noinherit noreplication nobypassrls/,
   'the disposable DB role stub must match the verified non-privileged Cloud owner role');
@@ -176,7 +193,7 @@ assert.doesNotMatch(prepareBlock, /create role supabase_realtime_admin[\s\S]{0,1
   'the disposable owner role must not gain Cloud service privileges');
 assert.match(prepareBlock, /if not exists \(select 1 from pg_catalog\.pg_roles where rolname='supabase_functions_admin'\)/);
 assert.match(prepareBlock, /create role supabase_functions_admin\s+nologin nosuperuser nocreatedb nocreaterole noinherit noreplication nobypassrls/,
-  'the stale Cloud ACL grantee must be an inert disposable validation placeholder');
+  'the Cloud ACL grantee identity must be an inert disposable validation placeholder');
 assert.doesNotMatch(prepareBlock, /create role supabase_functions_admin[\s\S]{0,160}\b(login|superuser|createdb|createrole|inherit|replication|bypassrls)\b(?!\s*;)/i,
   'the disposable ACL placeholder must not gain Cloud service privileges');
 assert.match(prepareBlock, /pg_restore --clean --if-exists --exit-on-error --single-transaction/);
