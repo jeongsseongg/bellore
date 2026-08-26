@@ -63,7 +63,7 @@ window.BELLORE_PAYMENTS = {
   //   test: true 인 채널은 localhost 또는 ?paymentTest=1 주소에서만 노출됩니다.
   //   운영 심사용 신용카드 채널은 결제창에 항상 노출합니다.
   channels: [
-    { id: "card",     label: "신용·체크카드", payMethod: "CARD", channelKey: "channel-key-cf2d8c63-bc14-4341-a885-ce472b9fb07a" },
+    { id: "card",     label: "신용·체크카드", payMethod: "CARD", channelKey: "channel-key-f9693f47-56c9-4732-822d-bace693db3cb" },
     { id: "kakaopay", label: "카카오페이",   payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_KAKAOPAY" },
     { id: "naverpay", label: "네이버페이",   payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_NAVERPAY" },
     { id: "tosspay",  label: "토스페이",     payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_TOSSPAY" },

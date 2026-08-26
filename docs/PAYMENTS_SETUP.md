@@ -6,9 +6,9 @@
 
 1. `https://admin.portone.io`에서 벨로르 상점을 선택합니다.
 2. 결제연동 → 연동 정보 → 채널 관리에서 PG 심사가 완료된 **운영 채널**을 추가합니다.
-3. 테스트 중에는 KG이니시스 `INIpayTest` 채널의 `channelKey`를 `supabase-config.js`의 `card` 항목에 입력하고 `test: true`를 유지합니다.
-4. 테스트 채널은 로컬 환경 또는 운영 주소 뒤에 `?paymentTest=1`을 붙였을 때만 노출됩니다.
-5. 카드사 심사가 끝나면 카드 항목의 `channelKey`를 운영 채널키로 교체하고, 라벨의 `(테스트)`와 `test: true`를 제거합니다.
+3. 운영 사이트의 카드 항목은 KG이니시스 `inicis_v2` 실연동 채널만 사용합니다. 테스트 채널을 운영 `supabase-config.js`에 넣지 않습니다.
+4. 운영 배포 전에 정적 설정의 카드 채널과 서버 `PORTONE_LIVE_CHANNEL_KEYS` 허용 목록이 같은 실연동 채널인지 회귀 검사로 확인합니다.
+5. 채널을 교체할 때는 포트원에서 새 실연동 채널 저장을 먼저 완료하고, 서버 허용 목록을 갱신한 뒤 정적 설정을 배포합니다.
 6. 카카오페이·네이버페이 등은 각 서비스의 가맹점 심사와 포트원 채널 연결을 모두 마친 후에만 해당 `channelKey`를 입력합니다.
 
 `channelKey`가 빈 결제수단은 체크아웃에 표시되지 않습니다. 테스트 채널은 일반 방문자에게 숨겨지며, 심사되지 않은 운영 결제수단을 버튼만 노출하는 방식은 금지합니다.
@@ -20,6 +20,7 @@ Supabase 프로젝트의 Function Secrets에 아래 값을 등록합니다.
 ```text
 PORTONE_API_SECRET=포트원_V2_API_Secret
 PORTONE_STORE_ID=store-c0c1bc9e-60c2-4ac6-9bb1-80c0ee7337ef
+PORTONE_LIVE_CHANNEL_KEYS=포트원_V2_실연동_채널키
 PORTONE_API_BASE=https://api.portone.io
 ALLOW_TEST_PAYMENTS=false
 POINT_EARN_BPS=0

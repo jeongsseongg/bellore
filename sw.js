@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v344-admin-member-lifecycle";
+const VERSION = "bellore-v345-payment-live-channel";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -18,7 +18,7 @@ const SHELL_ASSETS = [
   './payments.js?v=20260826-member-verification-live-v2',
   './naverpay.js?v=20260826-naverpay-bottom-action-v2',
   './ui-dialog.js?v=20260826-member-verification-live-v2',
-  './supabase-config.js?v=20260826-naver-review-release',
+  './supabase-config.js?v=20260826-payment-live-v1',
   './analytics-core.js?v=20260810-analytics-v3',
   './analytics-client.js?v=20260826-ai-consent-v1',
   './brands.js',
