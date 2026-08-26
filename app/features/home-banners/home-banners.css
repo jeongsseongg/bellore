@@ -53,7 +53,12 @@
 .hero-slide-db[data-hero-action="sale"] .hero-campaign-copy small { font-size: clamp(15.6px, 3.51cqw, 23.4px); }
 .hero-slide-db[data-hero-action="sale"] .hero-campaign-copy strong { font-size: clamp(28.6px, 7.41cqw, 50.7px); }
 .hero-slide-db[data-hero-action="sale"] .hero-campaign-copy em { font-size: clamp(15.6px, 3.38cqw, 22.1px); }
-.hero-slide-db[data-hero-action="diver"] .hero-slide-bg { background-position: 68% center; }
+.page-home .hero-slide-db[data-hero-action="diver"] .hero-slide-bg { left: calc(-10% - 25px); right: 0; background-position: center; }
+.hero-slide-db[data-hero-action="diver"] .hero-campaign-copy { left: calc(5.5% + 10px); }
+.hero-slide-db[data-hero-action="diver"] .hero-campaign-copy small { font-size: clamp(13.2px, 2.97cqw, 19.8px); }
+.hero-slide-db[data-hero-action="diver"] .hero-campaign-copy strong { font-size: clamp(24.2px, 6.27cqw, 42.9px); }
+.hero-slide-db[data-hero-action="diver"] .hero-campaign-copy em { font-size: clamp(13.2px, 2.86cqw, 18.7px); }
+.page-home .hero-slide-db[data-hero-action="women"] .hero-slide-bg { left: -20px; right: 0; }
 
 /* 이미지 밖 흰 영역 우측에 구구스형 이전·현재/전체·다음 표시를 둔다. */
 .hero-dots {

@@ -15,7 +15,7 @@ assert.match(index, /id="homeQuickCategories"/);
 assert.ok(index.indexOf('id="homeQuickCategories"') > index.indexOf('id="heroCarousel"'));
 assert.ok(index.indexOf('id="homeQuickCategories"') < index.indexOf('id="rowSaleBlock"'));
 assert.match(bootstrap, /initHomeQuicklinks\(\{ document, window, collection \}\)/);
-assert.match(bootstrap, /home-quicklinks\.js\?v=20260826-hero-layout-v7/);
+assert.match(bootstrap, /home-quicklinks\.js\?v=20260826-hero-layout-v8/);
 assert.match(bootstrap, /legacy-collection\.js\?v=20260826-member-verification-live-v1/);
 
 for (const label of ['TIME SALE', '브랜드', '빈티지', '300만원 ↓', '시계판매', '수리\/진단']) {
@@ -67,7 +67,8 @@ assert.doesNotMatch(quicklinks, /syncScrollbar|scrollThumb|hq-scrollbar/);
 assert.match(quicklinks, /data-hq-action="\$\{escapeText\(item\.action\)\}"/);
 assert.match(quicklinks, /\['300만원 미만', '300만원 이하'\]\.includes\(label\)\) label = '300만원 ↓'/);
 assert.match(css, /\.home-quick-categories \{[\s\S]*border-radius: 18px 18px 0 0;/);
-assert.match(css, /\.home-quick-categories \{[\s\S]*box-shadow: 0 -18px 0 #06120e;/);
+assert.match(css, /\.home-quick-categories \{[\s\S]*box-shadow: none;/);
+assert.doesNotMatch(css, /box-shadow: 0 -18px 0 #06120e;/, 'quick links must not add a second dark bar above the single progress rail');
 assert.doesNotMatch(css, /\.hq-scrollbar|\.hq-scrollbar-thumb/);
 
 console.log('home quicklinks checks: 61 passed');

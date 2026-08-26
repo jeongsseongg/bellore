@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v339-sell-draft-notification";
+const VERSION = "bellore-v340-diver-left-shift";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -42,9 +42,9 @@ const SHELL_ASSETS = [
   './app/features/home-banners/home-banners.js?v=20260826-hero-layout-v7',
   './app/features/home-banners/home-banner-data.js?v=20260826-hero-layout-v7',
   './app/features/home-merchandising/home-merchandising.js?v=20260826-member-verification-live-v1',
-  './app/features/home-banners/home-banners.css?v=20260826-hero-layout-v7',
-  './app/features/home-quicklinks/home-quicklinks.js?v=20260826-hero-layout-v7',
-  './app/features/home-quicklinks/home-quicklinks.css?v=20260826-hero-layout-v7',
+  './app/features/home-banners/home-banners.css?v=20260826-hero-layout-v9',
+  './app/features/home-quicklinks/home-quicklinks.js?v=20260826-hero-layout-v8',
+  './app/features/home-quicklinks/home-quicklinks.css?v=20260826-hero-layout-v8',
   './app/features/checkout/checkout-coupon.css?v=20260826-member-verification-live-v1',
   './app/features/checkout/checkout-coupon.js',
   './app/features/home-rows/home-rows.js?v=20260826-member-verification-live-v1',
