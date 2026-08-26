@@ -23,7 +23,7 @@ jobs:
   truth_guard:
     uses: ./.github/workflows/truth-guard.yml
 
-  build:
+  verify:
     if: >-
       github.ref == 'refs/heads/main' &&
       (vars.PRODUCTION_DEPLOY_ENABLED == 'true' ||
@@ -93,6 +93,20 @@ jobs:
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: _site
+
+  # The expensive verification above runs beside Truth Guard. This small gate
+  # opens only after both succeeded, so no unguarded artifact can be published.
+  build:
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (vars.PRODUCTION_DEPLOY_ENABLED == 'true' ||
+      (github.event_name == 'workflow_dispatch' && inputs.static_release_sha != ''))
+    needs: [truth_guard, verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Confirm guarded Pages artifact
+        run: echo 'Truth Guard and the complete Pages artifact verification both passed.'
 
   deploy:
     if: >-
