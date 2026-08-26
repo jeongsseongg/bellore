@@ -934,7 +934,7 @@ jobs:
             \quit 1
           \endif
           select public.create_checkout_order_edge_v1(
-            p_rate_key => repeat('c',64),
+            p_rate_key => repeat('e',64),
             p_customer_id => null,
             p_listing_id => :'listing_id'::uuid,
             p_checkout_request_key_hash => repeat('2',64),
