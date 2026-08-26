@@ -5,9 +5,9 @@ set local lock_timeout='5s';
 set local statement_timeout='2min';
 \i /repo/supabase/migrations/20260826172707_harden_member_verifications.sql
 \i /repo/supabase/migrations/20260826173419_admin_member_operations.sql
-\i /repo/supabase/migrations/20260826210000_harden_admin_member_lifecycle.sql
 \i /repo/supabase/migrations/20260826200000_catalog_product_ledger.sql
 \i /repo/supabase/migrations/20260826201000_catalog_product_operations.sql
+\i /repo/supabase/migrations/20260826210000_harden_admin_member_lifecycle.sql
 
 do $$
 begin
@@ -20,7 +20,14 @@ begin
     or not has_function_privilege('service_role',
        'public.admin_manage_member_profile(uuid,uuid,text,jsonb,text,bigint)','execute')
     or has_table_privilege('authenticated','public.profiles','delete')
-    or has_table_privilege('anon','public.profiles','delete') then
+    or has_table_privilege('anon','public.profiles','delete')
+    or (
+      select count(*) from pg_policies
+       where schemaname='public'
+         and tablename in ('listings','listing_operational_state','listing_inventory_movements')
+         and policyname='active_member_session_gate'
+         and permissive='RESTRICTIVE'
+    ) <> 3 then
     raise exception 'MEMBER_LIFECYCLE_GUARDS_INVALID';
   end if;
   if (select count(*) from public.listing_operational_state)

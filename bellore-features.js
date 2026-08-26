@@ -978,7 +978,7 @@
       if (b) { e.preventDefault(); openCmsEditor(b.getAttribute('data-cms-edit')); }
     });
 
-    /* ===== 휴대폰 인증 (SMS OTP) ===== */
+    /* ===== 휴대폰 본인인증 (KG이니시스 통합인증) ===== */
     var phoneModal = null;
     function notConfiguredMsg(err) {
       var m = (err && err.message) || String(err || '');
@@ -994,37 +994,20 @@
       opts = opts || {};
       if (!phoneModal) phoneModal = makeModal('phoneVerifyModal', 'VERIFY', '휴대폰 인증');
       var box = phoneModal.querySelector('.modal-body');
-      var prefill = opts.phone || (lastInfo && lastInfo.phone) || '';
       box.innerHTML =
-        '<p class="vf-desc">본인 확인을 위해 휴대폰 인증이 필요합니다.</p>' +
-        '<div class="vf-field"><span>휴대폰 번호</span>' +
-          '<div class="vf-row"><input type="tel" id="vfPhone" placeholder="010-0000-0000" value="' + esc(prefill) + '">' +
-          '<button type="button" class="vf-send" id="vfSend">인증번호 받기</button></div></div>' +
-        '<div class="vf-field" id="vfCodeWrap" hidden><span>인증번호</span>' +
-          '<div class="vf-row"><input type="tel" id="vfCode" inputmode="numeric" placeholder="6자리 숫자">' +
-          '<button type="button" class="vf-confirm" id="vfConfirm">확인</button></div></div>' +
+        '<p class="vf-desc">본인 명의 휴대폰으로 안전하게 인증해 주세요.</p>' +
+        '<button type="button" class="vf-confirm" id="vfIdentity">휴대폰 본인인증</button>' +
         '<p class="vf-msg" id="vfMsg"></p>';
       var msg = box.querySelector('#vfMsg');
       function setMsg(t, ok) { msg.textContent = t || ''; msg.className = 'vf-msg' + (ok ? ' ok' : t ? ' err' : ''); }
-      box.querySelector('#vfSend').addEventListener('click', function () {
-        var ph = box.querySelector('#vfPhone').value.trim();
-        if (!ph) { setMsg('휴대폰 번호를 입력하세요.'); return; }
-        var btn = this; btn.disabled = true; btn.textContent = '발송 중…';
-        B.sendPhoneOtp(ph)
-          .then(function () { box.querySelector('#vfCodeWrap').hidden = false; setMsg('인증번호를 발송했습니다. 문자를 확인하세요.', true); btn.disabled = false; btn.textContent = '재발송'; })
-          .catch(function (err) { btn.disabled = false; btn.textContent = '인증번호 받기'; setMsg(notConfiguredMsg(err)); });
-      });
-      box.querySelector('#vfConfirm').addEventListener('click', function () {
-        var ph = box.querySelector('#vfPhone').value.trim();
-        var code = box.querySelector('#vfCode').value.trim();
-        if (!code) { setMsg('인증번호를 입력하세요.'); return; }
-        var btn = this; btn.disabled = true; btn.textContent = '확인 중…';
-        B.verifyPhoneOtp(ph, code)
+      box.querySelector('#vfIdentity').addEventListener('click', function () {
+        var btn = this; btn.disabled = true; btn.textContent = '인증 중…';
+        B.verifyIdentityPortone()
           .then(function () {
             setMsg('인증이 완료되었습니다.', true);
             setTimeout(function () { closeModal(phoneModal); if (opts.onDone) opts.onDone(); }, 700);
           })
-          .catch(function (err) { btn.disabled = false; btn.textContent = '확인'; setMsg(notConfiguredMsg(err) || '인증번호가 올바르지 않습니다.'); });
+          .catch(function (err) { btn.disabled = false; btn.textContent = '휴대폰 본인인증'; setMsg(notConfiguredMsg(err)); });
       });
       openModal(phoneModal);
     };

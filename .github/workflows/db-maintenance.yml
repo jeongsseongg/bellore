@@ -2350,6 +2350,8 @@ jobs:
           set local statement_timeout='2min';
           \i /repo/supabase/migrations/20260826172707_harden_member_verifications.sql
           \i /repo/supabase/migrations/20260826173419_admin_member_operations.sql
+          \i /repo/supabase/migrations/20260826200000_catalog_product_ledger.sql
+          \i /repo/supabase/migrations/20260826201000_catalog_product_operations.sql
           \i /repo/supabase/migrations/20260826210000_harden_admin_member_lifecycle.sql
           do $$
           begin
@@ -2366,14 +2368,9 @@ jobs:
           values
             ('20260826172707','harden_member_verifications',array[]::text[]),
             ('20260826173419','admin_member_operations',array[]::text[]),
-            ('20260826210000','harden_admin_member_lifecycle',array[]::text[])
-          on conflict (version) do nothing;
-          \i /repo/supabase/migrations/20260826200000_catalog_product_ledger.sql
-          \i /repo/supabase/migrations/20260826201000_catalog_product_operations.sql
-          insert into supabase_migrations.schema_migrations(version,name,statements)
-          values
             ('20260826200000','catalog_product_ledger',array[]::text[]),
-            ('20260826201000','catalog_product_operations',array[]::text[])
+            ('20260826201000','catalog_product_operations',array[]::text[]),
+            ('20260826210000','harden_admin_member_lifecycle',array[]::text[])
           on conflict (version) do nothing;
           \i /repo/supabase/tests/catalog_product_ledger_live_verify.sql
           commit;

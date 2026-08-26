@@ -24,6 +24,7 @@ function errorCode(error: unknown) {
     "VERSION_REQUIRED", "VERSION_CONFLICT", "REASON_REQUIRED", "BAD_PATCH", "BAD_PATCH_FIELD", "EMPTY_PATCH",
     "BAD_DISPLAY_NAME", "BAD_PHONE", "BAD_COMPANY_NAME", "BAD_APPROVAL_ROLE",
     "BAD_VIP_ROLE", "BAD_COMMISSION_ROLE", "BAD_COMMISSION_RATE",
+    "OPERATION_IN_PROGRESS", "TRANSITION_MISMATCH",
   ]) if (message.includes(code)) return code;
   return "OPERATION_FAILED";
 }
@@ -119,27 +120,40 @@ Deno.serve(async (req) => {
   }
 
   const suspended = action === "suspend";
+  const { data: begun, error: beginError } = await admin.rpc("admin_begin_member_auth_transition", {
+    p_actor_id: actor.id, p_target_id: targetUserId, p_action: action,
+    p_reason: reason, p_expected_version: expectedVersion,
+  });
+  if (beginError || !begun?.transitionId) {
+    const code = errorCode(beginError);
+    return jsonResponse(req, { ok: false, code }, ["VERSION_CONFLICT", "OPERATION_IN_PROGRESS"].includes(code) ? 409 : 400);
+  }
+  const transitionId = String(begun.transitionId);
   const { error: authError } = await admin.auth.admin.updateUserById(targetUserId, {
     ban_duration: suspended ? "876000h" : "none",
   });
   if (authError) {
+    const { error: cancelError } = await admin.rpc("admin_cancel_member_auth_transition", {
+      p_actor_id: actor.id, p_target_id: targetUserId, p_transition_id: transitionId,
+      p_code: "AUTH_UPDATE_FAILED",
+    });
+    if (cancelError) console.error("admin-member-ops-transition", "TRANSITION_CANCEL_FAILED");
     console.error("admin-member-ops", action, "AUTH_UPDATE_FAILED");
     return jsonResponse(req, { ok: false, code: "OPERATION_FAILED" }, 500);
   }
-  const { data, error } = await admin.rpc("admin_manage_member_profile", {
-    p_actor_id: actor.id, p_target_id: targetUserId, p_action: action,
-    p_patch: {}, p_reason: reason, p_expected_version: expectedVersion,
+  let { data, error } = await admin.rpc("admin_complete_member_auth_transition", {
+    p_actor_id: actor.id, p_target_id: targetUserId, p_transition_id: transitionId,
   });
   if (error) {
-    const { data: authoritative } = await admin.from("profiles")
-      .select("suspended").eq("id", targetUserId).maybeSingle();
-    const shouldBeSuspended = authoritative?.suspended === true;
-    const { error: rollbackError } = await admin.auth.admin.updateUserById(targetUserId, {
-      ban_duration: shouldBeSuspended ? "876000h" : "none",
+    const retried = await admin.rpc("admin_complete_member_auth_transition", {
+      p_actor_id: actor.id, p_target_id: targetUserId, p_transition_id: transitionId,
     });
-    if (rollbackError) console.error("admin-member-ops-rollback", action, "AUTH_ROLLBACK_FAILED");
-    const code = errorCode(error);
-    return jsonResponse(req, { ok: false, code }, code === "VERSION_CONFLICT" ? 409 : 400);
+    data = retried.data;
+    error = retried.error;
+  }
+  if (error) {
+    console.error("admin-member-ops-transition", action, "TRANSITION_PENDING_RECONCILIATION");
+    return jsonResponse(req, { ok: false, code: "PENDING_RECONCILIATION" }, 503);
   }
   return jsonResponse(req, { ok: true, action, targetUserId, suspended, ...(data || {}) });
 });

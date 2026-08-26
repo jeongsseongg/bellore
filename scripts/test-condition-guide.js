@@ -9,7 +9,7 @@ const bootstrap = read('app/bootstrap.js');
 const guide = read('app/features/condition-guide/condition-guide.js');
 const css = read('app/features/condition-guide/condition-guide.css');
 
-assert.match(html, /condition-guide\.css\?v=20260826-admin-catalog-v1/);
+assert.match(html, /condition-guide\.css\?v=20260826-admin-catalog-v2/);
 assert.match(bootstrap, /initConditionGuide\(\{ document, window \}\)/);
 assert.match(guide, /\[10, '미사용급'/);
 assert.match(guide, /\[1, '정상 사용 어려움'/);

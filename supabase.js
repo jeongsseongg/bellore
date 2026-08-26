@@ -573,9 +573,8 @@
       .catch(function () { return []; });
   };
 
-  /* ---------------- 휴대폰(SMS OTP) 인증 ----------------
-     ※ 실제 발송하려면 Supabase 대시보드 > Authentication > Providers > Phone 활성화 +
-        SMS 제공자(Twilio/MessageBird/Vonage 등) 키 등록이 필요합니다. */
+  /* ---------------- 휴대폰 본인인증 ----------------
+     KG이니시스 통합인증 결과는 Edge Function이 단건 조회한 뒤 확정한다. */
   function toE164(phone) {
     var d = String(phone || '').replace(/[^0-9+]/g, '');
     if (d.indexOf('+') === 0) return d;
@@ -584,25 +583,9 @@
     return '+' + d;
   }
   Backend.normalizePhone = toE164;
-  // 인증번호 발송: 로그인된 사용자의 전화번호를 추가/변경 → SMS OTP 전송
-  Backend.sendPhoneOtp = function (phone) {
-    if (!rawUser) return Promise.reject(new Error('NOT_LOGGED_IN'));
-    return sb.auth.updateUser({ phone: toE164(phone) })
-      .then(function (res) { if (res.error) throw res.error; return true; });
-  };
-  // 인증번호 확인 → 성공 시 profiles.phone + phone_verified 갱신
-  Backend.verifyPhoneOtp = function (phone, token) {
-    var e164 = toE164(phone);
-    return sb.auth.verifyOtp({ phone: e164, token: String(token || '').trim(), type: 'phone_change' })
-      .then(function (res) {
-        if (res.error) throw res.error;
-        if (rawUser) {
-          sb.from('profiles').update({ phone: e164, phone_verified: true })
-            .eq('id', rawUser.id).then(function () {}, function () {});
-          if (profile) { profile.phone = e164; profile.phone_verified = true; }
-        }
-        return loadProfile().then(notifyAuth, notifyAuth);
-      });
+  Backend.sendPhoneOtp = function () { return Backend.verifyIdentityPortone(); };
+  Backend.verifyPhoneOtp = function () {
+    return Promise.reject(new Error('LEGACY_PHONE_OTP_DISABLED'));
   };
 
   /* ---------------- 업체 계좌 인증 ---------------- */
@@ -752,12 +735,22 @@
         return true;
       });
   };
+  // 관리자 작업은 목록을 불러온 시점의 버전을 함께 보내 동시 수정을 막는다.
+  var accountVersionById = Object.create(null);
+  function rememberAccountVersions(rows) {
+    (rows || []).forEach(function (row) {
+      var version = Number(row && row.admin_operation_version);
+      if (row && row.id && version > 0) accountVersionById[row.id] = version;
+    });
+    return rows || [];
+  }
+
   // 제휴사 목록(관리자)
   Backend.listPartners = function () {
     if (!Backend.isAdmin()) return Promise.resolve([]);
     return sb.from('profiles').select('*').eq('role', 'partner')
       .order('created_at', { ascending: true })
-      .then(function (r) { if (r.error) throw r.error; return r.data || []; })
+      .then(function (r) { if (r.error) throw r.error; return rememberAccountVersions(r.data || []); })
       .catch(function () { return []; });
   };
   // 제휴사 수수료율 변경(관리자)
@@ -1606,7 +1599,7 @@
     function load() {
       sb.from('profiles').select('*').eq('role', 'vendor')
         .order('created_at', { ascending: false })
-        .then(function (res) { cb(res.data || []); });
+        .then(function (res) { cb(rememberAccountVersions(res.data || [])); });
     }
     load();
     vendorRefreshers.push(load);
@@ -1619,7 +1612,7 @@
   Backend.subscribeAccounts = function (cb) {
     function load() {
       sb.from('profiles').select('*').order('created_at', { ascending: false })
-        .then(function (res) { cb(res.data || []); });
+        .then(function (res) { cb(rememberAccountVersions(res.data || [])); });
     }
     load();
     accountRefreshers.push(load);
@@ -1630,10 +1623,16 @@
   function adminMemberOperation(id, action, reason, patch) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
     var body = { targetUserId: id, action: action, reason: reason };
+    var expectedVersion = Number(accountVersionById[id]);
+    if (expectedVersion > 0) body.expectedVersion = expectedVersion;
+    if (action === 'delete' && !(expectedVersion > 0)) {
+      return Promise.reject(new Error('VERSION_REQUIRED_REFRESH'));
+    }
     if (patch) body.patch = patch;
     return sb.functions.invoke('admin-member-ops', { body: body }).then(function (res) {
       if (res.error) throw res.error;
       if (!res.data || res.data.ok !== true) throw new Error((res.data && res.data.code) || 'OPERATION_FAILED');
+      if (Number(res.data.version) > 0) accountVersionById[id] = Number(res.data.version);
       refreshVendors(); refreshAccounts();
       return res.data;
     });
