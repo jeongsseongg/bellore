@@ -10,13 +10,6 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 const PATCH_FIELDS = new Set(["display_name", "phone", "company_name", "approved", "vip", "commission_rate"]);
 type JsonRecord = Record<string, unknown>;
 
-async function updateAudit(admin: ReturnType<typeof createClient>, id: string, status: string, metadata: JsonRecord) {
-  const { data, error } = await admin.from("member_admin_events").update({
-    status, metadata, completed_at: new Date().toISOString(),
-  }).eq("id", id).select("id").maybeSingle();
-  return !error && data?.id === id;
-}
-
 function errorCode(error: unknown) {
   const message = safeText((error as Error)?.message, 120) ?? "OPERATION_FAILED";
   for (const code of [
@@ -41,6 +34,12 @@ Deno.serve(async (req) => {
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+  const updateAudit = async (id: string, status: string, metadata: JsonRecord) => {
+    const { data, error } = await admin.from("member_admin_events").update({
+      status, metadata, completed_at: new Date().toISOString(),
+    }).eq("id", id).select("id").maybeSingle();
+    return !error && data?.id === id;
+  };
   const actor = await requireUser(admin, req);
   if (!actor) return jsonResponse(req, { ok: false, code: "UNAUTHORIZED" }, 401);
   const { data: actorProfile } = await admin.from("profiles")
@@ -112,7 +111,7 @@ Deno.serve(async (req) => {
     }
     const { error: cleanupError } = await admin.from("profiles").delete().eq("id", targetUserId);
     const metadata = { hardDeleted: true, profileCleanupWarning: cleanupError ? "PROFILE_CLEANUP_FAILED" : null };
-    const auditFinalized = await updateAudit(admin, auditId, "succeeded", metadata);
+    const auditFinalized = await updateAudit(auditId, "succeeded", metadata);
     return jsonResponse(req, {
       ok: true, action, targetUserId, deleted: true,
       warning: metadata.profileCleanupWarning || (auditFinalized ? null : "AUDIT_FINALIZE_FAILED"),
