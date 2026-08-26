@@ -11,8 +11,7 @@ const RETURN_ADDRESS1 = Deno.env.get("NAVERPAY_RETURN_ADDRESS1") ?? "서울특�
 const RETURN_ADDRESS2 = Deno.env.get("NAVERPAY_RETURN_ADDRESS2") ?? "벨로르";
 const SELLER_NAME = Deno.env.get("NAVERPAY_SELLER_NAME") ?? "벨로르";
 const SELLER_CONTACT = Deno.env.get("NAVERPAY_SELLER_CONTACT") ?? "01062936668";
-const ORDER_API = Deno.env.get("NAVERPAY_ORDER_API")
-  ?? "https://test-api.pay.naver.com/o/customer/api/order/v20/register";
+const ORDER_API = "https://api.pay.naver.com/o/customer/api/order/v20/register";
 const SITE_URL = Deno.env.get("NAVERPAY_SITE_URL") ?? "https://bellore.co.kr";
 const SHIPPING_FEE = Number(Deno.env.get("SHIPPING_FEE") ?? "35000");
 const PREMIUM_SHIP_THRESHOLD = Number(Deno.env.get("PREMIUM_SHIP_THRESHOLD") ?? "5000000");
@@ -127,7 +126,7 @@ Deno.serve(async (req) => {
 
   if (req.method === "GET" && url.searchParams.get("action") === "config") {
     if (!configured()) return json({ error: "not_configured" }, 503);
-    return json({ buttonKey: BUTTON_KEY, accountId: ACCOUNT_ID, version: "2.1", sandbox: true });
+    return json({ buttonKey: BUTTON_KEY, accountId: ACCOUNT_ID, version: "2.1", sandbox: false });
   }
 
   if (!configured()) return json({ error: "not_configured" }, 503);
