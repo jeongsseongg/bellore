@@ -47,7 +47,7 @@ requiredFiles.forEach((file) => assert.ok(fs.existsSync(path.join(base, file)), 
 assert.match(html, /id="adminNav"/, 'shell owns navigation mount');
 assert.match(html, /id="adminWorkspace"/, 'shell owns workspace mount');
 assert.match(html, /id="caseDrawer"/, 'shell owns case drawer');
-assert.match(html, /type="module" src="\.\/bootstrap\.js\?v=20260826-admin-release-v1"/, 'versioned native module bootstrap is used');
+assert.match(html, /type="module" src="\.\/bootstrap\.js\?v=20260826-admin-release-v2"/, 'versioned native module bootstrap is used');
 assert.doesNotMatch(html, /<script(?![^>]*src=)[^>]*>/, 'no executable inline scripts');
 assert.doesNotMatch(html, /style="/, 'no inline style attributes in shell');
 
@@ -83,6 +83,7 @@ assert.match(bootstrap, /await requireAdminSession\(\)/, 'admin workspace waits 
 assert.match(auth, /storageKey: 'bellore-admin-auth-v1'/, 'admin auth uses an isolated session');
 assert.match(auth, /profile\?\.role !== 'admin'|profile\.role !== 'admin'/, 'database profile role is required');
 assert.match(auth, /tokenRole !== 'admin'/, 'trusted app metadata role is required');
+assert.match(html, /@supabase\/supabase-js@2/, 'production admin uses the storefront-compatible Supabase SDK loader');
 assert.match(html, /method="post" action="\/admin\/"/, 'login form must not leak credentials into the URL if JavaScript fails');
 assert.match(auth, /searchParams\.delete\('password'\)/, 'legacy credential query parameters are removed immediately');
 assert.doesNotMatch(auth, /service[_-]?role|qpffhfm|password\s*[:=]\s*['"]/i, 'admin auth must not embed a privileged key or password');
