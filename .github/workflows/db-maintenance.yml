@@ -109,6 +109,7 @@ jobs:
           chmod 700 "$schema_dir"
           echo "PAYMENT_VALIDATION_DIR=$schema_dir" >> "$GITHUB_ENV"
           echo "PAYMENT_VALIDATION_CONTAINER=$validation_container" >> "$GITHUB_ENV"
+          echo "PAYMENT_VALIDATION_PASSWORD=$validation_password" >> "$GITHUB_ENV"
 
           docker run --detach --name "$validation_container" \
             --platform linux/amd64 --network none \
@@ -120,14 +121,14 @@ jobs:
 
           ready=false
           # The pinned Supabase image runs its bundled role/extension migrations
-          # before the entrypoint execs the final postmaster. GitHub's cold image
-          # start can exceed three minutes, so wait up to ten minutes without
-          # accepting the temporary init server as ready.
-          for _ in $(seq 1 300); do
+          # before the entrypoint execs the final postmaster. Require PID 1's
+          # executable plus authenticated role checks so the temporary init
+          # server cannot satisfy readiness.
+          for _ in $(seq 1 90); do
             if docker exec "$validation_container" sh -c \
-                 'test "$(cat /proc/1/comm)" = postgres' && \
-               docker exec "$validation_container" \
-                 psql -U supabase_admin -d postgres -X -qAt -v ON_ERROR_STOP=1 \
+                 'test "$(basename "$(readlink /proc/1/exe)")" = postgres' && \
+               docker exec --env PGPASSWORD="$validation_password" "$validation_container" \
+                 psql -h localhost -U supabase_admin -d postgres -X -qAt -v ON_ERROR_STOP=1 \
                    -c "select count(*) from pg_roles where rolname in ('anon','authenticated','service_role','supabase_admin')" \
                  | grep -qx '4'; then
               ready=true; break
@@ -137,7 +138,7 @@ jobs:
           if [ "$ready" != "true" ]; then
             docker inspect --format '{{json .State}}' "$validation_container" || true
             docker logs --tail 120 "$validation_container" || true
-            echo "일회성 Supabase PostgreSQL이 10분 안에 준비되지 않았습니다"; exit 1
+            echo "일회성 Supabase PostgreSQL이 3분 안에 준비되지 않았습니다"; exit 1
           fi
 
           PGCONN="$PRODUCTION_DB_URL" docker run --rm \
@@ -156,9 +157,9 @@ jobs:
           fi
           grep -Eq 'TABLE public orders ' "$schema_dir/production-schema.toc"
           grep -Eq 'TABLE public listings ' "$schema_dir/production-schema.toc"
-          docker exec -i "$validation_container" \
+          docker exec --env PGPASSWORD="$validation_password" -i "$validation_container" \
             pg_restore --clean --if-exists --exit-on-error --single-transaction \
-              --username=supabase_admin --dbname=postgres \
+              --host=localhost --username=supabase_admin --dbname=postgres \
             < "$schema_dir/production-schema.dump"
 
           echo "운영 행 데이터 0건인 일회성 Supabase 검증 DB 준비 완료"
@@ -169,8 +170,9 @@ jobs:
           PRODUCTION_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           set -euo pipefail
-          validation_system_id="$(docker exec "$PAYMENT_VALIDATION_CONTAINER" \
-            psql -U postgres -d postgres -X -qAt -v ON_ERROR_STOP=1 \
+          validation_system_id="$(docker exec --env PGPASSWORD="$PAYMENT_VALIDATION_PASSWORD" \
+            "$PAYMENT_VALIDATION_CONTAINER" \
+            psql -h localhost -U supabase_admin -d postgres -X -qAt -v ON_ERROR_STOP=1 \
               -c "select system_identifier::text from pg_control_system()")"
           production_system_id="$(PGCONN="$PRODUCTION_DB_URL" docker run --rm \
             --platform linux/amd64 -e PGCONN \
@@ -382,8 +384,9 @@ jobs:
         if: inputs.task == 'validate-authority-payment'
         run: |
           set -euo pipefail
-          docker exec -i "$PAYMENT_VALIDATION_CONTAINER" \
-            psql -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+          docker exec --env PGPASSWORD="$PAYMENT_VALIDATION_PASSWORD" \
+            -i "$PAYMENT_VALIDATION_CONTAINER" \
+            psql -h localhost -U supabase_admin -d postgres -v ON_ERROR_STOP=1 <<'SQL'
           begin;
           \i /repo/supabase/migrations/20260826155000_payment_operation_hold.sql
           insert into public.payment_operation_holds(order_no_sha256, reason_code)

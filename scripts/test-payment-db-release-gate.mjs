@@ -149,10 +149,13 @@ assert(prepareStart >= 0 && prepareStart < validateStart, 'isolated validation D
 assert.match(prepareBlock, /supabase\/postgres@sha256:3e2a7ab48783077d0122dc72ed5174afb543110c38266c845716c51d130658e4/);
 assert.match(prepareBlock, /postgres@sha256:d13db94ae661d517c5ed57c509a578d5ea64aae639871ba25294f4f42d83de28/);
 assert.match(prepareBlock, /--platform linux\/amd64 --network none/);
-assert.match(prepareBlock, /seq 1 300/,
-  'cold Supabase image initialization must have a bounded ten-minute readiness window');
-assert.match(prepareBlock, /test "\$\(cat \/proc\/1\/comm\)" = postgres[\s\S]{0,240}rolname in \('anon','authenticated','service_role','supabase_admin'\)/,
+assert.match(prepareBlock, /seq 1 90/,
+  'Supabase initialization must have a bounded three-minute readiness window');
+assert.match(prepareBlock, /basename "\$\(readlink \/proc\/1\/exe\)"\)" = postgres[\s\S]{0,360}rolname in \('anon','authenticated','service_role','supabase_admin'\)/,
   'readiness must reject the temporary init server and require the final postmaster roles');
+assert.match(prepareBlock, /PAYMENT_VALIDATION_PASSWORD=\$validation_password/);
+assert.match(prepareBlock, /docker exec --env PGPASSWORD="\$validation_password"[\s\S]{0,180}psql -h localhost -U supabase_admin/,
+  'readiness must authenticate over localhost instead of relying on peer auth');
 assert.match(prepareBlock, /docker logs --tail 120/,
   'readiness failure must retain bounded diagnostics');
 assert.match(prepareBlock, /pg_dump[\s\S]{0,350}--format=custom --schema-only[\s\S]{0,350}--lock-wait-timeout=5000/);
@@ -160,7 +163,7 @@ assert.doesNotMatch(prepareBlock, /--no-owner|--no-acl/,
   'owner and ACL metadata must survive the isolated restore');
 assert.match(prepareBlock, /pg_restore --list[\s\S]{0,260}TABLE DATA\|SEQUENCE SET\|BLOB\|LARGE OBJECT\|SUBSCRIPTION\|USER MAPPING/);
 assert.match(prepareBlock, /pg_restore --clean --if-exists --exit-on-error --single-transaction/);
-assert.match(prepareBlock, /--username=supabase_admin --dbname=postgres/);
+assert.match(prepareBlock, /--host=localhost --username=supabase_admin --dbname=postgres/);
 assert.doesNotMatch(prepareBlock, /upload-artifact|TABLE DATA.*production-schema/i,
   'validation schema must remain runner-local and contain no table data');
 const validateBlock = workflow.slice(validateStart, rollback);
@@ -168,7 +171,7 @@ assert.match(validateBlock, /if: inputs\.task == 'validate-authority-payment'/);
 assert.match(workflow, /if: github\.ref == 'refs\/heads\/main' \|\| inputs\.task == 'validate-authority-payment'/);
 assert.doesNotMatch(validateBlock, /apply-authority-payment/,
   'production apply must never execute rollback fixtures');
-assert.match(validateBlock, /docker exec -i "\$PAYMENT_VALIDATION_CONTAINER"[\s\S]{0,100}psql -U postgres -d postgres/);
+assert.match(validateBlock, /docker exec --env PGPASSWORD="\$PAYMENT_VALIDATION_PASSWORD"[\s\S]{0,140}psql -h localhost -U supabase_admin -d postgres/);
 assert.doesNotMatch(validateBlock, /PGCONN: \$\{\{ secrets\.SUPABASE_DB_URL \}\}/,
   'rollback fixtures must not receive the production DB URL');
 assert.match(validateBlock, /set local session_replication_role=replica;[\s\S]{0,900}generate_series\(1,6\)[\s\S]{0,120}set local session_replication_role=origin;/);
