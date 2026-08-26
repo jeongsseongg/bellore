@@ -2,7 +2,7 @@
    배경만 픽셀 이미지(assets/banners)이고 시계 사진·모델명·금액·문구는 실제 데이터로 그린다.
    매물은 홈 '판매 중인 시계' 그리드가 채워지는 것을 보고 그대로 읽어 쓴다. */
 
-import { BUYIN_COPY, CATEGORY_BANNERS, FEATURED_BADGES, FEATURED_MAX, HERO_COPY, stableIndex } from './home-banner-data.js';
+import { BUYIN_COPY, CATEGORY_BANNERS, FEATURED_BADGES, FEATURED_MAX, HERO_CAMPAIGNS, HERO_COPY, stableIndex } from './home-banner-data.js';
 import { isCutoutPhoto, priceText, shuffled, specText } from '../../core/listing-display.js';
 
 const FABRICS = [
@@ -43,6 +43,17 @@ function readMemory(win, key) {
 }
 function writeMemory(win, key, value) {
   try { win.localStorage.setItem(key, String(value)); } catch (error) { /* 시크릿 모드 등 */ }
+}
+
+function initHeroCampaigns({ doc, win, collection }) {
+  const track = doc.getElementById('heroTrack');
+  if (!track) return;
+  win.BELLORE_HOME_CAMPAIGNS = HERO_CAMPAIGNS;
+  track._openHeroCampaign = (action) => {
+    const campaign = HERO_CAMPAIGNS.find((item) => item.action === action);
+    if (campaign) collection.openPreset({ action: campaign.action, label: campaign.title });
+  };
+  if (typeof win.belloreSetBanners === 'function') win.belloreSetBanners(HERO_CAMPAIGNS);
 }
 
 function initHeroSlogans({ doc, win }) {
@@ -220,6 +231,7 @@ function createFeaturedBanner({ doc, window: win, mount, collection }) {
 }
 
 export function initHomeBanners({ document: doc, window: win, collection }) {
+  initHeroCampaigns({ doc, win, collection });
   initHeroSlogans({ doc, win });
   initCategorySlider({ doc, window: win, mount: doc.getElementById('catBannerBlock'), collection });
   renderBuyinBanner({ doc, win, mount: doc.getElementById('buyBannerBlock') });

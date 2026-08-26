@@ -3,6 +3,59 @@
 
 .bn-block { margin: 14px 0; }
 
+/* 홈 히어로 캠페인: 이미지 전체를 같은 규격으로 채우고 문구는 이미지별 빈 공간에 둔다. */
+.hero-carousel.has-db { background: transparent; border-radius: 0; }
+.hero-slide-db.is-campaign {
+  display: block; height: auto; min-height: 0; max-height: none; aspect-ratio: 430 / 245.7;
+  padding: 0; border: 0; color: inherit; background: transparent;
+  cursor: pointer; font: inherit; text-align: left; container-type: inline-size;
+}
+.hero-slide-db.is-campaign .hero-slide-blur { display: none; }
+.hero-slide-db.is-campaign .hero-slide-bg { background-size: cover; background-position: center; }
+.hero-campaign-copy {
+  position: absolute; z-index: 5; left: 5.5%; top: 50%; width: 43%; padding: 0;
+  transform: translateY(-50%); box-sizing: border-box; color: #fff; background: none;
+  font-family: var(--font-sans, "Wanted Sans", sans-serif); text-shadow: 0 1px 8px rgba(0, 0, 0, .58);
+}
+.hero-campaign-copy small, .hero-campaign-copy strong, .hero-campaign-copy em {
+  display: block; font-style: normal; word-break: keep-all;
+}
+.hero-campaign-copy small { margin-bottom: .9cqw; font-size: clamp(12px, 2.73cqw, 18px); font-weight: 720; opacity: .78; }
+.hero-campaign-copy strong { font-size: clamp(22px, 5.72cqw, 39px); font-weight: 850; letter-spacing: -.055em; line-height: 1.08; }
+.hero-campaign-copy em { margin-top: 1.4cqw; font-size: clamp(12px, 2.6cqw, 17px); font-weight: 650; line-height: 1.25; opacity: .8; }
+.hero-campaign-copy.is-light { color: #17221f; text-shadow: 0 1px 8px rgba(255, 255, 255, .5); }
+.hero-campaign-copy.is-right { left: auto; right: 5.5%; }
+.hero-campaign-copy.is-top-left { top: 12%; width: 37%; transform: none; }
+
+.hero-slide-db[data-hero-action="wedding"] .hero-campaign-copy {
+  left: 5.5%; top: 3%; width: 48%; transform: none;
+}
+.hero-slide-db[data-hero-action="wedding"] .hero-campaign-copy small { display: none; }
+.hero-slide-db[data-hero-action="wedding"] .hero-campaign-copy strong { font-size: clamp(15px, 3.8cqw, 26px); line-height: 1; }
+.hero-slide-db[data-hero-action="wedding"] .hero-campaign-copy em { margin-top: .35cqw; font-size: clamp(9px, 1.9cqw, 13px); line-height: 1.05; }
+
+/* 빈티지는 세 시계가 끝나는 지점보다 오른쪽에 고정한다. */
+.hero-slide-db[data-hero-action="vintage"] .hero-campaign-copy {
+  left: auto; right: 5%; top: 50%; width: 34%; transform: translateY(-50%);
+}
+
+/* 오른쪽 까르띠에까지 보이도록 원본을 왼쪽으로 이동한다. */
+.hero-slide-db[data-hero-action="diver"] .hero-slide-bg { background-position: 68% center; }
+
+/* 점 대신 우측 하단에 현재 순서와 이전·다음을 표시한다. */
+.hero-dots {
+  left: auto; right: clamp(5px, 1.1cqw, 9px); bottom: clamp(7px, 1.7cqw, 12px); width: auto;
+  justify-content: flex-end; align-items: center; gap: clamp(5px, 1.2cqw, 9px);
+  color: #fff; opacity: 1; text-shadow: 0 1px 7px rgba(0, 0, 0, .72);
+}
+.hero-count { min-width: 3.2em; font-size: clamp(10px, 2.2cqw, 13px); font-weight: 700; text-align: right; }
+.hero-count-nav {
+  display: inline-flex; align-items: center; justify-content: center; width: auto; height: auto;
+  padding: 0; border: 0; border-radius: 0; background: none; color: inherit;
+  font: inherit; font-size: clamp(17px, 3.5cqw, 22px); line-height: 1; cursor: pointer;
+}
+.hero-count-nav:focus-visible { outline: 1px solid currentColor; outline-offset: 3px; }
+
 /* 공통 오버레이·텍스트 */
 .bn-fx {
   position: absolute; inset: 0; z-index: 1;

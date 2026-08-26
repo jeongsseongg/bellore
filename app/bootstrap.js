@@ -6,13 +6,13 @@ import { initRevealEffects } from './ui/reveal-effects.js';
 import { initSiteHeader } from './ui/site-header.js';
 import { initNavigationHistory } from './ui/navigation-history.js';
 import { initWidthPreference } from './ui/width-preference.js';
-import { initConditionGuide } from './features/condition-guide/condition-guide.js?v=20260826-condition-guide-v1';
-import { initHomeBanners } from './features/home-banners/home-banners.js?v=20260826-condition-guide-v1';
-import { initHomeRows } from './features/home-rows/home-rows.js?v=20260826-condition-guide-v1';
+import { initConditionGuide } from './features/condition-guide/condition-guide.js?v=20260826-hero-layout-v10';
+import { initHomeBanners } from './features/home-banners/home-banners.js?v=20260826-hero-layout-v10';
+import { initHomeRows } from './features/home-rows/home-rows.js?v=20260826-hero-layout-v10';
 import { initProductDetailRoute, initProductSharing } from './features/product-sharing/product-sharing.mjs';
 import { createListingCatalog } from './services/listings/listing-catalog-service.js';
 import { createPaymentAccessToken } from './services/payments/payment-auth.js';
-import { createLegacyCollection } from './legacy/legacy-collection.js?v=20260826-condition-guide-v1';
+import { createLegacyCollection } from './legacy/legacy-collection.js?v=20260826-hero-layout-v10';
 import { installLegacyPaymentAuth } from './legacy/payment-auth.js';
 import { installLegacyReveal } from './legacy/legacy-reveal.js';
 

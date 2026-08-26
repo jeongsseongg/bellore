@@ -152,11 +152,11 @@ function fakeEventTarget() {
     assert(buildPages.includes(`'${asset.slice(2)}'`), `Pages allowlist 누락: ${asset}`);
   }
   for (const [asset, releaseKey] of [
-    ['script.js', '20260826-condition-guide-v1'],
-    ['app/bootstrap.js', '20260826-condition-guide-v1'],
-    ['sw.js', '20260826-condition-guide-v1'],
-    ['wishlist.js', '20260826-condition-guide-v1'],
-    ['search.js', '20260826-condition-guide-v1'],
+    ['script.js', '20260826-hero-layout-v10'],
+    ['app/bootstrap.js', '20260826-hero-layout-v10'],
+    ['sw.js', '20260826-hero-layout-v10'],
+    ['wishlist.js', '20260826-hero-layout-v10'],
+    ['search.js', '20260826-hero-layout-v10'],
   ]) {
     const registrationSource = asset === 'sw.js' ? pageRuntime : html;
     assert(registrationSource.includes(`${asset}?v=${releaseKey}`), `런타임 캐시 키 누락: ${asset}`);

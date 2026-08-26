@@ -22,6 +22,13 @@ order.reduce((previous, id) => {
 }, -1);
 
 assert.equal((data.match(/image: 'assets\/banners\/category-\d{2}\.webp'/g) || []).length, 10, '10 category images');
+assert.match(data, /export const HERO_CAMPAIGNS = \[/, 'hero campaigns stay in the current release');
+assert.equal((data.match(/image: 'assets\/banners\/hero-\d{2}\.webp'/g) || []).length, 8, 'iconic deletion leaves 8 hero images');
+assert.doesNotMatch(data, /action: 'icons'/, 'deleted iconic campaign must not return');
+assert.doesNotMatch(data, /hero-04\.webp/, 'deleted iconic artwork must not be referenced');
+assert.match(banners, /collection\.openPreset\(\{ action: campaign\.action, label: campaign\.title \}\)/, 'hero click keeps the collection contract');
+assert.match(bannersCss, /data-hero-action="vintage"[\s\S]*right: 5%;[\s\S]*width: 34%/, 'vintage copy stays in the right empty area');
+assert.match(bannersCss, /data-hero-action="diver"[\s\S]*background-position: 68% center/, 'diver artwork shifts left to reveal the right watch');
 assert.match(data, /export const FEATURED_MAX = 10;/);
 assert.match(data, /export const FEATURED_BADGES = \[/);
 assert.match(data, /export const HERO_COPY = \[/);

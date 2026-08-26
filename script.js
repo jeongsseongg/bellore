@@ -88,13 +88,9 @@
             if (dotsBox) {
                 dotsBox.innerHTML = '';
                 if (multi) {
-                    for (var i = 0; i < n; i++) {
-                        var d = document.createElement('button');
-                        d.type = 'button'; d.className = 'hero-dot' + (i === index ? ' active' : '');
-                        d.setAttribute('aria-label', (i + 1) + '번 배너');
-                        (function (idx) { d.addEventListener('click', function () { go(idx); }); })(i);
-                        dotsBox.appendChild(d);
-                    }
+                    dotsBox.innerHTML = '<span class="hero-count">' + (index + 1) + '/' + n + '</span>' + '<button type="button" class="hero-count-nav hero-count-prev" aria-label="이전 배너">‹</button>' + '<button type="button" class="hero-count-nav hero-count-next" aria-label="다음 배너">›</button>';
+                    $('.hero-count-prev', dotsBox).addEventListener('click', prev);
+                    $('.hero-count-next', dotsBox).addEventListener('click', next);
                 }
             }
         }
@@ -218,7 +214,11 @@
                     slide._banner = b;
                     var bannerTitle = Array.isArray(b.title) ? b.title.map(escapeHtml).join('<br>') : escapeHtml(b.title || '');
                     var bannerSub = b.subtitle || b.sub || '';
-                    // 문구(제목/부제목)를 넣으면 기본 히어로와 동일한 중앙 정렬 스타일로 노출
+                    var copyClass = 'hero-campaign-copy ' + (b.tone === 'light' ? 'is-light ' : '') + (b.position === 'right' ? 'is-right ' : '') + (b.position === 'top-left' ? 'is-top-left ' : '');
+                    var campaignCopy = b.action ? '<span class="' + copyClass + '">' +
+                        (b.lead ? '<small>' + escapeHtml(b.lead) + '</small>' : '') +
+                        (bannerTitle ? '<strong>' + bannerTitle + '</strong>' : '') +
+                        (bannerSub ? '<em>' + escapeHtml(bannerSub) + '</em>' : '') + '</span>' : '';
                     slide.innerHTML =
                         '<div class="hero-slide-blur"></div>' +
                         '<div class="hero-slide-bg"></div>' +
@@ -228,11 +228,11 @@
                             '<span class="hero-slide-ph-sub">이 화면 규격 이미지가 아직 등록되지 않았어요</span>' +
                         '</div>' +
                         '<div class="hero-gradient"></div>' +
-                        '<div class="container hero-content hero-slide-text">' +
+                        (campaignCopy || '<div class="container hero-content hero-slide-text">' +
                         (b.lead ? '<p class="hero-slide-lead">' + escapeHtml(b.lead) + '</p>' : '') +
                         (bannerTitle ? '<h2 class="hero-slide-title">' + bannerTitle + '</h2>' : '') +
                         (bannerSub ? '<p class="hero-slide-sub">' + escapeHtml(bannerSub) + '</p>' : '') +
-                        '</div>';
+                        '</div>');
                     applySlideBg(slide);
                     track.appendChild(slide);
                 });

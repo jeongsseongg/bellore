@@ -35,6 +35,18 @@ export const BUYIN_COPY = [
 
 export const FEATURED_MAX = 10;
 
+/* 홈 히어로 캠페인. 아이코닉 배너는 2026-08-26 사용자 요청으로 제외한다. */
+export const HERO_CAMPAIGNS = [
+  { action: 'fullset', lead: '검수가 끝난,', title: '미사용급 풀세트', sub: '9점 이상 · 모든 구성품을 갖춘 시계', image: 'assets/banners/hero-01.webp' },
+  { action: 'wedding', lead: '함께할 시간을 고르는 순간', title: '예물 시계', sub: '롤렉스 · 까르띠에 · 불가리', image: 'assets/banners/hero-02.webp', tone: 'light', position: 'top-left' },
+  { action: 'vintage', lead: '시간이 더해 만든 가치', title: '빈티지 컬렉션', sub: '희귀 모델부터 단종 모델까지', image: 'assets/banners/hero-03.webp', tone: 'light', position: 'right' },
+  { action: 'newest', lead: '검수를 마치고 새롭게', title: 'NEW ARRIVAL', sub: '오늘 새롭게 만나는 시계', image: 'assets/banners/hero-05.webp' },
+  { action: 'sale', lead: '지금만 만나는 가격', title: 'TIME SALE', sub: '한정 수량 · 한정 혜택', image: 'assets/banners/hero-07.webp' },
+  { action: 'diver', lead: '깊이에서도 흔들리지 않는', title: '다이버 워치', sub: '서브마리너 · 씨마스터 · 파네라이', image: 'assets/banners/hero-08.webp' },
+  { action: 'women', lead: '손목 위 가장 우아한 빛', title: '여성 명품시계', sub: '까르띠에 · 샤넬 · 에르메스', image: 'assets/banners/hero-09.webp' },
+  { action: 'santos', lead: '형태만으로 완성되는', title: '까르띠에 산토스', sub: '시대를 넘어 사랑받는 아이콘', image: 'assets/banners/hero-10.webp' },
+];
+
 export const FEATURED_BADGES = [
   '오늘의 추천 매물', '검수 완료 매물', '이번 주 단 한 점', '단독 입고 매물',
   '놓치기 아까운 컨디션', '사진 그대로의 상태', '실물 검수 완료',
