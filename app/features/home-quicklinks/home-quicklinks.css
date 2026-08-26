@@ -1,21 +1,19 @@
 .home-quick-categories {
   position: relative;
   z-index: 2;
-  margin: -16px auto 16px;
-  padding: 22px 20px 14px;
+  margin: -38px auto 16px;
+  padding: 40px 20px 14px;
   max-width: var(--wanted-content, 1280px);
   border-bottom: 1px solid #edf0ee;
   border-radius: 18px 18px 0 0;
   background: #fff;
+  box-shadow: 0 -18px 0 #06120e;
 }
 .hq-rail {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 20px;
 }
-.hq-scrollbar { display: block; width: 66.6667%; height: 3px; margin: 10px auto 0; overflow: hidden; border-radius: 999px; background: #e7e8e8; }
-.hq-scrollbar[hidden] { display: none; }
-.hq-scrollbar-thumb { display: block; height: 100%; border-radius: inherit; background: #17352c; transform: translate3d(0,0,0); }
 .hq-item {
   min-width: 0;
   padding: 0;
@@ -113,14 +111,13 @@ body.hq-settings-open { overflow: hidden; }
 .page-home .hero-default .hero-eyebrow { max-width: 45cqw; margin: clamp(5px, 1.1cqw, 10px) 0 0; padding: 0; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif; font-size: clamp(9px, 1.6cqw, 14px); font-weight: 500; line-height: 1.42; letter-spacing: -.015em; color: rgba(255,255,255,.82); word-break: keep-all; }
 .page-home .hero-default .hero-eyebrow::before { display: none; }
 .page-home .hero-default .hero-title { max-width: 45cqw; margin: 0; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif; font-size: clamp(18px, 4.5cqw, 40px); font-weight: 700; line-height: 1.16; letter-spacing: -.035em; word-break: keep-all; }
-.page-home .hero-dots { bottom: 14px; }
+.page-home .hero-dots { bottom: 7px; }
 .page-home .hero-manage-btn { top: 12px; right: 12px; }
 
 @media (max-width: 699px) {
-  .home-quick-categories { margin-top: -12px; margin-bottom: 14px; padding: 18px 16px 12px; border-radius: 14px 14px 0 0; overflow: hidden; }
+  .home-quick-categories { margin-top: -38px; margin-bottom: 14px; padding: 40px 16px 12px; border-radius: 14px 14px 0 0; overflow: hidden; }
   .hq-rail { display: flex; gap: 14px; overflow-x: auto; padding: 0 4px 8px; scrollbar-width: none; scroll-snap-type: x proximity; }
   .hq-rail::-webkit-scrollbar { display: none; }
-  .hq-scrollbar { display: block; width: 66.6667%; height: 3px; margin: 6px auto 0; overflow: hidden; border-radius: 999px; background: #e7e8e8; }
   .hq-item { flex: 0 0 76px; scroll-snap-align: start; gap: 8px; }
   .hq-image { width: 70px; }
   .hq-label { font-size: 13px; font-weight: 650; }
