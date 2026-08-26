@@ -75,7 +75,7 @@
     <link rel="stylesheet" href="app/features/home-rows/home-rows.css?v=20260826-hero-edge-v3">
     <link rel="stylesheet" href="app/features/home-quicklinks/home-quicklinks.css?v=20260826-hero-edge-v3">
     <link rel="stylesheet" href="app/features/analytics-consent/analytics-consent.css?v=20260826-ai-consent-v1">
-    <link rel="stylesheet" href="app/features/checkout/checkout-addresses.css?v=20260826-checkout-addresses-v1">
+    <link rel="stylesheet" href="app/features/checkout/checkout-addresses.css?v=20260826-shipping-address-popup-v2">
     <link rel="stylesheet" href="app/features/checkout/checkout-coupon.css?v=20260826-hero-edge-v3">
     <link rel="stylesheet" href="app/features/sell-method/sell-method.css?v=20260826-sell-quotes-v3">
     <link rel="stylesheet" href="app/features/sell-method/sell-quotes.css?v=20260826-sell-quotes-v3">
@@ -2584,8 +2584,6 @@
             <section class="co-sec" id="coShipSec" hidden>
                 <div class="co-section-heading"><h3 class="co-sec-title">배송지</h3><button type="button" class="co-text-button" id="coManageAddresses">배송지 관리</button></div>
                 <label class="co-same-buyer"><input type="checkbox" id="coSameBuyer"><span>구매자 정보와 동일</span></label>
-                <div class="co-address-book" id="coAddressBook" hidden><div class="co-address-book-head"><strong>내 배송지 <span>(최대 10개)</span></strong><button type="button" class="co-text-button" id="coNewAddress">새 배송지</button></div><div class="co-address-list" id="coAddressList"></div></div>
-                <div class="co-field"><label>배송지 이름</label><input type="text" id="coAddressLabel" placeholder="예) 집, 회사" maxlength="30"><input type="hidden" id="coAddressEditId"></div>
                 <div class="co-field">
                     <label>받는 분</label>
                     <input type="text" id="coShipName" placeholder="수령인 이름">
@@ -2603,7 +2601,6 @@
                     <input type="text" id="coAddr1" placeholder="기본 주소" readonly>
                     <input type="text" id="coAddr2" placeholder="상세 주소 (동·호수 등)">
                 </div>
-                <div class="co-address-save-row"><label class="co-default-check"><input type="checkbox" id="coAddressDefault"><span>기본 배송지로 설정</span></label><button type="button" class="co-address-save" id="coSaveAddress">배송지 저장</button></div><p class="co-address-message" id="coAddressMessage" hidden></p>
                 <div class="co-field">
                     <label>배송 요청사항</label>
                     <input type="text" id="coShipReq" placeholder="예) 부재 시 경비실에 맡겨주세요">

@@ -51,6 +51,7 @@ export const APP_RUNTIME_FILES = Object.freeze([
   'app/features/analytics-consent/analytics-consent.css',
   'app/features/checkout/checkout-addresses.css',
   'app/features/checkout/checkout-addresses.mjs',
+  'app/features/checkout/shipping-address-popup.mjs',
   'app/core/customer-error.mjs',
   'app/core/listing-display.js',
   'app/core/market-product-url.mjs',

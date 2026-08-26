@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v331-hero-motion";
+const VERSION = "bellore-v332-shipping-address-popup";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -33,8 +33,9 @@ const SHELL_ASSETS = [
   './ai-advisor-admin.js?v=20260826-hero-edge-v3',
   './app/bootstrap.js?v=20260826-hero-edge-v3',
   './app/features/analytics-consent/analytics-consent.css?v=20260826-ai-consent-v1',
-  './app/features/checkout/checkout-addresses.css?v=20260826-checkout-addresses-v1',
-  './app/features/checkout/checkout-addresses.mjs',
+  './app/features/checkout/checkout-addresses.css?v=20260826-shipping-address-popup-v2',
+  './app/features/checkout/checkout-addresses.mjs?v=20260826-shipping-address-popup-v2',
+  './app/features/checkout/shipping-address-popup.mjs',
   './app/core/customer-error.mjs?v=20260826-hero-edge-v3',
   './app/core/listing-display.js?v=20260826-hero-edge-v3',
   './app/core/market-product-url.mjs',

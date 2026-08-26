@@ -25,7 +25,7 @@ import { createLegacyCollection } from './legacy/legacy-collection.js?v=20260826
 import { initLegacyHomeMerchandisingGrid } from './legacy/home-merchandising-grid.js';
 import { installLegacyPaymentAuth } from './legacy/payment-auth.js';
 import { installLegacyReveal } from './legacy/legacy-reveal.js';
-import { initCheckoutAddresses } from './features/checkout/checkout-addresses.mjs';
+import { initCheckoutAddresses } from './features/checkout/checkout-addresses.mjs?v=20260826-shipping-address-popup-v2';
 import { createPaymentFlow } from './features/checkout/payment-flow.js?v=20260826-hero-edge-v3';
 import { installCustomerFeedback } from './legacy/customer-feedback.js?v=20260826-hero-edge-v3';
 import { installLegacyCheckoutCoupon } from './legacy/checkout-coupon.js';
