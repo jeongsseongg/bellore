@@ -1,9 +1,13 @@
 const UPSTREAM = 'https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/naverpay-order';
 
-function securityHeaders(headers) {
+function responseHeaders(headers, request) {
   const next = new Headers(headers);
   next.set('Cache-Control', 'no-store');
   next.set('X-Content-Type-Options', 'nosniff');
+  const url = new URL(request.url);
+  if (request.method === 'GET' && url.searchParams.get('action') !== 'config') {
+    next.set('Content-Type', 'application/xml; charset=utf-8');
+  }
   return next;
 }
 
@@ -21,7 +25,7 @@ export default {
     return new Response(response.body, {
       status: response.status,
       statusText: response.statusText,
-      headers: securityHeaders(response.headers),
+      headers: responseHeaders(response.headers, request),
     });
   },
 };
