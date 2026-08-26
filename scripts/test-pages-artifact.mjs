@@ -190,6 +190,13 @@ async function validateArtifact(site, { expectSeo }) {
   }
   for (const file of [
     'admin/index.html', 'admin/admin-auth.js', 'admin/admin-auth.css', 'admin/bootstrap.js',
+    'admin/data/admin-console-data.js', 'admin/data/admin-home-editor-data.js',
+    'admin/features/home-editor/admin-home-editor.js', 'admin/features/home-editor/admin-home-editor.css',
+    'admin/features/mypage-editor/admin-mypage-editor.js', 'admin/features/mypage-editor/admin-mypage-editor.css',
+    'admin/features/mypage-editor/admin-mypage-editor-shadow.css',
+    'admin/features/navigation/admin-navigation.js',
+    'admin/features/workspace/admin-workspace.js', 'admin/features/workspace/admin-wanted.css',
+    'admin/ui/icons.js',
     'account-roles/account-role-model.js', 'account-roles/account-role-preview.js', 'account-roles/account-role-preview.css',
   ]) {
     const info = await lstat(join(site, file));

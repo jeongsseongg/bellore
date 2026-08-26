@@ -170,7 +170,9 @@ async function copyRuntimeDirectory(sourceRelative, targetRelative, output) {
     recursive: true,
     filter(path) {
       if (path === source) return true;
-      return ['.css', '.html', '.js'].includes(extname(path).toLowerCase());
+      const extension = extname(path).toLowerCase();
+      if (!extension) return true;
+      return ['.css', '.html', '.js'].includes(extension);
     },
   });
 }
