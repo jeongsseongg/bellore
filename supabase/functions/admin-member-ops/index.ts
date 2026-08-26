@@ -9,8 +9,9 @@ const ACTIONS = new Set(["update_profile", "suspend", "resume", "delete"]);
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PATCH_FIELDS = new Set(["display_name", "phone", "company_name", "approved", "vip", "commission_rate"]);
 type JsonRecord = Record<string, unknown>;
+type AdminClient = ReturnType<typeof createClient<any>>;
 
-async function updateAudit(admin: ReturnType<typeof createClient>, id: string, status: string, metadata: JsonRecord) {
+async function updateAudit(admin: AdminClient, id: string, status: string, metadata: JsonRecord) {
   const { data, error } = await admin.from("member_admin_events").update({
     status, metadata, completed_at: new Date().toISOString(),
   }).eq("id", id).select("id").maybeSingle();
