@@ -34,7 +34,7 @@ for (const [name, url] of Object.entries(urls)) {
 for (const name of ['styles', 'script', 'payments', 'wishlist', 'search', 'dialog', 'features', 'quotes', 'auction', 'bootstrap', 'conditionGuide', 'pageRuntime']) {
   assert(serviceWorker.includes(`'./${urls[name]}'`), `service worker must precache the exact ${name} URL`);
 }
-assert.match(serviceWorker, /const VERSION = "bellore-v321-payment-condition";/, 'service-worker cache namespace must advance for the combined payment and condition-guide release');
+assert.match(serviceWorker, /const VERSION = "bellore-v324-payment-sell-motion";/, 'service-worker cache namespace must advance for the latest payment storefront plus sell motion release');
 for (const asset of [
   'app/vendor/recommendation-engine.js',
   'app/features/home-merchandising/home-merchandising.js',

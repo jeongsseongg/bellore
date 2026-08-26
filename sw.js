@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v321-payment-condition";
+const VERSION = "bellore-v324-payment-sell-motion";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -104,9 +104,9 @@ const SHELL_ASSETS = [
   './assets/banners/product-stage-04.webp',
   './assets/banners/product-stage-05.webp',
   './assets/banners/product-stage-06.webp',
-  './app/features/sell-method/sell-method.css?v=20260826-payment-condition-v1',
+  './app/features/sell-method/sell-method.css?v=20260826-payment-sell-motion-v1',
   './app/legacy/recommendation-engine.js?v=20260826-payment-condition-v1',
-  './app/features/sell-method/sell-method.js?v=20260826-payment-condition-v1',
+  './app/features/sell-method/sell-method.js?v=20260826-payment-sell-motion-v1',
   './시계판매 이미지/비교견적.png',
   './시계판매 이미지/위탁판매.png',
   './시계판매 이미지/즉시매입.png',

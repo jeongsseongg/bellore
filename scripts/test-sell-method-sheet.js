@@ -19,9 +19,12 @@ assert.match(
 assert.doesNotMatch(sheetRule, /720px/, 'sell sheet must never use the out-of-spec 720px width');
 assert.match(
   html,
-  /sell-method\.css\?v=20260826-payment-condition-v1/,
+  /sell-method\.css\?v=20260826-payment-sell-motion-v1/,
   'the page requests the panel-width-corrected stylesheet'
 );
+assert.match(sheetRule, /transform:\s*translateY\(104%\)/, 'the closed sheet starts below the Bellore frame');
+assert.match(sheetRule, /transition:\s*transform 340ms/, 'the sheet uses the approved open and close duration');
+assert.match(moduleJs, /\}, 340\);/, 'the sheet remains mounted until the close animation completes');
 assert.doesNotMatch(html, /class="compare-entry"/, 'the superseded sell landing page is removed');
 assert.match(css, /\.sell-method__card\s*\{[\s\S]*?min-height:\s*350px/, 'method cards use the restored original height');
 assert.match(css, /\.sell-method__visual\s*\{[\s\S]*?width:\s*180px;[\s\S]*?height:\s*150px/, 'method images use the enlarged desktop size');

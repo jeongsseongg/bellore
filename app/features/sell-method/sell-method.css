@@ -36,7 +36,7 @@ body.sell-method-open {
   border: 0;
   background: rgba(18, 23, 21, 0.52);
   opacity: 0;
-  transition: opacity 220ms ease;
+  transition: opacity 300ms ease;
 }
 
 .sell-method__sheet {
@@ -53,7 +53,7 @@ body.sell-method-open {
   box-shadow: 0 -18px 50px rgba(12, 29, 23, 0.18);
   outline: none;
   transform: translateY(104%);
-  transition: transform 240ms cubic-bezier(0.22, 0.8, 0.26, 1);
+  transition: transform 340ms cubic-bezier(0.22, 0.8, 0.26, 1);
 }
 
 .sell-method.is-open .sell-method__backdrop {
