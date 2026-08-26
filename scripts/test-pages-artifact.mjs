@@ -188,6 +188,17 @@ async function validateArtifact(site, { expectSeo }) {
     const info = await lstat(join(site, file));
     assert(info.isFile(), `필수 운영 파일 누락: ${file}`);
   }
+  for (const file of [
+    'admin/index.html', 'admin/admin-auth.js', 'admin/admin-auth.css', 'admin/bootstrap.js',
+    'account-roles/account-role-model.js', 'account-roles/account-role-preview.js', 'account-roles/account-role-preview.css',
+  ]) {
+    const info = await lstat(join(site, file));
+    assert(info.isFile(), `관리자 운영 파일 누락: ${file}`);
+  }
+  const adminHtml = await readFile(join(site, 'admin', 'index.html'), 'utf8');
+  const adminAuth = await readFile(join(site, 'admin', 'admin-auth.js'), 'utf8');
+  assert(adminHtml.includes('id="adminLoginForm"'), '관리자 로그인 화면 누락');
+  assert(adminAuth.includes("profile?.role !== 'admin'") && adminAuth.includes("tokenRole !== 'admin'"), '관리자 이중 권한 검사 누락');
   assert((await readFile(join(site, 'CNAME'), 'utf8')).trim() === 'bellore.co.kr');
   assert((await readFile(join(site, 'robots.txt'), 'utf8')).includes('https://bellore.co.kr/sitemap.xml'));
   assert((await readFile(join(site, '404.html'), 'utf8')).includes('noindex,nofollow'));
@@ -213,7 +224,7 @@ async function validateArtifact(site, { expectSeo }) {
 
   const allowedTopLevel = new Set([
     ...ROOT_RUNTIME_FILES.map((file) => file.split('/')[0]),
-    'app', 'assets', ...GENERATED_STATIC,
+    'app', 'assets', 'admin', 'account-roles', ...GENERATED_STATIC,
     ...(expectSeo ? ['market', 'sitemap.xml'] : []),
   ]);
   assert.deepEqual(

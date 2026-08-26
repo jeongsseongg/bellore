@@ -10,6 +10,7 @@ function read(relative) {
 }
 
 const html = read('index.html');
+const auth = read('admin-auth.js');
 const css = read('admin-console.css');
 const data = read('data/admin-console-data.js');
 const bootstrap = read('bootstrap.js');
@@ -25,6 +26,8 @@ const mypageShadowCss = read('features/mypage-editor/admin-mypage-editor-shadow.
 
 const requiredFiles = [
   'index.html',
+  'admin-auth.css',
+  'admin-auth.js',
   'admin-console.css',
   'bootstrap.js',
   'data/admin-console-data.js',
@@ -44,7 +47,7 @@ requiredFiles.forEach((file) => assert.ok(fs.existsSync(path.join(base, file)), 
 assert.match(html, /id="adminNav"/, 'shell owns navigation mount');
 assert.match(html, /id="adminWorkspace"/, 'shell owns workspace mount');
 assert.match(html, /id="caseDrawer"/, 'shell owns case drawer');
-assert.match(html, /type="module" src="\.\/bootstrap\.js\?v=20260826-admin-integrated-v7"/, 'versioned native module bootstrap is used');
+assert.match(html, /type="module" src="\.\/bootstrap\.js\?v=20260826-admin-release-v1"/, 'versioned native module bootstrap is used');
 assert.doesNotMatch(html, /<script(?![^>]*src=)[^>]*>/, 'no executable inline scripts');
 assert.doesNotMatch(html, /style="/, 'no inline style attributes in shell');
 
@@ -69,13 +72,18 @@ plannedModules.forEach((id) => {
   assert.match(data, new RegExp(`id: '${id}'`), `navigation reserves ${id}`);
 });
 
-assert.match(html + data, /운영 데이터는 연결하지 않음|운영 데이터 미연결|시안 데이터|시안 미연결/, 'prototype data is labeled');
+assert.match(html, /관리자 권한 확인됨[\s\S]*운영 계정 전용 화면/, 'production admin shell reports the authorization boundary');
 assert.match(workspace, /화면 시안|시안 데이터|운영 데이터 미연결|운영에 연결하지/, 'workspace does not present mock data as live');
 assert.match(workspace, /역할 전환 버튼은 관리자 시안 검증용/, 'role switch is not proposed for customer UI');
 assert.match(workspace, /서버 권한과 감사기록 연결 후 활성화/, 'privileged actions remain server-authorized');
 assert.match(data, /운영 데이터에 판매방식이 구분 저장되지 않아/, 'direct purchase stays planned until its data contract exists');
 
 assert.match(bootstrap, /createAdminNavigation/, 'bootstrap composes navigation feature');
+assert.match(bootstrap, /await requireAdminSession\(\)/, 'admin workspace waits for the authorization gate');
+assert.match(auth, /storageKey: 'bellore-admin-auth-v1'/, 'admin auth uses an isolated session');
+assert.match(auth, /profile\?\.role !== 'admin'|profile\.role !== 'admin'/, 'database profile role is required');
+assert.match(auth, /tokenRole !== 'admin'/, 'trusted app metadata role is required');
+assert.doesNotMatch(auth, /service[_-]?role|qpffhfm|password\s*[:=]\s*['"]/i, 'admin auth must not embed a privileged key or password');
 assert.match(bootstrap, /createAdminWorkspace/, 'bootstrap composes workspace feature');
 assert.match(bootstrap, /createAdminHomeEditor/, 'bootstrap composes home editor feature');
 assert.match(bootstrap, /createAdminMypageEditor/, 'bootstrap composes My Page editor feature');
