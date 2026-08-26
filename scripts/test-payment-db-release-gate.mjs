@@ -161,7 +161,8 @@ assert.match(prepareBlock, /docker logs --tail 120/,
 assert.match(prepareBlock, /pg_dump[\s\S]{0,350}--format=custom --schema-only[\s\S]{0,350}--lock-wait-timeout=5000/);
 assert.doesNotMatch(prepareBlock, /--no-owner|--no-acl/,
   'owner and ACL metadata must survive the isolated restore');
-assert.match(prepareBlock, /pg_restore --list[\s\S]{0,260}TABLE DATA\|SEQUENCE SET\|BLOB\|LARGE OBJECT\|SUBSCRIPTION\|USER MAPPING/);
+assert.match(prepareBlock, /pg_restore --list[\s\S]{0,420}\^\[\[:digit:\]\]\+;[\s\S]{0,260}TABLE DATA\|SEQUENCE SET\|BLOB\|BLOB COMMENTS\|LARGE OBJECT\|SUBSCRIPTION\|USER MAPPING/,
+  'archive guard must match exact pg_restore TOC descriptor fields, not object-name substrings');
 assert.match(prepareBlock, /pg_restore --clean --if-exists --exit-on-error --single-transaction/);
 assert.match(prepareBlock, /--host=localhost --username=supabase_admin --dbname=postgres/);
 assert.doesNotMatch(prepareBlock, /upload-artifact|TABLE DATA.*production-schema/i,
