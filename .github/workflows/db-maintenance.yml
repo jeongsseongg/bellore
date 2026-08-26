@@ -775,6 +775,8 @@ jobs:
           -- behavioral fixtures. Replica mode avoids creating a fake auth user;
           -- all rows remain inside the transaction which is always rolled back.
           set local session_replication_role=replica;
+          insert into auth.users (id)
+          values ('00000000-0000-4000-8000-000000000001'::uuid);
           insert into public.profiles (id,display_name)
           values ('00000000-0000-4000-8000-000000000001'::uuid,'검증 전용 판매자');
           insert into public.listings (
