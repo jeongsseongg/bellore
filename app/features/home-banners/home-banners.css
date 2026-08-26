@@ -3,27 +3,27 @@
 
 .bn-block { margin: 14px 0; }
 
-/* 기존 배너보다 세로를 1.3배 확장한 홈 전용 프레임. */
+/* 원본의 좌우 구도를 유지하고 세로만 1.2배 확장한 홈 전용 프레임. */
 .hero-carousel.has-db {
-  width: 100%; max-width: none; margin: 0;
-  background: transparent; border-radius: 0;
+  width: 100%; max-width: none; margin: 0; padding-bottom: 38px;
+  background: #fff; border-radius: 0;
 }
 .hero-carousel.has-db .hero-track,
 .hero-carousel.has-db .hero-slide-db.is-campaign,
 .hero-carousel.has-db .hero-slide-bg { border-radius: 0; }
 .page-home .hero-slide-db.is-campaign {
-  display: block; height: auto; min-height: 0; max-height: none; aspect-ratio: 430 / 319.4;
+  display: block; height: auto; min-height: 0; max-height: none; aspect-ratio: 430 / 226.8;
   padding: 0; border: 0; color: inherit; background: transparent;
   overflow: hidden; cursor: pointer; font: inherit; text-align: left; container-type: inline-size;
 }
 .page-home .hero-slide-db.is-campaign .hero-slide-blur { display: none; }
 .page-home .hero-slide-db.is-campaign .hero-slide-bg {
-  inset: 0; background-size: cover; background-position: center; border-radius: 0;
+  inset: 0; background-size: 100% 100%; background-position: center; border-radius: 0;
   transform: scale(1); transform-origin: center; will-change: transform;
 }
 @keyframes heroCampaignZoom {
   from { transform: scale(1); }
-  to { transform: scale(1.2); }
+  to { transform: scale(1.17); }
 }
 .page-home .hero-slide-db.is-campaign.is-active .hero-slide-bg {
   animation: heroCampaignZoom 3s cubic-bezier(.2, .64, .32, 1) both;
@@ -31,12 +31,12 @@
 .hero-campaign-copy {
   position: absolute; z-index: 5; left: 5.5%; top: 50%; width: 43%; padding: 0;
   transform: translateY(-50%); box-sizing: border-box; color: #fff; background: none;
-  font-family: var(--font-sans, "Wanted Sans", sans-serif); text-shadow: 0 1px 8px rgba(0, 0, 0, .58);
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif; text-shadow: 0 1px 8px rgba(0, 0, 0, .58);
 }
 .hero-campaign-copy small, .hero-campaign-copy strong, .hero-campaign-copy em { display: block; font-style: normal; word-break: keep-all; }
-.hero-campaign-copy small { margin-bottom: .9cqw; font-size: clamp(12px, 2.7cqw, 18px); font-weight: 720; opacity: .78; }
-.hero-campaign-copy strong { font-size: clamp(22px, 5.7cqw, 39px); font-weight: 850; letter-spacing: -.055em; line-height: 1.08; }
-.hero-campaign-copy em { margin-top: 1.4cqw; font-size: clamp(12px, 2.6cqw, 17px); font-weight: 650; line-height: 1.25; opacity: .8; }
+.hero-campaign-copy small { margin-bottom: .9cqw; font-size: clamp(12px, 2.7cqw, 18px); font-weight: 500; opacity: .82; }
+.hero-campaign-copy strong { font-size: clamp(22px, 5.7cqw, 39px); font-weight: 800; letter-spacing: -.045em; line-height: 1.12; }
+.hero-campaign-copy em { margin-top: 1.4cqw; font-size: clamp(12px, 2.6cqw, 17px); font-weight: 400; line-height: 1.35; opacity: .82; }
 .hero-campaign-copy.is-light { color: #17221f; background: none; text-shadow: 0 1px 8px rgba(255, 255, 255, .5); }
 .hero-campaign-copy.is-right { left: auto; right: 5.5%; }
 .hero-campaign-copy.is-top-left { top: 12%; width: 37%; transform: none; }
@@ -46,17 +46,27 @@
 }
 .hero-slide-db[data-hero-action="wedding"] .hero-campaign-copy small { display: none; }
 .hero-slide-db[data-hero-action="vintage"] .hero-campaign-copy {
-  left: auto; right: 5%; top: 50%; width: 34%; transform: translateY(-50%);
+  left: auto; right: calc(5% - 15px); top: 50%; width: 34%; transform: translateY(-50%);
 }
+.hero-slide-db[data-hero-action="vintage"] .hero-slide-bg { left: 15px; right: -15px; }
+.hero-slide-db[data-hero-action="sale"] .hero-slide-bg { left: -20px; right: 0; }
+.hero-slide-db[data-hero-action="sale"] .hero-campaign-copy small { font-size: clamp(15.6px, 3.51cqw, 23.4px); }
+.hero-slide-db[data-hero-action="sale"] .hero-campaign-copy strong { font-size: clamp(28.6px, 7.41cqw, 50.7px); }
+.hero-slide-db[data-hero-action="sale"] .hero-campaign-copy em { font-size: clamp(15.6px, 3.38cqw, 22.1px); }
 .hero-slide-db[data-hero-action="diver"] .hero-slide-bg { background-position: 68% center; }
 
-/* 점 대신 우측 하단에 현재 순서와 이전·다음만 작게 표시한다. */
+/* 이미지 밖 흰 영역 우측에 구구스형 이전·현재/전체·다음 표시를 둔다. */
 .hero-dots {
-  left: auto; right: clamp(10px, 2.4cqw, 16px); bottom: clamp(9px, 2cqw, 14px); width: auto;
-  display: grid; grid-template-columns: 24px 1.2em 1px 1.2em 24px;
+  left: 0; right: 0; bottom: 7px; width: 100%; padding: 0 clamp(12px, 3.5cqw, 24px); box-sizing: border-box;
+  display: grid; grid-template-columns: minmax(0, 1fr) 24px 1.2em 1px 1.2em 24px;
   justify-content: end; align-items: center; justify-items: center; column-gap: 7px;
-  color: #fff; opacity: 1; text-shadow: 0 1px 7px rgba(0, 0, 0, .72);
+  color: #171917; opacity: 1; text-shadow: none;
 }
+.hero-progress {
+  display: block; justify-self: stretch; height: 2px; margin-inline: 5%;
+  overflow: hidden; background: #e2e4e3;
+}
+.hero-progress i { display: block; width: 0; height: 100%; background: #171917; transition: width .35s ease; }
 .hero-count-current,
 .hero-count-total,
 .hero-count-separator {
@@ -65,7 +75,7 @@
 }
 .hero-count-current, .hero-count-total { width: 1.2em; text-align: center; }
 .hero-count-total { opacity: .68; }
-.hero-count-separator { width: 1px; height: 16px; overflow: hidden; color: transparent; background: currentColor; opacity: .45; }
+.hero-count-separator { width: 1px; height: 11px; overflow: hidden; color: transparent; background: #171917; opacity: 1; }
 .hero-count-nav {
   display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px;
   padding: 0; border: 0; border-radius: 0; background: none; color: inherit;
@@ -85,17 +95,18 @@
 .bn-tx {
   position: absolute; left: 8%; top: 50%; transform: translateY(-50%);
   z-index: 4; width: 60%; color: #fff; text-align: left;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif;
 }
 .bn-lead {
-  display: block; margin-bottom: 6px; font-size: clamp(11.5px, 2.2vw, 14px); font-weight: 750;
+  display: block; margin-bottom: 6px; font-size: clamp(11.5px, 2.2vw, 14px); font-weight: 500;
   letter-spacing: -.02em; color: rgba(255, 255, 255, .74);
 }
 .bn-t {
-  display: block; font-size: clamp(20px, 4.4vw, 28px); font-weight: 850; letter-spacing: -.05em;
+  display: block; font-size: clamp(20px, 4.4vw, 28px); font-weight: 800; letter-spacing: -.045em;
   line-height: 1.14; word-break: keep-all; text-shadow: 0 2px 12px rgba(0, 0, 0, .5);
 }
 .bn-sm {
-  display: block; margin-top: 6px; font-size: clamp(11px, 2.1vw, 13.5px); font-weight: 650;
+  display: block; margin-top: 6px; font-size: clamp(11px, 2.1vw, 13.5px); font-weight: 400;
   letter-spacing: -.03em; color: rgba(255, 255, 255, .72); text-shadow: none;
 }
 
@@ -158,25 +169,25 @@
 }
 .feat-br {
   display: block; margin-bottom: 4px; font-size: clamp(10.5px, 2vw, 13px); font-weight: 800;
-  letter-spacing: .07em; color: rgba(255, 255, 255, .66);
+  letter-spacing: .07em; color: rgba(255, 255, 255, .66); font-family: 'Pretendard', sans-serif;
 }
 .feat-nm {
-  display: block; font-size: clamp(15px, 4.2cqw, 21px); font-weight: 850; letter-spacing: -.045em;
+  display: block; font-size: clamp(15px, 4.2cqw, 21px); font-weight: 800; letter-spacing: -.04em;
   line-height: 1.15; text-shadow: 0 2px 10px rgba(0, 0, 0, .5); overflow: hidden;
 }
 .feat-nm-line {
   display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .feat-ref {
-  display: block; margin-top: 5px; font-size: clamp(10.5px, 2.05vw, 13px); font-weight: 650;
+  display: block; margin-top: 5px; font-size: clamp(10.5px, 2.05vw, 13px); font-weight: 400;
   color: rgba(255, 255, 255, .72); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .feat-sp {
-  display: block; margin-top: 7px; font-size: clamp(11.5px, 2.2vw, 14px); font-weight: 650; letter-spacing: -.02em;
+  display: block; margin-top: 7px; font-size: clamp(11.5px, 2.2vw, 14px); font-weight: 500; letter-spacing: -.02em;
   color: rgba(255, 255, 255, .76); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .feat-pr {
-  display: block; margin-top: 9px; font-size: clamp(22px, 4.3vw, 30px); font-weight: 850; letter-spacing: -.05em;
+  display: block; margin-top: 9px; font-size: clamp(22px, 4.3vw, 30px); font-weight: 800; letter-spacing: -.04em;
   line-height: 1; text-shadow: 0 2px 10px rgba(0, 0, 0, .5);
 }
 .feat-pr i { font-style: normal; font-size: clamp(12px, 2.3vw, 15px); font-weight: 800; margin-left: 2px; opacity: .9; }

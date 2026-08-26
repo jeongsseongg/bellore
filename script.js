@@ -1481,7 +1481,7 @@
         box.innerHTML = rows.map(function (r) {
             if (r.cap) return '<p class="mp-menu-cap">' + r.cap + '</p>';
             // 경매는 auction.js 가 data-auction-open 으로 처리
-            var attr = (r.act === 'auction') ? 'data-auction-open' : (r.act === 'quotes' ? 'data-sell-quotes-open' : ('data-mpmenu="' + r.act + '"'));
+            var attr = (r.act === 'auction') ? 'data-auction-open' : (r.act === 'quotes' ? 'data-sell-service-open="compare"' : ('data-mpmenu="' + r.act + '"'));
             return '<button type="button" class="mp-menu-row" ' + attr + '>' +
                 '<span class="mr-label">' + r.label + '</span>' +
                 (typeof r.count === 'number' ? '<span class="mr-count">' + r.count + '건</span>' : '') +
@@ -5577,11 +5577,6 @@
                 alert('시계 사진을 1장 이상 등록해주세요.');
                 return;
             }
-            if (saleMethod === 'consignment' && !desiredPrice) {
-                alert('희망 판매금액을 입력해주세요.');
-                return;
-            }
-
             var payload = {
                 brand: brand, model: model, name: name, phone: phone, memo: memo,
                 saleMethod: saleMethod, desiredPrice: desiredPrice,
@@ -5625,6 +5620,10 @@
             사진수: p.photoCount + '장', 회원여부: (mode === 'member' ? '회원' : '비회원')
         });
 
+        function notifySubmitted() {
+            window.dispatchEvent(new CustomEvent('bellore:sell-submitted', { detail: { saleMethod: p.saleMethod, submissionMode: mode, brand: p.brand, model: p.model, ref: p.ref || '', year: p.year || '', parts: p.parts || [], photos: p.photos || [] } }));
+        }
+
         function finishLocal() {
             var item = {
                 id: Date.now(), brand: p.brand, model: p.model,
@@ -5639,7 +5638,7 @@
             }
             uploadedPhotos.length = 0;
             renderUploadGrid();
-            window.dispatchEvent(new CustomEvent('bellore:sell-submitted'));
+            notifySubmitted();
             setTimeout(function () {
                 var myItems = $('#myItems');
                 if (myItems) myItems.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -5647,7 +5646,7 @@
         }
 
         // 회원이면 DB에 매물 등록(실시간 입찰 대상), 비회원이면 로컬 목록만
-        if (mode === 'member' && backendOn() && NWBackend.currentUser()) {
+        if (p.saleMethod === 'compare' && mode === 'member' && backendOn() && NWBackend.currentUser()) {
             var btn = form && form.querySelector('[type="submit"]');
             if (btn) btn.disabled = true;
             NWBackend.addListing({
@@ -5659,7 +5658,7 @@
                 if (form) { showSubmitSuccess(form); form.reset(); }
                 uploadedPhotos.length = 0;
                 renderUploadGrid();
-                window.dispatchEvent(new CustomEvent('bellore:sell-submitted'));
+                notifySubmitted();
             }).catch(function (err) {
                 alert('매물 등록 실패: ' + (err && err.message ? err.message : err));
             }).then(function () {

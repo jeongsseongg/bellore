@@ -2,7 +2,7 @@
    배경만 픽셀 이미지(assets/banners)이고 시계 사진·모델명·금액·문구는 실제 데이터로 그린다.
    매물은 홈 '판매 중인 시계' 그리드가 채워지는 것을 보고 그대로 읽어 쓴다. */
 
-import { BUYIN_COPY, CATEGORY_BANNERS, FEATURED_MAX, HERO_CAMPAIGNS, stableIndex } from './home-banner-data.js?v=20260826-hero-motion-v4';
+import { BUYIN_COPY, CATEGORY_BANNERS, FEATURED_MAX, HERO_CAMPAIGNS, stableIndex } from './home-banner-data.js?v=20260826-hero-layout-v7';
 import { featuredMetaText, isCutoutPhoto, listingPresentation, priceText, shuffled } from '../../core/listing-display.js';
 
 const PRODUCT_STAGES = [
@@ -49,6 +49,7 @@ function writeMemory(win, key, value) {
 
 function initHeroCampaigns({ doc, win, collection }) {
   const track = doc.getElementById('heroTrack');
+  const counter = doc.getElementById('heroDots');
   if (!track) return;
   win.BELLORE_HOME_CAMPAIGNS = HERO_CAMPAIGNS;
   track._openHeroCampaign = (action) => {
@@ -56,6 +57,26 @@ function initHeroCampaigns({ doc, win, collection }) {
     if (campaign) collection.filter(campaign.filter);
   };
   if (typeof win.belloreSetBanners === 'function') win.belloreSetBanners(HERO_CAMPAIGNS);
+
+  /* 기존 캐러셀 숫자 앞에 현재 장수를 반영하는 얇은 진행 바를 붙인다. */
+  function syncHeroProgress() {
+    if (!counter) return;
+    let progress = counter.querySelector('.hero-progress');
+    if (!progress) {
+      progress = doc.createElement('span');
+      progress.className = 'hero-progress';
+      progress.setAttribute('aria-hidden', 'true');
+      progress.innerHTML = '<i></i>';
+      counter.prepend(progress);
+    }
+    const current = Number.parseInt(counter.querySelector('.hero-count-current')?.textContent || '1', 10);
+    const total = Number.parseInt(counter.querySelector('.hero-count-total')?.textContent || '1', 10);
+    progress.querySelector('i').style.width = `${Math.max(0, Math.min(100, current / Math.max(1, total) * 100))}%`;
+  }
+  if (counter && typeof win.MutationObserver !== 'undefined') {
+    new win.MutationObserver(syncHeroProgress).observe(counter, { childList: true, subtree: true });
+    syncHeroProgress();
+  }
 }
 
 /* ── 가격대·테마 슬라이더 ── */

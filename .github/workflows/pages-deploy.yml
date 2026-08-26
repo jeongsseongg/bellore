@@ -71,6 +71,9 @@ jobs:
         with:
           deno-version: '2.9.5'
 
+      - name: Reject obsolete preview or release base
+        run: python scripts/check-preview-deploy-base.py --check-current
+
       # 로컬·PR·두 운영 배포가 같은 한 줄 게이트를 사용한다.
       - name: Project release gate
         run: node scripts/check.mjs

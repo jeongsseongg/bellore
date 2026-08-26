@@ -318,12 +318,12 @@ assert.match(cancellationMigration, /create or replace function public\.create_c
 assert.match(cancellationMigration, /v_result := public\.create_checkout_order_paid_only_v1/);
 assert.match(cancellationMigration, /'reservationMode','paid_only'/);
 const finalClaimGuard = cancellationMigration.match(
-  /create or replace function public\.guard_new_checkout_claims_v1\(\)[\s\S]*?end;\n\$\$/i,
+  /create or replace function public\.guard_new_checkout_claims_v1\(\)[\s\S]*?end;\r?\n\$\$/i,
 )?.[0] || '';
 assert.doesNotMatch(finalClaimGuard, /existing\.listing_id|listing_reserved/);
 assert.match(finalClaimGuard, /existing\.coupon_user_id[\s\S]{0,260}coupon_reserved/);
 const paidOnlyCore = cancellationMigration.match(
-  /create or replace function public\.create_checkout_order_paid_only_v1[\s\S]*?end;\n\$\$/i,
+  /create or replace function public\.create_checkout_order_paid_only_v1[\s\S]*?end;\r?\n\$\$/i,
 )?.[0] || '';
 assert.doesNotMatch(paidOnlyCore, /reserved_order_id|reserved_until/);
 assert.equal(

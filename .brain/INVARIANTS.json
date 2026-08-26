@@ -4,11 +4,11 @@
       "id": "home-is-root-url",
       "files": ["index.html"],
       "must_contain": [
-        "href=\"/\" class=\"logo\" data-nav=\"home\"",
+        "href=\"/\" class=\"logo\" aria-label=\"BELLORE 홈\"",
         "href=\"/\" class=\"footer-logo footer-logo-large\" data-nav=\"home\""
       ],
       "must_not_contain": ["href=\"#home\""],
-      "why": "홈의 정본 주소는 /이며 #home을 사용하지 않는다."
+      "why": "홈의 정본 주소는 /이며 상단 로고는 SPA 해시가 아닌 네이티브 루트 링크를 사용한다."
     },
     {
       "id": "spa-navigation-never-stays-under-market",
@@ -32,6 +32,51 @@
         "market paths never receive an app hash"
       ],
       "why": "홈 정본 URL과 개별 페이지 이탈 규칙을 자동 테스트로 고정한다."
+    },
+    {
+      "id": "preview-deploy-minimum-public-base",
+      "files": [".brain/LATEST_PUBLIC_BASE.json"],
+      "must_contain": [
+        "\"minimumPublicSha\": \"003c63e06a5e9ff7f32d1d60e47681328a937a68\""
+      ],
+      "why": "최신 통합본보다 오래된 화면 트리에서 미리보기나 배포를 시작하지 않는다."
+    },
+    {
+      "id": "latest-home-hero-layout-v7",
+      "files": ["app/bootstrap.js"],
+      "must_contain": [
+        "home-banners.js?v=20260826-hero-layout-v7",
+        "home-quicklinks.js?v=20260826-hero-layout-v7"
+      ],
+      "why": "3897462에서 확정한 홈 히어로와 바로가기 레이아웃을 판매 기능 이식이 과거 버전으로 되돌리지 않게 한다."
+    },
+    {
+      "id": "preview-deploy-base-checker",
+      "files": ["scripts/check-preview-deploy-base.py"],
+      "must_contain": [
+        "git(\"merge-base\", \"--is-ancestor\", required, \"HEAD\")",
+        "BELLORE_RELEASE_BASE_BLOCKED",
+        "GUARDED_COMMAND_MARKERS"
+      ],
+      "why": "미리보기·푸시·배포 명령 전에 현재 HEAD가 최소 공개 기준을 포함하는지 검사한다."
+    },
+    {
+      "id": "preview-deploy-base-hook",
+      "files": [".codex/hooks.json"],
+      "must_contain": [
+        "check-preview-deploy-base.py --hook",
+        "Checking Bellore preview and deployment base"
+      ],
+      "why": "Codex 셸 명령에서 구버전 미리보기와 배포를 실행 전에 차단한다."
+    },
+    {
+      "id": "pages-deploy-base-gate",
+      "files": [".github/workflows/pages-deploy.yml"],
+      "must_contain": [
+        "Reject obsolete preview or release base",
+        "python scripts/check-preview-deploy-base.py --check-current"
+      ],
+      "why": "로컬 훅이 비활성화되어도 GitHub Pages 빌드가 구버전 기준에서 진행되지 않게 한다."
     }
   ]
 }

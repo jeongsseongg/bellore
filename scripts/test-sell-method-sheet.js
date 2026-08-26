@@ -10,6 +10,9 @@ const moduleJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-
 const referenceJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-reference-controller.js'), 'utf8');
 const quoteJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-quote-controller.js'), 'utf8');
 const quoteCss = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-quotes.css'), 'utf8');
+const serviceJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-service-pages.js'), 'utf8');
+const serviceCss = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-service-pages.css'), 'utf8');
+const serviceActionCss = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-service-action.css'), 'utf8');
 
 const sheetRule = css.match(/\.sell-method__sheet\s*\{([\s\S]*?)\}/)?.[1] || '';
 
@@ -22,12 +25,12 @@ assert.match(
 assert.doesNotMatch(sheetRule, /720px/, 'sell sheet must never use the out-of-spec 720px width');
 assert.match(
   html,
-  /sell-method\.css\?v=20260826-sell-quotes-v3/,
+  /sell-method\.css\?v=20260826-sell-services-trade-v1/,
   'the page requests the panel-width-corrected stylesheet'
 );
 assert.match(sheetRule, /transform:\s*translateY\(104%\)/, 'the closed sheet starts below the Bellore frame');
-assert.match(sheetRule, /transition:\s*transform 340ms/, 'the sheet uses the approved open and close duration');
-assert.match(moduleJs, /\}, 340\);/, 'the sheet remains mounted until the close animation completes');
+assert.match(sheetRule, /transition:\s*transform 1000ms/, 'the sheet uses the approved one-second open and close duration');
+assert.match(moduleJs, /\}, 1000\);/, 'the sheet remains mounted until the one-second close animation completes');
 assert.doesNotMatch(html, /class="compare-entry"/, 'the superseded sell landing page is removed');
 assert.match(css, /\.sell-method__card\s*\{[\s\S]*?min-height:\s*350px/, 'method cards use the restored original height');
 assert.match(css, /\.sell-method__visual\s*\{[\s\S]*?width:\s*180px;[\s\S]*?height:\s*150px/, 'method images use the enlarged desktop size');
@@ -67,7 +70,7 @@ assert.match(moduleJs, /stage:\s*entryMode,\s*guideComplete/, 'the completed gui
 assert.match(referenceJs, /subscribeProducts/, 'reference previews use the live Bellore listing catalog');
 assert.match(referenceJs, /function render\(/, 'reference previews are filtered after brand and model selection');
 assert.match(quoteCss, /\.sell-guide__preview--text/, 'reference and year rows do not render circular initials');
-assert.match(quoteJs, /id="sellMethodQuoteStatus"/, 'the chooser exposes an active quote status card');
+assert.match(quoteCss, /\.sell-method__quote-status\s*\{\s*display:\s*none/, 'the old inline quote status card stays hidden');
 assert.match(quoteJs, /data-sell-view="quotes"/, 'quote details stay inside the fixed sell sheet');
 assert.match(quoteJs, /방문거래[\s\S]*택배거래[\s\S]*퀵거래/, 'a customer can select all three requested transaction methods');
 assert.match(script, /act:\s*'quotes',\s*label:\s*'내 비교견적'/, 'customer My Page links back to the sell quote sheet');
@@ -77,5 +80,22 @@ assert.doesNotMatch(quoteJs, /vendor_name/, 'customer bid cards do not expose ve
 assert.match(quoteCss, /\.sell-quotes__bid b\s*\{\s*color:\s*#176fb8/, 'customer quote amounts use the requested blue emphasis');
 assert.doesNotMatch(html, />\s*온라인\s*·\s*비교견적/, 'quote status does not spell out online as Korean copy');
 assert.match(quoteCss, /@keyframes sell-online-pulse/, 'active quote status uses the requested online pulse animation');
+assert.match(serviceJs, /id=\\?"sellServiceNoticeToggle/, 'active applications live in the top-right notification menu');
+assert.match(serviceJs, /data-sell-view=\\?"service/, 'service applications open a dedicated page inside the Bellore sheet');
+assert.match(serviceJs, /data-service-page="compare"/, 'comparison estimates have a dedicated quote page');
+assert.match(serviceJs, /data-service-page="consignment"/, 'consignment has a dedicated offer and fee page');
+assert.match(serviceJs, /data-service-page="instant"/, 'instant purchase has a dedicated appraisal and deduction page');
+assert.match(serviceJs, /0\.07[\s\S]*판매 수수료/, 'consignment page calculates and explains the seven-percent fee');
+assert.match(serviceJs, /감가 사유/, 'instant purchase exposes itemized depreciation reasons');
+assert.match(serviceJs, /awardBid\(record\.id, selectedBidId/, 'the unified comparison page keeps the server award path');
+for (const image of ['방문거래.png', '택배거래.png', '퀵거래.png']) {
+  assert.match(serviceJs, new RegExp(`assets/sell/trade/${image}`), `${image} is connected to its transaction method`);
+}
+assert.match(serviceActionCss, /max-width:\s*var\(--app-panel-w,\s*660px\)/, 'nested transaction popup inherits the 660px panel token');
+assert.match(serviceActionCss, /\.sell-service-action__methods img[\s\S]*?object-fit:\s*cover/, 'transaction artwork fills the compact method cards');
+assert.match(serviceCss, /\.sell-service__status--blue[\s\S]*?#eef6ff/, 'all service status cards use the common blue surface');
+assert.doesNotMatch(serviceCss, /#(?:fff7ed|fff5e9|a95f12|a85d10|efd7b9)/i, 'gold and orange accents cannot return to sell service pages');
+assert.doesNotMatch(script, /saleMethod === 'consignment' && !desiredPrice/, 'consignment no longer asks the customer to choose a price first');
+assert.match(script, /p\.saleMethod === 'compare'[\s\S]*NWBackend\.addListing/, 'only comparison estimates enter the partner bidding backend path');
 
 console.log('sell method sheet width invariants: ok');

@@ -8,8 +8,8 @@ import { initSiteHeader } from './ui/site-header.js';
 import { initNavigationHistory } from './ui/navigation-history.js';
 import { initWidthPreference } from './ui/width-preference.js';
 import { initConditionGuide } from './features/condition-guide/condition-guide.js?v=20260826-hero-edge-v3';
-import { initHomeBanners } from './features/home-banners/home-banners.js?v=20260826-hero-motion-v4';
-import { initHomeQuicklinks } from './features/home-quicklinks/home-quicklinks.js?v=20260826-hero-edge-v3';
+import { initHomeBanners } from './features/home-banners/home-banners.js?v=20260826-hero-layout-v7';
+import { initHomeQuicklinks } from './features/home-quicklinks/home-quicklinks.js?v=20260826-hero-layout-v7';
 import { createHomeMerchandising } from './features/home-merchandising/home-merchandising.js?v=20260826-hero-edge-v3';
 import { initHomeRows } from './features/home-rows/home-rows.js?v=20260826-hero-edge-v3';
 import { createListingAvailabilityUi } from './features/listing-availability/listing-availability-ui.js?v=20260826-hero-edge-v3';
@@ -29,6 +29,7 @@ import { initCheckoutAddresses } from './features/checkout/checkout-addresses.mj
 import { createPaymentFlow } from './features/checkout/payment-flow.js?v=20260826-hero-edge-v3';
 import { installCustomerFeedback } from './legacy/customer-feedback.js?v=20260826-hero-edge-v3';
 import { installLegacyCheckoutCoupon } from './legacy/checkout-coupon.js';
+import { initSellServicePages } from './features/sell-method/sell-service-pages.js?v=20260826-sell-services-trade-v1';
 
 // 레거시 상품 카드가 DOMContentLoaded에서 그려지기 전에 동일한 판매 상태 규칙을 노출한다.
 Object.defineProperty(window, 'BELLORE_LISTING_AVAILABILITY', { configurable: true, value: Object.freeze({
@@ -65,6 +66,7 @@ function bootstrap() {
   initConditionGuide({ document, window });
   initHeroParallax({ document, window });
   initLegalModals({ document, window });
+  initSellServicePages({ document, window, backend: window.NWBackend });
   initCheckoutAddresses({ document, window, getClient: () => window.sbClient, getUser: () => window.NWBackend?.currentUser?.() });
   initProductSharing({
     document,

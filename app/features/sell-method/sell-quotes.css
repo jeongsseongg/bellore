@@ -1,4 +1,4 @@
-.sell-method__quote-status { position: relative; display: grid; gap: 7px; width: 100%; margin: -10px 0 18px; padding: 16px 46px 16px 18px; border: 1px solid #bad5ee; border-radius: 16px; background: #f1f7fd; color: #17344c; text-align: left; cursor: pointer; }
+.sell-method__quote-status { display: none; }
 .sell-method__quote-online { color: #2074bd; font-size: 12px; font-weight: 850; }
 .sell-method__quote-online i,
 .sell-quotes__online i { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%; background: #2388e4; animation: sell-online-pulse 1.7s ease-out infinite; }
@@ -43,8 +43,8 @@
 .sell-quotes__trade h3 { margin: 0 0 12px; font-size: 16px; }
 .sell-quotes__trade-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .sell-quotes__trade-options button { min-height: 46px; border: 1px solid #dce1de; border-radius: 12px; background: #fff; color: #34413b; font-weight: 800; cursor: pointer; }
-.sell-quotes__trade-options button.is-selected { border-color: #244d3d; background: #edf4f0; color: #193c2e; }
-.sell-quotes__request { width: 100%; min-height: 54px; margin-top: 10px; border: 0; border-radius: 14px; background: #1a2d26; color: #fff; font-size: 16px; font-weight: 850; cursor: pointer; }
+.sell-quotes__trade-options button.is-selected { border-color: #2388e4; background: #edf6fe; color: #176fb8; }
+.sell-quotes__request { width: 100%; min-height: 54px; margin-top: 10px; border: 0; border-radius: 14px; background: #176fb8; color: #fff; font-size: 16px; font-weight: 850; cursor: pointer; }
 .sell-quotes__request:disabled { background: #d7dcda; color: #8c9490; cursor: default; }
 .sell-quotes__notice { margin: 10px 2px 0; color: #6e7873; font-size: 11px; line-height: 1.5; text-align: center; }
 @media (max-width: 520px) {
