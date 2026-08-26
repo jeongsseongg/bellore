@@ -4845,9 +4845,7 @@
                 var biz = role === 'vendor' || role === 'partner';
                 var blk = $('#suBizBlock'); if (blk) blk.hidden = !biz;
                 var hint = $('#signupStep2Hint');
-                if (hint) hint.textContent = biz
-                    ? '휴대폰·사업자·계좌 인증을 진행해 주세요.'
-                    : '휴대폰 본인인증을 진행해 주세요.';
+                if (hint) hint.textContent = biz ? '이메일 인증 후 휴대폰·사업자·계좌를 순서대로 확인해 주세요.' : '이메일 인증 후 휴대폰 본인인증을 진행해 주세요.';
                 var sub = $('#signupSubmitBtn'); if (sub) sub.textContent = biz ? '가입 신청' : '가입 완료';
                 var ttl = $('#signupStep1Title');
                 if (ttl) ttl.textContent = (role === 'vendor' ? '업체 회원 정보' : role === 'partner' ? '공급협력사 정보' : '기본 정보');
@@ -4860,6 +4858,8 @@
                 var pw = String(fd.get('pw') || ''), pw2 = String(fd.get('pw2') || '');
                 var postcode = String(fd.get('postcode') || '').trim(), addr1 = String(fd.get('addr1') || '').trim();
                 if (!name) { alert('이름을 입력해주세요.'); return; }
+                var email = String(fd.get('email') || '').trim();
+                if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { alert('인증에 사용할 이메일을 정확히 입력해주세요.'); return; }
                 if (!/^[A-Za-z0-9_]{4,}$/.test(username)) { alert('아이디는 영문·숫자·밑줄(_) 4자 이상으로 입력해주세요.'); return; }
                 if (signupForm._isIdChecked && !signupForm._isIdChecked()) { alert('아이디 중복확인을 진행해주세요.'); return; }
                 if (!postcode || !addr1) { alert('주소를 입력해주세요. ("주소 찾기" 버튼)'); return; }

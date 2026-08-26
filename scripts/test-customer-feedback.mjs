@@ -59,6 +59,8 @@ assert.match(customerMessage('PGRST500', { context: 'upload' }), /사진을 처�
 assert.match(customerMessage('JWT expired', { context: 'general' }), /다시 로그인/);
 assert.match(customerMessage('unauthorized', 'auth'), /로그인하지 못했습니다/);
 assert.match(customerMessage('PGRST500', 'identity'), /본인인증을 완료하지 못했습니다/);
+assert.match(customerMessage({ code: 'NOT_VERIFIED' }, 'identity'), /인증 완료 상태가 확인되지 않았습니다/);
+assert.match(customerMessage({ code: 'PROVIDER_LOOKUP_FAILED' }, 'identity'), /인증기관의 완료 결과를 확인하지 못했습니다/);
 
 const checkoutBusinessCases = [
   ['checkout_temporarily_unavailable', /잠시 점검 중/],

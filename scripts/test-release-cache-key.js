@@ -36,7 +36,7 @@ for (const [name, url] of Object.entries(urls)) {
 for (const name of ['styles', 'script', 'payments', 'wishlist', 'search', 'dialog', 'features', 'quotes', 'auction', 'bootstrap', 'conditionGuide', 'pageRuntime']) {
   assert(serviceWorker.includes(`'./${urls[name]}'`), `service worker must precache the exact ${name} URL`);
 }
-assert.match(serviceWorker, /const VERSION = "bellore-v346-sell-guest-access";/, 'service-worker cache namespace must advance for secure guest selling');
+assert.match(serviceWorker, /const VERSION = "bellore-v347-verification-ui";/, 'service-worker cache namespace must advance for verification UI');
 for (const heroAsset of ['home-banners.js', 'home-banner-data.js']) {
   assert(serviceWorker.includes(`./app/features/home-banners/${heroAsset}?v=20260826-hero-layout-v7`), `service worker must precache exact restored hero asset: ${heroAsset}`);
 }

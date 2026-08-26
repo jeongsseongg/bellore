@@ -75,6 +75,18 @@ const PAYMENT_CONFIRMATION_CODE_COPY = Object.freeze({
   payment_refunded: '결제가 취소되어 환불 처리되었습니다. 카드사 반영까지 시간이 걸릴 수 있습니다.',
 });
 
+const IDENTITY_CODE_COPY = Object.freeze({
+  unauthorized: '이메일 인증이 만료되었습니다. 이메일 인증부터 다시 진행해 주세요.',
+  not_logged_in: '이메일 인증을 먼저 완료해 주세요.',
+  not_configured: '현재 본인인증 연결을 점검 중입니다. 잠시 후 다시 시도해 주세요.',
+  provider_lookup_failed: '인증기관의 완료 결과를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+  not_verified: '인증 완료 상태가 확인되지 않았습니다. 인증창을 끝까지 완료한 뒤 다시 시도해 주세요.',
+  identity_already_used: '이미 다른 계정에서 사용한 본인인증입니다. 본인 계정으로 다시 확인해 주세요.',
+  store_mismatch: '현재 본인인증 연결을 점검 중입니다. 잠시 후 다시 시도해 주세요.',
+  channel_mismatch: '현재 본인인증 연결을 점검 중입니다. 잠시 후 다시 시도해 주세요.',
+  channel_not_live: '현재 본인인증 연결을 점검 중입니다. 잠시 후 다시 시도해 주세요.',
+});
+
 function contextName(contextOrOptions) {
   const requested = typeof contextOrOptions === 'string'
     ? contextOrOptions
@@ -154,6 +166,13 @@ export function customerFeedback(value, contextOrOptions = 'general') {
       classification: exactCode,
       context,
       message: PAYMENT_CONFIRMATION_CODE_COPY[exactCode],
+    });
+  }
+  if (context === 'identity' && IDENTITY_CODE_COPY[exactCode]) {
+    return Object.freeze({
+      classification: `identity_${exactCode}`,
+      context,
+      message: IDENTITY_CODE_COPY[exactCode],
     });
   }
   const texts = errorTexts(value);

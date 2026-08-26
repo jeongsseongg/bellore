@@ -99,12 +99,16 @@ assert.match(verificationService, /invoke\('verify-identity'/);
 assert.match(verificationService, /invoke\('sync-email-verification'/);
 assert.match(verificationService, /invoke\('verify-business'/);
 assert.match(verificationService, /invoke\('verify-account'/);
+assert.match(verificationService, /response\.error\.context\?\.clone/);
 assert.match(client, /BelloreMemberVerificationService/);
 assert.match(ui, /BelloreMemberVerificationUi\.create/);
 assert.match(verificationAdapter, /createMemberVerificationService/);
 assert.match(bootstrap, /installLegacyMemberVerificationService/);
 assert.doesNotMatch(verificationUi, /키 미설정\(soft\) → 즉시 통과/);
 assert.match(verificationUi, /이메일 인증을 먼저 완료해 주세요/);
+assert.match(verificationUi, /verifiedPhone/);
+assert.match(ui, /이메일 인증 후 휴대폰/);
+assert.match(read('index.html'), /data-v="email"[\s\S]*id="suEmailCode"/);
 
 const sharedUrl = pathToFileURL(path.join(root, 'supabase', 'functions', '_shared', 'verification-core.mjs')).href;
 const shared = await import(sharedUrl);
