@@ -3,7 +3,7 @@
 
 const assert = require('assert');
 const path = require('path');
-const engine = require(path.join(__dirname, '..', 'recommendation-engine.js'));
+const engine = require(path.join(__dirname, '..', 'app', 'legacy', 'recommendation-engine.js'));
 
 const NOW = '2026-08-22T00:00:00.000Z';
 

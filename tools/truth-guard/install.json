@@ -1,0 +1,66 @@
+{
+  "baseline_candidate_sha256": "a776bd6f316685371e36078c271b2c998b900351ec93129b19ef9fccbf0ad48a",
+  "build_recipe_sha256": "39033092d60be55406f0f9bbd13ce2415e27cd34aa71689a9f03ad341571012c",
+  "bundle_bytes": 182150,
+  "bundle_manifest_sha256": "c1cad79b0d551d8673c53c8b5fd70526c85d22d049c7e392a3c041fbb30a8141",
+  "bundle_relative_path": "tools/truth-guard/bundles/f5a1423e5d2ec2a3688bedd12cf275de9999d5ce6565c887ecacb1f4c21823a6/truth-guard.pyz",
+  "bundle_sha256": "f5a1423e5d2ec2a3688bedd12cf275de9999d5ce6565c887ecacb1f4c21823a6",
+  "codex_hook_objects": {
+    "Stop": {
+      "hooks": [
+        {
+          "command": "repo_root=\"$(git rev-parse --show-toplevel)\" && bundle=\"$repo_root/tools/truth-guard/bundles/f5a1423e5d2ec2a3688bedd12cf275de9999d5ce6565c887ecacb1f4c21823a6/truth-guard.pyz\" && python3 -B -I -S -c 'import collections,hashlib,sys; h=hashlib.sha256(); stream=open(sys.argv[1],\"rb\"); collections.deque(map(h.update,iter(lambda:stream.read(1048576),b\"\")),maxlen=0); stream.close(); raise SystemExit(0 if h.hexdigest() == sys.argv[2] else 86)' \"$bundle\" f5a1423e5d2ec2a3688bedd12cf275de9999d5ce6565c887ecacb1f4c21823a6 && PYTHONUTF8=1 PYTHONIOENCODING=utf-8 python3 -B -I -S \"$bundle\" hook stop --repo-root \"$repo_root\"",
+          "commandWindows": "$env:PYTHONUTF8='1'; $env:PYTHONIOENCODING='utf-8'; $root = (& git rev-parse --show-toplevel); if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; $bundle = Join-Path $root 'tools\\truth-guard\\bundles\\f5a1423e5d2ec2a3688bedd12cf275de9999d5ce6565c887ecacb1f4c21823a6\\truth-guard.pyz'; if (-not (Test-Path -LiteralPath $bundle -PathType Leaf)) { Write-Error 'Truth Guard bundle is missing.'; exit 86 }; $actual = (Get-FileHash -LiteralPath $bundle -Algorithm SHA256).Hash.ToLowerInvariant(); if ($actual -ne 'f5a1423e5d2ec2a3688bedd12cf275de9999d5ce6565c887ecacb1f4c21823a6') { Write-Error 'Truth Guard bundle SHA-256 mismatch before execution.'; exit 86 }; & python -B -I -S $bundle hook stop --repo-root $root; exit $LASTEXITCODE",
+          "statusMessage": "Checking Truth Guard",
+          "timeout": 30,
+          "type": "command"
+        }
+      ]
+    },
+    "UserPromptSubmit": {
+      "hooks": [
+        {
+          "command": "repo_root=\"$(git rev-parse --show-toplevel)\" && bundle=\"$repo_root/tools/truth-guard/bundles/f5a1423e5d2ec2a3688bedd12cf275de9999d5ce6565c887ecacb1f4c21823a6/truth-guard.pyz\" && python3 -B -I -S -c 'import collections,hashlib,sys; h=hashlib.sha256(); stream=open(sys.argv[1],\"rb\"); collections.deque(map(h.update,iter(lambda:stream.read(1048576),b\"\")),maxlen=0); stream.close(); raise SystemExit(0 if h.hexdigest() == sys.argv[2] else 86)' \"$bundle\" f5a1423e5d2ec2a3688bedd12cf275de9999d5ce6565c887ecacb1f4c21823a6 && PYTHONUTF8=1 PYTHONIOENCODING=utf-8 python3 -B -I -S \"$bundle\" hook prompt --repo-root \"$repo_root\"",
+          "commandWindows": "$env:PYTHONUTF8='1'; $env:PYTHONIOENCODING='utf-8'; $root = (& git rev-parse --show-toplevel); if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; $bundle = Join-Path $root 'tools\\truth-guard\\bundles\\f5a1423e5d2ec2a3688bedd12cf275de9999d5ce6565c887ecacb1f4c21823a6\\truth-guard.pyz'; if (-not (Test-Path -LiteralPath $bundle -PathType Leaf)) { Write-Error 'Truth Guard bundle is missing.'; exit 86 }; $actual = (Get-FileHash -LiteralPath $bundle -Algorithm SHA256).Hash.ToLowerInvariant(); if ($actual -ne 'f5a1423e5d2ec2a3688bedd12cf275de9999d5ce6565c887ecacb1f4c21823a6') { Write-Error 'Truth Guard bundle SHA-256 mismatch before execution.'; exit 86 }; & python -B -I -S $bundle hook prompt --repo-root $root; exit $LASTEXITCODE",
+          "statusMessage": "Routing Truth Guard",
+          "timeout": 30,
+          "type": "command"
+        }
+      ]
+    }
+  },
+  "distribution_sha256": "6ad96452e9f121fa20627e010ce7bff12939bc35e3cbe277536ef80a01c214b5",
+  "distribution_version": "1.2.0",
+  "evaluation_implementation_sha256": "a47bfa29b190b4f590f6c0e961d9beee4abf05dd631958cc19d0b26b8e9a0674",
+  "evaluation_sha256": "de3ce45fd2bc04d32e1af555f4c95507f26481738d15cc6445abc273ae21e7cf",
+  "fixture_count": 83,
+  "install_manifest_sha256": "92c859c4903b5e1999fbecdecd332578ab4f16c4d6ba8cc6070f7d8a0a352c92",
+  "managed_block_sha256": {
+    ".gitignore": "a8a0a719ef6d553037085b9d05d2f0177e109529950ceb8b8a92f0e7de41b372",
+    "AGENTS.md": "0d7d62504c0e04bf63cd6e9864992cbe670e661840d5d6ef76499d1ea1a9ee63"
+  },
+  "managed_file_sha256": {
+    ".agents/skills/truth-guard-project/SKILL.md": "4b68d29992597cf5643e45fe0671fa756818a59be97b0d38f591aa8d0423cc7b",
+    ".agents/skills/truth-guard-project/agents/openai.yaml": "b2f90ed6dd8f424455197a4cf647af6fab67ccd7514cb8267e94d0e1aaf343cb",
+    ".agents/skills/truth-guard-project/assets/LEDGER.template.json": "f0bdbe38149e8e7825cd253fa0512be56990b66c199a8f3081d5d43d8faac499",
+    ".agents/skills/truth-guard-project/assets/SOURCE_MANIFEST.template.json": "6f81b140e7c5c0c59a1f1f6946ad81997a0dc990407da372c90b23c11f99f319",
+    ".agents/skills/truth-guard-project/references/HIGH_ROUTE.md": "f155018c6717f5d3a1eea2509212117b5d7ed747291c9aeaba364f9df7318265",
+    ".codex/hooks.json": "91d6f73c983e8a2e7cce380c1efa25b24fd031b19c7079bf9022512e7d704a3f",
+    ".github/workflows/truth-guard.yml": "00e4d1f1f2cb646358af1e21093fec7e1efcde74a03c5fce34709158c30e101b",
+    ".gitignore": "5731186956bb09bcf14c5f79a46dfcc6d6e2e9ed44e6c9ae7764014453ba7bf4",
+    "AGENTS.md": "5888bdf3079d8da412d810386d866996e9f88d4feb7c4971ddb531f77b7c04c5",
+    "tools/truth-guard/bundles/f5a1423e5d2ec2a3688bedd12cf275de9999d5ce6565c887ecacb1f4c21823a6/truth-guard.pyz": "f5a1423e5d2ec2a3688bedd12cf275de9999d5ce6565c887ecacb1f4c21823a6"
+  },
+  "project_skill_file_sha256": {
+    ".agents/skills/truth-guard-project/SKILL.md": "4b68d29992597cf5643e45fe0671fa756818a59be97b0d38f591aa8d0423cc7b",
+    ".agents/skills/truth-guard-project/agents/openai.yaml": "b2f90ed6dd8f424455197a4cf647af6fab67ccd7514cb8267e94d0e1aaf343cb",
+    ".agents/skills/truth-guard-project/assets/LEDGER.template.json": "f0bdbe38149e8e7825cd253fa0512be56990b66c199a8f3081d5d43d8faac499",
+    ".agents/skills/truth-guard-project/assets/SOURCE_MANIFEST.template.json": "6f81b140e7c5c0c59a1f1f6946ad81997a0dc990407da372c90b23c11f99f319",
+    ".agents/skills/truth-guard-project/references/HIGH_ROUTE.md": "f155018c6717f5d3a1eea2509212117b5d7ed747291c9aeaba364f9df7318265"
+  },
+  "project_skill_name": "truth-guard-project",
+  "schema_version": "1.1",
+  "source_commit": "9d74534f23fc7226238946900f04b2f7c054c474",
+  "source_manifest_sha256": "a5d345a0beef790e93e0328b8012e41b81ceb5d4beb1a4645ab1c282c3536318",
+  "truth_status": "NOT_MEASURED"
+}

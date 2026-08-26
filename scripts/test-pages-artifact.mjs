@@ -15,17 +15,81 @@ const FORBIDDEN_TOP_LEVEL = new Set([
 ]);
 const FORBIDDEN_EXTENSIONS = new Set(['.md', '.sql', '.fig', '.yml', '.yaml']);
 const GENERATED_STATIC = ['.nojekyll', '404.html', 'offline.html'];
+const WORKFLOW_DIR = join(ROOT, '.github', 'workflows');
+
+function assertSingleReleaseGate(workflow, label) {
+  const gates = workflow.match(/^\s*run:\s*node scripts\/check\.mjs\s*$/gm) || [];
+  assert.equal(gates.length, 1, `${label}는 로컬과 같은 한 줄 검사를 정확히 한 번 실행해야 합니다.`);
+  assert.match(workflow, /node-version:\s*['"]22['"]/, `${label}의 Node 버전은 CI 공통 기준 22여야 합니다.`);
+}
+
+async function validatePinnedActions() {
+  const workflowFiles = (await readdir(WORKFLOW_DIR))
+    .filter((name) => /\.ya?ml$/i.test(name))
+    .sort();
+
+  for (const name of workflowFiles) {
+    const workflow = await readFile(join(WORKFLOW_DIR, name), 'utf8');
+    for (const [index, line] of workflow.split(/\r?\n/).entries()) {
+      const specifier = line.match(/^\s*uses:\s*([^\s#]+)/)?.[1];
+      if (!specifier || specifier.startsWith('./')) continue;
+      const separator = specifier.lastIndexOf('@');
+      assert(separator > 0, `${name}:${index + 1} 액션 버전이 없습니다.`);
+      const action = specifier.slice(0, separator);
+      const ref = specifier.slice(separator + 1);
+      assert.match(ref, /^[0-9a-f]{40}$/, `${name}:${index + 1} ${action}는 40자 커밋 SHA로 고정해야 합니다.`);
+    }
+  }
+}
 
 async function validateDeployConfig() {
   const firebase = JSON.parse(await readFile(join(ROOT, 'firebase.json'), 'utf8'));
   assert.equal(firebase.hosting?.public, '_site', 'Firebase도 검증된 _site 허용목록만 배포해야 합니다.');
 
-  const workflow = await readFile(join(ROOT, '.github', 'workflows', 'firebase-deploy.yml'), 'utf8');
-  assert.match(workflow, /run:\s*node tools\/build-pages\.mjs/, 'Firebase 배포 전 _site 빌드가 필요합니다.');
-  assert.match(workflow, /run:\s*node scripts\/test-pages-artifact\.mjs --site _site --expect-seo/, 'Firebase 최종 artifact 검사가 필요합니다.');
-  assert.doesNotMatch(workflow, /tools\/generate-seo\.mjs/, 'Firebase가 레거시 루트 생성기를 사용하면 안 됩니다.');
-  assert.match(workflow, /group:\s*firebase-hosting-live/, 'Firebase live 배포는 동시 실행을 막아야 합니다.');
-  assert.match(workflow, /if:\s*github\.ref == 'refs\/heads\/main'/, 'Firebase live는 main만 배포해야 합니다.');
+  const [firebaseWorkflow, pagesWorkflow, qualityWorkflow, databaseWorkflow] = await Promise.all([
+    readFile(join(WORKFLOW_DIR, 'firebase-deploy.yml'), 'utf8'),
+    readFile(join(WORKFLOW_DIR, 'pages-deploy.yml'), 'utf8'),
+    readFile(join(WORKFLOW_DIR, 'quality-gate.yml'), 'utf8'),
+    readFile(join(WORKFLOW_DIR, 'db-maintenance.yml'), 'utf8'),
+  ]);
+
+  for (const [label, workflow] of [
+    ['Firebase', firebaseWorkflow],
+    ['GitHub Pages', pagesWorkflow],
+    ['Quality', qualityWorkflow],
+  ]) {
+    assertSingleReleaseGate(workflow, label);
+  }
+
+  assert.match(firebaseWorkflow, /branches:\s*\[main\]/, 'Firebase push 배포는 main만 받아야 합니다.');
+  assert.match(firebaseWorkflow, /run:\s*node tools\/build-pages\.mjs/, 'Firebase 배포 전 _site 빌드가 필요합니다.');
+  assert.match(firebaseWorkflow, /run:\s*node scripts\/test-pages-artifact\.mjs --site _site --expect-seo/, 'Firebase 최종 artifact 검사가 필요합니다.');
+  assert.doesNotMatch(firebaseWorkflow, /tools\/generate-seo\.mjs/, 'Firebase가 레거시 루트 생성기를 사용하면 안 됩니다.');
+  assert.match(firebaseWorkflow, /group:\s*firebase-hosting-live/, 'Firebase live 배포는 동시 실행을 막아야 합니다.');
+  assert.match(firebaseWorkflow, /deploy:\s*\n\s+if:\s*github\.ref == 'refs\/heads\/main'/, 'Firebase live job은 main에서만 실행해야 합니다.');
+  assert.match(firebaseWorkflow, /deploy:\s*[\s\S]*?needs:\s*truth_guard/, 'Firebase live job은 Truth Guard를 직접 통과해야 합니다.');
+
+  assert.match(pagesWorkflow, /branches:\s*\[main\]/, 'Pages push 배포는 main만 받아야 합니다.');
+  assert.match(pagesWorkflow, /build:\s*\n\s+if:\s*>-\s*\n\s+github\.ref == 'refs\/heads\/main'/, 'Pages build job은 main에서만 실행해야 합니다.');
+  assert.match(pagesWorkflow, /deploy:\s*\n\s+if:\s*>-\s*\n\s+github\.ref == 'refs\/heads\/main'/, 'Pages deploy job은 main에서만 실행해야 합니다.');
+  assert.match(pagesWorkflow, /static_release_sha:[\s\S]*?required:\s*false/, 'Pages 수동 프론트 릴리스는 명시적 SHA 입력만 받아야 합니다.');
+  assert.match(pagesWorkflow, /refs\/heads\/codex\/locked-pages-release/, '잠금형 Pages 릴리스는 전용 브랜치만 허용해야 합니다.');
+  assert.match(pagesWorkflow, /git merge-base --is-ancestor "\$WORKFLOW_MAIN_SHA" "\$STATIC_RELEASE_SHA"/, '잠금형 릴리스는 실행 시점 main 전체를 포함해야 합니다.');
+  assert.match(pagesWorkflow, /build:\s*[\s\S]*?needs:\s*truth_guard/, 'Pages build job은 Truth Guard를 먼저 통과해야 합니다.');
+  assert.match(pagesWorkflow, /deploy:\s*[\s\S]*?needs:\s*\[truth_guard,\s*build\]/, 'Pages deploy는 Truth Guard와 검증된 build job에 직접 의존해야 합니다.');
+  assert.match(pagesWorkflow, /run:\s*node tools\/build-pages\.mjs/, 'Pages 배포 전 _site 빌드가 필요합니다.');
+  assert.match(pagesWorkflow, /run:\s*node scripts\/test-pages-artifact\.mjs --site _site --expect-seo/, 'Pages 최종 artifact 검사가 필요합니다.');
+  assert.match(pagesWorkflow, /group:\s*github-pages/, 'Pages live 배포는 동시 실행을 막아야 합니다.');
+  assert.match(pagesWorkflow, /pages:\s*write/, 'Pages 배포 권한이 필요합니다.');
+  assert.match(pagesWorkflow, /id-token:\s*write/, 'Pages OIDC 배포 권한이 필요합니다.');
+
+  assert.match(qualityWorkflow, /pull_request:/, 'Quality 검사는 pull request에서 실행해야 합니다.');
+  assert.match(qualityWorkflow, /branches:\s*\[main\]/, 'Quality push 검사는 main을 포함해야 합니다.');
+  assert.doesNotMatch(qualityWorkflow, /deploy-pages|action-hosting-deploy/, 'Quality workflow는 배포 권한을 소유하면 안 됩니다.');
+
+  assert.match(databaseWorkflow, /run:\s*[\s\S]*?needs:\s*truth_guard/, '운영 DB 적용 job은 Truth Guard를 직접 통과해야 합니다.');
+
+  await validatePinnedActions();
 }
 
 function parseArgs(argv) {
@@ -53,14 +117,41 @@ async function validateMarketArtifact(site) {
   const productDirs = (await readdir(marketRoot, { withFileTypes: true }))
     .filter((entry) => entry.isDirectory());
   const sitemap = await readFile(join(site, 'sitemap.xml'), 'utf8');
-  const sitemapUrls = (sitemap.match(/<loc>/g) || []).length;
+  const sitemapSet = new Set([...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1]));
+  const sitemapUrls = sitemapSet.size;
   assert.equal(sitemapUrls, productDirs.length + 2, '사이트맵과 상품 디렉터리 수가 다릅니다.');
+  assert.equal((sitemap.match(/<loc>/g) || []).length, sitemapSet.size, '사이트맵 URL이 중복됩니다.');
+
+  const hub = await readFile(join(marketRoot, 'index.html'), 'utf8');
+  const hubLinks = new Set([...hub.matchAll(/<a class="product-card" href="([^"]+)"/g)]
+    .map((match) => new URL(match[1], 'https://bellore.co.kr/').href));
 
   let localImages = 0;
+  const canonicals = new Set();
+  const appListingIds = new Set();
   for (const entry of productDirs) {
     const html = await readFile(join(marketRoot, entry.name, 'index.html'), 'utf8');
     const canonical = html.match(/<link rel="canonical" href="([^"]+)"/)?.[1];
     assert.equal(canonical, `https://bellore.co.kr/market/${entry.name}/`, `canonical 불일치: ${entry.name}`);
+    assert(!canonical.includes('#'), `공개 공유 URL에 fragment가 있습니다: ${entry.name}`);
+    assert.equal(html.match(/<meta property="og:url" content="([^"]+)"/)?.[1], canonical, `OG URL 불일치: ${entry.name}`);
+    canonicals.add(canonical);
+
+    const data = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)]
+      .map((match) => JSON.parse(match[1]));
+    const product = data.find((item) => item['@type'] === 'Product');
+    const breadcrumb = data.find((item) => item['@type'] === 'BreadcrumbList');
+    assert(product, `Product JSON-LD 누락: ${entry.name}`);
+    assert(breadcrumb, `Breadcrumb JSON-LD 누락: ${entry.name}`);
+    assert.equal(String(product.sku).toLowerCase(), entry.name, `SKU/slug 불일치: ${entry.name}`);
+    assert.equal(product.offers?.url, canonical, `Offer URL 불일치: ${entry.name}`);
+    assert.equal(breadcrumb.itemListElement?.at(-1)?.item, canonical, `Breadcrumb URL 불일치: ${entry.name}`);
+
+    const appUrl = html.match(/<a class="cta" href="([^"]+)">벨로르에서 상품 보기<\/a>/)?.[1];
+    const appId = appUrl?.match(/^https:\/\/bellore\.co\.kr\/#p=([0-9a-f-]{36})$/)?.[1];
+    assert(appId, `앱 상품 딥링크 불일치: ${entry.name}`);
+    assert(!appListingIds.has(appId), `앱 상품 UUID 중복: ${appId}`);
+    appListingIds.add(appId);
 
     for (const match of html.matchAll(/<img\b[^>]*>/g)) {
       const tag = match[0];
@@ -75,10 +166,15 @@ async function validateMarketArtifact(site) {
       localImages += 1;
     }
 
-    for (const match of html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
-      assert.doesNotThrow(() => JSON.parse(match[1]), `JSON-LD 오류: ${entry.name}`);
-    }
   }
+  assert.equal(canonicals.size, productDirs.length, '상품 canonical이 중복됩니다.');
+  assert.equal(appListingIds.size, productDirs.length, '앱 딥링크가 상품 수와 다릅니다.');
+  assert.deepEqual([...hubLinks].sort(), [...canonicals].sort(), '마켓 허브 링크와 상품 canonical 집합이 다릅니다.');
+  assert.deepEqual(
+    [...sitemapSet].sort(),
+    ['https://bellore.co.kr/', 'https://bellore.co.kr/market/', ...canonicals].sort(),
+    '사이트맵이 홈·마켓·상품 canonical 집합과 다릅니다.',
+  );
   return { products: productDirs.length, localImages, sitemapUrls };
 }
 
@@ -102,7 +198,7 @@ async function validateArtifact(site, { expectSeo }) {
   assert(shellBlock, '서비스워커 SHELL_ASSETS를 찾지 못했습니다.');
   const shellAssets = [...shellBlock.matchAll(/['"](\.\/[^'"]+)['"]/g)]
     .map((match) => match[1].split(/[?#]/, 1)[0]);
-  assert.equal(shellAssets.length, 42, '서비스워커 셸 자산 개수가 기준과 다릅니다.');
+  assert.equal(shellAssets.length, 70, '서비스워커 셸 자산 개수가 기준과 다릅니다.');
   for (const asset of shellAssets) {
     await lstat(resolve(site, asset));
   }

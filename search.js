@@ -44,7 +44,7 @@
     if (!it || (!it.brand && !it.model)) return;
     var id = String(it.id || (it.brand + '|' + it.model));
     var arr = lsGet(VIEWED_KEY).filter(function (x) { return String(x.id) !== id; });
-    arr.unshift({ id: id, brand: it.brand || '', model: it.model || '', price: it.price || 0, sale_price: it.sale_price || 0, img: it.img || it.image || '', ts: Date.now() });
+    arr.unshift({ id: id, product_no: it.productNo || it.product_no || '', brand: it.brand || '', model: it.model || '', price: it.price || 0, sale_price: it.sale_price || 0, img: it.img || it.image || '', ts: Date.now() });
     lsSet(VIEWED_KEY, arr.slice(0, 20));
   };
   function getViewed() { return lsGet(VIEWED_KEY); }
@@ -85,7 +85,7 @@
       var salePrice = Number(card.dataset.sprice || 0);
       var price = salePrice && salePrice < listPrice ? salePrice : (Number(card.dataset.price || 0) || listPrice);
       return {
-        id: card.dataset.pid || ('sale-' + index), rank: index + 1,
+        id: card.dataset.pid || ('sale-' + index), productNo: card.dataset.no || '', rank: index + 1,
         brand: brand.trim(), model: model.trim(), spec: spec.trim(),
         price: listPrice || price, sale_price: salePrice || 0,
         shown_price: price, img: img ? (img.getAttribute('src') || img.src) : '',
@@ -95,7 +95,7 @@
   }
 
   function saleWatchHTML(it) {
-    return '<article class="sp-now-card" data-pid="' + esc(it.id) + '" data-brand="' + esc(it.brand) + '" data-model="' + esc(it.model) + '" data-price="' + (it.price || 0) + '" data-sprice="' + (it.sale_price || '') + '">' +
+    return '<article class="sp-now-card" data-pid="' + esc(it.id) + '" data-no="' + esc(it.productNo || '') + '" data-brand="' + esc(it.brand) + '" data-model="' + esc(it.model) + '" data-price="' + (it.price || 0) + '" data-sprice="' + (it.sale_price || '') + '">' +
       '<button type="button" class="sp-now-open" aria-label="' + esc(it.model || it.brand) + ' 상세 보기">' +
         '<b class="sp-now-rank">' + it.rank + '</b>' +
         '<span class="sp-now-img"><img src="' + esc(it.img || 'assets/images.jpg') + '" alt="" loading="lazy">' +
@@ -267,7 +267,7 @@
       body = '<div class="sp-sec sp-pv-sec">' +
         '<div class="sp-sec-head"><h3>상품 미리보기</h3><span class="sp-pv-note">' + total + '건</span></div>' +
         '<div class="sp-pv-list">' + list.map(function (it) {
-          return '<button type="button" class="sp-pv-item" data-pid="' + esc(it.pid) + '" data-brand="' + esc(it.brand) + '" data-model="' + esc(it.model) + '">' +
+          return '<button type="button" class="sp-pv-item" data-pid="' + esc(it.pid) + '" data-no="' + esc(it.productNo || '') + '" data-brand="' + esc(it.brand) + '" data-model="' + esc(it.model) + '">' +
             '<span class="sp-pv-img"><img src="' + esc(it.img || 'assets/images.jpg') + '" alt="" loading="lazy">' +
               (it.isNew ? '<b class="sp-pv-new">미착용</b>' : '') + '</span>' +
             '<span class="sp-pv-copy"><span class="sp-pv-brand">' + esc(it.brand) + '</span>' +
@@ -304,7 +304,7 @@
     var viewedHTML = viewed.length
       ? '<div class="sp-viewed-row">' + viewed.map(function (it) {
           var price = it.sale_price && it.sale_price < it.price ? it.sale_price : it.price;
-          return '<article class="sp-viewed" data-pid="' + esc(it.id) + '" data-brand="' + esc(it.brand) + '" data-model="' + esc(it.model) + '" data-price="' + (it.price || 0) + '" data-sprice="' + (it.sale_price || '') + '">' +
+          return '<article class="sp-viewed" data-pid="' + esc(it.id) + '" data-no="' + esc(it.product_no || '') + '" data-brand="' + esc(it.brand) + '" data-model="' + esc(it.model) + '" data-price="' + (it.price || 0) + '" data-sprice="' + (it.sale_price || '') + '">' +
             '<button type="button" class="sp-viewed-open" aria-label="' + esc(it.model || it.brand) + ' 상세 보기">' +
               '<span class="sp-viewed-img"><img src="' + esc(it.img || 'assets/images.jpg') + '" alt="" loading="lazy"></span>' +
               '<span class="sp-viewed-brand">' + esc(it.brand) + '</span>' +
@@ -537,7 +537,7 @@
     closePage();
     // 가상 카드를 만들어 기존 상세 로직 재사용
     var card = document.createElement('article');
-    card.className = 'hcard'; card.dataset.pid = v.dataset.pid;
+    card.className = 'hcard'; card.dataset.pid = v.dataset.pid; card.dataset.no = v.dataset.no || '';
     card.dataset.brand = v.dataset.brand; card.dataset.model = v.dataset.model;
     card.dataset.price = v.dataset.price; card.dataset.sprice = v.dataset.sprice || '';
     card.innerHTML = '<div class="hcard-img"><img src="' + (v.querySelector('img') ? v.querySelector('img').src : '') + '"></div>' +

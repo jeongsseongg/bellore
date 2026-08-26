@@ -253,7 +253,6 @@ export function renderMarketIndex(products) {
     <h2 class="product-card__name">${escapeHtml(product.presentation.modelSize)}</h2>
     ${product.presentation.referenceText ? `<p class="product-card__reference">${escapeHtml(product.presentation.referenceText)}</p>` : ''}
     ${product.presentation.featureMovement ? `<p class="product-card__meta">${escapeHtml(product.presentation.featureMovement)}</p>` : ''}
-    <p class="product-card__trust">${escapeHtml([product.conditionPresentation, product.accessoryPresentation.compactText].filter(Boolean).join(' · '))}</p>
     <p class="product-card__price">${money(product.currentPrice)}</p>
   </a>`).join('\n');
   const title = '명품 중고시계 판매 | 벨로르 BELLORE';

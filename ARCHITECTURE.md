@@ -82,13 +82,17 @@ app/services/payments/
 - no-build도 여러 CSS 링크와 네이티브 ESM으로 모듈 경계를 만들 수 있다.
 - HTML 부분 조립·해시 자산·번들 최적화가 실제 병목으로 확인되면 최소 조립기나 빌드 도구를 별도 결정한다.
 - `package.json` 자체가 GitHub Pages/Firebase의 빌드를 자동 전환하는 것은 아니다. 실제 영향은 Pages 게시원, Actions workflow, Firebase `public`/`ignore` 설정으로 검증한다.
-- 현재 primary Pages는 branch-source이므로 독립 `quality-gate.yml`은 검사 신호를 만들지만 게시를 선행 차단하지 못한다. 보조 Firebase workflow에는 동일 검사를 선행 단계로 연결했다. 주 운영 Pages 차단은 원격 브랜치 규칙 또는 승인된 Pages Actions 전환 작업으로 분리한다.
+- primary GitHub Pages는 공식 Actions artifact 방식이며 `node scripts/check.mjs → _site 빌드·최종검사 → deploy` 의존 순서로 실패한 빌드를 게시하지 않는다. 같은 한 줄 검사는 JS/MJS 테스트·SEO 생성기·allowlist 검사를 포함하고 PR 품질검사와 보조 Firebase도 공유한다. 보조 Firebase도 저장소 루트가 아니라 같은 `_site` 허용목록만 배포한다. 브랜치 직접 push 자체를 막는 보호 규칙은 별도 원격 계정 설정이다.
 
 ## 추출 현황과 보류 대상
 
-- 1차 배포 완료(2026-08-24, `5efa411`): 법적고지 모달을 `app/bootstrap.js`와 `app/features/legal/legal-modals.js`로 옮겼다. 깨끗한 배포 기준 인라인 실행 블록 4→3, 줄바꿈 정규화 본문 34,049→32,747바이트이며 Node 테스트와 HTTP 브라우저 열기·닫기를 통과했다.
-- 2차 로컬 후보(2026-08-24): 헤더 높이·스크롤 표시 동작을 `app/ui/site-header.js`로 옮기고 `bootstrap`에서 조립했다. 현재 작업 트리의 `script.js`는 6,780→6,757줄, 프로젝트 테스트는 7→8개다. 데스크톱·390px HTTP 브라우저 검증까지 통과했으며 아직 배포하지 않았다.
+- 완료(2026-08-24): 법적고지 모달을 `app/bootstrap.js`와 `app/features/legal/legal-modals.js`로 옮겼다. clean `main` 기준 `index.html`은 3,713→3,685줄, 인라인 실행 블록은 4→3, 줄바꿈을 LF로 정규화한 실행 본문은 34,049→32,747바이트이며 Node 테스트와 HTTP 브라우저 열기·닫기를 통과했다.
+- 2차 배포 완료(2026-08-24, `9ad683f`): 헤더 높이·30px 스크롤 표시 동작을 `app/ui/site-header.js`로 옮겨 clean `script.js`를 6,772→6,749줄로 줄였다. 품질검사·GitHub Pages·Firebase가 모두 성공했고 운영 데스크톱·390px에서 높이 동기화와 스크롤 상태를 확인했다.
+- 3차 배포 완료(2026-08-24, `fdcbe89`): 인사이트 글 읽기 모달을 `app/features/insights/insight-reader.js`로 옮겨 clean `script.js`를 6,749→6,690줄로 낮췄다. 자동검사 4개와 운영 데스크톱·390px 검증을 통과했고, 품질검사·GitHub Pages·Firebase가 모두 성공했다.
+- 4차 배포 완료(2026-08-24, `9e6fc02`): 홈 히어로 패럴랙스를 `app/ui/hero-parallax.js`로 옮겨 clean `script.js`를 6,690→6,677줄로 낮췄다. passive 스크롤·뷰포트 경계·정리 계약과 서비스워커 캐시를 고정했고, GitHub Pages·Firebase를 같은 검증된 `_site` 허용목록으로 배포하도록 통일했다.
+- 5차 배포 완료(2026-08-24, `030aea1`): 인사이트 카테고리 탭 필터를 `app/features/insights/insight-filter.js`로 옮겨 clean `script.js`를 6,677→6,649줄로 낮췄다. 전체·개별·제휴처·동적 행 재조회·정리 계약을 자동검사로 고정했고 GitHub Pages·Firebase 배포를 검증했다.
+- 6차 배포 완료(2026-08-24, `40287fb`): 상품 공유 URL 변경 위에서 스크롤 리빌 효과를 `app/ui/reveal-effects.js`로 옮기고 `app/legacy/legacy-reveal.js`가 기존 `window.refreshReveals` 호출만 임시 보존한다. clean `script.js`는 6,648→6,621줄이며 observer 미지원·동적 요소·35ms stagger·정리 계약을 자동검사로 고정했다. 이후 홈 최종 기준 `d765917`까지 같은 Pages/Firebase 경로로 운영 반영됐다.
 - 다음 후보는 시작 시점의 dirty hunk와 호출 관계를 다시 재서 고른다. 낮은 상태·낮은 권한·독립 DOM 기능을 우선한다.
 - 보류: 현재 dirty worktree에서 작업 중인 검색 10개 무한스크롤, 추천 v2, 결제, `supabase.js`, 서비스워커 관련 대형 블록.
-- 기존 JS/CSS가 참조하지만 저장소에 없는 동적 이미지 9개는 별도 콘텐츠 부채다. 임의 대체하지 않고 baseline 경고로 고정해 10번째 누락부터 차단한다.
+- 기존 JS/CSS가 참조하지만 저장소에 없는 동적 이미지 9개는 별도 콘텐츠 부채다. 1차 구조 배포에서는 임의 대체하지 않고 baseline 경고로 고정해 추가 누락만 차단한다.
 - `app/bootstrap.js`에는 조립만 추가하고 기능 구현을 넣지 않는다.

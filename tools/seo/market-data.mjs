@@ -2,11 +2,11 @@ import { readFile } from 'node:fs/promises';
 import { accessoryPresentation, conditionPresentation, listingPresentation } from '../../app/core/listing-display.js';
 import {
   DEFAULT_MIN_PRODUCTS,
-  MARKET_PATH,
   SITE_ORIGIN,
   absoluteImageUrl,
   legacyDemoMatch,
   normalizeProductNumber,
+  publicMarketPath,
   statusPolicy,
 } from './market-policy.mjs';
 
@@ -113,7 +113,7 @@ export function normalizeListing(row) {
   const isNew = /미사용|신품|새상품|new/i.test(optionalText(row.condition));
   const isVintage = tags.some((tag) => /^vintage$|빈티지/i.test(tag))
     || notes.some((line) => /빈티지/.test(line));
-  const canonicalPath = `${MARKET_PATH}${slug}/`;
+  const canonicalPath = publicMarketPath(row);
 
   const product = {
     id,

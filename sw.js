@@ -1,45 +1,67 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v318-expert-status-card-clean";
+const VERSION = "bellore-v319-full-release";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
+const OFFLINE_FALLBACK = './index.html';
 
 /* 오프라인에서도 첫 화면이 뜨도록 미리 캐시할 앱 셸 */
 const SHELL_ASSETS = [
   './',
   './index.html',
-  './styles.css',
-  './wanted-theme.css',
-  './vendor-reference.css',
-  './reference-layout.css',
-  './mypick.css',
-  './bellore-redesign.css?v=20260826-expert-status-v1',
-  './app/features/sell-method/sell-method.css?v=20260826-sell-method-v12',
-  './script.js?v=20260826-expert-status-card-clean-v2',
-  './payments.js',
-  './naverpay.js',
+  './styles.css?v=20260821-product-detail-v1',
+  './wanted-theme.css?v=20260818-pretendard-v1',
+  './vendor-reference.css?v=20260731-photo-viewer',
+  './reference-layout.css?v=20260821-tabbar-safe-area-v1',
+  './mypick.css?v=20260826-full-release-v1',
+  './bellore-redesign.css?v=20260826-full-release-v1',
+  './app/features/home-banners/home-banners.css?v=20260826-full-release-v1',
+  './app/features/home-rows/home-rows.css?v=20260826-full-release-v1',
+  './app/features/sell-method/sell-method.css?v=20260826-full-release-v1',
+  './script.js?v=20260826-full-release-v1',
+  './app/legacy/recommendation-engine.js?v=20260826-full-release-v1',
+  './payments.js?v=20260826-full-release-v1',
+  './naverpay.js?v=20260728-naver-review-fixes-2',
   './ui-dialog.js',
-  './supabase-config.js',
-  './analytics-core.js',
-  './analytics-client.js',
+  './supabase-config.js?v=20260814-kg-card-review',
+  './analytics-core.js?v=20260810-analytics-v3',
+  './analytics-client.js?v=20260818-consent-aggregate-v1',
   './brands.js',
-  './supabase.js',
-  './bellore-features.js',
-  './cq-demo.js',
-  './recommendation-engine.js',
-  './wishlist.js',
-  './alerts.js',
+  './supabase.js?v=20260826-full-release-v1',
+  './bellore-features.js?v=20260821-product-detail-v1',
+  './cq-demo.js?v=20260810-bid-notify-fix',
+  './wishlist.js?v=20260826-full-release-v1',
+  './alerts.js?v=20260820-tabs-alerts-v1',
   './auction.js',
-  './search.js',
-  './ai-advisor.js',
-  './ai-advisor-admin.js',
-  './app/bootstrap.js?v=20260826-copy-cleanup-card-clean-v2',
+  './search.js?v=20260826-full-release-v1',
+  './ai-advisor.js?v=20260826-full-release-v1',
+  './ai-advisor-admin.js?v=20260826-full-release-v1',
+  './app/bootstrap.js?v=20260826-full-release-v1',
+  './app/features/sell-method/sell-method.js?v=20260826-full-release-v1',
   './app/core/listing-display.js',
-  './app/features/home-banners/home-banner-data.js?v=20260826-copy-cleanup-v1',
-  './app/features/home-banners/home-banners.js?v=20260826-copy-cleanup-v1',
-  './app/features/home-banners/home-banners.css?v=20260826-hero-collections-v1',
-  './app/features/home-rows/home-rows.js?v=20260826-card-trust-clean-v2',
-  './app/features/home-rows/home-rows.css?v=20260826-card-price-lock-v1',
-  './app/features/sell-method/sell-method.js?v=20260826-sell-method-v16',
+  './app/core/market-product-url.mjs',
+  './app/features/home-banners/home-banners.js?v=20260826-full-release-v1',
+  './app/features/home-banners/home-banner-data.js',
+  './app/features/home-rows/home-rows.js?v=20260826-full-release-v1',
+  './app/features/home-rows/home-row-admin.js',
+  './app/services/listings/listing-catalog-service.js',
+  './app/services/payments/payment-auth.js',
+  './app/legacy/legacy-collection.js?v=20260826-full-release-v1',
+  './app/legacy/payment-auth.js',
+  './app/legacy/legacy-reveal.js',
+  './app/legacy/page-runtime.js?v=20260826-full-release-v1',
+  './app/features/insights/insight-filter.js',
+  './app/features/insights/insight-reader.js',
+  './app/features/legal/legal-modals.js',
+  './app/features/product-sharing/product-sharing.mjs',
+  './app/ui/hero-parallax.js',
+  './app/ui/reveal-effects.js',
+  './app/ui/site-header.js',
+  './app/ui/navigation-history.js',
+  './app/ui/width-preference.js',
+  './manifest.json',
+  './assets/icons/icon-192.png',
+  './assets/icons/icon-512.png',
+  './assets/icons/apple-touch-icon.png',
   './시계판매 이미지/비교견적.png',
   './시계판매 이미지/위탁판매.png',
   './시계판매 이미지/즉시매입.png',
@@ -55,27 +77,6 @@ const SHELL_ASSETS = [
   './assets/cq-guide/right.jpg',
   './assets/cq-guide/clasp.jpg',
   './assets/cq-guide/parts.jpg',
-  './app/services/listings/listing-catalog-service.js',
-  './app/legacy/legacy-collection.js?v=20260826-hero-collections-v3',
-  './app/features/insights/insight-filter.js',
-  './app/features/insights/insight-reader.js',
-  './app/features/legal/legal-modals.js',
-  './app/ui/hero-parallax.js',
-  './app/ui/site-header.js',
-  './manifest.json',
-  './assets/icons/icon-192.png',
-  './assets/icons/icon-512.png',
-  './assets/icons/apple-touch-icon.png',
-  './assets/banners/hero-01.webp',
-  './assets/banners/hero-02.webp',
-  './assets/banners/hero-03.webp',
-  './assets/banners/hero-04.webp',
-  './assets/banners/hero-05.webp',
-  './assets/banners/hero-06.webp',
-  './assets/banners/hero-07.webp',
-  './assets/banners/hero-08.webp',
-  './assets/banners/hero-09.webp',
-  './assets/banners/hero-10.webp',
 ];
 
 self.addEventListener('install', (event) => {
@@ -102,28 +103,40 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
-  const isAppCode = req.mode === 'navigate' ||
-    /\.(?:js|css|html)(?:\?|$)/.test(url.pathname) ||
+  if (req.mode === 'navigate') {
+    event.respondWith(
+      fetch(req)
+        .then(async (res) => {
+          if (res && res.status === 200) {
+            const copy = res.clone();
+            const cache = await caches.open(RUNTIME_CACHE);
+            await cache.put(req, copy);
+          }
+          return res;
+        })
+        .catch(async () => {
+          const exactPage = await caches.match(req);
+          return exactPage || caches.match(OFFLINE_FALLBACK);
+        })
+    );
+    return;
+  }
+
+  const isAppCode = /\.(?:js|css|html)(?:\?|$)/.test(url.pathname) ||
     url.pathname === '/' || url.pathname.endsWith('/');
   if (isAppCode) {
     event.respondWith(
       fetch(req)
         .then(async (res) => {
-          const copy = res.clone();
-          const cache = await caches.open(SHELL_CACHE);
-          const cacheKey = req.mode === 'navigate'
-            ? new Request(new URL('./index.html', self.location.href).href)
-            : new Request(url.origin + url.pathname);
-          await cache.put(cacheKey, copy);
+          if (res && res.status === 200) {
+            const copy = res.clone();
+            const cache = await caches.open(SHELL_CACHE);
+            await cache.put(url.origin + url.pathname, copy);
+          }
           return res;
         })
-        .catch(() => {
-          if (req.mode === 'navigate') return caches.match('./index.html', { ignoreSearch: true });
-          return caches.match(req, { ignoreSearch: true }).then((cached) => cached || new Response('', {
-            status: 503,
-            statusText: 'Offline asset unavailable'
-          }));
-        })
+        .catch(() => caches.match(req, { ignoreSearch: true })
+          .then((cached) => cached || new Response('', { status: 503 })))
     );
     return;
   }
@@ -131,11 +144,10 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(req).then((cached) => {
       const network = fetch(req)
-        .then(async (res) => {
+        .then((res) => {
           if (res && res.status === 200) {
             const copy = res.clone();
-            const cache = await caches.open(RUNTIME_CACHE);
-            await cache.put(req, copy);
+            caches.open(RUNTIME_CACHE).then((c) => c.put(req, copy));
           }
           return res;
         })

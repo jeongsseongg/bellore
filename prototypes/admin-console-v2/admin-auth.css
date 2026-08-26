@@ -1,0 +1,137 @@
+:root {
+  color-scheme: light;
+}
+
+.admin-auth {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+  background:
+    linear-gradient(135deg, rgba(17, 38, 32, .98), rgba(31, 63, 54, .94)),
+    #12231d;
+  font-family: "Wanted Sans", "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.admin-auth-card {
+  width: min(100%, 440px);
+  padding: 46px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 28px 70px rgba(5, 18, 14, .28);
+}
+
+.admin-auth-brand {
+  display: block;
+  width: 148px;
+  margin-bottom: 48px;
+}
+
+.admin-auth-brand img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.admin-auth-copy span {
+  color: #426a5d;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.admin-auth-copy h1 {
+  margin: 9px 0 10px;
+  color: #121614;
+  font-size: 32px;
+  line-height: 1.2;
+}
+
+.admin-auth-copy p {
+  margin: 0 0 32px;
+  color: #6b726f;
+  line-height: 1.6;
+}
+
+.admin-auth form,
+.admin-auth label {
+  display: grid;
+}
+
+.admin-auth form {
+  gap: 18px;
+}
+
+.admin-auth label {
+  gap: 8px;
+  color: #2b302e;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-auth input {
+  width: 100%;
+  height: 50px;
+  padding: 0 15px;
+  border: 1px solid #dce1de;
+  border-radius: 10px;
+  outline: 0;
+  color: #121614;
+  background: #fff;
+  font: inherit;
+}
+
+.admin-auth input:focus {
+  border-color: #31534a;
+  box-shadow: 0 0 0 3px rgba(49, 83, 74, .11);
+}
+
+.admin-auth button {
+  height: 52px;
+  border: 0;
+  border-radius: 10px;
+  background: #18352d;
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.admin-auth button:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+
+.admin-auth-error {
+  margin: -4px 0 0;
+  padding: 11px 13px;
+  border-radius: 8px;
+  background: #fff0ef;
+  color: #9e3434;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.admin-auth-home {
+  display: block;
+  margin-top: 24px;
+  color: #6b726f;
+  font-size: 13px;
+  text-align: center;
+  text-decoration: none;
+}
+
+.admin-logout {
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid #e0e4e2;
+  border-radius: 8px;
+  background: #fff;
+  color: #555d59;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+@media (max-width: 520px) {
+  .admin-auth-card { padding: 36px 24px; border-radius: 16px; }
+  .admin-auth-copy h1 { font-size: 28px; }
+}

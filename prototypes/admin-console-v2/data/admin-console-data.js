@@ -340,7 +340,7 @@ export const moduleViews = {
     current: true, filters: [], rows: []
   },
   mypageSettings: {
-    eyebrow: '고객 화면 관리', title: '고객·업체 마이페이지 관리', description: '고객과 업체 마이페이지 시안을 같은 관리자 화면에서 비교하고 수정합니다.',
+    eyebrow: '고객 화면 관리', title: '고객·업체·관리자 마이페이지 관리', description: '고객과 업체, 관리자 마이페이지를 같은 관리자 화면에서 비교합니다.',
     current: true, filters: [], rows: []
   },
   banners: {

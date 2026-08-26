@@ -8,7 +8,7 @@
 node scripts/check.mjs
 ```
 
-검사가 초록이어도 다음 항목까지 증명되는 것은 아니다: 브라우저 사용자 흐름, 모바일 실기기, Supabase RLS의 실제 역할별 접근, SQL의 실제 PostgreSQL 컴파일·동시성, PortOne/KG 결제 승인·취소, GitHub 원격 브랜치 규칙.
+이 명령은 `scripts/test-*.js`와 `scripts/test-*.mjs`를 모두 실행한다. 검사가 초록이어도 다음 항목까지 증명되는 것은 아니다: 브라우저 사용자 흐름, 모바일 실기기, Supabase RLS의 실제 역할별 접근, SQL의 실제 PostgreSQL 컴파일·동시성, PortOne/KG 결제 승인·취소, GitHub 원격 브랜치 규칙.
 
 ## 새 코드를 붙이는 위치
 
@@ -57,11 +57,12 @@ node scripts/check.mjs
 - 기존 사용자 작업을 스태시·되돌리기·덮어쓰기 하지 않는다.
 - 패키지·빌드 단계·Pages 게시원·CNAME·배포 설정은 별도 영향 분석과 사용자 승인 없이 바꾸지 않는다.
 - 클라이언트 자산을 추가·이동하면 `sw.js` 셸 목록과 캐시 버전을 함께 검토한다.
+- 외부 GitHub Action은 움직이는 `@v*` 태그 대신 공식 저장소에서 확인한 40자 커밋 SHA로 고정하고, 사람이 읽을 버전은 주석으로 남긴다.
 
 ## 기준선 부채 처리
 
 단일 검사는 기존 부채를 경고로 보이되 새 부채는 실패시킨다. 정확한 허용 목록은 baseline에 있다. 2026-08-24 첫 적용에서 정적 HTML의 누락 이미지 참조와 `wanted-theme.css` 서비스워커 셸 누락을 고쳤다. 브라우저 재검증에서 발견한 레거시 JS/CSS의 동적 이미지 참조 누락 9개는 `knownMissingSourceAssets`에 고정했으며, 10번째 누락부터는 검사 실패다.
 
-- `quality-gate.yml`은 로컬과 같은 검사를 CI에서 실행하고 보조 Firebase workflow는 이 검사를 배포 전에 직접 실행한다. GitHub Pages는 현재 `main` 브랜치 게시 방식이라 별도 CI 파일만으로 실패한 push의 주 운영 게시를 막지 못한다. 진짜 Pages 배포 게이트는 원격 required check/PR 규칙 또는 승인된 Pages Actions 게시 전환이 필요하다.
+- `quality-gate.yml`, 주 운영 Pages Actions, 보조 Firebase가 로컬과 같은 한 줄 검사를 실행한다. 두 배포 job은 검사 성공 뒤에만 검증된 `_site`를 게시한다. `CODEOWNERS`는 소유자를 표시하지만, required review/check와 직접 push 차단은 원격 ruleset이 실제로 설정됐을 때만 강제된 것으로 보고한다.
 
 부채를 고친 뒤에는 허용 목록도 같은 변경에서 제거한다. 해결된 부채를 허용 목록에 남기면 검사가 실패한다.

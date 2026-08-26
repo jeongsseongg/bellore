@@ -21,8 +21,13 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: production-database-backup
+  cancel-in-progress: false
+
 jobs:
   backup:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Guard — 시크릿 없으면 건너뜀
@@ -30,8 +35,12 @@ jobs:
         env:
           DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           if [ -z "$DB_URL" ] || [ -z "$PASSPHRASE" ]; then
+            if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+              echo "수동 백업은 시크릿 누락을 성공으로 처리하지 않습니다."; exit 1
+            fi
             echo "시크릿(SUPABASE_DB_URL / BACKUP_PASSPHRASE) 미설정 → 백업 건너뜀."
             echo "skip=true" >> "$GITHUB_OUTPUT"
           fi
@@ -56,8 +65,9 @@ jobs:
 
       - name: Upload encrypted backup
         if: steps.guard.outputs.skip != 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: db-backup
           path: ${{ env.ARTIFACT }}
           retention-days: 30
+          if-no-files-found: error

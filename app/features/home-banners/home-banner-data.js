@@ -14,20 +14,6 @@ export const CATEGORY_BANNERS = [
   { slug: 'under300', lead: '첫 명품시계로 좋은', title: '300만원 미만', sub: '해밀턴 · 론진 · 라도 · 구찌', max: 3000000, image: 'assets/banners/category-10.webp' },
 ];
 
-/* 홈 히어로 10종. 사진의 실제 구도와 클릭 후 컬렉션 조건을 같은 항목으로 묶는다. */
-export const HERO_CAMPAIGNS = [
-  { action: 'fullset', lead: '검수가 끝난,', title: ['미사용급 풀세트'], sub: '9점 이상 모든 구성품을 갖춘 시계', image: 'assets/banners/hero-01.webp', tone: 'light' },
-  { action: 'wedding', lead: '함께할 시간을 고르는 순간', title: ['예물 시계'], sub: '롤렉스 · 까르띠에 · 불가리', image: 'assets/banners/hero-02.webp', tone: 'light' },
-  { action: 'vintage', lead: '시간이 더해 만든 가치', title: ['빈티지 컬렉션'], sub: '희귀 모델부터 단종 모델까지', image: 'assets/banners/hero-03.webp', tone: 'dark', align: 'right' },
-  { action: 'icons', lead: '시대를 대표하는 이름', title: ['아이코닉 컬렉션'], sub: '롤렉스 · 오메가 · 까르띠에 · 튜더', image: 'assets/banners/hero-04.webp', tone: 'dark' },
-  { action: 'newest', lead: '오늘 새롭게 만나는', title: ['NEW ARRIVAL'], sub: '검수를 마친 최신 입고 시계', image: 'assets/banners/hero-05.webp', tone: 'light' },
-  { action: 'highend', lead: '시간을 넘어 남는 이름', title: ['1,000만원 이상의 명작'], sub: '파텍필립 · 오데마피게 · 롤렉스', image: 'assets/banners/hero-06.webp', tone: 'light' },
-  { action: 'sale', lead: '지금만 만나는 가격', title: ['TIME SALE'], sub: '할인 중인 시계를 한눈에', image: 'assets/banners/hero-07.webp', tone: 'light' },
-  { action: 'diver', lead: '깊이에서도 흔들리지 않는', title: ['다이버 워치'], sub: '서브마리너 · 씨마스터 · 블랙베이', image: 'assets/banners/hero-08.webp', tone: 'dark' },
-  { action: 'women', lead: '손목 위 가장 우아한 빛', title: ['여성 명품시계'], sub: '까르띠에 · 샤넬 · 에르메스', image: 'assets/banners/hero-09.webp', tone: 'dark' },
-  { action: 'santos', lead: '형태만으로 완성되는 클래식', title: ['까르띠에 산토스'], sub: '시대를 대표하는 스퀘어 워치', image: 'assets/banners/hero-10.webp', tone: 'light' },
-];
-
 /* 매입 배너 15종. 설명형 종결어미를 줄이고 짧은 슬로건으로 읽히게 한다. */
 export const BUYIN_COPY = [
   { lead: '가치 확인부터, 부담 없이', title: ['서랍 속 그 시계,', '오늘은 얼마일까'] },

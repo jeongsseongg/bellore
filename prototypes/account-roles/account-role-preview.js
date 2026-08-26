@@ -104,9 +104,11 @@ function renderEditor(content, role) {
     '<section class="editor-section"><h2>고객센터 푸터</h2>' +
     inputField('전화번호', 'footer.phone', content.footer.phone) +
     inputField('운영시간', 'footer.hours', content.footer.hours) + '</section>' +
-    '<p class="editor-role-note">' + (role === 'vendor'
-      ? '업체 화면은 고객 화면과 같은 구조이며 비교견적·입찰 메뉴만 추가됩니다.'
-      : '고객 화면은 현재 운영 마이페이지의 기본 구조를 기준으로 합니다.') + '</p></div>';
+    '<p class="editor-role-note">' + (role === 'admin'
+      ? '관리자 화면은 업체 마이페이지와 같은 구조를 사용하며 역할과 안내 문구만 구분합니다.'
+      : (role === 'vendor'
+        ? '업체 화면은 고객 화면과 같은 구조이며 비교견적·입찰 메뉴만 추가됩니다.'
+        : '고객 화면은 현재 운영 마이페이지의 기본 구조를 기준으로 합니다.')) + '</p></div>';
 }
 
 function renderNotificationPanel() {
@@ -119,7 +121,7 @@ function renderNotificationPanel() {
 function renderHeader(content, role) {
   const count = Math.max(0, Number(content.profile.notificationCount) || 0);
   const initial = String(content.profile.name || '벨').trim().slice(0, 1) || '벨';
-  const membershipLabel = role === 'vendor' ? '벨로르 업체 회원' : '벨로르 회원';
+  const membershipLabel = role === 'admin' ? '벨로르 운영 관리자' : (role === 'vendor' ? '벨로르 업체 회원' : '벨로르 회원');
   return '<header class="mp-head"><div class="mp-head-bar"><strong>마이페이지</strong><span class="mp-head-actions">' +
     '<button type="button" class="mp-head-text" data-notification-toggle aria-expanded="false">알림' +
     (count ? '<i>' + count + '</i>' : '') + '</button>' +
@@ -196,11 +198,11 @@ function renderShell(root, role, content) {
   root.dataset.previewWidth = root.dataset.previewWidth || '660';
   root.classList.remove('has-unsaved-changes');
   root.innerHTML = '<header class="preview-toolbar"><div class="preview-toolbar__title"><small>화면 편집 시안</small>' +
-    '<strong>고객·업체 마이페이지</strong></div><div class="preview-toolbar__roles" role="group" aria-label="미리보기 역할">' +
+    '<strong>고객·업체·관리자 마이페이지</strong></div><div class="preview-toolbar__roles" role="group" aria-label="미리보기 역할">' +
     renderRoleButtons(role) + '</div><div class="preview-toolbar__actions"><button type="button" data-copy-config>설정 복사</button>' +
     '<button type="button" data-reset-config>운영 기준 복원</button><button type="button" class="is-primary" data-save-config>이 브라우저에 시안 저장</button>' +
     '<a href="../admin-console-v2/">기존 관리자 페이지 열기</a></div></header>' +
-    '<div class="preview-notice"><strong>두 화면은 분리되어 있습니다.</strong><span>왼쪽 수정값은 오른쪽 미리보기에만 반영됩니다. 운영 데이터 저장 0건 · 관리자 구조 변경 0건입니다.</span></div>' +
+    '<div class="preview-notice"><strong>세 역할은 구조를 공유합니다.</strong><span>고객·업체·관리자를 전환해 같은 마이페이지 구조와 역할별 문구를 비교할 수 있습니다.</span></div>' +
     '<div class="preview-workspace"><aside class="editor-panel" data-editor-panel>' + renderEditor(content, role) + '</aside>' +
     '<section class="preview-stage"><div class="preview-stage__head"><span><i></i>실제 화면 미리보기</span>' +
     '<div class="preview-stage__tools" role="group" aria-label="미리보기 너비"><button type="button" data-preview-size="660" aria-pressed="' +

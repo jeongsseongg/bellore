@@ -17,12 +17,12 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-assert(model.includes("Object.freeze(['customer', 'vendor'])"),
-  '마이페이지 편집 역할은 고객과 업체여야 합니다.');
-assert(model.includes('customer: {') && model.includes('vendor: {'),
-  '고객·업체 기본 시안이 없습니다.');
-assert(!model.includes('partner: {') && !model.includes('admin: {'),
-  '파트너·관리자를 마이페이지 편집 역할에 섞으면 안 됩니다.');
+assert(model.includes("Object.freeze(['customer', 'vendor', 'admin'])"),
+  '마이페이지 편집 역할은 고객·업체·관리자여야 합니다.');
+assert(model.includes('customer: {') && model.includes('vendor: {') && model.includes('admin: {'),
+  '고객·업체·관리자 기본 시안이 없습니다.');
+assert(!model.includes('partner: {'),
+  '공급 파트너를 고객·업체·관리자 마이페이지 편집 역할에 섞으면 안 됩니다.');
 assert(model.includes("return EDITABLE_ROLE_ORDER.includes(role) ? role : 'customer'"),
   '알 수 없는 역할이 고객 시안으로 안전하게 정규화되지 않습니다.');
 assert(model.includes("headerMessage: '새 비교견적과 입찰 현황을 확인하세요.'"),
@@ -36,6 +36,7 @@ assert(model.includes('visible: false'), '현재 운영값처럼 마이페이지
 assert(!model.includes("'내 시계 판매'"), '내 시계 판매를 현재 마이페이지 메뉴로 잘못 추가했습니다.');
 
 assert(view.includes('class="preview-toolbar"'), '고객·업체 편집 도구막대가 없습니다.');
+assert(view.includes('고객·업체·관리자 마이페이지'), '관리자 마이페이지 역할 전환이 없습니다.');
 assert(view.includes('class="preview-workspace"'), '편집기와 미리보기의 분리 구조가 없습니다.');
 assert(view.includes('data-edit-field'), '실시간 편집 입력이 없습니다.');
 assert(view.includes('data-menu-group="trade"') && view.includes('data-menu-group="activity"'),
@@ -50,11 +51,10 @@ assert(view.includes('const drafts = {}') && view.includes('dirtyRoles'),
   '역할 전환 전 수정 초안을 보존하지 않습니다.');
 assert(view.includes('updatePreview(root, activeRole, content)'),
   '입력값이 오른쪽 미리보기에 즉시 반영되지 않습니다.');
-assert(view.includes('운영 데이터 저장 0건') && view.includes('관리자 구조 변경 0건'),
-  '시안 저장과 운영 반영의 차이가 명확하지 않습니다.');
+assert(view.includes('세 역할은 구조를 공유합니다.'),
+  '고객·업체·관리자가 같은 구조를 사용한다는 안내가 없습니다.');
 assert(view.includes('href="../admin-console-v2/"'), '기존 관리자 페이지 연결이 없습니다.');
-assert(!view.includes('renderAdmin') && !view.includes('renderPartner'),
-  '관리자·파트너 마이페이지 렌더러가 남았습니다.');
+assert(!view.includes('renderPartner'), '공급 파트너 마이페이지 렌더러가 남았습니다.');
 assert(view.includes('class="mypage-app"') && view.includes('class="mp-head"'),
   '현재 앱형 마이페이지 셸과 상단 계정 영역이 없습니다.');
 assert(view.includes('class="mp-profile-avatar"') && view.includes('class="mp-stat-copy"'),
@@ -84,8 +84,7 @@ assert(/\.mp-menu-row\s*\{[^}]*background:\s*transparent/.test(css),
   '마이페이지 메뉴가 다시 흰 박스 덩어리로 돌아갔습니다.');
 assert(css.includes('--mp-green: #1a2925') && !css.includes('font-family: "Times New Roman"'),
   '벨로르 딥그린과 Wanted 계열 글꼴 계약이 지켜지지 않습니다.');
-assert(!css.includes('.mp-admin-') && !css.includes('[data-role="admin"]'),
-  '마이페이지 편집 CSS에 관리자 전용 화면이 남았습니다.');
+assert(!css.includes('.mp-admin-'), '관리자만의 별도 마이페이지 레이아웃이 남았습니다.');
 assert(!css.includes('.mp-work-preview') && !css.includes('.mp-sale-shortcut'),
   '현재 운영 마이페이지에 없는 업무 카드가 남았습니다.');
 assert(css.includes('@media (max-width: 420px)'), '390px급 모바일 반응형 기준이 없습니다.');
@@ -100,7 +99,9 @@ assert(bootstrap.includes('try {') && bootstrap.includes('console.error'),
 assert(adminHtml.includes('class="admin-app"') && adminHtml.includes('id="adminSidebar"'),
   '기존 관리자 Wanted 구조가 보존되지 않았습니다.');
 assert(adminHtml.includes('고객·업체 마이페이지 관리') && adminHtml.includes('?view=mypageSettings'),
-  '관리자 콘솔 안에서 고객·업체 마이페이지 관리 화면으로 이동할 수 없습니다.');
+  '관리자 콘솔 안에서 역할별 마이페이지 관리 화면으로 이동할 수 없습니다.');
+assert(adminHtml.includes('id="adminLoginForm"') && adminHtml.includes('/supabase-config.js'),
+  '운영 관리자 로그인 게이트가 없습니다.');
 assert(fs.existsSync(path.join(root, 'assets/products/watch-batch-20260821-3/158-pdj96zas81tz/front.webp')),
   '최근 주문 예시 이미지 자산이 없습니다.');
 assert(fs.existsSync(path.join(root, 'assets/logo-bellore.png')),

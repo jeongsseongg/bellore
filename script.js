@@ -39,7 +39,6 @@
         initRouter();
         initCollectionTabs();
         initFilterChips();
-        initInsightFilter();
         initInsightModal();
         initPhotoUpload();
         initCompareForm();
@@ -54,8 +53,6 @@
         initAdminMode();
         initPartnerModal();
         initInquiryModal();
-        initReveal();
-        initParallax();
         initCoupons();
         initOrderUI();
         initAdminOrderUI();
@@ -1421,7 +1418,7 @@
         var priceTxt = price > 0 ? (fmt(price) + '원') : '가격문의';
         return '<button type="button" class="mypc" data-mypid="' + esc(String(it.id || '')) + '" ' +
             'data-brand="' + esc(it.brand || '') + '" data-model="' + esc(it.model || '') + '" ' +
-            'data-price="' + esc(String(it.price || 0)) + '" data-sprice="' + esc(String(it.sale_price || '')) + '">' +
+            'data-price="' + esc(String(it.price || 0)) + '" data-sprice="' + esc(String(it.sale_price || '')) + '" data-no="' + esc(it.product_no || '') + '">' +
             '<span class="mypc-img"><img src="' + esc(img) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'"></span>' +
             '<span class="mypc-brand">' + esc(brandKR(it.brand) || '') + '</span>' +
             '<span class="mypc-model">' + esc(it.model || '') + '</span>' +
@@ -4088,6 +4085,7 @@
             var card = document.createElement('article');
             card.className = 'hcard hcard-dynamic';
             card.dataset.pid = it.id;
+            card.dataset.no = it.product_no || '';
             card.dataset.brand = it.brand;
             card.dataset.model = it.model;
             card.dataset.price = it.price || 0;
@@ -4127,6 +4125,7 @@
             var card = document.createElement('article');
             card.className = 'hcard hcard-dynamic';
             card.dataset.pid = it.id;
+            card.dataset.no = it.product_no || '';
             card.dataset.brand = it.brand;
             card.dataset.model = it.model;
             card.dataset.price = effectivePrice(it);
@@ -4143,7 +4142,6 @@
             card.dataset.diamond = it.has_diamond ? '1' : '';
             card.dataset.warranty = it.has_warranty ? '1' : '';
             card.dataset.cond = it.condition || '';
-            card.dataset.no = it.product_no || '';
             card.dataset.new = ((it.tags || []).indexOf('new') !== -1 || /미착용/.test(it.condition || '')) ? '1' : '';
             card.dataset.stampyear = stampYear(it.stamping);
             card.dataset.created = it.created_at ? (Date.parse(it.created_at) || 0) : 0;
@@ -4181,6 +4179,7 @@
             var card = document.createElement('article');
             card.className = 'hcard hcard-dynamic';
             card.dataset.pid = it.id;
+            card.dataset.no = it.product_no || '';
             card.dataset.brand = it.brand;
             card.dataset.model = it.model;
             card.dataset.price = effectivePrice(it);
@@ -4212,6 +4211,7 @@
             var card = document.createElement('article');
             card.className = 'hcard hcard-dynamic';
             card.dataset.pid = it.id;
+            card.dataset.no = it.product_no || '';
             card.dataset.brand = it.brand;
             card.dataset.model = it.model;
             card.dataset.price = effectivePrice(it);
@@ -5208,7 +5208,7 @@
             else header.classList.add('light-page');
         }
         window.scrollTo(0, 0);
-        setTimeout(refreshReveals, 50);
+        setTimeout(function () { if (window.refreshReveals) window.refreshReveals(); }, 50);
         logPageView('#' + target);
     }
 
@@ -5297,33 +5297,6 @@
                 if (!p) return;
                 $$('.filter-chip', p).forEach(function (c) { c.classList.remove('active'); });
                 chip.classList.add('active');
-            });
-        });
-    }
-
-    /* ============ 5. 인사이트 카테고리 필터 ============ */
-    function initInsightFilter() {
-        var tabs = $$('.insight-tab');
-        var partnerGrid = $('#partnerGrid');
-
-        tabs.forEach(function (tab) {
-            tab.addEventListener('click', function () {
-                var cat = tab.dataset.cat;
-                // 동적으로 추가된 글/후기도 포함하도록 매 클릭 시 재조회
-                var rows = $$('.insight-row[data-cat]');
-                tabs.forEach(function (t) { t.classList.remove('active'); });
-                tab.classList.add('active');
-
-                if (cat === 'partner') {
-                    // 제휴처 탭: 제휴처 그리드만 표시, 글 리스트 숨김
-                    rows.forEach(function (row) { row.style.display = 'none'; });
-                    if (partnerGrid) partnerGrid.style.display = 'block';
-                } else {
-                    if (partnerGrid) partnerGrid.style.display = 'none';
-                    rows.forEach(function (row) {
-                        row.style.display = (cat === 'all' || row.dataset.cat === cat) ? '' : 'none';
-                    });
-                }
             });
         });
     }
@@ -6262,7 +6235,7 @@
             if (seen[key]) continue; seen[key] = 1;
             var img = c.querySelector('.hcard-img img');
             out.push({
-                pid: c.dataset.pid || '',
+                pid: c.dataset.pid || '', productNo: c.dataset.no || '',
                 brand: ((c.querySelector('.hcard-brand') || {}).textContent || c.dataset.brand || '').trim(),
                 model: ((c.querySelector('.hcard-model') || {}).textContent || c.dataset.model || '').trim(),
                 spec: ((c.querySelector('.hcard-pack') || {}).textContent || '').trim(),
@@ -6365,26 +6338,6 @@
             }, { passive: true });
         })();
 
-        // 상품 공유 (상단/하단 공유 버튼 공용) — 현재 보고 있는 상품 정보 공유
-        function shareCurrentProduct() {
-            var p = window.BELLORE_currentProduct || {};
-            var title = [p.brand, p.model].filter(Boolean).join(' ') || '벨로르 시계';
-            var url = (function () {
-                try {
-                    var base = location.origin + location.pathname;
-                    return p.listingId ? (base + '#p=' + encodeURIComponent(p.listingId)) : base;
-                } catch (e) { return 'https://bellore.co.kr'; }
-            })();
-            var data = { title: title + ' · 벨로르', text: title + ' — 벨로르에서 확인해 보세요.', url: url };
-            if (navigator.share) { navigator.share(data).catch(function () {}); return; }
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(url).then(function () { alert('상품 링크를 복사했습니다.'); }, function () {});
-            } else { alert(url); }
-        }
-        var shareTop = $('#pmShareTop'), shareBot = $('#pmShare');
-        if (shareTop) shareTop.addEventListener('click', shareCurrentProduct);
-        if (shareBot) shareBot.addEventListener('click', shareCurrentProduct);
-
         // 대표 이미지에 커서가 1초 이상 머무르면 돋보기 확대(데스크톱) / 클릭 시 라이트박스
         (function initMagnify() {
             var main = modal.querySelector('.pp-main');
@@ -6431,12 +6384,23 @@
             }
         });
         if (askBtn) askBtn.addEventListener('click', function () {
-            closeProduct();
-            navigate('contact');
+            closeProduct(function () { navigate('contact'); });
         });
 
         var curPhotos = [];
         var curIdx = 0;
+        function dispatchProductRoute(type, afterRestore) {
+            try {
+                document.dispatchEvent(new CustomEvent(type, {
+                    detail: {
+                        product: window.BELLORE_currentProduct,
+                        afterRestore: afterRestore
+                    }
+                }));
+            } catch (e) {
+                if (typeof afterRestore === 'function') afterRestore();
+            }
+        }
         function selectPhoto(i) {
             if (!curPhotos.length) return;
             i = Math.max(0, Math.min(i, curPhotos.length - 1));
@@ -6697,12 +6661,12 @@
                 tags: card.dataset.saleactive === '1' ? ['sale'] : [],
                 sale_started_at: card.dataset.saleactive === '1' ? new Date().toISOString() : null,
                 img: img ? img.src : '',
-                no: pid ? pid.slice(0, 8).toUpperCase() : '-'
+                no: card.dataset.no || (pid ? pid.slice(0, 8).toUpperCase() : '-')
             });
 
             // 결제용 현재 상품 정보 노출
             window.BELLORE_currentProduct = {
-                listingId: pid || null,
+                listingId: pid || null, productNo: card.dataset.no || '',
                 brand: brand ? brand.textContent : (card.dataset.brand || ''),
                 model: displayModelName({ model: rawModel, condition: condition }),
                 condition: condition,
@@ -6718,12 +6682,14 @@
                 id: pid || (card.dataset.brand + '|' + card.dataset.model),
                 brand: brand ? brand.textContent : (card.dataset.brand || ''),
                 model: model ? model.textContent : (card.dataset.model || ''),
+                productNo: card.dataset.no || '',
                 price: parseInt(card.dataset.price, 10) || 0,
                 sale_price: parseInt(card.dataset.sprice, 10) || 0,
                 img: img ? img.src : ''
             });
 
             modal.hidden = false;
+            dispatchProductRoute('bellore:product-open');
             modal.querySelector('.pp-scroll').scrollTop = 0;
             $$('.pp-tab', modal).forEach(function (x, i) { x.classList.toggle('active', i === 0); });
             document.body.style.overflow = 'hidden';
@@ -6740,7 +6706,7 @@
             // DB 매물이면 전체 사진/상세 보강
             if (pid && backendOn() && NWBackend.getListing) {
                 NWBackend.getListing(pid).then(function (it) {
-                    if (modal.hidden) return;
+                    if (modal.hidden || !window.BELLORE_currentProduct || window.BELLORE_currentProduct.listingId !== pid) return;
                     paint({
                         brand: it.brand, model: it.model, reference_no: it.reference_no || '', price: it.price,
                         sale_price: it.sale_price || 0,
@@ -6764,16 +6730,17 @@
                         product_no: it.product_no || '',
                         ref_id: it.ref_id || it.ref || '',
                         ship_info: it.ship_info || '',
-                        no: String(it.id).slice(0, 8).toUpperCase()
+                        no: it.product_no || String(it.id).slice(0, 8).toUpperCase()
                     });
                     window.BELLORE_currentProduct = {
-                        listingId: it.id,
+                        listingId: it.id, productNo: it.product_no || '',
                         brand: it.brand,
                         model: displayModelName(it),
                         condition: it.condition || '',
                         price: effectivePrice(it),
                         image: (it.photos && it.photos[0]) || ''
                     };
+                    dispatchProductRoute('bellore:product-open');
                     if (window.BELLORE_NPAY_RENDER) {
                         window.BELLORE_NPAY_RENDER(window.BELLORE_currentProduct);
                     }
@@ -6781,7 +6748,7 @@
             }
         }
 
-        function closeProduct() {
+        function closeProduct(afterRestore) {
             closeLightbox();
             window.BELLORE_currentProduct = null;
             if (window.BELLORE_NPAY_RENDER) {
@@ -6790,6 +6757,7 @@
             modal.hidden = true;
             document.body.style.overflow = '';
             try { sessionStorage.removeItem('bellore_view_product'); } catch (e) {}
+            dispatchProductRoute('bellore:product-close', afterRestore);
         }
 
         // id만으로 상세 열기(새로고침 복원 / 공유 링크)
@@ -6809,10 +6777,10 @@
                     misu: it.misu || '', purchase_year: it.purchase_year || '', special_note: it.special_note || '',
                     detail_desc: it.detail_desc || '', components: it.components || '', sale_method: it.sale_method || '',
                     product_no: it.product_no || '', ship_info: it.ship_info || '',
-                    no: String(it.id).slice(0, 8).toUpperCase()
+                    no: it.product_no || String(it.id).slice(0, 8).toUpperCase()
                 });
                 window.BELLORE_currentProduct = {
-                    listingId: it.id, brand: it.brand, model: displayModelName(it),
+                    listingId: it.id, productNo: it.product_no || '', brand: it.brand, model: displayModelName(it),
                     condition: it.condition || '',
                     price: effectivePrice(it), image: (it.photos && it.photos[0]) || ''
                 };
@@ -6820,6 +6788,7 @@
                     window.BELLORE_NPAY_RENDER(window.BELLORE_currentProduct);
                 }
                 modal.hidden = false;
+                dispatchProductRoute('bellore:product-open');
                 modal.querySelector('.pp-scroll').scrollTop = 0;
                 $$('.pp-tab', modal).forEach(function (x, i) { x.classList.toggle('active', i === 0); });
                 document.body.style.overflow = 'hidden';
@@ -6844,44 +6813,6 @@
             } catch (e) {}
             if (pid) setTimeout(function () { openProductById(pid); }, 400);
         })();
-    }
-
-    /* ============ 11. 리빌 ============ */
-    var REVEAL_SEL = '.section-title, .eyebrow, .recent-card, .option-card, .product-card, .insight-row, .brand-card, .promise-card, .brand-prev, .two-col-img, .two-col-text, .store-card, .contact-quick-card, .repair-card, .partner-stat, .ach-card, .method-row';
-    var revealObserver = null;
-
-    function initReveal() {
-        if (!('IntersectionObserver' in window)) return;
-        revealObserver = new IntersectionObserver(function (entries) {
-            entries.forEach(function (entry, i) {
-                if (entry.isIntersecting) {
-                    setTimeout(function () { entry.target.classList.add('in'); }, i * 35);
-                    revealObserver.unobserve(entry.target);
-                }
-            });
-        }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
-        refreshReveals();
-    }
-
-    function refreshReveals() {
-        if (!revealObserver) return;
-        $$(REVEAL_SEL).forEach(function (el) {
-            if (!el.classList.contains('reveal')) el.classList.add('reveal');
-            if (!el.classList.contains('in')) revealObserver.observe(el);
-        });
-    }
-    window.refreshReveals = refreshReveals;
-
-    /* ============ 12. 패럴랙스 ============ */
-    function initParallax() {
-        var heroImage = $('.hero-image');
-        if (!heroImage) return;
-        window.addEventListener('scroll', function () {
-            var sc = window.scrollY;
-            if (sc < window.innerHeight) {
-                heroImage.style.transform = 'translateY(' + (sc * 0.3) + 'px) scale(1.05)';
-            }
-        }, { passive: true });
     }
 
 })();

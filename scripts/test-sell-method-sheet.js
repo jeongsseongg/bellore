@@ -19,7 +19,7 @@ assert.match(
 assert.doesNotMatch(sheetRule, /720px/, 'sell sheet must never use the out-of-spec 720px width');
 assert.match(
   html,
-  /sell-method\.css\?v=20260826-sell-method-v12/,
+  /sell-method\.css\?v=20260826-full-release-v1/,
   'the page requests the panel-width-corrected stylesheet'
 );
 assert.doesNotMatch(html, /class="compare-entry"/, 'the superseded sell landing page is removed');

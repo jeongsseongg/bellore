@@ -1,0 +1,51 @@
+{
+  "answer_sha256": "REPLACE_WITH_CANONICAL_ANSWER_SHA256",
+  "claims": [
+    {
+      "claim_id": "C1",
+      "entities": [],
+      "evidence": [
+        {
+          "quote": "REPLACE_WITH_EXACT_CAPTURE_QUOTE",
+          "source_id": "SRC-001"
+        }
+      ],
+      "expires_at": null,
+      "minimum_independent_clusters": 1,
+      "next_action_if_unknown": null,
+      "premises": [],
+      "relations": [],
+      "semantic_review_required": false,
+      "sentence_ids": [
+        "S1"
+      ],
+      "span": {
+        "end": 0,
+        "start": 0
+      },
+      "text": "REPLACE_WITH_EXACT_CANONICAL_DOCUMENT_SLICE",
+      "text_sha256": "REPLACE_WITH_CLAIM_UTF8_SHA256",
+      "ttl_class": "STATIC",
+      "type": "FACT",
+      "verified_at": null
+    }
+  ],
+  "document": {
+    "as_of_utc": null,
+    "path": ".truth-guard/drafts/REPLACE_WITH_CANONICAL_ANSWER_SHA256.md",
+    "segments": [
+      {
+        "kind": "claim",
+        "sentence_id": "S1",
+        "span": {
+          "end": 0,
+          "start": 0
+        },
+        "text": "REPLACE_WITH_EXACT_CANONICAL_DOCUMENT_SLICE"
+      }
+    ],
+    "sha256": "REPLACE_WITH_CANONICAL_ANSWER_SHA256"
+  },
+  "schema_version": "1.0",
+  "source_manifest_path": ".truth-guard/sources/REPLACE_WITH_CANONICAL_ANSWER_SHA256.json"
+}

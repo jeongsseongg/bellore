@@ -320,7 +320,6 @@ export function initSellMethodSheet({ document, window }) {
     const priceInput = document.getElementById('desiredPriceInput');
     const submit = document.getElementById('sellFormSubmit');
     const note = document.getElementById('sellFormNote');
-    try { window.BELLORE_saleMethod = safeMethod; } catch (error) {}
     if (methodInput) methodInput.value = safeMethod;
     hero.dataset.method = safeMethod;
     if (image) image.src = content.image;
@@ -578,9 +577,6 @@ export function initSellMethodSheet({ document, window }) {
   resetGuide();
   setEntryMode('guided');
   readDraft().then((draft) => { lastDraft = draft; updateResume(draft); });
-  try {
-    window.BelloreSellMethod = { open: () => open(null), close: () => requestClose(), select, applyFormMethod, saveDraft: writeDraft, clearDraft };
-  } catch (error) {}
 }
 
 function boot() { initSellMethodSheet({ document, window }); }

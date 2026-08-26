@@ -1,9 +1,12 @@
+import { requireAdminSession, signOutAdmin } from './admin-auth.js?v=20260826-admin-release-v1';
 import { roleContracts, navGroups, overview, moduleViews, caseDetail } from './data/admin-console-data.js?v=20260826-admin-integrated-v1';
 import { homeEditorData } from './data/admin-home-editor-data.js';
 import { createAdminNavigation } from './features/navigation/admin-navigation.js';
 import { createAdminHomeEditor } from './features/home-editor/admin-home-editor.js';
 import { createAdminMypageEditor } from './features/mypage-editor/admin-mypage-editor.js?v=20260826-editor-v8';
 import { createAdminWorkspace } from './features/workspace/admin-workspace.js';
+
+await requireAdminSession();
 
 const root = document.getElementById('adminWorkspace');
 const navRoot = document.getElementById('adminNav');
@@ -18,6 +21,7 @@ const globalSearch = document.getElementById('globalSearch');
 const globalSearchLabel = globalSearch.closest('.global-search');
 const surfaceButton = document.querySelector('.surface-current');
 const surfaceMenu = document.querySelector('.surface-menu');
+const logoutButton = document.getElementById('adminLogout');
 const validViews = new Set(['overview', ...Object.keys(moduleViews)]);
 
 function toast(message) {
@@ -91,6 +95,8 @@ document.querySelectorAll('[data-action="partner-preview"]').forEach((button) =>
 surfaceButton.addEventListener('click', () => {
   surfaceMenu.hidden = !surfaceMenu.hidden;
 });
+
+logoutButton.addEventListener('click', () => signOutAdmin());
 
 document.addEventListener('click', (event) => {
   if (!event.target.closest('.surface-switch')) surfaceMenu.hidden = true;

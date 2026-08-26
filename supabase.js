@@ -2001,6 +2001,11 @@
       paidAt: o.paid_at ? tsObj(o.paid_at) : null
     };
   }
+  function paymentAccessToken() {
+    return typeof Backend.paymentAccessToken === 'function'
+      ? Backend.paymentAccessToken()
+      : Promise.reject(new Error('PAYMENT_AUTH_NOT_READY'));
+  }
 
   function createCheckoutCredential() {
     if (!(window.crypto && window.crypto.getRandomValues && window.crypto.subtle && window.TextEncoder)) {
@@ -2022,78 +2027,44 @@
 
   // 체크아웃: pending 주문 생성 → 포트원에 넘길 order_no 반환
   Backend.createOrder = function (data) {
-    // 비회원(rawUser 없음)도 구매 가능 — 네이버페이 주문형 요건.
-    // (orders.customer_id 는 NULL 허용. anon insert 는 guest_checkout.sql 의 RLS 정책 필요)
-    var orderNo = 'BLR' + Date.now().toString(36).toUpperCase() +
-      Math.random().toString(36).slice(2, 6).toUpperCase();
-    var row = {
-      order_no: orderNo,
-      customer_id: rawUser ? rawUser.id : null,
-      listing_id: data.listingId || null,
-      product_name: data.productName || '상품',
-      product_brand: data.productBrand || null,
-      product_image: data.productImage || null,
-      product_price: data.productPrice || null,
-      pay_type: 'full',
-      amount: data.amount,
-      coupon_user_id: data.couponUserId || null,
-      discount: data.discount || 0,
-      buyer_name: data.buyerName || (profile && profile.name) || null,
-      buyer_phone: data.buyerPhone || (profile && profile.phone) || null,
-      // 배송지
-      ship_recipient: data.shipRecipient || data.buyerName || null,
-      ship_phone: data.shipPhone || data.buyerPhone || null,
-      ship_postcode: data.shipPostcode || null,
-      ship_addr1: data.shipAddr1 || null,
-      ship_addr2: data.shipAddr2 || null,
-      ship_request: data.shipRequest || null,
-      memo: data.memo || null,
-      status: 'pending'
-    };
-    if (data.attribution) {
-      row.analytics_session_id = data.attribution.session_id || null;
-      row.analytics_anonymous_id = data.attribution.anonymous_id || null;
-      row.analytics_attribution = data.attribution;
+    // IP 제한·예약·가격·주문번호·체크아웃 capability는 서버가 한 경계에서 결정한다.
+    var PAY = window.BELLORE_PAYMENTS || {};
+    if (!PAY.checkoutUrl) {
+      return Promise.reject(new Error('PAYMENT_CHECKOUT_NOT_CONFIGURED'));
     }
-    function withoutAnalyticsColumns() {
-      delete row.analytics_session_id;
-      delete row.analytics_anonymous_id;
-      delete row.analytics_attribution;
-    }
-    function insertMember() {
-      return sb.from('orders').insert(row).select().single().then(function (res) {
-        if (res.error) {
-          if (isMissingCol(res.error) && row.analytics_attribution) { withoutAnalyticsColumns(); return insertMember(); }
-          throw res.error;
-        }
-        return mapOrder(res.data);
-      });
-    }
-    function insertGuest() {
-      return sb.from('orders').insert(row).then(function (res) {
-        if (res.error) {
-          if (isMissingCol(res.error) && row.analytics_attribution) { withoutAnalyticsColumns(); return insertGuest(); }
-          var ge = new Error('GUEST_CHECKOUT_DISABLED');
-          ge.guest = true; ge.cause = res.error; throw ge;
-        }
-        return { orderNo: orderNo, amount: data.amount, payType: 'full' };
-      });
-    }
-    // 예측 가능한 order_no는 인증 수단이 아니다. 회원·게스트 모두 별도의
-    // 256-bit confirmation bearer를 만들고 DB에는 SHA-256만 저장한다.
-    return createCheckoutCredential().then(function (credential) {
-      row.checkout_token_hash = credential.hash;
-      // 회원: RETURNING(본인 주문 select 정책)으로 행을 받아 매핑.
-      if (rawUser) {
-        return insertMember().then(function (mapped) {
-          mapped.checkoutToken = credential.token;
-          return mapped;
+    return paymentAccessToken().then(function (token) {
+      return fetch(PAY.checkoutUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token,
+          'apikey': CFG.anonKey
+        },
+        body: JSON.stringify({
+          listingId: data.listingId || null,
+          couponUserId: data.couponUserId || null,
+          buyerName: data.buyerName || (profile && profile.display_name) || null,
+          buyerPhone: data.buyerPhone || (profile && profile.phone) || null,
+          shipRecipient: data.shipRecipient || data.buyerName || null,
+          shipPhone: data.shipPhone || data.buyerPhone || null,
+          shipPostcode: data.shipPostcode || null,
+          shipAddr1: data.shipAddr1 || null,
+          shipAddr2: data.shipAddr2 || null,
+          shipRequest: data.shipRequest || null,
+          attribution: data.attribution || null
+        })
+      }).then(function (response) {
+        return response.json().catch(function () {
+          return { error: 'checkout_response_invalid' };
+        }).then(function (payload) {
+          if (!response.ok || !payload || !payload.orderNo || !payload.checkoutToken) {
+            var code = (payload && payload.error) || 'CHECKOUT_CREATE_FAILED', error = new Error(code);
+            error.code = code;
+            error.status = response.status;
+            throw error;
+          }
+          return payload;
         });
-      }
-      // 비회원은 주문을 SELECT할 수 없고 이 token을 가진 브라우저만 확인한다.
-      return insertGuest().then(function (mapped) {
-        mapped.checkoutToken = credential.token;
-        return mapped;
       });
     });
   };
@@ -2104,14 +2075,12 @@
     if (!PAY.confirmUrl) {
       return Promise.reject(new Error('PAYMENT_CONFIRM_NOT_CONFIGURED'));
     }
-    return sb.auth.getSession().then(function (sessionResult) {
-      var accessToken = sessionResult && sessionResult.data && sessionResult.data.session &&
-        sessionResult.data.session.access_token;
+    return paymentAccessToken().then(function (token) {
       return fetch(PAY.confirmUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + (accessToken || CFG.anonKey),
+          'Authorization': 'Bearer ' + token,
           'apikey': CFG.anonKey
         },
         body: JSON.stringify({
@@ -2266,8 +2235,7 @@
     if (!PAY.cancelUrl) {
       return Promise.reject(new Error('PAYMENT_CANCEL_NOT_CONFIGURED'));
     }
-    return sb.auth.getSession().then(function (s) {
-      var token = (s && s.data && s.data.session && s.data.session.access_token) || CFG.anonKey;
+    return paymentAccessToken().then(function (token) {
       return fetch(PAY.cancelUrl, {
         method: 'POST',
         headers: {

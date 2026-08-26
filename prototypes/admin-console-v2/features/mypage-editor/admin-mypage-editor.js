@@ -6,8 +6,8 @@ function pageMarkup() {
       <div class="page-heading">
         <div>
           <div class="heading-meta"><span class="eyebrow">고객 화면 관리</span><span class="coverage-chip is-current">관리자 콘솔 통합</span></div>
-          <h1>고객·업체 마이페이지 관리</h1>
-          <p>현재 마이페이지 구조를 역할별로 비교하고, 문구·주문 카드·배너·메뉴 구성을 한 화면에서 수정합니다.</p>
+          <h1>고객·업체·관리자 마이페이지 관리</h1>
+          <p>같은 마이페이지 구조에서 역할별 문구·주문 카드·배너·메뉴 구성을 한 화면에서 비교합니다.</p>
         </div>
         <div class="page-actions">
           <span class="mypage-admin-state">운영 데이터 저장 0건</span>
@@ -20,12 +20,12 @@ function pageMarkup() {
       </div>
 
       <div class="mypage-editor-summary" aria-label="마이페이지 편집 범위">
-        <span><b>2개</b><small>고객·업체 역할</small></span>
+        <span><b>3개</b><small>고객·업체·관리자</small></span>
         <span><b>660 · 390</b><small>기본·모바일 화면</small></span>
         <span><b>0건</b><small>운영 데이터 변경</small></span>
       </div>
 
-      <section class="admin-mypage-editor-shell" aria-label="고객·업체 마이페이지 편집기">
+      <section class="admin-mypage-editor-shell" aria-label="고객·업체·관리자 마이페이지 편집기">
         <div id="adminMypageEditorHost"></div>
       </section>
     </div>`;

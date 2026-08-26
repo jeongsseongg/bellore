@@ -233,6 +233,7 @@ img { display: block; max-width: 100%; }
 .mpa-name { overflow: hidden; font-size: 21px; line-height: 1.25; font-weight: 850; letter-spacing: -.025em; text-overflow: ellipsis; white-space: nowrap; }
 .mp-role-chip { min-height: 22px; padding: 0 8px; display: inline-flex; align-items: center; border: 1px solid #cdd9d4; border-radius: 999px; color: #1a4a3c; background: #eef5f2; font-size: 10px; font-weight: 800; }
 [data-preview-role="vendor"] .mp-role-chip { border-color: #c5d7d0; color: #173b31; background: #e7f1ed; }
+[data-preview-role="admin"] .mp-role-chip { border-color: #c5d7d0; color: #173b31; background: #e7f1ed; }
 .mp-name-edit { flex: 0 0 auto; color: #9b9995; font-size: 10px; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
 .mp-next-grade { overflow: hidden; margin: 4px 0 0; color: #777a77; font-size: 11.5px; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
 .mp-member-stats { min-height: 64px; margin-top: 16px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid #eceae6; }

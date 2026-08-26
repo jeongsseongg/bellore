@@ -1,5 +1,5 @@
 .sell-method[hidden] {
-  display: none !important;
+  display: none;
 }
 
 .sell-method [data-sell-view][hidden],
@@ -8,7 +8,7 @@
 .sell-guide__step[hidden],
 .sell-guide__model[hidden],
 .sell-method__form-mount[hidden] {
-  display: none !important;
+  display: none;
 }
 
 body.sell-method-open {
@@ -826,7 +826,7 @@ body.sell-method-open {
 }
 
 .sell-method-field[hidden] {
-  display: none !important;
+  display: none;
 }
 
 @media (max-width: 520px) {

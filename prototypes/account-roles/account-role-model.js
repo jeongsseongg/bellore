@@ -40,7 +40,7 @@ const COMMON_CONTENT = Object.freeze({
   }
 });
 
-export const EDITABLE_ROLE_ORDER = Object.freeze(['customer', 'vendor']);
+export const EDITABLE_ROLE_ORDER = Object.freeze(['customer', 'vendor', 'admin']);
 
 export const MYPAGE_ROLE_DEFAULTS = Object.freeze({
   customer: {
@@ -55,6 +55,15 @@ export const MYPAGE_ROLE_DEFAULTS = Object.freeze({
   vendor: {
     label: '업체',
     headerMessage: '새 비교견적과 입찰 현황을 확인하세요.',
+    menuGroups: {
+      trade: ['주문 내역', '경매', '비교견적 · 입찰 내역', '장바구니'],
+      activity: COMMON_MENUS.slice(3)
+    },
+    ...COMMON_CONTENT
+  },
+  admin: {
+    label: '관리자',
+    headerMessage: '업체와 같은 흐름에서 운영 현황을 확인하세요.',
     menuGroups: {
       trade: ['주문 내역', '경매', '비교견적 · 입찰 내역', '장바구니'],
       activity: COMMON_MENUS.slice(3)

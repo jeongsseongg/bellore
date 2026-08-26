@@ -6,7 +6,7 @@ const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
 const advisor = fs.readFileSync(path.join(root, 'ai-advisor.js'), 'utf8');
 const brandsCatalog = fs.readFileSync(path.join(root, 'brands.js'), 'utf8');
-const recommendationEngine = fs.readFileSync(path.join(root, 'recommendation-engine.js'), 'utf8');
+const recommendationEngine = fs.readFileSync(path.join(root, 'app', 'legacy', 'recommendation-engine.js'), 'utf8');
 const payments = fs.readFileSync(path.join(root, 'payments.js'), 'utf8');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
@@ -45,13 +45,15 @@ assert.match(advisor, /구매의도 지수/);
 assert.doesNotMatch(recommendationEngine, /Math\.random/);
 assert.match(recommendationEngine, /heuristic_action_proxy/);
 assert.match(recommendationEngine, /purchased_cooldown/);
-assert.match(html, /recommendation-engine\.js\?v=20260822-recommendation-v2/);
-assert.match(html, /ai-advisor\.js\?v=20260822-recommendation-v2/);
-assert.match(html, /payments\.js\?v=20260822-recommendation-outcome-v2/);
+assert.match(html, /app\/legacy\/recommendation-engine\.js\?v=20260826-full-release-v1/);
+assert.match(html, /ai-advisor\.js\?v=20260826-full-release-v1/);
+assert.match(html, /payments\.js\?v=20260826-full-release-v1/);
 assert(html.indexOf('recommendation-engine.js') < html.indexOf('wishlist.js'));
 assert(html.indexOf('recommendation-engine.js') < html.indexOf('ai-advisor.js'));
 assert.match(html, /선택적 맞춤 추천과 프로파일링/);
-assert.match(payments, /BelloreAI\.track\('purchase_complete'/);
+assert.match(payments, /BelloreAnalytics\.purchaseComplete/);
+assert.doesNotMatch(payments, /BelloreAI\.track\('purchase_complete'/,
+  '서버 권위 결제 경로는 미배포 개인화 paid 진단 이벤트를 직접 확정하지 않습니다.');
 const serviceWorkerVersion = serviceWorker.match(/const VERSION = "([^"]+)"/)?.[1];
 assert(serviceWorkerVersion, 'service worker must declare a cache version');
 assert.match(serviceWorkerVersion, /^bellore-v\d+-/);
@@ -116,7 +118,7 @@ function runtime(options) {
   const document = { readyState: 'loading', addEventListener() {} };
   const window = {
     NWBackend: { currentUser() { return { uid: 'user-1' }; } },
-    BelloreRecommendationEngine: require(path.join(root, 'recommendation-engine.js')),
+    BelloreRecommendationEngine: require(path.join(root, 'app', 'legacy', 'recommendation-engine.js')),
     sbClient, localStorage, document, console, setTimeout() {}, setInterval() {}, addEventListener() {}
   };
   const sandbox = { window, document, localStorage, console, setTimeout() {}, setInterval() {} };
