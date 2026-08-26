@@ -37,14 +37,14 @@ API Secret은 브라우저 코드나 저장소에 넣지 않습니다.
 
 SQL Editor에 과거 `payment_full_only.sql`을 붙여 넣지 않습니다. GitHub Actions의 `DB Maintenance`에서 아래 순서로 실행합니다.
 
-먼저 운영 DB와 분리된 일회성 검증 DB의 연결 문자열을 GitHub repository secret `SUPABASE_VALIDATION_DB_URL`에 설정합니다. 운영 `SUPABASE_DB_URL`과 같은 값을 넣지 않습니다. `validate-authority-payment`의 픽스처는 이 검증 DB에만 접근하며 운영 DB에서는 실행되지 않습니다. 검증 DB에는 역사 마이그레이션 `20260824090000`과 `20260826150000`까지 반영된 운영 동일 기준 스키마와 테스트 가능한 판매 상품 데이터가 필요합니다.
+먼저 운영 DB와 분리된 일회성 검증 DB의 연결 문자열을 GitHub repository secret `SUPABASE_VALIDATION_DB_URL`에 설정합니다. 운영 `SUPABASE_DB_URL`과 같은 값을 넣지 않습니다. `validate-authority-payment`의 픽스처는 이 검증 DB에만 접근하며 운영 DB에서는 실행되지 않습니다. 검증 DB에는 현재 운영과 동일한 authority/payment 스키마와 `customer_shipping_addresses` 마이그레이션, 테스트 가능한 판매 상품 데이터가 필요합니다.
 
 1. `validate-authority-payment`: 별도 검증 DB에서 전체 마이그레이션과 픽스처를 실행한 뒤 항상 rollback합니다.
 2. 24시간 이내의 성공한 `Daily DB Backup` run ID를 확인합니다.
 3. 정적 배포와 다섯 결제 Edge 경로가 모두 잠겼고 다섯 응답이 실제 503이며 새 주문·예약이 0건인지 확인합니다. GitHub variables `PRODUCTION_DEPLOY_ENABLED=false`, `PAYMENT_RECONCILE_ENABLED=false`도 명시적으로 설정합니다. apply 워크플로가 같은 503 응답을 다시 기계 확인하며, 정확한 잠금 오류가 아니면 DB를 건드리기 전에 중단합니다.
 4. `apply-authority-payment`: 배포할 정확한 main SHA, backup run ID, `production_apply_ack=APPLY_AUTHORITY_PAYMENT_TO_PRODUCTION`, `payment_locks_ack=PAYMENT_CHECKOUT_AND_RECONCILE_LOCKED`, 보호 주문번호를 로컬에서 변환한 64자리 소문자 `payment_hold_sha256`, `payment_hold_ack=SEED_HASH_ONLY_PAYMENT_OPERATION_HOLD`를 입력합니다. 주문번호 원문은 저장소·워크플로 입력·로그·hold 테이블에 넣지 않습니다.
 5. 워크플로는 백업 아티팩트가 복호화·압축 해제되고 SQL dump 표식을 포함하는지만 확인합니다. 이 검사는 **실제 복원이 된다는 증거가 아닙니다**. 별도 격리 DB 복원 훈련이 성공한 시점·대상·명령을 운영 기록으로 남긴 경우에만 “복원 가능”이라고 표현합니다.
-6. 운영 apply는 `supabase_migrations.schema_migrations`에 `20260824090000`과 `20260826150000`이 이미 기록돼 있고, 대상 5개가 아직 하나도 기록되지 않았을 때만 진행합니다. 이력이 없거나 일부 적용·후속 버전이 감지되면 SQL 실행 전에 중단하고, 실제 스키마를 확인한 뒤 별도 승인으로 `supabase migration repair`를 수행합니다.
+6. 운영의 과거 authority hardening은 저장소 파일명과 같은 버전으로 원장에 남아 있지 않으므로 과거 번호를 임의로 추가하거나 `migration repair`로 역사를 위조하지 않습니다. 대신 `customer_shipping_addresses` 이름이 원장에 정확히 1건인지, 기존 orders/listings/rate-limit/shipping 테이블의 핵심 열·RPC·트리거·RLS·권한이 운영 기준과 일치하는지 데이터 행을 읽지 않고 검사합니다. 대상 5개 버전이나 고유 열·함수·인덱스·트리거·view 중 하나라도 이미 있으면 부분 적용으로 판단해 SQL 실행 전에 중단합니다.
 7. 대상 SQL 5개와 해당 이력 5개는 한 트랜잭션에서 함께 기록됩니다. 가장 먼저 hash-only hold와 DB 제어 스위치를 만들고 보호 hash를 활성화한 뒤 후속 마이그레이션을 실행합니다. 운영 apply는 보호 주문을 개별 조회하거나 잠그지 않으며, 모든 백필터의 hold 제외 조건과 DB trigger가 변경을 이중 차단합니다. DB 잠금은 5초, 문장 실행은 5분을 넘기면 전체 트랜잭션을 실패시킵니다. 적용 뒤 ACL 전수검사와 10개 동시 세션 제한 검사를 수행합니다.
 
 적용 파일은 아래 5개이며 반드시 이 순서로 한 트랜잭션에 적용합니다.

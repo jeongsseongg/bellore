@@ -320,6 +320,7 @@ jobs:
                or has_table_privilege('anon','public.payment_operation_holds','select')
                or has_table_privilege('authenticated','public.payment_operation_holds','select')
                or has_table_privilege('service_role','public.payment_operation_holds','select')
+               or not has_table_privilege('service_role','public.orders','select')
                or not has_function_privilege('service_role',
                  'public.read_payment_operation_control_v1(text)','execute')
                or not has_function_privilege('service_role',
@@ -1299,14 +1300,9 @@ jobs:
             ) then
               raise exception 'migration_ledger_noncanonical';
             end if;
-            if not exists (
-              select 1 from supabase_migrations.schema_migrations
-               where version='20260824090000'
-            ) or not exists (
-              select 1 from supabase_migrations.schema_migrations
-               where version='20260826150000'
-            ) then
-              raise exception 'migration_ledger_baseline_missing';
+            if (select count(*) from supabase_migrations.schema_migrations
+                 where name='customer_shipping_addresses') <> 1 then
+              raise exception 'shipping_migration_ledger_baseline_mismatch';
             end if;
             if exists (
               select 1 from supabase_migrations.schema_migrations
@@ -1318,9 +1314,233 @@ jobs:
             end if;
             if exists (
               select 1 from supabase_migrations.schema_migrations
-               where version > '20260826150000'
+               where version >= '20260826155000'
             ) then
               raise exception 'migration_ledger_ahead_of_release';
+            end if;
+
+            -- Historical authority hardening exists in production without the
+            -- repository filename as a ledger version. Do not counterfeit that
+            -- history. Prove the exact data-free schema/ACL fingerprint instead.
+            if to_regclass('public.orders') is null
+               or to_regclass('public.listings') is null
+               or to_regclass('public.checkout_rate_limits') is null
+               or to_regclass('public.shipping_addresses') is null then
+              raise exception 'authority_payment_schema_baseline_missing';
+            end if;
+            if exists (
+              select 1
+                from (values
+                  ('orders','id','uuid'),
+                  ('orders','order_no','text'),
+                  ('orders','customer_id','uuid'),
+                  ('orders','listing_id','uuid'),
+                  ('orders','amount','int8'),
+                  ('orders','discount','int8'),
+                  ('orders','product_price','int8'),
+                  ('orders','status','text'),
+                  ('orders','checkout_token_hash','text'),
+                  ('orders','provider_transaction_id','text'),
+                  ('orders','refund_amount','int8'),
+                  ('listings','id','uuid'),
+                  ('listings','status','text'),
+                  ('listings','reserved_order_id','uuid'),
+                  ('listings','reserved_until','timestamptz'),
+                  ('listings','sold_order_id','uuid'),
+                  ('listings','price','numeric'),
+                  ('checkout_rate_limits','key_hash','text'),
+                  ('checkout_rate_limits','attempt_count','int4'),
+                  ('checkout_rate_limits','window_started_at','timestamptz'),
+                  ('shipping_addresses','id','uuid'),
+                  ('shipping_addresses','user_id','uuid'),
+                  ('shipping_addresses','is_default','bool')
+                ) as expected(table_name,column_name,udt_name)
+                left join information_schema.columns as actual
+                  on actual.table_schema='public'
+                 and actual.table_name=expected.table_name
+                 and actual.column_name=expected.column_name
+                 and actual.udt_name=expected.udt_name
+               where actual.column_name is null
+            ) then
+              raise exception 'authority_payment_column_fingerprint_mismatch';
+            end if;
+            if to_regprocedure('public.create_checkout_order(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)') is null
+               or to_regprocedure('public.create_checkout_order_edge_v1(text,uuid,uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb)') is null
+               or to_regprocedure('public.consume_checkout_rate_limit(text)') is null
+               or to_regprocedure('public.finalize_paid_order_v2(text,bigint,text,text,text,text,jsonb,integer)') is null
+               or to_regprocedure('public.finalize_order_refund_v2(text,bigint,text,text)') is null
+               or to_regprocedure('public.mark_order_payment_review(text,text)') is null
+               or to_regprocedure('public.mark_order_refund_pending(text,text)') is null
+               or to_regprocedure('public.fail_unsettled_order(text,text)') is null
+               or to_regprocedure('public.release_expired_checkout_reservations()') is null
+               or to_regprocedure('public.order_request_cancel(text,text)') is null then
+              raise exception 'authority_payment_rpc_fingerprint_mismatch';
+            end if;
+            if not exists (
+              select 1 from pg_trigger
+               where tgrelid='public.orders'::regclass
+                 and tgname='trg_guard_order_money_fields'
+                 and tgfoid=to_regprocedure('public.guard_order_money_fields()')
+                 and tgenabled <> 'D' and not tgisinternal
+            ) or not exists (
+              select 1 from pg_trigger
+               where tgrelid='public.shipping_addresses'::regclass
+                 and tgname='trg_guard_customer_shipping_address'
+                 and tgfoid=to_regprocedure('public.guard_customer_shipping_address()')
+                 and tgenabled <> 'D' and not tgisinternal
+            ) or not exists (
+              select 1 from pg_class as c
+               join pg_namespace as n on n.oid=c.relnamespace
+               where n.nspname='public' and c.relname='orders'
+                 and c.relrowsecurity
+            ) or not exists (
+              select 1 from pg_class as c
+               join pg_namespace as n on n.oid=c.relnamespace
+               where n.nspname='public' and c.relname='checkout_rate_limits'
+                 and c.relrowsecurity
+            ) or not exists (
+              select 1 from pg_class as c
+               join pg_namespace as n on n.oid=c.relnamespace
+               where n.nspname='public' and c.relname='shipping_addresses'
+                 and c.relrowsecurity
+            ) or (select count(*) from pg_policies
+                    where schemaname='public' and tablename='shipping_addresses'
+                      and policyname in (
+                        'shipping_addresses_select_own','shipping_addresses_insert_own',
+                        'shipping_addresses_update_own','shipping_addresses_delete_own'
+                      )) <> 4 then
+              raise exception 'authority_payment_trigger_or_rls_fingerprint_mismatch';
+            end if;
+            if not exists (
+              select 1 from pg_proc as p
+               where p.oid='public.create_checkout_order(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)'::regprocedure
+                 and p.prosecdef
+                 and 'search_path=""'=any(coalesce(p.proconfig,'{}'::text[]))
+            ) or not exists (
+              select 1 from pg_proc as p
+               where p.oid='public.consume_checkout_rate_limit(text)'::regprocedure
+                 and p.prosecdef
+                 and 'search_path=""'=any(coalesce(p.proconfig,'{}'::text[]))
+            ) then
+              raise exception 'authority_payment_function_security_fingerprint_mismatch';
+            end if;
+            if position('for update' in lower(pg_get_functiondef(
+                 'public.create_checkout_order(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)'::regprocedure)))=0
+               or position('v_listing.status <> ''on_sale''' in lower(pg_get_functiondef(
+                 'public.create_checkout_order(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)'::regprocedure)))=0
+               or position('v_true_price' in lower(pg_get_functiondef(
+                 'public.create_checkout_order(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)'::regprocedure)))=0
+               or position('5000000' in lower(pg_get_functiondef(
+                 'public.create_checkout_order(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)'::regprocedure)))=0
+               or position('v_coupon.user_id <> v_uid' in lower(pg_get_functiondef(
+                 'public.create_checkout_order(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)'::regprocedure)))=0
+               or position('insert into public.orders' in lower(pg_get_functiondef(
+                 'public.create_checkout_order(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)'::regprocedure)))=0
+               or position('update public.listings' in lower(pg_get_functiondef(
+                 'public.create_checkout_order(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)'::regprocedure)))=0
+               or position('reserved_order_id = v_order.id' in lower(pg_get_functiondef(
+                 'public.create_checkout_order(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)'::regprocedure)))=0 then
+              raise exception 'checkout_core_body_fingerprint_mismatch';
+            end if;
+            if position('coalesce(auth.role(),'''') <> ''service_role''' in lower(pg_get_functiondef(
+                 'public.consume_checkout_rate_limit(text)'::regprocedure)))=0
+               or position('^[0-9a-f]{64}$' in lower(pg_get_functiondef(
+                 'public.consume_checkout_rate_limit(text)'::regprocedure)))=0
+               or position('insert into public.checkout_rate_limits' in lower(pg_get_functiondef(
+                 'public.consume_checkout_rate_limit(text)'::regprocedure)))=0
+               or position('on conflict (key_hash) do update' in lower(pg_get_functiondef(
+                 'public.consume_checkout_rate_limit(text)'::regprocedure)))=0
+               or position('interval ''15 minutes''' in lower(pg_get_functiondef(
+                 'public.consume_checkout_rate_limit(text)'::regprocedure)))=0
+               or position('attempt_count < 5' in lower(pg_get_functiondef(
+                 'public.consume_checkout_rate_limit(text)'::regprocedure)))=0
+               or position('returning attempt_count into v_attempts' in lower(pg_get_functiondef(
+                 'public.consume_checkout_rate_limit(text)'::regprocedure)))=0
+               or position('if v_attempts is null' in lower(pg_get_functiondef(
+                 'public.consume_checkout_rate_limit(text)'::regprocedure)))=0
+               or position('checkout_rate_limited' in lower(pg_get_functiondef(
+                 'public.consume_checkout_rate_limit(text)'::regprocedure)))=0 then
+              raise exception 'checkout_rate_limiter_body_fingerprint_mismatch';
+            end if;
+            if has_table_privilege('anon','public.orders','insert')
+               or has_table_privilege('authenticated','public.orders','insert')
+               or not has_table_privilege('service_role','public.orders','select')
+               or has_function_privilege('anon',
+                 'public.create_checkout_order(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)','execute')
+               or has_function_privilege('authenticated',
+                 'public.create_checkout_order(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)','execute')
+               or has_function_privilege('anon',
+                 'public.create_checkout_order_edge_v1(text,uuid,uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb)','execute')
+               or has_function_privilege('authenticated',
+                 'public.create_checkout_order_edge_v1(text,uuid,uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb)','execute')
+               or has_function_privilege('anon','public.consume_checkout_rate_limit(text)','execute')
+               or has_function_privilege('authenticated','public.consume_checkout_rate_limit(text)','execute')
+               or not has_function_privilege('service_role',
+                 'public.create_checkout_order(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)','execute')
+               or not has_function_privilege('service_role',
+                 'public.create_checkout_order_edge_v1(text,uuid,uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb)','execute')
+               or not has_function_privilege('service_role','public.consume_checkout_rate_limit(text)','execute')
+               or has_function_privilege('authenticated',
+                 'public.finalize_paid_order_v2(text,bigint,text,text,text,text,jsonb,integer)','execute')
+               or has_function_privilege('authenticated',
+                 'public.finalize_order_refund_v2(text,bigint,text,text)','execute')
+               or not has_function_privilege('service_role',
+                 'public.finalize_paid_order_v2(text,bigint,text,text,text,text,jsonb,integer)','execute')
+               or not has_function_privilege('service_role',
+                 'public.finalize_order_refund_v2(text,bigint,text,text)','execute') then
+              raise exception 'authority_payment_acl_fingerprint_mismatch';
+            end if;
+
+            -- Any unique object from the target release means somebody applied
+            -- part of it outside this atomic workflow. Stop; never layer over it.
+            if to_regclass('public.payment_operation_controls') is not null
+               or to_regclass('public.payment_operation_holds') is not null
+               or to_regclass('public.payment_reconciliation_orders_edge_v1') is not null
+               or to_regclass('public.orders_recent_payment_terminal_v2_idx') is not null
+               or to_regclass('public.orders_one_unresolved_listing_v2_idx') is not null
+               or to_regclass('public.orders_one_unresolved_coupon_idx') is not null
+               or to_regclass('public.orders_checkout_request_key_hash_uidx') is not null
+               or to_regprocedure('public.read_payment_operation_control_v1(text)') is not null
+               or to_regprocedure('public.is_payment_operation_hash_held_v1(text)') is not null
+               or to_regprocedure('public.payment_order_no_sha256_v1(text)') is not null
+               or to_regprocedure('public.assert_payment_operation_open_v1(text)') is not null
+               or to_regprocedure('public.stamp_order_payment_terminal_at_v1()') is not null
+               or to_regprocedure('public.sync_listing_state_from_order_v1()') is not null
+               or to_regprocedure('public.guard_new_checkout_claims_v1()') is not null
+               or to_regprocedure('public.guard_listing_reservation_owner_v1()') is not null
+               or to_regprocedure('public.order_requires_restock_v1(uuid,smallint,text,boolean,timestamptz,timestamptz,timestamptz)') is not null
+               or to_regprocedure('public.clear_confirmed_payment_review_v1(text,text,bigint)') is not null
+               or to_regprocedure('public.recover_checkout_order_edge_v1(text,text,uuid)') is not null
+               or exists (
+                 select 1 from information_schema.columns
+                  where table_schema='public' and table_name='orders'
+                    and column_name in (
+                      'payment_contract_version','checkout_request_key_hash',
+                      'payment_terminal_at','restock_required','payment_review_required',
+                      'refund_intent_code'
+                    )
+               ) or exists (
+                 select 1 from pg_constraint
+                  where conname in (
+                    'orders_v2_terminal_timestamp_required',
+                    'orders_refund_intent_code_allowed',
+                    'orders_payment_contract_version_allowed',
+                    'orders_checkout_request_key_hash_format'
+                  )
+               ) or exists (
+                 select 1 from pg_trigger
+                  where not tgisinternal and tgname in (
+                    'trg_00_payment_operation_hold_order',
+                    'trg_00_payment_operation_hold_listing',
+                    'trg_00_payment_operation_hold_orders_truncate',
+                    'trg_00_payment_operation_hold_listings_truncate',
+                    'trg_stamp_order_payment_terminal_at_v1',
+                    'trg_sync_listing_state_from_order_v1',
+                    'trg_guard_new_checkout_claims_v1',
+                    'trg_guard_listing_reservation_owner_v1'
+                  )
+               ) then
+              raise exception 'payment_release_partial_schema_detected';
             end if;
           end $$;
 
@@ -1400,6 +1620,7 @@ jobs:
                or has_table_privilege('anon','public.payment_operation_holds','select')
                or has_table_privilege('authenticated','public.payment_operation_holds','select')
                or has_table_privilege('service_role','public.payment_operation_holds','select')
+               or not has_table_privilege('service_role','public.orders','select')
                or not has_function_privilege('service_role',
                  'public.read_payment_operation_control_v1(text)','execute')
                or not has_function_privilege('service_role',

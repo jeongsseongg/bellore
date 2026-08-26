@@ -176,8 +176,16 @@ assert.match(applyBlock, /PGOPTIONS: "-c lock_timeout=5000 -c statement_timeout=
 assert.match(applyBlock, /PGCONNECT_TIMEOUT: "10"/);
 assert.match(applyBlock, /migration_ledger_missing/);
 assert.match(applyBlock, /migration_ledger_noncanonical/);
-assert.match(applyBlock, /version='20260824090000'/);
-assert.match(applyBlock, /version='20260826150000'/);
+assert.match(applyBlock, /name='customer_shipping_addresses'/);
+assert.match(applyBlock, /authority_payment_schema_baseline_missing/);
+assert.match(applyBlock, /authority_payment_column_fingerprint_mismatch/);
+assert.match(applyBlock, /authority_payment_rpc_fingerprint_mismatch/);
+assert.match(applyBlock, /authority_payment_trigger_or_rls_fingerprint_mismatch/);
+assert.match(applyBlock, /authority_payment_function_security_fingerprint_mismatch/);
+assert.match(applyBlock, /checkout_core_body_fingerprint_mismatch/);
+assert.match(applyBlock, /checkout_rate_limiter_body_fingerprint_mismatch/);
+assert.match(applyBlock, /authority_payment_acl_fingerprint_mismatch/);
+assert.match(applyBlock, /payment_release_partial_schema_detected/);
 assert.match(applyBlock, /payment_release_migration_already_recorded/);
 assert.match(applyBlock, /migration_ledger_ahead_of_release/);
 assert.match(

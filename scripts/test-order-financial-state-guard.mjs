@@ -81,7 +81,7 @@ const applyStart = workflow.indexOf('Apply authority and payment migration');
 const liveStart = workflow.indexOf('Verify live authority and payment ACL');
 assert(validateStart >= 0 && rollback > validateStart && workflow.slice(validateStart, rollback).includes(migrationName));
 assert(applyStart >= 0 && liveStart > applyStart && workflow.slice(applyStart, liveStart).includes(migrationName));
-assert.equal((workflow.match(/tgname='trg_guard_order_money_fields'/g) || []).length, 2);
+assert.equal((workflow.match(/tgname='trg_guard_order_money_fields'/g) || []).length, 3);
 assert.equal((workflow.match(/new\.order_no is distinct from old\.order_no/g) || []).length, 2);
 for (const marker of [
   'pending order escaped provider verification', 'order amount guard did not block',
