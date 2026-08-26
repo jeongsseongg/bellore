@@ -1,3 +1,5 @@
+import { createShippingAddressPopup } from './shipping-address-popup.mjs';
+
 const TABLE = 'shipping_addresses';
 const MAX_ADDRESSES = 10;
 
@@ -75,31 +77,16 @@ export function createAddressRepository({ getClient, getUser }) {
   return { list, save, remove, makeDefault, max: MAX_ADDRESSES };
 }
 
-function escapeHTML(value) {
-  return String(value || '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
-}
-
 export function initCheckoutAddresses({ document: doc, window: win, getClient, getUser }) {
   const byId = (id) => doc.getElementById(id);
   const repository = createAddressRepository({ getClient, getUser });
   const fields = {
     buyerName: byId('coName'), buyerPhone: byId('coPhone'), recipient: byId('coShipName'),
     phone: byId('coShipPhone'), postcode: byId('coPostcode'), addr1: byId('coAddr1'), addr2: byId('coAddr2'),
-    label: byId('coAddressLabel'), isDefault: byId('coAddressDefault'), editId: byId('coAddressEditId'),
   };
   const same = byId('coSameBuyer');
-  const panel = byId('coAddressBook');
-  const listBox = byId('coAddressList');
-  const message = byId('coAddressMessage');
-  const saveButton = byId('coSaveAddress');
   let addresses = [];
 
-  function notify(text, error = false) {
-    if (!message) return;
-    message.textContent = text;
-    message.classList.toggle('is-error', error);
-    message.hidden = !text;
-  }
   function fill(address) {
     const data = normalizeAddress(address);
     fields.recipient.value = data.recipient;
@@ -107,43 +94,35 @@ export function initCheckoutAddresses({ document: doc, window: win, getClient, g
     fields.postcode.value = data.postcode;
     fields.addr1.value = data.addr1;
     fields.addr2.value = data.addr2;
-    fields.label.value = data.label;
-    fields.isDefault.checked = data.is_default;
-    fields.editId.value = data.id;
-    saveButton.textContent = data.id ? '배송지 수정 저장' : '배송지 저장';
   }
-  function currentForm() {
-    return normalizeAddress({
-      id: fields.editId.value, label: fields.label.value, recipient: fields.recipient.value,
-      phone: fields.phone.value, postcode: fields.postcode.value, addr1: fields.addr1.value,
-      addr2: fields.addr2.value, is_default: fields.isDefault.checked,
-    });
-  }
-  function resetForm() {
-    fill({ recipient: same?.checked ? fields.buyerName.value : '', phone: same?.checked ? fields.buyerPhone.value : '' });
-    fields.addr2.focus();
-  }
-  function render() {
-    if (!listBox) return;
-    if (!getUser?.()?.uid) {
-      listBox.innerHTML = '<p class="co-address-empty">로그인하면 배송지를 최대 10개까지 저장할 수 있습니다.</p>';
-      return;
-    }
-    if (!addresses.length) {
-      listBox.innerHTML = '<p class="co-address-empty">저장된 배송지가 없습니다.</p>';
-      return;
-    }
-    listBox.innerHTML = addresses.map((address) => `<article class="co-address-card${address.is_default ? ' is-default' : ''}" data-id="${escapeHTML(address.id)}"><div><strong>${escapeHTML(address.label)}${address.is_default ? '<em>기본</em>' : ''}</strong><span>${escapeHTML(address.recipient)} · ${escapeHTML(address.phone)}</span><p>(${escapeHTML(address.postcode)}) ${escapeHTML(address.addr1)} ${escapeHTML(address.addr2)}</p></div><div class="co-address-actions"><button type="button" data-address-action="use">선택</button><button type="button" data-address-action="edit">수정</button>${address.is_default ? '' : '<button type="button" data-address-action="default">기본 설정</button>'}<button type="button" data-address-action="delete">삭제</button></div></article>`).join('');
-  }
+
+  const popup = createShippingAddressPopup({
+    document: doc, window: win, max: repository.max, formatPhone: formatKoreanPhone,
+    onUse: fill,
+    newAddress: () => ({ recipient: same?.checked ? fields.buyerName.value : '', phone: same?.checked ? fields.buyerPhone.value : '' }),
+    async onSave(input) {
+      try {
+        const saved = await repository.save(input);
+        await refresh(false);
+        fill(saved);
+      } catch (error) {
+        error.customerMessage = error.message === 'LOGIN_REQUIRED' ? '로그인 후 배송지를 저장할 수 있습니다.' : error.message === 'ADDRESS_LIMIT' ? '배송지는 최대 10개까지 저장할 수 있습니다.' : error.message === 'ADDRESS_REQUIRED' ? '받는 분·연락처·주소를 모두 입력해 주세요.' : '배송지를 저장하지 못했습니다.';
+        throw error;
+      }
+    },
+    async onDelete(id) { await repository.remove(id); await refresh(false); },
+    async onDefault(id) { await repository.makeDefault(id); await refresh(true); },
+  });
+
   async function refresh(useDefault = false) {
-    if (!getUser?.()?.uid) { addresses = []; render(); return; }
+    if (!getUser?.()?.uid) { addresses = []; popup.render([]); return; }
     try {
       addresses = await repository.list();
-      render();
+      popup.render(addresses);
       const chosen = addresses.find((item) => item.is_default) || addresses[0];
       if (useDefault && chosen) fill(chosen);
     } catch (error) {
-      notify(error.message === 'LOGIN_REQUIRED' ? '로그인 후 배송지를 관리할 수 있습니다.' : '배송지 목록을 불러오지 못했습니다.', true);
+      popup.announce(error.message === 'LOGIN_REQUIRED' ? '로그인 후 배송지를 관리할 수 있습니다.' : '배송지 목록을 불러오지 못했습니다.', true);
     }
   }
   function syncBuyer(includeAddress) {
@@ -161,38 +140,12 @@ export function initCheckoutAddresses({ document: doc, window: win, getClient, g
   fields.buyerName?.addEventListener('input', () => syncBuyer(false));
   fields.buyerPhone?.addEventListener('input', () => syncBuyer(false));
   same?.addEventListener('change', () => syncBuyer(true));
-  byId('coManageAddresses')?.addEventListener('click', async () => { panel.hidden = !panel.hidden; if (!panel.hidden) await refresh(false); });
-  byId('coNewAddress')?.addEventListener('click', resetForm);
-  saveButton?.addEventListener('click', async () => {
-    try {
-      const saved = await repository.save(currentForm());
-      notify(saved.id ? '배송지를 저장했습니다.' : '', false);
-      await refresh(false);
-      fill(saved);
-    } catch (error) {
-      const text = error.message === 'LOGIN_REQUIRED' ? '로그인 후 배송지를 저장할 수 있습니다.' : error.message === 'ADDRESS_LIMIT' ? '배송지는 최대 10개까지 저장할 수 있습니다.' : error.message === 'ADDRESS_REQUIRED' ? '받는 분·연락처·주소를 모두 입력해 주세요.' : '배송지를 저장하지 못했습니다.';
-      notify(text, true);
-    }
-  });
-  listBox?.addEventListener('click', async (event) => {
-    const button = event.target.closest('[data-address-action]');
-    const card = button?.closest('[data-id]');
-    const address = addresses.find((item) => item.id === card?.dataset.id);
-    if (!address) return;
-    const action = button.dataset.addressAction;
-    if (action === 'use' || action === 'edit') { fill(address); if (action === 'use') panel.hidden = true; return; }
-    if (action === 'delete' && !win.confirm('이 배송지를 삭제할까요?')) return;
-    try {
-      if (action === 'delete') await repository.remove(address.id);
-      if (action === 'default') await repository.makeDefault(address.id);
-      await refresh(action === 'default');
-    } catch (_error) { notify('배송지를 변경하지 못했습니다.', true); }
-  });
+  byId('coManageAddresses')?.addEventListener('click', async (event) => { popup.open(event.currentTarget); await refresh(false); });
   doc.addEventListener('bellore:checkout-opened', async () => {
     fields.buyerPhone.value = formatKoreanPhone(fields.buyerPhone.value);
     fields.phone.value = formatKoreanPhone(fields.phone.value);
     await refresh(!fields.postcode.value);
   });
-  render();
-  return { formatPhone: formatKoreanPhone, refresh };
+  popup.render([]);
+  return { formatPhone: formatKoreanPhone, refresh, popup };
 }

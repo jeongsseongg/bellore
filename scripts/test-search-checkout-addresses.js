@@ -16,9 +16,21 @@ const { pathToFileURL } = require('node:url');
   });
 
   const index = read('index.html');
-  for (const id of ['coSameBuyer', 'coManageAddresses', 'coAddressBook', 'coAddressList', 'coAddressLabel', 'coAddressDefault', 'coSaveAddress']) {
+  for (const id of ['coSameBuyer', 'coManageAddresses', 'coShipName', 'coShipPhone', 'coPostcode', 'coAddr1', 'coAddr2']) {
     assert.match(index, new RegExp(`id="${id}"`));
   }
+  for (const removedInlineId of ['coAddressBook', 'coAddressList', 'coAddressLabel', 'coAddressDefault', 'coSaveAddress']) {
+    assert.doesNotMatch(index, new RegExp(`id="${removedInlineId}"`));
+  }
+  const popup = read('app/features/checkout/shipping-address-popup.mjs');
+  assert.match(popup, /role="dialog" aria-modal="true"/);
+  assert.match(popup, /data-address-new/);
+  assert.match(popup, /data-address-action="edit"/);
+  assert.match(popup, /data-address-action="default"/);
+  assert.match(popup, /data-address-action="delete"/);
+  assert.match(popup, /data-address-find/);
+  assert.match(checkout.initCheckoutAddresses.toString(), /createShippingAddressPopup/);
+  assert.match(read('app/bootstrap.js'), /checkout-addresses\.mjs\?v=20260826-shipping-address-popup-v2/);
   assert.match(read('app/bootstrap.js'), /initCheckoutAddresses\(\{ document, window, getClient:/);
   assert.match(read('payments.js'), /bellore:checkout-opened/);
   assert.match(read('app/legacy/page-runtime.js'), /BELLORE_BRAND_KR \? window\.BELLORE_BRAND_KR\(bd\)/);

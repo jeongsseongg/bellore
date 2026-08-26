@@ -2,22 +2,43 @@
 .co-section-heading .co-sec-title { margin:0; }
 .co-text-button { border:1px solid var(--border); border-radius:999px; background:#fff; color:var(--text); min-height:34px; padding:0 13px; font:700 12px/1 Pretendard, sans-serif; }
 .co-same-buyer { display:flex; align-items:center; gap:8px; margin:0 0 14px; color:var(--text); font-size:13px; font-weight:700; }
-.co-same-buyer input, .co-default-check input { width:18px; height:18px; accent-color:#142b25; }
-.co-address-book { margin:0 0 14px; padding:12px; border:1px solid var(--border); border-radius:12px; background:#faf9f7; }
-.co-address-book-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
-.co-address-book-head strong { font-size:13px; }
-.co-address-list { display:grid; gap:8px; max-height:280px; overflow:auto; }
-.co-address-card { padding:11px; border:1px solid #e4e0d8; border-radius:10px; background:#fff; }
-.co-address-card.is-default { border-color:#142b25; box-shadow:0 0 0 1px #142b25 inset; }
-.co-address-card strong { display:flex; align-items:center; gap:6px; font-size:13px; }
-.co-address-card strong em { padding:2px 6px; border-radius:999px; background:#142b25; color:#fff; font-size:10px; font-style:normal; }
-.co-address-card span, .co-address-card p { display:block; margin:4px 0 0; color:var(--text-2); font-size:12px; line-height:1.45; }
-.co-address-actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
-.co-address-actions button { min-height:30px; padding:0 9px; border:1px solid var(--border); border-radius:8px; background:#fff; font:700 11px/1 Pretendard, sans-serif; }
-.co-address-empty { margin:4px 0; color:var(--text-2); font-size:12px; }
-.co-address-save-row { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:8px; }
-.co-default-check { display:flex; align-items:center; gap:7px; font-size:12px; font-weight:700; }
-.co-address-save { min-height:38px; padding:0 14px; border-radius:9px; background:#142b25; color:#fff; font:800 12px/1 Pretendard, sans-serif; }
-.co-address-message { margin:8px 0 0; color:#256b4f; font-size:12px; }
-.co-address-message.is-error { color:#b43a31; }
-@media (max-width:480px) { .co-address-save-row { align-items:flex-start; flex-direction:column; } .co-address-save { width:100%; } }
+.co-same-buyer input { width:18px; height:18px; accent-color:#142b25; }
+
+.shipping-address-popup[hidden] { display:none; }
+.shipping-address-popup { position:fixed; inset:0; z-index:10200; }
+.shipping-address-popup__backdrop { position:absolute; inset:0; width:100%; border:0; background:rgba(11,17,15,.5); backdrop-filter:blur(2px); }
+.shipping-address-popup__sheet { position:absolute; left:50%; bottom:0; width:min(100%, var(--app-panel-w, 660px)); max-height:min(88dvh, 820px); padding:24px 22px calc(26px + env(safe-area-inset-bottom)); border-radius:24px 24px 0 0; background:#fff; box-shadow:0 -18px 52px rgba(13,24,20,.22); overflow-y:auto; transform:translateX(-50%); }
+.shipping-address-popup__header { display:grid; grid-template-columns:40px 1fr 40px; align-items:start; gap:10px; margin-bottom:24px; }
+.shipping-address-popup__header > div { grid-column:2; }
+.shipping-address-popup__header p { margin:0 0 5px; color:#a58649; font-size:10px; font-weight:800; letter-spacing:.16em; }
+.shipping-address-popup__header h2 { margin:0; color:#151917; font-size:24px; line-height:1.25; letter-spacing:-.035em; }
+.shipping-address-popup__back,.shipping-address-popup__close { width:38px; height:38px; padding:0; border:0; border-radius:50%; background:#f2f2f0; color:#4d4b47; font-size:27px; line-height:1; }
+.shipping-address-popup__back { grid-column:1; grid-row:1; font-size:31px; }
+.shipping-address-popup__close { grid-column:3; grid-row:1; }
+.shipping-address-popup__toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+.shipping-address-popup__toolbar strong { color:#1d211f; font-size:15px; }
+.shipping-address-popup__toolbar strong span { color:#8c8983; font-size:12px; }
+.shipping-address-popup__toolbar button { min-height:38px; padding:0 14px; border:1px solid #dcd9d2; border-radius:999px; background:#fff; color:#172a25; font-size:12px; font-weight:800; }
+.shipping-address-popup__list { display:grid; gap:10px; }
+.shipping-address-popup__empty { margin:0; padding:42px 16px; border:1px dashed #ddd9d1; border-radius:15px; color:#8b8882; font-size:13px; line-height:1.7; text-align:center; }
+.shipping-address-popup__card { padding:16px; border:1px solid #e4e0d8; border-radius:15px; background:#fff; }
+.shipping-address-popup__card.is-default { border-color:#172a25; box-shadow:inset 0 0 0 1px #172a25; }
+.shipping-address-popup__card-copy strong { display:flex; align-items:center; gap:7px; color:#1d211f; font-size:14px; }
+.shipping-address-popup__card-copy strong em { padding:3px 7px; border-radius:999px; background:#172a25; color:#fff; font-size:10px; font-style:normal; }
+.shipping-address-popup__card-copy span,.shipping-address-popup__card-copy p { display:block; margin:6px 0 0; color:#716e68; font-size:12px; line-height:1.5; }
+.shipping-address-popup__actions { display:flex; flex-wrap:wrap; gap:7px; margin-top:13px; }
+.shipping-address-popup__actions button { min-height:34px; padding:0 10px; border:1px solid #ddd9d1; border-radius:9px; background:#fff; color:#403e3a; font-size:11px; font-weight:750; }
+.shipping-address-popup__actions .is-primary { border-color:#172a25; background:#172a25; color:#fff; }
+.shipping-address-popup__editor { display:grid; gap:14px; }
+.shipping-address-popup__editor[hidden] { display:none; }
+.shipping-address-popup__field { display:grid; gap:7px; color:#4d4b47; font-size:12px; font-weight:750; }
+.shipping-address-popup__field input { width:100%; min-height:48px; padding:0 14px; border:1px solid #dedbd4; border-radius:11px; background:#fff; color:#1f2321; font:500 14px/1 Pretendard,sans-serif; box-sizing:border-box; }
+.shipping-address-popup__postcode { display:grid; grid-template-columns:1fr auto; gap:8px; }
+.shipping-address-popup__postcode button { min-width:92px; border:0; border-radius:11px; background:#172a25; color:#fff; font-size:12px; font-weight:800; }
+.shipping-address-popup__default { display:flex; align-items:center; gap:8px; color:#303431; font-size:12px; font-weight:750; }
+.shipping-address-popup__default input { width:18px; height:18px; accent-color:#172a25; }
+.shipping-address-popup__message { margin:0; color:#256b4f; font-size:12px; }
+.shipping-address-popup__message.is-error { color:#b43a31; }
+.shipping-address-popup__save { min-height:50px; border:0; border-radius:12px; background:#172a25; color:#fff; font-size:14px; font-weight:800; }
+body.shipping-address-popup-open { overflow:hidden; }
+@media (max-width:480px) { .shipping-address-popup__sheet { padding-left:18px; padding-right:18px; } .shipping-address-popup__header h2 { font-size:22px; } }
