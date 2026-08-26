@@ -1279,9 +1279,19 @@
   function subscribeListings(category, cb) {
     function load() {
       sb.from('listings').select('*').eq('category', category)
-        .neq('status', 'hidden')
+        .eq('status', 'on_sale')
         .order('created_at', { ascending: false })
-        .then(function (res) { cb((res.data || []).map(mapListing)); });
+        .then(function (res) {
+          if (res.error) {
+            console.warn('[NWBackend] 판매가능 재고 조회 실패:', res.error.message || res.error);
+            cb(null, res.error);
+            return;
+          }
+          cb((res.data || []).map(mapListing), null);
+        }, function (error) {
+          console.warn('[NWBackend] 판매가능 재고 요청 실패:', error && error.message || error);
+          cb(null, error || new Error('LISTING_LOOKUP_FAILED'));
+        });
     }
     load();
     listingRefreshers.push(load);
@@ -1992,6 +2002,24 @@
     };
   }
 
+  function createCheckoutCredential() {
+    if (!(window.crypto && window.crypto.getRandomValues && window.crypto.subtle && window.TextEncoder)) {
+      return Promise.reject(new Error('SECURE_CHECKOUT_TOKEN_UNAVAILABLE'));
+    }
+    var bytes = new Uint8Array(32);
+    window.crypto.getRandomValues(bytes);
+    var binary = '';
+    bytes.forEach(function (value) { binary += String.fromCharCode(value); });
+    var token = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+    return window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(token))
+      .then(function (buffer) {
+        var hash = Array.from(new Uint8Array(buffer)).map(function (value) {
+          return value.toString(16).padStart(2, '0');
+        }).join('');
+        return { token: token, hash: hash };
+      });
+  }
+
   // 체크아웃: pending 주문 생성 → 포트원에 넘길 order_no 반환
   Backend.createOrder = function (data) {
     // 비회원(rawUser 없음)도 구매 가능 — 네이버페이 주문형 요건.
@@ -2051,11 +2079,23 @@
         return { orderNo: orderNo, amount: data.amount, payType: 'full' };
       });
     }
-    // 회원: RETURNING(본인 주문 select 정책)으로 행을 받아 매핑.
-    if (rawUser) return insertMember();
-    // 비회원: anon 에겐 select 권한이 없으므로 RETURNING 없이 insert 만 수행.
-    // 이후 단계는 order_no 만 사용한다(서버 confirm-payment 가 service_role 로 검증).
-    return insertGuest();
+    // 예측 가능한 order_no는 인증 수단이 아니다. 회원·게스트 모두 별도의
+    // 256-bit confirmation bearer를 만들고 DB에는 SHA-256만 저장한다.
+    return createCheckoutCredential().then(function (credential) {
+      row.checkout_token_hash = credential.hash;
+      // 회원: RETURNING(본인 주문 select 정책)으로 행을 받아 매핑.
+      if (rawUser) {
+        return insertMember().then(function (mapped) {
+          mapped.checkoutToken = credential.token;
+          return mapped;
+        });
+      }
+      // 비회원은 주문을 SELECT할 수 없고 이 token을 가진 브라우저만 확인한다.
+      return insertGuest().then(function (mapped) {
+        mapped.checkoutToken = credential.token;
+        return mapped;
+      });
+    });
   };
 
   // 결제 승인(검증) — Edge Function 필수. 검증 함수가 없으면 결제를 성공 처리하지 않는다.
@@ -2064,19 +2104,23 @@
     if (!PAY.confirmUrl) {
       return Promise.reject(new Error('PAYMENT_CONFIRM_NOT_CONFIGURED'));
     }
-    return fetch(PAY.confirmUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + CFG.anonKey,
-        'apikey': CFG.anonKey
-      },
-      body: JSON.stringify({
-        // 포트원: paymentId(=order_no) 만 보내고 금액/상태는 서버가 포트원 API로 검증
-        paymentId: params.paymentId || params.orderId,
-        attribution: params.attribution || null
-      })
-    }).then(function (r) { return r.json(); });
+    return sb.auth.getSession().then(function (sessionResult) {
+      var accessToken = sessionResult && sessionResult.data && sessionResult.data.session &&
+        sessionResult.data.session.access_token;
+      return fetch(PAY.confirmUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + (accessToken || CFG.anonKey),
+          'apikey': CFG.anonKey
+        },
+        body: JSON.stringify({
+          paymentId: params.paymentId || params.orderId,
+          checkoutToken: params.checkoutToken || null,
+          attribution: params.attribution || null
+        })
+      }).then(function (r) { return r.json(); });
+    });
   };
 
   Backend.subscribeMyOrders = function (cb) {

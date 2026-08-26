@@ -3,10 +3,10 @@ import { initInsightReader } from './features/insights/insight-reader.js';
 import { initLegalModals } from './features/legal/legal-modals.js';
 import { initHeroParallax } from './ui/hero-parallax.js';
 import { initSiteHeader } from './ui/site-header.js';
-import { initHomeBanners } from './features/home-banners/home-banners.js';
-import { initHomeRows } from './features/home-rows/home-rows.js';
+import { initHomeBanners } from './features/home-banners/home-banners.js?v=20260826-copy-cleanup-v1';
+import { initHomeRows } from './features/home-rows/home-rows.js?v=20260826-card-trust-clean-v2';
 import { createListingCatalog } from './services/listings/listing-catalog-service.js';
-import { createLegacyCollection } from './legacy/legacy-collection.js';
+import { createLegacyCollection } from './legacy/legacy-collection.js?v=20260826-hero-collections-v3';
 
 function bootstrap() {
   initSiteHeader({ document, window });

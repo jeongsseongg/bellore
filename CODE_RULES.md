@@ -60,7 +60,7 @@ node scripts/check.mjs
 
 ## 기준선 부채 처리
 
-단일 검사는 기존 부채를 경고로 보이되 새 부채는 실패시킨다. 정확한 허용 목록은 baseline에 있다. 2026-08-24 첫 적용에서 정적 HTML의 누락 이미지 참조와 `wanted-theme.css` 서비스워커 셸 누락을 고쳤다. 브라우저 재검증에서 발견한 레거시 JS/CSS의 동적 이미지 참조 누락 9개는 `knownMissingSourceAssets`에 기존 부채로 고정했으며, 10번째 누락부터는 검사 실패다.
+단일 검사는 기존 부채를 경고로 보이되 새 부채는 실패시킨다. 정확한 허용 목록은 baseline에 있다. 2026-08-24 첫 적용에서 정적 HTML의 누락 이미지 참조와 `wanted-theme.css` 서비스워커 셸 누락을 고쳤다. 브라우저 재검증에서 발견한 레거시 JS/CSS의 동적 이미지 참조 누락 9개는 `knownMissingSourceAssets`에 고정했으며, 10번째 누락부터는 검사 실패다.
 
 - `quality-gate.yml`은 로컬과 같은 검사를 CI에서 실행하고 보조 Firebase workflow는 이 검사를 배포 전에 직접 실행한다. GitHub Pages는 현재 `main` 브랜치 게시 방식이라 별도 CI 파일만으로 실패한 push의 주 운영 게시를 막지 못한다. 진짜 Pages 배포 게이트는 원격 required check/PR 규칙 또는 승인된 Pages Actions 게시 전환이 필요하다.
 

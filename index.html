@@ -52,7 +52,7 @@
 
     <!-- 지역(로컬) SEO -->
     <meta name="geo.region" content="KR-11">
-    <meta name="geo.placename" content="서울특별시 중구">
+    <meta name="geo.placename" content="서울 종로 · 강남 · 청담">
 
     <!-- 검색엔진 소유확인 -->
     <meta name="google-site-verification" content="yxngRyaIqnMPq0GTy8YTWBuqCcAAMrSbTNqnDtS4P9c">
@@ -69,10 +69,11 @@
     <link rel="stylesheet" href="wanted-theme.css?v=20260818-pretendard-v1">
     <link rel="stylesheet" href="reference-layout.css?v=20260821-tabbar-safe-area-v1">
     <link rel="stylesheet" href="vendor-reference.css?v=20260731-photo-viewer">
-    <link rel="stylesheet" href="mypick.css?v=20260731-mypick-reference-4">
-    <link rel="stylesheet" href="bellore-redesign.css?v=20260824-3col-v1">
-    <link rel="stylesheet" href="app/features/home-banners/home-banners.css?v=20260824-3col-v1">
-    <link rel="stylesheet" href="app/features/home-rows/home-rows.css?v=20260824-3col-v1">
+    <link rel="stylesheet" href="mypick.css?v=20260822-recommendation-v2">
+    <link rel="stylesheet" href="bellore-redesign.css?v=20260826-expert-status-v1">
+    <link rel="stylesheet" href="app/features/home-banners/home-banners.css?v=20260826-hero-collections-v1">
+    <link rel="stylesheet" href="app/features/home-rows/home-rows.css?v=20260826-card-price-lock-v1">
+    <link rel="stylesheet" href="app/features/sell-method/sell-method.css?v=20260826-sell-method-v12">
 
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
@@ -88,23 +89,29 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "Organization",
+      "@type": ["Store", "LocalBusiness"],
       "name": "벨로르 BELLORE",
       "description": "롤렉스·파텍필립·오데마피게 등 명품시계 최고가 매입·판매·수리 전문. 실시간 비교견적, 24시간 연중무휴 상담.",
       "url": "https://bellore.co.kr/",
       "image": "https://bellore.co.kr/assets/og-image.png",
       "logo": "https://bellore.co.kr/assets/icons/icon-512.png",
       "telephone": "+82-10-6293-6668",
+      "priceRange": "₩₩₩",
       "foundingDate": "2008",
       "areaServed": "KR",
       "currenciesAccepted": "KRW",
       "address": {
         "@type": "PostalAddress",
-        "streetAddress": "다산로 258",
         "addressCountry": "KR",
         "addressRegion": "서울특별시",
-        "addressLocality": "중구"
+        "addressLocality": "종로구"
       },
+      "openingHoursSpecification": [{
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday"],
+        "opens": "11:00",
+        "closes": "19:00"
+      }],
       "sameAs": [
         "https://pf.kakao.com/_Uzxixen",
         "https://open.kakao.com/o/sMuCaAFh"
@@ -158,7 +165,7 @@
           "name": "지방에서도 매입이 가능한가요?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "전국 어디서나 상담할 수 있습니다. 상품과 지역을 확인한 뒤 안전 배송, 방문 상담 등 가능한 거래 방식을 안내합니다."
+            "text": "전국 어디서나 가능합니다. 종로·강남·청담 직영점 방문 외에도 안전 택배 매입, VIP 컨시어지(전문 감정사 방문) 서비스를 제공합니다."
           }
         },
         {
@@ -228,12 +235,8 @@
                         <div class="hero-image"></div>
                         <div class="hero-gradient"></div>
                         <div class="container hero-content">
-                            <p class="hero-eyebrow anim-line">BELLORE · 공식 직영점</p>
-                            <h1 class="hero-title">
-                                <span class="anim-line">명품시계</span>
-                                <span class="anim-line"><span class="hl-green">구입 · 판매 · 수리</span>까지</span>
-                                <span class="anim-line">한번에 진행하세요</span>
-                            </h1>
+                            <p class="hero-eyebrow anim-line" id="heroSloganSub">검수 사진 · 구성품 · 가격까지 한눈에</p>
+                            <h1 class="hero-title anim-line" id="heroSloganTitle">실물 그대로 보고<br>고르는 명품시계</h1>
                             <div class="hero-cta hero-cta-3 anim-line">
                                 <a href="#buy" class="btn btn-primary" data-nav="buy" data-analytics-id="hero_buy_watch">시계 구입</a>
                                 <a href="#repair" class="btn btn-primary" data-nav="repair" data-analytics-id="hero_repair_watch">시계 수리</a>
@@ -251,22 +254,23 @@
                 <button class="hero-manage-btn" id="heroManageBtn" type="button" hidden>＋ 배너 관리</button>
             </section>
 
-
             <section class="hrow-block" id="rowSaleBlock" hidden></section>
             <section class="hrow-block" id="rowDropBlock" hidden></section>
             <section class="bn-block" id="catBannerBlock"></section>
             <section class="hrow-block" id="rowNewBlock" hidden></section>
-            <!-- 판매중인 시계 (2열 그리드) -->
+            <section class="bn-block" id="buyBannerBlock"></section>
+
+            <!-- 추천 매물 (2열 · 최대 6줄) -->
             <section class="section" id="homeOnSale">
                 <div class="container">
-                    <div class="hrow-head"><h2 class="hrow-title">추천 매물</h2><span class="hrow-more" aria-hidden="true">›</span></div>
+                    <div class="hrow-head"><h2 class="hrow-title">추천 매물</h2></div>
                     <div class="home-sale-grid" aria-live="polite"></div>
-                    <div style="text-align:right;margin-top:12px">
-                        <a href="#collection" class="home-sale-more" data-nav="collection">전체 보기 →</a>
+                    <section class="bn-block" id="featBannerBlock" hidden></section>
+                    <div class="home-sale-footer">
+                        <a href="#collection" class="home-sale-more" data-nav="collection">추천 매물 더보기</a>
                     </div>
                 </div>
             </section>
-            <section class="bn-block" id="buyBannerBlock"></section>
         </section>
 
         <!-- ========== 판매 폼 ========== -->
@@ -478,46 +482,40 @@
             </section>
         </section>
 
-        <!-- ========== 비교견적 (NEW) ========== -->
+        <!-- ========== 판매방식별 시계 정보 입력 ========== -->
         <section class="page page-compare" id="compare">
-            <section class="compare-entry">
+            <section class="section section-soft compare-form-top sell-intake">
                 <div class="container">
-                    <div class="compare-entry-card">
-                        <p class="compare-entry-kicker">SELL MY WATCH</p>
-                        <h1>내 시계,<br>가장 좋은 조건으로 판매하세요</h1>
-                        <p>간단한 질문에 답하면 검증된 전문업체의 견적을 한곳에서 비교할 수 있습니다.</p>
-                        <button type="button" class="compare-entry-cta" data-cqd-open data-cqd-screen="c-new">
-                            내 시계 판매하러 가기 <span aria-hidden="true">→</span>
-                        </button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- 1) 랜딩페이지 (매입 안내) — 최상단 -->
-            <section class="section compare-landing-soon compare-top-pad" hidden>
-                <div class="container">
-                    <div class="wanted-page-intro wanted-page-intro--compare">
-                        <span class="wanted-page-kicker">시계판매 · 비교견적</span>
-                        <h1>한 번의 등록으로<br>최고가를 비교하세요</h1>
-                        <p>사진과 모델 정보만 등록하면 검증된 파트너의 견적을 한곳에서 확인할 수 있습니다.</p>
-                    </div>
-                    <div class="cms-block" data-cms="compare_landing" data-cms-label="매입 안내 페이지"
-                         data-cms-fallback-mode="images"
-                         data-cms-fallback-title="매입 안내 페이지 준비중"
-                         data-cms-fallback-body="매입 절차 · 실제 후기 · 제휴처 안내를 담은 상세 페이지를 곧 선보일 예정입니다."></div>
-                </div>
-            </section>
-
-            <!-- 2) 비교견적 등록 폼 (입력폼) -->
-            <section class="section section-soft compare-form-top" hidden>
-                <div class="container">
-                    <div class="compare-form-hero">
-                        <p class="eyebrow center">REQUEST QUOTE</p>
-                        <h2 class="section-title center">내 시계 <span class="g">비교견적</span> 신청</h2>
-                        <p class="lead center">시계 사진과 간단한 정보만 입력하면 여러 전문업체가 자동 입찰</p>
+                    <div class="sell-intake__hero" id="sellFormHero" data-method="compare">
+                        <img id="sellFormImage" src="시계판매 이미지/비교견적.png" alt="" aria-hidden="true">
+                        <div>
+                            <p class="sell-intake__eyebrow" id="sellFormEyebrow">72시간 파트너 입찰</p>
+                            <h1 id="sellFormTitle">비교견적 신청</h1>
+                            <p id="sellFormDescription">시계 정보를 한 번만 등록하면 벨로르 제휴사들의 견적을 비교하고 원하는 금액을 선택할 수 있습니다.</p>
+                        </div>
                     </div>
 
                     <form class="compare-form" id="compareForm">
+                        <input type="hidden" name="sale_method" id="saleMethodInput" value="compare">
+                        <input type="hidden" name="guide_parts_warranty" value="">
+                        <input type="hidden" name="guide_parts_box" value="">
+                        <input type="hidden" name="guide_parts_manual" value="">
+                        <input type="hidden" name="guide_parts_extra-link" value="">
+                        <input type="hidden" name="guide_parts_tag" value="">
+                        <input type="hidden" name="guide_parts_receipt" value="">
+                        <section class="sell-photo-guide" aria-labelledby="sellPhotoGuideTitle">
+                            <p class="sell-guide__progress">사진 촬영 안내</p>
+                            <h2 id="sellPhotoGuideTitle">아래 각도로 촬영해주세요</h2>
+                            <p>예시를 옆으로 넘겨 확인한 뒤 사진을 추가해주세요.</p>
+                            <div class="sell-photo-guide__rail">
+                                <figure><img src="assets/cq-guide/front.jpg" alt="시계 정면 촬영 예시"><figcaption>정면</figcaption></figure>
+                                <figure><img src="assets/cq-guide/back.jpg" alt="시계 뒷면 촬영 예시"><figcaption>뒷면</figcaption></figure>
+                                <figure><img src="assets/cq-guide/left.jpg" alt="시계 왼쪽 촬영 예시"><figcaption>왼쪽</figcaption></figure>
+                                <figure><img src="assets/cq-guide/right.jpg" alt="시계 오른쪽 촬영 예시"><figcaption>오른쪽</figcaption></figure>
+                                <figure><img src="assets/cq-guide/clasp.jpg" alt="시계 버클 촬영 예시"><figcaption>버클</figcaption></figure>
+                                <figure><img src="assets/cq-guide/parts.jpg" alt="시계 구성품 촬영 예시"><figcaption>구성품</figcaption></figure>
+                            </div>
+                        </section>
                         <!-- 사진 업로드 -->
                         <div class="upload-block">
                             <label class="upload-label">시계 사진 *</label>
@@ -532,7 +530,7 @@
                         </div>
 
                         <!-- 시계 정보 (2단 정렬) -->
-                        <div class="form-block">
+                        <div class="form-block" id="sellWatchInfoBlock">
                             <div class="form-row2">
                                 <label>브랜드 *
                                     <select name="brand" required>
@@ -556,22 +554,29 @@
                                 <label>레퍼런스
                                     <input type="text" name="ref" placeholder="예: 126610LN">
                                 </label>
-                                <label>구입 시기
-                                    <input type="text" name="year" placeholder="예: 2023년 1월">
+                                <label>스탬핑/연식
+                                    <input type="text" name="year" placeholder="예: 2023년 또는 잘 모름">
                                 </label>
                             </div>
                         </div>
 
+                        <div class="form-block sell-method-field" id="consignmentPriceField" hidden>
+                            <label>희망 판매금액 *
+                                <input type="text" name="desired_price" id="desiredPriceInput" inputmode="numeric" placeholder="예: 25,000,000원">
+                            </label>
+                            <p class="form-note">원하시는 판매금액을 기준으로 벨로르가 판매 전 과정을 진행합니다.</p>
+                        </div>
+
                         <!-- 구성품 (박스 클릭 · 중복 선택) -->
-                        <div class="form-block">
+                        <div class="form-block" id="sellPartsBlock">
                             <label class="block-label">구성품 <small>해당 항목을 모두 선택</small></label>
                             <div class="parts-boxes">
-                                <label class="part-box"><input type="checkbox" name="parts" value="warranty"><span class="pb-ic">📄</span><span class="pb-txt">보증서</span></label>
-                                <label class="part-box"><input type="checkbox" name="parts" value="box"><span class="pb-ic">📦</span><span class="pb-txt">정품 박스</span></label>
-                                <label class="part-box"><input type="checkbox" name="parts" value="manual"><span class="pb-ic">📖</span><span class="pb-txt">설명서/책자</span></label>
-                                <label class="part-box"><input type="checkbox" name="parts" value="extra-link"><span class="pb-ic">🔗</span><span class="pb-txt">추가 링크</span></label>
-                                <label class="part-box"><input type="checkbox" name="parts" value="tag"><span class="pb-ic">🏷️</span><span class="pb-txt">정품 택</span></label>
-                                <label class="part-box"><input type="checkbox" name="parts" value="receipt"><span class="pb-ic">🧾</span><span class="pb-txt">구매 영수증</span></label>
+                                <label class="part-box"><input type="checkbox" name="parts" value="warranty"><span class="pb-ic"><img src="구성품 이미지/ChatGPT Image 2026년 8월 26일 오전 11_18_56 (1).png" alt=""></span><span class="pb-txt">보증서</span></label>
+                                <label class="part-box"><input type="checkbox" name="parts" value="box"><span class="pb-ic"><img src="구성품 이미지/ChatGPT Image 2026년 8월 26일 오전 11_18_57 (3).png" alt=""></span><span class="pb-txt">정품 박스</span></label>
+                                <label class="part-box"><input type="checkbox" name="parts" value="manual"><span class="pb-ic"><img src="구성품 이미지/ChatGPT Image 2026년 8월 26일 오전 11_18_57 (5).png" alt=""></span><span class="pb-txt">설명서/책자</span></label>
+                                <label class="part-box"><input type="checkbox" name="parts" value="extra-link"><span class="pb-ic"><img src="구성품 이미지/ChatGPT Image 2026년 8월 26일 오전 11_18_56 (2).png" alt=""></span><span class="pb-txt">추가 링크</span></label>
+                                <label class="part-box"><input type="checkbox" name="parts" value="tag"><span class="pb-ic"><img src="구성품 이미지/ChatGPT Image 2026년 8월 26일 오전 11_18_57 (4).png" alt=""></span><span class="pb-txt">정품 택</span></label>
+                                <label class="part-box"><input type="checkbox" name="parts" value="receipt"><span class="pb-ic"><img src="구성품 이미지/ChatGPT Image 2026년 8월 26일 오전 11_18_58 (6).png" alt=""></span><span class="pb-txt">구매 영수증</span></label>
                             </div>
                         </div>
 
@@ -594,8 +599,8 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="btn btn-primary btn-full" data-analytics-id="quote_submit">비교견적 신청하기</button>
-                        <p class="form-note">* 등록 후 정가품 구별 및 감정 승인 절차가 진행됩니다.</p>
+                        <button type="submit" class="btn btn-primary btn-full" id="sellFormSubmit" data-analytics-id="quote_submit">비교견적 신청하기</button>
+                        <p class="form-note" id="sellFormNote">* 등록 후 정가품 구별 및 감정 승인 절차가 진행됩니다.</p>
                     </form>
                 </div>
             </section>
@@ -1643,7 +1648,7 @@
             </div>
 
             <div class="footer-legal-row">
-                <a href="https://bellore.co.kr/market/" class="footer-legal-link">전체 매물</a><span class="footer-legal-sep">·</span><button type="button" class="footer-legal-link" data-legal-open="terms">이용약관</button>
+                <button type="button" class="footer-legal-link" data-legal-open="terms">이용약관</button>
                 <span class="footer-legal-sep">·</span>
                 <button type="button" class="footer-legal-link strong" data-legal-open="privacy">개인정보처리방침</button>
                 <span class="footer-legal-sep">·</span>
@@ -1759,11 +1764,14 @@
           <p>이용자가 선택 동의한 경우에만 임의로 생성한 익명 방문자 ID, 30분 비활동 기준 세션 ID, 회원 여부(회원은 내부 회원 식별값), 화면·승인된 버튼·전화 링크 클릭, 상품 조회, 구매 전환, UTM 캠페인 값, 광고 클릭 식별자, 외부 유입 도메인 및 접속 IP의 가명정보를 서비스 개선·부정이용 방지·광고 성과 측정에 이용합니다. 접속 IP 원문은 저장하지 않고 서버에서 비밀키 HMAC 식별값과 마스킹 네트워크(IPv4 /24, IPv6 /56)로 즉시 변환합니다. 이름·연락처·폼 입력값·전체 URL·전화번호 원문은 분석 이벤트에 저장하지 않습니다. Google Ads와 Naver WCS는 광고 성과 측정에 동의한 뒤에만 로드됩니다. 서버 원시 이벤트·가명 IP·광고 클릭 식별자는 90일, 개인을 식별하지 않는 집계 지표는 730일 보관한 뒤 자동 삭제합니다. 동의를 철회하면 이후 수집을 중단하고 브라우저의 분석 식별자와 대기 이벤트를 삭제합니다.</p>
           <p>선택 동의 여부와 관계없이 서비스 운영 현황을 확인하기 위해 동의·비동의 및 회원·비회원 구분별 일별 방문 횟수를 숫자로만 합산합니다. 비동의 방문에는 사용자 ID, IP 주소·가명 IP, 세션 ID, 방문 화면, 상품 조회나 클릭 행동을 저장하지 않으며 개인별 기록으로 복원할 수 없습니다.</p>
           <p><button type="button" class="co-inline-link" data-analytics-settings>활동·광고 분석 설정 변경</button></p>
+          <h4>5-2. 선택적 맞춤 추천과 프로파일링</h4>
+          <p>로그인 이용자가 AI 시계비서에서 별도로 선택 동의한 경우에만 사이트 안에서 입력한 대화, 상품 조회, 찜·찜 해제, 장바구니 담기·제거, 문의·결제 진입·구매 완료, 추천 노출·클릭 이력을 관심 상품과 구매의도 지수를 계산하고 상품을 추천하는 데 이용합니다. 이 지수와 추천 점수는 통계적으로 보정된 구매확률이 아니며, 계정 이용 제한, 구매 가능 여부, 상품 가격·할인율 또는 회원등급을 다르게 정하는 데 사용하지 않습니다. 다른 회사의 웹·앱 행동, IP 주소, 성별, 소득·자산 또는 민감정보를 맞춤 추천에 결합하거나 추론하지 않습니다.</p>
+          <p>원시 대화·행동·추천 노출 기록은 수집일부터 90일간 보관한 뒤 삭제합니다. 파생된 관심 브랜드·모델·예산 정보는 동의 철회 또는 회원 탈퇴 시까지 보관합니다. 이용자는 AI 시계비서의 ‘내 취향 분석 → 맞춤 추천 끄기·추천 기록 초기화’에서 이후 수집을 중단하고 저장된 추천 기록과 파생 취향을 삭제할 수 있습니다. 동의하지 않거나 철회한 경우 개인별 행동을 저장하지 않고 판매 가능한 상품의 정보 충실도와 목록 다양성만으로 비개인화 추천을 제공하며, 일반 상품 탐색과 구매에는 제한이 없습니다. 혜택·입고 광고 수신 동의는 맞춤 추천 동의와 별도로 선택합니다.</p>
           <h4>6. 개인정보의 안전성 확보 조치</h4>
           <p>회사는 비밀번호 암호화, 접근권한 관리, 전송구간 암호화(SSL) 등 개인정보 보호를 위한 기술적·관리적 조치를 시행합니다.</p>
           <h4>7. 개인정보 보호책임자</h4>
           <p>성명: 정성호 · 연락처: 010-6293-6668 · 이메일: bellorekr@gmail.com</p>
-          <p class="legal-meta">시행일자: 2026년 8월 10일 · 벨로르</p>
+          <p class="legal-meta">시행일자: 2026년 8월 22일 · 벨로르</p>
         </div>
       </div>
     </div>
@@ -1821,7 +1829,8 @@
       </div>
     </div>
 
-    <script type="module" src="app/bootstrap.js?v=20260824-insf-v1"></script>
+    <script type="module" src="app/bootstrap.js?v=20260826-copy-cleanup-card-clean-v2"></script>
+    <script type="module" src="app/features/sell-method/sell-method.js?v=20260826-sell-method-v16"></script>
 
     <!-- PWA 설치 모달 -->
     <div id="pwaInstallModal" hidden aria-modal="true" role="dialog">
@@ -2484,8 +2493,6 @@
                 <h3 class="pp-sec-title">상품 정보</h3>
                 <div class="pp-kv" id="pmSpec"></div>
 
-                <p class="pp-subh">소재 · 기능</p>
-                <ul class="pp-speclist" id="pmFacts"></ul>
 
                 <p class="pp-subh" id="pmStateHead">상태</p>
                 <ul class="pp-speclist" id="pmStateList"></ul>
@@ -3169,6 +3176,100 @@
         </div>
     </div>
 
+    <div class="sell-method" id="sellMethodSheet" hidden>
+        <button type="button" class="sell-method__backdrop" data-sell-method-close aria-label="판매 방식 선택 닫기"></button>
+        <section class="sell-method__sheet" role="dialog" aria-modal="true" aria-labelledby="sellMethodTitle" tabindex="-1">
+            <div class="sell-method__handle" aria-hidden="true"></div>
+            <div class="sell-method__chooser" data-sell-view="chooser">
+                <header class="sell-method__header">
+                    <h2 id="sellMethodTitle">판매방식을 선택해주세요.</h2>
+                </header>
+                <button type="button" class="sell-method__resume" id="sellMethodResume" hidden>
+                    <span><strong id="sellMethodResumeTitle">작성 중인 양식 이어쓰기</strong><small id="sellMethodResumeTime"></small></span>
+                    <span aria-hidden="true">→</span>
+                </button>
+                <div class="sell-method__grid">
+                    <button type="button" class="sell-method__card sell-method__card--compare" data-sell-method="compare">
+                        <strong>비교견적</strong>
+                        <span class="sell-method__copy">벨로르 제휴사들이 최대 72시간 동안 입찰하고<br>제안받은 견적 중 원하는 금액을 선택합니다.</span>
+                        <span class="sell-method__visual" aria-hidden="true"><img src="시계판매 이미지/비교견적.png" alt=""></span>
+                    </button>
+                    <button type="button" class="sell-method__card sell-method__card--consignment" data-sell-method="consignment">
+                        <strong>위탁판매</strong>
+                        <span class="sell-method__copy">희망하시는 판매 금액을 직접 정해 맡기면<br>벨로르가 판매까지 전 과정을 진행합니다.</span>
+                        <span class="sell-method__visual" aria-hidden="true"><img src="시계판매 이미지/위탁판매.png" alt=""></span>
+                    </button>
+                    <button type="button" class="sell-method__instant" data-sell-method="instant">
+                        <span class="sell-method__instant-visual" aria-hidden="true"><img src="시계판매 이미지/즉시매입.png" alt=""></span>
+                        <span class="sell-method__instant-copy"><strong>즉시매입</strong></span>
+                    </button>
+                </div>
+            </div>
+            <div class="sell-method__form-view" data-sell-view="form" hidden>
+                <div class="sell-method__form-toolbar">
+                    <button type="button" data-sell-form-back aria-label="판매방식 선택으로 돌아가기">←</button>
+                    <span><strong id="sellDraftTitle">시계판매 양식</strong><small id="sellDraftStatus">입력 내용 자동 저장</small></span>
+                    <button type="button" class="sell-method__direct-entry" id="sellDirectEntry">직접입력</button>
+                </div>
+                <div class="sell-guide" id="sellGuidedFlow">
+                    <section class="sell-guide__step" id="sellGuideIdentity">
+                        <p class="sell-guide__progress">STEP 1</p>
+                        <h2>브랜드와 모델명을 알려주세요</h2>
+                        <p class="sell-guide__lead">직접 입력하거나 아래 미리보기에서 선택할 수 있습니다.</p>
+                        <label class="sell-guide__field">브랜드
+                            <input type="search" id="sellGuideBrandInput" placeholder="예: 롤렉스 또는 ROLEX" autocomplete="off">
+                        </label>
+                        <div class="sell-guide__suggestions" id="sellGuideBrandSuggestions" aria-live="polite"></div>
+                        <div class="sell-guide__model" id="sellGuideModelGroup" hidden>
+                            <label class="sell-guide__field">모델명
+                                <input type="search" id="sellGuideModelInput" placeholder="예: 서브마리너 126610LN" autocomplete="off">
+                            </label>
+                            <div class="sell-guide__suggestions sell-guide__suggestions--models" id="sellGuideModelSuggestions" aria-live="polite"></div>
+                        </div>
+                        <button type="button" class="sell-guide__next" id="sellGuideNext" disabled>다음</button>
+                    </section>
+                    <section class="sell-guide__step" id="sellGuideDetails" hidden>
+                        <div class="sell-guide__question-top"><p class="sell-guide__progress">STEP 2</p><button type="button" id="sellGuideDetailsBack">이전</button></div>
+                        <h2>레퍼런스와 연식을 알려주세요</h2>
+                        <p class="sell-guide__lead">직접 입력하거나 아래 항목을 스크롤해 선택할 수 있습니다.</p>
+                        <label class="sell-guide__field">레퍼런스
+                            <input type="search" id="sellGuideRefInput" placeholder="예: 126610LN" autocomplete="off">
+                        </label>
+                        <div class="sell-guide__quick-actions" id="sellGuideRefSuggestions">
+                            <button type="button" data-guide-ref="잘 모름">레퍼런스를 잘 모르겠어요</button>
+                        </div>
+                        <label class="sell-guide__field">스탬핑/연식
+                            <input type="search" id="sellGuideYearInput" placeholder="예: 2023년" autocomplete="off">
+                        </label>
+                        <div class="sell-guide__suggestions sell-guide__suggestions--years" id="sellGuideYearSuggestions" aria-live="polite"></div>
+                        <button type="button" class="sell-guide__next" id="sellGuideDetailsNext">구성품 확인하기</button>
+                    </section>
+                    <section class="sell-guide__step sell-guide__question" id="sellGuideQuestion" hidden>
+                        <div class="sell-guide__question-top"><p class="sell-guide__progress" id="sellGuideQuestionProgress">구성품 1 / 6</p><button type="button" id="sellGuideQuestionBack">이전</button></div>
+                        <div class="sell-guide__question-visual"><img id="sellGuideQuestionImage" src="" alt=""></div>
+                        <h2 id="sellGuideQuestionTitle">보증서가 있나요?</h2>
+                        <p class="sell-guide__lead">잘 모르셔도 괜찮습니다. 가장 가까운 답을 선택해주세요.</p>
+                        <div class="sell-guide__answers">
+                            <button type="button" data-guide-answer="yes">네, 있어요</button>
+                            <button type="button" data-guide-answer="no">아니요, 없어요</button>
+                            <button type="button" data-guide-answer="unknown">잘 모르겠어요</button>
+                        </div>
+                    </section>
+                </div>
+                <div class="sell-method__form-mount" id="sellMethodFormMount"></div>
+            </div>
+            <div class="sell-method__leave-view" data-sell-view="leave" hidden>
+                <div class="sell-method__leave-icon" aria-hidden="true">✓</div>
+                <h2>작성 중인 양식을 나갈까요?</h2>
+                <p>입력 내용은 자동 저장되어 있습니다.<br>다시 시계판매를 열면 지금 작성하던 내용부터 이어갈 수 있습니다.</p>
+                <div class="sell-method__leave-actions">
+                    <button type="button" class="sell-method__leave-cancel" data-sell-leave-cancel>계속 작성하기</button>
+                    <button type="button" class="sell-method__leave-confirm" data-sell-leave-confirm>저장하고 나가기</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
     <nav class="tabbar">
         <button class="tab-item active" data-nav="home">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12L12 3l9 9"/><path d="M5 10v10h14V10"/></svg>
@@ -3185,7 +3286,7 @@
             </span>
             <span>보관함</span>
         </button>
-        <button class="tab-item" data-nav="compare">
+        <button class="tab-item" type="button" data-sell-method-open aria-haspopup="dialog" aria-controls="sellMethodSheet">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="12" r="5"/><path d="M7.5 7.3 7 4h7l-.5 3.3M7.5 16.7 7 20h7l-.5-3.3"/><path d="M10.5 12V9.6M10.5 12h2"/><path d="M19 15.5v-6m0 0-1.9 1.9M19 9.5l1.9 1.9"/></svg>
             <span>시계판매</span>
         </button>
@@ -3206,19 +3307,20 @@
     <script src="supabase.js?v=20260821-product-detail-v1"></script>
     <script src="bellore-features.js?v=20260821-product-detail-v1"></script>
     <script src="cq-demo.js?v=20260810-bid-notify-fix"></script>
-    <script src="script.js?v=20260824-insf-v1"></script>
-    <script src="wishlist.js?v=20260820-wish-v2"></script>
+    <script src="script.js?v=20260826-expert-status-card-clean-v2"></script>
+    <script src="recommendation-engine.js?v=20260822-recommendation-v2"></script>
+    <script src="wishlist.js?v=20260822-recommendation-v2"></script>
     <script src="alerts.js?v=20260820-tabs-alerts-v1"></script>
     <script src="auction.js"></script>
     <script src="search.js?v=20260818-search-redesign-v2"></script>
-    <script src="ai-advisor.js?v=20260814-kg-card-review"></script>
-    <script src="ai-advisor-admin.js?v=20260725-ai-log"></script>
-    <script src="payments.js?v=20260814-buyer-email-input"></script>
+    <script src="ai-advisor.js?v=20260822-recommendation-v2"></script>
+    <script src="ai-advisor-admin.js?v=20260822-intent-index-v2"></script>
+    <script src="payments.js?v=20260822-recommendation-outcome-v2"></script>
     <script src="naverpay.js?v=20260728-naver-review-fixes-2"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('sw.js?v=20260824-insf-v1').catch(function (err) {
+                navigator.serviceWorker.register('sw.js?v=20260826-expert-status-banners-v1').catch(function (err) {
                     console.warn('서비스워커 등록 실패:', err);
                 });
             });
@@ -3266,6 +3368,47 @@
             /* ---- 필터 상태 ---- */
             var fBrand = 'all', fModel = '', fQuery = '', fNew = false, fGrade = '', fSort = 'latest';
             var cf = { sizeMin: null, sizeMax: null, priceMin: null, priceMax: null, yearMin: null, yearMax: null, warranty: '', diamond: '', colors: [], materials: [], grades: [] };
+            var PAGE_SIZE = 10, visibleLimit = PAGE_SIZE, matchedTotal = 0, pageLoadLocked = false, pageUnlockTimer = 0;
+            var pageSentinel = document.createElement('div');
+            pageSentinel.id = 'catPageSentinel';
+            pageSentinel.className = 'cat-page-sentinel';
+            pageSentinel.setAttribute('aria-live', 'polite');
+            pageSentinel.style.cssText = 'padding:28px 16px 34px;text-align:center;color:#8d8b86;font-size:13px;letter-spacing:-.2px;';
+            pageSentinel.hidden = true;
+            grid.parentNode.insertBefore(pageSentinel, grid.nextSibling);
+
+            function paintPage() {
+                var matched = [];
+                grid.querySelectorAll('.hcard').forEach(function (c) {
+                    var ok = c.dataset.colMatch === '1';
+                    if (ok) matched.push(c);
+                    c.style.display = ok && matched.length <= visibleLimit ? '' : 'none';
+                });
+                matchedTotal = matched.length;
+                if (countEl) countEl.textContent = matchedTotal;
+                pageSentinel.hidden = matchedTotal === 0 || visibleLimit >= matchedTotal;
+                pageSentinel.textContent = pageSentinel.hidden ? '' :
+                    Math.min(visibleLimit, matchedTotal).toLocaleString('ko-KR') + ' / ' + matchedTotal.toLocaleString('ko-KR') + '개 · 아래로 내려 더 보기';
+            }
+
+            function showNextPage() {
+                if (pageLoadLocked || visibleLimit >= matchedTotal) return;
+                pageLoadLocked = true;
+                visibleLimit += PAGE_SIZE;
+                paintPage();
+            }
+
+            function finishPageScroll() {
+                pageLoadLocked = false;
+                if (!pageSentinel.hidden && pageSentinel.getBoundingClientRect().top < window.innerHeight + 120) showNextPage();
+            }
+            window.addEventListener('scroll', function () {
+                if (!('onscrollend' in window)) {
+                    clearTimeout(pageUnlockTimer);
+                    pageUnlockTimer = setTimeout(finishPageScroll, 250);
+                }
+            }, { passive: true });
+            if ('onscrollend' in window) window.addEventListener('scrollend', finishPageScroll);
 
             function matchCard(c) {
                 var el = c.querySelector('.hcard-brand');
@@ -3312,17 +3455,30 @@
                 else cards.sort(function (a, b) { return createdMs(b) - createdMs(a); }); // latest / popular(데이터 없어 최신순)
                 cards.forEach(function (c) { grid.appendChild(c); });
             }
-            function applyFilters() {
+            function applyFilters(keepPage) {
                 if (window.BELLORE_hideSearchEmpty) window.BELLORE_hideSearchEmpty();
                 var shown = 0;
-                grid.querySelectorAll('.hcard').forEach(function (c) { var ok = matchCard(c); c.style.display = ok ? '' : 'none'; if (ok) shown++; });
+                grid.querySelectorAll('.hcard').forEach(function (c) { var ok = matchCard(c); c.dataset.colMatch = ok ? '1' : '0'; if (ok) shown++; });
                 sortCards();
-                if (countEl) countEl.textContent = shown;
+                if (!keepPage) { visibleLimit = PAGE_SIZE; pageLoadLocked = false; }
+                paintPage();
                 if (shown === 0 && (fQuery || (fBrand && fBrand !== 'all') || fModel) && window.BELLORE_showCollectionEmpty) {
                     window.BELLORE_showCollectionEmpty(fBrand, fModel || fQuery, '');
                 }
             }
             window.BELLORE_applyColFilters = applyFilters;
+            window.BELLORE_paginateSearchCards = function (cards) {
+                var selected = cards || [];
+                var selectedSet = typeof Set === 'function' ? new Set(selected) : null;
+                grid.querySelectorAll('.hcard').forEach(function (c) {
+                    var ok = selectedSet ? selectedSet.has(c) : selected.indexOf(c) !== -1;
+                    c.dataset.colMatch = ok ? '1' : '0';
+                });
+                visibleLimit = PAGE_SIZE;
+                pageLoadLocked = false;
+                paintPage();
+                return matchedTotal;
+            };
 
             /* ---- 브랜드 원형 ---- */
             brands.forEach(function (btn) {
@@ -3523,7 +3679,7 @@
             /* ---- 액션: 인기검색어(위 IIFE에서 바인딩) / 내시계팔기 / 필터검색 ---- */
             var sBtn = document.getElementById('catSellMine');
             if (sBtn) sBtn.addEventListener('click', function () {
-                var nav = document.querySelector('.tab-item[data-nav="compare"]') || document.querySelector('[data-nav="compare"]');
+                var nav = document.querySelector('.tab-item[data-sell-method-open]') || document.querySelector('[data-sell-method-open]');
                 if (nav) nav.click(); else location.hash = '#compare';
             });
             var fBtn = document.getElementById('catFilterOpen');

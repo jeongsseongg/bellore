@@ -39,6 +39,8 @@
         initRouter();
         initCollectionTabs();
         initFilterChips();
+        initInsightFilter();
+        initInsightModal();
         initPhotoUpload();
         initCompareForm();
         initSellBuyRepairForms();
@@ -53,6 +55,7 @@
         initPartnerModal();
         initInquiryModal();
         initReveal();
+        initParallax();
         initCoupons();
         initOrderUI();
         initAdminOrderUI();
@@ -109,7 +112,7 @@
         function prev() { go(index - 1); }
         function restartAuto() {
             if (autoTimer) clearInterval(autoTimer);
-            if (slideEls().length > 1) autoTimer = setInterval(next, 6000);
+            if (slideEls().length > 1) autoTimer = setInterval(next, 15000);
         }
 
         if (prevBtn) prevBtn.addEventListener('click', prev);
@@ -192,16 +195,32 @@
 
         // DB 배너 주입 (bellore-features.js 가 호출)
         window.belloreSetBanners = function (list) {
+            var fallback = window.BELLORE_HOME_CAMPAIGNS || [];
+            var configured = !!(list && list.some(function (b) { return b && (b.link || b.title || b.subtitle); }));
+            if (!configured && fallback.length) list = fallback;
             $$('.hero-slide-db', track).forEach(function (n) { n.remove(); });
             var def = $('.hero-default', track);
             carousel.classList.toggle('has-db', !!(list && list.length));
             if (list && list.length) {
                 if (def) def.style.display = 'none';
                 list.forEach(function (b) {
-                    var slide = document.createElement(b.link ? 'a' : 'div');
-                    slide.className = 'hero-slide hero-slide-db';
+                    var slide = document.createElement(b.action ? 'button' : (b.link ? 'a' : 'div'));
+                    slide.className = 'hero-slide hero-slide-db' + (b.action ? ' is-campaign' : '') +
+                        (b.tone === 'dark' ? ' is-dark-copy' : '') + (b.align === 'right' ? ' is-copy-right' : '');
                     if (b.link) { slide.href = b.link; }
+                    if (b.action) {
+                        slide.type = 'button';
+                        slide.dataset.heroAction = b.action;
+                        slide.setAttribute('aria-label', (Array.isArray(b.title) ? b.title.join(' ') : b.title || '컬렉션') + ' 보기');
+                        slide.addEventListener('click', function (event) {
+                            if (typeof track._openHeroCampaign !== 'function') return;
+                            event.preventDefault();
+                            track._openHeroCampaign(b.action);
+                        });
+                    }
                     slide._banner = b;
+                    var bannerTitle = Array.isArray(b.title) ? b.title.map(escapeHtml).join('<br>') : escapeHtml(b.title || '');
+                    var bannerSub = b.subtitle || b.sub || '';
                     // 문구(제목/부제목)를 넣으면 기본 히어로와 동일한 중앙 정렬 스타일로 노출
                     slide.innerHTML =
                         '<div class="hero-slide-blur"></div>' +
@@ -213,9 +232,9 @@
                         '</div>' +
                         '<div class="hero-gradient"></div>' +
                         '<div class="container hero-content hero-slide-text">' +
-                        (b.title ? '<h2 class="hero-slide-title">' + escapeHtml(b.title) + '</h2>' : '') +
-                        (b.subtitle ? '<p class="hero-slide-sub">' + escapeHtml(b.subtitle) + '</p>' : '') +
-                        (b.link ? '<div class="hero-cta hero-slide-cta"><span class="btn btn-primary">자세히 보기</span></div>' : '') +
+                        (b.lead ? '<p class="hero-slide-lead">' + escapeHtml(b.lead) + '</p>' : '') +
+                        (bannerTitle ? '<h2 class="hero-slide-title">' + bannerTitle + '</h2>' : '') +
+                        (bannerSub ? '<p class="hero-slide-sub">' + escapeHtml(bannerSub) + '</p>' : '') +
                         '</div>';
                     applySlideBg(slide);
                     track.appendChild(slide);
@@ -3407,8 +3426,8 @@
 
         var btnPhoto = $('#btnPhotoAppraisal');
         if (btnPhoto) btnPhoto.addEventListener('click', function () {
-            navigate('compare');
-            setTimeout(function () { window.scrollTo({ top: 0, behavior: 'smooth' }); }, 100);
+            var sellTrigger = document.querySelector('[data-sell-method-open]');
+            if (sellTrigger) sellTrigger.click();
         });
 
         var btnOffline = $('#btnOfflineAppraisal');
@@ -3890,6 +3909,93 @@
         var model = String((it && it.model) || '').trim();
         return model.replace(/^\s*\[?중고\]?\s*/i, '');
     }
+    function knownListingValue(value) {
+        value = String(value == null ? '' : value).trim().replace(/\s+/g, ' ');
+        return value && value.indexOf('정보없음') === -1 ? value : '';
+    }
+    function listingMovement(value) {
+        value = knownListingValue(value);
+        if (!value) return '';
+        if (/^오토$|오토매틱|자동/.test(value)) return '오토매틱';
+        if (/쿼츠/.test(value)) return '쿼츠';
+        if (/수동/.test(value)) return '수동';
+        if (/스프링/.test(value)) return '스프링 드라이브';
+        return value;
+    }
+    function listingConditionText(value) {
+        return knownListingValue(value).replace(/^중고\s*/i, '').replace(/\s+/g, ' ').trim();
+    }
+    function listingAccessoryInfo(it) {
+        it = it || {};
+        var labels = { box: '박스', case: '케이스', card: '개런티카드', warranty: '보증서' };
+        var structured = String(it.components || '').split(/[,/·\n]/).map(function (v) {
+            return v.trim().toLowerCase();
+        }).filter(Boolean);
+        var freeText = [it.accessories, it.pack, it.set_grade].map(function (value) {
+            value = String(value == null ? '' : value).trim();
+            return value && value.indexOf('정보없음') === -1 ? value : '';
+        }).filter(Boolean).join(' · ');
+        var present = [];
+        Object.keys(labels).forEach(function (key) {
+            var rx = key === 'card' ? /개런티|게런티|보증카드/ : new RegExp(labels[key]);
+            if (structured.indexOf(key) !== -1 || rx.test(freeText)) present.push(labels[key]);
+        });
+        if (/풀세트|풀박스/.test(freeText)) {
+            ['박스', '케이스', '개런티카드', '보증서'].forEach(function (label) {
+                if (present.indexOf(label) === -1) present.push(label);
+            });
+        }
+        var warrantyIncluded = it.has_warranty === true || present.indexOf('보증서') !== -1;
+        var physical = present.filter(function (label) { return label !== '보증서'; });
+        var includedText = physical.length ? physical.join(' · ') + ' 포함' : '';
+        var warrantyText = warrantyIncluded ? '보증서 포함' :
+            ((physical.length || it.has_warranty === false) ? '보증서 미포함' : '보증서 확인 필요');
+        return {
+            state: {
+                box: present.indexOf('박스') !== -1,
+                case: present.indexOf('케이스') !== -1,
+                card: present.indexOf('개런티카드') !== -1,
+                warranty: warrantyIncluded
+            },
+            includedText: includedText,
+            warrantyText: warrantyText,
+            detailText: [includedText, warrantyText].filter(Boolean).join(' · ') || '구성품 확인 필요',
+            compactText: [physical.join('·'), warrantyIncluded ? '보증서' :
+                ((physical.length || it.has_warranty === false) ? '보증서 없음' : '')
+            ].filter(Boolean).join(' · ') || '구성품 확인 필요'
+        };
+    }
+    function listingCardText(it) {
+        var size = knownListingValue(it && it.size_mm).replace(/mm$/i, '');
+        var reference = knownListingValue(it && (it.reference_no || it.ref_id || it.ref));
+        var model = displayModelName(it);
+        var feature = '';
+        if (reference) {
+            var refIndex = model.toLowerCase().indexOf(reference.toLowerCase());
+            if (refIndex >= 0) {
+                feature = model.slice(refIndex + reference.length).trim();
+                model = model.slice(0, refIndex).trim();
+            }
+        }
+        if (size) {
+            var sizeRx = new RegExp('(^|\\s)' + size.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?:\\s*(?:mm|미리))?(?=$|\\s)', 'ig');
+            model = model.replace(sizeRx, ' ').replace(/\s+/g, ' ').trim();
+        }
+        model = model || '모델 확인 필요';
+        feature = feature.replace(/소재\s*기능|정보없음/g, '').replace(/\s+/g, ' ').trim();
+        return {
+            model: model,
+            modelSize: [model, size].filter(Boolean).join(' '),
+            reference: reference,
+            featureMovement: [feature, listingMovement(it && it.movement)].filter(Boolean).join(' · ')
+        };
+    }
+    function recommendedCardLinesHTML(it) {
+        var text = listingCardText(it);
+        return '<p class="hcard-model">' + esc(text.modelSize) + '</p>' +
+            (text.reference ? '<p class="hcard-ref">Ref. ' + esc(text.reference) + '</p>' : '') +
+            (text.featureMovement ? '<p class="hcard-pack">' + esc(text.featureMovement) + '</p>' : '');
+    }
     function brandModelLineHTML(it) {
         var line = (brandKR(it.brand) + ' ' + displayModelName(it)).trim();
         return '<p class="hcard-model">' + esc(line) + '</p>';
@@ -3919,7 +4025,7 @@
     function collectionConditionHTML(it) {
         return isNewItem(it) ? '<span class="hcard-condition">미착용</span>' : '';
     }
-    // 카드 하단 정보: 2줄 고정(구성품·등급 / 스탬핑·미리수). 값 없으면 '미표기'. (현재 목록 카드에는 미노출, 상세에서만 참고)
+    // 과거 관리용 배지 마크업. 현재 고객 카드는 recommendedCardLinesHTML만 사용한다.
     function cardBadgesHTML(it) {
         function v(x) {
             x = (x == null ? '' : String(x)).trim();
@@ -3986,12 +4092,14 @@
             card.dataset.model = it.model;
             card.dataset.price = it.price || 0;
             card.dataset.pack = it.pack || '';
+            card.dataset.setgrade = it.set_grade || '';
+            card.dataset.components = it.components || '';
+            card.dataset.accessories = it.accessories || '';
             card.dataset.size = it.size_mm || '';
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
-                brandModelLineHTML(it) +
-                specLineHTML(it) +
+                recommendedCardLinesHTML(it) +
                 '<p class="hcard-price">' + priceHtml + '</p>' +
                 usedStatusHTML(it) +
                 '<div class="hcard-admin">' +
@@ -4026,6 +4134,9 @@
             card.dataset.sprice = it.sale_price || '';
             card.dataset.saleactive = window.belloreSaleActive(it) ? '1' : '';
             card.dataset.pack = it.pack || '';
+            card.dataset.setgrade = it.set_grade || '';
+            card.dataset.components = it.components || '';
+            card.dataset.accessories = it.accessories || '';
             card.dataset.size = it.size_mm || '';
             card.dataset.color = it.dial_color || '';
             card.dataset.material = it.material || '';
@@ -4037,11 +4148,10 @@
             card.dataset.stampyear = stampYear(it.stamping);
             card.dataset.created = it.created_at ? (Date.parse(it.created_at) || 0) : 0;
             card.innerHTML =
-                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' +
+                '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="" loading="lazy">' +
                     collectionConditionHTML(it) + saleOverlayHTML(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
-                modelOnlyLineHTML(it) +
-                collectionSpecLineHTML(it) +
+                recommendedCardLinesHTML(it) +
                 '<p class="hcard-price">' + priceHtml + '</p>' +
                 '<div class="hcard-admin">' +
                 '<button type="button" class="hcard-gear" aria-label="설정"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1l2.1-2.1M17 7l2.1-2.1\"/></svg></button>' +
@@ -4052,6 +4162,8 @@
             frag.appendChild(card);
         });
         inner.insertBefore(frag, inner.firstChild);
+        // 검색/판매 목록은 첫 10개만 노출하고 스크롤 하단에서 다음 묶음을 연다.
+        if (window.BELLORE_applyColFilters) window.BELLORE_applyColFilters();
     }
 
     // 홈 '판매 중인 시계' 그리드 — DB 상품을 최신 등록순으로 최대 12개 노출.
@@ -4064,7 +4176,7 @@
         if (!rows || !rows.length) { statics.forEach(function (c) { c.style.display = ''; }); return; }
         statics.forEach(function (c) { c.style.display = 'none'; });
         var frag = document.createDocumentFragment();
-        rows.slice(0, 18).forEach(function (it) {
+        rows.slice(0, 12).forEach(function (it) {
             var priceHtml = priceHTML(it);
             var card = document.createElement('article');
             card.className = 'hcard hcard-dynamic';
@@ -4080,8 +4192,7 @@
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' +
                     collectionConditionHTML(it) + saleOverlayHTML(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
-                modelOnlyLineHTML(it) +
-                collectionSpecLineHTML(it) +
+                recommendedCardLinesHTML(it) +
                 '<p class="hcard-price">' + priceHtml + '</p>';
             frag.appendChild(card);
         });
@@ -4111,8 +4222,7 @@
             card.innerHTML =
                 '<div class="hcard-img"><img src="' + esc(listingImg(it)) + '" alt="">' + saleOverlayHTML(it) + '</div>' +
                 '<p class="hcard-brand">' + esc(brandEN(it.brand)) + '</p>' +
-                brandModelLineHTML(it) +
-                specLineHTML(it) +
+                recommendedCardLinesHTML(it) +
                 '<p class="hcard-price">' + priceHtml + '</p>' +
                 usedStatusHTML(it);
             frag.appendChild(card);
@@ -5066,7 +5176,7 @@
     }
 
     /* ============ 1. 라우팅 ============ */
-    var VALID = ['home', 'collection', 'compare', 'insight', 'brand', 'about', 'contact', 'buy', 'repair', 'cat-update', 'cat-sale', 'cat-new', 'cat-today', 'wishlist'];
+    var VALID = ['home', 'collection', 'insight', 'brand', 'about', 'contact', 'buy', 'repair', 'cat-update', 'cat-sale', 'cat-new', 'cat-today', 'wishlist'];
 
     // 하단 탭/네비게이션으로 이동하면 마이페이지 계열 풀스크린 오버레이를 모두 닫는다.
     // (마이페이지가 모달처럼 위에 남아 화면 이동이 안 되던 문제 해결 — X 없이 자연 이탈)
@@ -5116,7 +5226,7 @@
 
     function navigate(target) {
         if (!target) return;
-        if (target === 'sell') target = 'home';
+        if (target === 'sell' || target === 'compare') target = 'home';
         if (location.hash !== '#' + target) {
             history.pushState({ page: target }, '', '#' + target);
         }
@@ -5191,6 +5301,91 @@
         });
     }
 
+    /* ============ 5. 인사이트 카테고리 필터 ============ */
+    function initInsightFilter() {
+        var tabs = $$('.insight-tab');
+        var partnerGrid = $('#partnerGrid');
+
+        tabs.forEach(function (tab) {
+            tab.addEventListener('click', function () {
+                var cat = tab.dataset.cat;
+                // 동적으로 추가된 글/후기도 포함하도록 매 클릭 시 재조회
+                var rows = $$('.insight-row[data-cat]');
+                tabs.forEach(function (t) { t.classList.remove('active'); });
+                tab.classList.add('active');
+
+                if (cat === 'partner') {
+                    // 제휴처 탭: 제휴처 그리드만 표시, 글 리스트 숨김
+                    rows.forEach(function (row) { row.style.display = 'none'; });
+                    if (partnerGrid) partnerGrid.style.display = 'block';
+                } else {
+                    if (partnerGrid) partnerGrid.style.display = 'none';
+                    rows.forEach(function (row) {
+                        row.style.display = (cat === 'all' || row.dataset.cat === cat) ? '' : 'none';
+                    });
+                }
+            });
+        });
+    }
+
+    /* ============ 6. 인사이트 게시글 모달 ============ */
+    var DUMMY_BODIES = {
+        'price': '본 글에서는 최근 6개월간의 시세 흐름을 모델별로 분석합니다.\n\n주요 모델의 매입 시세는 글로벌 옥션 결과를 바탕으로 집계되었으며, 분기별 변동을 함께 살펴봅니다.\n\n향후 6개월간의 시세 전망과 함께, 매입을 고려하시는 분들이 참고하실 수 있는 핵심 포인트를 정리했습니다.',
+        'guide': '명품시계를 매입하실 때 매입가에 영향을 미치는 핵심 요소들을 알아봅니다.\n\n보증서, 박스, 풀세트 보관 상태, 컨디션, 진품 여부, 시리얼 번호 매칭 등 각 요소별로 매입가가 최대 30%까지 차이날 수 있으니 사전 체크가 중요합니다.\n\n40년 경력 감정사가 직접 알려드리는 실전 노하우를 정리했습니다.',
+        'brand': '브랜드의 역사와 함께 현재 매입 시장에서의 가치를 짚어봅니다.\n\n탄생 배경, 대표 모델, 시장에서의 위상까지 - 매입을 고려하시는 분이라면 알아두면 좋을 브랜드 정보를 깊이 있게 다룹니다.\n\n각 브랜드별 핵심 모델과 매입 시 평가 포인트를 함께 안내드립니다.',
+        'wiki': '시계의 무브먼트와 메커니즘에 대한 전문 지식을 정리합니다.\n\n칼럼 휠과 캠 방식의 차이, 인하우스 무브먼트와 외주 무브먼트, 매입 시 무브먼트 상태를 평가하는 방법까지.\n\n시계 애호가뿐 아니라 매입을 고려하시는 분도 꼭 알아야 할 기초 지식입니다.',
+        'review': '실제 고객님이 남겨주신 매입 후기입니다.\n\n벨로르를 선택하신 이유, 거래 진행 과정, 그리고 만족하셨던 부분들을 진솔하게 공유해주셨습니다.\n\n매입을 고려하시는 분들께 참고가 되었으면 좋겠습니다. 항상 신뢰로 보답하겠습니다.'
+    };
+
+    function initInsightModal() {
+        var modal = $('#postModal');
+        if (!modal) return;
+
+        document.addEventListener('click', function (e) {
+            var row = e.target.closest('.insight-row');
+            if (row) {
+                e.preventDefault();
+                openPost(row);
+                return;
+            }
+            if (e.target.closest('[data-close]')) {
+                e.preventDefault();
+                closePost();
+            }
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closePost();
+        });
+
+        function openPost(row) {
+            var imgEl = row.querySelector('img');
+            var titleEl = row.querySelector('h3');
+            var tagEl = row.querySelector('.tag-mini');
+            var metaEl = row.querySelector('.insight-meta');
+            var pEl = row.querySelector('p');
+            var cat = row.dataset.cat;
+
+            $('#postModalImg').src = imgEl ? imgEl.src : '';
+            $('#postModalTitle').textContent = titleEl ? titleEl.textContent : '';
+            $('#postModalTag').textContent = tagEl ? tagEl.textContent : '';
+            $('#postModalMeta').innerHTML = metaEl ? metaEl.innerHTML : '';
+
+            var body = row.dataset.body ? row.dataset.body : (DUMMY_BODIES[cat] || '본문 내용 준비 중입니다.');
+            var lead = pEl ? '<p><strong>' + esc(pEl.textContent) + '</strong></p>' : '';
+            var paragraphs = body.split('\n\n').map(function (t) { return '<p>' + esc(t).replace(/\n/g, '<br>') + '</p>'; }).join('');
+            $('#postModalText').innerHTML = lead + paragraphs;
+
+            modal.hidden = false;
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closePost() {
+            modal.hidden = true;
+            document.body.style.overflow = '';
+        }
+    }
+
     /* ============ 7. 사진 업로드 ============ */
     var uploadedPhotos = [];
 
@@ -5246,7 +5441,24 @@
             if (addCell) grid.insertBefore(cell, addCell);
             else grid.appendChild(cell);
         });
+        window.dispatchEvent(new CustomEvent('bellore:sell-photos-changed', { detail: { photos: uploadedPhotos.slice(0) } }));
     }
+
+    window.BELLORE_compareDraftPhotos = {
+        get: function () { return uploadedPhotos.slice(0); },
+        set: function (photos) {
+            uploadedPhotos.length = 0;
+            Array.prototype.push.apply(uploadedPhotos, Array.isArray(photos) ? photos : []);
+            renderUploadGrid();
+        }
+    };
+
+    window.addEventListener('bellore:sell-photos-restore', function (event) {
+        var photos = event && event.detail && Array.isArray(event.detail.photos) ? event.detail.photos : [];
+        uploadedPhotos.length = 0;
+        Array.prototype.push.apply(uploadedPhotos, photos);
+        renderUploadGrid();
+    });
 
     /* 사진 셀 드래그 순서변경 (마우스 + 터치 공용 / 첫 사진이 대표 이미지)
        · 손가락/커서를 그대로 따라오는 떠다니는 클론(ghost)
@@ -5380,6 +5592,8 @@
             var name = fd.get('name');
             var phone = fd.get('phone');
             var memo = fd.get('memo') || '';
+            var saleMethod = fd.get('sale_method') || 'compare';
+            var desiredPrice = String(fd.get('desired_price') || '').trim();
 
             if (!brand || !model || !name || !phone) {
                 alert('필수 항목(*)을 모두 입력해주세요.');
@@ -5389,9 +5603,14 @@
                 alert('시계 사진을 1장 이상 등록해주세요.');
                 return;
             }
+            if (saleMethod === 'consignment' && !desiredPrice) {
+                alert('희망 판매금액을 입력해주세요.');
+                return;
+            }
 
             var payload = {
                 brand: brand, model: model, name: name, phone: phone, memo: memo,
+                saleMethod: saleMethod, desiredPrice: desiredPrice,
                 year: fd.get('year') || '', ref: fd.get('ref') || '',
                 parts: (fd.getAll ? fd.getAll('parts') : []),
                 photos: uploadedPhotos.slice(0), photoCount: uploadedPhotos.length
@@ -5403,18 +5622,8 @@
                 return;
             }
 
-            // 비회원 → 안내 팝업 (비회원 신청 / 회원가입 후 신청)
-            if (window.belloreModal) {
-                window.belloreModal(
-                    '비회원도 비교견적을 신청할 수 있어요.\n\n회원으로 신청하시면 입찰 현황을 실시간으로 확인하고, 최고가가 들어올 때 금액 알림을 받을 수 있습니다.',
-                    [
-                        { label: '비회원으로 신청', cls: 'bl-cancel', cb: function () { doCompareSubmit(payload, 'guest'); } },
-                        { label: '회원가입하고 신청', cls: 'bl-ok', cb: function () { startSignupThenSubmit(payload); } }
-                    ]
-                );
-            } else {
-                doCompareSubmit(payload, 'guest');
-            }
+            // 비회원도 로그인·회원가입 단계 없이 바로 신청한다.
+            doCompareSubmit(payload, 'guest');
         });
 
         // 회원가입/로그인이 완료되면, 대기 중인 견적을 자동으로 이어서 신청 + 메일 발송
@@ -5432,8 +5641,11 @@
     // 실제 신청 처리 — 메일은 폼서밋으로 벨로르(관리자)에게만 발송
     function doCompareSubmit(p, mode) {
         var form = $('#compareForm');
-        sendLead('비교견적 신청' + (mode === 'guest' ? ' (비회원)' : ''), {
-            브랜드: p.brand, 모델: p.model, 구입시기: p.year || '-',
+        var methodLabel = ({ compare: '비교견적', consignment: '위탁판매', instant: '즉시매입' })[p.saleMethod] || '비교견적';
+        sendLead(methodLabel + ' 신청' + (mode === 'guest' ? ' (비회원)' : ''), {
+            판매방식: methodLabel,
+            희망판매금액: p.desiredPrice || '-',
+            브랜드: p.brand, 모델: p.model, '스탬핑/연식': p.year || '-',
             구성품: (p.parts && p.parts.length ? p.parts.join(', ') : '-'),
             이름: p.name, 연락처: p.phone, 메모: p.memo || '-',
             사진수: p.photoCount + '장', 회원여부: (mode === 'member' ? '회원' : '비회원')
@@ -5453,6 +5665,7 @@
             }
             uploadedPhotos.length = 0;
             renderUploadGrid();
+            window.dispatchEvent(new CustomEvent('bellore:sell-submitted'));
             setTimeout(function () {
                 var myItems = $('#myItems');
                 if (myItems) myItems.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -5472,6 +5685,7 @@
                 if (form) { showSubmitSuccess(form); form.reset(); }
                 uploadedPhotos.length = 0;
                 renderUploadGrid();
+                window.dispatchEvent(new CustomEvent('bellore:sell-submitted'));
             }).catch(function (err) {
                 alert('매물 등록 실패: ' + (err && err.message ? err.message : err));
             }).then(function () {
@@ -5894,6 +6108,34 @@
         return true;
     }
 
+    function cardMatchesHeroPreset(card, action) {
+        var data = card.dataset;
+        var text = [data.brand, data.model, data.pack, data.setgrade, data.components,
+            data.accessories, data.cond, card.textContent].join(' ').toLowerCase();
+        var brand = String(data.brand || '').toLowerCase();
+        var price = Number(data.price || 0);
+        var size = parseFloat(data.size || '');
+        var year = parseInt(data.stampyear || '', 10);
+        function any(words) { return words.some(function (word) { return text.indexOf(word) !== -1; }); }
+        if (action === 'fullset') {
+            var score = text.match(/(\d+(?:\.\d+)?)\s*(?:점|\/\s*10)/);
+            return !!(score && Number(score[1]) >= 9 && /풀세트|박스.*보증|보증.*박스/.test(text));
+        }
+        if (action === 'wedding') {
+            return ['롤렉스', 'rolex', '까르띠에', 'cartier', '불가리', 'bvlgari', '샤넬', 'chanel']
+                .some(function (name) { return brand.indexOf(name) !== -1; }) && (!isFinite(size) || size <= 40);
+        }
+        if (action === 'vintage') return (year > 0 && year <= 2005) || any(['빈티지', 'vintage', '셀리니', '수동']);
+        if (action === 'icons') return any(['데이트저스트', 'datejust', '스피드마스터', 'speedmaster', '산토스', 'santos', '블랙베이', 'black bay']);
+        if (action === 'newest') return true;
+        if (action === 'highend') return price >= 10000000;
+        if (action === 'sale') return data.saleactive === '1';
+        if (action === 'diver') return any(['서브마리너', 'submariner', '씨마스터', 'seamaster', '블랙베이', 'black bay', '펠라고스', 'pelagos', '파네라이', 'panerai', '다이버', 'diver']);
+        if (action === 'women') return (isFinite(size) && size <= 32) || any(['레이디', 'lady', '탱크', 'tank', '팬더', 'panthere', '발롱', 'ballon']);
+        if (action === 'santos') return any(['산토스', 'santos']);
+        return false;
+    }
+
     // 검색 결과 없음: 팝업 대신 벨로르 로고 + 안내 문구를 그리드 안에 노출
     var BELL_SVG = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>';
     function searchEmptyEl() {
@@ -5945,7 +6187,7 @@
     window.BELLORE_hideSearchEmpty = hideSearchEmpty;
     window.BELLORE_showCollectionEmpty = showCollectionEmpty;
 
-    function runSearch(q) {
+    function runSearch(q, presetAction) {
         var ql = q.toLowerCase();
         navigate('collection');
         setTimeout(function () {
@@ -5953,10 +6195,19 @@
             var cards = $$('#collection .hcard');
             var hits = 0;
             cards.forEach(function (c) {
-                var hit = cardMatches((c.textContent || '').toLowerCase(), ql);
+                var hit = presetAction ? cardMatchesHeroPreset(c, presetAction) : cardMatches((c.textContent || '').toLowerCase(), ql);
                 c.style.display = hit ? '' : 'none';
                 if (hit) hits++;
             });
+            if (window.BELLORE_paginateSearchCards) {
+                hits = window.BELLORE_paginateSearchCards(cards.filter(function (c) {
+                    return presetAction ? cardMatchesHeroPreset(c, presetAction) : cardMatches((c.textContent || '').toLowerCase(), ql);
+                }));
+            }
+            if (presetAction) {
+                var presetInput = $('#catBrandQ');
+                if (presetInput) presetInput.value = q;
+            }
             // 브랜드 원형 활성 표시를 검색어에 맞춰 동기화(모델 칩은 닫음)
             try {
                 var matchBrandBtn = null;
@@ -5965,7 +6216,8 @@
                     if (bn && bn !== 'all' && tokenMatches(ql, bn)) matchBrandBtn = b;
                 });
                 $$('#collection .cat-brand').forEach(function (b) { b.classList.remove('active'); });
-                var actBtn = matchBrandBtn || $('#collection .cat-brand[data-brand="all"]');
+                var actBtn = presetAction ? $('#collection .cat-brand[data-brand="all"]') :
+                    (matchBrandBtn || $('#collection .cat-brand[data-brand="all"]'));
                 if (actBtn) actBtn.classList.add('active');
                 var cm = $('#catModels'); if (cm) { cm.hidden = true; cm.innerHTML = ''; }
             } catch (e) {}
@@ -5995,6 +6247,7 @@
     function clearSearchFilter() {
         hideSearchEmpty();
         $$('#collection .hcard').forEach(function (c) { c.style.display = ''; });
+        if (window.BELLORE_applyColFilters) window.BELLORE_applyColFilters();
     }
     // 검색창 타이핑 중 실시간 상품 미리보기 — 이미 렌더된 판매시계 카드를 재사용한다(추가 DB 호출 없음).
     function searchPreview(q, limit) {
@@ -6307,28 +6560,9 @@
             return fmt(d.price) + '<span class="won">원</span>';
         }
         function paintAcc(d) {
-            // 구성품: 등록 시 직접 체크한 값(components)을 우선 사용, 없으면 구성 등급으로 추정
-            var comp = String(d.components || '').trim();
-            var state;
-            if (comp) {
-                var set = comp.split(',');
-                state = {
-                    box: set.indexOf('box') !== -1,
-                    case: set.indexOf('case') !== -1,
-                    card: set.indexOf('card') !== -1,
-                    warranty: !!d.has_warranty
-                };
-            } else {
-                var pack = String(d.pack || '');
-                var full = (pack.indexOf('풀세트') !== -1);
-                var solo = (pack.indexOf('단품') !== -1);
-                state = {
-                    box: full || (!solo),
-                    case: true,
-                    card: !!d.has_warranty || full,
-                    warranty: !!d.has_warranty
-                };
-            }
+            // 구조화 components를 최우선으로 사용하고, 정보없음일 때 구성품을 임의로 켜지 않는다.
+            var info = listingAccessoryInfo(d);
+            var state = info.state;
             $$('#pmAcc .pp-acc-item').forEach(function (el) {
                 var on = !!state[el.dataset.acc];
                 el.classList.toggle('on', on);
@@ -6349,9 +6583,9 @@
         }
         function infoValue(val) {
             val = (val == null ? '' : String(val)).trim();
-            return val || '정보없음';
+            return val && val.indexOf('정보없음') === -1 ? val : '확인 필요';
         }
-        // 상품 정보는 필수 양식을 유지하고 빈 값은 "정보없음"으로 노출
+        // 전문가 검수용 필수 양식은 유지하되, 미입력 값은 "확인 필요"로 명확히 구분한다.
         function paintSpec(d) {
             var box = $('#pmSpec');
             if (!box) return;
@@ -6361,24 +6595,13 @@
             var size = d.size_mm ? (String(d.size_mm).replace(/mm$/i, '').trim() + 'mm') : '';
             box.innerHTML =
                 row('브랜드', brandKR(d.brand)) +
-                row('모델', d.model) +
+                row('모델', listingCardText(d).model) +
                 row('레퍼런스 번호', d.reference_no || d.ref_id || d.ref) +
                 row('상품번호', d.product_no || d.no) +
                 row('사이즈', size) +
                 row('스탬핑 · 연식', d.stamping || d.purchase_year) +
-                row('구성품 · 등급', d.set_grade || d.accessories || d.pack);
-        }
-        function paintFacts(d) {
-            var box = $('#pmFacts');
-            if (!box) return;
-            var rows = [
-                ['무브먼트', d.movement],
-                ['케이스', d.case_spec],
-                ['밴드', d.band_spec]
-            ];
-            box.innerHTML = rows.map(function (r) {
-                return '<li>' + esc(r[0] + ' · ' + infoValue(r[1])) + '</li>';
-            }).join('');
+                row('구성품', listingAccessoryInfo(d).detailText) +
+                row('무브먼트', listingMovement(d.movement));
         }
         // 별도 설명문 없이 새상품/중고 여부와 확인된 상태만 행 단위로 표시
         function paintState(d) {
@@ -6390,6 +6613,8 @@
             var lines = raw
                 ? raw.split(/\r?\n/).map(function (v) { return v.trim(); }).filter(Boolean)
                 : [isNew ? '미사용 새상품입니다.' : '착용 이력이 있는 중고 상품입니다.'];
+            lines = lines.filter(function (line) { return !/^평가 근거|^상품화/.test(line); });
+            if (!lines.length) lines = [isNew ? '미사용 새상품입니다.' : '착용 이력이 있는 중고 상품입니다.'];
             list.innerHTML = lines.map(function (line) { return '<li>' + esc(line) + '</li>'; }).join('');
             list.style.display = '';
             badge.textContent = raw
@@ -6405,26 +6630,28 @@
             curIdx = 0;
 
             $('#pmBrand').textContent = brandKR(d.brand) || '';
-            $('#pmModel').textContent = displayModelName(d);
+            var cardText = listingCardText(d);
+            $('#pmModel').textContent = cardText.modelSize;
             $('#pmPrice').innerHTML = ppPriceHTML(d);
             var pno = d.product_no || d.no || '-';
             $('#pmNo').textContent = pno;
             var identity = $('#pmIdentity');
             if (identity) {
                 var identityBits = [];
-                if (d.ref_id || d.ref) identityBits.push('Ref. ' + (d.ref_id || d.ref));
-                if (d.size_mm) identityBits.push(String(d.size_mm).replace(/mm$/i, '') + 'mm');
+                if (cardText.reference) identityBits.push('Ref. ' + cardText.reference);
+                if (cardText.featureMovement) identityBits.push(cardText.featureMovement);
                 identity.textContent = identityBits.join(' · ');
                 identity.hidden = !identityBits.length;
             }
             var assurance = $('#pmAssurance');
             if (assurance) {
                 var condText = String(d.condition || '중고');
-                var packText = String(d.pack || d.accessories || '구성품 확인');
+                var accInfo = listingAccessoryInfo(d);
                 assurance.innerHTML =
                     '<span class="is-primary">✓ 100% 정품보증</span>' +
                     '<span>' + esc(condText) + '</span>' +
-                    '<span>' + esc(packText) + '</span>';
+                    (accInfo.includedText ? '<span>' + esc(accInfo.includedText) + '</span>' : '') +
+                    '<span class="is-muted">' + esc(accInfo.warrantyText) + '</span>';
             }
             var sm = $('#pmSaleMethod'); if (sm) sm.textContent = '벨로르가 직접 판매하고 결제까지 책임집니다';
             var ship = $('#pmShip'); if (ship) ship.textContent = d.ship_info || '결제 후 2~4일 이내 발송';
@@ -6432,7 +6659,6 @@
             var bp = $('#pmBuyPrice'); if (bp) bp.innerHTML = ppPriceHTML(d);
             paintAcc(d);
             paintSpec(d);
-            paintFacts(d);
             paintState(d);
 
             // 썸네일
@@ -6645,5 +6871,17 @@
         });
     }
     window.refreshReveals = refreshReveals;
+
+    /* ============ 12. 패럴랙스 ============ */
+    function initParallax() {
+        var heroImage = $('.hero-image');
+        if (!heroImage) return;
+        window.addEventListener('scroll', function () {
+            var sc = window.scrollY;
+            if (sc < window.innerHeight) {
+                heroImage.style.transform = 'translateY(' + (sc * 0.3) + 'px) scale(1.05)';
+            }
+        }, { passive: true });
+    }
 
 })();

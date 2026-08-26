@@ -3775,12 +3775,28 @@ body.pp-lb-open { overflow: hidden; }
     /* 1줄·2줄 카드 높이를 항상 동일하게(2줄분 고정) → 줄바꿈으로 규격 깨지는 문제 방지 */
     min-height: calc(16px * 1.25 * 2);
 }
+.hcard-ref,
 .hcard-pack {
     font-size: 12px;
     font-weight: 600;
     color: var(--text-3);
     padding: 3px 13px 0;
     margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.hcard-trust {
+    font-size: 10.5px;
+    font-weight: 650;
+    color: #55575b;
+    padding: 0 8px;
+    margin: 7px 13px 0;
+    height: 24px;
+    line-height: 22px;
+    border: 1px solid #e3e1dc;
+    border-radius: 7px;
+    background: #f8f7f4;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -9962,6 +9978,7 @@ body.login-open .tabbar { display: none; }
     font-weight: 750;
 }
 .pp-assurance .is-primary { background: #eaf6ee; color: #287b45; }
+.pp-assurance .is-muted { background: #fff; border: 1px solid #dedbd4; color: #77736d; }
 .pp-responsibility { border-radius: 14px; }
 .pp-panel { padding: 26px 20px 34px; }
 .pp-sec-title {

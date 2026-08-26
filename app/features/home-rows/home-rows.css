@@ -15,8 +15,6 @@
 .hrow-title {
   margin: 0; font-size: 21px; font-weight: 800; letter-spacing: -.045em; color: #171719;
 }
-.hrow-more { font-size: 22px; font-weight: 400; line-height: 1; color: #b0b0b6; }
-
 .hrow-rail {
   display: flex; gap: 14px; padding: 0 20px 2px; overflow-x: auto; overflow-y: hidden;
   cursor: grab; scroll-snap-type: x proximity;
@@ -38,11 +36,26 @@
 /* 약 2.3장이 보이고 다음 카드가 살짝 걸쳐 스크롤을 유도한다.
    min-width:0 이 없으면 flex 자식이 글자 폭 아래로 안 줄어든다. */
 .hrow-card {
-  flex: 0 0 162px; min-width: 0; display: block; scroll-snap-align: start;
+  flex: 0 0 162px; min-width: 0; align-self: stretch;
+  display: flex; flex-direction: column; scroll-snap-align: start;
   color: inherit; text-decoration: none;
   -webkit-user-select: none; user-select: none;
 }
 .hrow-card, .hrow-card * { -webkit-user-drag: none; }
+
+/* 마지막 상품 뒤에서만 나타나는 전체보기 종료 카드 */
+.hrow-view-all {
+  flex: 0 0 118px; min-width: 0; min-height: 218px; align-self: stretch;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  color: #45454a; text-decoration: none; scroll-snap-align: end;
+  -webkit-user-select: none; user-select: none;
+}
+.hrow-view-all-icon {
+  display: grid; place-items: center; width: 40px; height: 40px;
+  border: 1px solid #d9dadd; border-radius: 50%; background: #fff;
+  font-size: 19px; line-height: 1; color: #222326;
+}
+.hrow-view-all-label { font-size: 13px; font-weight: 750; letter-spacing: -.03em; }
 
 .hrow-img {
   position: relative; display: block; width: 100%; aspect-ratio: 1; margin-bottom: 11px;
@@ -66,32 +79,58 @@
 .hrow-badge.is-drop { background: #d4342a; }
 .hrow-badge.is-new { background: #1a2925; letter-spacing: .04em; }
 
-/* 추천 매물 — 기존 그리드를 홈에서는 3열로(시계추천 배너를 여기로 흡수), 최대 6줄 */
+/* 추천 매물 — 모바일·데스크톱 모두 2열, 최대 6줄(12점) */
 #homeOnSale .hrow-head { padding: 0; }
 #homeOnSale > .container { padding-top: 4px; }
-#homeOnSale .home-sale-grid { grid-template-columns: repeat(3, 1fr); gap: 12px 10px; }
-#homeOnSale .home-sale-grid .hcard-brand { font-size: 10px; }
-#homeOnSale .home-sale-grid .hcard-model { font-size: 12px; }
-#homeOnSale .home-sale-grid .hcard-price { font-size: 13.5px; }
+#homeOnSale .home-sale-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px 12px;
+}
+.home-sale-footer { margin-top: 28px; text-align: center; }
+.home-sale-footer .home-sale-more {
+  display: inline-flex; width: min(100%, 360px); height: 52px; align-items: center; justify-content: center;
+  border: 1px solid #dedee2; border-radius: 12px; color: #171719; background: #fff;
+  font-size: 14px; font-weight: 750; text-decoration: none;
+}
 
+.hrow-brand {
+  display: block; height: 16px; margin-bottom: 2px; overflow: hidden;
+  font-size: 12px; font-weight: 650; line-height: 16px; white-space: nowrap; text-overflow: ellipsis;
+  color: #77797e; text-transform: uppercase; letter-spacing: .015em;
+}
 .hrow-model {
-  display: -webkit-box; font-size: 14.5px; font-weight: 650; line-height: 1.4;
-  letter-spacing: -.025em; color: #2a2a2e; min-height: 41px;
+  display: -webkit-box; min-height: 20px; max-height: 40px;
+  font-size: 14.5px; font-weight: 650; line-height: 20px;
+  letter-spacing: -.025em; color: #2a2a2e;
   -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
+.hrow-reference, .hrow-spec {
+  display: block; height: 16px; min-height: 16px; overflow: hidden; margin-top: 2px; color: #8a8c91;
+  font-size: 11.5px; font-weight: 520; line-height: 16px; text-overflow: ellipsis; white-space: nowrap;
+}
+.hrow-trust {
+  display: block; height: 22px; min-height: 22px; margin-top: 7px; padding: 0 8px;
+  overflow: hidden; border: 1px solid #e3e1dc; border-radius: 7px;
+  background: #f8f7f4; color: #55575b; font-size: 10.5px; font-weight: 650;
+  line-height: 20px; text-overflow: ellipsis; white-space: nowrap;
+}
 .hrow-price {
-  display: block; margin-top: 7px; font-size: 16px; font-weight: 850; letter-spacing: -.04em;
-  color: #171719; white-space: nowrap;
+  display: block; height: 26px; min-height: 26px; margin-top: auto; overflow: hidden;
+  font-size: 16px; font-weight: 850; line-height: 26px; letter-spacing: -.04em;
+  color: #171719; white-space: nowrap; font-variant-numeric: tabular-nums;
 }
 /* 10억대처럼 자릿수가 긴 금액은 좁은 화면에서 줄이 깨지므로 한 단계 줄인다 */
 .hrow-price.is-long { font-size: 11.5px; letter-spacing: -.05em; }
 .hrow-price.is-long i { font-size: 10px; }
 .hrow-price i { font-style: normal; font-size: 12.5px; font-weight: 800; margin-left: 1px; }
 .hrow-old {
-  display: block; margin-top: 3px; font-size: 11px; font-weight: 550; white-space: nowrap;
-  color: #b0b0b6; text-decoration: line-through;
+  display: block; height: 15px; min-height: 15px; margin-top: 3px; overflow: hidden;
+  font-size: 11px; font-weight: 550; line-height: 15px; white-space: nowrap;
+  color: #b0b0b6; text-decoration: line-through; font-variant-numeric: tabular-nums;
 }
+.hrow-old.is-empty { color: transparent; text-decoration: none; }
 
 @media (min-width: 520px) {
   .hrow-card { flex-basis: 180px; }
+  .hrow-view-all { flex-basis: 118px; min-height: 238px; }
 }

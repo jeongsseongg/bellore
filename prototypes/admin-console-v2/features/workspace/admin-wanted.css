@@ -1,0 +1,263 @@
+/* Wanted식 운영 화면 규격 보정: 1200px 캔버스, 52px 입력, 54px 주 버튼 */
+:root {
+  --ink-950: #1a1a1a;
+  --ink-600: #6b6b6b;
+  --ink-500: #9a9a9a;
+  --line: #e5e3df;
+  --canvas: #f4f1ea;
+  --radius-sm: 10px;
+  --radius: 12px;
+  --radius-lg: 14px;
+}
+
+.workspace-page {
+  width: min(100%, 1200px);
+}
+
+.surface-option {
+  color: inherit;
+  text-decoration: none;
+}
+
+.global-search {
+  height: 52px;
+  border-radius: 12px;
+}
+
+.global-search input {
+  font-size: 16px;
+}
+
+.global-search:focus-within {
+  border-color: #1a1a1a;
+  box-shadow: none;
+}
+
+.primary-button,
+.secondary-button {
+  min-height: 54px;
+  padding: 0 20px;
+  border-radius: 12px;
+  font-size: 16px;
+}
+
+.toolbar-button,
+.text-button,
+.filter-tab {
+  min-height: 44px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.eyebrow,
+.surface-option em,
+.prototype-badge,
+.system-state small,
+.module-notice b,
+.module-notice span,
+.records-summary,
+.record-head,
+.record-primary b,
+.record-primary small,
+.record-cell,
+.status-chip,
+.role-code,
+.role-state,
+.data-note,
+.review-chip,
+.coverage-chip,
+.live-label,
+.nav-badge,
+.nav-count,
+.global-search kbd,
+.admin-profile small,
+.nav-group-label,
+.partner-slot small,
+.system-state b,
+.metric-delta,
+.live-label,
+.task-copy small,
+.signal-score span,
+.signal-list,
+.signal-list b,
+.signal-link,
+.pipeline-name em,
+.pipeline-total small,
+.pipeline-step small,
+.activity-row time,
+.activity-row b,
+.activity-row small,
+.activity-row em,
+.portal-core span,
+.portal-core b,
+.portal-node,
+.architecture-note,
+.role-contract p,
+.role-contract dt,
+.role-contract dd,
+.case-watch p,
+.case-id-grid dt,
+.case-id-grid dd,
+.drawer-section-head span,
+.case-timeline time,
+.case-timeline b,
+.case-timeline p,
+.boundary-note,
+.generic-case-hero p,
+.partner-preview-hero p,
+.partner-preview-map b,
+.partner-preview-map small,
+.partner-preview-map em,
+.search-result small,
+.search-result p,
+.toast {
+  font-size: 12px;
+}
+
+.icon-button i {
+  font-size: 11px;
+}
+
+.record-primary strong,
+.record-cell,
+.record-status {
+  font-size: 13px;
+}
+
+.record-head {
+  min-height: 48px;
+  font-size: 13px;
+}
+
+.record-row {
+  min-height: 88px;
+}
+
+.status-chip {
+  min-height: 28px;
+  padding: 0 9px;
+}
+
+.panel,
+.section-block,
+.records-panel,
+.metric-card,
+.pipeline-card,
+.role-contract {
+  border-radius: 14px;
+}
+
+.capability-panel {
+  margin-bottom: 14px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.capability-panel__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.capability-panel__head h2 {
+  margin: 4px 0 0;
+  font-size: 18px;
+}
+
+.capability-panel__head p {
+  margin: 5px 0 0;
+  color: var(--ink-600);
+  font-size: 13px;
+}
+
+.capability-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.capability-list li {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #faf9f7;
+  color: #444;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+@media (max-width: 1060px) {
+  .record-head,
+  .record-row {
+    min-width: 0;
+  }
+
+  .record-head {
+    display: none;
+  }
+
+  .record-row {
+    grid-template-columns: 1fr auto;
+    gap: 12px 10px;
+    padding: 16px;
+  }
+
+  .record-primary {
+    grid-column: 1 / -1;
+  }
+
+  .record-cell {
+    display: grid;
+    grid-template-columns: minmax(110px, .7fr) 1fr;
+    padding: 0;
+  }
+
+  .record-cell::before {
+    content: attr(data-label);
+    color: var(--ink-500);
+  }
+
+  .record-status {
+    grid-column: 1 / -1;
+    padding: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .workspace-page {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+
+  .global-search {
+    height: 42px;
+  }
+
+  .global-search.is-open {
+    height: 52px;
+  }
+
+  .toolbar-actions {
+    display: flex;
+  }
+
+  .capability-panel {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 380px) {
+  .metric-grid {
+    grid-template-columns: 1fr;
+  }
+}

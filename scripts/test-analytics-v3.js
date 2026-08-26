@@ -99,8 +99,26 @@ assert.match(client, /aggregate_only:\s*true/);
 assert.match(backend, /analytics_consent_dashboard_v1/);
 
 const confirm = fs.readFileSync(path.join(root, 'supabase/functions/confirm-payment/index.ts'), 'utf8');
-assert.match(confirm, /admin\.rpc\("analytics_finalize_paid_order"/);
+assert.match(confirm, /const PORTONE_API_SECRET = Deno\.env\.get\("PORTONE_API_SECRET"\)/);
+assert.match(confirm, /\.from\("listings"\)/);
+assert.match(confirm, /payment\?\.storeId !== PORTONE_STORE_ID/);
+assert.match(confirm, /String\(payment\?\.currency \|\| ""\)\.toUpperCase\(\) !== "KRW"/);
+assert.match(confirm, /channelType !== "LIVE"/);
+assert.match(confirm, /PORTONE_LIVE_CHANNEL_KEYS\.includes\(channelKey\)/);
+assert.match(confirm, /payment\?\.status !== "PAID"/);
+assert.match(confirm, /paidAmount !== expected/);
+assert.match(confirm, /`\$\{reason\}_auto_cancel`/);
+assert.match(confirm, /"amount_mismatch",[\s\S]*\{ expected, got: paidAmount \}/);
+assert.match(confirm, /admin\.rpc\("analytics_finalize_paid_order_with_benefits"/);
+assert.match(confirm, /\.select\("price, sale_price, tags, sale_started_at, created_at, status"\)/);
+assert.match(confirm, /listing_not_available/);
 assert.doesNotMatch(confirm, /\.from\("orders"\)\s*\.update\(\{\s*status:\s*"paid"/);
+
+const cancel = fs.readFileSync(path.join(root, 'supabase/functions/cancel-payment/index.ts'), 'utf8');
+assert.match(cancel, /admin\.auth\.getUser\(token\)/);
+assert.match(cancel, /profile\?\.role !== "admin"/);
+assert.match(cancel, /cancelStatus !== "SUCCEEDED"/);
+assert.match(cancel, /status:\s*"refunded"/);
 
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const dashboard = fs.readFileSync(path.join(root, 'script.js'), 'utf8');
@@ -120,5 +138,15 @@ assert.match(dashboard, /상세 행동 기록/);
 assert.match(dashboard, /분석 동의 상태별 방문/);
 assert.match(dashboard, /비동의 회원/);
 assert.match(dashboard, /전체 방문/);
+
+const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
+assert.match(serviceWorker, /const VERSION = ["'][^"']+["']/);
+const shellBlock = serviceWorker.match(/const SHELL_ASSETS = \[([\s\S]*?)\];/);
+assert.ok(shellBlock, 'service worker shell asset list must exist');
+const shellFiles = [...shellBlock[1].matchAll(/["']\.\/([^"']*)["']/g)].map((match) => match[1]);
+for (const file of shellFiles) {
+  if (!file) continue;
+  assert.ok(fs.existsSync(path.join(root, file)), `service worker references missing file: ${file}`);
+}
 
 console.log('analytics-v3 invariants: ok');

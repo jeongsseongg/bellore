@@ -74,5 +74,6 @@ node scripts/check.mjs
 
 - `00_작업안내.md` — 저장소·파일 작업 안내
 - `DESIGN.md` — 벨로르 UI 기준
+- `docs/BELLORE_RECOMMENDATION_V2.md` — 추천 v2 후보와 검증 범위
 
 과거 복사본 `bellore-mypick-fix`는 복구를 명시적으로 요청받은 경우에만 사용합니다.

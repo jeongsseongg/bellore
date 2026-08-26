@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { accessoryPresentation, conditionPresentation, listingPresentation } from '../../app/core/listing-display.js';
 import {
   DEFAULT_MIN_PRODUCTS,
   MARKET_PATH,
@@ -114,7 +115,7 @@ export function normalizeListing(row) {
     || notes.some((line) => /빈티지/.test(line));
   const canonicalPath = `${MARKET_PATH}${slug}/`;
 
-  return {
+  const product = {
     id,
     productNumber,
     slug,
@@ -162,6 +163,28 @@ export function normalizeListing(row) {
     publishedAt: validDate(row.sale_started_at || row.created_at, `${productNumber} 등록일`),
     modifiedAt: validDate(row.updated_at || row.created_at, `${productNumber} 수정일`),
   };
+  product.presentation = listingPresentation({
+    brand: product.brand,
+    model: product.model,
+    sizeMm: product.sizeMm,
+    referenceNumber: product.referenceNumber,
+    movement: product.movement,
+  });
+  product.accessoryPresentation = accessoryPresentation({
+    components: product.components,
+    accessories: product.accessories,
+    pack: product.pack,
+    setGrade: product.setGrade,
+    hasWarranty: product.hasWarranty,
+  });
+  product.conditionPresentation = conditionPresentation(product.condition);
+  product.name = [
+    product.brand,
+    product.presentation.modelSize,
+    product.presentation.reference,
+    product.presentation.feature,
+  ].filter(Boolean).join(' ');
+  return product;
 }
 
 export function prepareMarketListings(rows, options = {}) {

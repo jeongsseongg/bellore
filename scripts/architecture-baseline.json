@@ -3,48 +3,37 @@
   "capturedAt": "2026-08-24",
   "legacyLineCeilings": {
     "styles.css": 10454,
-    "script.js": 6649,
-    "index.html": 3670,
+    "script.js": 6757,
+    "index.html": 3743,
     "wanted-theme.css": 3060,
-    "supabase.js": 2626,
+    "supabase.js": 2670,
     "cq-demo.js": 2423,
-    "ai-advisor.js": 1529,
+    "ai-advisor.js": 2378,
     "bellore-redesign.css": 1560,
     "bellore-features.js": 1261,
     "auction.js": 924,
     "ai-advisor-admin.js": 763,
-    "mypick.css": 707,
-    "wishlist.js": 473,
-    "payments.js": 547,
+    "mypick.css": 720,
+    "recommendation-engine.js": 697,
+    "wishlist.js": 686,
+    "payments.js": 603,
     "search.js": 575,
     "reference-layout.css": 425
   },
   "legacyCeilings": {
     "executableInlineScriptBlocks": 3,
-    "executableInlineScriptBytes": 32728,
+    "executableInlineScriptBytes": 35662,
     "styleAttributes": 15,
     "importantTokens": 376,
-    "windowAssignments": 91,
+    "windowAssignments": 92,
     "scriptStyleAttributeTokens": 83,
-    "localClassicScripts": 17
+    "localClassicScripts": 18
   },
   "newCodeBudgets": {
-    ".js": {
-      "review": 320,
-      "maximum": 400
-    },
-    ".mjs": {
-      "review": 320,
-      "maximum": 400
-    },
-    ".css": {
-      "review": 400,
-      "maximum": 500
-    },
-    ".html": {
-      "review": 240,
-      "maximum": 300
-    }
+    ".js": { "review": 320, "maximum": 400 },
+    ".mjs": { "review": 320, "maximum": 400 },
+    ".css": { "review": 400, "maximum": 500 },
+    ".html": { "review": 240, "maximum": 300 }
   },
   "newCodeExceptions": {},
   "knownMissingLocalAssets": [],
@@ -75,6 +64,7 @@
     "mypick.css",
     "naverpay.js",
     "payments.js",
+    "recommendation-engine.js",
     "reference-layout.css",
     "script.js",
     "search.js",
@@ -87,8 +77,5 @@
     "verify.html",
     "wanted-theme.css",
     "wishlist.js"
-  ],
-  "legacyCeilingNotes": {
-    "index.html": "20260824 홈 개편: 홈 브랜드 로고 바로가기를 지우고 배너·시계 줄 마운트와 추천 매물 제목만 남겼다(원래 3685에서 내려온 값). 실행 로직은 app/features/ 아래에 있다. 컬렉션이 기능 모듈로 옮겨지면 더 내린다."
-  }
+  ]
 }

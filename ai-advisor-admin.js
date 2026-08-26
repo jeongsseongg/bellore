@@ -26,7 +26,7 @@
   function krw(n) { return (AI().krwShort ? AI().krwShort(n) : (n == null ? '-' : Number(n).toLocaleString())); }
   function fmtDate(s) { var d = new Date(s); return isNaN(d) ? '-' : (d.getFullYear() + '.' + (d.getMonth() + 1) + '.' + d.getDate() + ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2)); }
 
-  var STAGE = (AI().STAGE_LABEL) || { browsing: '둘러보는 중', considering: '가격 비교 중', high_intent: '매물 찾는 중', ready_to_buy: '구매 임박', sell_intent: '판매 문의', unknown: '미상' };
+  var STAGE = (AI().STAGE_LABEL) || { browsing: '둘러보는 중', considering: '가격 비교 중', high_intent: '매물 찾는 중', ready_to_buy: '구매 임박', purchased_recently: '최근 구매 완료', sell_intent: '판매 문의', unknown: '미상' };
 
   /* ---------------- 스타일 ---------------- */
   function injectStyles() {
@@ -311,7 +311,7 @@
       '<div class="aia-row"><span class="aia-name">' + esc(who) + '</span>' +
         '<span class="aia-tag stage" style="margin-left:auto">' + esc(STAGE[p.buying_stage] || p.buying_stage || '미상') + '</span></div>' +
       '<div class="aia-sub">' + (brands || '<span class="aia-tag">관심 브랜드 미상</span>') + (models ? (' · ' + esc(models)) : '') + '</div>' +
-      '<div class="aia-sub">예산 ' + krw(p.budget_min) + '~' + krw(p.budget_max) + ' · 가격민감 ' + (p.price_sensitivity || 50) + ' · 구매가능성 ' + (p.buy_probability || 0) + '%</div>' +
+      '<div class="aia-sub">예산 ' + krw(p.budget_min) + '~' + krw(p.budget_max) + ' · 가격민감 ' + (p.price_sensitivity || 50) + ' · 구매의도 지수 ' + (p.buy_probability || 0) + '/100</div>' +
       '<div class="aia-row" style="margin-top:6px"><div class="aia-bar"><i style="width:' + (p.buy_probability || 0) + '%"></i></div></div>' +
       '<div class="aia-meta">업데이트 ' + fmtDate(p.updated_at) + '</div>' +
     '</div>';
@@ -347,7 +347,7 @@
       '<div class="aia-sub">모델: ' + ((p.preferred_models || []).map(esc).join(', ') || '-') + '</div>' +
       '<div class="aia-sub">레퍼런스: ' + ((p.preferred_references || []).map(esc).join(', ') || '-') + '</div>' +
       '<div class="aia-sub">예산: ' + krw(p.budget_min) + ' ~ ' + krw(p.budget_max) + '</div>' +
-      '<div class="aia-sub">구매단계: ' + esc(STAGE[p.buying_stage] || '미상') + ' · 구매가능성 ' + (p.buy_probability || 0) + '%</div>' +
+      '<div class="aia-sub">구매단계: ' + esc(STAGE[p.buying_stage] || '미상') + ' · 구매의도 지수 ' + (p.buy_probability || 0) + '/100</div>' +
       '<div class="aia-meta">동의: 맞춤추천 ' + (p.consent_personalization ? 'O' : 'X') + ' · 마케팅 ' + (p.consent_marketing ? 'O' : 'X') + '</div></div>';
 
     html += '<h5>성향 점수</h5><div class="aia-card nohover">' +

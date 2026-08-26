@@ -8,9 +8,8 @@
        → customer_ai_profiles 업데이트 → customer_watch_interests 점수 누적
        → customer_events 기록 → 규칙 기반 응답 출력
 
-   로그인 상태: Supabase(window.sbClient)에 저장.
-   비로그인(게스트): localStorage 폴백(끊김 없음) → 로그인 시 자동 병합.
-   (alerts.js / wishlist.js 와 동일한 폴백 철학)
+   로그인+선택 동의 상태: Supabase(window.sbClient)에 저장.
+   비로그인/비동의: 개인화 프로필·행동을 저장하거나 로그인 뒤 병합하지 않음.
 
    전역 노출: window.BelloreAI = {
      rules, provider, profile, reco, alerts, track, ensureProfile, ...
@@ -58,41 +57,218 @@
     { name: '블랑팡',        keys: ['blancpain', '블랑팡'] }
   ];
 
+  // 현재 158개 평가 원장의 canonical 브랜드와 brands.js에 없는 실제
+  // 표기. 띄어쓰기 변형은 같은 브랜드로 합치되 반환값은 재고 표기와
+  // 맞춰 hard constraint가 정확 일치하도록 한다.
+  var CATALOG_BRAND_ALIASES = [
+    { name: '그랜드세이코', keys: ['그랜드세이코', '그랜드 세이코', 'grand seiko', 'grandseiko'] },
+    { name: '로저드뷔', keys: ['로저드뷔', '로저 드뷔', 'roger dubuis', 'rogerdubuis'] },
+    { name: '리브토만', keys: ['리브토만'] },
+    { name: '몽블랑', keys: ['몽블랑', 'montblanc'] },
+    { name: '바쉐론콘스탄틴', keys: ['바쉐론콘스탄틴', '바쉐론 콘스탄틴', 'vacheron constantin', 'vacheron'] },
+    { name: '보메 메르시에', keys: ['보메 메르시에', '보메메르시에', 'baume & mercier', 'baume et mercier'] },
+    { name: '부쉐러', keys: ['부쉐러', 'bucherer'] },
+    { name: '브랜드미상', keys: ['브랜드미상', '브랜드 미상'] },
+    { name: '예거르쿨트르', keys: ['예거르쿨트르', '예거 르쿨트르', 'jaeger-lecoultre', 'jaeger lecoultre', 'jlc'] },
+    { name: '제니스', keys: ['제니스', 'zenith'] },
+    { name: '제랄드 젠타', keys: ['제랄드 젠타', '제랄드젠타', 'gerald genta'] },
+    { name: '코럼', keys: ['코럼', 'corum'] },
+    { name: '콩코드', keys: ['콩코드', 'concord'] },
+    { name: '프랭크뮬러', keys: ['프랭크뮬러', '프랭크 뮬러', 'franck muller', 'franckmuller'] }
+  ];
+
+  var MODEL_ALIASES = [
+    { name: '데이저스트', keys: ['데이저스트', '데이트저스트', 'datejust'] },
+    { name: '까레라', keys: ['까레라', '카레라', 'carrera'] },
+    { name: '셀리니', keys: ['셀리니', 'cellini'] },
+    { name: '서브마리너', keys: ['서브마리너', '섭마', 'submariner'] },
+    { name: '데이데이트', keys: ['데이데이트', 'day-date', 'day date'] },
+    { name: '오이스터 퍼페츄얼', keys: ['오이스터 퍼페츄얼', '오이스터퍼페츄얼', 'oyster perpetual'] },
+    { name: '씨마스터', keys: ['씨마스터', 'seamaster'] },
+    { name: '아쿠아테라', keys: ['아쿠아테라', '어쿠아테라', 'aqua terra'] },
+    { name: '드빌', keys: ['드빌', 'de ville'] },
+    { name: '컨스텔레이션', keys: ['컨스텔레이션', 'constellation'] },
+    { name: '산토스', keys: ['산토스', 'santos'] },
+    { name: '탱크', keys: ['탱크', 'tank'] },
+    { name: '팬더', keys: ['팬더', 'panthere'] },
+    { name: 'J12', keys: ['j12'] },
+    { name: '아쿠아레이서', keys: ['아쿠아레이서', 'aquaracer'] },
+    { name: '재즈마스터', keys: ['재즈마스터', 'jazzmaster'] },
+    { name: '오션스타', keys: ['오션스타', 'ocean star'] },
+    { name: '슈퍼오션', keys: ['슈퍼오션', 'superocean'] },
+    { name: '네비타이머', keys: ['네비타이머', '네비타리머', '네비타이버', 'navitimer'] },
+    { name: '라디오미르', keys: ['라디오미르', 'radiomir'] },
+    { name: '루미노르', keys: ['루미노르', 'luminor'] },
+    { name: '빅뱅', keys: ['빅뱅', 'big bang'] },
+    { name: '디아고노', keys: ['디아고노', 'diagono'] },
+    { name: '세르펜티', keys: ['세르펜티', 'serpenti'] },
+    { name: '엘프리메로', keys: ['엘프리메로', '엘 프리메로', 'el primero'] },
+    { name: '골든엘립스', keys: ['골든엘립스', '골든 엘립스', 'golden ellipse'] },
+    { name: '마스터뱅커', keys: ['마스터뱅커', '마스터 뱅커', 'master banker'] }
+  ];
+
+  function categoricalKey(value) {
+    var normalized = String(value || '').toLowerCase();
+    try { normalized = normalized.normalize('NFKC'); } catch (e) {}
+    return normalized.replace(/[^0-9a-z가-힣]+/g, '');
+  }
+
+  // 양수 선호와 명시적 제외가 반드시 같은 브랜드 사전을 보도록 한다.
+  // 정적 별칭에 없는 브랜드도 brands.js의 한글명/영문명/slug로 보강한다.
+  function allBrandAliases() {
+    var ordered = [];
+    var byName = {};
+    function add(name, keys) {
+      if (!name) return;
+      var canonical = categoricalKey(name);
+      var entry = byName[canonical];
+      if (!entry) {
+        entry = { name: name, keys: [] };
+        byName[canonical] = entry;
+        ordered.push(entry);
+      }
+      (keys || []).forEach(function (key) {
+        key = String(key || '').trim();
+        if (!key) return;
+        var exists = entry.keys.some(function (saved) {
+          return saved.toLowerCase() === key.toLowerCase();
+        });
+        if (!exists) entry.keys.push(key);
+      });
+    }
+    CATALOG_BRAND_ALIASES.forEach(function (brand) { add(brand.name, brand.keys); });
+    BRAND_ALIASES.forEach(function (brand) { add(brand.name, brand.keys); });
+    (window.BELLORE_BRANDS || []).forEach(function (brand) {
+      if (!brand || !brand.name) return;
+      add(brand.name, [brand.name, brand.eng, brand.slug]);
+    });
+    return ordered;
+  }
+
+  function suppressContainedCategories(values) {
+    values = uniq(values);
+    return values.filter(function (value) {
+      var key = categoricalKey(value);
+      return !values.some(function (other) {
+        var otherKey = categoricalKey(other);
+        return other !== value && otherKey.length > key.length && otherKey.indexOf(key) >= 0;
+      });
+    });
+  }
+
+  function brandKeyAt(low, key, index) {
+    var before = index > 0 ? low.charAt(index - 1) : '';
+    var after = low.slice(index + key.length);
+    // 영문 브랜드/slug는 다른 영단어의 일부로 잡지 않는다.
+    if (/^[a-z0-9 .&-]+$/i.test(key)) {
+      return !/[a-z0-9]/i.test(before) && !/[a-z0-9]/i.test(after.charAt(0));
+    }
+    // 1~2음절 한글 키(롤, 미도 등)는 스크롤/컨트롤/재미도/의미도
+    // 같은 정상 단어 안에서 hard brand로 오염되기 쉬워 경계를 강제한다.
+    if (/^[가-힣]{1,2}$/.test(key)) {
+      if (/[0-9a-z가-힣]/i.test(before)) return false;
+      if (!after || !/[0-9a-z가-힣]/i.test(after.charAt(0))) return true;
+      return /^(?:은|는|이|가|을|를|의|로|으로|와|과|랑|이랑|도|만|말고|빼고|제외|시계|제품|모델|브랜드)(?=$|[^가-힣])/.test(after);
+    }
+    return true;
+  }
+
+  function brandKeyPresent(low, key) {
+    var from = 0;
+    while (from < low.length) {
+      var index = low.indexOf(key, from);
+      if (index < 0) return false;
+      if (brandKeyAt(low, key, index)) return true;
+      from = index + Math.max(1, key.length);
+    }
+    return false;
+  }
+
+  function brandOccurrences(low) {
+    var occurrences = [];
+    allBrandAliases().forEach(function (brand) {
+      brand.keys.forEach(function (key) {
+        var kk = String(key || '').toLowerCase();
+        var from = 0;
+        while (kk && from < low.length) {
+          var index = low.indexOf(kk, from);
+          if (index < 0) break;
+          if (brandKeyAt(low, kk, index)) {
+            occurrences.push({
+              name: brand.name, start: index, end: index + kk.length,
+              key_length: kk.length
+            });
+          }
+          from = index + Math.max(1, kk.length);
+        }
+      });
+    });
+    // 동일 위치를 더 긴 브랜드가 덮을 때만 짧은 브랜드를 억제한다.
+    // 다른 위치의 “그랜드세이코 말고 세이코”에서 뒤 세이코는 보존한다.
+    return occurrences.filter(function (occurrence) {
+      return !occurrences.some(function (other) {
+        return other.name !== occurrence.name &&
+          other.start <= occurrence.start && other.end >= occurrence.end &&
+          (other.end - other.start) > (occurrence.end - occurrence.start);
+      });
+    });
+  }
+
   // 메시지에서 브랜드(정규명) 배열 추출
   function extractBrands(text) {
     var t = String(text || '');
     var low = t.toLowerCase();
-    var found = [];
-    BRAND_ALIASES.forEach(function (b) {
-      var hit = b.keys.some(function (k) {
-        var kk = k.toLowerCase();
-        // 영문 대문자 약어(AP/IWC/JLC)는 단어경계로, 한글은 단순 포함으로
-        if (/^[a-z]+$/.test(kk) && kk.length <= 3) {
-          return new RegExp('\\b' + kk + '\\b', 'i').test(t);
-        }
-        return low.indexOf(kk) >= 0;
-      });
-      if (hit) found.push(b.name);
+    return uniq(brandOccurrences(low).map(function (occurrence) {
+      return occurrence.name;
+    }));
+  }
+
+  // “롤렉스 말고 오메가”의 롤렉스를 양수 선호로 학습하지 않는다.
+  // 현재는 명시적 브랜드 제외만 다루며, 모호한 감정 추론은 하지 않는다.
+  function extractExcludedBrands(text) {
+    var t = String(text || '');
+    var low = t.toLowerCase();
+    var excluded = [];
+    brandOccurrences(low).forEach(function (occurrence) {
+      var after = low.slice(occurrence.end, occurrence.end + 18);
+      if (/^\s*(?:은|는|이|가)?\s*(?:말고|빼고|제외|아닌|싫|원하지|안\s*(?:볼|보여|추천))/.test(after)) {
+        excluded.push(occurrence.name);
+      }
     });
-    // brands.js 사전 보강(미등록 브랜드도 잡히도록)
-    if (window.BELLORE_BRANDS) {
-      window.BELLORE_BRANDS.forEach(function (b) {
-        if (b && b.name && t.indexOf(b.name) >= 0 && found.indexOf(b.name) < 0) found.push(b.name);
-      });
-    }
-    return uniq(found);
+    return uniq(excluded);
   }
 
   // 메시지에서 모델명 추출(브랜드 사전의 models 기준)
   function extractModels(text) {
-    var t = String(text || ''); var out = [];
+    var t = String(text || ''); var low = t.toLowerCase(); var out = [];
+    MODEL_ALIASES.forEach(function (model) {
+      if (model.keys.some(function (key) {
+        return brandKeyPresent(low, String(key).toLowerCase());
+      })) out.push(model.name);
+    });
     (window.BELLORE_BRANDS || []).forEach(function (b) {
-      (b.models || []).forEach(function (m) { if (m && t.indexOf(m) >= 0) out.push(m); });
+      (b.models || []).forEach(function (m) {
+        if (!m || t.toLowerCase().indexOf(String(m).toLowerCase()) < 0) return;
+        var normalized = categoricalKey(m);
+        var alias = MODEL_ALIASES.find(function (entry) {
+          return entry.keys.some(function (key) { return categoricalKey(key) === normalized; });
+        });
+        out.push(alias ? alias.name : m);
+      });
     });
     // 영문 대표 모델 키워드 보강
     ['Submariner', 'Daytona', 'GMT', 'Datejust', 'Nautilus', 'Aquanaut', 'Royal Oak', 'Speedmaster']
-      .forEach(function (m) { if (new RegExp(m, 'i').test(t)) out.push(m); });
-    out = uniq(out);
+      .forEach(function (m) {
+        if (!new RegExp(m, 'i').test(t)) return;
+        var normalized = categoricalKey(m);
+        var alias = MODEL_ALIASES.find(function (entry) {
+          return entry.keys.some(function (key) { return categoricalKey(key) === normalized; });
+        });
+        // 이미 MODEL_ALIASES가 회수한 영문 모델을 원문 영문으로 다시 넣어
+        // hard constraint와 프로필을 두 canonical 값으로 갈라놓지 않는다.
+        out.push(alias ? alias.name : m);
+      });
+    out = suppressContainedCategories(out);
     // 더 긴 모델명의 부분문자열(예: "스피드마스터" 안의 "마스터")은 제거
     return out.filter(function (m) {
       return !out.some(function (o) { return o !== m && o.indexOf(m) >= 0; });
@@ -104,21 +280,125 @@
     '126500LN', '116500LV', '5711', '5712', '5990', '15202', '15500', '15510', '15400',
     '126710BLRO', '126710BLNR', '116710', '114060', '210.30', '311.30'];
 
+  var MONEY_TOKEN_PATTERN = '\\d+(?:\\.\\d+)?(?:\\s*(?:억|천|백|만)\\s*\\d*(?:\\.\\d+)?)*\\s*(?:원)?';
+
+  // 1천5백만원, 1억5천만원 같은 복합 한국어 금액을 하나의 값으로
+  // 합산한다. 단위 없는 수는 명시적 예산 문맥에서만 만원 단축형이다.
+  function parseMoneyExpression(raw, allowBare) {
+    var compact = String(raw || '').replace(/\s+/g, '');
+    if (!compact) return null;
+    if (/^\d+(?:\.\d+)?$/.test(compact)) {
+      return allowBare ? parseFloat(compact) * 10000 : null;
+    }
+    var wonOnly = compact.match(/^(\d+(?:\.\d+)?)원$/);
+    if (wonOnly) return parseFloat(wonOnly[1]);
+    var total = 0;
+    var matched = false;
+    var component = /(\d+(?:\.\d+)?)(억|천|백|만)/g;
+    var part;
+    while ((part = component.exec(compact))) {
+      var num = parseFloat(part[1]);
+      if (part[2] === '억') total += num * 100000000;
+      else if (part[2] === '천') total += num * 10000000;
+      else if (part[2] === '백') total += num * 1000000;
+      else if (part[2] === '만') total += num * 10000;
+      matched = true;
+    }
+    var residue = compact.replace(component, '').replace(/원$/, '').replace(/^만$/, '');
+    return matched && !residue ? total : null;
+  }
+
+  function hasMoneyUnit(raw) {
+    return /(억|천|백|만|원)/.test(String(raw || ''));
+  }
+
+  function inheritMoneyUnit(raw, otherRaw) {
+    if (hasMoneyUnit(raw) || !hasMoneyUnit(otherRaw)) return raw;
+    var suffix = String(otherRaw || '').replace(/\s+/g, '')
+      .replace(/\d+(?:\.\d+)?/g, '');
+    return String(raw || '').trim() + suffix;
+  }
+
+  // 예산 범위의 두 끝점과 문자열 위치를 함께 반환한다. 한쪽에만 단위가
+  // 있으면 다른 쪽에도 같은 단위를 적용한다(예: 1200~1500만원).
+  function extractBudgetRanges(text) {
+    var t = String(text || '').replace(/,/g, '');
+    var explicitCue = /(예산|가격대|금액)/i.test(t) || /가격(?:은|는)?\s*\d/i.test(t);
+    var values = [];
+    var spans = [];
+    var re = new RegExp('(' + MONEY_TOKEN_PATTERN + ')\\s*(?:~|～|-|–|—|에서|부터)\\s*(' + MONEY_TOKEN_PATTERN + ')', 'g');
+    var match;
+    while ((match = re.exec(t))) {
+      var leftRaw = inheritMoneyUnit(match[1], match[2]);
+      var rightRaw = inheritMoneyUnit(match[2], match[1]);
+      if (!hasMoneyUnit(leftRaw) && !hasMoneyUnit(rightRaw) && !explicitCue) continue;
+      var left = parseMoneyExpression(leftRaw, explicitCue);
+      var right = parseMoneyExpression(rightRaw, explicitCue);
+      if (!left || !right || left < 100000 || right < 100000) continue;
+      values.push(left, right);
+      spans.push({ start: match.index, end: re.lastIndex });
+    }
+    return { values: values, spans: spans };
+  }
+
+  function overlapsSpan(index, length, spans) {
+    var end = index + length;
+    return (spans || []).some(function (span) {
+      return index < span.end && end > span.start;
+    });
+  }
+
+  // 벨로르 재고번호는 제조사 레퍼런스와 다른 식별자다. 현행 일괄등록
+  // 형식(ROL-N27265-2 등)을 온전한 토큰으로 먼저 잡아 내부 N27265가
+  // 장기 레퍼런스 선호로 들어가는 것을 막는다.
+  function extractProductNumberInfo(text) {
+    var t = String(text || '');
+    var values = [];
+    var spans = [];
+    var re = /\b([A-Za-z]{2,4}-N\d{4,6}-\d{1,3})\b/gi;
+    var match;
+    while ((match = re.exec(t))) {
+      values.push(match[1].toUpperCase());
+      spans.push({ start: match.index, end: re.lastIndex });
+    }
+    return { values: uniq(values), spans: spans };
+  }
+
+  function extractProductNumbers(text) {
+    return extractProductNumberInfo(text).values;
+  }
+
   // 레퍼런스 추출: 화이트리스트 + 일반 패턴(통화/단위 숫자는 제외)
   function extractReferences(text) {
     var t = String(text || '');
     var out = [];
+    var excludedSpans = extractBudgetRanges(t).spans.concat(extractProductNumberInfo(t).spans);
     // 1) 화이트리스트 우선
     REF_WHITELIST.forEach(function (r) {
-      if (new RegExp(r.replace('.', '\\.'), 'i').test(t)) out.push(r.toUpperCase());
+      var escaped = r.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      var known = new RegExp('(^|[^A-Za-z0-9])(' + escaped + ')(?=$|[^A-Za-z0-9])', 'ig');
+      var hit;
+      while ((hit = known.exec(t))) {
+        var start = hit.index + hit[1].length;
+        if (!overlapsSpan(start, hit[2].length, excludedSpans)) out.push(r.toUpperCase());
+        if (!hit[0].length) known.lastIndex += 1;
+      }
     });
-    // 2) 일반 패턴: 4~6자리 숫자 + 영문 0~4 (예: 126610LN, 5711). 단, 뒤에
-    //    만/천/억/원/% 가 붙는 "예산/수량" 숫자는 제외.
-    var re = /\b(\d{4,6}[A-Za-z]{0,4})\b/g, m;
+    // 2) 일반 패턴: 숫자 시작(126610LN)뿐 아니라 문자 시작(H326160,
+    //    WBP201B, PAM01564)도 허용한다. 단, 예산 범위의 끝점은 제외한다.
+    var re = /\b([A-Za-z]{1,5}\d[A-Za-z0-9]{2,10}|\d{4,6}[A-Za-z]{0,6})\b/g, m;
     while ((m = re.exec(t))) {
       var token = m[1];
+      if (overlapsSpan(m.index, token.length, excludedSpans)) continue;
       var after = t.slice(re.lastIndex, re.lastIndex + 2);
       if (/^[만천억원%]/.test(after)) continue;        // 1300만원 → 제외
+      var before = t.slice(Math.max(0, m.index - 10), m.index);
+      var afterContext = t.slice(re.lastIndex, Math.min(t.length, re.lastIndex + 10));
+      // Only a cue attached to this token makes it money. A later phrase such
+      // as "14060 예산 1500만원" must not erase the 14060 reference, and
+      // "14060 가격 알려줘" is a price question about that reference.
+      if (/(예산|가격대|금액|가격(?:은|는)?)\s*$/i.test(before)) continue;
+      if (/^\s*(?:가격대(?:로)?|이하|까지|미만|under|아래|이상|부터|초과)/i.test(afterContext)) continue;
       if (/^\d{4}$/.test(token) && Number(token) > 1900 && Number(token) < 2100) continue; // 연도(2024 등) 제외
       out.push(token.toUpperCase());
     }
@@ -126,26 +406,39 @@
   }
 
   // 예산 추출 → { min, max } (KRW). 못 찾으면 null.
-  function extractBudget(text) {
+  function extractBudget(text, references) {
     var t = String(text || '').replace(/,/g, '');
-    var unitVals = [];  // 단위(억/천만/만/원)가 붙은 금액
+    var rangeInfo = extractBudgetRanges(t);
+    if (rangeInfo.values.length) {
+      return {
+        min: Math.min.apply(null, rangeInfo.values),
+        max: Math.max.apply(null, rangeInfo.values)
+      };
+    }
+    var referenceSet = {};
+    (references || []).forEach(function (ref) { referenceSet[String(ref).toUpperCase()] = true; });
+    var explicitBudgetCue = /(예산|가격대|금액|이하|까지|미만|under|아래|이상|부터|초과)/i.test(t) ||
+      /가격(?:은|는)?\s*\d/i.test(t);
+    var unitVals = [];  // 단위가 붙은 금액(복합 표현도 한 값)
     var bareVals = [];  // 단위 없는 맨숫자(레퍼런스일 수 있어 후순위)
-    // 억/천만/백만/만 단위 한국어 금액 파싱
-    var re = /(\d+(?:\.\d+)?)\s*(억|천만|천|백만|만)?\s*(원)?/g, m;
+    var re = new RegExp(MONEY_TOKEN_PATTERN, 'g'), m;
     while ((m = re.exec(t))) {
-      var num = parseFloat(m[1]); var unit = m[2] || ''; var won = m[3] || '';
+      var raw = String(m[0] || '').trim();
+      var compact = raw.replace(/\s+/g, '');
+      var num = parseFloat(compact);
       if (isNaN(num)) continue;
-      var krw = null, hasUnit = true;
-      if (unit === '억') krw = num * 100000000;
-      else if (unit === '천만') krw = num * 10000000;
-      else if (unit === '백만') krw = num * 1000000;
-      else if (unit === '천') krw = num * 10000000;       // 시계 도메인: "1천" = 1천만
-      else if (unit === '만') krw = num * 10000;            // "1000만" = 1천만
-      else if (won) krw = num;                             // "5000000원"
+      // H326160 / 126610LN처럼 영문과 붙은 숫자는 금액 후보가 아니다.
+      if (/[A-Za-z]/.test(t.charAt(m.index - 1)) || /[A-Za-z]/.test(t.charAt(re.lastIndex))) continue;
+      if (t.charAt(re.lastIndex) === '년') continue;
+      var krw = null, hasUnit = hasMoneyUnit(compact);
+      if (hasUnit) krw = parseMoneyExpression(compact, false);
       else {
-        // 단위 없는 맨숫자: 3~5자리는 만원 단위로 간주("1500 이하" = 1500만)
+        // 단위 없는 숫자는 명시적인 예산 문맥에서만 금액으로 본다. 14060,
+        // 16233 같은 실제 5자리 레퍼런스를 1억대 예산으로 오인하지 않는다.
         hasUnit = false;
-        if (num >= 100 && num <= 99999) krw = num * 10000;
+        if (explicitBudgetCue && !referenceSet[compact.toUpperCase()] && num >= 100 && num <= 99999) {
+          krw = parseMoneyExpression(compact, true);
+        }
       }
       if (krw && krw >= 100000) (hasUnit ? unitVals : bareVals).push(krw);
     }
@@ -179,34 +472,41 @@
   // buying_stage 추정
   function estimateStage(text) {
     var t = String(text || '');
-    if (/(팔|판매|매도|매입가|얼마에 사|되파|위탁)/.test(t)) return 'sell_intent';
+    if (/(팔(?:고|려고|려|아|아서|수\s*있|면|까요|게|기|자)|판매|매도|매입가|얼마에\s*사|되파|위탁)/.test(t)) return 'sell_intent';
     if (/(연락처|전화|구매할게|살게|예약|계약|입금|결제)/.test(t)) return 'ready_to_buy';
     if (/(매물|재고|있나요|입고|구할 수|구해|찾고 있)/.test(t)) return 'high_intent';
     if (/(얼마|가격|시세|예산|할인|네고)/.test(t)) return 'considering';
     return 'browsing';
   }
 
-  var STAGE_PROB = { browsing: 15, considering: 40, high_intent: 65, ready_to_buy: 88, sell_intent: 25, unknown: 0 };
+  var STAGE_PROB = { browsing: 15, considering: 40, high_intent: 65, ready_to_buy: 88, purchased_recently: 10, sell_intent: 25, unknown: 0 };
 
   // 종합 분석
   function analyze(message) {
-    var brands = extractBrands(message);
+    var allBrands = extractBrands(message);
+    var excludedBrands = extractExcludedBrands(message);
+    var brands = allBrands.filter(function (brand) { return excludedBrands.indexOf(brand) < 0; });
     var models = extractModels(message);
+    var productNumbers = extractProductNumbers(message);
     var refs = extractReferences(message);
-    var budget = extractBudget(message);
+    var budget = extractBudget(message, refs);
     var personality = extractPersonality(message);
     var stage = estimateStage(message);
     return {
-      brands: brands, models: models, references: refs,
+      brands: brands, excluded_brands: excludedBrands, models: models,
+      product_numbers: productNumbers, references: refs,
       budget: budget, personality: personality,
       buying_stage: stage, buy_probability: STAGE_PROB[stage] || 0
     };
   }
 
   var rules = {
-    extractBrands: extractBrands, extractModels: extractModels, extractReferences: extractReferences,
+    extractBrands: extractBrands, extractExcludedBrands: extractExcludedBrands,
+    extractModels: extractModels, extractProductNumbers: extractProductNumbers,
+    extractReferences: extractReferences,
     extractBudget: extractBudget, extractPersonality: extractPersonality, estimateStage: estimateStage,
-    analyze: analyze, BRAND_ALIASES: BRAND_ALIASES
+    analyze: analyze, BRAND_ALIASES: BRAND_ALIASES,
+    CATALOG_BRAND_ALIASES: CATALOG_BRAND_ALIASES, MODEL_ALIASES: MODEL_ALIASES
   };
 
   /* ============================================================
@@ -249,7 +549,7 @@
       if ((p.preferred_references || []).length) bits.push('레퍼런스: ' + p.preferred_references.join(', '));
       if (p.budget_min || p.budget_max) bits.push('예산: ' + krwShort(p.budget_min) + '~' + krwShort(p.budget_max));
       bits.push('구매단계: ' + (STAGE_LABEL[p.buying_stage] || p.buying_stage || '미상'));
-      bits.push('구매가능성 ' + (p.buy_probability || 0) + '%');
+      bits.push('구매의도 지수 ' + (p.buy_probability || 0) + '/100');
       if (p.price_sensitivity >= 65) bits.push('가격 민감도 높음');
       if (p.resale_importance >= 65) bits.push('리셀가치 중시');
       var n = (conversations || []).length;
@@ -263,7 +563,9 @@
       var parts = [];
       var tags = [];
       if (a.brands.length) tags.push(a.brands.join(', '));
-      if (a.references.length) tags.push(a.references.join(', '));
+      if ((a.excluded_brands || []).length) parts.push('제외 조건은 ' + a.excluded_brands.join(', ') + '로 반영할게요.');
+      if ((a.product_numbers || []).length) tags.push(a.product_numbers.join(', '));
+      else if (a.references.length) tags.push(a.references.join(', '));
       else if (a.models.length) tags.push(a.models.join(', '));
       if (tags.length) parts.push('"' + tags.join(' ') + '" 관심 정보를 저장했어요.');
       if (a.budget && (a.budget.min || a.budget.max)) {
@@ -298,7 +600,7 @@
   // 현재 사용 Provider (교체 지점)
   var provider = RuleBasedAIProvider;
 
-  var STAGE_LABEL = { browsing: '둘러보는 중', considering: '가격 비교 중', high_intent: '매물 찾는 중', ready_to_buy: '구매 임박', sell_intent: '판매 문의', unknown: '미상' };
+  var STAGE_LABEL = { browsing: '둘러보는 중', considering: '가격 비교 중', high_intent: '매물 찾는 중', ready_to_buy: '구매 임박', purchased_recently: '최근 구매 완료', sell_intent: '판매 문의', unknown: '미상' };
   function krwShort(n) {
     if (n == null) return '-';
     n = Number(n); if (!n) return '-';
@@ -308,10 +610,12 @@
   }
 
   /* ============================================================
-     3) 프로필 저장소 — DB(로그인) / localStorage(게스트)
+     3) 프로필 저장소 — 로그인·선택 동의 고객의 DB 프로필
      ============================================================ */
+  // 과거 버전 잔여 데이터 삭제용 키. 현재 버전은 개인화 데이터를
+  // localStorage에 새로 쓰거나 로그인 뒤 소급 병합하지 않는다.
   var LS_PROFILE = 'bellore_ai_profile';
-  var LS_BUFFER = 'bellore_ai_buffer'; // 게스트 대화/이벤트 버퍼(로그인 시 병합)
+  var LS_BUFFER = 'bellore_ai_buffer';
 
   function lsGet(k, def) { try { return JSON.parse(localStorage.getItem(k)) || def; } catch (e) { return def; } }
   function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
@@ -329,11 +633,11 @@
 
   var _profileCache = null; // 현재 세션 프로필(메모리)
 
-  // 로그인 사용자 프로필 보장(없으면 생성) → row 반환
+  // 로그인 사용자 프로필 조회 전용. 프로필 생성은 동의 원장과 같은
+  // 트랜잭션에서 처리하는 grant_ai_personalization_consent RPC만 허용한다.
   function ensureProfile() {
     if (!dbOn()) {
-      // 게스트: localStorage 프로필
-      _profileCache = lsGet(LS_PROFILE, null) || blankProfile();
+      _profileCache = blankProfile();
       return Promise.resolve(_profileCache);
     }
     var u = curUser();
@@ -341,18 +645,15 @@
       .then(function (res) {
         if (res.error) throw res.error;
         if (res.data && res.data.length) { _profileCache = res.data[0]; return _profileCache; }
-        var row = Object.assign(blankProfile(), {
-          user_id: u.uid, email: u.email || null,
-          name: u.displayName || null
-        });
-        return sb().from('customer_ai_profiles').insert(row).select().single()
-          .then(function (r2) { if (r2.error) throw r2.error; _profileCache = r2.data; return _profileCache; });
+        _profileCache = null;
+        return null;
       })
       .catch(function (e) {
-        // DB 미설정/SQL 미실행 → 게스트 폴백(끊김 없음)
-        console.warn('[BelloreAI] 프로필 DB 폴백:', e && e.message);
-        _profileCache = lsGet(LS_PROFILE, null) || blankProfile();
-        return _profileCache;
+        // 로그인 고객의 서버 프로필을 읽지 못했을 때 로컬 프로필로 대신하면
+        // 다른 기기에서 철회한 동의를 되살릴 수 있다. 실패는 실패로 남긴다.
+        console.warn('[BelloreAI] 프로필 DB 조회 실패:', e && e.message);
+        _profileCache = null;
+        throw e;
       });
   }
 
@@ -371,7 +672,7 @@
     });
     if (a.buying_stage && a.buying_stage !== 'browsing') p.buying_stage = a.buying_stage;
     else if (!p.buying_stage || p.buying_stage === 'unknown') p.buying_stage = a.buying_stage;
-    // 구매가능성: 단계 기반 + 가격민감/리셀 보정
+    // 구매의도 지수: 단계 기반 휴리스틱. 보정된 구매확률이 아니다.
     var prob = STAGE_PROB[p.buying_stage] || 0;
     if ((p.preferred_references || []).length) prob += 8;
     if (p.budget_max) prob += 5;
@@ -383,10 +684,8 @@
   // 프로필 저장(DB 또는 localStorage)
   function saveProfile(p) {
     _profileCache = p;
-    if (!dbOn() || !p.id) {
-      // 게스트(또는 폴백): localStorage
-      if (!p.id) { lsSet(LS_PROFILE, p); return Promise.resolve(p); }
-    }
+    if (dbOn() && !p.id) return Promise.reject(new Error('AI_PROFILE_ID_REQUIRED'));
+    if (!dbOn()) return Promise.resolve(p);
     if (dbOn() && p.id) {
       var patch = {
         preferred_brands: p.preferred_brands, preferred_models: p.preferred_models,
@@ -394,32 +693,33 @@
         price_sensitivity: p.price_sensitivity, speed_preference: p.speed_preference,
         detail_preference: p.detail_preference, risk_tolerance: p.risk_tolerance,
         resale_importance: p.resale_importance, buying_stage: p.buying_stage,
-        buy_probability: p.buy_probability, ai_summary: p.ai_summary,
-        consent_personalization: p.consent_personalization, consent_marketing: p.consent_marketing
+        buy_probability: p.buy_probability, ai_summary: p.ai_summary
       };
       return sb().from('customer_ai_profiles').update(patch).eq('id', p.id)
-        .then(function (r) { if (r.error) console.warn('[BelloreAI] 프로필 저장 보류:', r.error.message); return p; });
+        .then(function (r) {
+          if (r.error) {
+            console.warn('[BelloreAI] 프로필 저장 실패:', r.error.message);
+            throw r.error;
+          }
+          return p;
+        });
     }
-    lsSet(LS_PROFILE, p);
-    return Promise.resolve(p);
+    return Promise.reject(new Error('AI_PROFILE_SAVE_UNAVAILABLE'));
   }
 
   /* ============================================================
      4) 관심 점수 누적 (customer_watch_interests)
      ============================================================ */
   var SCORE_BY_SOURCE = {
-    chat: 10, click: 2, wishlist: 15, inquiry: 30, price_alert: 25, purchase: 50
+    chat: 10, click: 2, wishlist: 15, cart: 25, inquiry: 30, price_alert: 25, purchase: 50
   };
 
   function bumpInterest(profile, item, source) {
+    var current = curUser();
+    if (!consentGiven() || !loggedIn() || !current || !profile ||
+        profile.user_id !== current.uid || profile.consent_personalization !== true) return Promise.resolve();
     var pts = SCORE_BY_SOURCE[source] || 5;
-    if (!profile || !profile.id || !dbOn()) {
-      // 게스트: 로컬 버퍼에만 누적(병합 시 반영)
-      var buf = lsGet(LS_BUFFER, { conversations: [], events: [], interests: [] });
-      buf.interests.push({ brand: item.brand || null, model: item.model || null, reference_number: item.reference_number || null, pts: pts, source: source, at: nowISO() });
-      lsSet(LS_BUFFER, buf);
-      return Promise.resolve();
-    }
+    if (!profile.id || !dbOn()) return Promise.resolve();
     var key = { profile_id: profile.id, user_id: profile.user_id || null,
       brand: item.brand || null, model: item.model || null, reference_number: item.reference_number || null };
     // 같은 프로필의 관심행을 모두 받아 (브랜드,모델,레퍼런스) 조합으로 매칭(널 안전).
@@ -452,33 +752,153 @@
      ============================================================ */
   var EVENT_SOURCE = {
     product_view: 'click', wishlist_add: 'wishlist', wishlist_remove: null,
-    inquiry_submit: 'inquiry', price_alert_set: 'price_alert',
-    chat_message: 'chat', purchase_request: 'purchase', sell_request: 'inquiry'
+    cart_add: 'cart', cart_remove: null, inquiry_submit: 'inquiry', price_alert_set: 'price_alert',
+    chat_message: 'chat', purchase_request: 'purchase', purchase_complete: null, sell_request: 'inquiry',
+    recommendation_impression: null, recommendation_click: null, recommendation_dismiss: null,
+    personalization_consent_granted: null
   };
+  var _recommendationTouches = {};
+
+  // 실제 행동 신호는 점수를 끝없이 더하지 않고 구매단계별 최소값만 올린다.
+  // 조회만으로 구매 임박 판정을 만들지 않으며, 개인화 동의 회원에게만 적용한다.
+  var BEHAVIOR_INTENT_FLOOR = {
+    wishlist_add: { stage: 'considering', probability: 45 },
+    cart_add: { stage: 'high_intent', probability: 68 },
+    purchase_request: { stage: 'ready_to_buy', probability: 88 },
+    purchase_complete: { stage: 'purchased_recently', probability: 10, reset: true }
+  };
+
+  function applyBehaviorIntent(profile, eventType) {
+    var floor = BEHAVIOR_INTENT_FLOOR[eventType];
+    if (!floor) return false;
+    var beforeStage = profile.buying_stage;
+    var beforeProbability = Number(profile.buy_probability) || 0;
+    if (floor.reset || beforeProbability < floor.probability) {
+      profile.buying_stage = floor.stage;
+      profile.buy_probability = floor.probability;
+      profile.ai_summary = provider.summarizeCustomer(profile, null);
+    }
+    return beforeStage !== profile.buying_stage || beforeProbability !== Number(profile.buy_probability || 0);
+  }
 
   function track(eventType, data) {
     data = data || {};
-    return ensureProfile().then(function (p) {
+    if (!consentGiven() || !loggedIn()) return Promise.resolve([]);
+    return requireConsentedProfile().then(function (p) {
+      var user = curUser();
+      if (!user || !p) return [];
+      var eventValue = Object.assign({}, data.value || {});
+      if (eventType.indexOf('recommendation_') !== 0) {
+        var recommendation = data.recommendation_attribution || recommendationAttribution(data.product_id);
+        if (recommendation) eventValue.recommendation = recommendation;
+      }
       var evt = {
         event_type: eventType, product_id: data.product_id || null,
         brand: data.brand || null, model: data.model || null,
-        reference_number: data.reference_number || null, value: data.value || {}
+        reference_number: data.reference_number || null, value: eventValue
       };
       // 관심 점수 누적
       var src = EVENT_SOURCE[eventType];
       var bumpP = (src && (data.brand || data.model || data.reference_number))
         ? bumpInterest(p, evt, src) : Promise.resolve();
+      var profileP = applyBehaviorIntent(p, eventType) ? saveProfile(p) : Promise.resolve(p);
       // 이벤트 저장
       var saveP;
       if (dbOn() && p.id) {
         saveP = sb().from('customer_events').insert(Object.assign({ profile_id: p.id, user_id: p.user_id || null }, evt))
           .then(function (r) { if (r.error) console.warn('[BelloreAI] 이벤트 보류:', r.error.message); });
       } else {
-        var buf = lsGet(LS_BUFFER, { conversations: [], events: [], interests: [] });
-        buf.events.push(Object.assign({ at: nowISO() }, evt)); lsSet(LS_BUFFER, buf);
         saveP = Promise.resolve();
       }
-      return Promise.all([bumpP, saveP]);
+      return Promise.all([bumpP, saveP, profileP]);
+    });
+  }
+
+  function recommendationEventValue(item, surface, position) {
+    item = item || {};
+    var product = item.product || {};
+    return {
+      request_id: item.request_id || null,
+      product_id: product.id || null,
+      surface: surface || item.surface || 'unknown',
+      rank: Number(position || item.rank) || null,
+      algorithm_version: item.algorithm_version || (item.breakdown && item.breakdown.algorithm_version) || 'legacy',
+      variant: item.variant || 'balanced_v1',
+      experiment_id: item.experiment_id || null,
+      candidate_sources: item.candidate_sources || [],
+      score: Number(item.score) || 0,
+      score_kind: item.breakdown && item.breakdown.score_kind || 'legacy_score',
+      score_components: item.breakdown && item.breakdown.features || {}
+    };
+  }
+
+  function rememberRecommendationTouch(item, surface, position) {
+    item = item || {};
+    var product = item.product || {};
+    if (!product.id) return null;
+    var value = recommendationEventValue(item, surface, position);
+    value.touched_at = nowISO();
+    _recommendationTouches[String(product.id)] = value;
+    return Object.assign({}, value);
+  }
+
+  function recommendationAttribution(itemOrId) {
+    var direct = itemOrId && itemOrId.recommendation_attribution;
+    if (direct && direct.request_id) return Object.assign({}, direct);
+    var id = typeof itemOrId === 'object'
+      ? (itemOrId.product_id || itemOrId.listingId || itemOrId.id)
+      : itemOrId;
+    var value = id ? _recommendationTouches[String(id)] : null;
+    if (!value || !value.touched_at) return null;
+    if (Date.now() - new Date(value.touched_at).getTime() > 2 * 60 * 60 * 1000) {
+      delete _recommendationTouches[String(id)];
+      return null;
+    }
+    return Object.assign({}, value);
+  }
+
+  function trackRecommendation(eventType, item, surface, position) {
+    var product = item && item.product || {};
+    if (!product.id) return Promise.resolve([]);
+    if (eventType === 'recommendation_click' || eventType === 'recommendation_dismiss') {
+      rememberRecommendationTouch(item, surface, position);
+    }
+    return track(eventType, {
+      product_id: /^[0-9a-f-]{36}$/i.test(String(product.id)) ? product.id : null,
+      brand: product.brand || null,
+      model: product.model || null,
+      reference_number: product.reference_number || null,
+      value: recommendationEventValue(item, surface, position)
+    });
+  }
+
+  function trackRecommendationImpressions(items, surface) {
+    if (!consentGiven() || !loggedIn()) return Promise.resolve([]);
+    var visibleItems = (items || []).filter(function (item) { return item && item.product && item.product.id; });
+    if (!visibleItems.length) return Promise.resolve([]);
+    return requireConsentedProfile().then(function (profile) {
+      var user = curUser();
+      if (!profile || !user || !dbOn()) return [];
+      var rows = visibleItems.map(function (item, index) {
+        var product = item.product || {};
+        return {
+          profile_id: profile.id,
+          user_id: user.uid,
+          event_type: 'recommendation_impression',
+          product_id: /^[0-9a-f-]{36}$/i.test(String(product.id)) ? product.id : null,
+          brand: product.brand || null,
+          model: product.model || null,
+          reference_number: product.reference_number || null,
+          value: recommendationEventValue(item, surface, item.rank || index + 1)
+        };
+      });
+      return sb().from('customer_events').insert(rows).then(function (result) {
+        if (result.error) throw result.error;
+        return rows;
+      });
+    }).catch(function (error) {
+      console.warn('[BelloreAI] 추천 노출 저장 실패:', error && error.message || error);
+      return [];
     });
   }
 
@@ -487,21 +907,24 @@
      ============================================================ */
   function logConversation(profile, role, message, metadata) {
     metadata = metadata || {};
-    if (dbOn() && profile && profile.id) {
+    var user = curUser();
+    if (dbOn() && user && profile && profile.id && profile.user_id === user.uid &&
+        profile.consent_personalization === true) {
       return sb().from('ai_conversations').insert({
         profile_id: profile.id, user_id: profile.user_id || null,
         role: role, message: message, channel: 'web', metadata: metadata
       }).then(function (r) { if (r.error) console.warn('[BelloreAI] 대화 저장 보류:', r.error.message); });
     }
-    var buf = lsGet(LS_BUFFER, { conversations: [], events: [], interests: [] });
-    buf.conversations.push({ role: role, message: message, metadata: metadata, at: nowISO() }); lsSet(LS_BUFFER, buf);
     return Promise.resolve();
   }
 
-  var CHAT_SESSION_KEY = 'bellore_ai_chat_session';
+  var CHAT_SESSION_KEY_PREFIX = 'bellore_ai_chat_session:';
   function chatSessionId() {
     try {
-      var current = sessionStorage.getItem(CHAT_SESSION_KEY);
+      var user = curUser();
+      if (!user || !user.uid) return null;
+      var key = CHAT_SESSION_KEY_PREFIX + user.uid;
+      var current = sessionStorage.getItem(key);
       if (/^[0-9a-f-]{36}$/i.test(current || '')) return current;
       var created = (window.crypto && typeof window.crypto.randomUUID === 'function')
         ? window.crypto.randomUUID()
@@ -509,7 +932,7 @@
             var r = Math.random() * 16 | 0;
             return (c === 'x' ? r : (r & 3 | 8)).toString(16);
           });
-      sessionStorage.setItem(CHAT_SESSION_KEY, created);
+      sessionStorage.setItem(key, created);
       return created;
     } catch (e) { return null; }
   }
@@ -567,8 +990,26 @@
 
   // 사용자 메시지 1턴 처리 → { reply, analysis, profile }
   function handleUserMessage(message) {
+    if (!consentGiven() || !loggedIn()) {
+      return Promise.resolve({
+        reply: '맞춤 추천 동의 후 이용하실 수 있어요.',
+        analysis: analyze(message),
+        profile: null,
+        recommendations: [],
+        consentRequired: true
+      });
+    }
     var a = analyze(message);
-    return ensureProfile().then(function (p) {
+    return requireConsentedProfile().then(function (p) {
+      if (!p) {
+        return {
+          reply: '맞춤 추천 동의 상태를 다시 확인해 주세요.',
+          analysis: a,
+          profile: null,
+          recommendations: [],
+          consentRequired: true
+        };
+      }
       return Promise.resolve().then(function () {
         var p2 = applyAnalysis(p, a);
         return saveProfile(p2).then(function () {
@@ -586,18 +1027,42 @@
             // 추천 의도(추천/예산/매물 키워드 또는 브랜드·레퍼런스 언급)면 실제 매물 추천
             // 추천은 "고객이 요청"할 때만
             var wantReco = /추천|매물|보여|찾아|있나|있어|얼마|골라|시세|가격|예물|결혼|웨딩|선물|커플/.test(message)
-              || a.references.length || (a.brands.length && a.budget);
+              || (a.product_numbers || []).length || a.references.length ||
+              (a.brands.length && a.budget) || (a.excluded_brands || []).length;
             // 단, 정보(브랜드/예산/레퍼런스 또는 기존 취향)가 있어야 실제 추천. 없으면 취향 Q&A로.
             var profHasPref = (p2.preferred_brands && p2.preferred_brands.length) || p2.budget_max || (p2.preferred_references && p2.preferred_references.length);
-            var hasSignal = a.brands.length || a.references.length || a.budget || a.models.length || profHasPref;
+            var hasSignal = a.brands.length || (a.product_numbers || []).length || a.references.length || a.budget || a.models.length ||
+              (a.excluded_brands || []).length || profHasPref;
             var askPref = wantReco && !hasSignal;
-            var recoP = (wantReco && hasSignal) ? recommendProducts(p2, 24, a).catch(function () { return []; }) : Promise.resolve([]);
+            var recommendationError = null;
+            var recoP = (wantReco && hasSignal) ? recommendProducts(p2, 24, a).catch(function (error) {
+              recommendationError = error || new Error('RECOMMENDATION_UNKNOWN_FAILURE');
+              console.warn('[BelloreAI] 추천 산출 실패:', recommendationError.code || recommendationError.message);
+              return null;
+            }) : Promise.resolve([]);
             return recoP.then(function (recos) {
               // 개선 루프: 브랜드/레퍼런스도 못 잡고 추천도 못 준 질문 = "대응 어려움" → 표시
-              var handled = a.brands.length || a.references.length || (recos && recos.length) ||
+              var handled = a.brands.length || (a.product_numbers || []).length || a.references.length ||
+                (a.excluded_brands || []).length || (recos && recos.length) ||
                 a.buying_stage === 'sell_intent' || !!metaAnswer(message, p2);
-              var userMeta = { analysis: { brands: a.brands, references: a.references, stage: a.buying_stage } };
+              var userMeta = { analysis: { brands: a.brands, excluded_brands: a.excluded_brands || [], product_numbers: a.product_numbers || [], references: a.references, stage: a.buying_stage } };
               if (!handled) userMeta.needs_review = true;
+              if (recommendationError) {
+                var unavailable = '지금은 판매 가능 재고를 확인하지 못했어요. 잠시 후 다시 요청해 주세요.';
+                _lastReplyProvider = 'inventory_lookup_unavailable';
+                return logConversationTurn(p2, message, unavailable, {
+                  analysis: userMeta.analysis,
+                  needs_review: true,
+                  provider: _lastReplyProvider,
+                  recommended_listing_ids: []
+                }).then(function () {
+                  return {
+                    reply: unavailable, analysis: a, profile: p2, recommendations: [],
+                    inventoryUnavailable: true,
+                    recommendationError: recommendationError.code || recommendationError.message
+                  };
+                });
+              }
               // 정보가 없는데 추천을 원하면 → 부담없는 취향 Q&A
               if (askPref) {
                 var ask = '아직 고객님을 알게 된 지 얼마 안 돼서요 😊 부담 갖지 마시고, 취향만 살짝 알려주시면 딱 맞게 찾아드릴게요. 어떤 브랜드나 예산 생각하고 계세요?';
@@ -609,6 +1074,21 @@
                   recommended_listing_ids: []
                 }).then(function () {
                   return { reply: ask, analysis: a, profile: p2, recommendations: [], askPref: true };
+                });
+              }
+              var explicitInventoryRequest = /(추천|매물|보여|찾아|있나|있어|골라)/.test(message) &&
+                (a.brands.length || (a.excluded_brands || []).length || a.models.length ||
+                 (a.product_numbers || []).length || a.references.length || a.budget);
+              if (explicitInventoryRequest && !(recos && recos.length)) {
+                var noMatch = '현재 판매 가능한 매물 중 말씀하신 조건을 모두 충족하는 상품은 없어요. 브랜드나 예산 범위를 넓혀주시면 다른 조건으로 다시 찾아볼게요.';
+                _lastReplyProvider = 'inventory_no_match';
+                return logConversationTurn(p2, message, noMatch, {
+                  analysis: userMeta.analysis,
+                  needs_review: false,
+                  provider: _lastReplyProvider,
+                  recommended_listing_ids: []
+                }).then(function () {
+                  return { reply: noMatch, analysis: a, profile: p2, recommendations: [], handled: true };
                 });
               }
               return composeReply(message, p2, a, recos).then(function (reply) {
@@ -828,12 +1308,16 @@
      ============================================================ */
   function normalizeListing(row) {
     if (!row) return null;
+    if (window.BelloreRecommendationEngine && window.BelloreRecommendationEngine.normalizeProduct) {
+      return window.BelloreRecommendationEngine.normalizeProduct(row);
+    }
     return {
       id: row.id,
-      brand: row.title || row.brand || '',      // 벨로르: listings.title = 브랜드
-      model: row.description || row.model || '', // listings.description = 모델
-      reference_number: row.reference_number || row.product_no || '',
-      price: Number(row.price) || 0,
+      brand: row.brand || row.title || '',      // 벨로르: listings.title = 브랜드
+      model: row.model || row.description || '', // listings.description = 모델
+      reference_number: row.reference_number || row.reference_no || '',
+      product_no: row.product_no || '',
+      price: Number(row.sale_price != null ? row.sale_price : row.price) || 0,
       condition: row.condition || row.grade || '',
       color: row.dial_color || '',
       size: row.size_mm || '',
@@ -908,7 +1392,9 @@
       return { product: prod, score: r.score, reason: r.reason, breakdown: r.breakdown };
     }).filter(function (x) { return x.score >= (opts.minScore || 1); })
       .sort(function (a, b) { return b.score - a.score; });
-    if (opts.persist && dbOn() && profile && profile.id) {
+    var current = curUser();
+    if (opts.persist && consentGiven() && dbOn() && current && profile && profile.id &&
+        profile.user_id === current.uid && profile.consent_personalization === true) {
       var rows = ranked.slice(0, opts.limit || 10).map(function (x) {
         return { profile_id: profile.id, user_id: profile.user_id || null, product_id: x.product.id || null,
           score: x.score, reason: x.reason, score_breakdown: x.breakdown, status: 'candidate' };
@@ -918,52 +1404,187 @@
     return ranked;
   }
 
-  /* 벨로르 판매시계 1회성 조회(추천 소스). 캐시 60초. */
+  /* 판매가능 재고 스냅샷은 추천 요청마다 다시 읽는다. 158개 규모에서
+     품절 정합성이 60초 캐시 절약보다 중요하며, 조회 실패도 stale 재고로
+     폴백하지 않고 빈 후보로 닫는다. */
   var _prodCache = null, _prodAt = 0;
+  function recommendationFailure(code, cause) {
+    var error = new Error(code);
+    error.code = code;
+    if (cause) error.cause = cause;
+    return error;
+  }
   function fetchProducts() {
-    if (_prodCache && (Date.now() - _prodAt) < 60000) return Promise.resolve(_prodCache);
-    if (!(B() && B().subscribeProducts)) return Promise.resolve([]);
-    return new Promise(function (resolve) {
+    if (!(B() && B().subscribeProducts)) {
+      return Promise.reject(recommendationFailure('RECOMMENDATION_CATALOG_UNAVAILABLE'));
+    }
+    return new Promise(function (resolve, reject) {
       var done = false, unsub = null;
       try {
-        unsub = B().subscribeProducts(function (list) {
+        unsub = B().subscribeProducts(function (list, error) {
           if (done) return; done = true;
+          if (error) {
+            console.warn('[BelloreAI] 판매가능 재고 조회 실패:', error.message || error);
+            reject(recommendationFailure('RECOMMENDATION_CATALOG_UNAVAILABLE', error));
+            return;
+          }
           _prodCache = (list || []).filter(function (p) { return (p.status || 'on') !== 'sold' && (p.status || 'on') !== 'hidden'; });
           _prodAt = Date.now();
           if (unsub) try { unsub(); } catch (e) {}
           resolve(_prodCache);
         });
-      } catch (e) { resolve([]); }
-      setTimeout(function () { if (!done) { done = true; resolve(_prodCache || []); } }, 2500);
+      } catch (e) {
+        console.warn('[BelloreAI] 판매가능 재고 구독 실패:', e && e.message || e);
+        reject(recommendationFailure('RECOMMENDATION_CATALOG_UNAVAILABLE', e));
+      }
+      setTimeout(function () {
+        if (!done) {
+          done = true;
+          if (unsub) try { unsub(); } catch (e) {}
+          console.warn('[BelloreAI] 판매가능 재고 조회 시간 초과');
+          reject(recommendationFailure('RECOMMENDATION_CATALOG_TIMEOUT'));
+        }
+      }, 2500);
     });
   }
 
-  // 프로필 기반 실제 매물 추천(규칙기반, 무료). 상위 N개 반환.
-  // 현재 질문(analysis) 기준으로 브랜드/예산 필터 + 프로필 점수 + 변화(jitter)
-  function recommendProducts(profile, limit, analysis) {
-    return fetchProducts().then(function (products) {
+  // 프로필 기반 실제 매물 추천. 동의한 고객만 행동 이력을 읽는다.
+  function fetchRecommendationSignals(profile) {
+    var user = curUser();
+    if (!consentGiven() || !dbOn() || !user || !profile || !profile.id ||
+        profile.user_id !== user.uid || profile.consent_personalization !== true) {
+      return Promise.resolve({ interests: [], events: [] });
+    }
+    var cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+    var actionTypes = [
+      'product_view', 'wishlist_add', 'wishlist_remove', 'cart_add', 'cart_remove',
+      'inquiry_submit', 'price_alert_set', 'purchase_request', 'purchase_complete',
+      'recommendation_click', 'recommendation_dismiss', 'chat_message'
+    ];
+    return Promise.all([
+      sb().from('customer_watch_interests').select('*').eq('profile_id', profile.id)
+        .order('interest_score', { ascending: false }).limit(100),
+      sb().from('customer_events').select('*').eq('profile_id', profile.id)
+        .in('event_type', actionTypes).gte('created_at', cutoff)
+        .order('created_at', { ascending: false }).limit(250),
+      sb().from('customer_events').select('*').eq('profile_id', profile.id)
+        .eq('event_type', 'recommendation_impression').gte('created_at', cutoff)
+        .order('created_at', { ascending: false }).limit(200)
+    ]).then(function (rows) {
+      var failed = rows.find(function (row) { return row && row.error; });
+      if (failed) throw failed.error;
+      return {
+        interests: (rows[0] && !rows[0].error && rows[0].data) || [],
+        // 노출량 때문에 찜/장바구니/구매/부정 신호가 최신 N개 밖으로
+        // 밀려나지 않도록 행동과 노출을 분리 조회한다.
+        events: ((rows[1] && !rows[1].error && rows[1].data) || [])
+          .concat((rows[2] && !rows[2].error && rows[2].data) || [])
+      };
+    }).catch(function (error) {
+      console.warn('[BelloreAI] 추천 행동 신호 조회 실패:', error && error.message || error);
+      throw recommendationFailure('RECOMMENDATION_SIGNALS_UNAVAILABLE', error);
+    });
+  }
+
+  function recommendationRequestId() {
+    try {
+      if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+    } catch (e) {}
+    return 'reco-' + Date.now().toString(36) + '-' + Math.floor(Math.random() * 0x1000000).toString(36);
+  }
+
+  function hardConstraintsFromAnalysis(analysis) {
+    analysis = analysis || {};
+    var budget = analysis.budget || {};
+    return {
+      brands: analysis.brands || [],
+      exclude_brands: analysis.excluded_brands || [],
+      models: analysis.models || [],
+      product_numbers: analysis.product_numbers || [],
+      references: analysis.references || [],
+      budget_min: budget.min || 0,
+      budget_max: budget.max || 0
+    };
+  }
+
+  function recommendProducts(profile, limit, analysis, opts) {
+    opts = opts || {};
+    return Promise.all([fetchProducts(), fetchRecommendationSignals(profile)]).then(function (result) {
+      var products = result[0], signals = result[1];
       if (!products.length) return [];
-      var list = products.slice();
-      if (analysis) {
-        // 이번 질문에서 브랜드를 말했으면 그 브랜드 우선(없으면 전체 유지)
-        if (analysis.brands && analysis.brands.length) {
-          var byBrand = list.filter(function (p) { return analysis.brands.indexOf(p.brand) >= 0; });
-          if (byBrand.length) list = byBrand;
-        }
-        // 예산을 말했으면 그 범위로 필터
-        var b = analysis.budget;
-        if (b && (b.min || b.max)) {
-          var within = list.filter(function (p) {
-            var pr = Number(p.price) || 0;
-            return (b.min == null || pr >= b.min * 0.8) && (b.max == null || pr <= b.max * 1.15);
-          });
-          if (within.length) list = within;
-        }
+      var requestId = recommendationRequestId();
+      var engine = window.BelloreRecommendationEngine;
+      var current = curUser();
+      var canPersonalize = !!(current && consentGiven() && profile &&
+        profile.user_id === current.uid && profile.consent_personalization === true);
+      var effectiveEvents = canPersonalize ? signals.events.slice() : [];
+      if (canPersonalize && opts.contextItems && opts.contextItems.length) {
+        effectiveEvents = effectiveEvents.concat(opts.contextItems.map(function (item) {
+          return {
+            event_type: 'cart_add',
+            product_id: item && item.id || null,
+            brand: item && item.brand || null,
+            model: item && item.model || null,
+            reference_number: item && (item.reference_number || item.reference_no) || null,
+            created_at: nowISO(),
+            ephemeral_context: true
+          };
+        }));
       }
-      var ranked = recommendForProfile(profile, list, [], [], { minScore: 0, persist: false });
-      // 매번 똑같은 순서가 나오지 않도록 점수에 약한 변동을 준다(좋은 매칭은 대체로 앞).
-      ranked.sort(function (x, y) { return (y.score + Math.random() * 8) - (x.score + Math.random() * 8); });
-      return ranked.slice(0, limit || 8);
+      if (engine && engine.rank) {
+        var experiment = window.BELLORE_RECO_EXPERIMENT || null;
+        var experimentId = null;
+        var selectedVariant = opts.variant || 'balanced_v1';
+        if (!opts.variant && canPersonalize && experiment && experiment.enabled === true &&
+            experiment.id && Array.isArray(experiment.variants) && engine.assignVariant) {
+          experimentId = String(experiment.id);
+          selectedVariant = engine.assignVariant(profile.user_id, experimentId, experiment.variants);
+        }
+        var ranked = engine.rank({
+          products: products,
+          profile: canPersonalize ? profile : {},
+          interests: canPersonalize ? signals.interests : [],
+          events: effectiveEvents,
+          personalized: canPersonalize,
+          hardConstraints: analysis ? hardConstraintsFromAnalysis(analysis) : null,
+          excludeIds: opts.excludeIds || [],
+          limit: limit || opts.limit || 8,
+          variant: selectedVariant,
+          tieSeed: ((canPersonalize && profile.user_id) || opts.tieSeed || 'non-personal-catalog') + '|' + selectedVariant
+        });
+        return ranked.items.map(function (item, index) {
+          item.request_id = requestId;
+          item.surface = opts.surface || 'ai_chat';
+          item.rank = index + 1;
+          item.experiment_id = experimentId;
+          return item;
+        });
+      }
+      // 구 엔진은 명시 hard constraint 계약을 보장하지 못한다. 혼합 캐시나
+      // 로드 실패 시 전체 프로필 추천으로 우회하지 않고 fail-closed한다.
+      console.error('[BelloreAI] recommendation-engine.js를 사용할 수 없습니다.');
+      throw recommendationFailure('RECOMMENDATION_ENGINE_UNAVAILABLE');
+    });
+  }
+
+  // AI 채팅 밖(장바구니 등)에서 사용하는 안전한 공용 진입점.
+  // 비동의/비로그인은 서버 행동 이력 없이 전체 재고 품질·다양성만 사용한다.
+  function recommendCurrentUser(opts) {
+    opts = opts || {};
+    if (!(consentGiven() && loggedIn())) {
+      return recommendProducts(null, opts.limit || 4, null, {
+        excludeIds: opts.excludeIds || [], surface: opts.surface || 'catalog',
+        tieSeed: 'non-personal-catalog', variant: 'non_personal_v1'
+      });
+    }
+    return requireConsentedProfile().then(function (profile) {
+      if (!profile) {
+        return recommendProducts(null, opts.limit || 4, null, {
+          excludeIds: opts.excludeIds || [], surface: opts.surface || 'catalog',
+          tieSeed: 'non-personal-catalog', variant: 'non_personal_v1'
+        });
+      }
+      return recommendProducts(profile, opts.limit || 4, opts.analysis || null, opts);
     });
   }
 
@@ -975,6 +1596,7 @@
      ============================================================ */
   function buildAlertCandidates(product, profile, interests, events, opts) {
     opts = opts || {};
+    if (!profile || profile.consent_personalization !== true) return null;
     var prod = product.__normalized ? product : normalizeListing(product);
     var r = calculateRecommendationScore(profile, prod, interests, events);
     if (r.score < (opts.threshold || 85)) return null;
@@ -1009,49 +1631,72 @@
   }
 
   /* ============================================================
-     9) 로그인 시 게스트 버퍼 → DB 병합
+     9) 과거 로컬 개인화 버퍼 정리(소급 병합 금지)
      ============================================================ */
   function flushBufferToDB() {
-    if (!dbOn()) return Promise.resolve();
-    var buf = lsGet(LS_BUFFER, null);
-    var localProfile = lsGet(LS_PROFILE, null);
-    if (!buf && !localProfile) return ensureProfile();
-    return ensureProfile().then(function (p) {
-      if (!p || !p.id) return;
-      var jobs = [];
-      // 로컬 프로필 성향/관심을 서버 프로필에 병합
-      if (localProfile) {
-        var merged = applyAnalysis(p, {
-          brands: localProfile.preferred_brands || [], models: localProfile.preferred_models || [],
-          references: localProfile.preferred_references || [],
-          budget: { min: localProfile.budget_min, max: localProfile.budget_max },
-          personality: {}, buying_stage: localProfile.buying_stage || 'unknown'
-        });
-        merged.consent_personalization = merged.consent_personalization || localProfile.consent_personalization;
-        merged.consent_marketing = merged.consent_marketing || localProfile.consent_marketing;
-        jobs.push(saveProfile(merged));
-      }
-      if (buf) {
-        (buf.conversations || []).forEach(function (c) {
-          jobs.push(sb().from('ai_conversations').insert({ profile_id: p.id, user_id: p.uid || p.user_id, role: c.role, message: c.message, channel: 'web' }));
-        });
-        (buf.events || []).forEach(function (e) {
-          jobs.push(sb().from('customer_events').insert({ profile_id: p.id, user_id: p.user_id || null, event_type: e.event_type, brand: e.brand, model: e.model, reference_number: e.reference_number, value: e.value || {} }));
-        });
-        (buf.interests || []).forEach(function (it) {
-          jobs.push(bumpInterest(p, it, it.source || 'chat'));
-        });
-      }
-      return Promise.all(jobs.map(function (j) { return Promise.resolve(j).catch(function () {}); }))
-        .then(function () { lsSet(LS_BUFFER, { conversations: [], events: [], interests: [] }); });
-    }).catch(function () {});
+    if (!consentGiven() || !dbOn()) return Promise.resolve();
+    // 현재 버전은 비로그인/비동의 행동을 수집하지 않는다. 과거 버전의
+    // 로컬 버퍼를 새 동의에 소급 업로드하지 않고 폐기만 한다.
+    return requireConsentedProfile().then(function (p) {
+      if (!p) return null;
+      try { localStorage.removeItem(LS_BUFFER); } catch (e) {}
+      try { localStorage.removeItem(LS_PROFILE); } catch (e) {}
+      return p;
+    }).catch(function (error) {
+      console.warn('[BelloreAI] 동의 상태 재확인 실패:', error && error.message || error);
+      return null;
+    });
   }
 
   /* ============================================================
      10) 고객용 AI 비서 UI — 플로팅 버튼 + 채팅 패널 (JS 자체 주입)
      ============================================================ */
   var CONSENT_KEY = 'bellore_ai_consent';
-  function consentGiven() { return lsGet(CONSENT_KEY, false) === true; }
+  var CONSENT_VERSION = 'personalization-v2-20260822';
+  function consentLocalKey(uid) { return CONSENT_KEY + ':' + String(uid || ''); }
+  function consentGiven() {
+    var user = curUser();
+    if (!user || !user.uid) return false;
+    return lsGet(consentLocalKey(user.uid), false) === true || lsGet(CONSENT_KEY, '') === user.uid;
+  }
+
+  function clearLocalPersonalizationState(clearHistory) {
+    var user = curUser();
+    try {
+      if (user && user.uid) localStorage.removeItem(consentLocalKey(user.uid));
+      if (!user || lsGet(CONSENT_KEY, '') === user.uid) localStorage.removeItem(CONSENT_KEY);
+    } catch (e) {}
+    if (clearHistory) {
+      try { localStorage.removeItem(LS_PROFILE); } catch (e2) {}
+      try { localStorage.removeItem(LS_BUFFER); } catch (e2) {}
+      try {
+        sessionStorage.removeItem('bellore_ai_chat_session');
+        if (user && user.uid) sessionStorage.removeItem(CHAT_SESSION_KEY_PREFIX + user.uid);
+      } catch (e3) {}
+      (_recoObservers || []).forEach(function (observer) { try { observer.disconnect(); } catch (e4) {} });
+      _recoObservers = [];
+      _impressedRecommendations = {};
+      _recommendationTouches = {};
+    }
+    _profileCache = null;
+  }
+
+  // 로컬 스위치는 UX용일 뿐 권한 근거가 아니다. 쓰기/개인화 직전에
+  // 서버 프로필의 본인 UID와 현재 동의를 다시 확인한다.
+  function requireConsentedProfile() {
+    var user = curUser();
+    if (!user || !consentGiven() || !dbOn()) return Promise.resolve(null);
+    var expectedUid = user.uid;
+    return ensureProfile().then(function (profile) {
+      var liveUser = curUser();
+      if (!liveUser || liveUser.uid !== expectedUid) return null;
+      if (!profile || profile.user_id !== expectedUid || profile.consent_personalization !== true) {
+        clearLocalPersonalizationState(true);
+        return null;
+      }
+      return profile;
+    });
+  }
 
   function injectStyles() {
     if ($('#bellore-ai-style')) return;
@@ -1129,6 +1774,7 @@
       + '.bai-reco-info{display:flex;flex-direction:column;gap:3px;padding:10px 11px 12px}'
       + '.bai-reco-info b{font-size:14px;font-weight:700;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
       + '.bai-reco-spec{font-size:11px;color:#6b6b6b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+      + '.bai-reco-reason{font-size:10.5px;line-height:1.35;color:#2d6fd3;margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}'
       + '.bai-reco-price{font-size:15px;font-weight:800;color:#111;margin-top:2px}'
       + '.bai-reco-info em{font-size:10px;color:#9a9a9a;font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}';
     var st = document.createElement('style'); st.id = 'bellore-ai-style'; st.textContent = css;
@@ -1184,7 +1830,7 @@
     elPanel.addEventListener('click', function (e) {
       if (e.target.classList.contains('bai-panel') || e.target.closest('.bai-x')) { closePanel(); return; }
       var reco = e.target.closest('.bai-reco');
-      if (reco) { if (reco.dataset.more) revealMore(reco); else openReco(reco.dataset.pid); return; }
+      if (reco) { if (reco.dataset.more) revealMore(reco); else openReco(reco); return; }
       var chip = e.target.closest('.bai-chip');
       if (chip) onMenu(chip.dataset.q);
     });
@@ -1207,7 +1853,19 @@
     if (!elBody.dataset.init) {
       elBody.dataset.init = '1';
       if (!consentGiven()) renderConsent();
-      else renderIntro();
+      else {
+        var panelEpoch = _authEpoch;
+        requireConsentedProfile().then(function (profile) {
+        if (panelEpoch !== _authEpoch || !elPanel.classList.contains('show')) return;
+        if (profile) renderIntro();
+        else renderConsent();
+      }).catch(function (error) {
+        if (panelEpoch !== _authEpoch || !elPanel.classList.contains('show')) return;
+        console.warn('[BelloreAI] 동의 상태 확인 실패:', error && error.message || error);
+        renderConsent();
+        toast('맞춤 추천 설정을 확인하지 못했어요');
+      });
+      }
     }
     setTimeout(function () { elInput && elInput.focus(); }, 100);
   }
@@ -1234,22 +1892,59 @@
   function renderConsent() {
     elBody.innerHTML = heroHTML() +
       '<div class="bai-consent">' +
-        '<p>더 잘 맞는 시계를 추천해 드리기 위해 대화를 참고할게요. 시작하시겠어요?</p>' +
-        '<label><input type="checkbox" id="baiC1" checked> 맞춤 추천을 받을게요</label>' +
-        '<label><input type="checkbox" id="baiC2"> 입고·혜택 소식도 받아볼게요 (선택)</label>' +
+        '<p>더 잘 맞는 시계를 추천하기 위해 이 사이트의 대화, 상품 조회, 찜, 장바구니, 구매 요청 이력을 사용합니다. 개인화는 언제든 끌 수 있어요.</p>' +
+        '<label><input type="checkbox" id="baiC1" checked> 사이트 내 행동 기반 맞춤 추천에 동의합니다 (선택)</label>' +
         '<button class="bai-agree" id="baiAgree">시작하기</button>' +
         '<p class="bai-consent-fine">자세한 안내는 <a href="#" data-legal-open="privacy">개인정보처리방침</a>을 참고해 주세요.</p>' +
       '</div>';
     var c1 = $('#baiC1'), agree = $('#baiAgree');
     c1.addEventListener('change', function () { agree.disabled = !c1.checked; });
     agree.addEventListener('click', function () {
-      lsSet(CONSENT_KEY, true);
-      var c2 = $('#baiC2').checked;
-      ensureProfile().then(function (p) {
-        p.consent_personalization = true; p.consent_marketing = !!c2;
-        saveProfile(p);
+      var user = curUser();
+      // 광고 수신은 이 화면에서 받지 않는다. 이메일/SMS/카카오/푸시는
+      // 향후 채널별 별도 동의 화면에서만 설정한다.
+      var c2 = false;
+      var grantEpoch = _authEpoch;
+      var grantUid = user && user.uid || '';
+      agree.disabled = true;
+      if (!user || !dbOn() || !(sb() && typeof sb().rpc === 'function')) {
+        agree.disabled = false;
+        toast('동의 저장 기능을 사용할 수 없어요');
+        return;
+      }
+      sb().rpc('grant_ai_personalization_consent', {
+        p_notice_version: CONSENT_VERSION,
+        p_source: 'ai_concierge',
+        p_marketing_selected: !!c2
+      }).then(function (result) {
+        if (result && result.error) throw result.error;
+        var liveUid = (curUser() && curUser().uid) || '';
+        if (grantEpoch !== _authEpoch || grantUid !== liveUid) throw new Error('AUTH_CHANGED');
+        _profileCache = null;
+        return ensureProfile();
+      }).then(function (savedProfile) {
+        var liveUid = (curUser() && curUser().uid) || '';
+        if (grantEpoch !== _authEpoch || grantUid !== liveUid || !savedProfile ||
+            savedProfile.user_id !== user.uid || savedProfile.consent_personalization !== true) {
+          throw new Error('CONSENT_CONFIRMATION_FAILED');
+        }
+        lsSet(consentLocalKey(user.uid), true);
+        try { localStorage.removeItem(CONSENT_KEY); } catch (e) {}
+        // 현재 UI는 로그인 전 행동을 수집하지 않는다. 과거 버전의 무동의
+        // 게스트 버퍼가 남아 있더라도 새 동의에 소급 병합하지 않는다.
+        try { localStorage.removeItem(LS_BUFFER); } catch (e) {}
+        if (savedProfile && savedProfile.id) {
+          try { localStorage.removeItem(LS_PROFILE); } catch (e) {}
+        }
+        renderIntro();
+      }).catch(function (error) {
+        var liveUid = (curUser() && curUser().uid) || '';
+        if (grantEpoch !== _authEpoch || grantUid !== liveUid) return;
+        clearLocalPersonalizationState(true);
+        console.warn('[BelloreAI] 개인화 동의 저장 실패:', error && error.message || error);
+        agree.disabled = false;
+        toast('동의를 저장하지 못했어요. 잠시 후 다시 시도해 주세요');
       });
-      renderIntro();
     });
   }
 
@@ -1259,12 +1954,8 @@
         MENU.map(function (m) { return '<button class="bai-chip" type="button" data-q="' + esc(m.q) + '">' + esc(m.t) + '</button>'; }).join('') +
       '</div>';
     // 저장된 관심 정보를 실제 기억처럼 말하지 않는다. 항상 현재 요청부터 확인한다.
-    ensureProfile().then(function () {
-      addBot('찾으시는 시계의 브랜드·모델·예산을 알려주세요. 현재 등록된 매물 안에서 확인해드릴게요.');
-      addQuickChips();
-    }).catch(function () {
-      addBot('어떤 시계를 찾고 계세요? 브랜드나 예산만 알려주셔도 좋아요.');
-    });
+    addBot('찾으시는 시계의 브랜드·모델·예산을 알려주세요. 현재 등록된 매물 안에서 확인해드릴게요.');
+    addQuickChips();
   }
 
   function addMsg(role, text) {
@@ -1302,18 +1993,55 @@
       : '';
     var specs = [p.size ? (p.size + 'mm') : '', p.color, p.material].filter(Boolean).join(', ');
     var isNew = p.created_at && (Date.now() - Date.parse(p.created_at)) < 3 * 24 * 3600 * 1000;
-    return '<button type="button" class="bai-reco" data-pid="' + esc(p.id || '') + '">' +
+    return '<button type="button" class="bai-reco" data-pid="' + esc(p.id || '') + '"' +
+        ' data-request-id="' + esc(x.request_id || '') + '" data-rank="' + esc(x.rank || '') +
+        '" data-algorithm="' + esc(x.algorithm_version || '') + '" data-variant="' + esc(x.variant || '') + '">' +
         '<span class="bai-reco-thumb' + (p.photo ? '' : ' noimg') + '">' +
           (isNew ? '<span class="bai-reco-new">NEW</span>' : '') +
           img + '<span class="bai-reco-ph">⌚</span></span>' +
         '<span class="bai-reco-info">' +
           '<b>' + esc(name) + '</b>' +
           (specs ? ('<span class="bai-reco-spec">' + esc(specs) + '</span>') : '') +
+          (x.reason ? ('<span class="bai-reco-reason">' + esc(x.reason) + '</span>') : '') +
           '<span class="bai-reco-price">' + krwShort(p.price) + '원</span>' +
           (p.reference_number ? ('<em>Ref. ' + esc(p.reference_number) + '</em>') : '') +
         '</span>' +
       '</button>';
   }
+
+  var _impressedRecommendations = {};
+  var _recoObservers = [];
+  function recommendationExposureKey(item, surface) {
+    var product = item && item.product || {};
+    return [surface || 'unknown', item && item.request_id || '', product.id || '', item && item.rank || ''].join(':');
+  }
+  function observeRecommendationCards(wrap, scroller, items) {
+    if (!wrap || !scroller || !items || !items.length || typeof window.IntersectionObserver !== 'function') return;
+    wrap._recoItems = wrap._recoItems || {};
+    items.forEach(function (item) {
+      wrap._recoItems[recommendationExposureKey(item, 'ai_chat')] = item;
+    });
+    if (!wrap._recoObserver) {
+      wrap._recoObserver = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting || entry.intersectionRatio < 0.6 ||
+              document.visibilityState !== 'visible' || !elPanel || !elPanel.classList.contains('show')) return;
+          var node = entry.target;
+          var key = ['ai_chat', node.dataset.requestId || '', node.dataset.pid || '', node.dataset.rank || ''].join(':');
+          var item = wrap._recoItems[key];
+          if (!item || _impressedRecommendations[key]) { wrap._recoObserver.unobserve(node); return; }
+          _impressedRecommendations[key] = true;
+          wrap._recoObserver.unobserve(node);
+          trackRecommendationImpressions([item], 'ai_chat');
+        });
+      }, { root: scroller, threshold: [0.6] });
+      _recoObservers.push(wrap._recoObserver);
+    }
+    Array.prototype.slice.call(scroller.querySelectorAll('.bai-reco[data-pid]')).forEach(function (node) {
+      wrap._recoObserver.observe(node);
+    });
+  }
+
   function addCards(recos) {
     if (!recos || !recos.length) return;
     var wrap = document.createElement('div'); wrap.className = 'bai-recos-wrap';
@@ -1339,6 +2067,7 @@
     });
     elBody.appendChild(wrap);
     elBody.scrollTop = elBody.scrollHeight;
+    observeRecommendationCards(wrap, scroller, first);
   }
   // '더 보기' → 채팅 안에서 남은 추천을 이어붙임(페이지 이동 없음)
   function revealMore(moreBtn) {
@@ -1346,14 +2075,24 @@
     var rest = (wrap && wrap._rest) || [];
     moreBtn.remove();
     if (rest.length) scroller.insertAdjacentHTML('beforeend', rest.map(recoCardHTML).join(''));
+    if (rest.length) observeRecommendationCards(wrap, scroller, rest);
     if (wrap) wrap._rest = [];
   }
-  function openReco(pid) {
+  function openReco(recoEl) {
+    var pid = recoEl && recoEl.dataset && recoEl.dataset.pid;
     if (!pid) return;
+    var item = {
+      product: { id: pid },
+      request_id: recoEl.dataset.requestId || null,
+      rank: Number(recoEl.dataset.rank) || null,
+      algorithm_version: recoEl.dataset.algorithm || null,
+      variant: recoEl.dataset.variant || null,
+      surface: 'ai_chat'
+    };
+    trackRecommendation('recommendation_click', item, 'ai_chat', item.rank);
     closePanel();
     setTimeout(function () {
       if (window.BELLORE_openProductById) window.BELLORE_openProductById(pid);
-      track('product_view', { product_id: pid, value: { via: 'ai_reco' } });
     }, 120);
   }
 
@@ -1392,12 +2131,63 @@
   }
 
   function showProfileSummary() {
-    ensureProfile().then(function (p) {
+    var summaryEpoch = _authEpoch;
+    requireConsentedProfile().then(function (p) {
+      if (summaryEpoch !== _authEpoch) return;
       addUser('내 취향 분석');
+      if (!p) {
+        addBot('맞춤 추천 동의 상태를 다시 확인해 주세요.');
+        renderConsent();
+        return;
+      }
       var s = provider.summarizeCustomer(p, null);
       var lines = ['지금까지 분석된 취향이에요:', '', s];
       if (!(p.preferred_brands || []).length) lines = ['아직 분석된 관심 정보가 적어요. 관심 브랜드·모델·예산을 말씀해 주시면 더 정확해져요.'];
       addBot(lines.join('\n'));
+      if (p.consent_personalization === true) addActionButton('맞춤 추천 끄기 · 추천 기록 초기화', requestDisablePersonalization);
+    });
+  }
+
+  function requestDisablePersonalization() {
+    var message = '맞춤 추천을 끄고 저장된 대화·행동·취향·추천 기록을 초기화할까요? 이 작업은 되돌릴 수 없습니다.';
+    var ask = window.bellConfirm
+      ? window.bellConfirm(message, { title: '맞춤 추천 설정', okText: '끄고 초기화', cancelText: '유지하기' })
+      : Promise.resolve(window.confirm(message));
+    ask.then(function (approved) { if (approved) disablePersonalization(); });
+  }
+
+  function disablePersonalization() {
+    var disableEpoch = _authEpoch;
+    var disableUid = (curUser() && curUser().uid) || '';
+    ensureProfile().then(function (profile) {
+      var liveUid = (curUser() && curUser().uid) || '';
+      if (!disableUid || disableEpoch !== _authEpoch || disableUid !== liveUid ||
+          !profile || profile.user_id !== disableUid) throw new Error('AUTH_CHANGED');
+      if (dbOn() && sb() && typeof sb().rpc === 'function') {
+        return sb().rpc('withdraw_ai_personalization', { p_delete_history: true }).then(function (result) {
+          if (result && result.error) throw result.error;
+          return result && result.data || { history_deleted: true };
+        }).catch(function (error) {
+          console.warn('[BelloreAI] 서버 개인화 철회 실패:', error && error.message || error);
+          throw error;
+        });
+      }
+      throw new Error('PERSONALIZATION_WITHDRAW_RPC_REQUIRED');
+    }).then(function (result) {
+      var liveUid = (curUser() && curUser().uid) || '';
+      if (disableEpoch !== _authEpoch || disableUid !== liveUid) return;
+      clearLocalPersonalizationState(true);
+      if (result && result.history_deleted === true) toast('맞춤 추천을 끄고 추천 기록을 초기화했어요');
+      else toast('이후 행동 수집과 맞춤 추천을 중단했어요');
+      renderConsent();
+    }).catch(function (error) {
+      var liveUid = (curUser() && curUser().uid) || '';
+      if (disableEpoch !== _authEpoch || disableUid !== liveUid) return;
+      // 서버 철회가 실패해도 이 기기에서는 즉시 신규 개인화 요청을 멈춘다.
+      clearLocalPersonalizationState(true);
+      if (elBody) renderConsent();
+      console.warn('[BelloreAI] 개인화 중단 저장 실패:', error && error.message || error);
+      toast('이 기기에서는 중단했지만 서버 기록 삭제를 완료하지 못했어요. 잠시 후 다시 시도해 주세요');
     });
   }
 
@@ -1407,15 +2197,22 @@
     if (!msg || _busy) return;
     if (!consentGiven()) { renderConsent(); return; }
     _busy = true; elInput.value = '';
+    var sendEpoch = _authEpoch;
+    var sendUid = (curUser() && curUser().uid) || '';
     addUser(msg);
     var thinking = addTyping();
     handleUserMessage(msg).then(function (res) {
+      var liveUid = (curUser() && curUser().uid) || '';
+      if (sendEpoch !== _authEpoch || sendUid !== liveUid) return;
       resolveTyping(thinking, res.reply);
+      if (res.consentRequired) { renderConsent(); _busy = false; return; }
       addCards(res.recommendations);
       if (res.askPref) addQuickChips();
       _busy = false;
     }).catch(function (e) {
-      resolveTyping(thinking, '저장 중 문제가 있었지만 관심 정보는 기기에 보관했어요. 다시 시도해 주세요.');
+      var liveUid = (curUser() && curUser().uid) || '';
+      if (sendEpoch !== _authEpoch || sendUid !== liveUid) return;
+      resolveTyping(thinking, '설정을 확인하거나 저장하는 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요.');
       console.warn('[BelloreAI] handle error', e);
       _busy = false;
     });
@@ -1428,11 +2225,21 @@
         브랜드/모델/레퍼런스는 data-* 또는 카드 텍스트에서 best-effort 추출.
      ============================================================ */
   function infoFromEl(el) {
-    var card = el.closest('[data-listing-id],[data-id],.product-card,.pcard,.listing-card') || el;
+    var card = el.closest('[data-listing-id],[data-pid],[data-id],.hcard,.wish-recent-row,.wish-recommend-card,.wish-cart-row,.product-card,.pcard,.listing-card') || el;
     var brand = card.getAttribute && (card.getAttribute('data-brand') || '');
     var model = card.getAttribute && (card.getAttribute('data-model') || '');
     var ref = card.getAttribute && (card.getAttribute('data-ref') || card.getAttribute('data-reference') || '');
-    var pid = card.getAttribute && (card.getAttribute('data-listing-id') || card.getAttribute('data-id') || '');
+    var pid = card.getAttribute && (card.getAttribute('data-listing-id') || card.getAttribute('data-pid') || card.getAttribute('data-id') || '');
+    var current = window.BELLORE_currentProduct || {};
+    if (!brand) {
+      var brandEl = card.querySelector && card.querySelector('.hcard-brand');
+      brand = (brandEl && brandEl.textContent) || current.brand || '';
+    }
+    if (!model) {
+      var modelEl = card.querySelector && card.querySelector('.hcard-model');
+      model = (modelEl && modelEl.textContent) || current.model || '';
+    }
+    if (!pid) pid = current.listingId || '';
     if (!brand) {
       var txt = (card.textContent || '').slice(0, 120);
       brand = extractBrands(txt)[0] || '';
@@ -1445,17 +2252,27 @@
 
   function bindAutoTracking() {
     document.addEventListener('click', function (e) {
-      // 찜 토글
-      var wb = e.target.closest('.js-wish,[data-wish],.wish-btn,.pp-wish');
-      if (wb) {
-        var info = infoFromEl(wb);
-        // 토글 방향은 알 수 없으니 active 클래스로 추정(없으면 add)
-        var added = !(wb.classList.contains('on') || wb.classList.contains('active'));
-        if (info.brand || info.reference_number) track(added ? 'wishlist_add' : 'wishlist_remove', info);
+      if (!consentGiven() || !loggedIn()) return;
+      // 찜·장바구니·추천 카드는 wishlist.js가 실제 상태 변경/확인 완료 뒤
+      // 정확한 상품으로 단일 canonical 이벤트를 보낸다. capture 단계에서는
+      // 취소된 삭제나 체크박스 클릭을 행동으로 오인하지 않는다.
+      if (e.target.closest('.hcard-wish,.hcard-cart,#pmWish,#pmWishTop,#pmCart,.wish-remove,.wish-addcart,' +
+          '[data-cart-check],#cartSelectAll,#cartRemoveSelected,#cartOrderSelected,.wish-buy,' +
+          '[data-recent-wish],[data-recommend-wish],.wish-recommend-card,.bai-reco')) return;
+
+      // 상세의 즉시 구매 진입만 구매 요청으로 기록한다. 장바구니/찜 주문은
+      // 선택상품을 알고 있는 wishlist.js에서 기록한다.
+      var purchase = e.target.closest('#pmBuy');
+      if (purchase) {
+        var purchaseInfo = infoFromEl(purchase);
+        if (purchaseInfo.brand || purchaseInfo.reference_number || purchaseInfo.product_id) track('purchase_request', purchaseInfo);
         return;
       }
-      // 상품 카드/상세 진입
-      var pc = e.target.closest('[data-listing-id],.product-card,.pcard,.listing-card,[data-open-product]');
+      // 실제 상품 열기 경로만 조회로 기록한다. 광범위한 [data-pid] 매칭은
+      // 선택/삭제 같은 비조회 동작까지 오염시키므로 사용하지 않는다.
+      var pc = e.target.closest('.hcard:not(.wish-card),.wish-recent-row,.wish-cart-thumb,' +
+        '.product-card,.pcard,.listing-card,[data-open-product]');
+      if (pc && e.target.closest('button,a,input,label,select,textarea') && !e.target.closest('.wish-cart-thumb,[data-open-product]')) return;
       if (pc) {
         var info2 = infoFromEl(pc);
         if (info2.brand || info2.reference_number || info2.product_id) track('product_view', info2);
@@ -1466,11 +2283,33 @@
   /* ============================================================
      12) 초기화 + 로그인 연동
      ============================================================ */
+  var _activeAuthUid = (curUser() && curUser().uid) || '';
+  var _authEpoch = 0;
+  function resetAiSessionForAuth(user) {
+    var nextUid = (user && (user.uid || user.id)) || '';
+    if (nextUid === _activeAuthUid) return;
+    _activeAuthUid = nextUid;
+    _profileCache = null;
+    _impressedRecommendations = {};
+    _recommendationTouches = {};
+    (_recoObservers || []).forEach(function (observer) { try { observer.disconnect(); } catch (e) {} });
+    _recoObservers = [];
+    _authEpoch += 1;
+    _busy = false;
+    if (elBody) {
+      elBody.innerHTML = '';
+      delete elBody.dataset.init;
+    }
+    if (elPanel) elPanel.classList.remove('show');
+    try { sessionStorage.removeItem('bellore_ai_chat_session'); } catch (e) {}
+  }
+
   function bindAuth() {
     if (B() && B().onAuthChange) {
       B().onAuthChange(function (user) {
-        if (user) { _profileCache = null; flushBufferToDB(); }
-        else { _profileCache = null; }
+        resetAiSessionForAuth(user);
+        if (user) flushBufferToDB();
+        else _profileCache = null;
       });
       return true;
     }
@@ -1493,6 +2332,16 @@
     recommendForProfile: recommendForProfile,
     fetchProducts: fetchProducts,
     recommendProducts: recommendProducts,
+    recommendCurrentUser: recommendCurrentUser,
+    personalizationEnabled: function () {
+      var user = curUser();
+      return !!(user && consentGiven() && _profileCache &&
+        _profileCache.user_id === user.uid && _profileCache.consent_personalization === true);
+    },
+    trackRecommendation: trackRecommendation,
+    trackRecommendationImpressions: trackRecommendationImpressions,
+    rememberRecommendationTouch: rememberRecommendationTouch,
+    recommendationAttribution: recommendationAttribution,
     generateAlertCandidates: generateAlertCandidates,
     buildAlertCandidates: buildAlertCandidates,
     krwShort: krwShort,

@@ -161,10 +161,12 @@ await test('product page has unique metadata, Product/Offer/Breadcrumb and every
   });
   const product = prepareMarketListings([row], { minProducts: 1 }).products[0];
   const html = renderProductPage(product);
-  assert.match(html, /<title>테스트브랜드 테스트모델 1 TST-N1-1 \| 벨로르<\/title>/);
+  assert.match(html, /<title>테스트브랜드 테스트모델 1 41 TST-N1-1 \| 벨로르<\/title>/);
   assert.match(html, /<link rel="canonical" href="https:\/\/bellore\.co\.kr\/market\/tst-n1-1\/">/);
   assert.match(html, /<meta property="og:url" content="https:\/\/bellore\.co\.kr\/market\/tst-n1-1\/">/);
   assert.doesNotMatch(html, /화면에 노출하면 안 되는 일반 상품 설명|추가 정보|평가 근거|상품화 처리/);
+  assert.doesNotMatch(html, /소재 · 기능|>케이스<|>밴드</);
+  assert.match(html, /<dt>무브먼트<\/dt><dd>오토매틱<\/dd>/);
   const images = [...html.matchAll(/<img\b[^>]*>/g)].map((match) => match[0]);
   assert.equal(images.length, product.photos.length);
   assert(images.every((tag) => /\balt="[^"]+"/.test(tag)));
@@ -177,7 +179,25 @@ await test('product page has unique metadata, Product/Offer/Breadcrumb and every
   assert.equal(schemaProduct.offers.seller.name, '벨로르 BELLORE');
   assert.equal(schemaProduct.offers.availability, 'https://schema.org/InStock');
   assert(data.some((item) => item['@type'] === 'BreadcrumbList'));
-  assert.match(html, />정보없음</);
+  assert.doesNotMatch(html, />[^<]*정보없음[^<]*</);
+  assert.match(html, />확인 필요</);
+});
+
+await test('structured components override stale unknown copy and enrich product cards', () => {
+  const row = listing(2, {
+    components: 'box,case',
+    has_warranty: false,
+    set_grade: '구성품 정보없음 / 등급 정보없음',
+    pack: '구성품 정보없음',
+  });
+  const product = prepareMarketListings([row], { minProducts: 1 }).products[0];
+  assert.equal(product.accessoryPresentation.detailText, '박스 · 케이스 포함 · 보증서 미포함');
+  assert.equal(product.accessoryPresentation.compactText, '박스·케이스 · 보증서 없음');
+  const detail = renderProductPage(product);
+  const index = renderMarketIndex([product]);
+  assert.match(detail, /박스 · 케이스 포함 · 보증서 미포함/);
+  assert.doesNotMatch(detail, /구성품 정보없음/);
+  assert.match(index, /product-card__trust">8\/10 · 상급 · 박스·케이스 · 보증서 없음/);
 });
 
 await test('market hub uses crawlable product anchors and non-empty image alt text', () => {
@@ -211,4 +231,4 @@ await test('artifact publish removes stale market pages and emits no merchant fe
   }
 });
 
-if (!process.exitCode) console.log(`SEO market tests: ${passed}/10 passed`);
+if (!process.exitCode) console.log(`SEO market tests: ${passed}/11 passed`);

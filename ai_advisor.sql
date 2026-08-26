@@ -1,8 +1,10 @@
 -- ============================================================
 -- 벨로르(BELLORE) · 고객별 AI 시계 전문비서 시스템 (1차 기반 구조)
 -- ------------------------------------------------------------
--- 사용법: Supabase 대시보드 > SQL Editor 에 "통째로" 붙여넣고 RUN (1회).
---   여러 번 실행해도 안전(IF NOT EXISTS / CREATE OR REPLACE / DROP POLICY IF EXISTS).
+-- 사용법: 신규 개발 DB의 기반 구조 생성 전용입니다. 운영 DB에 통째로
+-- 재실행하지 마세요. 생성 직후 supabase/recommendation_v2_migration.sql을
+-- 별도로 적용·검증해야 고객 쓰기와 동의 철회가 DB 수준에서 강제됩니다.
+-- recommendation v2 적용 뒤에는 아래 hard guard가 재실행을 차단합니다.
 --
 -- 이 마이그레이션은 외부 AI API(OpenAI/Claude)를 호출하지 않습니다.
 -- 데이터 저장소 + 고객 기억 + 추천/알림 후보 구조만 만듭니다.
@@ -11,9 +13,17 @@
 -- 안전성:
 --   - 기존 테이블을 삭제/변경하지 않습니다(destructive 없음). 전부 신규 테이블.
 --   - is_admin_uid() 가 없으면(= support_chat.sql 미실행) 아래에서 생성합니다.
---   - RLS: 고객은 "본인 행"만, 관리자는 전체. 비로그인(게스트) 데이터는
---     클라이언트(ai-advisor.js)가 localStorage 로 폴백 보관 후 로그인 시 병합합니다.
+--   - 이 파일만으로는 recommendation v2의 동의·철회 보장이 완성되지 않습니다.
+--   - 비로그인 행동·대화는 개인화 저장이나 추후 계정 병합을 하지 않습니다.
 -- ============================================================
+
+do $bootstrap_guard$
+begin
+  if to_regclass('public.ai_consent_ledger') is not null then
+    raise exception 'AI_ADVISOR_BOOTSTRAP_REAPPLY_BLOCKED_AFTER_RECOMMENDATION_V2';
+  end if;
+end
+$bootstrap_guard$;
 
 -- ── 관리자 판정 헬퍼 (이미 있으면 그대로 재정의: 무해) ──
 create or replace function public.is_admin_uid(uid uuid)
@@ -35,7 +45,7 @@ $$;
 -- ============================================================
 create table if not exists public.customer_ai_profiles (
   id                       uuid primary key default gen_random_uuid(),
-  user_id                  uuid references auth.users(id) on delete set null,
+  user_id                  uuid references auth.users(id) on delete cascade,
   phone                    text,
   name                     text,
   email                    text,
@@ -81,8 +91,8 @@ create trigger trg_cap_touch before update on public.customer_ai_profiles
 -- ============================================================
 create table if not exists public.ai_conversations (
   id         uuid primary key default gen_random_uuid(),
-  user_id    uuid references auth.users(id) on delete set null,
-  profile_id uuid references public.customer_ai_profiles(id) on delete set null,
+  user_id    uuid references auth.users(id) on delete cascade,
+  profile_id uuid references public.customer_ai_profiles(id) on delete cascade,
   session_id uuid,
   channel    text default 'web',
   role       text check (role in ('user','assistant','admin','system')),
@@ -99,7 +109,7 @@ create index if not exists idx_conv_session on public.ai_conversations (session_
 -- ============================================================
 create table if not exists public.customer_watch_interests (
   id                   uuid primary key default gen_random_uuid(),
-  user_id              uuid references auth.users(id) on delete set null,
+  user_id              uuid references auth.users(id) on delete cascade,
   profile_id           uuid references public.customer_ai_profiles(id) on delete cascade,
   brand                text,
   model                text,
@@ -130,9 +140,9 @@ create trigger trg_cwi_touch before update on public.customer_watch_interests
 -- ============================================================
 create table if not exists public.customer_events (
   id               uuid primary key default gen_random_uuid(),
-  user_id          uuid references auth.users(id) on delete set null,
-  profile_id       uuid references public.customer_ai_profiles(id) on delete set null,
-  event_type       text not null,   -- product_view|wishlist_add|wishlist_remove|inquiry_submit|price_alert_set|chat_message|purchase_request|sell_request
+  user_id          uuid references auth.users(id) on delete cascade,
+  profile_id       uuid references public.customer_ai_profiles(id) on delete cascade,
+  event_type       text not null,   -- product_view|wishlist_add/remove|cart_add/remove|inquiry_submit|price_alert_set|chat_message|purchase_request/complete|recommendation_impression/click/dismiss|personalization_consent_granted|sell_request
   product_id       uuid,
   brand            text,
   model            text,
@@ -149,7 +159,7 @@ create index if not exists idx_evt_type    on public.customer_events (event_type
 -- ============================================================
 create table if not exists public.ai_customer_memories (
   id                     uuid primary key default gen_random_uuid(),
-  user_id                uuid references auth.users(id) on delete set null,
+  user_id                uuid references auth.users(id) on delete cascade,
   profile_id             uuid references public.customer_ai_profiles(id) on delete cascade,
   memory_type            text not null,   -- preference|budget|personality|risk|brand_interest|buying_intent|alert_rule
   content                text not null,
@@ -172,7 +182,7 @@ create trigger trg_mem_touch before update on public.ai_customer_memories
 create table if not exists public.ai_recommendation_logs (
   id              uuid primary key default gen_random_uuid(),
   profile_id      uuid references public.customer_ai_profiles(id) on delete cascade,
-  user_id         uuid references auth.users(id) on delete set null,
+  user_id         uuid references auth.users(id) on delete cascade,
   product_id      uuid,
   score           numeric not null,
   reason          text,
@@ -189,7 +199,7 @@ create index if not exists idx_rec_product on public.ai_recommendation_logs (pro
 create table if not exists public.ai_alert_candidates (
   id          uuid primary key default gen_random_uuid(),
   profile_id  uuid references public.customer_ai_profiles(id) on delete cascade,
-  user_id     uuid references auth.users(id) on delete set null,
+  user_id     uuid references auth.users(id) on delete cascade,
   product_id  uuid,
   alert_type  text not null,            -- new_arrival|price_drop|condition_match
   title       text not null,
@@ -410,11 +420,9 @@ insert into storage.buckets (id, name, public)
   values ('expert-watch-images','expert-watch-images', true)
   on conflict (id) do nothing;
 
--- 인증 사용자: 위 버킷에 업로드 허용 / 관리자: 전체 관리
+-- 현재 고객 AI 대화 첨부 기능은 구현하지 않았습니다. 과거의 광범위한
+-- 인증 사용자 업로드 정책은 제거하고 관리자의 운영 업로드만 허용합니다.
 drop policy if exists ai_bucket_insert on storage.objects;
-create policy ai_bucket_insert on storage.objects
-  for insert to authenticated
-  with check (bucket_id in ('ai-conversation-attachments','team-message-attachments','expert-watch-images'));
 
 drop policy if exists ai_bucket_admin on storage.objects;
 create policy ai_bucket_admin on storage.objects
@@ -440,14 +448,142 @@ begin
 end $$;
 
 -- ============================================================
--- 테스트(샘플) 데이터 — 관리자 화면 확인용. 필요 없으면 이 블록만 지우세요.
--- 동일 이메일 프로필이 이미 있으면 건너뜁니다(중복 방지).
+-- 12. 과거 bootstrap 호환 함수 (운영 사용 금지)
+-- ------------------------------------------------------------
+-- 아래 호환 함수는 신규 DB에서 객체 의존성만 맞추기 위한 구버전입니다.
+-- 운영 정책·동시성·동의 원장·계정 삭제·보유기간은 반드시
+-- supabase/recommendation_v2_migration.sql이 이 정의를 교체한 뒤 사용합니다.
+-- ============================================================
+create or replace function public.withdraw_ai_personalization(p_delete_history boolean default true)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_profile_ids uuid[] := '{}';
+  v_deleted bigint := 0;
+  v_count bigint := 0;
+begin
+  if v_user_id is null then
+    raise exception 'AUTH_REQUIRED' using errcode = '42501';
+  end if;
+
+  select coalesce(array_agg(p.id), '{}') into v_profile_ids
+  from public.customer_ai_profiles p
+  where p.user_id = v_user_id;
+
+  if p_delete_history then
+    delete from public.ai_alert_candidates a
+      where a.user_id = v_user_id or a.profile_id = any(v_profile_ids);
+    get diagnostics v_count = row_count; v_deleted := v_deleted + v_count;
+
+    delete from public.ai_recommendation_logs r
+      where r.user_id = v_user_id or r.profile_id = any(v_profile_ids);
+    get diagnostics v_count = row_count; v_deleted := v_deleted + v_count;
+
+    delete from public.ai_customer_memories m
+      where m.user_id = v_user_id or m.profile_id = any(v_profile_ids);
+    get diagnostics v_count = row_count; v_deleted := v_deleted + v_count;
+
+    delete from public.customer_events e
+      where e.user_id = v_user_id or e.profile_id = any(v_profile_ids);
+    get diagnostics v_count = row_count; v_deleted := v_deleted + v_count;
+
+    delete from public.ai_conversations c
+      where c.user_id = v_user_id or c.profile_id = any(v_profile_ids);
+    get diagnostics v_count = row_count; v_deleted := v_deleted + v_count;
+
+    delete from public.customer_watch_interests i
+      where i.user_id = v_user_id or i.profile_id = any(v_profile_ids);
+    get diagnostics v_count = row_count; v_deleted := v_deleted + v_count;
+  end if;
+
+  update public.customer_ai_profiles p
+  set consent_personalization = false,
+      phone = case when p_delete_history then null else p.phone end,
+      name = case when p_delete_history then null else p.name end,
+      email = case when p_delete_history then null else p.email end,
+      region = case when p_delete_history then null else p.region end,
+      preferred_brands = case when p_delete_history then '{}' else p.preferred_brands end,
+      preferred_models = case when p_delete_history then '{}' else p.preferred_models end,
+      preferred_references = case when p_delete_history then '{}' else p.preferred_references end,
+      budget_min = case when p_delete_history then null else p.budget_min end,
+      budget_max = case when p_delete_history then null else p.budget_max end,
+      actual_budget_min = case when p_delete_history then null else p.actual_budget_min end,
+      actual_budget_max = case when p_delete_history then null else p.actual_budget_max end,
+      preferred_condition = case when p_delete_history then null else p.preferred_condition end,
+      preferred_size = case when p_delete_history then null else p.preferred_size end,
+      preferred_color = case when p_delete_history then null else p.preferred_color end,
+      preferred_material = case when p_delete_history then null else p.preferred_material end,
+      customer_type = case when p_delete_history then null else p.customer_type end,
+      buying_stage = case when p_delete_history then 'unknown' else p.buying_stage end,
+      buy_probability = case when p_delete_history then 0 else p.buy_probability end,
+      ai_summary = case when p_delete_history then null else p.ai_summary end
+  where p.user_id = v_user_id;
+
+  return jsonb_build_object(
+    'personalization_enabled', false,
+    'history_deleted', p_delete_history,
+    'deleted_rows', v_deleted,
+    'withdrawn_at', now()
+  );
+end;
+$$;
+
+revoke all on function public.withdraw_ai_personalization(boolean) from public;
+grant execute on function public.withdraw_ai_personalization(boolean) to authenticated;
+
+create or replace function public.ai_purge_expired_personalization_data()
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_deleted bigint := 0;
+  v_count bigint := 0;
+  v_cutoff timestamptz := now() - interval '90 days';
+begin
+  delete from public.ai_recommendation_logs where created_at < v_cutoff;
+  get diagnostics v_count = row_count; v_deleted := v_deleted + v_count;
+  delete from public.customer_events where created_at < v_cutoff;
+  get diagnostics v_count = row_count; v_deleted := v_deleted + v_count;
+  delete from public.ai_conversations where created_at < v_cutoff;
+  get diagnostics v_count = row_count; v_deleted := v_deleted + v_count;
+  delete from public.ai_alert_candidates where created_at < v_cutoff;
+  get diagnostics v_count = row_count; v_deleted := v_deleted + v_count;
+
+  return jsonb_build_object('deleted_rows', v_deleted, 'retention_days', 90, 'ran_at', now());
+end;
+$$;
+
+revoke all on function public.ai_purge_expired_personalization_data() from public;
+grant execute on function public.ai_purge_expired_personalization_data() to service_role;
+
+-- bootstrap에서는 cron을 자동 등록하지 않습니다. 역할·timezone·첫 수동
+-- 실행을 검증한 뒤 recommendation_v2_verify.sql 지침으로 별도 등록합니다.
+do $$
+begin
+  if false and exists (select 1 from pg_extension where extname = 'pg_cron') then
+    perform cron.unschedule(jobid) from cron.job where jobname = 'bellore-ai-personalization-retention';
+    perform cron.schedule(
+      'bellore-ai-personalization-retention',
+      '30 18 * * *',
+      'select public.ai_purge_expired_personalization_data()'
+    );
+  end if;
+end $$;
+
+-- ============================================================
+-- 과거 샘플 데이터 블록은 통계·동의 원장을 오염시키므로 영구 비활성화했습니다.
 -- ============================================================
 do $$
 declare
   pid uuid;
 begin
-  if not exists (select 1 from public.customer_ai_profiles where email = 'demo.customer@bellore.test') then
+  if false and not exists (select 1 from public.customer_ai_profiles where email = 'demo.customer@bellore.test') then
     insert into public.customer_ai_profiles
       (phone, name, email, region, preferred_brands, preferred_models, preferred_references,
        budget_min, budget_max, price_sensitivity, speed_preference, detail_preference,
@@ -478,7 +614,7 @@ begin
       (pid, 'product_view', '롤렉스', '서브마리너', '124060');
   end if;
 
-  if not exists (select 1 from public.expert_knowledge_notes where title = '서브마리너 124060 풀세트 시세 메모(샘플)') then
+  if false and not exists (select 1 from public.expert_knowledge_notes where title = '서브마리너 124060 풀세트 시세 메모(샘플)') then
     insert into public.expert_knowledge_notes (category, brand, model, reference_number, title, content, source, confidence, status)
     values ('시세', '롤렉스', '서브마리너', '124060',
             '서브마리너 124060 풀세트 시세 메모(샘플)',

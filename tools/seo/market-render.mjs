@@ -3,7 +3,6 @@ import {
   MARKET_PATH,
   SELLER_NAME,
   SITE_ORIGIN,
-  booleanValue,
   displayValue,
 } from './market-policy.mjs';
 
@@ -28,9 +27,13 @@ function money(value) {
 }
 
 function shortDescription(product) {
-  const reference = product.referenceNumber || '레퍼런스 정보없음';
-  const condition = product.condition || '상태 정보없음';
-  return `${product.name} · ${reference} · ${condition} · ${money(product.currentPrice)} · 상품번호 ${product.productNumber}`;
+  return [
+    product.name,
+    product.referenceNumber ? `Ref. ${product.referenceNumber}` : '',
+    product.condition,
+    money(product.currentPrice),
+    `상품번호 ${product.productNumber}`,
+  ].filter(Boolean).join(' · ');
 }
 
 function header() {
@@ -83,7 +86,7 @@ ${footer()}
 }
 
 function property(name, value) {
-  if (!value || value === '정보없음') return null;
+  if (!value || String(value).includes('정보없음')) return null;
   return { '@type': 'PropertyValue', name, value };
 }
 
@@ -93,8 +96,8 @@ function productStructuredData(product) {
     property('레퍼런스 번호', product.referenceNumber),
     property('상태', product.condition),
     property('사이즈', product.sizeMm ? `${product.sizeMm}mm` : ''),
-    property('소재', product.caseSpec || product.material),
-    property('구성품 · 등급', product.setGrade || product.components || product.accessories || product.pack),
+    property('구성품', product.accessoryPresentation.detailText),
+    property('무브먼트', product.movement),
     property('빈티지', product.isVintage ? '빈티지' : ''),
   ].filter(Boolean);
   const data = {
@@ -104,7 +107,7 @@ function productStructuredData(product) {
     description: shortDescription(product),
     sku: product.productNumber,
     image: product.photos,
-    brand: { '@type': 'Brand', name: product.brand || '정보없음' },
+    brand: { '@type': 'Brand', name: product.brand || '브랜드 확인 필요' },
     itemCondition: product.isNew
       ? 'https://schema.org/NewCondition'
       : 'https://schema.org/UsedCondition',
@@ -143,19 +146,15 @@ function specRows(rows) {
   </dl>`;
 }
 
-function firstValue(...values) {
-  return values.find((value) => value !== null && value !== undefined && String(value).trim()) || '';
-}
-
 function sizeValue(value) {
   const raw = String(value || '').trim();
-  return raw ? (/mm$/i.test(raw) ? raw : `${raw}mm`) : '정보없음';
+  return raw ? (/mm$/i.test(raw) ? raw : `${raw}mm`) : '확인 필요';
 }
 
 function productBody(product) {
   const year = [product.stamping, product.purchaseYear].filter(Boolean).join(' · ');
-  const setGrade = firstValue(product.setGrade, product.components, product.accessories, product.pack);
-  const statusLines = product.conditionNotes.length ? product.conditionNotes : ['정보없음'];
+  const setGrade = product.accessoryPresentation.detailText;
+  const statusLines = product.conditionNotes.length ? product.conditionNotes : ['상태 확인 필요'];
   const details = product.detailImages.map((src, index) => {
     const alt = `${product.name} ${product.productNumber} 실물 상세 이미지 ${index + 1}`;
     return `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy" decoding="async">`;
@@ -184,22 +183,13 @@ function productBody(product) {
       <section class="section" aria-labelledby="product-info"><h2 id="product-info">상품 정보</h2>
         ${specRows([
           ['브랜드', displayValue(product.brand)],
-          ['모델', displayValue(product.model)],
+          ['모델', displayValue(product.presentation.model)],
           ['레퍼런스 번호', displayValue(product.referenceNumber)],
           ['상품번호', product.productNumber],
           ['사이즈', sizeValue(product.sizeMm)],
           ['스탬핑 · 연식', displayValue(year)],
-          ['구성품 · 등급', displayValue(setGrade)],
-        ])}
-      </section>
-      <section class="section" aria-labelledby="materials"><h2 id="materials">소재 · 기능</h2>
-        ${specRows([
-          ['무브먼트', displayValue(product.movement)],
-          ['케이스', displayValue(firstValue(product.caseSpec, product.material))],
-          ['밴드', displayValue(product.bandSpec)],
-          ['다이얼', displayValue(product.dialColor)],
-          ['다이아몬드', booleanValue(product.hasDiamond)],
-          ['미리수', displayValue(product.misu)],
+          ['구성품', displayValue(setGrade)],
+          ['무브먼트', displayValue(product.presentation.movement)],
         ])}
       </section>
       <section class="section" aria-labelledby="condition"><h2 id="condition">상태</h2>
@@ -208,8 +198,8 @@ function productBody(product) {
       </section>
       <section class="section" aria-labelledby="trade"><h2 id="trade">거래 안내</h2>
         ${specRows([
-          ['구성품', displayValue(firstValue(product.components, product.accessories, product.pack))],
-          ['보증서', booleanValue(product.hasWarranty)],
+          ['구성품', displayValue(product.accessoryPresentation.includedText || '구성품 확인 필요')],
+          ['보증서', product.accessoryPresentation.warrantyText],
           ['판매 방식', displayValue(product.saleMethod)],
           ['배송', displayValue(product.shipping)],
           ['특이사항', displayValue(product.specialNote)],
@@ -259,9 +249,11 @@ function marketStructuredData(products) {
 export function renderMarketIndex(products) {
   const cards = products.map((product) => `<a class="product-card" href="${escapeHtml(product.canonicalPath)}">
     <img class="product-card__image" src="${escapeHtml(product.heroImage)}" alt="${escapeHtml(`${product.name} ${product.productNumber} 정면 이미지`)}" loading="lazy" decoding="async">
-    <p class="product-card__brand">${escapeHtml(product.brand || '정보없음')}</p>
-    <h2 class="product-card__name">${escapeHtml(product.model || product.name)}</h2>
-    <p class="product-card__meta"><span>${escapeHtml(product.condition || '상태 정보없음')}</span><span>${escapeHtml(product.productNumber)}</span></p>
+    <p class="product-card__brand">${escapeHtml(product.brand || '브랜드 확인 필요')}</p>
+    <h2 class="product-card__name">${escapeHtml(product.presentation.modelSize)}</h2>
+    ${product.presentation.referenceText ? `<p class="product-card__reference">${escapeHtml(product.presentation.referenceText)}</p>` : ''}
+    ${product.presentation.featureMovement ? `<p class="product-card__meta">${escapeHtml(product.presentation.featureMovement)}</p>` : ''}
+    <p class="product-card__trust">${escapeHtml([product.conditionPresentation, product.accessoryPresentation.compactText].filter(Boolean).join(' · '))}</p>
     <p class="product-card__price">${money(product.currentPrice)}</p>
   </a>`).join('\n');
   const title = '명품 중고시계 판매 | 벨로르 BELLORE';

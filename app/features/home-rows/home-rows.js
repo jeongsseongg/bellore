@@ -1,7 +1,12 @@
 /* 홈의 시계 줄 — 카테고리별로 시계를 가로로 최대 20점까지 보여준다.
    모바일은 스와이프, PC는 마우스 드래그. 카드를 누르면 그 매물 상세로 간다. */
 
-import { discountRate, dropAmountText, priceText } from '../../core/listing-display.js';
+import {
+  discountRate,
+  dropAmountText,
+  listingPresentation,
+  priceText,
+} from '../../core/listing-display.js';
 
 const ROW_MAX = 20;
 const DRAG_THRESHOLD = 5;
@@ -21,10 +26,17 @@ function splitRows(listings) {
     .filter((item) => item.saleActive && discountRate(item) > 0)
     .sort((a, b) => discountRate(b) - discountRate(a));
   const split = Math.min(FEATURE_MAX, Math.ceil(lowered.length / 2));
+  const sale = lowered.slice(0, split);
+  const drop = lowered.slice(split);
+  const latest = listings.slice(0, ROW_MAX);
+  const used = new Set(sale.map((item) => item.id));
+  const unusedLatest = latest.filter((item) => !used.has(item.id));
   return {
-    rowSaleBlock: lowered.slice(0, split),
-    rowDropBlock: lowered.slice(split),
-    rowNewBlock: listings,
+    // 할인 데이터가 비어도 홈의 핵심 가로 상품 구간은 사라지지 않는다.
+    // 이때 실제 판매가만 표시하고 할인 뱃지나 취소선 가격은 만들지 않는다.
+    rowSaleBlock: sale.length ? sale : latest.slice(0, FEATURE_MAX),
+    rowDropBlock: drop.length ? drop : unusedLatest.slice(0, FEATURE_MAX),
+    rowNewBlock: latest,
   };
 }
 
@@ -50,12 +62,25 @@ function badgeMarkup(listing, kind) {
    1억대 금액에 할인율까지 붙이면 좁은 화면에서 두 줄로 깨진다. */
 function cardMarkup(listing, kind) {
   const rate = discountRate(listing);
+  const text = listingPresentation(listing);
+  const oldPrice = rate > 0 ? `${priceText(listing.listPrice)}원` : '&nbsp;';
   return `<a class="hrow-card" href="#collection" draggable="false" data-pid="${listing.id}">` +
     `<span class="hrow-img">${badgeMarkup(listing, kind)}<span class="hrow-shadow"></span></span>` +
-    `<span class="hrow-model">${listing.model}</span>` +
+    `<span class="hrow-brand">${listing.brand}</span>` +
+    `<span class="hrow-model">${text.modelSize}</span>` +
+    (text.referenceText ? `<span class="hrow-reference">${text.referenceText}</span>` : '') +
+    (text.featureMovement ? `<span class="hrow-spec">${text.featureMovement}</span>` : '') +
     `<span class="hrow-price${longPrice(listing.price) ? ' is-long' : ''}">` +
     `${priceText(listing.price)}<i>원</i></span>` +
-    (rate > 0 ? `<span class="hrow-old">${priceText(listing.listPrice)}원</span>` : '') +
+    `<span class="hrow-old${rate > 0 ? '' : ' is-empty'}"${rate > 0 ? '' : ' aria-hidden="true"'}>${oldPrice}</span>` +
+    '</a>';
+}
+
+function viewAllMarkup(title) {
+  return '<a class="hrow-view-all" href="#collection" data-nav="collection" ' +
+    `aria-label="${title} 전체보기">` +
+    '<span class="hrow-view-all-icon" aria-hidden="true">→</span>' +
+    '<span class="hrow-view-all-label">전체보기</span>' +
     '</a>';
 }
 
@@ -63,7 +88,6 @@ function buildRow({ doc, mount, config, collection }) {
   mount.innerHTML =
     '<div class="hrow-head">' +
     `<h2 class="hrow-title">${config.title}</h2>` +
-    '<span class="hrow-more" aria-hidden="true">›</span>' +
     '</div><div class="hrow-rail"></div>' +
     '<div class="hrow-progress"><span></span></div>';
   const rail = mount.querySelector('.hrow-rail');
@@ -140,9 +164,10 @@ export function initHomeRows({ document: doc, collection }) {
         const picks = (buckets[config.mount] || []).slice(0, ROW_MAX);
         if (!picks.length) { mount.hidden = true; rail.innerHTML = ''; return; }
         mount.hidden = false;
-        rail.innerHTML = picks.map((item) => cardMarkup(item, config.badge)).join('');
+        rail.innerHTML = picks.map((item) => cardMarkup(item, config.badge)).join('') +
+          viewAllMarkup(config.title);
         // 사진은 style 속성 대신 프로퍼티로 — 마크업에 style= 을 늘리지 않는다.
-        Array.from(rail.children).forEach((card, index) => {
+        Array.from(rail.querySelectorAll(':scope > .hrow-card')).forEach((card, index) => {
           card.querySelector('.hrow-img').style.backgroundImage = `url(${picks[index].image})`;
         });
         rail.scrollLeft = 0;
