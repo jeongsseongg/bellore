@@ -46,14 +46,17 @@ assert.match(legacy, /window\.BELLORE_HOME_CAMPAIGNS \|\| \[\]/);
 assert.match(legacy, /dataset\.heroAction = b\.action/);
 assert.match(legacy, /hero-campaign-copy/);
 assert.match(bannersCss, /\.hero-campaign-copy \{/);
-assert.match(bannersCss, /\.hero-slide-db\.is-campaign \{[\s\S]*aspect-ratio: 430 \/ 245\.7/, 'hero keeps the approved eight-banner viewport ratio');
+assert.match(bannersCss, /\.hero-slide-db\.is-campaign \{[\s\S]*aspect-ratio: 430 \/ 319\.4/, 'hero uses the approved 1.3x taller viewport ratio');
 assert.match(bannersCss, /data-hero-action="vintage"[\s\S]*right: 5%;[\s\S]*width: 34%/, 'vintage copy stays separated at the right edge');
 assert.match(bannersCss, /data-hero-action="diver"[\s\S]*background-position: 68% center/, 'diver artwork stays shifted left to prevent watch clipping');
 assert.match(bannersCss, /\.hero-slide-db\.is-campaign \.hero-slide-blur \{ display: none; \}/, 'hero removes the cinema-style backdrop bars');
 assert.match(bannersCss, /\.hero-campaign-copy \{[\s\S]*background: none/, 'hero copy has no text box');
 assert.match(bannersCss, /\.hero-carousel\.has-db \{[\s\S]*width: 100%;[\s\S]*margin: 0;/, 'hero campaign fills the Bellore app width');
 assert.match(bannersCss, /\.hero-carousel\.has-db \.hero-track,[\s\S]*border-radius: 0;/, 'hero campaign has no rounded frame');
-assert.match(bannersCss, /\.hero-dots \{[\s\S]*right: 0;/, 'hero counter stays attached to the right edge');
+assert.match(bannersCss, /\.hero-dots \{[\s\S]*right: clamp\(10px, 2\.4cqw, 16px\)/, 'hero counter stays precisely inset from the right edge');
+assert.match(bannersCss, /grid-template-columns: 24px 1\.2em 1px 1\.2em 24px/, 'hero counter uses symmetrical Gugus-style controls');
+assert.match(bannersCss, /@keyframes heroCampaignZoom[\s\S]*scale\(1\.2\)/, 'active hero image zooms up to 20 percent');
+assert.match(bannersCss, /\.hero-slide-db\.is-campaign\.is-active \.hero-slide-bg \{[\s\S]*3s/, 'hero zoom completes in three seconds');
 assert.match(legacy, /hero-count-prev[\s\S]*hero-count-current[\s\S]*hero-count-separator[\s\S]*hero-count-total[\s\S]*hero-count-next/);
 assert.match(legacy, /class="hero-count-nav hero-count-prev"/);
 assert.match(legacy, /class="hero-count-nav hero-count-next"/);
@@ -65,6 +68,8 @@ assert.doesNotMatch(legacy, /className = 'hero-dot'/);
 for (const text of ['매일을 함께할 클래식', '1,000만원 이상의 명작', '깊이에서도 흔들리지 않는', '500만원 미만 컬렉션', '여성 명품시계', '1,000만원 미만 컬렉션', '예물 시계', '빈티지 컬렉션', '풀세트 컬렉션', '300만원 미만 컬렉션']) {
   assert.ok(data.includes(text), `category copy: ${text}`);
 }
+assert.match(data, /action: 'wedding'[\s\S]*sub: '롤렉스 · 오메가 · 까르띠에'[\s\S]*brandsAny: \['롤렉스', '오메가', '까르띠에'\]/, 'wedding hero and filter use Rolex, Omega and Cartier');
+assert.doesNotMatch(data, /action: 'wedding'[^\n]*(?:불가리|샤넬)/, 'wedding hero excludes non-approved brands');
 const buyinBlock = data.slice(data.indexOf('export const BUYIN_COPY'), data.indexOf('export const FEATURED_MAX'));
 assert.equal((buyinBlock.match(/title: \['[^']+\?'\]/g) || []).length, 15, '15 buy-in questions');
 assert.doesNotMatch(data, /됩니다|그렇습니다|보여드립니다|늦지 않습니다/);

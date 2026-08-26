@@ -6096,7 +6096,7 @@
             return !!(score && Number(score[1]) >= 9 && /풀세트|박스.*보증|보증.*박스/.test(text));
         }
         if (action === 'wedding') {
-            return ['롤렉스', 'rolex', '까르띠에', 'cartier', '불가리', 'bvlgari', '샤넬', 'chanel']
+            return ['롤렉스', 'rolex', '오메가', 'omega', '까르띠에', 'cartier']
                 .some(function (name) { return brand.indexOf(name) !== -1; }) && (!isFinite(size) || size <= 40);
         }
         if (action === 'vintage') return (year > 0 && year <= 2005) || any(['빈티지', 'vintage', '셀리니', '수동']);
