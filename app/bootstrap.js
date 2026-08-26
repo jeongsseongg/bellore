@@ -8,7 +8,7 @@ import { initSiteHeader } from './ui/site-header.js';
 import { initNavigationHistory } from './ui/navigation-history.js';
 import { initWidthPreference } from './ui/width-preference.js';
 import { initConditionGuide } from './features/condition-guide/condition-guide.js?v=20260826-payment-condition-v1';
-import { initHomeBanners } from './features/home-banners/home-banners.js?v=20260826-payment-condition-v1';
+import { initHomeBanners } from './features/home-banners/home-banners.js?v=20260826-payment-hero-eight-v1';
 import { initHomeQuicklinks } from './features/home-quicklinks/home-quicklinks.js?v=20260826-payment-condition-v1';
 import { createHomeMerchandising } from './features/home-merchandising/home-merchandising.js?v=20260826-payment-condition-v1';
 import { initHomeRows } from './features/home-rows/home-rows.js?v=20260826-payment-condition-v1';

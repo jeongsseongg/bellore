@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v324-payment-sell-motion";
+const VERSION = "bellore-v325-payment-hero-eight";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -38,10 +38,10 @@ const SHELL_ASSETS = [
   './app/core/customer-error.mjs?v=20260826-payment-condition-v1',
   './app/core/listing-display.js?v=20260826-payment-condition-v1',
   './app/core/market-product-url.mjs',
-  './app/features/home-banners/home-banners.js?v=20260826-payment-condition-v1',
-  './app/features/home-banners/home-banner-data.js',
+  './app/features/home-banners/home-banners.js?v=20260826-payment-hero-eight-v1',
+  './app/features/home-banners/home-banner-data.js?v=20260826-payment-hero-eight-v1',
   './app/features/home-merchandising/home-merchandising.js?v=20260826-payment-condition-v1',
-  './app/features/home-banners/home-banners.css?v=20260826-payment-condition-v1',
+  './app/features/home-banners/home-banners.css?v=20260826-payment-hero-eight-v1',
   './app/features/home-quicklinks/home-quicklinks.js?v=20260826-payment-condition-v1',
   './app/features/home-quicklinks/home-quicklinks.css?v=20260826-payment-condition-v1',
   './app/features/checkout/checkout-coupon.css?v=20260826-payment-condition-v1',
