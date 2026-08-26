@@ -213,6 +213,11 @@ assert.match(validateBlock, /set local session_replication_role=replica;[\s\S]{0
 assert.match(validateBlock, /set local session_replication_role=replica;[\s\S]{0,900}generate_series\(1,6\)[\s\S]{0,120}set local session_replication_role=origin;/);
 assert.match(validateBlock, /order_requires_restock_v1\(\s*v_test_id, 2::smallint,/,
   'the rollback fixture must call the exact smallint restock-helper signature');
+assert.match(
+  validateBlock,
+  /service role direct hold insert was not blocked[\s\S]{0,240}exception when insufficient_privilege then[\s\S]{0,240}reset role;[\s\S]{0,700}rollback_fixture_order[\s\S]{0,240}set local role service_role;[\s\S]{0,900}held order update was not blocked/,
+  'the validation harness must seed holds as admin, then test mutations as service_role',
+);
 for (const file of [
   '20260826155000_payment_operation_hold.sql',
   '20260826160000_payment_recovery_listing_state.sql',

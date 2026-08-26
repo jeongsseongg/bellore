@@ -1399,6 +1399,23 @@ jobs:
             end loop;
             if v_index < 6 then raise exception 'not enough listings for checkout rate test'; end if;
           end $$;
+
+          -- The runtime service role can read the hold only through the
+          -- security-definer helper; it must never write the server-only table.
+          do $$
+          begin
+            begin
+              insert into public.payment_operation_holds(order_no_sha256, reason_code)
+              values (repeat('b',64), 'service_role_write_probe');
+              raise exception 'service role direct hold insert was not blocked';
+            exception when insufficient_privilege then
+              null;
+            end;
+          end $$;
+
+          -- Seed the rollback-only fixture as the database administrator, then
+          -- return to the runtime role to prove its mutations are held.
+          reset role;
           -- Prove the generalized hash-only hold blocks every DB mutation
           -- without logging or persisting a raw order identifier.
           do $$
@@ -1411,6 +1428,18 @@ jobs:
 
             insert into public.payment_operation_holds(order_no_sha256, reason_code)
             values (public.payment_order_no_sha256_v1(v_order.order_no), 'rollback_fixture_order');
+
+          end $$;
+
+          set local role service_role;
+          set local request.jwt.claims = '{"role":"service_role"}';
+          do $$
+          declare
+            v_order public.orders%rowtype;
+          begin
+            select * into strict v_order
+              from public.orders
+             where order_no=current_setting('app.guard_test_order_no');
 
             if public.read_payment_operation_control_v1('unknown_control')
                or public.read_payment_operation_control_v1('payment_webhook') then
@@ -1438,6 +1467,7 @@ jobs:
               if sqlerrm not like '%payment_operation_held%' then raise; end if;
             end;
           end $$;
+          reset role;
 
           -- Force every deferred constraint trigger to execute inside the
           -- validation transaction. A plain rollback would otherwise skip
