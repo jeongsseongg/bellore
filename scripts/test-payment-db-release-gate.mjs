@@ -208,6 +208,8 @@ assert.doesNotMatch(validateBlock, /apply-authority-payment/,
 assert.match(validateBlock, /docker exec --env PGPASSWORD="\$PAYMENT_VALIDATION_PASSWORD"[\s\S]{0,140}psql -h localhost -U supabase_admin -d postgres/);
 assert.doesNotMatch(validateBlock, /PGCONN: \$\{\{ secrets\.SUPABASE_DB_URL \}\}/,
   'rollback fixtures must not receive the production DB URL');
+assert.match(validateBlock, /set local session_replication_role=replica;[\s\S]{0,500}insert into public\.profiles \(id,display_name\)[\s\S]{0,500}insert into public\.listings/,
+  'schema-only checkout fixtures must seed their local listing owner anchor');
 assert.match(validateBlock, /set local session_replication_role=replica;[\s\S]{0,900}generate_series\(1,6\)[\s\S]{0,120}set local session_replication_role=origin;/);
 assert.match(validateBlock, /order_requires_restock_v1\(\s*v_test_id, 2::smallint,/,
   'the rollback fixture must call the exact smallint restock-helper signature');
