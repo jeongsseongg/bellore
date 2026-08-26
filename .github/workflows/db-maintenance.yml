@@ -2134,8 +2134,8 @@ jobs:
                  in pg_get_functiondef('public.create_checkout_order_edge_v1(text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)'::regprocedure))=0
                or position('checkout_request_conflict'
                  in pg_get_functiondef('public.create_checkout_order_edge_v1(text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)'::regprocedure))=0
-               or position('''checkoutReplayed'', true'
-                 in pg_get_functiondef('public.create_checkout_order_edge_v1(text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)'::regprocedure))=0
+               or pg_get_functiondef('public.create_checkout_order_edge_v1(text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)'::regprocedure)
+                 !~ '''checkoutReplayed''[[:space:]]*,[[:space:]]*true'
                or position('p_expected_amount'
                  in pg_get_functiondef('public.create_checkout_order_edge_v1(text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)'::regprocedure))=0
                or position('checkout_amount_changed'

@@ -302,6 +302,10 @@ assert.equal((workflow.match(/probe_lock (?:create-checkout|confirm-payment|canc
 assert.match(workflow, /status" != "503"[\s\S]{0,220}payment_operations_temporarily_unavailable/);
 assert.match(workflow, /Waiting 180 seconds[\s\S]*sleep 180/);
 assert.ok(
+  workflow.includes("!~ '''checkoutReplayed''[[:space:]]*,[[:space:]]*true'"),
+  'live checkout replay verification must tolerate PostgreSQL function-body whitespace formatting',
+);
+assert.ok(
   workflow.indexOf('Verify all deployed payment Edge locks before production apply') <
     workflow.indexOf('Apply authority and payment migration'),
   'deployed Edge locks must be proven before the production DB apply step',
