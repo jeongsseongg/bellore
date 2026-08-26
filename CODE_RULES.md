@@ -61,7 +61,7 @@ node scripts/check.mjs
 
 ## 기준선 부채 처리
 
-단일 검사는 기존 부채를 경고로 보이되 새 부채는 실패시킨다. 정확한 허용 목록은 baseline에 있다. 2026-08-24 첫 적용에서 정적 HTML의 누락 이미지 참조와 `wanted-theme.css` 서비스워커 셸 누락을 고쳤다. 브라우저 재검증에서 발견한 레거시 JS/CSS의 동적 이미지 참조 누락 9개는 `knownMissingSourceAssets`에 기존 부채로 고정했으며, 10번째 누락부터는 검사 실패다.
+단일 검사는 기존 부채를 경고로 보이되 새 부채는 실패시킨다. 정확한 허용 목록은 baseline에 있다. 2026-08-24 첫 적용에서 정적 HTML의 누락 이미지 참조와 `wanted-theme.css` 서비스워커 셸 누락을 고쳤다. 브라우저 재검증에서 발견한 레거시 JS/CSS의 동적 이미지 참조 누락 9개는 `knownMissingSourceAssets`에 고정했으며, 10번째 누락부터는 검사 실패다.
 
 - `quality-gate.yml`, 주 운영 Pages Actions, 보조 Firebase가 로컬과 같은 한 줄 검사를 실행한다. 두 배포 job은 검사 성공 뒤에만 검증된 `_site`를 게시한다. `CODEOWNERS`는 소유자를 표시하지만, required review/check와 직접 push 차단은 원격 ruleset이 실제로 설정됐을 때만 강제된 것으로 보고한다.
 

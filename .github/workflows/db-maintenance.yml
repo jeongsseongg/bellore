@@ -1,8 +1,8 @@
 name: DB Maintenance
 
 # Supabase DB에 대한 점검/마이그레이션을 GitHub에서 직접 실행한다.
-# 운영 작업은 SUPABASE_DB_URL, rollback 픽스처 검증은 별도
-# SUPABASE_VALIDATION_DB_URL만 사용한다.
+# 운영 작업은 SUPABASE_DB_URL을 사용한다. rollback 픽스처 검증은
+# 운영 스키마만 복제한 일회성 로컬 Supabase PostgreSQL에서 실행한다.
 #
 # 실행 방법: Actions 탭 > DB Maintenance > Run workflow
 #   task = diagnose            : 읽기 전용 점검(테이블 상태·최근 데이터 요약)
@@ -70,7 +70,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     needs: truth_guard
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -85,33 +85,79 @@ jobs:
             echo "SUPABASE_DB_URL 시크릿 미설정 — 실행 불가"; exit 1
           fi
 
-      - name: Guard — 분리된 검증 DB 시크릿만 허용
+      - name: Prepare — 데이터 없는 일회성 Supabase 검증 DB
         if: inputs.task == 'validate-authority-payment'
         env:
-          VALIDATION_DB_URL: ${{ secrets.SUPABASE_VALIDATION_DB_URL }}
-          PRODUCTION_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-        run: |
-          set -euo pipefail
-          if [ -z "$VALIDATION_DB_URL" ]; then
-            echo "SUPABASE_VALIDATION_DB_URL 시크릿 미설정 — rollback 픽스처 실행 불가"; exit 1
-          fi
-          if [ -n "$PRODUCTION_DB_URL" ] && [ "$VALIDATION_DB_URL" = "$PRODUCTION_DB_URL" ]; then
-            echo "검증 DB URL이 운영 DB URL과 같습니다 — 별도 검증 DB만 허용"; exit 1
-          fi
-
-      - name: Guard — 검증 DB 물리 클러스터가 운영과 달라야 함
-        if: inputs.task == 'validate-authority-payment'
-        env:
-          VALIDATION_DB_URL: ${{ secrets.SUPABASE_VALIDATION_DB_URL }}
           PRODUCTION_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           set -euo pipefail
           if [ -z "$PRODUCTION_DB_URL" ]; then
-            echo "SUPABASE_DB_URL 시크릿 미설정 — 물리 클러스터 비교 불가"; exit 1
+            echo "SUPABASE_DB_URL 시크릿 미설정 — schema-only 검증 복제 불가"; exit 1
           fi
-          validation_system_id="$(PGCONN="$VALIDATION_DB_URL" docker run --rm -e PGCONN postgres:17 \
-            sh -c 'psql "$PGCONN" -X -qAt -v ON_ERROR_STOP=1 \
-              -c "select system_identifier::text from pg_control_system()"')"
+
+          validation_image='supabase/postgres@sha256:3e2a7ab48783077d0122dc72ed5174afb543110c38266c845716c51d130658e4'
+          validation_container='bellore-payment-validation-db'
+          validation_password="$(openssl rand -hex 24)"
+          echo "::add-mask::$validation_password"
+
+          schema_dir="$(mktemp -d "$RUNNER_TEMP/payment-validation.XXXXXX")"
+          case "$schema_dir" in
+            "$RUNNER_TEMP"/payment-validation.*) ;;
+            *) echo "검증 임시 경로가 RUNNER_TEMP 밖입니다"; exit 1 ;;
+          esac
+          chmod 700 "$schema_dir"
+          echo "PAYMENT_VALIDATION_DIR=$schema_dir" >> "$GITHUB_ENV"
+          echo "PAYMENT_VALIDATION_CONTAINER=$validation_container" >> "$GITHUB_ENV"
+
+          docker run --detach --name "$validation_container" \
+            --platform linux/amd64 --network none \
+            --env POSTGRES_PASSWORD="$validation_password" \
+            --env POSTGRES_DB=postgres \
+            --volume "$GITHUB_WORKSPACE:/repo:ro" \
+            --volume "$schema_dir:/validation:ro" \
+            "$validation_image" >/dev/null
+
+          ready=false
+          for _ in $(seq 1 90); do
+            if docker exec "$validation_container" pg_isready -U postgres -d postgres >/dev/null 2>&1; then
+              ready=true; break
+            fi
+            sleep 2
+          done
+          if [ "$ready" != "true" ]; then
+            echo "일회성 Supabase PostgreSQL이 준비되지 않았습니다"; exit 1
+          fi
+
+          PGCONN="$PRODUCTION_DB_URL" docker run --rm \
+            --env PGCONN --volume "$schema_dir:/schema" postgres:17 \
+            sh -c 'pg_dump "$PGCONN" --format=custom --schema-only \
+              --no-subscriptions --no-publications --no-comments \
+              --no-security-labels --no-tablespaces --lock-wait-timeout=5000 \
+              --file=/schema/production-schema.dump'
+          docker run --rm --volume "$schema_dir:/schema:ro" postgres:17 \
+            pg_restore --list /schema/production-schema.dump > "$schema_dir/production-schema.toc"
+          if grep -Eiq 'TABLE DATA|SEQUENCE SET|BLOB|LARGE OBJECT|SUBSCRIPTION|USER MAPPING' \
+               "$schema_dir/production-schema.toc"; then
+            echo "schema-only archive에 데이터 또는 외부 연결 항목이 있습니다"; exit 1
+          fi
+          grep -Eq 'TABLE public orders ' "$schema_dir/production-schema.toc"
+          grep -Eq 'TABLE public listings ' "$schema_dir/production-schema.toc"
+          docker exec -i "$validation_container" \
+            pg_restore --clean --if-exists --exit-on-error --single-transaction \
+              --username=postgres --dbname=postgres \
+            < "$schema_dir/production-schema.dump"
+
+          echo "운영 행 데이터 0건인 일회성 Supabase 검증 DB 준비 완료"
+
+      - name: Guard — 검증 DB 물리 클러스터가 운영과 달라야 함
+        if: inputs.task == 'validate-authority-payment'
+        env:
+          PRODUCTION_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          validation_system_id="$(docker exec "$PAYMENT_VALIDATION_CONTAINER" \
+            psql -U postgres -d postgres -X -qAt -v ON_ERROR_STOP=1 \
+              -c "select system_identifier::text from pg_control_system()")"
           production_system_id="$(PGCONN="$PRODUCTION_DB_URL" docker run --rm -e PGCONN postgres:17 \
             sh -c 'psql "$PGCONN" -X -qAt -v ON_ERROR_STOP=1 \
               -c "select system_identifier::text from pg_control_system()"')"
@@ -318,12 +364,10 @@ jobs:
 
       - name: Validate authority and payment migration (always rollback)
         if: inputs.task == 'validate-authority-payment'
-        env:
-          PGCONN: ${{ secrets.SUPABASE_VALIDATION_DB_URL }}
         run: |
           set -euo pipefail
-          docker run --rm -i -e PGCONN -v "$PWD:/repo:ro" postgres:17 \
-            psql "$PGCONN" -v ON_ERROR_STOP=1 <<'SQL'
+          docker exec -i "$PAYMENT_VALIDATION_CONTAINER" \
+            psql -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
           begin;
           \i /repo/supabase/migrations/20260826155000_payment_operation_hold.sql
           insert into public.payment_operation_holds(order_no_sha256, reason_code)
@@ -645,6 +689,23 @@ jobs:
               raise exception 'storage ownership policy missing';
             end if;
           end $$;
+
+          -- Schema-only cloning intentionally copies no production rows.
+          -- Seed only the six local listings required by behavioral fixtures.
+          set local session_replication_role=replica;
+          insert into public.listings (
+            id,owner_id,title,description,price,category,status,image_url,image_urls
+          )
+          select gen_random_uuid(),
+                 '00000000-0000-4000-8000-000000000001'::uuid,
+                 '검증 전용 상품 ' || n::text,
+                 '운영 데이터가 아닌 일회성 rollback fixture',
+                 (1000000 + n * 10000)::numeric,
+                 '검증', 'on_sale',
+                 'validation-only-' || n::text,
+                 array['validation-only-' || n::text]
+            from generate_series(1,6) as n;
+          set local session_replication_role=origin;
 
           -- orders_flow.sql is older, separately installed project SQL. Verify
           -- that a deployment without its optional history table can still run
@@ -1300,6 +1361,21 @@ jobs:
           SQL
           echo "분리된 검증 DB에서 스키마 컴파일·ACL·결제/환불 멱등 테스트 완료(전체 rollback)"
 
+      - name: Cleanup — 일회성 Supabase 검증 DB
+        if: always() && inputs.task == 'validate-authority-payment'
+        run: |
+          set -euo pipefail
+          docker rm --force bellore-payment-validation-db >/dev/null 2>&1 || true
+          if [ -n "${PAYMENT_VALIDATION_DIR:-}" ]; then
+            validation_dir="$(realpath -m "$PAYMENT_VALIDATION_DIR")"
+            runner_temp="$(realpath -m "$RUNNER_TEMP")"
+            case "$validation_dir" in
+              "$runner_temp"/payment-validation.*) rm -rf -- "$validation_dir" ;;
+              *) echo "검증 임시 경로 삭제 거부: RUNNER_TEMP 밖"; exit 1 ;;
+            esac
+          fi
+          echo "일회성 검증 DB 삭제 완료"
+
       - name: Apply authority and payment migration
         if: inputs.task == 'apply-authority-payment'
         env:
@@ -1490,6 +1566,18 @@ jobs:
             if has_table_privilege('anon','public.orders','insert')
                or has_table_privilege('authenticated','public.orders','insert')
                or not has_table_privilege('service_role','public.orders','select')
+               or has_table_privilege('anon','public.checkout_rate_limits','select')
+               or has_table_privilege('anon','public.checkout_rate_limits','insert')
+               or has_table_privilege('anon','public.checkout_rate_limits','update')
+               or has_table_privilege('anon','public.checkout_rate_limits','delete')
+               or has_table_privilege('authenticated','public.checkout_rate_limits','select')
+               or has_table_privilege('authenticated','public.checkout_rate_limits','insert')
+               or has_table_privilege('authenticated','public.checkout_rate_limits','update')
+               or has_table_privilege('authenticated','public.checkout_rate_limits','delete')
+               or exists (
+                 select 1 from pg_policies
+                  where schemaname='public' and tablename='checkout_rate_limits'
+               )
                or has_function_privilege('anon',
                  'public.create_checkout_order(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)','execute')
                or has_function_privilege('authenticated',
@@ -1696,6 +1784,18 @@ jobs:
                or to_regprocedure('public.create_checkout_order_edge_v1(text,uuid,uuid,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)') is not null
                or has_table_privilege('anon','public.orders','insert')
                or has_table_privilege('authenticated','public.orders','insert')
+               or has_table_privilege('anon','public.checkout_rate_limits','select')
+               or has_table_privilege('anon','public.checkout_rate_limits','insert')
+               or has_table_privilege('anon','public.checkout_rate_limits','update')
+               or has_table_privilege('anon','public.checkout_rate_limits','delete')
+               or has_table_privilege('authenticated','public.checkout_rate_limits','select')
+               or has_table_privilege('authenticated','public.checkout_rate_limits','insert')
+               or has_table_privilege('authenticated','public.checkout_rate_limits','update')
+               or has_table_privilege('authenticated','public.checkout_rate_limits','delete')
+               or exists (
+                 select 1 from pg_policies
+                  where schemaname='public' and tablename='checkout_rate_limits'
+               )
                or has_function_privilege('anon','public._claim_coupon(public.coupons,uuid)','execute')
                or to_regprocedure('public.finalize_paid_order_v2(text,bigint,text,text,text,text,jsonb,integer)') is null
                or to_regprocedure('public.finalize_order_refund_v2(text,bigint,text,text)') is null

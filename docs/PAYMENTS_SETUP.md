@@ -37,9 +37,9 @@ API Secret은 브라우저 코드나 저장소에 넣지 않습니다.
 
 SQL Editor에 과거 `payment_full_only.sql`을 붙여 넣지 않습니다. GitHub Actions의 `DB Maintenance`에서 아래 순서로 실행합니다.
 
-먼저 운영 DB와 분리된 일회성 검증 DB의 연결 문자열을 GitHub repository secret `SUPABASE_VALIDATION_DB_URL`에 설정합니다. 운영 `SUPABASE_DB_URL`과 같은 값을 넣지 않습니다. URL 문자열뿐 아니라 `pg_control_system()`의 물리 system identifier도 운영과 달라야 검증을 시작합니다. `validate-authority-payment`의 픽스처는 이 검증 DB에만 접근하며 운영 DB에서는 실행되지 않습니다. 검증 DB에는 현재 운영과 동일한 authority/payment 스키마와 `customer_shipping_addresses` 마이그레이션, 테스트 가능한 판매 상품 데이터가 필요합니다.
+`validate-authority-payment`는 GitHub runner 안에 운영과 같은 PostgreSQL 17 계열의 일회성 Supabase DB를 만듭니다. 운영에서는 `pg_dump --schema-only`로 DDL·ACL·RLS만 읽고, archive TOC에 `TABLE DATA`·`SEQUENCE SET`·`BLOB`이 0건인지 확인한 뒤에만 복원합니다. 주문·회원·상품 같은 운영 행은 복제하지 않으며, 필요한 판매 상품 6건은 일회성 트랜잭션 안에서만 합성합니다. `pg_control_system()`의 물리 system identifier가 운영과 다를 때만 픽스처를 실행하고, 완료·실패와 관계없이 네트워크가 차단된 컨테이너와 정확한 runner 임시 폴더를 삭제합니다.
 
-1. `validate-authority-payment`: 별도 검증 DB에서 전체 마이그레이션과 픽스처를 실행한 뒤 항상 rollback합니다.
+1. `validate-authority-payment`: 데이터 없는 일회성 검증 DB에서 전체 마이그레이션과 합성 픽스처를 실행한 뒤 항상 rollback합니다.
 2. 24시간 이내의 성공한 `Daily DB Backup` run ID를 확인합니다.
 3. 정적 배포와 다섯 결제 Edge 경로가 모두 잠겼고 다섯 응답이 실제 503이며 새 주문·예약이 0건인지 확인합니다. GitHub variables `PRODUCTION_DEPLOY_ENABLED=false`, `PAYMENT_RECONCILE_ENABLED=false`도 명시적으로 설정합니다. apply 워크플로가 같은 503 응답을 다시 기계 확인하며, 정확한 잠금 오류가 아니면 DB를 건드리기 전에 중단합니다.
 4. `apply-authority-payment`: 배포할 정확한 main SHA, backup run ID, `production_apply_ack=APPLY_AUTHORITY_PAYMENT_TO_PRODUCTION`, `payment_locks_ack=PAYMENT_CHECKOUT_AND_RECONCILE_LOCKED`, 보호 주문번호를 로컬에서 변환한 64자리 소문자 `payment_hold_sha256`, `payment_hold_ack=SEED_HASH_ONLY_PAYMENT_OPERATION_HOLD`를 입력합니다. 주문번호 원문은 저장소·워크플로 입력·로그·hold 테이블에 넣지 않습니다.
@@ -93,7 +93,7 @@ supabase functions deploy create-checkout
 3. 새 결제를 잠급니다: Supabase Function Secret `PAYMENT_CHECKOUT_ENABLED=false`.
 4. DB 제어 RPC가 없거나 false이면 닫히는 새 Edge 함수 다섯 개를 `payment-webhook` → `confirm-payment` → `cancel-payment` → `reconcile-payments` → `create-checkout` 순서로 배포합니다. 함수별 교체 직후 동일한 503 점검 응답이며 주문 DB·포트원 호출이 0회인지 확인합니다.
 5. 잠금 전 시작된 요청이 끝나도록 180초 drain한 뒤에만 DB 검증·적용으로 이동합니다. 이는 재대조 함수의 150초 실행 상한보다 긴 보수적 대기입니다.
-6. 품질 게이트가 통과한 동일 main SHA로 DB `validate-authority-payment`를 **별도 검증 DB**에서 실행합니다. 이 검사는 `SET CONSTRAINTS ALL IMMEDIATE`까지 실행한 뒤 rollback해야 하며 운영 DB URL을 사용하면 안 됩니다.
+6. 품질 게이트가 통과한 동일 main SHA로 DB `validate-authority-payment`를 **데이터 없는 일회성 검증 DB**에서 실행합니다. 이 검사는 운영 스키마만 복제하고 합성 상품으로 `SET CONSTRAINTS ALL IMMEDIATE`까지 실행한 뒤 rollback하며, 운영 DB에서는 픽스처를 실행하지 않습니다.
 7. 24시간 이내 백업 아티팩트의 복호화·압축·SQL dump 표식 검사를 통과시킵니다. 이것만으로 복원 가능하다고 단정하지 말고, 최근 격리 복원 훈련 기록을 별도로 확인합니다. 그 뒤 정확한 승인 문자열·보호 hash·SHA를 입력해 운영 DB 마이그레이션 5개를 한 트랜잭션으로 apply합니다.
 8. 운영 DB 계약·hold·trigger·ACL 사후검사와 Supabase 보안/성능 advisor를 통과시킵니다. 사후검사는 hold hash 행과 계약 객체만 확인하며 보호 주문을 직접 조회하지 않습니다.
 9. 배포된 Edge 다섯 개가 같은 release SHA의 소스인지 다시 확인하고 Pages를 검증한 뒤, `PRODUCTION_DEPLOY_ENABLED=false`를 유지한 채 Pages 수동 `static_release_sha` 경로로 배포합니다. Firebase는 공개 도메인 경로가 아닙니다.

@@ -3,7 +3,6 @@ import {
   MARKET_PATH,
   SELLER_NAME,
   SITE_ORIGIN,
-  booleanValue,
   displayValue,
 } from './market-policy.mjs';
 
@@ -32,9 +31,13 @@ function saleStateLabel(product) {
 }
 
 function shortDescription(product) {
-  const reference = product.referenceNumber || '레퍼런스 정보없음';
-  const condition = product.condition || '상태 정보없음';
-  return `${product.name} · ${reference} · ${condition} · ${money(product.currentPrice)} · 상품번호 ${product.productNumber}`;
+  return [
+    product.name,
+    product.referenceNumber ? `Ref. ${product.referenceNumber}` : '',
+    product.condition,
+    money(product.currentPrice),
+    `상품번호 ${product.productNumber}`,
+  ].filter(Boolean).join(' · ');
 }
 
 function header() {
@@ -89,7 +92,7 @@ ${footer()}
 }
 
 function property(name, value) {
-  if (!value || value === '정보없음') return null;
+  if (!value || String(value).includes('정보없음')) return null;
   return { '@type': 'PropertyValue', name, value };
 }
 
@@ -99,7 +102,7 @@ function productStructuredData(product) {
     property('레퍼런스 번호', product.referenceNumber),
     property('상태', product.condition),
     property('사이즈', product.sizeMm ? `${product.sizeMm}mm` : ''),
-    property('구성품', product.setGrade || product.components || product.accessories || product.pack),
+    property('구성품', product.accessoryPresentation.detailText),
     property('무브먼트', product.movement),
     property('빈티지', product.isVintage ? '빈티지' : ''),
   ].filter(Boolean);
@@ -110,7 +113,7 @@ function productStructuredData(product) {
     description: shortDescription(product),
     sku: product.productNumber,
     image: product.photos,
-    brand: { '@type': 'Brand', name: product.brand || '정보없음' },
+    brand: { '@type': 'Brand', name: product.brand || '브랜드 확인 필요' },
     itemCondition: product.isNew
       ? 'https://schema.org/NewCondition'
       : 'https://schema.org/UsedCondition',
@@ -149,19 +152,15 @@ function specRows(rows) {
   </dl>`;
 }
 
-function firstValue(...values) {
-  return values.find((value) => value !== null && value !== undefined && String(value).trim()) || '';
-}
-
 function sizeValue(value) {
   const raw = String(value || '').trim();
-  return raw ? (/mm$/i.test(raw) ? raw : `${raw}mm`) : '정보없음';
+  return raw ? (/mm$/i.test(raw) ? raw : `${raw}mm`) : '확인 필요';
 }
 
 function productBody(product) {
   const year = [product.stamping, product.purchaseYear].filter(Boolean).join(' · ');
-  const setGrade = firstValue(product.setGrade, product.components, product.accessories, product.pack);
-  const statusLines = product.conditionNotes.length ? product.conditionNotes : ['정보없음'];
+  const setGrade = product.accessoryPresentation.detailText;
+  const statusLines = product.conditionNotes.length ? product.conditionNotes : ['상태 확인 필요'];
   const details = product.detailImages.map((src, index) => {
     const alt = `${product.name} ${product.productNumber} 실물 상세 이미지 ${index + 1}`;
     return `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy" decoding="async">`;
@@ -190,7 +189,7 @@ function productBody(product) {
       <section class="section" aria-labelledby="product-info"><h2 id="product-info">상품 정보</h2>
         ${specRows([
           ['브랜드', displayValue(product.brand)],
-          ['모델', displayValue(product.presentation.modelSize)],
+          ['모델', displayValue(product.presentation.model)],
           ['레퍼런스 번호', displayValue(product.referenceNumber)],
           ['상품번호', product.productNumber],
           ['사이즈', sizeValue(product.sizeMm)],
@@ -205,8 +204,8 @@ function productBody(product) {
       </section>
       <section class="section" aria-labelledby="trade"><h2 id="trade">거래 안내</h2>
         ${specRows([
-          ['구성품', displayValue(firstValue(product.components, product.accessories, product.pack))],
-          ['보증서', booleanValue(product.hasWarranty)],
+          ['구성품', displayValue(product.accessoryPresentation.includedText || '구성품 확인 필요')],
+          ['보증서', product.accessoryPresentation.warrantyText],
           ['판매 방식', displayValue(product.saleMethod)],
           ['배송', displayValue(product.shipping)],
           ['특이사항', displayValue(product.specialNote)],
@@ -257,7 +256,7 @@ export function renderMarketIndex(products) {
   const cards = products.map((product) => `<a class="product-card" href="${escapeHtml(product.canonicalPath)}" data-market-listing-card data-status="${escapeHtml(product.status)}">
     <img class="product-card__image" src="${escapeHtml(product.heroImage)}" alt="${escapeHtml(`${product.name} ${product.productNumber} 정면 이미지`)}" loading="lazy" decoding="async">
     <span class="product-card__status is-${escapeHtml(product.status)}" data-market-listing-status data-listing-id="${escapeHtml(product.id)}" data-status="${escapeHtml(product.status)}" data-base-class="product-card__status"${product.status === 'on_sale' ? ' hidden' : ''}>${escapeHtml(saleStateLabel(product))}</span>
-    <p class="product-card__brand">${escapeHtml(product.brand || '정보없음')}</p>
+    <p class="product-card__brand">${escapeHtml(product.brand || '브랜드 확인 필요')}</p>
     <h2 class="product-card__name">${escapeHtml(product.presentation.modelSize)}</h2>
     ${product.presentation.referenceText ? `<p class="product-card__reference">${escapeHtml(product.presentation.referenceText)}</p>` : ''}
     ${product.presentation.featureMovement ? `<p class="product-card__meta">${escapeHtml(product.presentation.featureMovement)}</p>` : ''}

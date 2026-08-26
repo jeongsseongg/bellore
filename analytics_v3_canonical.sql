@@ -5,7 +5,15 @@
 
 begin;
 
-create extension if not exists pgcrypto;
+-- This migration does not use pgcrypto. Extension ownership/schema is kept in
+-- the canonical local-AI bridge, which requires `extensions.digest(...)`.
+do $recommendation_v2_reapply_guard$
+begin
+  if to_regclass('public.ai_paid_recommendation_attributions') is not null then
+    raise exception 'ANALYTICS_V3_REAPPLY_AFTER_RECOMMENDATION_V2_FORBIDDEN';
+  end if;
+end
+$recommendation_v2_reapply_guard$;
 
 alter table public.orders add column if not exists analytics_session_id uuid;
 alter table public.orders add column if not exists analytics_anonymous_id uuid;
@@ -335,16 +343,30 @@ declare
   v_order public.orders%rowtype;
   v_session uuid;
   v_anon uuid;
+  v_final_attribution jsonb;
+  v_newly_paid boolean := false;
 begin
   select * into v_order from public.orders where id = p_order_id for update;
   if not found then raise exception 'order_not_found'; end if;
-  if v_order.status <> 'paid' then
+  if v_order.paid_at is null then
+    if v_order.status <> 'pending' then
+      raise exception 'order_not_payable';
+    end if;
+    v_newly_paid := true;
+    -- The general analytics schema never stores raw browser recommendation
+    -- metadata on the legal order ledger. Recommendation v2 installs a
+    -- separate consent-cascading attribution table and replaces this function.
+    v_final_attribution := coalesce(v_order.analytics_attribution, p_attribution, '{}'::jsonb)
+      - 'recommendation';
+    if v_final_attribution = '{}'::jsonb then v_final_attribution := null; end if;
     update public.orders set status='paid', amount=p_amount, discount=p_discount,
-      method=left(p_method,80), payment_key=left(p_payment_key,160), receipt_url=left(p_receipt_url,500), paid_at=now()
+      method=left(p_method,80), payment_key=left(p_payment_key,160), receipt_url=left(p_receipt_url,500),
+      analytics_attribution=v_final_attribution, paid_at=now()
     where id=p_order_id returning * into v_order;
   end if;
-  -- 신규 주문은 생성 시 저장된 귀속값이 진실의 원천이다. p_attribution은 migration 전 생성된 주문 폴백 전용.
-  p_attribution := coalesce(v_order.analytics_attribution, p_attribution);
+  -- paid_at is the one-way payment marker. Fulfillment/refund statuses are
+  -- immutable on retries; the canonical stored snapshot wins.
+  p_attribution := v_order.analytics_attribution;
   begin
     v_session := coalesce(v_order.analytics_session_id, nullif(p_attribution->>'session_id','')::uuid);
     v_anon := coalesce(v_order.analytics_anonymous_id, nullif(p_attribution->>'anonymous_id','')::uuid);
@@ -361,7 +383,11 @@ begin
       v_order.amount, 'KRW', coalesce(v_order.paid_at, now())
     ) on conflict (site_id, conversion_id) do nothing;
   end if;
-  return jsonb_build_object('ok',true,'order',to_jsonb(v_order));
+  return jsonb_build_object(
+    'ok', true,
+    'newly_paid', v_newly_paid,
+    'order', to_jsonb(v_order)
+  );
 end $$;
 revoke all on function public.analytics_finalize_paid_order(uuid,bigint,bigint,text,text,text,jsonb) from public, anon, authenticated;
 grant execute on function public.analytics_finalize_paid_order(uuid,bigint,bigint,text,text,text,jsonb) to service_role;

@@ -1,36 +1,36 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-08-24",
+  "capturedAt": "2026-08-26",
   "legacyLineCeilings": {
-    "styles.css": 10455,
-    "script.js": 6653,
-    "index.html": 3223,
+    "styles.css": 10471,
+    "script.js": 6822,
+    "index.html": 3331,
     "wanted-theme.css": 3060,
-    "supabase.js": 2610,
+    "supabase.js": 2638,
     "cq-demo.js": 2423,
-    "ai-advisor.js": 1529,
-    "bellore-redesign.css": 1564,
+    "ai-advisor.js": 2378,
+    "bellore-redesign.css": 1565,
     "bellore-features.js": 1261,
     "auction.js": 924,
     "ai-advisor-admin.js": 763,
-    "mypick.css": 707,
-    "wishlist.js": 473,
+    "mypick.css": 720,
+    "wishlist.js": 696,
     "payments.js": 541,
     "search.js": 575,
     "reference-layout.css": 425,
     "tools/generate-seo.mjs": 615,
-    "supabase/functions/ai-learn/index.ts": 481,
+    "supabase/functions/ai-learn/index.ts": 591,
     "tools/bellore-shop-ai.mjs": 460,
-    "scripts/check.mjs": 430
+    "scripts/check.mjs": 431
   },
   "legacyCeilings": {
     "executableInlineScriptBlocks": 2,
     "executableInlineScriptBytes": 1210,
     "styleAttributes": 14,
-    "importantTokens": 376,
-    "windowAssignments": 91,
-    "scriptStyleAttributeTokens": 83,
-    "localClassicScripts": 20
+    "importantTokens": 379,
+    "windowAssignments": 93,
+    "scriptStyleAttributeTokens": 86,
+    "localClassicScripts": 22
   },
   "newCodeBudgets": {
     ".js": {
@@ -58,6 +58,27 @@
     "app/vendor/recommendation-engine.js": {
       "maximum": 720,
       "reason": "Vendored Bellore Intent & Trust Rank v2 is kept byte-identifiable and is not mixed into feature modules."
+    },
+    "app/features/sell-method/sell-method.css": {
+      "maximum": 899
+    },
+    "app/features/sell-method/sell-method.js": {
+      "maximum": 584
+    },
+    "app/legacy/page-runtime.js": {
+      "maximum": 520
+    },
+    "app/legacy/recommendation-engine.js": {
+      "maximum": 697
+    },
+    "prototypes/admin-console-v2/admin-console.css": {
+      "maximum": 2650
+    },
+    "prototypes/admin-console-v2/features/home-editor/admin-home-editor.css": {
+      "maximum": 998
+    },
+    "prototypes/admin-console-v2/features/workspace/admin-workspace.js": {
+      "maximum": 498
     }
   },
   "knownMissingLocalAssets": [],

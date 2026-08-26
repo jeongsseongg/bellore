@@ -32,6 +32,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const PROVIDER = (Deno.env.get("AI_PROVIDER") ?? "anthropic").toLowerCase();
 const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
 const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY") ?? "";
@@ -141,6 +142,67 @@ function safeJson(text: string): any {
 
 type SB = ReturnType<typeof createClient<any, "public">>;
 
+type RequestActor = {
+  userId: string | null;
+  isAdmin: boolean;
+  isInternal: boolean;
+};
+
+const ADMIN_ACTIONS = new Set([
+  "extract_market_insights",
+  "generate_magazine_draft",
+  "summarize_profile",
+  "summarize_all",
+  "extract_knowledge",
+]);
+
+function bearerToken(req: Request): string {
+  const header = req.headers.get("authorization") ?? "";
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  return match?.[1]?.trim() ?? "";
+}
+
+async function authenticateRequest(req: Request, admin: SB): Promise<RequestActor | null> {
+  const token = bearerToken(req);
+  if (!token) return null;
+
+  // Internal scheduled/admin automation may use the service credential. It is
+  // never embedded in browser code or SQL text.
+  if (SERVICE_ROLE && token === SERVICE_ROLE) {
+    return { userId: null, isAdmin: true, isInternal: true };
+  }
+  if (!ANON_KEY) return null;
+
+  const authClient = createClient(SUPABASE_URL, ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data, error } = await authClient.auth.getUser(token);
+  if (error || !data.user?.id) return null;
+
+  const { data: isAdmin, error: adminError } = await admin.rpc("is_admin_uid", {
+    uid: data.user.id,
+  });
+  return {
+    userId: data.user.id,
+    isAdmin: !adminError && isAdmin === true,
+    isInternal: false,
+  };
+}
+
+async function canUseProfile(admin: SB, actor: RequestActor, profileId: string): Promise<boolean> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(profileId)) {
+    return false;
+  }
+  const { data, error } = await admin.from("customer_ai_profiles")
+    .select("id,user_id,consent_personalization")
+    .eq("id", profileId)
+    .eq("consent_personalization", true)
+    .maybeSingle();
+  if (error || !data) return false;
+  return actor.isInternal || actor.isAdmin || data.user_id === actor.userId;
+}
+
 // 활성 응답 지침(플레이북)을 우선순위 순으로 묶어 시스템 프롬프트 조각으로 반환
 async function guidelinesText(admin: SB): Promise<string> {
   const { data } = await admin.from("ai_response_guidelines")
@@ -153,8 +215,9 @@ async function guidelinesText(admin: SB): Promise<string> {
 
 // ── action 1: 한 고객 프로필 요약 + 장기 메모리 추출 ──
 async function summarizeProfile(admin: SB, profileId: string) {
-  const { data: p } = await admin.from("customer_ai_profiles").select("*").eq("id", profileId).single();
-  if (!p) return { profile_id: profileId, error: "not_found" };
+  const { data: p } = await admin.from("customer_ai_profiles").select("*")
+    .eq("id", profileId).eq("consent_personalization", true).maybeSingle();
+  if (!p) return { profile_id: profileId, error: "not_found_or_consent_required" };
   const { data: convs } = await admin.from("ai_conversations")
     .select("role,message,created_at").eq("profile_id", profileId)
     .order("created_at", { ascending: true }).limit(60);
@@ -168,7 +231,7 @@ async function summarizeProfile(admin: SB, profileId: string) {
   const facts = {
     preferred_brands: p.preferred_brands, preferred_models: p.preferred_models,
     preferred_references: p.preferred_references, budget_min: p.budget_min, budget_max: p.budget_max,
-    buying_stage: p.buying_stage, buy_probability: p.buy_probability,
+    buying_stage: p.buying_stage, buy_intent_index: p.buy_probability,
     scores: {
       price_sensitivity: p.price_sensitivity, speed_preference: p.speed_preference,
       detail_preference: p.detail_preference, resale_importance: p.resale_importance,
@@ -183,6 +246,8 @@ async function summarizeProfile(admin: SB, profileId: string) {
     "①한국어 2~3문장 영업용 요약(ai_summary) ②핵심 장기메모리 배열(memories) ③확신이 안 서서 관리자에게 " +
     "물어보고 싶은 질문(questions, 최대 3개, 없으면 빈 배열)을 만든다. questions 는 예를 들어 " +
     "'예산 상한을 직접 확인한 적이 없는데 여쭤봐도 될까요?' 처럼 실제로 도움될 때만 만들고 억지로 채우지 마라. " +
+    "buy_intent_index와 각 scores는 통계적으로 보정된 확률이나 매출 예측이 아닌 내부 휴리스틱이다. " +
+    "구매확률·성공확률·퍼센트로 표현하지 말고, 꼭 필요할 때만 '구매의도 지수 n/100'으로 적어라. " +
     "추측은 confidence 를 낮춰라. 반드시 아래 JSON 만 출력: " +
     '{"ai_summary":"...","customer_type":"value_seeker|collector|gift_buyer|investor|unknown",' +
     '"memories":[{"memory_type":"preference|budget|personality|risk|brand_interest|buying_intent","content":"...","confidence":0-100}],' +
@@ -193,11 +258,19 @@ async function summarizeProfile(admin: SB, profileId: string) {
   const parsed = safeJson(raw);
   if (!parsed) return { profile_id: profileId, error: "parse_failed", raw: raw.slice(0, 300) };
 
+  // Consent may have been withdrawn while the external model was running.
+  // DB triggers are the final write gate; this recheck avoids even attempting
+  // to recreate a withdrawn profile or derived memory.
+  const { data: stillConsented } = await admin.from("customer_ai_profiles")
+    .select("id").eq("id", profileId).eq("consent_personalization", true).maybeSingle();
+  if (!stillConsented) return { profile_id: profileId, error: "consent_withdrawn" };
+
   // 프로필 요약 갱신
-  await admin.from("customer_ai_profiles").update({
+  const { error: profileWriteError } = await admin.from("customer_ai_profiles").update({
     ai_summary: String(parsed.ai_summary ?? "").slice(0, 1000),
     customer_type: parsed.customer_type ?? p.customer_type ?? null,
-  }).eq("id", profileId);
+  }).eq("id", profileId).eq("consent_personalization", true);
+  if (profileWriteError) return { profile_id: profileId, error: "profile_write_blocked" };
 
   // 장기 메모리 저장. 재실행 시 누적 폭증을 막기 위해 이전 AI생성 메모리
   // (이벤트/대화에 직접 연결되지 않은 = source_*_id 가 NULL 인 행)만 교체한다.
@@ -353,7 +426,7 @@ async function generateMagazineDraft(admin: SB) {
   const { data: msgs } = await admin.from("team_messages")
     .select("message").order("created_at", { ascending: false }).limit(80);
   const { data: profiles } = await admin.from("customer_ai_profiles")
-    .select("preferred_brands").limit(300);
+    .select("preferred_brands").eq("consent_personalization", true).limit(300);
   const brandCount: Record<string, number> = {};
   for (const p of profiles ?? []) for (const b of p.preferred_brands ?? []) brandCount[b] = (brandCount[b] ?? 0) + 1;
   const topBrands = Object.entries(brandCount).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([b]) => b);
@@ -383,10 +456,10 @@ async function generateReply(admin: SB, profileId: string | null, message: strin
   const guide = await guidelinesText(admin);
   let memo = "", facts = "", history = "";
   if (profileId) {
-    const { data: p } = await admin.from("customer_ai_profiles").select("*").eq("id", profileId).single();
-    if (p) {
-      facts = `고객 관심:${(p.preferred_brands ?? []).join(",")} ${(p.preferred_references ?? []).join(",")} / 예산:${p.budget_min ?? "?"}~${p.budget_max ?? "?"} / 단계:${p.buying_stage}`;
-    }
+    const { data: p } = await admin.from("customer_ai_profiles").select("*")
+      .eq("id", profileId).eq("consent_personalization", true).maybeSingle();
+    if (!p) throw new Error("AI_PERSONALIZATION_CONSENT_REQUIRED");
+    facts = `고객 관심:${(p.preferred_brands ?? []).join(",")} ${(p.preferred_references ?? []).join(",")} / 예산:${p.budget_min ?? "?"}~${p.budget_max ?? "?"} / 단계:${p.buying_stage}`;
     const { data: mems } = await admin.from("ai_customer_memories")
       .select("content").eq("profile_id", profileId).order("confidence", { ascending: false }).limit(8);
     memo = (mems ?? []).map((m) => "- " + m.content).join("\n");
@@ -414,6 +487,7 @@ async function generateReply(admin: SB, profileId: string | null, message: strin
     "- 추천 후보 목록에 없는 매물을 있다고 말하지 마라. 후보가 없으면 '지금 조건에 딱 맞는 매물은 없다'고 솔직히 답하고 입고 알림을 권하라.\n" +
     "- 모르는 것은 아는 척하지 말고 '정확히 확인 후 안내드리겠다'며 상담사 연결을 권하라.\n" +
     "- 확실하지 않은 숫자(시세·수수료·감가율 등)는 아예 언급하지 마라.\n" +
+    "- 추천 후보의 fit_score와 고객의 구매의도 지수는 내부 휴리스틱이며 구매확률·전환확률·매출예측이 아니다. 퍼센트로 바꾸지 말고, 필요하면 '적합도 n점' 또는 '구매의도 지수 n/100'으로만 표현하라.\n" +
     "- 벨로르 확정 정책 외에는 임의로 정책·이벤트·혜택을 만들지 마라. 확정 정책: 100% 정품 보증(가품 판명 시 전액환불), 전국 무료배송, 전액결제.\n" +
     "- 앞선 대화 내용과 모순되게 답하지 마라.",
     guide,
@@ -436,15 +510,31 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   try {
+    if (!SUPABASE_URL || !SERVICE_ROLE || !ANON_KEY) {
+      return json({ error: "server_not_configured" }, 503);
+    }
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const actor = await authenticateRequest(req, admin);
+    if (!actor) return json({ error: "authentication_required" }, 401);
+
     const { action, profile_id, limit, message, candidates, brand, reference_number } = await req.json();
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+    if (typeof action !== "string") return json({ error: "invalid_action" }, 400);
+    if (ADMIN_ACTIONS.has(action) && !actor.isAdmin && !actor.isInternal) {
+      return json({ error: "AI_LEARN_ADMIN_REQUIRED" }, 403);
+    }
 
     // 시세 정리/조회는 규칙기반(무료) — AI 키 없이도 항상 동작
     if (action === "extract_market_insights") {
       return json({ ok: true, result: await extractMarketInsights(admin, Math.min(Number(limit) || 200, 500)) });
     }
     if (action === "market_price_lookup") {
-      return json({ ok: true, result: await lookupMarketPrice(admin, brand ?? null, reference_number ?? null) });
+      const safeBrand = typeof brand === "string" ? brand.replace(/[%_]/g, "").slice(0, 80) : null;
+      const safeReference = typeof reference_number === "string"
+        ? reference_number.replace(/[%_]/g, "").slice(0, 80)
+        : null;
+      return json({ ok: true, result: await lookupMarketPrice(admin, safeBrand, safeReference) });
     }
 
     if (!hasKey()) {
@@ -457,12 +547,17 @@ Deno.serve(async (req) => {
     }
     if (action === "summarize_profile") {
       if (!profile_id) return json({ error: "missing_profile_id" }, 400);
-      return json({ ok: true, result: await summarizeProfile(admin, profile_id) });
+      const safeProfileId = String(profile_id);
+      if (!await canUseProfile(admin, actor, safeProfileId)) {
+        return json({ error: "profile_not_found_or_consent_required" }, 403);
+      }
+      return json({ ok: true, result: await summarizeProfile(admin, safeProfileId) });
     }
     if (action === "summarize_all") {
       // 최근 업데이트된 프로필 N개 재요약(정기 학습용)
       const { data: ps } = await admin.from("customer_ai_profiles")
-        .select("id").order("updated_at", { ascending: false }).limit(Math.min(Number(limit) || 30, 100));
+        .select("id").eq("consent_personalization", true)
+        .order("updated_at", { ascending: false }).limit(Math.min(Number(limit) || 30, 100));
       const out = [];
       for (const p of ps ?? []) out.push(await summarizeProfile(admin, p.id));
       return json({ ok: true, count: out.length, results: out });
@@ -472,10 +567,25 @@ Deno.serve(async (req) => {
     }
     if (action === "generate_reply") {
       if (!message) return json({ error: "missing_message" }, 400);
-      return json({ ok: true, result: await generateReply(admin, profile_id ?? null, String(message), candidates ?? null) });
+      if (!profile_id) return json({ error: "missing_profile_id" }, 400);
+      const safeProfileId = String(profile_id);
+      if (!await canUseProfile(admin, actor, safeProfileId)) {
+        return json({ error: "profile_not_found_or_consent_required" }, 403);
+      }
+      const safeMessage = String(message).trim().slice(0, 600);
+      if (!safeMessage) return json({ error: "missing_message" }, 400);
+      const safeCandidates = Array.isArray(candidates) ? candidates.slice(0, 8)
+        .filter((item) => item && typeof item === "object")
+        .map((item: Record<string, unknown>) => ({
+          name: String(item.name ?? "").slice(0, 180),
+          price: Number(item.price) || null,
+          fit_score: Number(item.score) || null,
+        })) : [];
+      return json({ ok: true, result: await generateReply(admin, safeProfileId, safeMessage, safeCandidates) });
     }
     return json({ error: "unknown_action" }, 400);
   } catch (e) {
-    return json({ error: "server_error", detail: String(e) }, 500);
+    console.error("[ai-learn] request failed:", e instanceof Error ? e.message : String(e));
+    return json({ error: "server_error" }, 500);
   }
 });

@@ -11,7 +11,7 @@ export function discountRate(listing) {
 
 function known(value) {
   const text = String(value ?? '').trim().replace(/\s+/g, ' ');
-  return text && text !== '정보없음' ? text : '';
+  return text && !text.includes('정보없음') ? text : '';
 }
 
 function escapePattern(value) {
@@ -28,7 +28,66 @@ export function movementText(value) {
   return raw;
 }
 
-/* 확정된 카드 위계: 브랜드 / 모델+사이즈 / Ref. / 핵심 특징+무브먼트. */
+const COMPONENT_LABELS = {
+  box: '박스',
+  case: '케이스',
+  card: '개런티카드',
+  warranty: '보증서',
+};
+
+function componentTokens(value) {
+  return String(value ?? '')
+    .split(/[,/·\n]/)
+    .map((token) => token.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+/* 구성품은 구조화 components를 최우선으로 사용한다.
+   과거 pack/set_grade의 "정보없음"이 실제 체크값을 덮지 못하게 한다. */
+export function accessoryPresentation(listing) {
+  const rawComponents = componentTokens(listing.components);
+  const freeText = [listing.accessories, listing.pack, listing.setGrade ?? listing.set_grade]
+    .map(known).filter(Boolean).join(' · ');
+  const present = [];
+  Object.entries(COMPONENT_LABELS).forEach(([key, label]) => {
+    const inStructured = rawComponents.includes(key);
+    const pattern = key === 'card' ? /개런티|게런티|보증카드/ : new RegExp(label);
+    if (inStructured || pattern.test(freeText)) present.push(label);
+  });
+  if (/풀세트|풀박스/.test(freeText)) {
+    ['박스', '케이스', '개런티카드', '보증서'].forEach((label) => {
+      if (!present.includes(label)) present.push(label);
+    });
+  }
+
+  const hasWarranty = listing.hasWarranty ?? listing.has_warranty;
+  const warrantyIncluded = hasWarranty === true || present.includes('보증서');
+  const physical = present.filter((label) => label !== '보증서');
+  const includedText = physical.length ? `${physical.join(' · ')} 포함` : '';
+  let warrantyText = '';
+  if (warrantyIncluded) warrantyText = '보증서 포함';
+  else if (physical.length || hasWarranty === false) warrantyText = '보증서 미포함';
+  else warrantyText = '보증서 확인 필요';
+
+  return {
+    items: present,
+    includedText,
+    warrantyText,
+    detailText: [includedText, warrantyText].filter(Boolean).join(' · ') || '구성품 확인 필요',
+    compactText: [
+      physical.join('·'),
+      warrantyIncluded ? '보증서' : (physical.length || hasWarranty === false ? '보증서 없음' : ''),
+    ].filter(Boolean).join(' · ') || '구성품 확인 필요',
+  };
+}
+
+export function conditionPresentation(value) {
+  const text = known(value);
+  if (!text) return '';
+  return text.replace(/^중고\s*/i, '').replace(/\s+/g, ' ').trim();
+}
+
+/* 사용자 확정 규칙: 브랜드 / 모델+사이즈 / Ref. / 핵심 특징+무브먼트. */
 export function listingPresentation(listing) {
   const size = known(listing.sizeMm ?? listing.size_mm).replace(/mm$/i, '');
   const reference = known(listing.referenceNumber ?? listing.reference_no ?? listing.ref_id ?? listing.ref);
@@ -49,13 +108,14 @@ export function listingPresentation(listing) {
     model = model.replace(sizePattern, ' ').replace(/\s+/g, ' ').trim();
     model = model.replace(new RegExp(`${escapePattern(size)}(?:mm|미리)?$`, 'i'), '').trim();
   }
-  model = model.replace(/\s+/g, ' ').trim() || '모델 정보없음';
+  model = model.replace(/\s+/g, ' ').trim() || '모델 확인 필요';
   feature = feature.replace(/소재\s*기능|정보없음/g, '').replace(/\s+/g, ' ').trim();
+  const modelSize = [model, size].filter(Boolean).join(' ');
   const move = movementText(listing.movement);
   return {
     model,
     size,
-    modelSize: [model, size].filter(Boolean).join(' '),
+    modelSize,
     reference,
     referenceText: reference ? `Ref. ${reference}` : '',
     feature,

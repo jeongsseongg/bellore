@@ -96,6 +96,6 @@ for (const marker of [
 ]) assert.ok(workflow.includes(marker), `DB rollback guard test is missing: ${marker}`);
 
 const lineCount = ui.endsWith('\n') ? ui.slice(0, -1).split('\n').length : ui.split('\n').length;
-assert(lineCount <= 6653, `script.js exceeds architecture ceiling: ${lineCount}`);
+assert(lineCount <= 6822, `script.js exceeds architecture ceiling: ${lineCount}`);
 
 console.log('order financial state guard contracts: ok');

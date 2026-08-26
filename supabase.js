@@ -1285,12 +1285,17 @@
         .order('created_at', { ascending: false })
         .then(function (res) {
           if (!active || currentGeneration !== requestGeneration) return false;
-          if (res.error) { console.warn('[BELLORE_LISTINGS]', { event: 'refresh_failed', category: category, code: res.error.code || 'query_failed' }); return false; }
-          cb((res.data || []).map(mapListing));
+          if (res.error) {
+            console.warn('[BELLORE_LISTINGS]', { event: 'refresh_failed', category: category, code: res.error.code || 'query_failed' });
+            cb(null, res.error);
+            return false;
+          }
+          cb((res.data || []).map(mapListing), null);
           return true;
         }, function (error) {
           if (active && currentGeneration === requestGeneration) {
             console.warn('[BELLORE_LISTINGS]', { event: 'refresh_failed', category: category, code: error && error.code || 'network_failed' });
+            cb(null, error || new Error('LISTING_LOOKUP_FAILED'));
           }
           return false;
         });
@@ -2021,6 +2026,24 @@
     return typeof Backend.paymentAccessToken === 'function'
       ? Backend.paymentAccessToken(options)
       : Promise.reject(new Error('PAYMENT_AUTH_NOT_READY'));
+  }
+
+  function createCheckoutCredential() {
+    if (!(window.crypto && window.crypto.getRandomValues && window.crypto.subtle && window.TextEncoder)) {
+      return Promise.reject(new Error('SECURE_CHECKOUT_TOKEN_UNAVAILABLE'));
+    }
+    var bytes = new Uint8Array(32);
+    window.crypto.getRandomValues(bytes);
+    var binary = '';
+    bytes.forEach(function (value) { binary += String.fromCharCode(value); });
+    var token = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+    return window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(token))
+      .then(function (buffer) {
+        var hash = Array.from(new Uint8Array(buffer)).map(function (value) {
+          return value.toString(16).padStart(2, '0');
+        }).join('');
+        return { token: token, hash: hash };
+      });
   }
 
   // 체크아웃: pending 주문 생성 → 포트원에 넘길 order_no 반환

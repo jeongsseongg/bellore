@@ -26,7 +26,7 @@ h1{margin:0;font-size:clamp(28px,5vw,48px);line-height:1.18;letter-spacing:-.035
 .product-card__status[hidden]{display:none}
 .product-card__brand{margin:11px 0 2px;color:var(--muted);font-size:12px;font-weight:700}
 .product-card__name{margin:0;font-size:15px;line-height:1.45;font-weight:750}
-.product-card__reference,.product-card__meta{margin:4px 0 0;font-size:12px;line-height:1.4;color:var(--muted)}
+.product-card__reference,.product-card__meta{overflow:hidden;margin:3px 0 0;font-size:12px;line-height:1.4;color:var(--muted);text-overflow:ellipsis;white-space:nowrap}
 .product-card__price{margin:4px 0 0;font-size:16px;font-weight:850}
 .product-layout{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(360px,.98fr);gap:48px;align-items:start}
 .hero-wrap{position:sticky;top:96px;background:var(--wash);border-radius:18px;overflow:hidden}

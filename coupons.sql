@@ -138,25 +138,35 @@ end; $$;
 -- 위탁 수수료 등에서 쿠폰 사용 처리(보유자 본인 또는 관리자)
 create or replace function public.redeem_user_coupon(p_user_coupon_id uuid, p_context text)
 returns public.user_coupons
-language plpgsql security definer set search_path = public as $$
+language plpgsql security definer set search_path = '' as $$
 declare v_row public.user_coupons;
 begin
-  select * into v_row from public.user_coupons where id = p_user_coupon_id;
+  select * into v_row
+  from public.user_coupons
+  where id = p_user_coupon_id
+  for update;
   if v_row.id is null then raise exception 'NOT_FOUND'; end if;
   if v_row.user_id <> auth.uid() and not exists (
       select 1 from public.profiles p where p.id = auth.uid() and p.role = 'admin')
     then raise exception 'NOT_ALLOWED'; end if;
   if v_row.status = 'used' then raise exception 'ALREADY_USED'; end if;
+  if v_row.status = 'reserved' then raise exception 'COUPON_RESERVED_FOR_ORDER'; end if;
+  if v_row.status <> 'active' or v_row.order_id is not null then
+    raise exception 'COUPON_UNAVAILABLE';
+  end if;
   update public.user_coupons
      set status = 'used', used_at = now(), used_context = coalesce(p_context, 'commission')
-   where id = p_user_coupon_id
+   where id = p_user_coupon_id and status = 'active' and order_id is null
   returning * into v_row;
+  if not found then raise exception 'COUPON_UNAVAILABLE'; end if;
   return v_row;
 end; $$;
 
 grant execute on function public.claim_coupon_by_code(text) to authenticated;
 grant execute on function public.claim_coupon(uuid) to authenticated;
 grant execute on function public.admin_grant_coupon(uuid, uuid) to authenticated;
+revoke all on function public.redeem_user_coupon(uuid, text)
+  from public, anon, authenticated;
 grant execute on function public.redeem_user_coupon(uuid, text) to authenticated;
 
 -- NOTE: 구매결제 쿠폰의 '사용 확정'은 Edge Function(confirm-payment)이

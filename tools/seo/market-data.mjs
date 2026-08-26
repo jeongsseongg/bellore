@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { listingPresentation } from '../../app/core/listing-display.js';
+import { accessoryPresentation, conditionPresentation, listingPresentation } from '../../app/core/listing-display.js';
 import {
   effectiveListingStatus,
   DEFAULT_MIN_PRODUCTS,
@@ -163,7 +163,21 @@ export function normalizeListing(row) {
     publishedAt: validDate(row.sale_started_at || row.created_at, `${productNumber} 등록일`),
     modifiedAt: validDate(row.updated_at || row.created_at, `${productNumber} 수정일`),
   };
-  product.presentation = listingPresentation(product);
+  product.presentation = listingPresentation({
+    brand: product.brand,
+    model: product.model,
+    sizeMm: product.sizeMm,
+    referenceNumber: product.referenceNumber,
+    movement: product.movement,
+  });
+  product.accessoryPresentation = accessoryPresentation({
+    components: product.components,
+    accessories: product.accessories,
+    pack: product.pack,
+    setGrade: product.setGrade,
+    hasWarranty: product.hasWarranty,
+  });
+  product.conditionPresentation = conditionPresentation(product.condition);
   product.name = [
     product.brand,
     product.presentation.modelSize,

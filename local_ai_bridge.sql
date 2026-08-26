@@ -4,7 +4,21 @@
 
 begin;
 
-create extension if not exists pgcrypto;
+create schema if not exists extensions;
+create extension if not exists pgcrypto with schema extensions;
+
+-- Supabase installs extensions in the `extensions` schema. `IF NOT EXISTS`
+-- does not relocate a legacy installation from another schema, so fail with a
+-- precise operator action instead of compiling functions against a missing
+-- `extensions.digest(text,text)` symbol.
+do $pgcrypto_schema_required$
+begin
+  if to_regprocedure('extensions.digest(text,text)') is null then
+    raise exception 'LOCAL_AI_BRIDGE_PGCRYPTO_SCHEMA_REQUIRED'
+      using hint = 'Move/reinstall pgcrypto in the extensions schema, then rerun this file.';
+  end if;
+end
+$pgcrypto_schema_required$;
 
 create table if not exists public.ai_local_worker_auth (
   worker_name text primary key,
@@ -21,7 +35,8 @@ alter table public.ai_local_worker_auth
 create table if not exists public.ai_shop_chat_requests (
   id uuid primary key default gen_random_uuid(),
   client_token uuid not null default gen_random_uuid() unique,
-  user_id uuid references auth.users(id) on delete set null,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  profile_id uuid not null references public.customer_ai_profiles(id) on delete cascade,
   message text not null check (char_length(message) between 1 and 600),
   candidate_list jsonb not null default '[]'::jsonb
     check (jsonb_typeof(candidate_list) = 'array'),
@@ -37,6 +52,48 @@ create table if not exists public.ai_shop_chat_requests (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Upgrade an empty legacy queue safely. A populated queue without profile_id
+-- needs an explicit owner/backfill decision; never guess from historical data.
+alter table public.ai_shop_chat_requests
+  add column if not exists profile_id uuid;
+
+do $$
+declare
+  v_constraint record;
+begin
+  if exists (
+    select 1 from public.ai_shop_chat_requests where profile_id is null
+  ) then
+    raise exception 'LOCAL_AI_BRIDGE_PROFILE_BACKFILL_REQUIRED';
+  end if;
+
+  for v_constraint in
+    select constraint_row.conname
+    from pg_constraint constraint_row
+    join pg_attribute attribute_row
+      on attribute_row.attrelid = constraint_row.conrelid
+     and attribute_row.attnum = constraint_row.conkey[1]
+    where constraint_row.contype = 'f'
+      and constraint_row.conrelid = 'public.ai_shop_chat_requests'::regclass
+      and array_length(constraint_row.conkey, 1) = 1
+      and attribute_row.attname in ('user_id', 'profile_id')
+  loop
+    execute format(
+      'alter table public.ai_shop_chat_requests drop constraint %I',
+      v_constraint.conname
+    );
+  end loop;
+end;
+$$;
+
+alter table public.ai_shop_chat_requests
+  add constraint ai_shop_chat_requests_user_id_fkey
+    foreign key (user_id) references auth.users(id) on delete cascade,
+  add constraint ai_shop_chat_requests_profile_id_fkey
+    foreign key (profile_id) references public.customer_ai_profiles(id) on delete cascade;
+alter table public.ai_shop_chat_requests alter column user_id set not null;
+alter table public.ai_shop_chat_requests alter column profile_id set not null;
 
 create table if not exists public.ai_shop_chat_logs (
   id uuid primary key default gen_random_uuid(),
@@ -54,13 +111,17 @@ create index if not exists idx_ai_shop_chat_queue
   on public.ai_shop_chat_requests(status, created_at asc);
 create index if not exists idx_ai_shop_chat_created
   on public.ai_shop_chat_requests(created_at desc);
+create index if not exists idx_ai_shop_chat_user_created
+  on public.ai_shop_chat_requests(user_id, created_at desc);
+create index if not exists idx_ai_shop_chat_profile
+  on public.ai_shop_chat_requests(profile_id);
 create index if not exists idx_ai_shop_chat_logs_request
   on public.ai_shop_chat_logs(request_id, created_at desc);
 
 create or replace function public.ai_touch_updated_at()
 returns trigger
 language plpgsql
-set search_path = public, pg_temp
+set search_path = ''
 as $$
 begin
   new.updated_at = now();
@@ -77,6 +138,104 @@ drop trigger if exists trg_ai_shop_chat_touch on public.ai_shop_chat_requests;
 create trigger trg_ai_shop_chat_touch
 before update on public.ai_shop_chat_requests
 for each row execute function public.ai_touch_updated_at();
+
+-- Keep the FK/cascade lock order identical to account deletion:
+-- auth user -> customer profile -> request/conversation row.
+create or replace function public.ai_lock_auth_user(p_user_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if p_user_id is null then
+    raise exception 'AUTH_REQUIRED' using errcode = '42501';
+  end if;
+  perform 1
+  from auth.users auth_user
+  where auth_user.id = p_user_id
+  for key share;
+  if not found then
+    raise exception 'AUTH_USER_NOT_FOUND' using errcode = '23503';
+  end if;
+end;
+$$;
+
+revoke all on function public.ai_lock_auth_user(uuid) from public, anon, authenticated;
+
+-- Raw customer prompts are personalized data. Every enqueue uses the same
+-- profile-row lock as consent withdrawal, and the server owns identity/time.
+create or replace function public.ai_guard_shop_chat_request_insert()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_actor uuid := auth.uid();
+  v_profile_id uuid;
+begin
+  if v_actor is null then
+    raise exception 'AUTH_REQUIRED' using errcode = '42501';
+  end if;
+
+  perform public.ai_lock_auth_user(v_actor);
+  select profile.id into v_profile_id
+  from public.customer_ai_profiles profile
+  where profile.user_id = v_actor
+    and profile.consent_personalization is true
+  for update;
+  if v_profile_id is null then
+    raise exception 'AI_PERSONALIZATION_CONSENT_REQUIRED' using errcode = '42501';
+  end if;
+
+  new.user_id := v_actor;
+  new.profile_id := v_profile_id;
+  new.created_at := clock_timestamp();
+  return new;
+end;
+$$;
+
+revoke all on function public.ai_guard_shop_chat_request_insert() from public, anon, authenticated;
+drop trigger if exists trg_ai_shop_chat_consent_insert on public.ai_shop_chat_requests;
+create trigger trg_ai_shop_chat_consent_insert
+before insert on public.ai_shop_chat_requests
+for each row execute function public.ai_guard_shop_chat_request_insert();
+
+create or replace function public.ai_guard_shop_chat_request_update()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if new.user_id is distinct from old.user_id
+     or new.profile_id is distinct from old.profile_id
+     or new.client_token is distinct from old.client_token
+     or new.message is distinct from old.message
+     or new.candidate_list is distinct from old.candidate_list then
+    raise exception 'AI_SHOP_CHAT_IMMUTABLE_FIELDS' using errcode = '42501';
+  end if;
+
+  perform 1
+  from public.customer_ai_profiles profile
+  where profile.id = old.profile_id
+    and profile.user_id = old.user_id
+    and profile.consent_personalization is true;
+  if not found then
+    raise exception 'AI_PERSONALIZATION_CONSENT_REQUIRED' using errcode = '42501';
+  end if;
+
+  new.created_at := old.created_at;
+  return new;
+end;
+$$;
+
+revoke all on function public.ai_guard_shop_chat_request_update() from public, anon, authenticated;
+drop trigger if exists trg_ai_shop_chat_consent_update on public.ai_shop_chat_requests;
+create trigger trg_ai_shop_chat_consent_update
+before update on public.ai_shop_chat_requests
+for each row execute function public.ai_guard_shop_chat_request_update();
 
 create or replace function public.ai_jsonb_is_string_array(payload jsonb)
 returns boolean
@@ -150,7 +309,7 @@ returns boolean
 language sql
 security definer
 stable
-set search_path = public, pg_temp
+set search_path = ''
 as $$
   select exists (
     select 1
@@ -168,12 +327,17 @@ create or replace function public.submit_shop_ai_chat(p_payload jsonb)
 returns table(request_id uuid, client_token uuid)
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
 declare
+  v_user_id uuid := auth.uid();
   v_message text;
   v_candidates jsonb;
 begin
+  if v_user_id is null then
+    raise exception 'AUTH_REQUIRED' using errcode = '42501';
+  end if;
+
   if jsonb_typeof(p_payload) <> 'object' then
     raise exception 'invalid_payload';
   end if;
@@ -218,7 +382,7 @@ begin
   insert into public.ai_shop_chat_requests (
     user_id, message, candidate_list
   ) values (
-    auth.uid(), v_message, v_candidates
+    v_user_id, v_message, v_candidates
   )
   returning ai_shop_chat_requests.id, ai_shop_chat_requests.client_token;
 end;
@@ -234,7 +398,7 @@ returns table(
 language sql
 security definer
 stable
-set search_path = public, pg_temp
+set search_path = ''
 as $$
   select
     request.status,
@@ -254,6 +418,13 @@ as $$
     true
   from public.ai_shop_chat_requests request
   where request.client_token = p_client_token
+    and request.user_id = auth.uid()
+    and exists (
+      select 1
+      from public.customer_ai_profiles profile
+      where profile.user_id = auth.uid()
+        and profile.consent_personalization is true
+    )
   limit 1;
 $$;
 
@@ -262,7 +433,7 @@ returns table(online boolean)
 language sql
 security definer
 stable
-set search_path = public, pg_temp
+set search_path = ''
 as $$
   select coalesce(bool_or(
     worker.is_active
@@ -275,10 +446,11 @@ create or replace function public.log_shop_ai_turn(p_payload jsonb)
 returns uuid
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
 declare
   v_turn_id uuid := gen_random_uuid();
+  v_user_id uuid := auth.uid();
   v_profile_id uuid;
   v_session_id uuid;
   v_user_message text;
@@ -289,6 +461,9 @@ declare
   v_recommended jsonb := '[]'::jsonb;
   v_metadata jsonb;
 begin
+  if v_user_id is null then
+    raise exception 'AUTH_REQUIRED' using errcode = '42501';
+  end if;
   if jsonb_typeof(p_payload) <> 'object' then
     raise exception 'invalid_payload';
   end if;
@@ -315,28 +490,20 @@ begin
   end if;
   v_needs_review := coalesce(p_payload->'needs_review' = 'true'::jsonb, false);
 
-  begin
-    v_profile_id := nullif(p_payload->>'profile_id', '')::uuid;
-  exception when invalid_text_representation then
-    v_profile_id := null;
-  end;
+  perform public.ai_lock_auth_user(v_user_id);
+  select profile.id into v_profile_id
+  from public.customer_ai_profiles profile
+  where profile.user_id = v_user_id
+    and profile.consent_personalization is true
+  for update;
+  if v_profile_id is null then
+    raise exception 'AI_PERSONALIZATION_CONSENT_REQUIRED' using errcode = '42501';
+  end if;
   begin
     v_session_id := nullif(p_payload->>'session_id', '')::uuid;
   exception when invalid_text_representation then
     v_session_id := null;
   end;
-
-  if v_profile_id is not null and not exists (
-    select 1
-    from public.customer_ai_profiles profile
-    where profile.id = v_profile_id
-      and (
-        profile.user_id = auth.uid()
-        or public.is_admin_uid(auth.uid())
-      )
-  ) then
-    v_profile_id := null;
-  end if;
 
   if (
     select count(*)
@@ -371,11 +538,11 @@ begin
     user_id, profile_id, session_id, channel, role, message, metadata
   ) values
     (
-      auth.uid(), v_profile_id, v_session_id, 'web-ai-audit', 'user',
+      v_user_id, v_profile_id, v_session_id, 'web-ai-audit', 'user',
       v_user_message, v_metadata
     ),
     (
-      auth.uid(), v_profile_id, v_session_id, 'web-ai-audit', 'assistant',
+      v_user_id, v_profile_id, v_session_id, 'web-ai-audit', 'assistant',
       v_assistant_reply, v_metadata
     );
 
@@ -394,36 +561,80 @@ returns table(
 )
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
+declare
+  v_request_id uuid;
+  v_profile_id uuid;
 begin
   if not public.verify_local_ai_worker(p_worker_name, p_worker_secret) then
     raise exception 'worker_unauthorized';
   end if;
 
+  -- Defense in depth for a withdrawal that removed consent while this worker
+  -- was offline. Completed history may remain when the customer chose keep.
+  delete from public.ai_shop_chat_requests queued
+  where queued.status in ('submitted', 'processing')
+    and not exists (
+      select 1
+      from public.customer_ai_profiles profile
+      where profile.id = queued.profile_id
+        and profile.user_id = queued.user_id
+        and profile.consent_personalization is true
+    );
+
+  -- Choose without locking, then lock profile → request in the same order as
+  -- withdrawal. Recheck both predicates after each lock.
+  select queued.id, queued.profile_id
+  into v_request_id, v_profile_id
+  from public.ai_shop_chat_requests queued
+  join public.customer_ai_profiles profile
+    on profile.id = queued.profile_id
+   and profile.user_id = queued.user_id
+   and profile.consent_personalization is true
+  where queued.status = 'submitted'
+     or (
+       queued.status = 'processing'
+       and queued.processing_started_at < now() - interval '15 minutes'
+     )
+  order by queued.created_at asc
+  limit 1;
+  if v_request_id is null then
+    update public.ai_local_worker_auth
+    set last_seen_at = now()
+    where worker_name = p_worker_name;
+    return;
+  end if;
+
+  perform 1
+  from public.customer_ai_profiles profile
+  where profile.id = v_profile_id
+    and profile.consent_personalization is true
+  for update;
+  if not found then
+    update public.ai_local_worker_auth
+    set last_seen_at = now()
+    where worker_name = p_worker_name;
+    return;
+  end if;
+
+  return query
+  update public.ai_shop_chat_requests request
+  set status = 'processing', processing_started_at = now()
+  where request.id = v_request_id
+    and request.profile_id = v_profile_id
+    and (
+      request.status = 'submitted'
+      or (
+        request.status = 'processing'
+        and request.processing_started_at < now() - interval '15 minutes'
+      )
+    )
+  returning request.id, request.message, request.candidate_list;
+
   update public.ai_local_worker_auth
   set last_seen_at = now()
   where worker_name = p_worker_name;
-
-  update public.ai_shop_chat_requests
-  set status = 'submitted', processing_started_at = null
-  where status = 'processing'
-    and processing_started_at < now() - interval '15 minutes';
-
-  return query
-  with next_request as (
-    select queued.id
-    from public.ai_shop_chat_requests queued
-    where queued.status = 'submitted'
-    order by queued.created_at asc
-    for update skip locked
-    limit 1
-  )
-  update public.ai_shop_chat_requests request
-  set status = 'processing', processing_started_at = now()
-  from next_request
-  where request.id = next_request.id
-  returning request.id, request.message, request.candidate_list;
 end;
 $$;
 
@@ -439,7 +650,7 @@ returns table(
 language plpgsql
 security definer
 stable
-set search_path = public, pg_temp
+set search_path = ''
 as $$
 begin
   if not public.verify_local_ai_worker(p_worker_name, p_worker_secret) then
@@ -481,11 +692,41 @@ create or replace function public.complete_shop_ai_chat(
 returns boolean
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
+declare
+  v_profile_id uuid;
 begin
   if not public.verify_local_ai_worker(p_worker_name, p_worker_secret) then
     raise exception 'worker_unauthorized';
+  end if;
+
+  select request.profile_id into v_profile_id
+  from public.ai_shop_chat_requests request
+  where request.id = p_request_id
+    and request.status = 'processing';
+  if v_profile_id is null then
+    return false;
+  end if;
+
+  -- Lock profile first, then request: the same order used by withdrawal.
+  perform 1
+  from public.customer_ai_profiles profile
+  where profile.id = v_profile_id
+    and profile.consent_personalization is true
+  for update;
+  if not found then
+    return false;
+  end if;
+
+  perform 1
+  from public.ai_shop_chat_requests request
+  where request.id = p_request_id
+    and request.profile_id = v_profile_id
+    and request.status = 'processing'
+  for update;
+  if not found then
+    return false;
   end if;
 
   if not public.validate_shop_ai_response(p_response) then
@@ -544,37 +785,92 @@ alter table public.ai_local_worker_auth enable row level security;
 alter table public.ai_shop_chat_requests enable row level security;
 alter table public.ai_shop_chat_logs enable row level security;
 
-revoke all on public.ai_local_worker_auth from anon, authenticated;
-revoke all on public.ai_shop_chat_requests from anon, authenticated;
-revoke all on public.ai_shop_chat_logs from anon, authenticated;
+revoke all on public.ai_local_worker_auth from public, anon, authenticated;
+revoke all on public.ai_shop_chat_requests from public, anon, authenticated;
+revoke all on public.ai_shop_chat_logs from public, anon, authenticated;
 
-revoke all on function public.verify_local_ai_worker(text, text) from public;
-revoke all on function public.submit_shop_ai_chat(jsonb) from public;
-revoke all on function public.get_shop_ai_chat_result(uuid) from public;
-revoke all on function public.get_shop_ai_runtime_status() from public;
-revoke all on function public.log_shop_ai_turn(jsonb) from public;
-revoke all on function public.claim_shop_ai_chat(text, text) from public;
-revoke all on function public.get_shop_ai_knowledge(text, text) from public;
+revoke all on function public.verify_local_ai_worker(text, text) from public, anon, authenticated;
+revoke all on function public.submit_shop_ai_chat(jsonb) from public, anon, authenticated;
+revoke all on function public.get_shop_ai_chat_result(uuid) from public, anon, authenticated;
+revoke all on function public.get_shop_ai_runtime_status() from public, anon, authenticated;
+revoke all on function public.log_shop_ai_turn(jsonb) from public, anon, authenticated;
+revoke all on function public.claim_shop_ai_chat(text, text) from public, anon, authenticated;
+revoke all on function public.get_shop_ai_knowledge(text, text) from public, anon, authenticated;
 revoke all on function public.complete_shop_ai_chat(
   text, text, uuid, jsonb, text, text[], text[], boolean, integer
-) from public;
+) from public, anon, authenticated;
 
-grant execute on function public.submit_shop_ai_chat(jsonb) to anon, authenticated;
-grant execute on function public.get_shop_ai_chat_result(uuid) to anon, authenticated;
+grant execute on function public.submit_shop_ai_chat(jsonb) to authenticated;
+grant execute on function public.get_shop_ai_chat_result(uuid) to authenticated;
 grant execute on function public.get_shop_ai_runtime_status() to anon, authenticated;
-grant execute on function public.log_shop_ai_turn(jsonb) to anon, authenticated;
+grant execute on function public.log_shop_ai_turn(jsonb) to authenticated;
 grant execute on function public.claim_shop_ai_chat(text, text) to anon, authenticated;
 grant execute on function public.get_shop_ai_knowledge(text, text) to anon, authenticated;
 grant execute on function public.complete_shop_ai_chat(
   text, text, uuid, jsonb, text, text[], text[], boolean, integer
 ) to anon, authenticated;
 
-insert into public.ai_local_worker_auth(worker_name, secret_hash, is_active)
-values ('bellore-shop-office', 'f0006c94c6bb5feac3106b80e814e53ab918e28715b5e7e7ec9d44d5300d0210', true)
-on conflict (worker_name) do update set
-  secret_hash = excluded.secret_hash,
-  is_active = true,
-  updated_at = now();
+-- A custom/default grantee is not silently inherited. Roll the installation
+-- back so the operator can review that role before this queue becomes active.
+do $acl_invariant$
+begin
+  if exists (
+    select 1
+    from pg_class relation
+    join pg_namespace namespace on namespace.oid = relation.relnamespace
+    cross join lateral aclexplode(
+      coalesce(relation.relacl, acldefault('r', relation.relowner))
+    ) acl
+    left join pg_roles role_row on role_row.oid = acl.grantee
+    where namespace.nspname = 'public'
+      and relation.relname in (
+        'ai_local_worker_auth', 'ai_shop_chat_requests', 'ai_shop_chat_logs'
+      )
+      and acl.grantee <> relation.relowner
+      and (
+        acl.grantee = 0
+        or coalesce(role_row.rolname, '') not in (
+          current_user, 'postgres', 'supabase_admin',
+          'anon', 'authenticated', 'service_role'
+        )
+      )
+  ) then
+    raise exception 'LOCAL_AI_BRIDGE_UNKNOWN_TABLE_ACL_REVIEW_REQUIRED';
+  end if;
+  if exists (
+    select 1
+    from pg_proc procedure
+    join pg_namespace namespace on namespace.oid = procedure.pronamespace
+    cross join lateral aclexplode(
+      coalesce(procedure.proacl, acldefault('f', procedure.proowner))
+    ) acl
+    left join pg_roles role_row on role_row.oid = acl.grantee
+    where namespace.nspname = 'public'
+      and procedure.proname in (
+        'verify_local_ai_worker', 'submit_shop_ai_chat',
+        'get_shop_ai_chat_result', 'get_shop_ai_runtime_status',
+        'log_shop_ai_turn', 'claim_shop_ai_chat',
+        'get_shop_ai_knowledge', 'complete_shop_ai_chat'
+      )
+      and acl.grantee <> procedure.proowner
+      and (
+        acl.grantee = 0
+        or coalesce(role_row.rolname, '') not in (
+          current_user, 'postgres', 'supabase_admin',
+          'anon', 'authenticated', 'service_role'
+        )
+      )
+  ) then
+    raise exception 'LOCAL_AI_BRIDGE_UNKNOWN_FUNCTION_ACL_REVIEW_REQUIRED';
+  end if;
+end
+$acl_invariant$;
+
+-- No default worker credential is inserted here. Generate a strong random
+-- secret out of band, store only its SHA-256 hash in ai_local_worker_auth, and
+-- keep the original only in the office worker's ignored .env.local. Provision
+-- and rotate it as a separate audited operation; rerunning this schema file
+-- must never reactivate or overwrite an operator-managed credential.
 
 comment on table public.ai_shop_chat_requests is
   '벨로르 쇼핑 비서 공개 요청과 사무실 로컬 AI 처리 큐';

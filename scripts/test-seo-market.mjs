@@ -198,7 +198,7 @@ await test('product page has unique metadata, Product/Offer/Breadcrumb and every
   assert.equal(schemaProduct.offers.seller.name, '벨로르 BELLORE');
   assert.equal(schemaProduct.offers.availability, 'https://schema.org/InStock');
   assert(data.some((item) => item['@type'] === 'BreadcrumbList'));
-  assert.match(html, />정보없음</);
+  assert.match(html, />확인 필요</);
 });
 
 await test('market hub uses crawlable product anchors and non-empty image alt text', () => {

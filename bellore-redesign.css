@@ -559,9 +559,16 @@ html[data-width="full"] .page-collection .col-grid-inner {
   margin-left: auto;
 }
 
+/* 정보가 적은 카드에도 빈 행을 만들지 않는다. 같은 2열 안에서 카드만 같은 높이로
+   늘린 뒤 금액을 바닥에 붙여, 필요한 최소 여백으로 가격 기준선만 맞춘다. */
+#homeOnSale .home-sale-grid,
+.page-collection .col-grid-inner {
+  align-items: stretch !important;
+}
+
 #homeOnSale .hcard,
 .page-collection .col-grid-inner .hcard {
-  min-width: 0;
+  min-width: 0; display: flex; flex-direction: column;
   overflow: visible;
   border: 0 !important;
   border-radius: 0 !important;
@@ -746,11 +753,13 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
 #homeOnSale .hcard-model,
 #homeOnSale .hcard-ref,
 #homeOnSale .hcard-pack,
+#homeOnSale .hcard-trust,
 #homeOnSale .hcard-price,
 .page-collection .col-grid-inner .hcard-brand,
 .page-collection .col-grid-inner .hcard-model,
 .page-collection .col-grid-inner .hcard-ref,
 .page-collection .col-grid-inner .hcard-pack,
+.page-collection .col-grid-inner .hcard-trust,
 .page-collection .col-grid-inner .hcard-price {
   padding-right: 0 !important;
   padding-left: 0 !important;
@@ -758,31 +767,27 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
 
 #homeOnSale .hcard-brand,
 .page-collection .col-grid-inner .hcard-brand {
-  margin-top: 8px;
-  padding-top: 0;
-  color: #8b8b8b;
-  font-size: 12px;
-  line-height: 1.3;
-  font-weight: 750;
-  letter-spacing: .12em;
+  height: 16px; min-height: 16px; margin-top: 8px; padding-top: 0; overflow: hidden;
+  color: #8b8b8b; font-size: 12px; line-height: 16px; font-weight: 750; letter-spacing: .12em;
   text-transform: uppercase;
+  white-space: nowrap; text-overflow: ellipsis;
+}
+
+#homeOnSale .hcard-trust,
+.page-collection .col-grid-inner .hcard-trust {
+  height: 24px; min-height: 24px; margin-top: 7px; padding: 0 8px !important;
+  overflow: hidden; border: 1px solid #e3e1dc; border-radius: 7px;
+  background: #f8f7f4; color: #55575b; font-size: 10.5px; line-height: 22px;
+  font-weight: 650; white-space: nowrap; text-overflow: ellipsis;
 }
 
 #homeOnSale .hcard-model,
 .page-collection .col-grid-inner .hcard-model {
-  display: block;
-  min-height: 1.35em;
-  margin-top: 2px;
-  padding-top: 0;
-  overflow: visible;
-  color: #111;
-  font-size: 15px;
-  line-height: 1.35;
-  font-weight: 700;
-  letter-spacing: -.025em;
-  white-space: normal;
-  word-break: keep-all;
-  -webkit-line-clamp: unset;
+  display: -webkit-box; min-height: 21px; max-height: 42px;
+  margin-top: 2px; padding-top: 0; overflow: hidden;
+  color: #111; font-size: 15px; line-height: 21px; font-weight: 700; letter-spacing: -.025em;
+  white-space: normal; word-break: keep-all;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }
 
 /* 스펙은 한 줄 고정(넘치면 말줄임) — 두 줄로 밀리면 옆 카드와 가격 줄이 어긋난다 */
@@ -790,27 +795,18 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
 #homeOnSale .hcard-pack,
 .page-collection .col-grid-inner .hcard-ref,
 .page-collection .col-grid-inner .hcard-pack {
-  min-height: 1.35em;
-  margin-top: 2px;
-  padding-top: 0;
-  overflow: hidden;
-  color: #a09b98;
-  font-size: 12.5px;
-  line-height: 1.35;
-  font-weight: 500;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  height: 17px; min-height: 17px; max-height: 17px;
+  margin-top: 2px; padding-top: 0; overflow: hidden;
+  color: #a09b98; font-size: 12.5px; line-height: 17px; font-weight: 500;
+  white-space: nowrap; text-overflow: ellipsis;
 }
 
 #homeOnSale .hcard-price,
 .page-collection .col-grid-inner .hcard-price {
-  margin-top: 5px;
-  padding-top: 0;
-  padding-bottom: 0;
-  color: #111;
-  font-size: 17px;
-  line-height: 1.3;
-  font-weight: 850;
+  height: 25px; min-height: 25px; margin-top: auto;
+  padding-top: 0; padding-bottom: 0; overflow: hidden;
+  color: #111; font-size: 17px; line-height: 25px; font-weight: 850;
+  white-space: nowrap; font-variant-numeric: tabular-nums;
 }
 
 /* 카드에서 쓰지 않는 요소 */
@@ -836,11 +832,15 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
   #homeOnSale .hcard-model,
   .page-collection .col-grid-inner .hcard-model {
     font-size: 16px;
+    min-height: 22px; max-height: 44px;
+    line-height: 22px;
   }
 
   #homeOnSale .hcard-price,
   .page-collection .col-grid-inner .hcard-price {
     font-size: 19px;
+    height: 27px; min-height: 27px;
+    line-height: 27px;
   }
 }
 
@@ -1392,6 +1392,7 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
   background: #f4f4f2; color: #3d3b37; font-size: 12.5px; font-weight: 650;
 }
 #productModal .pp-assurance .is-primary { background: #f4f4f2; color: #141414; font-weight: 750; }
+#productModal .pp-assurance .is-muted { background: #fff; border: 1px solid #dedbd4; color: #77736d; }
 
 /* 판매·결제 책임 박스: 초록 틴트 → 뉴트럴 */
 #productModal .pp-responsibility {

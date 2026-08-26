@@ -14,7 +14,7 @@ DB·Storage 정책·Edge Function이 포함되면 `PRODUCTION_DEPLOY_ENABLED=fal
 1. GitHub와 Supabase의 재대조 및 신규 결제 환경 스위치를 모두 `false`로 두고, 정적 자동 배포도 `PRODUCTION_DEPLOY_ENABLED=false`로 잠근다.
 2. DB 제어 RPC가 없거나 `false`이면 주문·결제사 접근 전에 503으로 닫히는 Edge를 `payment-webhook` → `confirm-payment` → `cancel-payment` → `reconcile-payments` → `create-checkout` 순서로 배포한다. 함수별로 동일 잠금 응답과 결제사 호출 0회를 확인한다.
 3. 잠금 전에 시작된 최대 150초 요청이 끝나도록 180초 drain한다.
-4. `DB Maintenance`의 `validate-authority-payment`를 운영과 물리 system identifier가 다른 일회성 검증 DB에서 실행하고, 전체 migration·결제/환불 픽스처와 즉시 제약 검사를 전부 rollback한다. 운영 DB에서는 rollback 픽스처를 실행하지 않는다.
+4. `DB Maintenance`의 `validate-authority-payment`가 운영의 schema-only dump만 데이터 없는 고정-digest Supabase PostgreSQL에 복원하고, 물리 system identifier 차이와 운영 행 0건을 확인한 뒤 합성 상품으로 전체 migration·결제/환불 픽스처·즉시 제약 검사를 전부 rollback하게 한다. 운영 DB에서는 rollback 픽스처를 실행하지 않는다.
 5. 24시간 이내 암호화 DB 백업 workflow가 실제 `db-backup` artifact를 만들고 성공했는지 확인한다. 시크릿 누락으로 건너뛴 실행은 백업 성공이 아니다.
 6. `apply-authority-payment`에 정확한 `confirm_sha`, 백업 `run_id`, hash-only 주문 보류값과 승인 문자열을 입력한다. 보호 주문 원문은 입력·로그·DB에 남기지 않는다. 사전 스키마 지문을 통과한 뒤 대상 5개 migration과 원장 5개를 한 트랜잭션으로 적용한다.
 7. 운영 ACL·RLS·trigger·hold 사후검사와 Supabase security/performance advisor를 확인한다. 보호 주문 행은 직접 조회하지 않는다.

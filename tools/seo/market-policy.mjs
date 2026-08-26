@@ -76,12 +76,12 @@ export function absoluteImageUrl(value) {
 }
 
 export function displayValue(value, suffix = '') {
-  if (value === null || value === undefined || String(value).trim() === '') return '정보없음';
+  if (value === null || value === undefined || String(value).trim() === '') return '확인 필요';
   return `${String(value).trim()}${suffix}`;
 }
 
 export function booleanValue(value) {
   if (value === true) return '있음';
   if (value === false) return '없음';
-  return '정보없음';
+  return '확인 필요';
 }

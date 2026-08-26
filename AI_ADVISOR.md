@@ -7,8 +7,8 @@
 고객마다 신경망을 재학습(fine-tune)하지 **않는다.** 그건 비싸고 불필요하다.
 대신 두 단계로 "기억"이 쌓인다.
 
-1. **누적(매 상호작용, 실시간, 무료)** — 규칙기반
-   - 채팅/클릭/찜/문의/가격알림/구매요청마다 점수·예산·성향이 누적된다.
+1. **누적(로그인 + 선택 동의 고객의 상호작용)** — 규칙기반
+   - 동의 뒤의 채팅/클릭/찜/문의/가격알림/구매요청만 점수·예산·성향에 반영한다.
    - 저장: `customer_ai_profiles`(요약 프로필) · `customer_watch_interests`(관심 점수)
      · `customer_events`(행동) · `ai_conversations`(대화).
    - 이 단계는 외부 AI 없이 즉시 동작한다(`ai-advisor.js`의 RuleBasedAIProvider).
@@ -17,25 +17,30 @@
      장기 메모리(`ai_customer_memories`)를 만든다.
    - = Retrieval + Summarization 기반 "고객 메모리" 아키텍처. (RAG 식)
 
-즉 **데이터는 규칙기반으로 24시간 공짜로 쌓이고, AI 는 가끔 불러 비용을 통제**한다.
+즉 모델을 고객별로 재학습하는 구조가 아니다. 동의한 사이트 내 행동을 설명 가능한
+규칙으로 요약하고, 필요할 때만 AI가 그 요약을 해석한다. 비로그인·비동의 행동은 저장하거나
+나중에 계정에 합치지 않는다.
 
 ## 1) 데이터 흐름
 ```
-고객 채팅/행동
+로그인·선택 동의 고객의 채팅/행동
   → ai_conversations / customer_events 저장
   → ruleExtractor 로 브랜드·모델·예산·성향 추출
   → customer_ai_profiles 업데이트 (누적)
   → customer_watch_interests 점수 누적
-  → (상품 등록/가격변경 시) recommendationEngine → ai_recommendation_logs
-  → 85점↑ → ai_alert_candidates (pending, 관리자 승인 대기)
+  → bellore-reco-v2 전체 재고 필터·점수·다양성 재정렬
+  → 실제로 보인 추천과 후속 행동 → customer_events
   → [주기/버튼] ai-learn 이 누적분을 LLM 으로 재요약 → ai_summary / ai_customer_memories
 관리자: 'AI 고객비서' 패널에서 프로필·대화·관심·추천·알림후보·전문가지식·팀메시지 확인
 ```
 
 ## 2) 설치 순서
-1. **DB**: Supabase SQL Editor 에 `ai_advisor.sql` 전체 붙여넣고 RUN (1회).
-   - 11개 테이블 + RLS + Storage 버킷 3종 + 샘플 데이터 생성.
-2. **프런트**: 이미 `index.html` 에 `ai-advisor.js` / `ai-advisor-admin.js` 연결됨.
+1. **신규 개발 DB 기반 구조만**: `ai_advisor.sql`을 1회 실행한다. 샘플 데이터와 cron은 생성하지 않는다.
+2. **운영·개인정보 보장**: DB owner 역할로 `supabase/recommendation_v2_preflight.sql` → 백업 →
+   `supabase/recommendation_v2_migration.sql` → `supabase/recommendation_v2_verify.sql` 순서로 적용한다.
+   기존 운영 DB에서 `ai_advisor.sql`을 재실행하지 않는다.
+3. **프런트**: 이미 `index.html` 에 `recommendation-engine.js` / `ai-advisor.js` /
+   `ai-advisor-admin.js`가 연결돼 있다.
    배포만 하면 고객용 'BELLORE AI' 버튼과 관리자 'AI 고객비서' 메뉴가 뜬다.
    - 이 단계까지는 **무료/즉시** 동작(규칙기반).
 
@@ -45,18 +50,24 @@
 보안 큐에 넣고, 사무실 PC의 워커가 Ollama로 답변한 뒤 결과만 돌려준다. 방화벽 포트 개방,
 고정 IP, Ollama 외부 공개가 필요 없다.
 
-1. Supabase SQL Editor에서 `local_ai_bridge.sql` 전체를 한 번 실행한다.
-2. `.env.local.example`을 참고해 프로젝트 루트의 `.env.local`을 설정한다.
+1. recommendation v2 migration 검증 뒤 `local_ai_bridge.sql`을 실행한다. 예전 큐에
+   `profile_id`가 없는 원문 요청이 남아 있으면 자동 연결하지 않고 먼저 소유·삭제 결정을 한다.
+   `pgcrypto`는 Supabase 표준 `extensions` schema에 있어야 하며
+   `extensions.digest(text,text)`가 없으면 설치 SQL이 명시적으로 중단된다.
+2. 강한 임의 worker secret을 별도로 생성하고, 원문은 저장소 밖 사무실 PC의
+   `.env.local`에만 둔다. Supabase에는 SHA-256 hash만 관리자가 1회 등록한다.
+   `local_ai_bridge.sql`은 기본 credential을 만들거나 기존 값을 덮지 않는다.
+3. `.env.local.example`을 참고해 프로젝트 루트의 `.env.local`을 설정한다.
    실제 파일은 Git에 올라가지 않는다.
-3. 모델 생성:
+4. 모델 생성:
    ```powershell
    ollama create bellore-shop-ai:1 -f ai\Modelfile
    ```
-4. 워커 실행:
+5. 워커 실행:
    ```powershell
    powershell -ExecutionPolicy Bypass -File tools\run-local-ai-worker.ps1
    ```
-5. 모델 검증:
+6. 모델 검증:
    ```powershell
    node tools\eval-bellore-shop-ai.mjs
    ```
@@ -144,33 +155,25 @@ supabase functions deploy ai-learn
 ```
 - 어느 경우든 **키 미설정 시 규칙기반 폴백**(skipped). 프런트 `window.BELLORE_AI_REPLY=true` 여야 답변 생성에 사용.
 - 키 **미설정 시** `ai-learn` 은 `skipped` 를 반환하고, 규칙기반 요약이 그대로 유지된다.
+- `ai-learn`은 요청 JWT를 다시 확인한다. 요약·지식 추출·매거진 action은 관리자/내부 호출만,
+  고객 답변은 본인 소유이면서 개인화 동의가 살아 있는 프로필만 허용한다. 배포 기본 JWT 검증과
+  함수 내부 권한 검사를 둘 다 유지하며, 임의 `profile_id`를 service-role로 처리하지 않는다.
 - 관리자 패널 버튼:
   - 고객 상세 → **"AI 요약·메모리 생성"** → `summarize_profile`
   - 팀 메시지 → **"AI로 지식 일괄 추출"** → `extract_knowledge`
 
-### 정기(누적→재요약) 자동화 — pg_cron
-매일 새벽 누적분을 자동 재요약하려면 Supabase SQL Editor 에서:
-```sql
--- pg_cron / pg_net 확장(대시보드 Database > Extensions 에서 켜기)
-select cron.schedule(
-  'ai-learn-nightly', '0 18 * * *',   -- UTC 18:00 = KST 03:00
-  $$
-  select net.http_post(
-    url := 'https://<PROJECT>.supabase.co/functions/v1/ai-learn',
-    headers := jsonb_build_object('Content-Type','application/json',
-               'Authorization','Bearer <SERVICE_ROLE_OR_ANON_JWT>'),
-    body := jsonb_build_object('action','summarize_all','limit',50)
-  );
-  $$
-);
-```
+### 정기(누적→재요약) 자동화 — 아직 비활성
+
+운영 DB에 API 키나 service-role JWT를 cron SQL 원문으로 넣지 않는다. 동의 철회와 90일
+파기 검증, 비밀 저장소·호출 주체·실패 로그·단일 job owner를 확정한 뒤 별도 migration으로
+등록한다. 현재 코드와 문서는 자동 요약 cron을 설치하지 않는다.
 
 ## 4-1) 학습소 2곳 + 통합 저장소
-- **학습소 ①: 고객과의 대화** → `ai_conversations`(모든 고객 메시지/응답 저장).
+- **학습소 ①: 고객과의 대화** → `ai_conversations`(로그인·선택 동의 뒤의 메시지/응답만 최대 90일 저장).
 - **학습소 ②: Discord 그룹톡** → `team_messages`(+첨부). 시계 지식 대화가 쌓이는 곳.
 - **정제 저장소**: 두 학습소에서 추출·승인된 지식 → `expert_knowledge_notes`
   (draft→reviewed→approved). ai-learn 답변(generate_reply)이 이 승인 지식을 근거로 인용.
-- 즉 "모든 대화 저장소"는 `ai_conversations`(고객) + `team_messages`(디스코드)이고,
+- 고객 개인화 대화와 별도 운영 지식은 `ai_conversations`(고객) + `team_messages`(디스코드)로 분리하며,
   관리자 패널의 '대화 로그' / '팀 메시지' 탭에서 각각 열람한다.
 
 ## 4-2) 응답 지침(플레이북) 업로드
@@ -191,7 +194,8 @@ select cron.schedule(
 - 외부 AI도 미설정/실패: `RuleBasedAIProvider`.
 
 ## 6) 보안/개인정보
-- 전화·지역·실제예산·성향은 민감 데이터 → `consent_personalization` /
-  `consent_marketing` 동의 필드로 관리(AI 비서 첫 사용 시 동의 화면).
+- 사이트 내 개인화는 선택 동의다. 고객 프로필 생성·동의 변경은 전용 RPC만 허용하고,
+  철회 시 원문·행동·파생 취향을 함께 삭제한다. 광고·채널 수신 동의는 별도다.
+- 전화·지역·실제예산·성향은 추천에 필요하다는 사실만으로 필수 수집하지 않는다.
 - 모든 AI/봇 키는 Supabase 시크릿에만. RLS 로 고객은 본인 데이터만, 운영 데이터는 관리자만.
 - 크로노24 등 외부 크롤링은 미포함(시세는 `watch_market_prices` 에 "참고가"로만 저장).

@@ -377,7 +377,8 @@ if (uncachedEntrypoints.length === 0) addPass(`HTML entrypoint exact cache keys:
 const appModuleImports = staticLocalModuleReferences(
   appRuntime.filter((file) => ['.js', '.mjs'].includes(extname(file).toLowerCase()))
 );
-const uncachedAppImports = [...appModuleImports].filter((entry) => !shell.has(entry));
+const shellPaths = new Set([...shell].map((entry) => entry.split('?')[0]));
+const uncachedAppImports = [...appModuleImports].filter((entry) => !shellPaths.has(entry));
 if (uncachedAppImports.length) addFailure(`app module import absent from SW shell: ${uncachedAppImports.join(', ')}`);
 else addPass(`app module imports cached: ${appModuleImports.size}`);
 

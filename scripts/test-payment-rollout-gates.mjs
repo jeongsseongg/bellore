@@ -23,7 +23,11 @@ assert.ok(
   'reconciliation rollout gate must run before loading orders',
 );
 assert.match(reconcileWorkflow, /vars\.PAYMENT_RECONCILE_ENABLED == 'true'/);
-assert.match(dbWorkflow, /PGCONN: \$\{\{ secrets\.SUPABASE_VALIDATION_DB_URL \}\}/);
+assert.doesNotMatch(dbWorkflow, /SUPABASE_VALIDATION_DB_URL/);
+assert.match(dbWorkflow, /supabase\/postgres@sha256:[0-9a-f]{64}/);
+assert.match(dbWorkflow, /--platform linux\/amd64 --network none/);
+assert.match(dbWorkflow, /--schema-only/);
+assert.match(dbWorkflow, /docker exec -i "\$PAYMENT_VALIDATION_CONTAINER"/);
 assert.match(dbWorkflow, /if: inputs\.task == 'validate-authority-payment'/);
 assert.match(dbWorkflow, /payment_operations_temporarily_unavailable/);
 assert.equal((dbWorkflow.match(/probe_lock (?:create-checkout|confirm-payment|cancel-payment|payment-webhook|reconcile-payments)/g) || []).length, 5);

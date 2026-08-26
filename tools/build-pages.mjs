@@ -35,6 +35,15 @@ export const ROOT_RUNTIME_FILES = Object.freeze([
   'rss.xml',
   'robots.txt',
   'CNAME',
+  '시계판매 이미지/비교견적.png',
+  '시계판매 이미지/위탁판매.png',
+  '시계판매 이미지/즉시매입.png',
+  '구성품 이미지/ChatGPT Image 2026년 8월 26일 오전 11_18_56 (1).png',
+  '구성품 이미지/ChatGPT Image 2026년 8월 26일 오전 11_18_56 (2).png',
+  '구성품 이미지/ChatGPT Image 2026년 8월 26일 오전 11_18_57 (3).png',
+  '구성품 이미지/ChatGPT Image 2026년 8월 26일 오전 11_18_57 (4).png',
+  '구성품 이미지/ChatGPT Image 2026년 8월 26일 오전 11_18_57 (5).png',
+  '구성품 이미지/ChatGPT Image 2026년 8월 26일 오전 11_18_58 (6).png',
 ]);
 
 export const APP_RUNTIME_FILES = Object.freeze([
@@ -63,12 +72,15 @@ export const APP_RUNTIME_FILES = Object.freeze([
   'app/features/insights/insight-reader.js',
   'app/features/legal/legal-modals.js',
   'app/features/product-sharing/product-sharing.mjs',
+  'app/features/sell-method/sell-method.css',
+  'app/features/sell-method/sell-method.js',
   'app/legacy/legacy-collection.js', 'app/legacy/payment-auth.js',
   'app/legacy/home-merchandising-grid.js',
   'app/legacy/customer-feedback.js',
   'app/legacy/checkout-coupon.js',
   'app/legacy/legacy-reveal.js',
   'app/legacy/page-runtime.js',
+  'app/legacy/recommendation-engine.js',
   'app/services/listings/listing-catalog-service.js',
   'app/services/payments/checkout-request-recovery.js', 'app/services/payments/payment-auth.js',
   'app/services/payments/checkout-client.js',
@@ -170,6 +182,18 @@ async function copyAssets(output) {
   });
 }
 
+async function copyRuntimeDirectory(sourceRelative, targetRelative, output) {
+  const source = join(ROOT, sourceRelative);
+  await assertNoSymlinks(source);
+  await cp(source, join(output, targetRelative), {
+    recursive: true,
+    filter(path) {
+      if (path === source) return true;
+      return ['.css', '.html', '.js'].includes(extname(path).toLowerCase());
+    },
+  });
+}
+
 function runSeoGenerator(output) {
   const generator = join(ROOT, 'tools', 'seo', 'build-market.mjs');
   const result = spawnSync(process.execPath, [generator, '--out', output], {
@@ -203,6 +227,8 @@ export async function buildPages({ outputDir = '_site', skipSeo = false, quiet =
   for (const file of ROOT_RUNTIME_FILES) await copyFileFromRoot(file, output);
   for (const file of APP_RUNTIME_FILES) await copyFileFromRoot(file, output);
   await copyAssets(output);
+  await copyRuntimeDirectory('prototypes/admin-console-v2', 'admin', output);
+  await copyRuntimeDirectory('prototypes/account-roles', 'account-roles', output);
 
   await writeFile(join(output, '.nojekyll'), '');
   await writeFile(join(output, '404.html'), fallbackHtml({

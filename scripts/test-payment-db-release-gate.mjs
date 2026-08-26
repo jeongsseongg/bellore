@@ -143,13 +143,26 @@ assert.equal(
 const validateStart = workflow.indexOf('Validate authority and payment migration (always rollback)');
 const rollback = workflow.indexOf('          rollback;', validateStart);
 assert(validateStart >= 0 && rollback > validateStart, 'rollback validation step must exist');
+const prepareStart = workflow.indexOf('Prepare — 데이터 없는 일회성 Supabase 검증 DB');
+const prepareBlock = workflow.slice(prepareStart, validateStart);
+assert(prepareStart >= 0 && prepareStart < validateStart, 'isolated validation DB must be prepared first');
+assert.match(prepareBlock, /supabase\/postgres@sha256:3e2a7ab48783077d0122dc72ed5174afb543110c38266c845716c51d130658e4/);
+assert.match(prepareBlock, /--platform linux\/amd64 --network none/);
+assert.match(prepareBlock, /pg_dump[\s\S]{0,350}--format=custom --schema-only[\s\S]{0,350}--lock-wait-timeout=5000/);
+assert.doesNotMatch(prepareBlock, /--no-owner|--no-acl/,
+  'owner and ACL metadata must survive the isolated restore');
+assert.match(prepareBlock, /pg_restore --list[\s\S]{0,260}TABLE DATA\|SEQUENCE SET\|BLOB\|LARGE OBJECT\|SUBSCRIPTION\|USER MAPPING/);
+assert.match(prepareBlock, /pg_restore --clean --if-exists --exit-on-error --single-transaction/);
+assert.doesNotMatch(prepareBlock, /upload-artifact|TABLE DATA.*production-schema/i,
+  'validation schema must remain runner-local and contain no table data');
 const validateBlock = workflow.slice(validateStart, rollback);
 assert.match(validateBlock, /if: inputs\.task == 'validate-authority-payment'/);
 assert.doesNotMatch(validateBlock, /apply-authority-payment/,
   'production apply must never execute rollback fixtures');
-assert.match(validateBlock, /PGCONN: \$\{\{ secrets\.SUPABASE_VALIDATION_DB_URL \}\}/);
+assert.match(validateBlock, /docker exec -i "\$PAYMENT_VALIDATION_CONTAINER"[\s\S]{0,100}psql -U postgres -d postgres/);
 assert.doesNotMatch(validateBlock, /PGCONN: \$\{\{ secrets\.SUPABASE_DB_URL \}\}/,
   'rollback fixtures must not receive the production DB URL');
+assert.match(validateBlock, /set local session_replication_role=replica;[\s\S]{0,900}generate_series\(1,6\)[\s\S]{0,120}set local session_replication_role=origin;/);
 for (const file of [
   '20260826155000_payment_operation_hold.sql',
   '20260826160000_payment_recovery_listing_state.sql',
@@ -185,6 +198,21 @@ assert.match(applyBlock, /authority_payment_function_security_fingerprint_mismat
 assert.match(applyBlock, /checkout_core_body_fingerprint_mismatch/);
 assert.match(applyBlock, /checkout_rate_limiter_body_fingerprint_mismatch/);
 assert.match(applyBlock, /authority_payment_acl_fingerprint_mismatch/);
+for (const role of ['anon', 'authenticated']) {
+  for (const privilege of ['select', 'insert', 'update', 'delete']) {
+    const marker = `has_table_privilege('${role}','public.checkout_rate_limits','${privilege}')`;
+    assert.equal(
+      workflow.split(marker).length - 1,
+      2,
+      `${role} ${privilege} checkout-rate ACL must be checked before and after production apply`,
+    );
+  }
+}
+assert.equal(
+  workflow.split("tablename='checkout_rate_limits'").length - 1,
+  2,
+  'checkout-rate RLS policy absence must be checked before and after production apply',
+);
 assert.match(applyBlock, /payment_release_partial_schema_detected/);
 assert.match(applyBlock, /payment_release_migration_already_recorded/);
 assert.match(applyBlock, /migration_ledger_ahead_of_release/);
@@ -218,12 +246,12 @@ assert.ok(
 );
 assert.match(workflow, /This check does not prove that the dump can be restored/);
 assert.doesNotMatch(workflow, /recoverable backup|prove the artifact is recoverable/i);
-assert.match(workflow, /SUPABASE_VALIDATION_DB_URL/);
+assert.doesNotMatch(workflow, /SUPABASE_VALIDATION_DB_URL/);
 assert.match(workflow, /validation_system_id/);
 assert.match(workflow, /production_system_id/);
 assert.match(workflow, /pg_control_system\(\)/);
 assert.match(workflow, /검증 DB와 운영 DB가 같은 물리 클러스터입니다/);
-assert.match(workflow, /VALIDATION_DB_URL" = "\$PRODUCTION_DB_URL"/);
+assert.match(workflow, /Cleanup — 일회성 Supabase 검증 DB[\s\S]{0,300}docker rm --force bellore-payment-validation-db/);
 
 // Operator guidance mirrors executable invariants, including real provider
 // cancellation amounts instead of the requested or expected amount.
@@ -238,7 +266,7 @@ assert.match(guide, /늦은 `PAID`[\s\S]{0,80}전액 자동 취소합니다/);
 assert.match(guide, /cancellation\.totalAmount/);
 assert.match(guide, /payment\.amount\.cancelled/);
 assert.match(guide, /실제 취소액을 확인할 수 없으면 `refund_pending`/);
-assert.match(guide, /별도 검증 DB/);
+assert.match(guide, /데이터 없는 일회성 검증 DB/);
 assert.match(guide, /실제 복원이 된다는 증거가 아닙니다/);
 assert.match(guide, /production_apply_ack=APPLY_AUTHORITY_PAYMENT_TO_PRODUCTION/);
 assert.match(guide, /payment_locks_ack=PAYMENT_CHECKOUT_AND_RECONCILE_LOCKED/);
