@@ -161,8 +161,14 @@ assert.match(prepareBlock, /docker logs --tail 120/,
 assert.match(prepareBlock, /pg_dump[\s\S]{0,350}--format=custom --schema-only[\s\S]{0,350}--lock-wait-timeout=5000/);
 assert.doesNotMatch(prepareBlock, /--no-owner|--no-acl/,
   'owner and ACL metadata must survive the isolated restore');
-assert.match(prepareBlock, /pg_restore --list[\s\S]{0,420}\^\[\[:digit:\]\]\+;[\s\S]{0,260}TABLE DATA\|SEQUENCE SET\|BLOB\|BLOB COMMENTS\|LARGE OBJECT\|SUBSCRIPTION\|USER MAPPING/,
-  'archive guard must match exact pg_restore TOC descriptor fields, not object-name substrings');
+assert.match(prepareBlock, /pg_restore --data-only --list[\s\S]{0,180}production-data\.toc/,
+  'PostgreSQL must classify archive data entries instead of a descriptor substring regex');
+assert.match(prepareBlock, /grep -Eq '\^\[\[:digit:\]\]\+;' "\$schema_dir\/production-data\.toc"/,
+  'a schema-only archive must have no active data-only TOC entries');
+assert.match(prepareBlock, /\(SUBSCRIPTION\( TABLE\)\?\|USER MAPPING\)/,
+  'full TOC must reject subscription and user-mapping external connections');
+assert.doesNotMatch(prepareBlock, /grep -Eiq|TABLE DATA\|SEQUENCE SET|BLOB\|BLOB COMMENTS|LARGE OBJECT\|SUBSCRIPTION/,
+  'archive safety must not use case-insensitive object-name substring matching');
 assert.match(prepareBlock, /pg_restore --clean --if-exists --exit-on-error --single-transaction/);
 assert.match(prepareBlock, /--host=localhost --username=supabase_admin --dbname=postgres/);
 assert.doesNotMatch(prepareBlock, /upload-artifact|TABLE DATA.*production-schema/i,

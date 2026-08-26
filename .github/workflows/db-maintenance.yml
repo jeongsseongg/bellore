@@ -150,9 +150,15 @@ jobs:
           docker run --rm --platform linux/amd64 \
             --volume "$schema_dir:/schema:ro" "$validation_client_image" \
             pg_restore --list /schema/production-schema.dump > "$schema_dir/production-schema.toc"
-          if grep -Eiq '^[[:digit:]]+;[[:space:]]+[[:digit:]]+[[:space:]]+[[:digit:]]+[[:space:]]+(TABLE DATA|SEQUENCE SET|BLOB|BLOB COMMENTS|LARGE OBJECT|SUBSCRIPTION|USER MAPPING)([[:space:]]|$)' \
+          docker run --rm --platform linux/amd64 \
+            --volume "$schema_dir:/schema:ro" "$validation_client_image" \
+            pg_restore --data-only --list /schema/production-schema.dump > "$schema_dir/production-data.toc"
+          if grep -Eq '^[[:digit:]]+;' "$schema_dir/production-data.toc"; then
+            echo "schema-only archive에 데이터 항목이 있습니다"; exit 1
+          fi
+          if grep -Eq '^[[:digit:]]+;[[:space:]]+[[:digit:]]+[[:space:]]+[[:digit:]]+[[:space:]]+(SUBSCRIPTION( TABLE)?|USER MAPPING)([[:space:]]|$)' \
                "$schema_dir/production-schema.toc"; then
-            echo "schema-only archive에 데이터 또는 외부 연결 항목이 있습니다"; exit 1
+            echo "schema-only archive에 외부 연결 항목이 있습니다"; exit 1
           fi
           grep -Eq 'TABLE public orders ' "$schema_dir/production-schema.toc"
           grep -Eq 'TABLE public listings ' "$schema_dir/production-schema.toc"
