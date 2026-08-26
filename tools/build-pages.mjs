@@ -7,6 +7,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 export const ROOT_RUNTIME_FILES = Object.freeze([
   'index.html',
+  'login.html',
   'styles.css',
   'wanted-theme.css',
   'reference-layout.css',
@@ -48,6 +49,8 @@ export const ROOT_RUNTIME_FILES = Object.freeze([
 
 export const APP_RUNTIME_FILES = Object.freeze([
   'app/bootstrap.js',
+  'app/features/auth-login/auth-login.css',
+  'app/features/auth-login/auth-login.js',
   'app/features/analytics-consent/analytics-consent.css',
   'app/features/checkout/checkout-addresses.css',
   'app/features/checkout/checkout-addresses.mjs',

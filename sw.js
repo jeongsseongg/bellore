@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v348-naverpay-live";
+const VERSION = "bellore-v349-auth-shell";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -8,13 +8,14 @@ const OFFLINE_FALLBACK = './index.html';
 const SHELL_ASSETS = [
   './',
   './index.html',
-  './styles.css?v=20260826-member-verification-live-v2',
+  './login.html',
+  './styles.css?v=20260826-auth-shell-v1',
   './wanted-theme.css?v=20260818-pretendard-v1',
   './vendor-reference.css?v=20260731-photo-viewer',
   './reference-layout.css?v=20260821-tabbar-safe-area-v1',
   './mypick.css?v=20260826-member-verification-live-v2',
   './bellore-redesign.css?v=20260826-naverpay-bottom-action-v1',
-  './script.js?v=20260826-naverpay-live-v1',
+  './script.js?v=20260826-auth-page-v1',
   './payments.js?v=20260826-member-verification-live-v2',
   './naverpay.js?v=20260826-naverpay-live-v1',
   './ui-dialog.js?v=20260826-member-verification-live-v2',
@@ -32,6 +33,8 @@ const SHELL_ASSETS = [
   './ai-advisor.js?v=20260826-member-verification-live-v2',
   './ai-advisor-admin.js?v=20260826-member-verification-live-v2',
   './app/bootstrap.js?v=20260826-naverpay-live-v1',
+  './app/features/auth-login/auth-login.css?v=20260826-auth-page-v2',
+  './app/features/auth-login/auth-login.js?v=20260826-auth-page-v2',
   './app/features/analytics-consent/analytics-consent.css?v=20260826-ai-consent-v1',
   './app/features/checkout/checkout-addresses.css?v=20260826-shipping-address-popup-v2',
   './app/features/checkout/checkout-addresses.mjs?v=20260826-shipping-address-popup-v2',

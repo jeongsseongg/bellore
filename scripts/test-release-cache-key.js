@@ -11,6 +11,9 @@ const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
 const bootstrap = fs.readFileSync(path.join(root, 'app', 'bootstrap.js'), 'utf8');
 const releaseKey = '20260826-member-verification-live-v2';
 const sellReleaseKey = '20260826-naverpay-live-v1';
+const authPageReleaseKey = '20260826-auth-page-v1';
+const authPageAssetKey = '20260826-auth-page-v2';
+const shellStyleKey = '20260826-auth-shell-v1';
 
 const urls = {
   styles: html.match(/<link rel="stylesheet" href="(styles\.css\?v=[^"]+)"/)?.[1],
@@ -30,13 +33,22 @@ const urls = {
 
 for (const [name, url] of Object.entries(urls)) {
   assert(url, `${name} release URL is missing`);
-  const expectedKey = ['script', 'bootstrap', 'pageRuntime', 'serviceWorker'].includes(name) ? sellReleaseKey : releaseKey;
+  const expectedKey = name === 'styles'
+    ? shellStyleKey
+    : name === 'script'
+    ? authPageReleaseKey
+    : name === 'bootstrap'
+    ? sellReleaseKey
+    : (['pageRuntime', 'serviceWorker'].includes(name) ? sellReleaseKey : releaseKey);
   assert.equal(new URL(url, 'https://bellore.co.kr/').searchParams.get('v'), expectedKey, `${name} must use its current release key`);
 }
 for (const name of ['styles', 'script', 'payments', 'wishlist', 'search', 'dialog', 'features', 'quotes', 'auction', 'bootstrap', 'conditionGuide', 'pageRuntime']) {
   assert(serviceWorker.includes(`'./${urls[name]}'`), `service worker must precache the exact ${name} URL`);
 }
-assert.match(serviceWorker, /const VERSION = "bellore-v348-naverpay-live";/, 'service-worker cache namespace must advance for live Naver Pay');
+assert.match(serviceWorker, /const VERSION = "bellore-v349-auth-shell";/, 'service-worker cache namespace must preserve the live release and add the 660px auth shell');
+assert(serviceWorker.includes("'./login.html'"), 'service worker must precache the independent login page');
+assert(serviceWorker.includes(`'./app/features/auth-login/auth-login.css?v=${authPageAssetKey}'`), 'service worker must precache login page styles');
+assert(serviceWorker.includes(`'./app/features/auth-login/auth-login.js?v=${authPageAssetKey}'`), 'service worker must precache login page behavior');
 for (const heroAsset of ['home-banners.js', 'home-banner-data.js']) {
   assert(serviceWorker.includes(`./app/features/home-banners/${heroAsset}?v=20260826-hero-layout-v7`), `service worker must precache exact restored hero asset: ${heroAsset}`);
 }
