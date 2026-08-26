@@ -28,7 +28,6 @@ jobs:
       github.ref == 'refs/heads/main' &&
       (vars.PRODUCTION_DEPLOY_ENABLED == 'true' ||
       (github.event_name == 'workflow_dispatch' && inputs.static_release_sha != ''))
-    needs: truth_guard
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
