@@ -36,7 +36,7 @@ assert.match(
   'the page requests the panel-width-corrected stylesheet'
 );
 assert.match(sheetRule, /transform:\s*translateY\(104%\)/, 'the closed sheet starts below the Bellore frame');
-assert.match(sheetRule, /transition:\s*transform 1600ms ease-in-out/, 'the sheet uses the slower symmetric open and close duration');
+assert.match(sheetRule, /transition:\s*transform 1600ms/, 'the sheet uses the approved slower open and close duration');
 assert.match(moduleJs, /\}, 1600\);/, 'the sheet remains mounted until the slower close animation completes');
 assert.doesNotMatch(html, /class="compare-entry"/, 'the superseded sell landing page is removed');
 assert.match(css, /\.sell-method__card\s*\{[\s\S]*?min-height:\s*350px/, 'method cards use the restored original height');

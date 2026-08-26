@@ -10,8 +10,7 @@ const runtime = fs.readFileSync(path.join(root, 'app', 'legacy', 'page-runtime.j
 const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
 const bootstrap = fs.readFileSync(path.join(root, 'app', 'bootstrap.js'), 'utf8');
 const releaseKey = '20260826-member-verification-live-v2';
-const sellReleaseKey = '20260826-sell-guest-access-v1';
-const homeRowHotfixKey = '20260826-home-row-hotfix-v1';
+const sellReleaseKey = '20260826-naverpay-live-v1';
 
 const urls = {
   styles: html.match(/<link rel="stylesheet" href="(styles\.css\?v=[^"]+)"/)?.[1],
@@ -31,27 +30,26 @@ const urls = {
 
 for (const [name, url] of Object.entries(urls)) {
   assert(url, `${name} release URL is missing`);
-  const expectedKey = name === 'bootstrap'
-    ? homeRowHotfixKey
-    : (['script', 'pageRuntime', 'serviceWorker'].includes(name) ? sellReleaseKey : releaseKey);
+  const expectedKey = ['script', 'bootstrap', 'pageRuntime', 'serviceWorker'].includes(name) ? sellReleaseKey : releaseKey;
   assert.equal(new URL(url, 'https://bellore.co.kr/').searchParams.get('v'), expectedKey, `${name} must use its current release key`);
 }
 for (const name of ['styles', 'script', 'payments', 'wishlist', 'search', 'dialog', 'features', 'quotes', 'auction', 'bootstrap', 'conditionGuide', 'pageRuntime']) {
   assert(serviceWorker.includes(`'./${urls[name]}'`), `service worker must precache the exact ${name} URL`);
 }
-assert.match(serviceWorker, /const VERSION = "bellore-v348-naverpay-live";/, 'service-worker cache namespace must preserve the home UI hotfix through the live Naver Pay release');
+assert.match(serviceWorker, /const VERSION = "bellore-v348-naverpay-live";/, 'service-worker cache namespace must advance for live Naver Pay');
 for (const heroAsset of ['home-banners.js', 'home-banner-data.js']) {
   assert(serviceWorker.includes(`./app/features/home-banners/${heroAsset}?v=20260826-hero-layout-v7`), `service worker must precache exact restored hero asset: ${heroAsset}`);
 }
 assert(serviceWorker.includes('./app/features/home-banners/home-banners.css?v=20260826-hero-layout-v9'), 'service worker must precache exact hero layout stylesheet');
 assert(serviceWorker.includes('./app/features/home-quicklinks/home-quicklinks.js?v=20260826-hero-layout-v8'), 'service worker must precache exact quicklink script');
-assert(serviceWorker.includes('./app/features/home-quicklinks/home-quicklinks.css?v=20260826-rounded-corners-v2'), 'service worker must precache the restored quicklink background stylesheet');
+assert(serviceWorker.includes('./app/features/home-quicklinks/home-quicklinks.css?v=20260826-rounded-corners-v2'), 'service worker must precache rounded quicklink stylesheet');
 for (const tradeAsset of ['방문거래.png', '택배거래.png', '퀵거래.png']) {
   assert(serviceWorker.includes(`./assets/sell/trade/${tradeAsset}`), `service worker must precache transaction artwork: ${tradeAsset}`);
 }
 for (const asset of [
   'app/vendor/recommendation-engine.js',
   'app/features/home-merchandising/home-merchandising.js',
+  'app/features/home-rows/home-rows.js',
   'app/features/listing-availability/listing-availability-ui.js',
   'app/services/listings/listing-catalog-service.js',
   'app/core/listing-display.js',
@@ -67,12 +65,14 @@ for (const asset of [
   'app/core/customer-error.mjs',
   'app/features/listing-availability/market-static-status.js',
 ]) {
-  assert(serviceWorker.includes(`'./${asset}?v=${releaseKey}'`), `service worker must precache exact ESM release URL: ${asset}`);
+  const assetKey = asset === 'app/features/home-rows/home-rows.js'
+    ? '20260826-home-row-hotfix-v1'
+    : releaseKey;
+  assert(serviceWorker.includes(`'./${asset}?v=${assetKey}'`), `service worker must precache exact ESM release URL: ${asset}`);
 }
-assert(serviceWorker.includes(`'./app/features/home-rows/home-rows.js?v=${homeRowHotfixKey}'`), 'service worker must precache distinct home-row selection logic');
 for (const specifier of [
   './vendor/recommendation-engine.js', './features/home-merchandising/home-merchandising.js',
-  './features/listing-availability/listing-availability-ui.js',
+  './features/home-rows/home-rows.js', './features/listing-availability/listing-availability-ui.js',
   './services/listings/listing-catalog-service.js', './core/listing-display.js',
   './features/checkout/payment-flow.js', './legacy/customer-feedback.js',
   './services/payments/payment-auth.js',
@@ -82,8 +82,10 @@ for (const specifier of [
   './services/payments/pending-payment-recovery.js',
   './features/condition-guide/condition-guide.js',
 ]) {
-  assert(bootstrap.includes(`${specifier}?v=${releaseKey}`), `bootstrap must import exact ESM release URL: ${specifier}`);
+  const specifierKey = specifier === './features/home-rows/home-rows.js'
+    ? '20260826-home-row-hotfix-v1'
+    : releaseKey;
+  assert(bootstrap.includes(`${specifier}?v=${specifierKey}`), `bootstrap must import exact ESM release URL: ${specifier}`);
 }
-assert(bootstrap.includes(`./features/home-rows/home-rows.js?v=${homeRowHotfixKey}`), 'bootstrap must import the distinct home-row selection logic');
 
 console.log('phase 7-11 release cache-key invariants: ok');
