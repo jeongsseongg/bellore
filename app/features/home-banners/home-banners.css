@@ -3,7 +3,7 @@
 
 .bn-block { margin: 14px 0; }
 
-/* 승인된 캠페인 이미지 규격(430:245.7)을 화면 틀로 사용한다. */
+/* 기존 배너보다 세로를 1.3배 확장한 홈 전용 프레임. */
 .hero-carousel.has-db {
   width: 100%; max-width: none; margin: 0;
   background: transparent; border-radius: 0;
@@ -11,22 +11,32 @@
 .hero-carousel.has-db .hero-track,
 .hero-carousel.has-db .hero-slide-db.is-campaign,
 .hero-carousel.has-db .hero-slide-bg { border-radius: 0; }
-.hero-slide-db.is-campaign {
-  display: block; height: auto; min-height: 0; max-height: none; aspect-ratio: 430 / 245.7;
+.page-home .hero-slide-db.is-campaign {
+  display: block; height: auto; min-height: 0; max-height: none; aspect-ratio: 430 / 319.4;
   padding: 0; border: 0; color: inherit; background: transparent;
-  cursor: pointer; font: inherit; text-align: left; container-type: inline-size;
+  overflow: hidden; cursor: pointer; font: inherit; text-align: left; container-type: inline-size;
 }
-.hero-slide-db.is-campaign .hero-slide-blur { display: none; }
-.hero-slide-db.is-campaign .hero-slide-bg { background-size: cover; }
+.page-home .hero-slide-db.is-campaign .hero-slide-blur { display: none; }
+.page-home .hero-slide-db.is-campaign .hero-slide-bg {
+  inset: 0; background-size: cover; background-position: center; border-radius: 0;
+  transform: scale(1); transform-origin: center; will-change: transform;
+}
+@keyframes heroCampaignZoom {
+  from { transform: scale(1); }
+  to { transform: scale(1.2); }
+}
+.page-home .hero-slide-db.is-campaign.is-active .hero-slide-bg {
+  animation: heroCampaignZoom 3s cubic-bezier(.2, .64, .32, 1) both;
+}
 .hero-campaign-copy {
   position: absolute; z-index: 5; left: 5.5%; top: 50%; width: 43%; padding: 0;
   transform: translateY(-50%); box-sizing: border-box; color: #fff; background: none;
   font-family: var(--font-sans, "Wanted Sans", sans-serif); text-shadow: 0 1px 8px rgba(0, 0, 0, .58);
 }
 .hero-campaign-copy small, .hero-campaign-copy strong, .hero-campaign-copy em { display: block; font-style: normal; word-break: keep-all; }
-.hero-campaign-copy small { margin-bottom: .7cqw; font-size: clamp(9px, 2.1cqw, 14px); font-weight: 720; opacity: .78; }
-.hero-campaign-copy strong { font-size: clamp(17px, 4.4cqw, 30px); font-weight: 850; letter-spacing: -.055em; line-height: 1.08; }
-.hero-campaign-copy em { margin-top: 1.1cqw; font-size: clamp(9px, 2cqw, 13px); font-weight: 650; line-height: 1.25; opacity: .8; }
+.hero-campaign-copy small { margin-bottom: .9cqw; font-size: clamp(12px, 2.7cqw, 18px); font-weight: 720; opacity: .78; }
+.hero-campaign-copy strong { font-size: clamp(22px, 5.7cqw, 39px); font-weight: 850; letter-spacing: -.055em; line-height: 1.08; }
+.hero-campaign-copy em { margin-top: 1.4cqw; font-size: clamp(12px, 2.6cqw, 17px); font-weight: 650; line-height: 1.25; opacity: .8; }
 .hero-campaign-copy.is-light { color: #17221f; background: none; text-shadow: 0 1px 8px rgba(255, 255, 255, .5); }
 .hero-campaign-copy.is-right { left: auto; right: 5.5%; }
 .hero-campaign-copy.is-top-left { top: 12%; width: 37%; transform: none; }
@@ -42,25 +52,30 @@
 
 /* 점 대신 우측 하단에 현재 순서와 이전·다음만 작게 표시한다. */
 .hero-dots {
-  left: auto; right: 0; bottom: clamp(7px, 1.7cqw, 12px); width: auto;
-  justify-content: flex-end; align-items: center; gap: clamp(7px, 1.4cqw, 10px);
+  left: auto; right: clamp(10px, 2.4cqw, 16px); bottom: clamp(9px, 2cqw, 14px); width: auto;
+  display: grid; grid-template-columns: 24px 1.2em 1px 1.2em 24px;
+  justify-content: end; align-items: center; justify-items: center; column-gap: 7px;
   color: #fff; opacity: 1; text-shadow: 0 1px 7px rgba(0, 0, 0, .72);
 }
 .hero-count-current,
 .hero-count-total,
 .hero-count-separator {
-  font-size: clamp(11px, 2.35cqw, 14px); font-weight: 700; line-height: 1;
+  font-size: clamp(12px, 2.55cqw, 15px); font-weight: 700; line-height: 24px;
   font-variant-numeric: tabular-nums;
 }
-.hero-count-current { min-width: 1.1em; text-align: right; }
-.hero-count-total { min-width: 1.1em; text-align: left; opacity: .68; }
-.hero-count-separator { opacity: .5; }
+.hero-count-current, .hero-count-total { width: 1.2em; text-align: center; }
+.hero-count-total { opacity: .68; }
+.hero-count-separator { width: 1px; height: 16px; overflow: hidden; color: transparent; background: currentColor; opacity: .45; }
 .hero-count-nav {
-  display: inline-flex; align-items: center; justify-content: center; width: auto; height: auto;
+  display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px;
   padding: 0; border: 0; border-radius: 0; background: none; color: inherit;
-  font: inherit; font-size: clamp(17px, 3.5cqw, 22px); line-height: 1; cursor: pointer;
+  font: inherit; font-size: 22px; font-weight: 400; line-height: 24px; cursor: pointer;
 }
 .hero-count-nav:focus-visible { outline: 1px solid currentColor; outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .page-home .hero-slide-db.is-campaign.is-active .hero-slide-bg { animation: none; }
+}
 
 /* 공통 오버레이·텍스트 */
 .bn-fx {

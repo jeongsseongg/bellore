@@ -141,7 +141,7 @@ function matchesPreset(card, action) {
     return highGrade && /풀세트|박스.*보증|보증.*박스/.test(text);
   }
   if (action === 'wedding') {
-    return ['롤렉스', 'rolex', '까르띠에', 'cartier', '불가리', 'bvlgari', '샤넬', 'chanel']
+    return ['롤렉스', 'rolex', '오메가', 'omega', '까르띠에', 'cartier']
       .some((name) => brand.includes(name)) && (!Number.isFinite(size) || size <= 40);
   }
   if (action === 'vintage') {

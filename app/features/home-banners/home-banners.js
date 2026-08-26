@@ -2,7 +2,7 @@
    배경만 픽셀 이미지(assets/banners)이고 시계 사진·모델명·금액·문구는 실제 데이터로 그린다.
    매물은 홈 '판매 중인 시계' 그리드가 채워지는 것을 보고 그대로 읽어 쓴다. */
 
-import { BUYIN_COPY, CATEGORY_BANNERS, FEATURED_MAX, HERO_CAMPAIGNS, stableIndex } from './home-banner-data.js?v=20260826-hero-edge-v3';
+import { BUYIN_COPY, CATEGORY_BANNERS, FEATURED_MAX, HERO_CAMPAIGNS, stableIndex } from './home-banner-data.js?v=20260826-hero-motion-v4';
 import { featuredMetaText, isCutoutPhoto, listingPresentation, priceText, shuffled } from '../../core/listing-display.js';
 
 const PRODUCT_STAGES = [
