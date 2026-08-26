@@ -42,7 +42,7 @@ function profileConfig(service, role, title) {
         { id: `verify-${spec.method}`, label: `${spec.label} 수동 인증`, when: (item) => !item[spec.key], reasonPrompt: `${spec.label} 인증 사유를 5자 이상 입력해 주세요.`, run: (item, input) => service.setMemberVerification(item.id, spec.method, true, input.reason) },
         { id: `revoke-${spec.method}`, label: `${spec.label} 인증 해제`, danger: true, when: (item) => !!item[spec.key], reasonPrompt: `${spec.label} 인증 해제 사유를 5자 이상 입력해 주세요.`, run: (item, input) => service.setMemberVerification(item.id, spec.method, false, input.reason) }
       ]),
-      { id: 'delete', label: '회원 계정 삭제', danger: true, confirm: '로그인 계정과 연결 프로필을 삭제합니다. 되돌릴 수 없습니다.', promptText: '삭제', run: (item) => service.deleteMember(item, `${title} 관리자 삭제`) }
+      { id: 'delete', label: '회원 계정 삭제', danger: true, confirm: '로그인 계정과 연결 프로필을 삭제합니다. 되돌릴 수 없습니다.', promptText: '삭제', reasonPrompt: '계정 삭제 사유를 5자 이상 입력해 주세요.', run: (item, input) => service.deleteMember(item, input.reason) }
     ]
   };
 }

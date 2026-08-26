@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v342-admin-member-lifecycle";
+const VERSION = "bellore-v343-admin-member-lifecycle";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -13,10 +13,10 @@ const SHELL_ASSETS = [
   './vendor-reference.css?v=20260731-photo-viewer',
   './reference-layout.css?v=20260821-tabbar-safe-area-v1',
   './mypick.css?v=20260826-member-verification-live-v2',
-  './bellore-redesign.css?v=20260826-member-verification-live-v2',
+  './bellore-redesign.css?v=20260826-naverpay-bottom-action-v1',
   './script.js?v=20260826-sell-services-member-v2',
   './payments.js?v=20260826-member-verification-live-v2',
-  './naverpay.js?v=20260826-naver-review-release',
+  './naverpay.js?v=20260826-naverpay-bottom-action-v1',
   './ui-dialog.js?v=20260826-member-verification-live-v2',
   './supabase-config.js?v=20260826-naver-review-release',
   './analytics-core.js?v=20260810-analytics-v3',
@@ -44,11 +44,11 @@ const SHELL_ASSETS = [
   './app/features/home-merchandising/home-merchandising.js?v=20260826-member-verification-live-v2',
   './app/features/home-banners/home-banners.css?v=20260826-hero-layout-v9',
   './app/features/home-quicklinks/home-quicklinks.js?v=20260826-hero-layout-v8',
-  './app/features/home-quicklinks/home-quicklinks.css?v=20260826-hero-layout-v8',
+  './app/features/home-quicklinks/home-quicklinks.css?v=20260826-rounded-corners-v1',
   './app/features/checkout/checkout-coupon.css?v=20260826-member-verification-live-v2',
   './app/features/checkout/checkout-coupon.js',
   './app/features/home-rows/home-rows.js?v=20260826-member-verification-live-v2',
-  './app/features/home-rows/home-rows.css?v=20260826-member-verification-live-v2',
+  './app/features/home-rows/home-rows.css?v=20260826-price-bottom-v1',
   './app/features/condition-guide/condition-guide.css?v=20260826-member-verification-live-v2',
   './app/features/condition-guide/condition-guide.js?v=20260826-member-verification-live-v2',
   './app/features/listing-availability/listing-availability-ui.js?v=20260826-member-verification-live-v2',

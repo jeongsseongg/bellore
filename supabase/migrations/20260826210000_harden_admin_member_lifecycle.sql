@@ -513,7 +513,6 @@ as $$
 declare
   pending record;
   reconciled integer := 0;
-  restore_suspended boolean;
   actual_suspended boolean;
   intended_suspended boolean;
 begin
@@ -553,34 +552,6 @@ begin
     reconciled := reconciled + 1;
   end loop;
 
-  for pending in
-    select event.id, event.target_user_id, event.metadata
-    from public.member_admin_events event
-    where event.action = 'delete' and event.status = 'pending'
-      and event.created_at < now() - interval '5 minutes'
-    for update skip locked
-  loop
-    if exists (select 1 from auth.users where id = pending.target_user_id) then
-      restore_suspended := coalesce((pending.metadata->>'suspendedBefore')::boolean, false);
-      update public.profiles set
-        suspended = restore_suspended,
-        admin_delete_pending_at = null,
-        admin_operation_version = admin_operation_version + 1,
-        admin_modified_at = now()
-      where id = pending.target_user_id;
-      update public.member_admin_events set
-        status = 'failed', completed_at = now(),
-        metadata = metadata || jsonb_build_object('code', 'DELETE_OPERATION_TIMEOUT_RECOVERED')
-      where id = pending.id;
-    else
-      delete from public.profiles where id = pending.target_user_id;
-      update public.member_admin_events set
-        status = 'succeeded', completed_at = now(),
-        metadata = metadata || jsonb_build_object('reconciled', true, 'hardDeleted', true)
-      where id = pending.id;
-    end if;
-    reconciled := reconciled + 1;
-  end loop;
   return reconciled;
 end $$;
 
@@ -597,23 +568,6 @@ begin
       and coalesce(suspended, false) = false
   ) then raise exception using errcode = '42501', message = 'ADMIN_FORBIDDEN'; end if;
   return public.reconcile_member_delete_events();
-end $$;
-
-do $$
-begin
-  if to_regclass('cron.job') is not null then
-    if not exists (select 1 from cron.job where jobname = 'bellore-member-delete-recovery') then
-      execute $cron$
-        select cron.schedule(
-          'bellore-member-delete-recovery',
-          '*/5 * * * *',
-          'select public.reconcile_member_delete_events();'
-        )
-      $cron$;
-    end if;
-  end if;
-exception when insufficient_privilege or undefined_function or undefined_table then
-  raise notice 'member delete recovery cron unavailable; Edge reconciliation remains active';
 end $$;
 
 revoke all on function public.admin_manage_member_profile(uuid,uuid,text,jsonb,text,bigint) from public, anon, authenticated;

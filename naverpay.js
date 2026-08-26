@@ -116,14 +116,19 @@
   function render(product) {
     var box = document.getElementById(containerId);
     if (!box) return;
+    var purchaseBar = box.closest('.pp-bottom');
+    function setVisible(visible) {
+      box.hidden = !visible;
+      if (purchaseBar) purchaseBar.classList.toggle('has-npay', visible);
+    }
     var seq = ++renderSeq;
-    box.hidden = true;
+    setVisible(false);
     box.innerHTML = '';
     if (!available() || !product || !product.listingId || !product.price) return;
 
     initSdk().then(function (config) {
       if (seq !== renderSeq || !window.Npay || !window.Npay.order) return;
-      box.hidden = false;
+      setVisible(true);
       window.Npay.order.create({
         buttonKey: config.buttonKey,
         containerId: containerId,
@@ -146,7 +151,7 @@
       });
     }).catch(function (error) {
       console.warn('[BELLORE] 네이버페이 준비 실패:', error && error.message);
-      box.hidden = true;
+      setVisible(false);
     });
   }
 

@@ -49,7 +49,7 @@
 /* 약 2.3장이 보이고 다음 카드가 살짝 걸쳐 스크롤을 유도한다.
    min-width:0 이 없으면 flex 자식이 글자 폭 아래로 안 줄어든다. */
 .hrow-card {
-  flex: 0 0 162px; min-width: 0; display: block; scroll-snap-align: start;
+  flex: 0 0 162px; min-width: 0; display: flex; flex-direction: column; scroll-snap-align: start;
   color: inherit; text-decoration: none;
   -webkit-user-select: none; user-select: none;
   outline: none;
@@ -142,7 +142,7 @@
   font-size: 11px; font-weight: 600; line-height: 1.45; letter-spacing: -.02em; color: #99999f;
 }
 .hrow-price {
-  display: block; margin-top: 7px; font-size: 16px; font-weight: 850; letter-spacing: -.04em;
+  display: block; margin-top: auto; padding-top: 7px; font-size: 16px; font-weight: 850; letter-spacing: -.04em;
   color: #171719; white-space: nowrap;
 }
 /* 10억대처럼 자릿수가 긴 금액은 좁은 화면에서 줄이 깨지므로 한 단계 줄인다 */
