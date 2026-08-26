@@ -163,15 +163,21 @@ jobs:
           grep -Eq 'TABLE public orders ' "$schema_dir/production-schema.toc"
           grep -Eq 'TABLE public listings ' "$schema_dir/production-schema.toc"
 
-          # Supabase Cloud provisions this ownership-only role outside the
-          # pinned self-hosted Postgres image. Recreate only its verified,
-          # non-privileged attributes inside the disposable validation DB.
+          # Supabase Cloud provisions the realtime owner outside the pinned
+          # self-hosted image. The schema archive also retains a legacy ACL
+          # grant to supabase_functions_admin even though that role is absent
+          # from the current Cloud role catalog. Recreate both names only as
+          # inert, non-login placeholders inside this disposable validation DB.
           docker exec --env PGPASSWORD="$validation_password" -i "$validation_container" \
             psql -h localhost -U supabase_admin -d postgres -X -v ON_ERROR_STOP=1 <<'SQL'
           do $role$
           begin
             if not exists (select 1 from pg_catalog.pg_roles where rolname='supabase_realtime_admin') then
               create role supabase_realtime_admin
+                nologin nosuperuser nocreatedb nocreaterole noinherit noreplication nobypassrls;
+            end if;
+            if not exists (select 1 from pg_catalog.pg_roles where rolname='supabase_functions_admin') then
+              create role supabase_functions_admin
                 nologin nosuperuser nocreatedb nocreaterole noinherit noreplication nobypassrls;
             end if;
           end

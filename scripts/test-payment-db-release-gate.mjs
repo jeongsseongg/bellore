@@ -174,6 +174,11 @@ assert.match(prepareBlock, /create role supabase_realtime_admin\s+nologin nosupe
   'the disposable DB role stub must match the verified non-privileged Cloud owner role');
 assert.doesNotMatch(prepareBlock, /create role supabase_realtime_admin[\s\S]{0,160}\b(login|superuser|createdb|createrole|inherit|replication|bypassrls)\b(?!\s*;)/i,
   'the disposable owner role must not gain Cloud service privileges');
+assert.match(prepareBlock, /if not exists \(select 1 from pg_catalog\.pg_roles where rolname='supabase_functions_admin'\)/);
+assert.match(prepareBlock, /create role supabase_functions_admin\s+nologin nosuperuser nocreatedb nocreaterole noinherit noreplication nobypassrls/,
+  'the stale Cloud ACL grantee must be an inert disposable validation placeholder');
+assert.doesNotMatch(prepareBlock, /create role supabase_functions_admin[\s\S]{0,160}\b(login|superuser|createdb|createrole|inherit|replication|bypassrls)\b(?!\s*;)/i,
+  'the disposable ACL placeholder must not gain Cloud service privileges');
 assert.match(prepareBlock, /pg_restore --clean --if-exists --exit-on-error --single-transaction/);
 assert.match(prepareBlock, /--host=localhost --username=supabase_admin --dbname=postgres/);
 assert.doesNotMatch(prepareBlock, /upload-artifact|TABLE DATA.*production-schema/i,
