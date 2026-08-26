@@ -225,9 +225,13 @@
       body: { b_no: profile.business_no, start_dt: profile.biz_open_date, p_nm: profile.ceo_name }
     }).then(function (res) {
       if (res && res.data && res.data.valid === true) {
-        loadProfile().then(notifyAuth, function () {});
+        loadProfile().then(function () { mapUser(); notifyAuth(); }, function (err) {
+          console.error('[Bellore verification] verified business profile reload failed', err && err.message || err);
+        });
       }
-    }, function () {});
+    }, function (err) {
+      console.error('[Bellore verification] automatic business verification failed', err && err.message || err);
+    });
   }
 
   Backend.currentUser = function () { return authUser; };
@@ -334,14 +338,20 @@
       if (data.holder) meta.bank_holder = String(data.holder).trim();
     }
     return pre.then(function () {
-      return sb.auth.signUp({
+      var verification = window.BelloreMemberVerificationService;
+      if (!verification) throw new Error('VERIFICATION_SERVICE_NOT_READY');
+      return verification.completeOtpSignup({ data: data, metadata: meta, signupEmail: signupEmail }).then(function (user) {
+        if (user) return { data: { user: user, session: {} }, otpCompleted: true };
+        return sb.auth.signUp({
         email: signupEmail,
         password: data.password,
         options: { data: meta }
+        });
       });
     }).then(function (res) {
       if (res.error) throw res.error;
       var user = res.data && res.data.user;
+      if (res.otpCompleted) return loadProfile().then(function () { mapUser(); notifyAuth(); return user; });
       // 트리거가 채우지 않는 항목을 세션 확보 후 보강
       function patchProfile() {
         if (!user) return Promise.resolve();
@@ -614,63 +624,35 @@
         });
     });
   };
-  // 자동 계좌 실명조회 — Edge Function(verify-account)로 예금주 대조.
-  //  설정(BELLORE_VERIFY.account.enabled)이 켜지고 함수가 배포돼야 실제 동작.
-  Backend.verifyAccountData = function (data) {
-    var body = {
-      bank: String((data && data.bank) || '').trim(),
-      account: String((data && data.account) || '').replace(/[^0-9]/g, ''),
-      holder: String((data && data.holder) || '').trim()
-    };
-    if (!body.bank || !body.account || !body.holder) return Promise.reject(new Error('MISSING'));
-    return sb.functions.invoke('verify-account', { body: body }).then(function (res) {
-      if (res.error) throw res.error;
-      if (res.data && res.data.code === 'NOT_CONFIGURED') throw new Error('NOT_CONFIGURED');
-      if (!(res.data && res.data.valid === true)) throw new Error((res.data && res.data.message) || 'ACCOUNT_VERIFY_FAILED');
-      return res.data;
-    });
-  };
+  function verificationService() {
+    if (!window.BelloreMemberVerificationService) throw new Error('VERIFICATION_SERVICE_NOT_READY');
+    return window.BelloreMemberVerificationService;
+  }
+  Backend.verifyAccountData = function (data) { return verificationService().verifyAccount(data); };
   Backend.verifyAccountAuto = Backend.verifyAccountData;
 
-  // 회원가입 단계 이메일 OTP(인증번호) — Supabase Auth.
-  //  ※ 이메일 템플릿(Confirm signup/Magic Link)에 {{ .Token }} 가 있어야 코드가 메일로 갑니다.
-  Backend.sendEmailOtp = function (email) {
-    var addr = String(email || '').trim();
-    if (!addr) return Promise.reject(new Error('NO_EMAIL'));
-    return sb.auth.signInWithOtp({ email: addr, options: { shouldCreateUser: true } })
-      .then(function (res) { if (res.error) throw res.error; return true; });
-  };
+  Backend.sendEmailOtp = function (email, options) { return verificationService().sendEmailOtp(email, options); };
   Backend.verifyEmailOtp = function (email, token) {
-    var addr = String(email || '').trim();
-    return sb.auth.verifyOtp({ email: addr, token: String(token || '').trim(), type: 'email' })
-      .then(function (res) { if (res.error) throw res.error; return true; });
+    return verificationService().verifyEmailOtp(email, token).then(function (result) {
+      if (result.user) rawUser = result.user;
+      return loadProfile().then(function () { mapUser(); notifyAuth(); return result.verification; });
+    });
   };
 
-  // 휴대폰 본인인증(포트원 PASS) — 설정(BELLORE_VERIFY.phone)이 켜져야 동작.
-  //  성공 시 검증된 휴대폰번호를 반환. 서버 확정은 가입 후 verify-identity 로 연결 가능.
-  Backend.verifyIdentityPortone = function (data) {
-    var V = (window.BELLORE_VERIFY && window.BELLORE_VERIFY.phone) || {};
-    var P = window.BELLORE_PAYMENTS || {};
-    if (!(window.PortOne && P.storeId && V.channelKey)) return Promise.reject(new Error('NOT_CONFIGURED'));
-    var id = 'idv_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    return window.PortOne.requestIdentityVerification({
-      storeId: P.storeId,
-      identityVerificationId: id,
-      channelKey: V.channelKey
-    }).then(function (resp) {
-      if (resp && resp.code != null) throw new Error(resp.message || 'IDENTITY_FAILED');
-      return { identityVerificationId: id, phone: (data && data.phone) || '' };
+  Backend.verifyIdentityPortone = function () {
+    if (!rawUser) return Promise.reject(new Error('NOT_LOGGED_IN'));
+    return verificationService().verifyIdentity().then(function (result) {
+      return loadProfile().then(function () { mapUser(); notifyAuth(); return result; });
     });
   };
   // 관리자 수동 계좌 승인/취소
   Backend.setAccountVerified = function (id, ok) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
-    var patch = { account_verified: !!ok, account_verified_at: ok ? new Date().toISOString() : null };
-    return sb.from('profiles').update(patch).eq('id', id)
-      .then(function (r) {
-        if (r.error) throw r.error;
+    return verificationService().setAdminStatus(id, 'account', ok, ok ? '관리자 계좌 인증 승인' : '관리자 계좌 인증 해제')
+      .then(function (result) {
         if (ok) Backend.createNotification({ uid: id, type: 'account', text: '계좌 인증이 완료되었습니다.' });
         refreshVendors();
+        return result;
       });
   };
 
@@ -693,50 +675,25 @@
   //  (Edge Function 'verify-business' + data.go.kr 서비스키 필요. 미배포면 NOT_CONFIGURED)
   Backend.verifyBusiness = function (data) {
     if (!rawUser) return Promise.reject(new Error('NOT_LOGGED_IN'));
-    var body = {
-      b_no: String((data && data.businessNo) || (profile && profile.business_no) || '').replace(/[^0-9]/g, ''),
-      start_dt: String((data && data.bizOpenDate) || (profile && profile.biz_open_date) || '').replace(/[^0-9]/g, ''),
-      p_nm: String((data && data.ceoName) || (profile && profile.ceo_name) || '').trim()
-    };
-    if (!body.b_no) return Promise.reject(new Error('NO_BUSINESS_NO'));
-    return sb.functions.invoke('verify-business', { body: body }).then(function (res) {
-      if (res.error) throw res.error;
-      var ok = res.data && (res.data.valid === true || res.data.ok === true);
-      if (!ok) throw new Error((res.data && res.data.message) || 'BIZ_VERIFY_FAILED');
-      // 통과: 진위확인은 신뢰된 서버(Edge Function)가 검증했지만, biz_verified 플래그는
-      // 트리거상 일반사용자가 못 바꾸므로 Edge Function 측에서 service_role 로 set 하는 것을 권장.
-      // 여기서는 우선 로컬 갱신 후 프로필 재로딩.
-      return loadProfile().then(function () { notifyAuth(); return res.data; }, function () { return res.data; });
+    return verificationService().verifyBusiness({
+      businessNo: (data && data.businessNo) || (profile && profile.business_no),
+      bizOpenDate: (data && data.bizOpenDate) || (profile && profile.biz_open_date),
+      ceoName: (data && data.ceoName) || (profile && profile.ceo_name)
+    }).then(function (result) {
+      return loadProfile().then(function () { mapUser(); notifyAuth(); return result; }, function () { return result; });
     });
   };
-  // 회원가입 단계(로그인 전) 사업자 진위확인 — 국세청 대조만 수행, 프로필 기록 X.
-  //  통과 시 가입 시 metadata 로 사업자정보가 저장되고, 첫 로그인 시 자동으로 biz_verified 가 확정됨.
-  Backend.verifyBusinessData = function (data) {
-    var body = {
-      b_no: String((data && data.businessNo) || '').replace(/[^0-9]/g, ''),
-      start_dt: String((data && data.bizOpenDate) || '').replace(/[^0-9]/g, ''),
-      p_nm: String((data && data.ceoName) || '').trim()
-    };
-    if (body.b_no.length !== 10) return Promise.reject(new Error('BAD_BNO'));
-    if (!body.start_dt) return Promise.reject(new Error('NO_OPEN_DATE'));
-    if (!body.p_nm) return Promise.reject(new Error('NO_CEO'));
-    return sb.functions.invoke('verify-business', { body: body }).then(function (res) {
-      if (res.error) throw res.error;
-      if (res.data && res.data.code === 'NOT_CONFIGURED') throw new Error('NOT_CONFIGURED');
-      var ok = res.data && res.data.valid === true;
-      if (!ok) throw new Error((res.data && res.data.message) || 'BIZ_VERIFY_FAILED');
-      return res.data;
-    });
-  };
+  // 회원가입 단계 사업자 진위확인. 이메일 OTP로 확보한 로그인 세션이 필요하며,
+  // 통과 시 Edge Function이 사업자 정보와 biz_verified를 한 트랜잭션으로 확정한다.
+  Backend.verifyBusinessData = function (data) { return verificationService().verifyBusiness(data); };
   // 관리자 수동 사업자 인증 승인/취소
   Backend.setBizVerified = function (id, ok) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
-    var patch = { biz_verified: !!ok, biz_verified_at: ok ? new Date().toISOString() : null };
-    return sb.from('profiles').update(patch).eq('id', id)
-      .then(function (r) {
-        if (r.error) throw r.error;
+    return verificationService().setAdminStatus(id, 'business', ok, ok ? '관리자 사업자 인증 승인' : '관리자 사업자 인증 해제')
+      .then(function (result) {
         if (ok) Backend.createNotification({ uid: id, type: 'business', text: '사업자 인증이 완료되었습니다.' });
         refreshVendors();
+        return result;
       });
   };
   // 이메일 인증 메일 재전송(Authentication > Email "Confirm email" 활성화 시 동작)
@@ -1347,45 +1304,19 @@
     delete o.reference_no; delete o.set_grade; delete o.movement;
     delete o.case_spec; delete o.band_spec; delete o.condition_notes;
   }
-  // 상품번호 자동 생성: 등급 + 일 + 연(끝1자리) + 월  (한국시간 기준)
-  //   등급(판매가): 100만↓ S / 500만↓ M / 1,000만↓ E / 3,000만↓ K / 1억↓ L / 1억↑ Q
-  //   일=그달 날짜(앞자리 0 없이: 1·2·…·9·10·11), 연=연도 끝 1자리(2026→6), 월=달(0 없이)
-  //   예) 2026-08-20 · K등급 → K2068  /  2026-08-08 · M등급 → M868
-  function priceGrade(p) {
-    p = Number(p) || 0;
-    return p < 1000000 ? 'S'
-      : p < 5000000 ? 'M'
-      : p < 10000000 ? 'E'
-      : p < 30000000 ? 'K'
-      : p < 100000000 ? 'L'
-      : 'Q';
-  }
-  function makeProductNo(price) {
-    var k = new Date(Date.now() + 9 * 3600 * 1000);
-    return priceGrade(price)
-      + k.getUTCDate()                 // 일 (1~31, 앞자리 0 없음)
-      + (k.getUTCFullYear() % 10)      // 연 끝자리
-      + (k.getUTCMonth() + 1);         // 월 (1~12, 앞자리 0 없음)
-  }
-  // product_no 가 비어 있으면 자동 생성
-  function ensureProductNo(row) {
-    if (row.product_no) return Promise.resolve(row);
-    row.product_no = makeProductNo(row.price);
-    return Promise.resolve(row);
-  }
+  // 상품번호는 DB 트리거가 브랜드·한국 등록일·당일 순번으로 단일 발급한다.
   Backend.addProduct = function (data) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
     return uploadPhotos(data.photos || [], 10).then(function (urls) {
-      var row = {
-        owner_id: rawUser.id,
+      var payload = {
         title: data.brand,
         description: data.model || null,
         reference_no: data.reference_no || null,
         price: data.price || null,
         sale_price: data.sale_price || null,
         category: data.category || CATS.listing.brand,
-        status: data.status || 'on_sale',
         tags: data.tags || [],
+        sale_active: (data.tags || []).indexOf('sale') !== -1,
         condition: data.condition || null,
         sale_started_at: data.sale_started_at || null,
         pack: data.pack || null,
@@ -1407,21 +1338,15 @@
         detail_desc: data.detail_desc || null,
         components: data.components || null,
         sale_method: data.sale_method || null,
-        product_no: data.product_no || null,
         ship_info: data.ship_info || null,
         image_urls: urls,
-        image_url: urls[0] || null
+        commission_rate: Number(data.commission_rate || 0),
+        inventory_status: data.inventory_status || 'expected',
+        display_channels: data.display_channels || ['판매시계']
       };
-      return ensureProductNo(row).then(function (row) {
-        function ins() { return sb.from('listings').insert(row); }
-        return ins().then(function (res) {
-          if (res.error && isMissingCol(res.error)) {
-            dropNewCols(row);   // 컬럼 미생성 시 제외하고 재시도
-            return ins();
-          }
-          return res;
-        }).then(function (res) { if (res.error) throw res.error; refreshListingFeeds(); });
-      });
+      return sb.rpc('admin_manage_listing', {
+        p_listing_id: null, p_action: 'save', p_payload: payload, p_reason: null
+      }).then(function (res) { if (res.error) throw res.error; refreshListingFeeds(); return res.data; });
     });
   };
 
@@ -1447,61 +1372,75 @@
   Backend.getListingsByIds = function (ids) { var safe = Array.isArray(ids) ? ids.slice(0, 100) : []; return safe.length ? sb.from('listings').select('*').in('id', safe).then(function (res) { if (res.error) throw res.error; return (res.data || []).map(mapListing); }) : Promise.resolve([]); };
   Backend.updateProduct = function (id, data) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
-    // 새로 추가한 사진이 있으면 업로드 후 기존 사진 뒤에 이어붙임
-    return uploadPhotos(data.photos || [], 10).then(function (newUrls) {
-      var patch = { updated_at: new Date().toISOString() };
-      if (data.brand != null) patch.title = data.brand;
-      if (data.model != null) patch.description = data.model;
-      if (data.reference_no != null) patch.reference_no = data.reference_no;
-      if (data.price != null) patch.price = data.price;
-      if (data.sale_price !== undefined) patch.sale_price = data.sale_price;
-      if (data.status != null) patch.status = data.status;
-      if (data.category != null) patch.category = data.category;
-      if (data.tags != null) patch.tags = data.tags;
-      if (data.condition != null) patch.condition = data.condition;
-      if (data.sale_started_at !== undefined) patch.sale_started_at = data.sale_started_at;
-      if (data.pack != null) patch.pack = data.pack;
-      if (data.size_mm != null) patch.size_mm = data.size_mm;
-      if (data.dial_color != null) patch.dial_color = data.dial_color;
-      if (data.material != null) patch.material = data.material;
-      if (data.has_diamond != null) patch.has_diamond = data.has_diamond;
-      if (data.has_warranty != null) patch.has_warranty = data.has_warranty;
-      if (data.accessories != null) patch.accessories = data.accessories;
-      if (data.set_grade != null) patch.set_grade = data.set_grade;
-      if (data.movement != null) patch.movement = data.movement;
-      if (data.case_spec != null) patch.case_spec = data.case_spec;
-      if (data.band_spec != null) patch.band_spec = data.band_spec;
-      if (data.condition_notes != null) patch.condition_notes = data.condition_notes;
-      if (data.stamping != null) patch.stamping = data.stamping;
-      if (data.misu != null) patch.misu = data.misu;
-      if (data.purchase_year != null) patch.purchase_year = data.purchase_year;
-      if (data.special_note != null) patch.special_note = data.special_note;
-      if (data.detail_desc != null) patch.detail_desc = data.detail_desc;
-      if (data.components != null) patch.components = data.components;
-      if (data.sale_method != null) patch.sale_method = data.sale_method;
-      if (data.product_no) patch.product_no = data.product_no;  // 비우면 기존 자동번호 유지
-      if (data.ship_info != null) patch.ship_info = data.ship_info;
-      var existing = data.existingPhotos || [];
-      if (newUrls.length || data.existingPhotos) {
-        var all = existing.concat(newUrls).slice(0, 10);
-        patch.image_urls = all;
-        patch.image_url = all[0] || null;
-      }
-      function upd() { return sb.from('listings').update(patch).eq('id', id); }
-      return upd().then(function (res) {
-        if (res.error && isMissingCol(res.error)) {
-          dropNewCols(patch);   // 컬럼 미생성 시 제외하고 재시도
-          return upd();
-        }
-        return res;
-      }).then(function (res) { if (res.error) throw res.error; refreshListingFeeds(); });
-    });
+    return Promise.all([
+      uploadPhotos(data.photos || [], 10),
+      sb.from('listings').select('*').eq('id', id).single(),
+      sb.from('listing_operational_state').select('*').eq('listing_id', id).single()
+    ]).then(function (parts) {
+      var newUrls = parts[0], listingResult = parts[1], stateResult = parts[2];
+      if (listingResult.error) throw listingResult.error;
+      if (stateResult.error) throw stateResult.error;
+      var listing = listingResult.data, state = stateResult.data;
+      var existing = data.existingPhotos !== undefined ? data.existingPhotos : (listing.image_urls || []);
+      var images = existing.concat(newUrls).slice(0, 10);
+      var payload = {
+        title: data.brand != null ? data.brand : listing.title,
+        description: data.model != null ? data.model : listing.description,
+        reference_no: data.reference_no != null ? data.reference_no : listing.reference_no,
+        price: data.price != null ? data.price : listing.price,
+        sale_price: data.sale_price !== undefined ? data.sale_price : listing.sale_price,
+        category: data.category != null ? data.category : listing.category,
+        tags: data.tags != null ? data.tags : (listing.tags || []),
+        sale_active: (data.tags != null ? data.tags : (listing.tags || [])).indexOf('sale') !== -1,
+        sale_started_at: data.sale_started_at !== undefined ? data.sale_started_at : listing.sale_started_at,
+        condition: data.condition != null ? data.condition : listing.condition,
+        pack: data.pack != null ? data.pack : listing.pack,
+        size_mm: data.size_mm != null ? data.size_mm : listing.size_mm,
+        dial_color: data.dial_color != null ? data.dial_color : listing.dial_color,
+        material: data.material != null ? data.material : listing.material,
+        has_diamond: data.has_diamond != null ? data.has_diamond : listing.has_diamond,
+        has_warranty: data.has_warranty != null ? data.has_warranty : listing.has_warranty,
+        accessories: data.accessories != null ? data.accessories : listing.accessories,
+        set_grade: data.set_grade != null ? data.set_grade : listing.set_grade,
+        movement: data.movement != null ? data.movement : listing.movement,
+        case_spec: data.case_spec != null ? data.case_spec : listing.case_spec,
+        band_spec: data.band_spec != null ? data.band_spec : listing.band_spec,
+        condition_notes: data.condition_notes != null ? data.condition_notes : listing.condition_notes,
+        stamping: data.stamping != null ? data.stamping : listing.stamping,
+        misu: data.misu != null ? data.misu : listing.misu,
+        purchase_year: data.purchase_year != null ? data.purchase_year : listing.purchase_year,
+        special_note: data.special_note != null ? data.special_note : listing.special_note,
+        detail_desc: data.detail_desc != null ? data.detail_desc : listing.detail_desc,
+        components: data.components != null ? data.components : listing.components,
+        sale_method: data.sale_method != null ? data.sale_method : listing.sale_method,
+        ship_info: data.ship_info != null ? data.ship_info : listing.ship_info,
+        image_urls: images,
+        commission_rate: Number(state.commission_rate || 0),
+        inventory_status: state.inventory_status,
+        inventory_location: state.inventory_location,
+        display_channels: state.display_channels || ['판매시계'],
+        home_section: state.home_section,
+        display_sort_order: state.display_sort_order || 0,
+        display_start_at: state.display_start_at,
+        display_end_at: state.display_end_at,
+        operation_version: state.operation_version
+      };
+      return sb.rpc('admin_manage_listing', {
+        p_listing_id: id, p_action: 'save', p_payload: payload, p_reason: '기존 관리자 화면 상품 수정'
+      });
+    }).then(function (res) { if (res.error) throw res.error; refreshListingFeeds(); return res.data; });
   };
 
   Backend.deleteProduct = function (id) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
-    return sb.from('listings').delete().eq('id', id)
-      .then(function (res) { if (res.error) throw res.error; refreshListingFeeds(); });
+    return sb.from('listing_operational_state').select('operation_version').eq('listing_id', id).single()
+      .then(function (state) {
+        if (state.error) throw state.error;
+        return sb.rpc('admin_manage_listing', {
+          p_listing_id: id, p_action: 'archive',
+          p_payload: { operation_version: state.data.operation_version }, p_reason: '기존 관리자 화면 보관 처리'
+        });
+      }).then(function (res) { if (res.error) throw res.error; refreshListingFeeds(); });
   };
 
   /* ---------------- 검색 기록(인기검색어 적립) ---------------- */
@@ -1617,11 +1556,40 @@
 
   /* ---------------- 사이트 콘텐츠(관리자 인앱 편집: 매입 랜딩 · 벨로르 소개) ---------------- */
   Backend.getSiteContent = function (key) {
-    return sb.from('site_content').select('*').eq('key', key).maybeSingle()
-      .then(function (r) { if (r.error) throw r.error; return r.data || null; });
+    var contentRequest = sb.from('site_content').select('*').eq('key', key).maybeSingle();
+    if (['home_row_sale', 'home_row_drop', 'home_row_new'].indexOf(key) === -1) {
+      return contentRequest.then(function (r) { if (r.error) throw r.error; return r.data || null; });
+    }
+    return Promise.all([contentRequest, sb.rpc('catalog_home_assignments_v1')]).then(function (parts) {
+      var content = parts[0], assignments = parts[1];
+      if (content.error) throw content.error;
+      var row = content.data || { key: key, title: '', subtitle: '', images: [] };
+      if (assignments.error) {
+        console.error('[Bellore Home] 전시 원장을 불러오지 못했습니다.', assignments.error);
+        row.body = JSON.stringify({ productIds: [] });
+        return row;
+      }
+      row.body = JSON.stringify({ productIds: (assignments.data || [])
+        .filter(function (item) { return item.section_key === key; })
+        .map(function (item) { return item.listing_id; }) });
+      return row;
+    });
   };
   Backend.saveSiteContent = function (key, data) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
+    if (['home_row_sale', 'home_row_drop', 'home_row_new'].indexOf(key) !== -1) {
+      var parsed = {};
+      try { parsed = JSON.parse(data.body || '{}'); } catch (e) { parsed = {}; }
+      var ids = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.productIds) ? parsed.productIds : []);
+      return sb.rpc('admin_set_catalog_home_section', {
+        p_key: key, p_title: (data.title || '').trim(), p_subtitle: (data.subtitle || '').trim(), p_listing_ids: ids
+      }).then(function (r) {
+        if (r.error) throw r.error;
+        var value = r.data || {};
+        return { key: key, title: value.title || data.title || '', subtitle: value.subtitle || data.subtitle || '',
+          body: JSON.stringify(value.body || { productIds: ids }), images: value.images || [] };
+      });
+    }
     return uploadPhotos(data.images || [], 12).then(function (urls) {
       var row = {
         key: key,

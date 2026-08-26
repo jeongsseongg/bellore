@@ -9,7 +9,7 @@ const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const runtime = fs.readFileSync(path.join(root, 'app', 'legacy', 'page-runtime.js'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
 const bootstrap = fs.readFileSync(path.join(root, 'app', 'bootstrap.js'), 'utf8');
-const releaseKey = '20260826-hero-edge-v3';
+const releaseKey = '20260826-member-verification-live-v1';
 
 const urls = {
   styles: html.match(/<link rel="stylesheet" href="(styles\.css\?v=[^"]+)"/)?.[1],
@@ -34,7 +34,7 @@ for (const [name, url] of Object.entries(urls)) {
 for (const name of ['styles', 'script', 'payments', 'wishlist', 'search', 'dialog', 'features', 'quotes', 'auction', 'bootstrap', 'conditionGuide', 'pageRuntime']) {
   assert(serviceWorker.includes(`'./${urls[name]}'`), `service worker must precache the exact ${name} URL`);
 }
-assert.match(serviceWorker, /const VERSION = "bellore-v335-hero-layout-final";/, 'service-worker cache namespace must advance for the hero layout final release');
+assert.match(serviceWorker, /const VERSION = "bellore-v337-member-verification-live";/, 'service-worker cache namespace must advance for the hero layout final release');
 for (const heroAsset of ['home-banners.js', 'home-banner-data.js', 'home-banners.css']) {
   assert(serviceWorker.includes(`./app/features/home-banners/${heroAsset}?v=20260826-hero-layout-v7`), `service worker must precache exact restored hero asset: ${heroAsset}`);
 }
