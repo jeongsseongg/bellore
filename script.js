@@ -5253,8 +5253,7 @@
             applyPage(t);
         });
     }
-    document.addEventListener('bellore:navigate', function (event) { navigate(event.detail.page); });
-    /* ============ 타임세일 카운트다운 (초 단위 실시간) ============ */
+    document.addEventListener('bellore:navigate', function (event) { navigate(event.detail.page); }); /* ============ 타임세일 카운트다운 (초 단위 실시간) ============ */
     var _countdownTimer = null;
     function initCountdowns() {
         if (_countdownTimer) clearInterval(_countdownTimer);
