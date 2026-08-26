@@ -11,6 +11,7 @@ const navigation = fs.readFileSync(path.join(root, 'app', 'ui', 'navigation-hist
 const widthPreference = fs.readFileSync(path.join(root, 'app', 'ui', 'width-preference.js'), 'utf8');
 const baseline = JSON.parse(fs.readFileSync(path.join(root, 'scripts', 'architecture-baseline.json'), 'utf8'));
 const releaseKey = '20260826-naverpay-live-v1';
+const serviceWorkerReleaseKey = '20260826-auth-shell-v1';
 
 const tag = `<script src="app/legacy/page-runtime.js?v=${releaseKey}"></script>`;
 assert.equal((html.match(/app\/legacy\/page-runtime\.js/g) || []).length, 1, 'page runtime must load exactly once');
@@ -28,7 +29,7 @@ for (const contract of [
 ]) {
   assert.match(runtime, contract, `legacy runtime contract missing: ${contract}`);
 }
-assert(runtime.includes(`navigator.serviceWorker.register('sw.js?v=${releaseKey}')`), 'service worker registration must use the release key');
+assert(runtime.includes(`navigator.serviceWorker.register('sw.js?v=${serviceWorkerReleaseKey}')`), 'service worker registration must use the current auth shell release key');
 
 assert(serviceWorker.includes(`'./app/legacy/page-runtime.js?v=${releaseKey}'`), 'service worker must precache the exact runtime URL');
 assert.match(navigation, /window\.addEventListener\('popstate'/, 'navigation history must own browser back handling');

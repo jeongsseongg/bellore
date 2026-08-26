@@ -100,10 +100,10 @@ button, a { font: inherit; }
 .auth-mark--google {
   width: 34px;
   height: 34px;
-  border: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  outline: 0 !important;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  outline: 0;
   background: transparent;
 }
 .auth-status { min-height: 22px; margin: 18px 0 0; color: #6b6b6b; text-align: center; font-size: 14px; }

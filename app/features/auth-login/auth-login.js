@@ -1,4 +1,6 @@
-const backend = window.NWBackend;
+import { getAuthBackend } from '../../services/auth/auth-login-backend.js';
+
+const backend = getAuthBackend();
 const status = document.getElementById('authStatus');
 const returnUrl = (() => {
   const requested = new URLSearchParams(location.search).get('return') || '/';

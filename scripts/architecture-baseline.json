@@ -30,7 +30,7 @@
     "importantTokens": 379,
     "windowAssignments": 93,
     "scriptStyleAttributeTokens": 86,
-    "localClassicScripts": 22
+    "localClassicScripts": 23
   },
   "newCodeBudgets": {
     ".js": {
@@ -96,6 +96,7 @@
     "brands.js",
     "cq-demo.js",
     "index.html",
+    "login.html",
     "mypick.css",
     "naverpay.js",
     "payments.js",

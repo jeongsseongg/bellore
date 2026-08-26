@@ -29,6 +29,6 @@ assert.match(css, /\.pp-bottom \.pp-npay-action/, 'bottom purchase bar must size
 assert.match(client, /classList\.toggle\('has-npay', visible\)/, 'purchase bar must reserve space only when Naver Pay is visible');
 assert.match(client, /sessionStorage\.setItem\(testSessionKey, '1'\)/, 'Naver Pay test mode must survive canonical product routing in the same tab');
 assert.match(client, /sessionStorage\.removeItem\(testSessionKey\)/, 'Naver Pay test mode must support an explicit opt-out');
-assert.match(sw, /bellore-v348-naverpay-live/, 'service worker cache namespace must advance for the live Naver Pay release');
+assert.match(sw, /bellore-v349-auth-shell/, 'latest service worker cache namespace must preserve the live Naver Pay release');
 
 console.log('Naver Pay live release contract: 19/19 passed');

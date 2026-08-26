@@ -51,6 +51,7 @@ export const APP_RUNTIME_FILES = Object.freeze([
   'app/bootstrap.js',
   'app/features/auth-login/auth-login.css',
   'app/features/auth-login/auth-login.js',
+  'app/services/auth/auth-login-backend.js',
   'app/features/analytics-consent/analytics-consent.css',
   'app/features/checkout/checkout-addresses.css',
   'app/features/checkout/checkout-addresses.mjs',

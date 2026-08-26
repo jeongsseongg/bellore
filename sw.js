@@ -35,6 +35,7 @@ const SHELL_ASSETS = [
   './app/bootstrap.js?v=20260826-naverpay-live-v1',
   './app/features/auth-login/auth-login.css?v=20260826-auth-page-v2',
   './app/features/auth-login/auth-login.js?v=20260826-auth-page-v2',
+  './app/services/auth/auth-login-backend.js',
   './app/features/analytics-consent/analytics-consent.css?v=20260826-ai-consent-v1',
   './app/features/checkout/checkout-addresses.css?v=20260826-shipping-address-popup-v2',
   './app/features/checkout/checkout-addresses.mjs?v=20260826-shipping-address-popup-v2',

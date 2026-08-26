@@ -39,7 +39,9 @@ for (const [name, url] of Object.entries(urls)) {
     ? authPageReleaseKey
     : name === 'bootstrap'
     ? sellReleaseKey
-    : (['pageRuntime', 'serviceWorker'].includes(name) ? sellReleaseKey : releaseKey);
+    : name === 'serviceWorker'
+    ? shellStyleKey
+    : (name === 'pageRuntime' ? sellReleaseKey : releaseKey);
   assert.equal(new URL(url, 'https://bellore.co.kr/').searchParams.get('v'), expectedKey, `${name} must use its current release key`);
 }
 for (const name of ['styles', 'script', 'payments', 'wishlist', 'search', 'dialog', 'features', 'quotes', 'auction', 'bootstrap', 'conditionGuide', 'pageRuntime']) {
