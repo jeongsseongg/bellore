@@ -11,12 +11,22 @@
   var sdkPromise = null;
   var publicConfig = null;
   var renderSeq = 0;
+  var testSessionKey = 'bellore_naverpay_test';
 
   function testEnabled() {
     var host = (location.hostname || '').toLowerCase();
     if (host === 'localhost' || host === '127.0.0.1' || host === '[::1]') return true;
     try {
-      return new URLSearchParams(location.search).get('naverPayTest') === '1';
+      var requested = new URLSearchParams(location.search).get('naverPayTest');
+      if (requested === '1') {
+        sessionStorage.setItem(testSessionKey, '1');
+        return true;
+      }
+      if (requested === '0') {
+        sessionStorage.removeItem(testSessionKey);
+        return false;
+      }
+      return sessionStorage.getItem(testSessionKey) === '1';
     } catch (_e) {
       return false;
     }
