@@ -1248,6 +1248,25 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
 .pp-bottom .pp-buyprice .won { font-weight: 850; }
 .pp-bottom .pp-wish { width: 54px; min-height: 54px; }
 .pp-bottom .pp-buy { min-height: 54px; flex: 1; min-width: 116px; }
+.pp-bottom .pp-npay-action {
+  flex: 1 1 0;
+  min-width: 116px;
+  min-height: 54px;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  overflow: hidden;
+}
+.pp-bottom .pp-npay-action > * {
+  max-width: 100% !important;
+}
+.pp-bottom.has-npay .pp-buyprice { display: none; }
+.pp-bottom.has-npay .pp-buy,
+.pp-bottom.has-npay .pp-npay-action { flex-basis: 0; }
+@media (min-width: 680px) {
+  .pp-bottom.has-npay .pp-buyprice { display: flex; }
+  .pp-bottom .pp-npay-action { max-width: 210px; }
+}
 .pp-sale-state {
   display: inline-flex;
   align-items: center;
