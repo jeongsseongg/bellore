@@ -65,10 +65,11 @@ assert.match(cancellation, /tracked: true/);
 const intentMarker = cancellation.indexOf('const intentMarker = await input.admin.rpc("mark_order_refund_pending"');
 const providerPost = cancellation.indexOf('cancellation = await cancelPortOnePayment(input)');
 assert(intentMarker >= 0 && providerPost > intentMarker, 'cancellation intent must precede provider POST');
-assert.match(cancellation, /export async function queueCancellationIntent[\s\S]{0,300}mark_order_refund_pending/);
 const queuedIntent = cancellation.match(
   /export async function queueCancellationIntent\([\s\S]*?^}/m,
 )?.[0] || '';
+assert.match(queuedIntent, /guardPaymentOperation[\s\S]*mark_order_refund_pending/,
+  'webhook queue helper must pass the payment-operation guard before persisting intent');
 assert.doesNotMatch(queuedIntent, /fetch\(|cancelPortOnePayment|finalize_order_refund_v2/,
   'webhook queue helper must persist only; reconciliation owns provider cancellation');
 for (const [name, source] of Object.entries({ confirm, cancel, webhook, reconcile })) {

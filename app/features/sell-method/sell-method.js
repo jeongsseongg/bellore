@@ -1,3 +1,7 @@
+import { createSellReferenceController } from './sell-reference-controller.js?v=20260826-sell-quotes-v3';
+import { createSellQuoteController } from './sell-quote-controller.js?v=20260826-sell-quotes-v3';
+import { createSellGuidePreview } from './sell-guide-preview.js?v=20260826-sell-quotes-v3';
+
 const METHODS = new Set(['compare', 'consignment', 'instant']);
 const DB_NAME = 'bellore-sell-drafts';
 const STORE_NAME = 'drafts';
@@ -42,7 +46,7 @@ function dbRequest(window, mode, action) {
   });
 }
 
-export function initSellMethodSheet({ document, window }) {
+export function initSellMethodSheet({ document, window, backend }) {
   const root = document.getElementById('sellMethodSheet');
   const form = document.getElementById('compareForm');
   const hero = document.getElementById('sellFormHero');
@@ -69,6 +73,7 @@ export function initSellMethodSheet({ document, window }) {
   const guideDetailsBack = document.getElementById('sellGuideDetailsBack');
   const guideDetailsNext = document.getElementById('sellGuideDetailsNext');
   const guideRefInput = document.getElementById('sellGuideRefInput');
+  const guideRefSuggestions = document.getElementById('sellGuideRefSuggestions');
   const guideYearInput = document.getElementById('sellGuideYearInput');
   const guideYearSuggestions = document.getElementById('sellGuideYearSuggestions');
   const guideQuestionProgress = document.getElementById('sellGuideQuestionProgress');
@@ -90,6 +95,8 @@ export function initSellMethodSheet({ document, window }) {
   let selectedModel = '';
   let accessoryIndex = 0;
   let guideComplete = false;
+  let referenceController;
+  let quoteController;
 
   mount.append(hero, form);
   const oldPage = document.getElementById('compare');
@@ -109,31 +116,7 @@ export function initSellMethodSheet({ document, window }) {
     return Array.isArray(window.BELLORE_BRANDS) && window.BELLORE_BRANDS.length ? window.BELLORE_BRANDS : FALLBACK_BRANDS;
   }
 
-  function makePreview({ logo, title, subtitle, selected, onClick }) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'sell-guide__preview' + (selected ? ' is-selected' : '');
-    if (logo) {
-      const image = document.createElement('img');
-      image.src = logo;
-      image.alt = '';
-      button.append(image);
-    } else {
-      const fallback = document.createElement('b');
-      fallback.className = 'sell-guide__preview-logo';
-      fallback.textContent = String(title || '?').trim().slice(0, 1).toUpperCase();
-      button.append(fallback);
-    }
-    const copy = document.createElement('span');
-    const strong = document.createElement('strong');
-    strong.textContent = title;
-    const small = document.createElement('small');
-    small.textContent = subtitle;
-    copy.append(strong, small);
-    button.append(copy);
-    button.addEventListener('click', onClick);
-    return button;
-  }
+  const makePreview = (options) => createSellGuidePreview(document, options);
 
   function syncBrandToForm(brand) {
     if (!brandField) return;
@@ -191,7 +174,22 @@ export function initSellMethodSheet({ document, window }) {
     }
     guideNext.disabled = !selectedBrand || !selectedModel;
     renderModelSuggestions(model);
+    referenceController.render('');
   }
+
+  referenceController = createSellReferenceController({
+    backend,
+    elements: { details: guideDetails, input: guideRefInput, list: guideRefSuggestions, field: refField },
+    selected: { brand: () => selectedBrand, model: () => selectedModel },
+    makePreview,
+    syncDetail: syncGuideDetail
+  });
+  quoteController = createSellQuoteController({
+    document, window, backend, root, sheet, chooser: views.chooser, showView,
+    activeView: () => activeView,
+    openedBy: (trigger) => { returnFocus = trigger || returnFocus || document.activeElement; }
+  });
+  views.quotes = root.querySelector('[data-sell-view="quotes"]');
 
   function renderModelSuggestions(query) {
     const raw = String(query || '').trim();
@@ -230,6 +228,7 @@ export function initSellMethodSheet({ document, window }) {
         title: value,
         subtitle: value === '잘 모름' ? '검수 후 확인' : '스탬핑 또는 제품 연식',
         selected: guideYearInput.value === value,
+        hideLogo: true,
         onClick: () => {
           syncGuideDetail(yearField, guideYearInput, value);
           renderYearSuggestions(value);
@@ -239,16 +238,13 @@ export function initSellMethodSheet({ document, window }) {
   }
 
   function showIdentityStep() {
-    guideIdentity.hidden = false;
-    guideDetails.hidden = true;
-    guideQuestion.hidden = true;
+    guideIdentity.hidden = false; guideDetails.hidden = true; guideQuestion.hidden = true;
     sheet.scrollTop = 0;
   }
 
   function showDetailsStep() {
-    guideIdentity.hidden = true;
-    guideDetails.hidden = false;
-    guideQuestion.hidden = true;
+    guideIdentity.hidden = true; guideDetails.hidden = false; guideQuestion.hidden = true;
+    referenceController.render(guideRefInput.value);
     renderYearSuggestions(guideYearInput.value);
     sheet.scrollTop = 0;
   }
@@ -256,9 +252,7 @@ export function initSellMethodSheet({ document, window }) {
   function showAccessoryQuestion(index) {
     accessoryIndex = Math.max(0, Math.min(index, ACCESSORY_QUESTIONS.length - 1));
     const question = ACCESSORY_QUESTIONS[accessoryIndex];
-    guideIdentity.hidden = true;
-    guideDetails.hidden = true;
-    guideQuestion.hidden = false;
+    guideIdentity.hidden = true; guideDetails.hidden = true; guideQuestion.hidden = false;
     guideQuestionProgress.textContent = '구성품 ' + (accessoryIndex + 1) + ' / ' + ACCESSORY_QUESTIONS.length;
     guideQuestionImage.src = question.image;
     guideQuestionImage.alt = question.label;
@@ -304,6 +298,7 @@ export function initSellMethodSheet({ document, window }) {
     });
     renderBrandSuggestions('');
     guideModelSuggestions.replaceChildren();
+    referenceController.render('');
     renderYearSuggestions('');
     showIdentityStep();
   }
@@ -472,6 +467,8 @@ export function initSellMethodSheet({ document, window }) {
   document.addEventListener('click', (event) => {
     const trigger = event.target.closest('[data-sell-method-open]');
     if (trigger) { event.preventDefault(); open(trigger); return; }
+    const quoteTrigger = event.target.closest('[data-sell-quotes-open]');
+    if (quoteTrigger) { event.preventDefault(); quoteController.open(quoteTrigger, quoteTrigger.dataset.sellQuoteId); return; }
     if (!root.hidden && event.target.closest('[data-sell-method-close]')) { event.preventDefault(); requestClose(); }
   });
 
@@ -487,6 +484,7 @@ export function initSellMethodSheet({ document, window }) {
       pendingClose = null;
       action();
     }
+    await quoteController.handleClick(event);
   });
 
   directEntry.addEventListener('click', () => {
@@ -518,15 +516,13 @@ export function initSellMethodSheet({ document, window }) {
 
   guideDetailsBack.addEventListener('click', showIdentityStep);
 
-  guideRefInput.addEventListener('input', () => syncGuideDetail(refField, guideRefInput, guideRefInput.value));
+  guideRefInput.addEventListener('input', () => {
+    syncGuideDetail(refField, guideRefInput, guideRefInput.value);
+    referenceController.render(guideRefInput.value);
+  });
   guideYearInput.addEventListener('input', () => {
     syncGuideDetail(yearField, guideYearInput, guideYearInput.value);
     renderYearSuggestions(guideYearInput.value);
-  });
-
-  document.getElementById('sellGuideRefSuggestions').addEventListener('click', (event) => {
-    const button = event.target.closest('[data-guide-ref]');
-    if (button) syncGuideDetail(refField, guideRefInput, button.dataset.guideRef);
   });
 
   guideDetailsNext.addEventListener('click', () => showAccessoryQuestion(0));
@@ -573,12 +569,15 @@ export function initSellMethodSheet({ document, window }) {
   });
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && !root.hidden) requestClose(); });
 
+  referenceController.connect();
+  quoteController.connect();
+
   applyFormMethod('compare');
   resetGuide();
   setEntryMode('guided');
   readDraft().then((draft) => { lastDraft = draft; updateResume(draft); });
 }
 
-function boot() { initSellMethodSheet({ document, window }); }
+function boot() { initSellMethodSheet({ document, window, backend: globalThis['NWBackend'] }); }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
 else boot();

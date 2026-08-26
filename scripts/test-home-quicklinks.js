@@ -15,8 +15,8 @@ assert.match(index, /id="homeQuickCategories"/);
 assert.ok(index.indexOf('id="homeQuickCategories"') > index.indexOf('id="heroCarousel"'));
 assert.ok(index.indexOf('id="homeQuickCategories"') < index.indexOf('id="rowSaleBlock"'));
 assert.match(bootstrap, /initHomeQuicklinks\(\{ document, window, collection \}\)/);
-assert.match(bootstrap, /home-quicklinks\.js\?v=20260826-payment-condition-v1/);
-assert.match(bootstrap, /legacy-collection\.js\?v=20260826-payment-condition-v1/);
+assert.match(bootstrap, /home-quicklinks\.js\?v=20260826-hero-edge-v3/);
+assert.match(bootstrap, /legacy-collection\.js\?v=20260826-hero-edge-v3/);
 
 for (const label of ['TIME SALE', '브랜드', '빈티지', '300만원 ↓', '시계판매', '수리\/진단']) {
   assert.match(quicklinks, new RegExp(`label: '${label}'`));
@@ -38,6 +38,9 @@ assert.match(quicklinks, /collection\.filter\(\{ maxInclusive: 3000000 \}\)/);
 assert.match(quicklinks, /collection\.filter\(\{ vintage: true \}\)/);
 assert.match(quicklinks, /action === 'search'\) return collection\.filter\(\{\}\)/);
 assert.match(quicklinks, /collection\.filter\(\{ saleOnly: true \}\)/);
+assert.match(quicklinks, /action === 'sell'\) return openSellMethod\(doc, win\)/);
+assert.match(quicklinks, /querySelector\('\[data-sell-method-open\]'\)/);
+assert.doesNotMatch(quicklinks, /action === 'sell'\) return navigate\(doc, win, 'compare'\)/);
 assert.doesNotMatch(quicklinks, /getElementById\('searchInput'\)/);
 assert.doesNotMatch(quicklinks, /navigate\(doc, win, 'cat-sale'\)/);
 assert.match(collection, /open\(\) \{[\s\S]*openCollectionPage\(\);[\s\S]*return true;/);

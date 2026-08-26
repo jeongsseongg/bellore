@@ -6,9 +6,18 @@ export function createLegacyCollection({ document: doc, window: win }) {
   let activePresetRun = 0;
 
   function openCollectionPage() {
+    if (typeof win.CustomEvent === 'function') {
+      doc.dispatchEvent(new win.CustomEvent('bellore:navigate', { detail: { page: 'collection' } }));
+      return true;
+    }
     const link = doc.querySelector('.tab-item[data-nav="collection"]') || doc.querySelector('[data-nav="collection"]');
-    if (link) link.click();
-    else win.location.hash = '#collection';
+    if (link) {
+      link.click();
+      return true;
+    }
+    win.location.hash = '#collection';
+    try { win.dispatchEvent(new win.PopStateEvent('popstate', { state: { page: 'collection' } })); } catch (error) {}
+    return false;
   }
 
   return {

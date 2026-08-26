@@ -843,6 +843,7 @@
       vendorContacted: !!q.vendor_contacted,
       tradeCompleted: !!q.trade_completed,
       followupUpdatedAt: q.followup_updated_at || null,
+      tradeMethod: detailTag(detail, '거래방법'),
       bids: bs, bidAmount: bs[0] ? Number(bs[0].amount) : 0,
       viewCount: Number(q.view_count || 0),
       createdAt: tsObj(q.created_at),
@@ -1195,14 +1196,19 @@
       });
   };
 
-  // 고객 채택: open → awarded (+ 낙찰 업체 알림 시도)
-  Backend.awardBid = function (quoteId, bidId, vendorId) {
-    return sb.from('quote_requests').update({ status: 'awarded', awarded_bid: bidId }).eq('id', quoteId)
-      .then(function (res) {
+  Backend.awardBid = function (quoteId, bidId, vendorId, tradeMethod) {
+    var method = ({ visit: '방문거래', delivery: '택배거래', quick: '퀵거래' })[tradeMethod] || '',
+        detailRequest = method ? sb.from('quote_requests').select('item_detail').eq('id', quoteId).maybeSingle() : Promise.resolve({ data: null, error: null });
+    return detailRequest.then(function (detailRes) {
+      if (detailRes.error) throw detailRes.error;
+      var patch = { status: 'awarded', awarded_bid: bidId };
+      if (method) { var detail = String(detailRes.data && detailRes.data.item_detail || ''), tag = '[거래방법] ' + method;
+        patch.item_detail = /\[거래방법\]\s*[^\n]*/.test(detail) ? detail.replace(/\[거래방법\]\s*[^\n]*/, tag) : (detail ? detail.replace(/\s+$/, '') + '\n' : '') + tag;
+      }
+      return sb.from('quote_requests').update(patch).eq('id', quoteId);
+    }).then(function (res) {
         if (res.error) throw res.error;
-        if (vendorId) {
-          Backend.createNotification({ uid: vendorId, type: 'awarded', text: '축하합니다! 입찰하신 비교견적이 채택되었습니다.', refId: quoteId });
-        }
+        if (vendorId) Backend.createNotification({ uid: vendorId, type: 'awarded', text: '축하합니다! 입찰하신 비교견적이 채택되었습니다.', refId: quoteId });
         refreshQuoteFeeds();
       });
   };

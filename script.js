@@ -88,8 +88,10 @@
             if (dotsBox) {
                 dotsBox.innerHTML = '';
                 if (multi) {
-                    dotsBox.innerHTML = '<span class="hero-count">' + (index + 1) + '/' + n + '</span>' +
-                        '<button type="button" class="hero-count-nav hero-count-prev" aria-label="이전 배너">‹</button>' +
+                    dotsBox.innerHTML = '<button type="button" class="hero-count-nav hero-count-prev" aria-label="이전 배너">‹</button>' +
+                        '<span class="hero-count-current">' + (index + 1) + '</span>' +
+                        '<span class="hero-count-separator" aria-hidden="true">|</span>' +
+                        '<span class="hero-count-total">' + n + '</span>' +
                         '<button type="button" class="hero-count-nav hero-count-next" aria-label="다음 배너">›</button>';
                     $('.hero-count-prev', dotsBox).addEventListener('click', prev);
                     $('.hero-count-next', dotsBox).addEventListener('click', next);
@@ -120,13 +122,15 @@
             if (e.button != null && e.button !== 0) return;
             dragging = true; swiped = false; startX = e.clientX; startT = Date.now(); dx = 0;
             track.style.transition = 'none';
-            try { track.setPointerCapture(e.pointerId); } catch (err) {}
             if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
         });
         track.addEventListener('pointermove', function (e) {
             if (!dragging) return;
             dx = e.clientX - startX;
-            if (Math.abs(dx) > 4) swiped = true;
+            if (Math.abs(dx) > 12 && !swiped) {
+                swiped = true;
+                try { track.setPointerCapture(e.pointerId); } catch (err) {}
+            }
             track.style.transform = 'translateX(calc(' + (-index * 100) + '% + ' + dx + 'px))';
         });
         // 드래그로 슬라이드를 넘겼으면 그 직후의 클릭(=링크 이동)을 취소
@@ -1464,6 +1468,7 @@
         var rows = [];
         rows.push({ cap: '거래' });
         rows.push({ act: 'orders', label: '주문 내역', count: orderN });
+        if (role === 'customer') rows.push({ act: 'quotes', label: '내 비교견적' });
         rows.push({ act: 'auction', label: '경매' });
         if (role === 'vendor' || role === 'partner') rows.push({ act: 'bids', label: '비교견적 · 입찰 내역' });
         if (role === 'partner') rows.push({ act: 'sales', label: '공급상품 · 정산 내역' });
@@ -1476,7 +1481,7 @@
         box.innerHTML = rows.map(function (r) {
             if (r.cap) return '<p class="mp-menu-cap">' + r.cap + '</p>';
             // 경매는 auction.js 가 data-auction-open 으로 처리
-            var attr = (r.act === 'auction') ? 'data-auction-open' : ('data-mpmenu="' + r.act + '"');
+            var attr = (r.act === 'auction') ? 'data-auction-open' : (r.act === 'quotes' ? 'data-sell-quotes-open' : ('data-mpmenu="' + r.act + '"'));
             return '<button type="button" class="mp-menu-row" ' + attr + '>' +
                 '<span class="mr-label">' + r.label + '</span>' +
                 (typeof r.count === 'number' ? '<span class="mr-count">' + r.count + '건</span>' : '') +
@@ -5248,7 +5253,7 @@
             applyPage(t);
         });
     }
-    /* ============ 타임세일 카운트다운 (초 단위 실시간) ============ */
+    document.addEventListener('bellore:navigate', function (event) { navigate(event.detail.page); }); /* ============ 타임세일 카운트다운 (초 단위 실시간) ============ */
     var _countdownTimer = null;
     function initCountdowns() {
         if (_countdownTimer) clearInterval(_countdownTimer);
