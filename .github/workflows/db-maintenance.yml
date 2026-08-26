@@ -119,7 +119,11 @@ jobs:
             "$validation_image" >/dev/null
 
           ready=false
-          for _ in $(seq 1 90); do
+          # The pinned Supabase image runs its bundled role/extension migrations
+          # before the entrypoint execs the final postmaster. GitHub's cold image
+          # start can exceed three minutes, so wait up to ten minutes without
+          # accepting the temporary init server as ready.
+          for _ in $(seq 1 300); do
             if docker exec "$validation_container" sh -c \
                  'test "$(cat /proc/1/comm)" = postgres' && \
                docker exec "$validation_container" \
@@ -131,7 +135,9 @@ jobs:
             sleep 2
           done
           if [ "$ready" != "true" ]; then
-            echo "일회성 Supabase PostgreSQL이 준비되지 않았습니다"; exit 1
+            docker inspect --format '{{json .State}}' "$validation_container" || true
+            docker logs --tail 120 "$validation_container" || true
+            echo "일회성 Supabase PostgreSQL이 10분 안에 준비되지 않았습니다"; exit 1
           fi
 
           PGCONN="$PRODUCTION_DB_URL" docker run --rm \

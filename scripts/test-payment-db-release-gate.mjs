@@ -149,6 +149,12 @@ assert(prepareStart >= 0 && prepareStart < validateStart, 'isolated validation D
 assert.match(prepareBlock, /supabase\/postgres@sha256:3e2a7ab48783077d0122dc72ed5174afb543110c38266c845716c51d130658e4/);
 assert.match(prepareBlock, /postgres@sha256:d13db94ae661d517c5ed57c509a578d5ea64aae639871ba25294f4f42d83de28/);
 assert.match(prepareBlock, /--platform linux\/amd64 --network none/);
+assert.match(prepareBlock, /seq 1 300/,
+  'cold Supabase image initialization must have a bounded ten-minute readiness window');
+assert.match(prepareBlock, /test "\$\(cat \/proc\/1\/comm\)" = postgres[\s\S]{0,240}rolname in \('anon','authenticated','service_role','supabase_admin'\)/,
+  'readiness must reject the temporary init server and require the final postmaster roles');
+assert.match(prepareBlock, /docker logs --tail 120/,
+  'readiness failure must retain bounded diagnostics');
 assert.match(prepareBlock, /pg_dump[\s\S]{0,350}--format=custom --schema-only[\s\S]{0,350}--lock-wait-timeout=5000/);
 assert.doesNotMatch(prepareBlock, /--no-owner|--no-acl/,
   'owner and ACL metadata must survive the isolated restore');
