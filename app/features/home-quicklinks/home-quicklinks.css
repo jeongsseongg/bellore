@@ -9,6 +9,18 @@
   background: #fff;
   box-shadow: none;
 }
+.home-quick-categories::before,
+.home-quick-categories::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  z-index: 3;
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+}
+.home-quick-categories::before { left: 0; background: radial-gradient(circle at 100% 100%, transparent 17.5px, #06120e 18px); }
+.home-quick-categories::after { right: 0; background: radial-gradient(circle at 0 100%, transparent 17.5px, #06120e 18px); }
 .hq-rail {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));

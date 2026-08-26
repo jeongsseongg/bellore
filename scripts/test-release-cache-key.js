@@ -41,9 +41,8 @@ for (const heroAsset of ['home-banners.js', 'home-banner-data.js']) {
   assert(serviceWorker.includes(`./app/features/home-banners/${heroAsset}?v=20260826-hero-layout-v7`), `service worker must precache exact restored hero asset: ${heroAsset}`);
 }
 assert(serviceWorker.includes('./app/features/home-banners/home-banners.css?v=20260826-hero-layout-v9'), 'service worker must precache exact hero layout stylesheet');
-for (const quicklinkAsset of ['home-quicklinks.js', 'home-quicklinks.css']) {
-  assert(serviceWorker.includes(`./app/features/home-quicklinks/${quicklinkAsset}?v=20260826-hero-layout-v8`), `service worker must precache exact quicklink asset: ${quicklinkAsset}`);
-}
+assert(serviceWorker.includes('./app/features/home-quicklinks/home-quicklinks.js?v=20260826-hero-layout-v8'), 'service worker must precache exact quicklink script');
+assert(serviceWorker.includes('./app/features/home-quicklinks/home-quicklinks.css?v=20260826-rounded-corners-v1'), 'service worker must precache rounded quicklink stylesheet');
 for (const tradeAsset of ['방문거래.png', '택배거래.png', '퀵거래.png']) {
   assert(serviceWorker.includes(`./assets/sell/trade/${tradeAsset}`), `service worker must precache transaction artwork: ${tradeAsset}`);
 }
