@@ -19,7 +19,7 @@ const SHELL_ASSETS = [
   './payments.js?v=20260826-member-verification-live-v2',
   './naverpay.js?v=20260826-naverpay-live-v1',
   './ui-dialog.js?v=20260826-member-verification-live-v2',
-  './supabase-config.js?v=20260826-naverpay-live-v1',
+  './supabase-config.js?v=20260826-naverpay-live-v2',
   './analytics-core.js?v=20260810-analytics-v3',
   './analytics-client.js?v=20260826-ai-consent-v1',
   './brands.js',

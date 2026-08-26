@@ -12,7 +12,7 @@ const css = read('bellore-redesign.css');
 const client = read('naverpay.js');
 
 assert.match(config, /naverWcsId:\s*"s_1ffe9440a292"/, 'issued Naver common account ID must be configured');
-assert.match(config, /endpoint:\s*"\/naverpay-order"/, 'browser must call the registered Bellore domain');
+assert.match(config, /endpoint:\s*"https:\/\/iumsnacuxgssnnbckurq\.supabase\.co\/functions\/v1\/naverpay-order"/, 'browser must call the active production Edge endpoint');
 assert.match(edge, /uuidToNaverId/, 'Naver product ID encoder must remain present');
 assert.match(edge, /\{SITE_URL\}\/market\/\$\{encodeURIComponent\(productNo\)\}\//, 'product XML must use canonical product pages');
 assert.match(worker, /new URL\(request\.url\)/, 'proxy must preserve dynamic Naver query parameters');

@@ -90,7 +90,7 @@ window.BELLORE_PAYMENTS = {
 window.BELLORE_NAVERPAY = {
   enabled: true,
   testOnly: false,
-  endpoint: "/naverpay-order"
+  endpoint: "https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/naverpay-order"
 };
 
 /* ============================================================
