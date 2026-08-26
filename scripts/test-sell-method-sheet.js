@@ -32,12 +32,12 @@ assert.match(
 assert.doesNotMatch(sheetRule, /720px/, 'sell sheet must never use the out-of-spec 720px width');
 assert.match(
   html,
-  /sell-method\.css\?v=20260826-sell-guest-access-v1/,
+  /sell-method\.css\?v=20260826-sell-motion-v2/,
   'the page requests the panel-width-corrected stylesheet'
 );
 assert.match(sheetRule, /transform:\s*translateY\(104%\)/, 'the closed sheet starts below the Bellore frame');
-assert.match(sheetRule, /transition:\s*transform 1000ms/, 'the sheet uses the approved one-second open and close duration');
-assert.match(moduleJs, /\}, 1000\);/, 'the sheet remains mounted until the one-second close animation completes');
+assert.match(sheetRule, /transition:\s*transform 1600ms ease-in-out/, 'the sheet uses the slower symmetric open and close duration');
+assert.match(moduleJs, /\}, 1600\);/, 'the sheet remains mounted until the slower close animation completes');
 assert.doesNotMatch(html, /class="compare-entry"/, 'the superseded sell landing page is removed');
 assert.match(css, /\.sell-method__card\s*\{[\s\S]*?min-height:\s*350px/, 'method cards use the restored original height');
 assert.match(css, /\.sell-method__visual\s*\{[\s\S]*?width:\s*180px;[\s\S]*?height:\s*150px/, 'method images use the enlarged desktop size');
