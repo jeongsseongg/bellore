@@ -1,6 +1,7 @@
 const SUPABASE_URL = 'https://iumsnacuxgssnnbckurq.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml1bXNuYWN1eGdzc25uYmNrdXJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NDQ5ODQsImV4cCI6MjA5NjIyMDk4NH0.lwej8g4YCaiYuoQSXczwRp6ez-X26DD5d1ycMkYwpIk';
 const STORAGE_KEY = 'bellore-admin-auth-v1';
+let persistSession = true;
 
 const startupUrl = new URL(window.location.href);
 if (startupUrl.searchParams.has('username') || startupUrl.searchParams.has('password')) {
@@ -14,20 +15,44 @@ const appRoot = document.getElementById('adminApp');
 const form = document.getElementById('adminLoginForm');
 const usernameInput = document.getElementById('adminLoginId');
 const passwordInput = document.getElementById('adminLoginPassword');
+const rememberInput = document.getElementById('adminRememberLogin');
 const submitButton = document.getElementById('adminLoginButton');
 const errorBox = document.getElementById('adminAuthError');
 
-function readSession() {
+function parseStoredSession(storage) {
   try {
-    return JSON.parse(window.localStorage.getItem(STORAGE_KEY) || 'null');
+    return JSON.parse(storage.getItem(STORAGE_KEY) || 'null');
   } catch {
+    storage.removeItem(STORAGE_KEY);
     return null;
   }
 }
 
+function readSession() {
+  const saved = parseStoredSession(window.localStorage);
+  if (saved) {
+    persistSession = true;
+    if (rememberInput) rememberInput.checked = true;
+    return saved;
+  }
+
+  const currentTab = parseStoredSession(window.sessionStorage);
+  if (currentTab) {
+    persistSession = false;
+    if (rememberInput) rememberInput.checked = false;
+    return currentTab;
+  }
+
+  persistSession = rememberInput?.checked ?? true;
+  return null;
+}
+
 function writeSession(session) {
-  if (session) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-  else window.localStorage.removeItem(STORAGE_KEY);
+  window.localStorage.removeItem(STORAGE_KEY);
+  window.sessionStorage.removeItem(STORAGE_KEY);
+  if (!session) return;
+  const storage = persistSession ? window.localStorage : window.sessionStorage;
+  storage.setItem(STORAGE_KEY, JSON.stringify(session));
 }
 
 async function requestJson(path, { method = 'GET', body, token } = {}) {
@@ -187,6 +212,7 @@ export async function requireAdminSession() {
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       errorBox.hidden = true;
+      persistSession = rememberInput.checked;
       setPending(true);
       try {
         const identity = await signIn(usernameInput.value, passwordInput.value);

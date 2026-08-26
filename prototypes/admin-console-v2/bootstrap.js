@@ -1,4 +1,4 @@
-import { requireAdminSession, signOutAdmin } from './admin-auth.js?v=20260826-admin-release-v3';
+import { requireAdminSession, signOutAdmin } from './admin-auth.js?v=20260826-admin-release-v4';
 import { roleContracts, navGroups, overview, moduleViews, caseDetail } from './data/admin-console-data.js?v=20260826-admin-integrated-v1';
 import { homeEditorData } from './data/admin-home-editor-data.js';
 import { createAdminNavigation } from './features/navigation/admin-navigation.js';

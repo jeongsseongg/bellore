@@ -100,7 +100,7 @@ assert(adminHtml.includes('class="admin-app"') && adminHtml.includes('id="adminS
   '기존 관리자 Wanted 구조가 보존되지 않았습니다.');
 assert(adminHtml.includes('고객·업체 마이페이지 관리') && adminHtml.includes('?view=mypageSettings'),
   '관리자 콘솔 안에서 역할별 마이페이지 관리 화면으로 이동할 수 없습니다.');
-assert(adminHtml.includes('id="adminLoginForm"') && adminHtml.includes('admin-release-v3'),
+assert(adminHtml.includes('id="adminLoginForm"') && adminHtml.includes('admin-release-v4'),
   '운영 관리자 로그인 게이트가 없습니다.');
 assert(fs.existsSync(path.join(root, 'assets/products/watch-batch-20260821-3/158-pdj96zas81tz/front.webp')),
   '최근 주문 예시 이미지 자산이 없습니다.');

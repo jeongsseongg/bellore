@@ -11,6 +11,7 @@ function read(relative) {
 
 const html = read('index.html');
 const auth = read('admin-auth.js');
+const authCss = read('admin-auth.css');
 const css = read('admin-console.css');
 const data = read('data/admin-console-data.js');
 const bootstrap = read('bootstrap.js');
@@ -48,7 +49,7 @@ requiredFiles.forEach((file) => assert.ok(fs.existsSync(path.join(base, file)), 
 assert.match(html, /id="adminNav"/, 'shell owns navigation mount');
 assert.match(html, /id="adminWorkspace"/, 'shell owns workspace mount');
 assert.match(html, /id="caseDrawer"/, 'shell owns case drawer');
-assert.match(html, /type="module" src="\.\/bootstrap\.js\?v=20260826-admin-release-v3"/, 'versioned native module bootstrap is used');
+assert.match(html, /type="module" src="\.\/bootstrap\.js\?v=20260826-admin-release-v4"/, 'versioned native module bootstrap is used');
 assert.doesNotMatch(html, /<script(?![^>]*src=)[^>]*>/, 'no executable inline scripts');
 assert.doesNotMatch(html, /style="/, 'no inline style attributes in shell');
 
@@ -82,6 +83,13 @@ assert.match(data, /운영 데이터에 판매방식이 구분 저장되지 않�
 assert.match(bootstrap, /createAdminNavigation/, 'bootstrap composes navigation feature');
 assert.match(bootstrap, /await requireAdminSession\(\)/, 'admin workspace waits for the authorization gate');
 assert.match(auth, /STORAGE_KEY = 'bellore-admin-auth-v1'/, 'admin auth uses an isolated session');
+assert.match(html, /id="adminRememberLogin"[^>]*type="checkbox"[^>]*checked/, 'automatic login is explicitly enabled by default');
+assert.match(auth, /window\.localStorage[\s\S]*window\.sessionStorage/, 'automatic and tab-only sessions use separate browser stores');
+assert.match(auth, /persistSession = rememberInput\.checked/, 'login persistence follows the automatic-login control');
+assert.match(auth, /window\.localStorage\.removeItem\(STORAGE_KEY\)[\s\S]*window\.sessionStorage\.removeItem\(STORAGE_KEY\)/,
+  'session writes and logout clear both persistence scopes');
+assert.match(authCss, /\.admin-auth\[hidden\][\s\S]*\.admin-app\[hidden\][\s\S]*display:\s*none;/,
+  'successful login cannot leave the login surface visible');
 assert.match(auth, /profile\?\.role !== 'admin'|profile\.role !== 'admin'/, 'database profile role is required');
 assert.match(auth, /tokenRole !== 'admin'/, 'trusted app metadata role is required');
 assert.match(auth, /\/auth\/v1\/token\?grant_type=password/, 'production admin signs in through the Supabase Auth endpoint');
