@@ -800,7 +800,7 @@ jobs:
               end if;
               execute 'alter table public.order_status_history rename to _payment_guard_history_test';
               if public.order_requires_restock_v1(
-                v_test_id, 2, 'cancel_req', false, null, null, null
+                v_test_id, 2::smallint, 'cancel_req', false, null, null, null
               ) then
                 raise exception 'missing history invented a post-fulfilment hold';
               end if;

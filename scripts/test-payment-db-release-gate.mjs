@@ -209,6 +209,8 @@ assert.match(validateBlock, /docker exec --env PGPASSWORD="\$PAYMENT_VALIDATION_
 assert.doesNotMatch(validateBlock, /PGCONN: \$\{\{ secrets\.SUPABASE_DB_URL \}\}/,
   'rollback fixtures must not receive the production DB URL');
 assert.match(validateBlock, /set local session_replication_role=replica;[\s\S]{0,900}generate_series\(1,6\)[\s\S]{0,120}set local session_replication_role=origin;/);
+assert.match(validateBlock, /order_requires_restock_v1\(\s*v_test_id, 2::smallint,/,
+  'the rollback fixture must call the exact smallint restock-helper signature');
 for (const file of [
   '20260826155000_payment_operation_hold.sql',
   '20260826160000_payment_recovery_listing_state.sql',
