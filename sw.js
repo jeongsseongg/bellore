@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v340-diver-left-shift";
+const VERSION = "bellore-v341-naverpay-review-release";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -16,9 +16,9 @@ const SHELL_ASSETS = [
   './bellore-redesign.css?v=20260826-member-verification-live-v1',
   './script.js?v=20260826-sell-services-member-v2',
   './payments.js?v=20260826-member-verification-live-v1',
-  './naverpay.js?v=20260728-naver-review-fixes-2',
+  './naverpay.js?v=20260826-naver-review-release',
   './ui-dialog.js?v=20260826-member-verification-live-v1',
-  './supabase-config.js?v=20260826-member-verification-live-v1',
+  './supabase-config.js?v=20260826-naver-review-release',
   './analytics-core.js?v=20260810-analytics-v3',
   './analytics-client.js?v=20260826-ai-consent-v1',
   './brands.js',
@@ -163,6 +163,12 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
+
+  // 네이버 상품 XML은 요청마다 상품 ID와 재고가 달라지므로 캐시하지 않는다.
+  if (url.pathname === '/naverpay-order' || url.pathname === '/naverpay-order/') {
+    event.respondWith(fetch(req));
+    return;
+  }
 
   if (req.mode === 'navigate') {
     const paymentReturn = url.searchParams.get('pay') === 'portone' ||
