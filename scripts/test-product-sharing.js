@@ -152,11 +152,11 @@ function fakeEventTarget() {
     assert(buildPages.includes(`'${asset.slice(2)}'`), `Pages allowlist 누락: ${asset}`);
   }
   for (const [asset, releaseKey] of [
-    ['script.js', '20260826-full-release-v1'],
-    ['app/bootstrap.js', '20260826-full-release-v1'],
-    ['sw.js', '20260826-full-release-v1'],
-    ['wishlist.js', '20260826-full-release-v1'],
-    ['search.js', '20260826-full-release-v1'],
+    ['script.js', '20260826-featured-showcase-v2'],
+    ['app/bootstrap.js', '20260826-featured-showcase-v2'],
+    ['sw.js', '20260826-featured-showcase-v2'],
+    ['wishlist.js', '20260826-featured-showcase-v2'],
+    ['search.js', '20260826-featured-showcase-v2'],
   ]) {
     const registrationSource = asset === 'sw.js' ? pageRuntime : html;
     assert(registrationSource.includes(`${asset}?v=${releaseKey}`), `런타임 캐시 키 누락: ${asset}`);
