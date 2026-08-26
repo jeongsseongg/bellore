@@ -766,7 +766,10 @@
                         NWBackend.sendEmailOtp(u.email).then(function () { if (st) { st.textContent = '인증번호를 이메일로 보냈어요.'; st.className = 'vrow-state'; } }).catch(function () { if (st) { st.textContent = '발송 실패'; st.className = 'vrow-state err'; } });
                     } else if (_pwMethod === 'phone' && VP.phone && VP.phone.enabled && NWBackend.verifyIdentityPortone) {
                         NWBackend.verifyIdentityPortone({ phone: u.phone }).then(function () { _pwOk = true; gotoP('pw3'); }).catch(function (err) { if (st) { st.textContent = window.belloreCustomerMessage(err, 'identity'); st.className = 'vrow-state err'; } });
-                    } else { _pwOk = true; gotoP('pw3'); } // 키 미설정(soft) → 즉시 통과
+                    } else if (st) {
+                        st.textContent = '현재 사용할 수 있는 본인인증 수단이 없습니다.';
+                        st.className = 'vrow-state err';
+                    }
                     return;
                 }
             });
@@ -778,12 +781,12 @@
                     NWBackend.verifyIdentityPortone({ phone: phone }).then(function () { if (st) { st.textContent = '✓ 본인인증 완료'; st.className = 'vrow-state ok'; } }).catch(function (err) { if (st) { st.textContent = window.belloreCustomerMessage(err, 'identity'); st.className = 'vrow-state err'; } });
                 } else if (st) { st.textContent = '준비 중 — 번호만 저장됩니다.'; st.className = 'vrow-state'; }
             });
-            $('#pfPhoneConfirm').addEventListener('click', function () { var st = $('#pfPhoneState'); if (st) { st.textContent = '✓ 인증 완료'; st.className = 'vrow-state ok'; } });
+            $('#pfPhoneConfirm').addEventListener('click', function () { var st = $('#pfPhoneState'); if (st) { st.textContent = '서버 본인인증을 먼저 진행해 주세요.'; st.className = 'vrow-state err'; } });
             $('#pwvConfirm').addEventListener('click', function () {
                 var code = ($('#pwvCode').value || '').trim(), st = $('#pwvState'), u = pUser();
                 if (_pwMethod === 'email' && NWBackend.verifyEmailOtp) {
                     NWBackend.verifyEmailOtp(u.email, code).then(function () { _pwOk = true; gotoP('pw3'); }).catch(function () { if (st) { st.textContent = '인증번호가 올바르지 않습니다.'; st.className = 'vrow-state err'; } });
-                } else { _pwOk = true; gotoP('pw3'); }
+                } else if (st) { st.textContent = '인증번호 확인을 사용할 수 없습니다.'; st.className = 'vrow-state err'; }
             });
 
             $('#profNext').addEventListener('click', function () {
