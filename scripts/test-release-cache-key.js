@@ -33,7 +33,7 @@ for (const [name, url] of Object.entries(urls)) {
 for (const name of ['styles', 'script', 'payments', 'wishlist', 'search', 'dialog', 'features', 'quotes', 'auction', 'bootstrap', 'pageRuntime']) {
   assert(serviceWorker.includes(`'./${urls[name]}'`), `service worker must precache the exact ${name} URL`);
 }
-assert.match(serviceWorker, /const VERSION = "bellore-v295-payment-final";/, 'service-worker cache namespace must advance with the combined release');
+assert.match(serviceWorker, /const VERSION = "bellore-v297-payment-hero";/, 'service-worker cache namespace must advance for the combined payment and hero release');
 for (const asset of [
   'app/vendor/recommendation-engine.js',
   'app/features/home-merchandising/home-merchandising.js',

@@ -87,13 +87,11 @@
             if (dotsBox) {
                 dotsBox.innerHTML = '';
                 if (multi) {
-                    for (var i = 0; i < n; i++) {
-                        var d = document.createElement('button');
-                        d.type = 'button'; d.className = 'hero-dot' + (i === index ? ' active' : '');
-                        d.setAttribute('aria-label', (i + 1) + '번 배너');
-                        (function (idx) { d.addEventListener('click', function () { go(idx); }); })(i);
-                        dotsBox.appendChild(d);
-                    }
+                    dotsBox.innerHTML = '<span class="hero-count">' + (index + 1) + '/' + n + '</span>' +
+                        '<button type="button" class="hero-count-nav hero-count-prev" aria-label="이전 배너">‹</button>' +
+                        '<button type="button" class="hero-count-nav hero-count-next" aria-label="다음 배너">›</button>';
+                    $('.hero-count-prev', dotsBox).addEventListener('click', prev);
+                    $('.hero-count-next', dotsBox).addEventListener('click', next);
                 }
             }
         }

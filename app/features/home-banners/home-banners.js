@@ -18,7 +18,6 @@ const BUYIN_BACKGROUNDS = [
   { image: 'assets/banners/buyin-05.webp', darkCopy: true },
   { image: 'assets/banners/buyin-06.webp', darkCopy: false },
 ];
-const BUYIN_IMAGE_BY_COPY = [0, 3, 3, 0, 3, 5, 1, 1, 2, 3, 2, 5, 4, 5, 0];
 const BUYIN_MEMORY_KEY = 'bl_buyin_banner';
 const ROTATION_MS = 15000;
 const FEATURED_AFTER_CARD = 6;
@@ -104,10 +103,19 @@ function renderBuyinBanner({ doc, win, mount }) {
 
   const banner = mount.querySelector('.bn-buy');
   let index = pick;
+  let backgroundIndex = -1;
+  function pickBackground() {
+    let next = backgroundIndex;
+    while (next === backgroundIndex && BUYIN_BACKGROUNDS.length > 1) {
+      next = Math.floor(Math.random() * BUYIN_BACKGROUNDS.length);
+    }
+    backgroundIndex = next;
+    return BUYIN_BACKGROUNDS[backgroundIndex];
+  }
   function paint(target) {
     index = ((target % BUYIN_COPY.length) + BUYIN_COPY.length) % BUYIN_COPY.length;
     const copy = BUYIN_COPY[index];
-    const background = BUYIN_BACKGROUNDS[BUYIN_IMAGE_BY_COPY[index] % BUYIN_BACKGROUNDS.length];
+    const background = pickBackground();
     mount.querySelector('.bn-lead').textContent = copy.lead;
     mount.querySelector('.bn-t').innerHTML = copy.title.join('<br>');
     banner.style.backgroundImage = `url(${background.image})`;
