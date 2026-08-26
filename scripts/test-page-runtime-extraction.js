@@ -10,7 +10,7 @@ const pagesBuilder = fs.readFileSync(path.join(root, 'tools', 'build-pages.mjs')
 const navigation = fs.readFileSync(path.join(root, 'app', 'ui', 'navigation-history.js'), 'utf8');
 const widthPreference = fs.readFileSync(path.join(root, 'app', 'ui', 'width-preference.js'), 'utf8');
 const baseline = JSON.parse(fs.readFileSync(path.join(root, 'scripts', 'architecture-baseline.json'), 'utf8'));
-const releaseKey = '20260826-featured-showcase-v2';
+const releaseKey = '20260826-condition-guide-v1';
 
 const tag = `<script src="app/legacy/page-runtime.js?v=${releaseKey}"></script>`;
 assert.equal((html.match(/app\/legacy\/page-runtime\.js/g) || []).length, 1, 'page runtime must load exactly once');
@@ -42,6 +42,6 @@ assert.deepEqual(
 );
 assert.equal(baseline.legacyCeilings.executableInlineScriptBlocks, 2, 'inline block ceiling must ratchet down');
 assert.equal(baseline.legacyCeilings.executableInlineScriptBytes, 1210, 'inline byte ceiling must ratchet down');
-assert.equal(baseline.legacyLineCeilings['index.html'], 3322, 'HTML line ceiling must match the integrated selling sheet');
+assert.equal(baseline.legacyLineCeilings['index.html'], 3323, 'HTML line ceiling must include the condition guide stylesheet entry');
 
 console.log('page runtime extraction invariants: ok');
