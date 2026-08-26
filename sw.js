@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v322-hero-layout";
+const VERSION = "bellore-v323-sell-motion";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -16,7 +16,7 @@ const SHELL_ASSETS = [
   './bellore-redesign.css?v=20260826-hero-layout-v10',
   './app/features/home-banners/home-banners.css?v=20260826-hero-layout-v10',
   './app/features/home-rows/home-rows.css?v=20260826-hero-layout-v10',
-  './app/features/sell-method/sell-method.css?v=20260826-hero-layout-v10',
+  './app/features/sell-method/sell-method.css?v=20260826-sell-motion-v1',
   './app/features/condition-guide/condition-guide.css?v=20260826-hero-layout-v10',
   './script.js?v=20260826-hero-layout-v10',
   './app/legacy/recommendation-engine.js?v=20260826-hero-layout-v10',
@@ -37,7 +37,7 @@ const SHELL_ASSETS = [
   './ai-advisor.js?v=20260826-hero-layout-v10',
   './ai-advisor-admin.js?v=20260826-hero-layout-v10',
   './app/bootstrap.js?v=20260826-hero-layout-v10',
-  './app/features/sell-method/sell-method.js?v=20260826-hero-layout-v10',
+  './app/features/sell-method/sell-method.js?v=20260826-sell-motion-v1',
   './app/features/condition-guide/condition-guide.js?v=20260826-hero-layout-v10',
   './app/core/listing-display.js',
   './app/core/market-product-url.mjs',

@@ -19,7 +19,7 @@ assert.match(
 assert.doesNotMatch(sheetRule, /720px/, 'sell sheet must never use the out-of-spec 720px width');
 assert.match(
   html,
-  /sell-method\.css\?v=20260826-hero-layout-v10/,
+  /sell-method\.css\?v=20260826-sell-motion-v1/,
   'the page requests the panel-width-corrected stylesheet'
 );
 assert.doesNotMatch(html, /class="compare-entry"/, 'the superseded sell landing page is removed');
@@ -58,5 +58,8 @@ assert.match(html, /스탬핑\/연식/, 'the purchase timing field uses the appr
 assert.match(html, /assets\/cq-guide\/front\.jpg/, 'the guided detail page uses the supplied photo examples');
 assert.match(css, /\.sell-method__form-mount\.is-guided-details[\s\S]*?#sellWatchInfoBlock/, 'the second guided page hides already-completed watch fields');
 assert.match(moduleJs, /stage:\s*entryMode,\s*guideComplete/, 'the completed guided stage is persisted with the draft');
+assert.match(sheetRule, /transform:\s*translateY\(104%\)/, 'closed state stays below the viewport');
+assert.match(css, /transition:\s*transform 340ms/, 'opening and closing use the full vertical slide duration');
+assert.match(moduleJs, /\}, 340\);/, 'the sheet remains mounted until the closing slide finishes');
 
 console.log('sell method sheet width invariants: ok');

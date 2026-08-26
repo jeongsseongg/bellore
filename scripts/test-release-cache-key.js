@@ -24,6 +24,6 @@ for (const [name, url] of Object.entries(urls)) {
 for (const name of ['script', 'bootstrap', 'pageRuntime']) {
   assert(serviceWorker.includes(`'./${urls[name]}'`), `service worker must precache the exact ${name} URL`);
 }
-assert.match(serviceWorker, /const VERSION = "bellore-v322-hero-layout";/, 'service-worker cache namespace must advance with the release');
+assert.match(serviceWorker, /const VERSION = "bellore-v323-sell-motion";/, 'service-worker cache namespace must advance with the sell motion release');
 
 console.log('phase 7-11 release cache-key invariants: ok');
