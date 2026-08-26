@@ -32,7 +32,8 @@ function eventTarget() {
   assert(bootstrapUrl, 'bootstrap URL has a release cache key');
   assert(serviceWorkerUrl, 'service worker registration has a release cache key');
   const releaseKey = (url) => url.match(/[?&]v=([^&]+)/)?.[1];
-  assert.equal(releaseKey(bootstrapUrl), '20260826-home-row-hotfix-v1', 'bootstrap uses the home-row hotfix release key');
+  assert.equal(releaseKey(bootstrapUrl), '20260826-naverpay-live-v1', 'bootstrap uses the live Naver Pay release key');
+  assert.equal(releaseKey(bootstrapUrl), releaseKey(scriptUrl), 'bootstrap and legacy script use one release key');
   assert.equal(releaseKey(serviceWorkerUrl), releaseKey(scriptUrl), 'service worker registration uses the same release key');
   assert(serviceWorker.includes(`'./${scriptUrl}'`), 'service worker precaches the exact script URL');
   assert(serviceWorker.includes(`'./${bootstrapUrl}'`), 'service worker precaches the exact bootstrap URL');
