@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
   <title>벨로르 운영 관리자</title>
-  <link rel="stylesheet" href="./admin-auth.css">
-  <link rel="stylesheet" href="./admin-console.css">
+  <link rel="stylesheet" href="./admin-auth.css?v=20260826-admin-release-v5">
+  <link rel="stylesheet" href="./admin-console.css?v=20260826-admin-simple-v1">
   <link rel="stylesheet" href="./features/workspace/admin-wanted.css">
-  <link rel="stylesheet" href="./features/home-editor/admin-home-editor.css">
-  <link rel="stylesheet" href="./features/mypage-editor/admin-mypage-editor.css?v=20260826-editor-v8">
+  <link rel="stylesheet" href="./features/mypage-editor/admin-mypage-editor.css?v=20260826-admin-simple-v1">
+  <link rel="stylesheet" href="./features/operations/admin-operations.css?v=20260826-catalog-ledger-v3">
 </head>
 <body>
   <main class="admin-auth" id="adminAuth" aria-labelledby="adminAuthTitle">
@@ -25,6 +25,10 @@
       <form id="adminLoginForm" method="post" action="/admin/" novalidate>
         <label><span>아이디</span><input id="adminLoginId" name="username" autocomplete="username" required></label>
         <label><span>비밀번호</span><input id="adminLoginPassword" name="password" type="password" autocomplete="current-password" required></label>
+        <label class="admin-auth-remember">
+          <input id="adminRememberLogin" type="checkbox" checked>
+          <span>자동 로그인<small>이 기기에서 관리자 로그인을 유지합니다.</small></span>
+        </label>
         <p class="admin-auth-error" id="adminAuthError" role="alert" hidden></p>
         <button id="adminLoginButton" type="submit">로그인</button>
       </form>
@@ -41,18 +45,7 @@
         <a class="brand" href="./" aria-label="벨로르 운영 홈">
           <img src="../../assets/logo-bellore.png" alt="BELLORE KOREA">
         </a>
-        <div class="surface-switch" aria-label="업무 화면">
-          <button class="surface-current" type="button">
-            <span class="surface-dot"></span>
-            운영 관리자
-            <span aria-hidden="true">⌄</span>
-          </button>
-          <div class="surface-menu" hidden>
-            <span class="surface-option is-current">운영 관리자</span>
-            <a class="surface-option" href="./?view=mypageSettings">고객·업체 마이페이지 관리</a>
-            <span class="surface-option is-planned">파트너스 <em>준비중</em></span>
-          </div>
-        </div>
+        <span class="admin-surface-title">운영 관리자</span>
       </div>
 
       <label class="global-search">
@@ -81,11 +74,6 @@
           <nav id="adminNav"></nav>
         </div>
         <div class="sidebar-foot">
-          <button class="partner-slot" type="button" data-action="partner-preview">
-            <span class="partner-mark" aria-hidden="true">협</span>
-            <span><b>파트너스 확장 구조</b><small>같은 데이터 · 별도 권한 화면</small></span>
-            <span aria-hidden="true">›</span>
-          </button>
           <div class="system-state">
             <span class="state-dot"></span>
             <span><b>관리자 권한 확인됨</b><small>운영 계정 전용 화면</small></span>
@@ -104,6 +92,6 @@
     <div class="toast-region" id="toastRegion" aria-live="polite"></div>
   </div>
 
-  <script type="module" src="./bootstrap.js?v=20260826-admin-release-v3"></script>
+  <script type="module" src="./bootstrap.js?v=20260826-catalog-ledger-v3"></script>
 </body>
 </html>

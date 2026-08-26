@@ -69,8 +69,7 @@ export function createHomeMerchandising({ window: win }) {
         .slice(0, WEEKLY_LIMIT);
       const manualIds = new Set(manualWeekly.map((item) => String(item.id)));
       const activeSale = available.filter((item) => item.saleActive && !manualIds.has(String(item.id)));
-      const weeklyPool = (activeSale.length ? activeSale : available)
-        .filter((item) => !manualIds.has(String(item.id)));
+      const weeklyPool = activeSale.filter((item) => !manualIds.has(String(item.id)));
       const rankedWeekly = rank(weeklyPool, {
         limit: Math.max(0, WEEKLY_LIMIT - manualWeekly.length), surface: 'weekly_special',
       });

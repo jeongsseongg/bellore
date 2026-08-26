@@ -26,8 +26,8 @@ function pageHeading({ eyebrow, title, description, current, planned, primaryAct
         <p>${description}</p>
       </div>
       <div class="page-actions">
-        <button class="secondary-button" type="button" data-action="export">내보내기</button>
-        ${primaryAction ? `<button class="primary-button" type="button" data-action="primary">${icon('plus')} ${primaryAction}</button>` : ''}
+        ${planned ? '' : '<button class="secondary-button" type="button" data-action="export">내보내기</button>'}
+        ${!planned && primaryAction ? `<button class="primary-button" type="button" data-action="primary">${icon('plus')} ${primaryAction}</button>` : ''}
       </div>
     </div>`;
 }
@@ -232,6 +232,15 @@ function capabilitiesPanel(view, viewId) {
 }
 
 function renderModulePage(viewId, view) {
+  if (view.planned) {
+    return `
+      <div class="workspace-page module-page" data-page="${viewId}">
+        ${pageHeading({ ...view, primaryAction: '' })}
+        <div class="module-notice is-planned">${icon('building')}<p><b>데이터 계약 준비 중</b><span>${view.notice || '기존 운영 기능과 연결할 저장 계약을 먼저 확정해야 합니다.'}</span></p></div>
+        ${capabilitiesPanel(view, viewId)}
+        <section class="records-panel"><div class="operation-state"><b>예시 항목을 운영 데이터처럼 표시하지 않습니다.</b><span>실제 테이블·서버 권한·상태 전이가 구현된 뒤 이 위치에 연결됩니다.</span></div></section>
+      </div>`;
+  }
   return `
     <div class="workspace-page module-page" data-page="${viewId}">
       ${pageHeading(view)}
@@ -376,13 +385,16 @@ function partnerPreviewMarkup() {
     <div class="drawer-actions"><button class="primary-button" type="button" data-drawer-close>구조 확인 완료</button></div>`;
 }
 
-export function createAdminWorkspace({ root, drawer, drawerContent, drawerScrim, overview, roles, views, specialViews = {}, onNavigate, onToast }) {
+export function createAdminWorkspace({ root, drawer, drawerContent, drawerScrim, overview, roles, views, specialViews = {}, operations, onNavigate, onToast }) {
   let currentView = 'overview';
 
   function render(viewId = currentView) {
     currentView = viewId;
     const specialView = specialViews[viewId];
-    if (specialView?.render) {
+    if (operations?.owns(viewId)) {
+      root.innerHTML = operations.render(viewId);
+      operations.mount(viewId);
+    } else if (specialView?.render) {
       root.innerHTML = specialView.render();
       specialView.mount?.(root);
     } else {
@@ -420,6 +432,10 @@ export function createAdminWorkspace({ root, drawer, drawerContent, drawerScrim,
       render(currentView === 'search' ? 'overview' : currentView);
       return;
     }
+    if (operations?.search(query)) {
+      currentView = 'search';
+      return;
+    }
     const hits = Object.entries(views).filter(([, view]) => Array.isArray(view.rows)).flatMap(([viewId, view]) => view.rows
       .filter((row) => [row.id, row.title, row.sub, ...row.cells].join(' ').toLowerCase().includes(keyword))
       .map((row) => ({ viewId, view, row })));
@@ -438,6 +454,7 @@ export function createAdminWorkspace({ root, drawer, drawerContent, drawerScrim,
   }
 
   root.addEventListener('click', (event) => {
+    if (operations?.handleRootClick(event)) return;
     const target = event.target.closest('[data-view-target]');
     if (target) {
       onNavigate(target.dataset.viewTarget);
@@ -484,14 +501,31 @@ export function createAdminWorkspace({ root, drawer, drawerContent, drawerScrim,
     }
   });
 
+  root.addEventListener('input', (event) => {
+    operations?.handleRootInput(event);
+  });
+  root.addEventListener('change', (event) => {
+    operations?.handleRootInput(event);
+  });
+
   drawer.addEventListener('click', (event) => {
+    if (operations?.handleDrawerClick(event)) return;
     if (event.target.closest('[data-drawer-close]')) closeDrawer();
     const action = event.target.closest('[data-action]');
     if (action) onToast('화면 시안입니다. 운영 권한과 데이터가 연결되지 않아 이 작업을 실행하지 않습니다.');
   });
-  drawerScrim.addEventListener('click', closeDrawer);
+  drawer.addEventListener('submit', (event) => {
+    operations?.handleDrawerSubmit(event);
+  });
+  drawerScrim.addEventListener('click', () => {
+    if (operations?.owns(currentView)) operations.closeDrawer();
+    else closeDrawer();
+  });
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && drawer.classList.contains('is-open')) closeDrawer();
+    if (event.key === 'Escape' && drawer.classList.contains('is-open')) {
+      if (operations?.owns(currentView)) operations.closeDrawer();
+      else closeDrawer();
+    }
   });
 
   return { render, search, openPartnerPreview, closeDrawer };

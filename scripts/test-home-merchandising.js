@@ -76,12 +76,11 @@ assert.equal(
 );
 
 const noSale = feature.update(catalog.map((item) => ({ ...item, saleActive: false, listPrice: item.price })));
-assert.equal(noSale.weeklySpecial.items.length, 8);
-assert(noSale.weeklySpecial.items.every((item) => item.saleActive === false));
+assert.equal(noSale.weeklySpecial.items.length, 0, 'sale items are required for the weekly special');
 assert.equal(
   noSale.weeklySpecial.items.some((weekly) => noSale.recommended.items.some((recommended) => recommended.id === weekly.id)),
   false,
-  'fallback weekly special and recommended listings must not overlap'
+  'empty weekly special and recommended listings must not overlap'
 );
 
 console.log('home merchandising algorithm tests passed');

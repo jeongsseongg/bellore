@@ -142,6 +142,17 @@ button {
   position: relative;
 }
 
+.admin-surface-title {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  padding-left: 14px;
+  color: var(--ink-600);
+  border-left: 1px solid var(--line-dark);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .surface-current {
   height: 38px;
   gap: 8px;
@@ -427,19 +438,46 @@ button {
   margin-top: 22px;
 }
 
-.nav-group-label {
-  margin: 0 0 7px;
+.nav-group-toggle {
+  width: 100%;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 3px;
   padding: 0 10px;
   color: #9b9f9d;
+  background: transparent;
   font-size: 10px;
   font-weight: 800;
   letter-spacing: .09em;
-  text-transform: uppercase;
+  text-align: left;
+}
+
+.nav-group-toggle:hover {
+  color: var(--green-850);
+}
+
+.nav-group-toggle i {
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform .16s ease;
+}
+
+.nav-group.is-open .nav-group-toggle i {
+  transform: rotate(225deg) translate(-1px, -1px);
 }
 
 .nav-group-items {
-  display: grid;
+  display: none;
   gap: 3px;
+}
+
+.nav-group.is-open .nav-group-items {
+  display: grid;
 }
 
 .nav-item {
@@ -2232,7 +2270,8 @@ button {
     grid-template-columns: minmax(250px, 1fr) minmax(280px, 480px) auto;
   }
 
-  .surface-current {
+  .surface-current,
+  .admin-surface-title {
     display: none;
   }
 
@@ -2257,12 +2296,16 @@ button {
     margin-top: 15px;
   }
 
-  .nav-group-label,
+  .nav-group-toggle,
   .nav-label,
   .nav-count,
   .nav-badge,
   .sidebar-foot {
     display: none;
+  }
+
+  .nav-group-items {
+    display: grid;
   }
 
   .nav-item {
@@ -2389,7 +2432,7 @@ button {
     margin-top: 22px;
   }
 
-  .nav-group-label,
+  .nav-group-toggle,
   .nav-label,
   .nav-count,
   .nav-badge,
@@ -2397,8 +2440,16 @@ button {
     display: flex;
   }
 
-  .nav-group-label {
-    display: block;
+  .nav-group-toggle {
+    display: flex;
+  }
+
+  .nav-group-items {
+    display: none;
+  }
+
+  .nav-group.is-open .nav-group-items {
+    display: grid;
   }
 
   .nav-item {

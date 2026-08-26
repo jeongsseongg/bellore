@@ -2,6 +2,12 @@
   color-scheme: light;
 }
 
+.admin-auth[hidden],
+.admin-app[hidden],
+.admin-auth-error[hidden] {
+  display: none;
+}
+
 .admin-auth {
   min-height: 100vh;
   display: grid;
@@ -66,6 +72,33 @@
   color: #2b302e;
   font-size: 13px;
   font-weight: 700;
+}
+
+.admin-auth .admin-auth-remember {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: #555d59;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.admin-auth .admin-auth-remember input {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  accent-color: #18352d;
+}
+
+.admin-auth .admin-auth-remember small {
+  display: block;
+  margin-top: 2px;
+  color: #8a918e;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .admin-auth input {

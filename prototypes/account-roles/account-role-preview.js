@@ -29,8 +29,9 @@ function mergeSaved(defaultValue, savedValue) {
   return result;
 }
 
-function loadContent(previewWindow, role) {
+function loadContent(previewWindow, role, initialContent) {
   const defaults = cloneRoleContent(role);
+  if (initialContent && initialContent[role]) return mergeSaved(defaults, initialContent[role]);
   try {
     const saved = JSON.parse(previewWindow.localStorage.getItem(storageKey(role)) || 'null');
     return saved ? mergeSaved(defaults, saved) : defaults;
@@ -118,14 +119,21 @@ function renderNotificationPanel() {
     '<button type="button" data-demo-action="배송 상태 확인"><b>상품이 배송 중입니다</b><span>20분 전</span></button></div>';
 }
 
+function headerIcon(name) {
+  if (name === 'notification') {
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>';
+  }
+  return '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
+}
+
 function renderHeader(content, role) {
   const count = Math.max(0, Number(content.profile.notificationCount) || 0);
   const initial = String(content.profile.name || '벨').trim().slice(0, 1) || '벨';
   const membershipLabel = role === 'admin' ? '벨로르 운영 관리자' : (role === 'vendor' ? '벨로르 업체 회원' : '벨로르 회원');
   return '<header class="mp-head"><div class="mp-head-bar"><strong>마이페이지</strong><span class="mp-head-actions">' +
-    '<button type="button" class="mp-head-text" data-notification-toggle aria-expanded="false">알림' +
-    (count ? '<i>' + count + '</i>' : '') + '</button>' +
-    '<button type="button" class="mp-head-text" data-demo-action="설정">설정</button></span></div>' +
+    '<button type="button" class="mp-head-icon" data-notification-toggle aria-expanded="false" aria-label="알림">' +
+    headerIcon('notification') + (count ? '<i>' + count + '</i>' : '') + '</button>' +
+    '<button type="button" class="mp-head-icon" data-demo-action="설정" aria-label="설정">' + headerIcon('settings') + '</button></span></div>' +
     '<div class="mp-profile"><span class="mp-profile-avatar" aria-hidden="true">' + escapeHTML(initial) + '</span>' +
     '<div class="mp-profile-copy"><p class="mp-member-kicker">' + membershipLabel + '</p>' +
     '<button type="button" class="mp-name-row" data-demo-action="회원정보 수정"><span class="mpa-name">' +
@@ -193,14 +201,15 @@ function renderPreview(content, role) {
     renderFooter(content) + renderTabbar() + '</div>';
 }
 
-function renderShell(root, role, content) {
+function renderShell(root, role, content, operational) {
   root.dataset.role = role;
   root.dataset.previewWidth = root.dataset.previewWidth || '660';
   root.classList.remove('has-unsaved-changes');
   root.innerHTML = '<header class="preview-toolbar"><div class="preview-toolbar__title"><small>화면 편집 시안</small>' +
     '<strong>고객·업체·관리자 마이페이지</strong></div><div class="preview-toolbar__roles" role="group" aria-label="미리보기 역할">' +
     renderRoleButtons(role) + '</div><div class="preview-toolbar__actions"><button type="button" data-copy-config>설정 복사</button>' +
-    '<button type="button" data-reset-config>운영 기준 복원</button><button type="button" class="is-primary" data-save-config>이 브라우저에 시안 저장</button>' +
+    '<button type="button" data-reset-config>운영 기준 복원</button><button type="button" class="is-primary" data-save-config>' +
+    (operational ? '운영 화면 설정 저장' : '이 브라우저에 시안 저장') + '</button>' +
     '<a href="../admin-console-v2/">기존 관리자 페이지 열기</a></div></header>' +
     '<div class="preview-notice"><strong>세 역할은 구조를 공유합니다.</strong><span>고객·업체·관리자를 전환해 같은 마이페이지 구조와 역할별 문구를 비교할 수 있습니다.</span></div>' +
     '<div class="preview-workspace"><aside class="editor-panel" data-editor-panel>' + renderEditor(content, role) + '</aside>' +
@@ -241,6 +250,9 @@ export function initAccountRolePreview(options) {
   const root = options && options.root;
   const previewWindow = options && options.window;
   const syncUrl = !options || options.syncUrl !== false;
+  const persistence = options && options.persistence;
+  const initialContent = options && options.initialContent;
+  const operational = !!(persistence && typeof persistence.save === 'function');
   if (!root || !previewWindow) throw new Error('마이페이지 편집 시안 초기화 대상이 없습니다.');
 
   const params = new URLSearchParams(previewWindow.location.search);
@@ -253,11 +265,11 @@ export function initAccountRolePreview(options) {
   const drafts = {};
   const dirtyRoles = new Set();
   function getDraft(role) {
-    if (!drafts[role]) drafts[role] = loadContent(previewWindow, role);
+    if (!drafts[role]) drafts[role] = loadContent(previewWindow, role, initialContent);
     return drafts[role];
   }
   let content = getDraft(activeRole);
-  renderShell(root, activeRole, content);
+  renderShell(root, activeRole, content, operational);
 
   root.addEventListener('input', function (event) {
     const field = event.target.closest('[data-edit-field]');
@@ -286,31 +298,38 @@ export function initAccountRolePreview(options) {
         next.searchParams.set('role', activeRole);
         previewWindow.history.replaceState({}, '', next);
       }
-      renderShell(root, activeRole, content);
+      renderShell(root, activeRole, content, operational);
       root.classList.toggle('has-unsaved-changes', dirtyRoles.has(activeRole));
       return;
     }
 
     if (event.target.closest('[data-save-config]')) {
       try {
-        previewWindow.localStorage.setItem(storageKey(activeRole), JSON.stringify(content));
+        if (operational) await persistence.save(activeRole, content);
+        else previewWindow.localStorage.setItem(storageKey(activeRole), JSON.stringify(content));
         dirtyRoles.delete(activeRole);
         root.classList.remove('has-unsaved-changes');
-        showToast(root, content.label + ' 시안을 이 브라우저에 저장했습니다. 운영 데이터 저장 0건.', previewWindow);
+        showToast(root, operational
+          ? content.label + ' 마이페이지 설정을 운영 데이터에 저장했습니다.'
+          : content.label + ' 시안을 이 브라우저에 저장했습니다.', previewWindow);
       } catch (error) {
         console.error('마이페이지 편집값을 저장하지 못했습니다.', error);
-        showToast(root, '저장하지 못했습니다. 브라우저 저장 공간을 확인해 주세요.', previewWindow);
+        showToast(root, error?.message || '마이페이지 설정을 저장하지 못했습니다.', previewWindow);
       }
       return;
     }
 
     if (event.target.closest('[data-reset-config]')) {
-      previewWindow.localStorage.removeItem(storageKey(activeRole));
-      content = cloneRoleContent(activeRole);
+      const defaultContent = cloneRoleContent(activeRole);
+      if (operational && typeof persistence.reset === 'function') await persistence.reset(activeRole, defaultContent);
+      else previewWindow.localStorage.removeItem(storageKey(activeRole));
+      content = defaultContent;
       drafts[activeRole] = content;
       dirtyRoles.delete(activeRole);
-      renderShell(root, activeRole, content);
-      showToast(root, content.label + ' 시안을 현재 운영 화면 기준으로 되돌렸습니다.', previewWindow);
+      renderShell(root, activeRole, content, operational);
+      showToast(root, operational
+        ? content.label + ' 마이페이지 설정을 기본값으로 저장했습니다.'
+        : content.label + ' 시안을 현재 운영 화면 기준으로 되돌렸습니다.', previewWindow);
       return;
     }
 

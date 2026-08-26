@@ -11,6 +11,7 @@ function read(relative) {
 
 const html = read('index.html');
 const auth = read('admin-auth.js');
+const authCss = read('admin-auth.css');
 const css = read('admin-console.css');
 const data = read('data/admin-console-data.js');
 const bootstrap = read('bootstrap.js');
@@ -23,7 +24,19 @@ const wantedCss = read('features/workspace/admin-wanted.css');
 const homeCss = read('features/home-editor/admin-home-editor.css');
 const mypageCss = read('features/mypage-editor/admin-mypage-editor.css');
 const mypageShadowCss = read('features/mypage-editor/admin-mypage-editor-shadow.css');
+const operationController = read('features/operations/admin-operation-controller.js');
+const operationOverview = read('features/operations/admin-live-overview.js');
+const operationView = read('features/operations/admin-operation-view.js');
+const displayText = read('features/operations/admin-display-text.js');
+const operationsService = read('services/admin/admin-operations-service.js');
+const catalogService = read('services/admin/admin-catalog-service.js');
+const accountService = read('services/admin/admin-account-service.js');
+const accountConfig = read('features/operations/admin-account-config.js');
+const restClient = read('services/platform/admin-rest-client.js');
 const publicConfig = fs.readFileSync(path.join(root, 'supabase-config.js'), 'utf8');
+const memberOpsEdge = fs.readFileSync(path.join(root, 'supabase', 'functions', 'admin-member-ops', 'index.ts'), 'utf8');
+const auditEdge = fs.readFileSync(path.join(root, 'supabase', 'functions', 'admin-audit-events', 'index.ts'), 'utf8');
+const memberOpsMigration = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20260826173419_admin_member_operations.sql'), 'utf8');
 
 const requiredFiles = [
   'index.html',
@@ -38,6 +51,20 @@ const requiredFiles = [
   'features/mypage-editor/admin-mypage-editor.js',
   'features/mypage-editor/admin-mypage-editor.css',
   'features/mypage-editor/admin-mypage-editor-shadow.css',
+  'features/operations/admin-operation-controller.js',
+  'features/operations/admin-operation-model.js',
+  'features/operations/admin-display-text.js',
+  'features/operations/admin-operation-view.js',
+  'features/operations/admin-live-overview.js',
+  'features/operations/admin-trade-config.js',
+  'features/operations/admin-catalog-config.js',
+  'features/operations/admin-account-config.js',
+  'features/operations/admin-operations.css',
+  'services/platform/admin-rest-client.js',
+  'services/admin/admin-operations-service.js',
+  'services/admin/admin-trade-service.js',
+  'services/admin/admin-catalog-service.js',
+  'services/admin/admin-account-service.js',
   'features/navigation/admin-navigation.js',
   'features/workspace/admin-workspace.js',
   'features/workspace/admin-wanted.css',
@@ -48,9 +75,11 @@ requiredFiles.forEach((file) => assert.ok(fs.existsSync(path.join(base, file)), 
 assert.match(html, /id="adminNav"/, 'shell owns navigation mount');
 assert.match(html, /id="adminWorkspace"/, 'shell owns workspace mount');
 assert.match(html, /id="caseDrawer"/, 'shell owns case drawer');
-assert.match(html, /type="module" src="\.\/bootstrap\.js\?v=20260826-admin-release-v3"/, 'versioned native module bootstrap is used');
+assert.match(html, /type="module" src="\.\/bootstrap\.js\?v=20260826-catalog-ledger-v3"/, 'versioned native module bootstrap is used');
 assert.doesNotMatch(html, /<script(?![^>]*src=)[^>]*>/, 'no executable inline scripts');
 assert.doesNotMatch(html, /style="/, 'no inline style attributes in shell');
+assert.doesNotMatch(html, /surface-menu|partner-slot/, 'duplicate top and footer navigation are removed');
+assert.match(html, /admin-surface-title">운영 관리자/, 'header keeps one plain workspace label');
 
 ['customer', 'vendor', 'partner', 'admin'].forEach((role) => {
   assert.match(data, new RegExp(`key: '${role}'`), `role contract includes ${role}`);
@@ -61,9 +90,9 @@ assert.match(data, /입찰 권한은 현 코드 충돌 확인 후 확정/, 'part
 const currentModules = [
   'orders', 'quotes', 'returns', 'listings', 'auctions', 'customers', 'vendors',
   'partners', 'mypageSettings', 'settlements', 'coupons', 'support', 'banners', 'advisor', 'analytics',
-  'homeSettings', 'community', 'content', 'coverage'
+  'homeSettings', 'community', 'content', 'coverage', 'notifications', 'audit'
 ];
-const plannedModules = ['consignments', 'purchases', 'inspections', 'notifications', 'audit', 'permissions'];
+const plannedModules = ['consignments', 'purchases', 'inspections', 'permissions'];
 currentModules.forEach((id) => {
   assert.match(data, new RegExp(`${id}: \\{[\\s\\S]*?current: true`), `current module ${id} is mapped`);
   assert.match(data, new RegExp(`id: '${id}'`), `navigation exposes ${id}`);
@@ -82,6 +111,13 @@ assert.match(data, /운영 데이터에 판매방식이 구분 저장되지 않�
 assert.match(bootstrap, /createAdminNavigation/, 'bootstrap composes navigation feature');
 assert.match(bootstrap, /await requireAdminSession\(\)/, 'admin workspace waits for the authorization gate');
 assert.match(auth, /STORAGE_KEY = 'bellore-admin-auth-v1'/, 'admin auth uses an isolated session');
+assert.match(html, /id="adminRememberLogin"[^>]*type="checkbox"[^>]*checked/, 'automatic login is explicitly enabled by default');
+assert.match(auth, /window\.localStorage[\s\S]*window\.sessionStorage/, 'automatic and tab-only sessions use separate browser stores');
+assert.match(auth, /persistSession = rememberInput\.checked/, 'login persistence follows the automatic-login control');
+assert.match(auth, /window\.localStorage\.removeItem\(STORAGE_KEY\)[\s\S]*window\.sessionStorage\.removeItem\(STORAGE_KEY\)/,
+  'session writes and logout clear both persistence scopes');
+assert.match(authCss, /\.admin-auth\[hidden\][\s\S]*\.admin-app\[hidden\][\s\S]*display:\s*none;/,
+  'successful login cannot leave the login surface visible');
 assert.match(auth, /profile\?\.role !== 'admin'|profile\.role !== 'admin'/, 'database profile role is required');
 assert.match(auth, /tokenRole !== 'admin'/, 'trusted app metadata role is required');
 assert.match(auth, /\/auth\/v1\/token\?grant_type=password/, 'production admin signs in through the Supabase Auth endpoint');
@@ -93,11 +129,27 @@ assert.match(html, /method="post" action="\/admin\/"/, 'login form must not leak
 assert.match(auth, /searchParams\.delete\('password'\)/, 'legacy credential query parameters are removed immediately');
 assert.doesNotMatch(auth, /service[_-]?role|qpffhfm|password\s*[:=]\s*['"]/i, 'admin auth must not embed a privileged key or password');
 assert.match(bootstrap, /createAdminWorkspace/, 'bootstrap composes workspace feature');
-assert.match(bootstrap, /createAdminHomeEditor/, 'bootstrap composes home editor feature');
+assert.doesNotMatch(bootstrap, /createAdminHomeEditor|homeEditorData/, 'prototype home editor must not compete with the operational site-content workspace');
 assert.match(bootstrap, /createAdminMypageEditor/, 'bootstrap composes My Page editor feature');
-assert.match(bootstrap, /specialViews: \{ homeSettings: homeEditor, mypageSettings: mypageEditor \}/,
-  'home and My Page editors are mounted as special workspaces');
+assert.match(bootstrap, /createAdminOperationsService/, 'bootstrap composes the existing operations service boundary');
+assert.match(bootstrap, /settingsService: operationsService\.catalog/, 'My Page editor uses the shared catalog service');
+assert.match(bootstrap, /specialViews: \{ mypageSettings: mypageEditor \}/,
+  'only the reusable My Page editor is mounted as a special workspace');
 assert.match(navigation, /onNavigate/, 'navigation communicates through callback');
+assert.match(navigation, /data-nav-group-toggle[\s\S]*aria-expanded/, 'navigation groups expose an accessible collapse control');
+assert.match(navigation, /openGroup\(next\.closest\('\[data-nav-group\]'\)\)/,
+  'search and direct navigation open the group that owns the selected view');
+assert.match(navigation, /class="nav-group is-open"[\s\S]*aria-expanded="true"/,
+  'all navigation groups start open');
+assert.doesNotMatch(navigation, /candidate === group/,
+  'opening or closing one navigation group does not close the others');
+assert.doesNotMatch(bootstrap, /function navigate[\s\S]*?closeMobileMenu\(\);[\s\S]*?globalSearch\.value/,
+  'navigation keeps the sidebar open until the operator closes it');
+['운영 홈', '거래 업무', '상품 업무', '고객 · 업체', '화면 관리', '운영 지원', '확장 · 설정'].forEach((label) => {
+  assert.match(data, new RegExp(`label: '${label}'`), `simplified navigation includes ${label}`);
+});
+assert.equal((data.match(/label: '(운영 홈|거래 업무|상품 업무|고객 · 업체|화면 관리|운영 지원|확장 · 설정)',\r?\n\s+items:/g) || []).length, 7,
+  'navigation is reduced to seven task groups');
 assert.doesNotMatch(navigation, /supabase|fetch\(|localStorage/, 'navigation has no service access');
 assert.doesNotMatch(workspace, /supabase|service_role|anon[_-]?key/i, 'workspace contains no provider secrets or SDK access');
 
@@ -119,8 +171,47 @@ assert.match(homeEditor, /운영에 연결하지 않음|운영 데이터를 저�
 assert.match(homeCss, /height:\s*52px/, 'home editor inputs use 52px height');
 assert.match(homeCss, /min-height:\s*54px/, 'home editor CTA uses 54px height');
 assert.match(mypageEditor, /attachShadow/, 'My Page editor styles are isolated from the admin console');
-assert.match(mypageEditor, /initAccountRolePreview\(\{ root: editorRoot, window, syncUrl: false \}\)/,
+assert.match(mypageEditor, /initAccountRolePreview\(\{[\s\S]*root: editorRoot,[\s\S]*syncUrl: false,[\s\S]*persistence:/,
   'embedded My Page editor keeps the admin URL state');
+assert.match(mypageEditor, /loadMypageConfigs\(\)/, 'embedded My Page editor loads saved operating settings');
+assert.match(catalogService, /mypage_customer_config[\s\S]*mypage_vendor_config[\s\S]*mypage_admin_config/,
+  'customer, vendor, and admin My Page settings have stable operating keys');
+assert.match(catalogService, /saveMypageConfig[\s\S]*saveSiteContent/, 'My Page settings reuse the existing site content storage contract');
+assert.match(restClient, /Authorization: `Bearer \$\{token\}`/, 'operations requests use the signed-in admin access token');
+assert.match(restClient, /\/rest\/v1\/[\s\S]*\/functions\/v1\//, 'existing REST and Edge Function boundaries are both available');
+assert.match(operationController, /viewId === 'overview'[\s\S]*service\.loadOverview\(\)/,
+  'overview reads real operating aggregates instead of the example dashboard');
+assert.match(operationController, /action\.promptText[\s\S]*action\.reasonPrompt[\s\S]*reason\.length < 5/,
+  'destructive and manual verification actions require explicit confirmation input');
+assert.match(operationOverview, /운영 데이터에서 집계한 처리 대기 업무/, 'live overview identifies its operating data source');
+assert.match(displayText, /on_sale:\s*'판매중'/, 'listing status is normalized to Korean');
+assert.match(displayText, /pending:\s*'대기'/, 'pending status is normalized to Korean');
+assert.match(displayText, /vendor:\s*'견적업체'/, 'account role is normalized to Korean');
+assert.match(displayText, /bank_transfer:\s*'계좌이체'/, 'payment method is normalized to Korean');
+assert.match(operationView, /displayText\(cell\)[\s\S]*displayText\(row\.statusLabel\)/,
+  'operation rows never expose raw status values');
+assert.match(operationView, /displayFieldLabel\(key\)[\s\S]*displayDetailValue\(key, value\)/,
+  'detail fields use Korean labels and values');
+assert.doesNotMatch(operationView + operationOverview + data, /Supabase 운영 데이터|원본 필드|AI 고객비서|TIME SALE|VIP 견적업체/,
+  'operator-facing technical and English labels are removed');
+assert.match(operationsService, /trade\.overview\(\)[\s\S]*accounts\.listProfiles\(\)[\s\S]*catalog\.listListings\(\)/,
+  'overview combines existing trade, account, and catalog services');
+assert.match(accountService, /admin-member-ops[\s\S]*admin-manage-verification/,
+  'member lifecycle and verification use server-authorized Edge Functions');
+assert.match(accountConfig, /email_verified[\s\S]*phone_verified[\s\S]*biz_verified[\s\S]*account_verified/,
+  'all four verification results are visible in member administration');
+assert.match(accountConfig, /disabled: true[\s\S]*setMemberVerification/,
+  'verification flags are read-only and manual decisions use the audited server contract');
+assert.doesNotMatch(accountService, /next\.biz_verified|next\.account_verified/,
+  'profile editing cannot forge verification timestamps or notifications');
+assert.match(memberOpsEdge, /SERVICE_ROLE[\s\S]*requireUser[\s\S]*role,approved,suspended/,
+  'member operations revalidate an active approved administrator on the server');
+assert.match(memberOpsEdge, /SELF_OPERATION_FORBIDDEN[\s\S]*PROTECTED_ROLE[\s\S]*auth\.admin\.deleteUser/,
+  'member operations protect the current administrator and all administrator accounts');
+assert.match(memberOpsMigration, /member_admin_events[\s\S]*enable row level security[\s\S]*revoke all/,
+  'member changes have a server-only audit trail');
+assert.match(auditEdge, /role,approved,suspended[\s\S]*member_verification_events[\s\S]*member_admin_events/,
+  'the admin audit view combines verification and member events behind an active-admin gate');
 assert.doesNotMatch(mypageEditor, /<iframe|createElement\(['"]iframe/i,
   'My Page editor is integrated directly rather than loaded as a separate page frame');
 assert.match(mypageEditor, /account-role-preview\.css[\s\S]*admin-mypage-editor-shadow\.css/,
@@ -138,6 +229,10 @@ assert.match(mypageShadowCss, /\.admin-embedded-role-preview \.preview-stage\s*\
   'embedded My Page preview is a flat white canvas rather than a nested device card');
 assert.match(mypageShadowCss, /\.admin-embedded-role-preview \.preview-frame\s*\{[\s\S]*?height:\s*auto;[\s\S]*?overflow-y:\s*visible;/,
   'embedded My Page preview uses page scrolling instead of an inner scroll box');
+assert.match(mypageShadowCss, /\[data-copy-config\][\s\S]*\[data-reset-config\][\s\S]*display:\s*none;/,
+  'embedded editor hides duplicate copy and reset actions');
+assert.match(mypageEditor, /역할 선택[\s\S]*내용 수정[\s\S]*미리보기 확인 후 저장/,
+  'embedded editor presents one concise three-step workflow');
 assert.match(wantedCss, /width: min\(100%, 1200px\)/, 'Wanted content canvas is 1200px');
 assert.match(wantedCss, /min-height: 54px/, 'Wanted primary action height is 54px');
 assert.doesNotMatch(workspace + html, /OPERATIONS HOME|WORK QUEUE|CONTROL SIGNAL|PIPELINE|RECENT ACTIVITY|PORTAL ARCHITECTURE|ROLE CONTRACT|WATCH CASE FILE|FUTURE PORTAL|GLOBAL SEARCH/, 'decorative English is removed');

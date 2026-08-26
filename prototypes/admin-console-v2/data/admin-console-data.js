@@ -43,26 +43,24 @@ export const roleContracts = [
 
 export const navGroups = [
   {
-    label: '운영',
+    label: '운영 홈',
     items: [
       { id: 'overview', label: '운영 홈', icon: 'home', current: true }
     ]
   },
   {
-    label: '거래 운영',
+    label: '거래 업무',
     items: [
       { id: 'orders', label: '주문 관리', icon: 'order', count: 4, current: true },
       { id: 'quotes', label: '비교견적 관리', icon: 'quote', count: 12, current: true },
-      { id: 'consignments', label: '위탁판매 관리', icon: 'consign', badge: '확장', planned: true },
-      { id: 'purchases', label: '즉시매입 관리', icon: 'bank', badge: '확장', planned: true },
-      { id: 'returns', label: '교환 · 반품', icon: 'return', count: 2, current: true }
+      { id: 'returns', label: '교환 · 반품', icon: 'return', count: 2, current: true },
+      { id: 'settlements', label: '공급대금 관리', icon: 'settlement', count: 3, current: true }
     ]
   },
   {
-    label: '시계 · 상품',
+    label: '상품 업무',
     items: [
       { id: 'listings', label: '판매시계 관리', icon: 'watch', current: true },
-      { id: 'inspections', label: '입고 · 검수', icon: 'inspect', badge: '통합', planned: true },
       { id: 'auctions', label: '경매 관제소', icon: 'auction', current: true }
     ]
   },
@@ -71,40 +69,37 @@ export const navGroups = [
     items: [
       { id: 'customers', label: '일반회원', icon: 'customer', current: true },
       { id: 'vendors', label: '견적업체', icon: 'vendor', count: 3, current: true },
-      { id: 'mypageSettings', label: '마이페이지 관리', icon: 'home', current: true },
       { id: 'partners', label: '공급협력사', icon: 'partner', count: 2, current: true }
     ]
   },
   {
-    label: '정산 · 혜택',
-    items: [
-      { id: 'settlements', label: '공급대금 관리', icon: 'settlement', count: 3, current: true },
-      { id: 'coupons', label: '쿠폰 관리', icon: 'coupon', current: true }
-    ]
-  },
-  {
-    label: '고객 경험',
-    items: [
-      { id: 'support', label: '고객센터', icon: 'support', count: 5, current: true },
-      { id: 'advisor', label: 'AI 고객비서', icon: 'ai', current: true },
-      { id: 'analytics', label: '활동 분석', icon: 'chart', current: true }
-    ]
-  },
-  {
-    label: '홈 · 콘텐츠',
+    label: '화면 관리',
     items: [
       { id: 'homeSettings', label: '홈 화면 관리', icon: 'home', current: true },
       { id: 'banners', label: '배너 관리', icon: 'banner', current: true },
-      { id: 'community', label: '인사이트 · 후기', icon: 'support', current: true },
-      { id: 'content', label: '사이트 내용 관리', icon: 'building', current: true }
+      { id: 'mypageSettings', label: '마이페이지 관리', icon: 'home', current: true },
+      { id: 'content', label: '사이트 내용 관리', icon: 'building', current: true },
+      { id: 'community', label: '인사이트 · 후기', icon: 'support', current: true }
     ]
   },
   {
-    label: '시스템',
+    label: '운영 지원',
     items: [
+      { id: 'coupons', label: '쿠폰 관리', icon: 'coupon', current: true },
+      { id: 'support', label: '고객센터', icon: 'support', count: 5, current: true },
+      { id: 'advisor', label: '고객 상담 도우미', icon: 'ai', current: true },
+      { id: 'analytics', label: '활동 분석', icon: 'chart', current: true },
+      { id: 'notifications', label: '앱 알림 관리', icon: 'notification', count: 1, current: true }
+    ]
+  },
+  {
+    label: '확장 · 설정',
+    items: [
+      { id: 'consignments', label: '위탁판매 관리', icon: 'consign', badge: '확장', planned: true },
+      { id: 'purchases', label: '즉시매입 관리', icon: 'bank', badge: '확장', planned: true },
+      { id: 'inspections', label: '입고 · 검수', icon: 'inspect', badge: '통합', planned: true },
       { id: 'coverage', label: '전체 기능 점검', icon: 'inspect', current: true },
-      { id: 'notifications', label: '알림 · 발송', icon: 'notification', count: 1, badge: '후보', planned: true },
-      { id: 'audit', label: '감사 로그', icon: 'audit', badge: '설계', planned: true },
+      { id: 'audit', label: '회원 · 인증 감사기록', icon: 'audit', current: true },
       { id: 'permissions', label: '관리자 권한', icon: 'shield', badge: '설계', planned: true }
     ]
   }
@@ -377,13 +372,13 @@ export const moduleViews = {
     ]
   },
   advisor: {
-    eyebrow: '고객 상담 지원', title: 'AI 고객비서', description: '상담 기준, 고객 프로필, 대화, 추천 후보, 학습 메모와 확인할 내용을 관리합니다.',
+    eyebrow: '고객 상담 지원', title: '고객 상담 도우미', description: '상담 기준, 고객 프로필, 대화, 추천 후보, 학습 메모와 확인할 내용을 관리합니다.',
     current: true, filters: ['운영 현황', '고객 프로필', '대화 기록', '알림 후보', '전문가 지식', '시세 인사이트', '팀 메시지', '답변 참고서'],
     capabilities: ['운영 현황', '고객 프로필', '대화 기록', '알림 후보', '전문가 지식', '시세 인사이트', '팀 메시지', '답변 참고서'],
     columns: ['항목', '대상', '최근 처리', '확신도', '관리자 확인', '상태'],
     rows: [
-      { id: 'AI-KN-019', title: '롤렉스 풀세트 선호 신호', sub: '고객 프로필 28명', cells: ['추천 학습', '오늘 12:20', '87%', '확인 전', '검토대기'], status: 'attention', statusLabel: '검토', caseType: 'advisor' },
-      { id: 'AI-CV-442', title: '가격대 추천 상담', sub: '김도윤 고객', cells: ['대화 요약', '오늘 11:04', '91%', '확인', '정상'], status: 'success', statusLabel: '정상', caseType: 'advisor' }
+      { id: '상담자료-019', title: '롤렉스 풀세트 선호 신호', sub: '고객 프로필 28명', cells: ['추천 학습', '오늘 12:20', '87%', '확인 전', '검토대기'], status: 'attention', statusLabel: '검토', caseType: 'advisor' },
+      { id: '상담대화-442', title: '가격대 추천 상담', sub: '김도윤 고객', cells: ['대화 요약', '오늘 11:04', '91%', '확인', '정상'], status: 'success', statusLabel: '정상', caseType: 'advisor' }
     ]
   },
   analytics: {
@@ -410,13 +405,13 @@ export const moduleViews = {
       { id: 'CV-07', title: '공급대금·쿠폰', sub: '정산·쿠폰 전체화면 → 정산·혜택', cells: ['수수료·지급·한도·유형·만료·공유', '정산·쿠폰 원장', '대조 완료', '현재 코드'], status: 'success', statusLabel: '포함', caseType: 'coverage' },
       { id: 'CV-08', title: '경매 관제', sub: '독립 경매 화면 → 경매 관제소', cells: ['예약·입찰·연장·종료·취소·예치금', '경매·입찰·지갑', '대조 완료', '현재 코드'], status: 'success', statusLabel: '포함', caseType: 'coverage' },
       { id: 'CV-09', title: '배너·인사이트·후기·사이트 내용', sub: '콘텐츠 모달 → 홈·콘텐츠', cells: ['화면별 이미지·순서·글·평점·본문', '배너·글·후기·사이트 내용', '분리 완료', '현재 코드'], status: 'success', statusLabel: '포함', caseType: 'coverage' },
-      { id: 'CV-10', title: '고객센터·분석·AI 고객비서', sub: '각 독립 화면 → 고객 경험·데이터', cells: ['대화·답변·동의 집계·8개 AI 관리 탭', '문의·분석·AI 데이터', '대조 완료', '현재 코드'], status: 'success', statusLabel: '포함', caseType: 'coverage' },
+      { id: '대조-10', title: '고객센터·분석·고객 상담 도우미', sub: '각 독립 화면 → 고객 경험·데이터', cells: ['대화·답변·동의 집계·8개 상담 관리 항목', '문의·분석·상담 자료', '대조 완료', '현재 코드'], status: 'success', statusLabel: '포함', caseType: 'coverage' },
       { id: 'CV-11', title: '위탁·즉시매입·통합검수·감사', sub: '상태 계약 미완성 → 확장 화면', cells: ['독립 상태·최종금액·입고·변경 기록', '새 데이터 계약 필요', '운영 연결 전', '확장 설계'], status: 'attention', statusLabel: '연결 전', caseType: 'coverage' }
     ]
   },
   notifications: {
-    eyebrow: '알림 운영', title: '알림 · 발송', description: '카카오·앱·텔레그램 발송 결과와 실패 원인을 확인하는 확장 화면입니다.',
-    planned: true, notice: '솔라피·카카오 템플릿과 텔레그램 운영 후보는 준비되어 있지만 운영 데이터·결과 수신·실제 발송은 아직 연결되지 않았습니다.',
+    eyebrow: '알림 운영', title: '앱 알림 관리', description: '회원에게 저장된 앱 알림의 내용과 확인 상태를 관리합니다.',
+    current: true, notice: '현재 앱 내부 알림 저장소에 연결됩니다. 카카오·텔레그램 발송 결과는 공급자 결과 저장 계약을 연결한 뒤 별도 표시합니다.',
     filters: ['전체 142', '성공 140', '실패 1', '대기 1'],
     columns: ['발송', '이벤트 · 수신자', '채널', '템플릿', '발송 시각', '결과'],
     rows: [
@@ -425,8 +420,8 @@ export const moduleViews = {
     ]
   },
   audit: {
-    eyebrow: '변경 기록', title: '감사 로그', description: '금액·상태·권한·삭제 같은 중요 변경의 주체와 결과를 보존하는 설계 화면입니다.',
-    planned: true, notice: '현재 일부 기능별 로그는 존재하지만 통합 장기 감사 화면은 아직 없습니다. 금액·상태 변경은 성공/실패 모두 서버 기록이 전제입니다.',
+    eyebrow: '변경 기록', title: '회원 · 인증 감사기록', description: '회원 계정과 인증 상태의 중요 변경 주체·사유·결과를 확인합니다.',
+    current: true, notice: '현재 회원 정지·재개·삭제와 인증 변경 기록에 연결됩니다. 주문·정산 등 다른 업무 기록은 각 업무 원장을 유지합니다.',
     filters: ['전체', '금액 변경', '상태 변경', '권한', '삭제', '실패'],
     columns: ['시각', '행위자', '대상', '작업', '결과', '근거'],
     rows: [
