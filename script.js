@@ -88,8 +88,10 @@
             if (dotsBox) {
                 dotsBox.innerHTML = '';
                 if (multi) {
-                    dotsBox.innerHTML = '<span class="hero-count">' + (index + 1) + '/' + n + '</span>' +
-                        '<button type="button" class="hero-count-nav hero-count-prev" aria-label="이전 배너">‹</button>' +
+                    dotsBox.innerHTML = '<button type="button" class="hero-count-nav hero-count-prev" aria-label="이전 배너">‹</button>' +
+                        '<span class="hero-count-current">' + (index + 1) + '</span>' +
+                        '<span class="hero-count-separator" aria-hidden="true">|</span>' +
+                        '<span class="hero-count-total">' + n + '</span>' +
                         '<button type="button" class="hero-count-nav hero-count-next" aria-label="다음 배너">›</button>';
                     $('.hero-count-prev', dotsBox).addEventListener('click', prev);
                     $('.hero-count-next', dotsBox).addEventListener('click', next);
@@ -120,13 +122,15 @@
             if (e.button != null && e.button !== 0) return;
             dragging = true; swiped = false; startX = e.clientX; startT = Date.now(); dx = 0;
             track.style.transition = 'none';
-            try { track.setPointerCapture(e.pointerId); } catch (err) {}
             if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
         });
         track.addEventListener('pointermove', function (e) {
             if (!dragging) return;
             dx = e.clientX - startX;
-            if (Math.abs(dx) > 4) swiped = true;
+            if (Math.abs(dx) > 12 && !swiped) {
+                swiped = true;
+                try { track.setPointerCapture(e.pointerId); } catch (err) {}
+            }
             track.style.transform = 'translateX(calc(' + (-index * 100) + '% + ' + dx + 'px))';
         });
         // 드래그로 슬라이드를 넘겼으면 그 직후의 클릭(=링크 이동)을 취소
@@ -5249,6 +5253,7 @@
             applyPage(t);
         });
     }
+    document.addEventListener('bellore:navigate', function (event) { navigate(event.detail.page); });
     /* ============ 타임세일 카운트다운 (초 단위 실시간) ============ */
     var _countdownTimer = null;
     function initCountdowns() {

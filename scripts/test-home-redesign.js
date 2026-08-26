@@ -51,9 +51,16 @@ assert.match(bannersCss, /data-hero-action="vintage"[\s\S]*right: 5%;[\s\S]*widt
 assert.match(bannersCss, /data-hero-action="diver"[\s\S]*background-position: 68% center/, 'diver artwork stays shifted left to prevent watch clipping');
 assert.match(bannersCss, /\.hero-slide-db\.is-campaign \.hero-slide-blur \{ display: none; \}/, 'hero removes the cinema-style backdrop bars');
 assert.match(bannersCss, /\.hero-campaign-copy \{[\s\S]*background: none/, 'hero copy has no text box');
-assert.match(legacy, /class="hero-count">' \+ \(index \+ 1\) \+ '\/' \+ n/);
+assert.match(bannersCss, /\.hero-carousel\.has-db \{[\s\S]*width: 100%;[\s\S]*margin: 0;/, 'hero campaign fills the Bellore app width');
+assert.match(bannersCss, /\.hero-carousel\.has-db \.hero-track,[\s\S]*border-radius: 0;/, 'hero campaign has no rounded frame');
+assert.match(bannersCss, /\.hero-dots \{[\s\S]*right: 0;/, 'hero counter stays attached to the right edge');
+assert.match(legacy, /hero-count-prev[\s\S]*hero-count-current[\s\S]*hero-count-separator[\s\S]*hero-count-total[\s\S]*hero-count-next/);
 assert.match(legacy, /class="hero-count-nav hero-count-prev"/);
 assert.match(legacy, /class="hero-count-nav hero-count-next"/);
+assert.match(legacy, /Math\.abs\(dx\) > 12 && !swiped[\s\S]*track\.setPointerCapture/, 'hero rail captures the pointer only after a real swipe starts');
+assert.match(collection, /bellore:navigate/, 'hero collection adapter requests the canonical router');
+assert.match(legacy, /addEventListener\('bellore:navigate'[\s\S]*navigate\(event\.detail\.page\)/, 'canonical router receives hero collection navigation');
+assert.match(collection, /new win\.PopStateEvent\('popstate'/, 'hero collection adapter keeps a router fallback');
 assert.doesNotMatch(legacy, /className = 'hero-dot'/);
 for (const text of ['매일을 함께할 클래식', '1,000만원 이상의 명작', '깊이에서도 흔들리지 않는', '500만원 미만 컬렉션', '여성 명품시계', '1,000만원 미만 컬렉션', '예물 시계', '빈티지 컬렉션', '풀세트 컬렉션', '300만원 미만 컬렉션']) {
   assert.ok(data.includes(text), `category copy: ${text}`);

@@ -5,8 +5,12 @@
 
 /* 승인된 캠페인 이미지 규격(430:245.7)을 화면 틀로 사용한다. */
 .hero-carousel.has-db {
+  width: 100%; max-width: none; margin: 0;
   background: transparent; border-radius: 0;
 }
+.hero-carousel.has-db .hero-track,
+.hero-carousel.has-db .hero-slide-db.is-campaign,
+.hero-carousel.has-db .hero-slide-bg { border-radius: 0; }
 .hero-slide-db.is-campaign {
   display: block; height: auto; min-height: 0; max-height: none; aspect-ratio: 430 / 245.7;
   padding: 0; border: 0; color: inherit; background: transparent;
@@ -38,11 +42,19 @@
 
 /* 점 대신 우측 하단에 현재 순서와 이전·다음만 작게 표시한다. */
 .hero-dots {
-  left: auto; right: 5%; bottom: clamp(9px, 2.2cqw, 15px); width: auto;
-  justify-content: flex-end; align-items: center; gap: clamp(5px, 1.2cqw, 9px);
+  left: auto; right: 0; bottom: clamp(7px, 1.7cqw, 12px); width: auto;
+  justify-content: flex-end; align-items: center; gap: clamp(7px, 1.4cqw, 10px);
   color: #fff; opacity: 1; text-shadow: 0 1px 7px rgba(0, 0, 0, .72);
 }
-.hero-count { min-width: 3.2em; font-size: clamp(10px, 2.2cqw, 13px); font-weight: 700; text-align: right; }
+.hero-count-current,
+.hero-count-total,
+.hero-count-separator {
+  font-size: clamp(11px, 2.35cqw, 14px); font-weight: 700; line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.hero-count-current { min-width: 1.1em; text-align: right; }
+.hero-count-total { min-width: 1.1em; text-align: left; opacity: .68; }
+.hero-count-separator { opacity: .5; }
 .hero-count-nav {
   display: inline-flex; align-items: center; justify-content: center; width: auto; height: auto;
   padding: 0; border: 0; border-radius: 0; background: none; color: inherit;

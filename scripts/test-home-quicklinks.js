@@ -15,8 +15,8 @@ assert.match(index, /id="homeQuickCategories"/);
 assert.ok(index.indexOf('id="homeQuickCategories"') > index.indexOf('id="heroCarousel"'));
 assert.ok(index.indexOf('id="homeQuickCategories"') < index.indexOf('id="rowSaleBlock"'));
 assert.match(bootstrap, /initHomeQuicklinks\(\{ document, window, collection \}\)/);
-assert.match(bootstrap, /home-quicklinks\.js\?v=20260826-payment-condition-v1/);
-assert.match(bootstrap, /legacy-collection\.js\?v=20260826-payment-condition-v1/);
+assert.match(bootstrap, /home-quicklinks\.js\?v=20260826-hero-edge-v3/);
+assert.match(bootstrap, /legacy-collection\.js\?v=20260826-hero-edge-v3/);
 
 for (const label of ['TIME SALE', '브랜드', '빈티지', '300만원 ↓', '시계판매', '수리\/진단']) {
   assert.match(quicklinks, new RegExp(`label: '${label}'`));
