@@ -1,4 +1,4 @@
-import './vendor/recommendation-engine.js?v=20260826-payment-recovery-hero-v1';
+import './vendor/recommendation-engine.js?v=20260826-payment-final-v3';
 import { initInsightFilter } from './features/insights/insight-filter.js';
 import { initInsightReader } from './features/insights/insight-reader.js';
 import { initLegalModals } from './features/legal/legal-modals.js';
@@ -8,21 +8,25 @@ import { initSiteHeader } from './ui/site-header.js';
 import { initNavigationHistory } from './ui/navigation-history.js';
 import { initWidthPreference } from './ui/width-preference.js';
 import { initHomeBanners } from './features/home-banners/home-banners.js';
-import { initHomeQuicklinks } from './features/home-quicklinks/home-quicklinks.js?v=20260826-payment-recovery-hero-v1';
-import { createHomeMerchandising } from './features/home-merchandising/home-merchandising.js?v=20260826-payment-recovery-hero-v1';
-import { initHomeRows } from './features/home-rows/home-rows.js?v=20260826-payment-recovery-hero-v1';
-import { createListingAvailabilityUi } from './features/listing-availability/listing-availability-ui.js?v=20260826-payment-recovery-hero-v1';
+import { initHomeQuicklinks } from './features/home-quicklinks/home-quicklinks.js?v=20260826-payment-final-v3';
+import { createHomeMerchandising } from './features/home-merchandising/home-merchandising.js?v=20260826-payment-final-v3';
+import { initHomeRows } from './features/home-rows/home-rows.js?v=20260826-payment-final-v3';
+import { createListingAvailabilityUi } from './features/listing-availability/listing-availability-ui.js?v=20260826-payment-final-v3';
 import { initProductDetailRoute, initProductSharing } from './features/product-sharing/product-sharing.mjs';
-import { createListingCatalog } from './services/listings/listing-catalog-service.js?v=20260826-payment-recovery-hero-v1';
-import { effectiveListingStatus, listingAvailability, listingIsPurchasable, normalizeListingStatus } from './core/listing-display.js?v=20260826-payment-recovery-hero-v1';
-import { createPaymentAccessToken } from './services/payments/payment-auth.js';
+import { createListingCatalog } from './services/listings/listing-catalog-service.js?v=20260826-payment-final-v3';
+import { effectiveListingStatus, listingAvailability, listingIsPurchasable, normalizeListingStatus } from './core/listing-display.js?v=20260826-payment-final-v3';
+import { createPaymentAccessToken } from './services/payments/payment-auth.js?v=20260826-payment-final-v3';
+import { createCheckoutRequestRecovery } from './services/payments/checkout-request-recovery.js?v=20260826-payment-final-v3';
+import { createCheckoutClient } from './services/payments/checkout-client.js?v=20260826-payment-final-v3';
+import { createPaymentNetwork } from './services/payments/payment-network.js?v=20260826-payment-final-v3';
+import { createPendingPaymentRecovery } from './services/payments/pending-payment-recovery.js?v=20260826-payment-final-v3';
 import { createLegacyCollection } from './legacy/legacy-collection.js?v=20260825-home-typography-admin-layout-v8';
 import { initLegacyHomeMerchandisingGrid } from './legacy/home-merchandising-grid.js';
 import { installLegacyPaymentAuth } from './legacy/payment-auth.js';
 import { installLegacyReveal } from './legacy/legacy-reveal.js';
 import { initCheckoutAddresses } from './features/checkout/checkout-addresses.mjs';
-import { createPaymentFlow } from './features/checkout/payment-flow.js?v=20260826-payment-recovery-hero-v1';
-import { installCustomerFeedback } from './legacy/customer-feedback.js?v=20260826-payment-recovery-hero-v1';
+import { createPaymentFlow } from './features/checkout/payment-flow.js?v=20260826-payment-final-v3';
+import { installCustomerFeedback } from './legacy/customer-feedback.js?v=20260826-payment-final-v3';
 import { installLegacyCheckoutCoupon } from './legacy/checkout-coupon.js';
 
 // 레거시 상품 카드가 DOMContentLoaded에서 그려지기 전에 동일한 판매 상태 규칙을 노출한다.
@@ -31,6 +35,18 @@ Object.defineProperty(window, 'BELLORE_LISTING_AVAILABILITY', { configurable: tr
 }) });
 Object.defineProperty(window, 'BELLORE_LISTING_UI', { configurable: true, value: createListingAvailabilityUi({ document, window }) });
 Object.defineProperty(window, 'BELLORE_PAYMENT_FLOW', { configurable: true, value: createPaymentFlow({ window }) });
+Object.defineProperty(window, 'BELLORE_CHECKOUT_REQUEST_RECOVERY', { configurable: true, value: createCheckoutRequestRecovery({
+  cryptoApi: window.crypto,
+  getStorage: () => window.sessionStorage,
+}) });
+Object.defineProperty(window, 'BELLORE_CHECKOUT_CLIENT', { configurable: true, value: createCheckoutClient() });
+Object.defineProperty(window, 'BELLORE_PAYMENT_NETWORK', { configurable: true, value: createPaymentNetwork({
+  fetchImpl: window.fetch.bind(window), AbortControllerImpl: window.AbortController,
+  setTimer: window.setTimeout.bind(window), clearTimer: window.clearTimeout.bind(window),
+}) });
+Object.defineProperty(window, 'BELLORE_PENDING_PAYMENT_RECOVERY', { configurable: true, value: createPendingPaymentRecovery({
+  location: window.location, history: window.history, getStorage: () => window.sessionStorage,
+}) });
 
 function bootstrap() {
   installCustomerFeedback({ windowObject: window, logger: window.console });

@@ -1,10 +1,21 @@
 import {
   effectiveListingStatus,
   listingAvailability,
-} from '../../core/listing-display.js?v=20260826-payment-recovery-hero-v1';
+} from '../../core/listing-display.js?v=20260826-payment-final-v3';
 
 const SELECT_FIELDS = 'id,status,reserved_order_id,reserved_until';
 const ID_PATTERN = /^[0-9a-z-]{1,80}$/i;
+const refreshGenerations = new WeakMap();
+
+function nextRefreshGeneration(doc) {
+  const generation = (refreshGenerations.get(doc) || 0) + 1;
+  refreshGenerations.set(doc, generation);
+  return generation;
+}
+
+function isLatestRefresh(doc, generation) {
+  return refreshGenerations.get(doc) === generation;
+}
 
 function safeClass(value) {
   const normalized = String(value || '').toLowerCase();
@@ -48,6 +59,7 @@ export async function refreshMarketListingStatuses({
   config = window.BELLORE_SUPABASE,
   fetchImpl = fetch,
 } = {}) {
+  const generation = nextRefreshGeneration(doc);
   const nodes = [...doc.querySelectorAll('[data-market-listing-status]')];
   if (!nodes.length || !config?.url || !config?.anonKey) return { checked: 0, updated: 0 };
   const byId = new Map();
@@ -61,9 +73,14 @@ export async function refreshMarketListingStatuses({
   const ids = [...byId.keys()];
   let updated = 0;
   for (let offset = 0; offset < ids.length; offset += 50) {
-    const rows = await fetchRows(config, ids.slice(offset, offset + 50), fetchImpl);
-    for (const row of rows) {
-      const targets = byId.get(String(row?.id || '')) || [];
+    const batchIds = ids.slice(offset, offset + 50);
+    const rows = await fetchRows(config, batchIds, fetchImpl);
+    if (!isLatestRefresh(doc, generation)) return { checked: ids.length, updated: 0, stale: true };
+    const rowsById = new Map(rows.map((row) => [String(row?.id || ''), row]));
+    for (const id of batchIds) {
+      // 정상 응답에서 사라진 상품은 예전 판매중 상태를 남기지 않고 구매불가로 닫는다.
+      const row = rowsById.get(id) || { id, status: 'unavailable' };
+      const targets = byId.get(id) || [];
       for (const node of targets) {
         paint(node, row);
         updated += 1;
@@ -73,9 +90,24 @@ export async function refreshMarketListingStatuses({
   return { checked: ids.length, updated };
 }
 
-refreshMarketListingStatuses().catch((error) => {
+function logRefreshFailure(error) {
   console.warn('[BELLORE_MARKET_STATUS]', {
     event: 'refresh_failed',
     reason: error instanceof Error ? error.message.slice(0, 80) : 'unknown',
   });
-});
+}
+
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+  let lastResumeRefreshAt = 0;
+  const refresh = () => refreshMarketListingStatuses().catch(logRefreshFailure);
+  const refreshAfterResume = () => {
+    if (document.visibilityState && document.visibilityState !== 'visible') return;
+    const now = Date.now();
+    if (now - lastResumeRefreshAt < 1000) return;
+    lastResumeRefreshAt = now;
+    refresh();
+  };
+  refresh();
+  window.addEventListener('focus', refreshAfterResume);
+  document.addEventListener('visibilitychange', refreshAfterResume);
+}

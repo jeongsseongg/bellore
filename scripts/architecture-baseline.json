@@ -61,17 +61,7 @@
     }
   },
   "knownMissingLocalAssets": [],
-  "knownMissingSourceAssets": [
-    "assets/6850CASA.jpg",
-    "assets/KakaoTalk_20250428_224216035.jpg",
-    "assets/m126284rbr0011.png",
-    "assets/m1263340002.png",
-    "assets/m1282390005.png",
-    "assets/m128395tbr0032.png",
-    "assets/m278381rbr0004.png",
-    "assets/m3362380004.png",
-    "assets/m3369330001.png"
-  ],
+  "knownMissingSourceAssets": [],
   "knownUncachedShellAssets": [],
   "allowedRootRuntimeFiles": [
     "ai-advisor-admin.js",

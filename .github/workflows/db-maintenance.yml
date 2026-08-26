@@ -1,7 +1,8 @@
 name: DB Maintenance
 
 # Supabase DB에 대한 점검/마이그레이션을 GitHub에서 직접 실행한다.
-# (db-backup.yml 과 동일한 SUPABASE_DB_URL 시크릿 사용 — 추가 설정 불필요)
+# 운영 작업은 SUPABASE_DB_URL, rollback 픽스처 검증은 별도
+# SUPABASE_VALIDATION_DB_URL만 사용한다.
 #
 # 실행 방법: Actions 탭 > DB Maintenance > Run workflow
 #   task = diagnose            : 읽기 전용 점검(테이블 상태·최근 데이터 요약)
@@ -36,6 +37,14 @@ on:
         description: "DB apply 때만: 24시간 이내 성공한 db-backup run ID"
         type: string
         required: false
+      production_apply_ack:
+        description: "DB apply 때만: APPLY_AUTHORITY_PAYMENT_TO_PRODUCTION 정확히 입력"
+        type: string
+        required: false
+      payment_locks_ack:
+        description: "DB apply 때만: PAYMENT_CHECKOUT_AND_RECONCILE_LOCKED 정확히 입력"
+        type: string
+        required: false
 
 permissions:
   contents: read
@@ -59,7 +68,8 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Guard — 시크릿 없으면 중단
+      - name: Guard — 운영 DB 시크릿 없으면 중단
+        if: inputs.task != 'validate-authority-payment'
         env:
           DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
@@ -67,15 +77,45 @@ jobs:
             echo "SUPABASE_DB_URL 시크릿 미설정 — 실행 불가"; exit 1
           fi
 
-      - name: Guard authority apply — exact SHA and recoverable backup
+      - name: Guard — 분리된 검증 DB 시크릿만 허용
+        if: inputs.task == 'validate-authority-payment'
+        env:
+          VALIDATION_DB_URL: ${{ secrets.SUPABASE_VALIDATION_DB_URL }}
+          PRODUCTION_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "$VALIDATION_DB_URL" ]; then
+            echo "SUPABASE_VALIDATION_DB_URL 시크릿 미설정 — rollback 픽스처 실행 불가"; exit 1
+          fi
+          if [ -n "$PRODUCTION_DB_URL" ] && [ "$VALIDATION_DB_URL" = "$PRODUCTION_DB_URL" ]; then
+            echo "검증 DB URL이 운영 DB URL과 같습니다 — 별도 검증 DB만 허용"; exit 1
+          fi
+
+      - name: Guard authority apply — explicit approval, locks, exact SHA, and inspectable backup
         if: inputs.task == 'apply-authority-payment'
         env:
           GH_TOKEN: ${{ github.token }}
           EXPECTED_SHA: ${{ inputs.confirm_sha }}
           BACKUP_RUN_ID: ${{ inputs.backup_run_id }}
           BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          PRODUCTION_APPLY_ACK: ${{ inputs.production_apply_ack }}
+          PAYMENT_LOCKS_ACK: ${{ inputs.payment_locks_ack }}
+          PRODUCTION_DEPLOY_FLAG: ${{ vars.PRODUCTION_DEPLOY_ENABLED }}
+          RECONCILE_REPOSITORY_FLAG: ${{ vars.PAYMENT_RECONCILE_ENABLED }}
         run: |
           set -euo pipefail
+          if [ "$PRODUCTION_APPLY_ACK" != "APPLY_AUTHORITY_PAYMENT_TO_PRODUCTION" ]; then
+            echo "production_apply_ack is missing or incorrect"; exit 1
+          fi
+          if [ "$PAYMENT_LOCKS_ACK" != "PAYMENT_CHECKOUT_AND_RECONCILE_LOCKED" ]; then
+            echo "payment_locks_ack is missing or incorrect"; exit 1
+          fi
+          if [ "$PRODUCTION_DEPLOY_FLAG" != "false" ]; then
+            echo "PRODUCTION_DEPLOY_ENABLED must be explicitly false"; exit 1
+          fi
+          if [ "$RECONCILE_REPOSITORY_FLAG" != "false" ]; then
+            echo "PAYMENT_RECONCILE_ENABLED repository variable must be explicitly false"; exit 1
+          fi
           if [ -z "$EXPECTED_SHA" ] || [ "$EXPECTED_SHA" != "$GITHUB_SHA" ]; then
             echo "confirm_sha must exactly match GITHUB_SHA"; exit 1
           fi
@@ -92,7 +132,7 @@ jobs:
             --jq '[.artifacts[] | select(.name == "db-backup" and .expired == false and .size_in_bytes > 1024)] | length' \
             | grep -qx '1'
           if [ -z "$BACKUP_PASSPHRASE" ]; then
-            echo "BACKUP_PASSPHRASE is required to prove the artifact is recoverable"; exit 1
+            echo "BACKUP_PASSPHRASE is required to inspect the encrypted artifact"; exit 1
           fi
           umask 077
           backup_dir="$(mktemp -d)"
@@ -112,7 +152,46 @@ jobs:
           gzip -cd "$backup_dir/backup.sql.gz" > "$backup_dir/backup.sql"
           grep -Eq '^-- PostgreSQL database dump|^CREATE (SCHEMA|TABLE)|^COPY ' \
             "$backup_dir/backup.sql"
-          echo "Exact release SHA and decryptable, decompressible SQL backup verified"
+          echo "Exact release SHA verified; backup artifact decrypts, decompresses, and contains SQL dump markers"
+          echo "This check does not prove that the dump can be restored"
+
+      - name: Verify deployed payment Edge locks before production apply
+        if: inputs.task == 'apply-authority-payment'
+        env:
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "SUPABASE_ANON_KEY is required for the non-mutating checkout lock probe"; exit 1
+          fi
+          probe_dir="$(mktemp -d)"
+          trap 'rm -rf "$probe_dir"' EXIT
+
+          checkout_status="$(curl --silent --show-error \
+            --connect-timeout 10 --max-time 20 \
+            --output "$probe_dir/checkout.json" --write-out '%{http_code}' \
+            --request POST \
+            --header 'Origin: https://bellore.co.kr' \
+            --header 'Content-Type: application/json' \
+            --header "apikey: $SUPABASE_ANON_KEY" \
+            --header "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            --data '{"checkoutRequestKey":"00000000-0000-4000-8000-000000000001","checkoutToken":"0000000000000000000000000000000000000000000000000000000000000000"}' \
+            https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/create-checkout)"
+          if [ "$checkout_status" != "503" ] ||
+             ! jq -e '.error == "checkout_temporarily_unavailable"' "$probe_dir/checkout.json" >/dev/null; then
+            echo "create-checkout is not confirmed locked"; exit 1
+          fi
+
+          reconcile_status="$(curl --silent --show-error \
+            --connect-timeout 10 --max-time 20 \
+            --output "$probe_dir/reconcile.json" --write-out '%{http_code}' \
+            --request POST \
+            https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/reconcile-payments)"
+          if [ "$reconcile_status" != "503" ] ||
+             ! jq -e '.error == "reconciliation_temporarily_disabled"' "$probe_dir/reconcile.json" >/dev/null; then
+            echo "reconcile-payments is not confirmed locked"; exit 1
+          fi
+          echo "Deployed checkout and reconciliation endpoints are fail-closed"
 
       - name: Apply discord_quote SQL (재실행 안전)
         if: inputs.task == 'apply-discord-quote'
@@ -190,18 +269,25 @@ jobs:
           echo "분석 V3 스키마 적용 완료 — 원시/클릭 ID 90일, 비식별 집계 730일"
 
       - name: Validate authority and payment migration (always rollback)
-        if: inputs.task == 'validate-authority-payment' || inputs.task == 'apply-authority-payment'
+        if: inputs.task == 'validate-authority-payment'
         env:
-          PGCONN: ${{ secrets.SUPABASE_DB_URL }}
+          PGCONN: ${{ secrets.SUPABASE_VALIDATION_DB_URL }}
         run: |
           set -euo pipefail
           docker run --rm -i -e PGCONN -v "$PWD:/repo:ro" postgres:17 \
             psql "$PGCONN" -v ON_ERROR_STOP=1 <<'SQL'
           begin;
-          \i /repo/supabase/migrations/20260824090000_authority_payment_hardening.sql
+          \i /repo/supabase/migrations/20260826160000_payment_recovery_listing_state.sql
+          \i /repo/supabase/migrations/20260826170000_checkout_claim_integrity.sql
+          \i /repo/supabase/migrations/20260826180000_order_financial_state_guard.sql
+          \i /repo/supabase/migrations/20260826190000_payment_finalization_closed_order_contract.sql
 
           do $$
           begin
+            if to_regprocedure('public.create_checkout_order_edge_v1(text,uuid,uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb)') is not null
+               or to_regprocedure('public.create_checkout_order_edge_v1(text,uuid,uuid,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)') is not null then
+              raise exception 'obsolete non-idempotent checkout wrapper still exists';
+            end if;
             if has_table_privilege('anon','public.orders','insert')
                or has_table_privilege('authenticated','public.orders','insert') then
               raise exception 'orders direct insert is still open';
@@ -215,9 +301,9 @@ jobs:
                or has_function_privilege('authenticated',
               'public.create_checkout_order(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)','execute')
                or has_function_privilege('anon',
-              'public.create_checkout_order_edge_v1(text,uuid,uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb)','execute')
+              'public.create_checkout_order_edge_v1(text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)','execute')
                or has_function_privilege('authenticated',
-              'public.create_checkout_order_edge_v1(text,uuid,uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb)','execute')
+              'public.create_checkout_order_edge_v1(text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)','execute')
                or has_function_privilege('anon',
               'public.consume_checkout_rate_limit(text)','execute')
                or has_function_privilege('authenticated',
@@ -227,16 +313,220 @@ jobs:
             if not has_function_privilege('service_role',
               'public.create_checkout_order(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)','execute')
                or not has_function_privilege('service_role',
-              'public.create_checkout_order_edge_v1(text,uuid,uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb)','execute') then
+              'public.create_checkout_order_edge_v1(text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)','execute') then
               raise exception 'checkout RPC is not executable by service role';
             end if;
             if not has_function_privilege('service_role',
               'public.consume_checkout_rate_limit(text)','execute') then
               raise exception 'checkout rate limiter is not executable by service role';
             end if;
+            if not exists (
+              select 1
+                from information_schema.columns
+               where table_schema='public' and table_name='orders'
+                 and column_name='payment_contract_version'
+                 and data_type='smallint' and is_nullable='YES'
+            ) then
+              raise exception 'orders.payment_contract_version column contract missing';
+            end if;
+            if not exists (
+              select 1
+                from information_schema.columns
+               where table_schema='public' and table_name='orders'
+                 and column_name='checkout_request_key_hash'
+                 and data_type='text' and is_nullable='YES'
+            ) then
+              raise exception 'orders.checkout_request_key_hash column contract missing';
+            end if;
+            if not exists (
+              select 1
+                from information_schema.columns
+               where table_schema='public' and table_name='orders'
+                 and column_name='restock_required'
+                 and data_type='boolean' and is_nullable='NO'
+                 and column_default='false'
+            ) or not exists (
+              select 1
+                from information_schema.columns
+               where table_schema='public' and table_name='orders'
+                 and column_name='payment_review_required'
+                 and data_type='boolean' and is_nullable='NO'
+                 and column_default='false'
+            ) then
+              raise exception 'orders physical-restock/payment-review flag contract missing';
+            end if;
+            if not exists (
+              select 1 from information_schema.columns
+               where table_schema='public' and table_name='orders'
+                 and column_name='payment_terminal_at'
+                 and data_type='timestamp with time zone' and is_nullable='YES'
+            ) or exists (
+              select 1 from public.orders
+               where payment_contract_version=2
+                 and status in ('failed','canceled')
+                 and payment_terminal_at is null
+            ) or not exists (
+              select 1 from pg_constraint
+               where conrelid='public.orders'::regclass
+                 and conname='orders_v2_terminal_timestamp_required'
+                 and contype='c' and convalidated
+            ) or not exists (
+              select 1 from pg_index as x
+              join pg_class as i on i.oid=x.indexrelid
+               where x.indrelid='public.orders'::regclass
+                 and i.relname='orders_recent_payment_terminal_v2_idx'
+                 and x.indpred is not null
+                 and pg_get_indexdef(x.indexrelid,1,true)='payment_terminal_at'
+                 and pg_get_indexdef(x.indexrelid,2,true)='id'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%payment_contract_version = 2%'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%failed%'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%canceled%'
+            ) or not exists (
+              select 1 from pg_trigger
+               where tgrelid='public.orders'::regclass
+                 and tgname='trg_stamp_order_payment_terminal_at_v1'
+                 and tgfoid=to_regprocedure('public.stamp_order_payment_terminal_at_v1()')
+                 and tgenabled <> 'D' and not tgisinternal
+            ) then
+              raise exception 'payment terminal timestamp contract missing';
+            end if;
+            if not exists (
+              select 1
+                from pg_constraint as c
+                join pg_class as t on t.oid=c.conrelid
+                join pg_namespace as n on n.oid=t.relnamespace
+               where n.nspname='public' and t.relname='orders'
+                 and c.conname='orders_payment_contract_version_allowed'
+                 and c.contype='c' and c.convalidated
+                 and lower(pg_get_constraintdef(c.oid)) like '%payment_contract_version is null%'
+                 and lower(pg_get_constraintdef(c.oid)) like '%payment_contract_version = 2%'
+            ) then
+              raise exception 'payment contract version check missing or unvalidated';
+            end if;
+            if not exists (
+              select 1
+                from pg_constraint as c
+                join pg_class as t on t.oid=c.conrelid
+                join pg_namespace as n on n.oid=t.relnamespace
+               where n.nspname='public' and t.relname='orders'
+                 and c.conname='orders_checkout_request_key_hash_format'
+                 and c.contype='c' and c.convalidated
+                 and lower(pg_get_constraintdef(c.oid)) like '%checkout_request_key_hash%'
+                 and lower(pg_get_constraintdef(c.oid)) like '%[0-9a-f]{64}%'
+            ) then
+              raise exception 'checkout request hash format check missing or unvalidated';
+            end if;
+            if not exists (
+              select 1
+                from pg_index as x
+                join pg_class as i on i.oid=x.indexrelid
+                join pg_class as t on t.oid=x.indrelid
+                join pg_namespace as n on n.oid=t.relnamespace
+               where n.nspname='public' and t.relname='orders'
+                 and i.relname='orders_one_unresolved_listing_v2_idx'
+                 and x.indisunique and x.indpred is not null
+                 and pg_get_indexdef(x.indexrelid,1,true)='listing_id'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%payment_contract_version = 2%'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%status%'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%failed%'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%canceled%'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%refunded%'
+            ) then
+              raise exception 'v2 unresolved listing unique index contract missing';
+            end if;
+            if not exists (
+              select 1
+                from pg_index as x
+                join pg_class as i on i.oid=x.indexrelid
+                join pg_class as t on t.oid=x.indrelid
+                join pg_namespace as n on n.oid=t.relnamespace
+               where n.nspname='public' and t.relname='orders'
+                 and i.relname='orders_one_unresolved_coupon_idx'
+                 and x.indisunique and x.indpred is not null
+                 and pg_get_indexdef(x.indexrelid,1,true)='coupon_user_id'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%coupon_user_id is not null%'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%payment_contract_version = 2%'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%status%'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%failed%'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%canceled%'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%refunded%'
+            ) then
+              raise exception 'v2 unresolved coupon unique index contract missing';
+            end if;
+            if not exists (
+              select 1
+                from pg_index as x
+                join pg_class as i on i.oid=x.indexrelid
+                join pg_class as t on t.oid=x.indrelid
+                join pg_namespace as n on n.oid=t.relnamespace
+               where n.nspname='public' and t.relname='orders'
+                 and i.relname='orders_checkout_request_key_hash_uidx'
+                 and x.indisunique and x.indpred is not null
+                 and pg_get_indexdef(x.indexrelid,1,true)='checkout_request_key_hash'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%checkout_request_key_hash is not null%'
+            ) then
+              raise exception 'checkout request idempotency unique index missing';
+            end if;
+            if not exists (
+              select 1 from pg_trigger
+               where tgrelid='public.orders'::regclass
+                 and tgname='trg_guard_new_checkout_claims_v1'
+                 and tgfoid=to_regprocedure('public.guard_new_checkout_claims_v1()')
+                 and tgenabled <> 'D' and not tgisinternal
+            ) or not exists (
+              select 1 from pg_trigger
+               where tgrelid='public.listings'::regclass
+                 and tgname='trg_guard_listing_reservation_owner_v1'
+                 and tgfoid=to_regprocedure('public.guard_listing_reservation_owner_v1()')
+                 and tgenabled <> 'D' and not tgisinternal
+            ) then
+              raise exception 'checkout claim integrity trigger contract missing';
+            end if;
+            if not exists (
+              select 1 from pg_trigger
+               where tgrelid='public.orders'::regclass
+                 and tgname='trg_guard_order_money_fields'
+                 and tgfoid=to_regprocedure('public.guard_order_money_fields()')
+                 and tgenabled <> 'D' and not tgisinternal
+            ) or has_function_privilege('authenticated',
+              'public.guard_order_money_fields()','execute')
+               or position('payment_contract_version'
+                 in pg_get_functiondef('public.guard_order_money_fields()'::regprocedure))=0
+               or position('checkout_request_key_hash'
+                 in pg_get_functiondef('public.guard_order_money_fields()'::regprocedure))=0
+               or position('restock_required'
+                 in pg_get_functiondef('public.guard_order_money_fields()'::regprocedure))=0
+               or position('payment_review_required'
+                 in pg_get_functiondef('public.guard_order_money_fields()'::regprocedure))=0
+               or position('payment_terminal_at'
+                 in pg_get_functiondef('public.guard_order_money_fields()'::regprocedure))=0
+               or position('new.order_no is distinct from old.order_no'
+                 in pg_get_functiondef('public.guard_order_money_fields()'::regprocedure))=0
+               or position('old.status in'
+                 in pg_get_functiondef('public.guard_order_money_fields()'::regprocedure))=0
+               or position('new.status = ''paid'''
+                 in pg_get_functiondef('public.guard_order_money_fields()'::regprocedure))=0 then
+              raise exception 'order financial state guard contract missing';
+            end if;
             if has_function_privilege('authenticated',
               'public.finalize_paid_order_v2(text,bigint,text,text,text,text,jsonb,integer)','execute') then
               raise exception 'payment finalizer leaked to browser role';
+            end if;
+            if to_regprocedure('public.clear_confirmed_payment_review_v1(text,text,bigint)') is null
+               or to_regprocedure('public.order_requires_restock_v1(uuid,smallint,text,boolean,timestamptz,timestamptz,timestamptz)') is null then
+              raise exception 'payment review/restock evidence RPC contract missing';
+            end if;
+            if has_function_privilege('anon',
+              'public.clear_confirmed_payment_review_v1(text,text,bigint)','execute')
+               or has_function_privilege('authenticated',
+              'public.clear_confirmed_payment_review_v1(text,text,bigint)','execute')
+               or not has_function_privilege('service_role',
+              'public.clear_confirmed_payment_review_v1(text,text,bigint)','execute')
+               or has_function_privilege('authenticated',
+              'public.order_requires_restock_v1(uuid,smallint,text,boolean,timestamptz,timestamptz,timestamptz)','execute')
+               or not has_function_privilege('service_role',
+              'public.order_requires_restock_v1(uuid,smallint,text,boolean,timestamptz,timestamptz,timestamptz)','execute') then
+              raise exception 'payment review/restock evidence RPC ACL failed';
             end if;
             if not exists (
               select 1 from pg_policies
@@ -248,26 +538,302 @@ jobs:
             end if;
           end $$;
 
-          select id as listing_id
-            from public.listings
-           where status='on_sale'
-           order by id limit 1 \gset
+          -- orders_flow.sql is older, separately installed project SQL. Verify
+          -- that a deployment without its optional history table can still run
+          -- the pre-fulfilment cancellation decision without relation errors.
+          do $$
+          declare
+            v_test_id uuid := gen_random_uuid();
+          begin
+            if to_regclass('public.order_status_history') is not null then
+              if to_regclass('public._payment_guard_history_test') is not null then
+                raise exception 'temporary history validation table already exists';
+              end if;
+              execute 'alter table public.order_status_history rename to _payment_guard_history_test';
+              if public.order_requires_restock_v1(
+                v_test_id, 2, 'cancel_req', false, null, null, null
+              ) then
+                raise exception 'missing history invented a post-fulfilment hold';
+              end if;
+              execute 'alter table public._payment_guard_history_test rename to order_status_history';
+            end if;
+          exception when others then
+            if to_regclass('public.order_status_history') is null
+               and to_regclass('public._payment_guard_history_test') is not null then
+              execute 'alter table public._payment_guard_history_test rename to order_status_history';
+            end if;
+            raise;
+          end $$;
+
+          select l.id as listing_id,
+                 (priced.true_price + case when priced.true_price >= 5000000 then 35000 else 0 end)::bigint
+                   as expected_amount
+            from public.listings as l
+            cross join lateral (
+              select case
+                when 'sale'=any(coalesce(l.tags,'{}'::text[]))
+                 and l.sale_price is not null and l.sale_price > 0
+                 and l.sale_price < trunc(coalesce(l.price,0))::bigint
+                 and coalesce(l.sale_started_at,l.created_at) + interval '72 hours' > now()
+                  then l.sale_price::bigint
+                else trunc(coalesce(l.price,0))::bigint
+              end as true_price
+            ) as priced
+           where l.status='on_sale' and l.sold_order_id is null
+             and (l.reserved_order_id is null or l.reserved_until <= now())
+             and priced.true_price > 0
+           order by l.id limit 1 \gset
           set local role service_role;
           set local request.jwt.claims = '{"role":"service_role"}';
           select public.create_checkout_order_edge_v1(
-            repeat('a',64), null, :'listing_id'::uuid, repeat('b',64)
-          );
+            p_rate_key => repeat('a',64),
+            p_customer_id => null,
+            p_listing_id => :'listing_id'::uuid,
+            p_checkout_request_key_hash => repeat('1',64),
+            p_checkout_token_hash => repeat('b',64),
+            p_expected_amount => :'expected_amount'::bigint,
+            p_buyer_name => '검증 구매자',
+            p_buyer_phone => '01000000000',
+            p_ship_recipient => '검증 수령인',
+            p_ship_phone => '01000000000',
+            p_ship_postcode => '00000',
+            p_ship_addr1 => '검증 주소'
+          ) as checkout_contract \gset
+          select (
+            :'checkout_contract'::jsonb->>'reservationMode'='provider_terminal'
+            and (:'checkout_contract'::jsonb->>'paymentContractVersion')::integer=2
+            and (:'checkout_contract'::jsonb->>'checkoutReplayed')::boolean=false
+            and not (:'checkout_contract'::jsonb ? 'expiresAt')
+          ) as checkout_contract_ok \gset
+          \if :checkout_contract_ok
+            \echo 'provider-terminal checkout contract verified'
+          \else
+            \echo 'provider-terminal checkout contract verification failed'
+            \quit 1
+          \endif
+          select public.create_checkout_order_edge_v1(
+            p_rate_key => repeat('a',64),
+            p_customer_id => null,
+            p_listing_id => :'listing_id'::uuid,
+            p_checkout_request_key_hash => repeat('1',64),
+            p_checkout_token_hash => repeat('b',64),
+            p_expected_amount => :'expected_amount'::bigint,
+            p_buyer_name => '검증 구매자',
+            p_buyer_phone => '01000000000',
+            p_ship_recipient => '검증 수령인',
+            p_ship_phone => '01000000000',
+            p_ship_postcode => '00000',
+            p_ship_addr1 => '검증 주소'
+          ) as checkout_retry \gset
+          select (
+            :'checkout_retry'::jsonb->>'orderNo'=:'checkout_contract'::jsonb->>'orderNo'
+            and (:'checkout_retry'::jsonb->>'checkoutReplayed')::boolean=true
+            and (select attempt_count from public.checkout_rate_limits where key_hash=repeat('a',64))=1
+            and (select count(*) from public.orders where checkout_request_key_hash=repeat('1',64))=1
+          ) as checkout_retry_ok \gset
+          \if :checkout_retry_ok
+            \echo 'checkout response-loss retry reused one order and one rate attempt'
+          \else
+            \echo 'checkout response-loss retry idempotency failed'
+            \quit 1
+          \endif
+          select public.create_checkout_order_edge_v1(
+            p_rate_key => repeat('a',64),
+            p_customer_id => null,
+            p_listing_id => :'listing_id'::uuid,
+            p_checkout_request_key_hash => repeat('1',64),
+            p_checkout_token_hash => repeat('b',64),
+            p_expected_amount => :'expected_amount'::bigint,
+            p_buyer_name => '검증 구매자',
+            p_buyer_phone => '01000000000',
+            p_ship_recipient => '검증 수령인',
+            p_ship_phone => '01000000000',
+            p_ship_postcode => '00000',
+            p_ship_addr1 => '변조된 재시도 주소'
+          ) as checkout_conflict \gset
+          select (
+            :'checkout_conflict'::jsonb->>'error'='checkout_request_conflict'
+            and (select attempt_count from public.checkout_rate_limits where key_hash=repeat('a',64))=1
+            and (select count(*) from public.orders where checkout_request_key_hash=repeat('1',64))=1
+          ) as checkout_conflict_ok \gset
+          \if :checkout_conflict_ok
+            \echo 'checkout request-key mismatch failed closed without another rate attempt'
+          \else
+            \echo 'checkout request-key mismatch contract failed'
+            \quit 1
+          \endif
           select order_no, amount
             from public.orders
            where checkout_token_hash=repeat('b',64)
+             and checkout_request_key_hash=repeat('1',64)
            order by created_at desc limit 1 \gset
+          select exists (
+            select 1 from public.orders
+             where order_no=:'order_no' and payment_contract_version=2
+               and checkout_request_key_hash=repeat('1',64)
+          ) as payment_contract_row_ok \gset
+          \if :payment_contract_row_ok
+            \echo 'payment contract version 2 row verified'
+          \else
+            \echo 'payment contract version 2 row verification failed'
+            \quit 1
+          \endif
+          reset role;
+          set local request.jwt.claims = '{"role":"authenticated"}';
+          select set_config('app.guard_test_order_no', :'order_no', true);
+          do $$
+          declare v_order_no text := current_setting('app.guard_test_order_no');
+          begin
+            begin
+              update public.orders set status='shipping' where order_no=v_order_no;
+              raise exception 'pending order escaped provider verification';
+            exception when others then
+              if sqlerrm not like '%payment_fields_are_server_owned%' then raise; end if;
+            end;
+            begin
+              update public.orders set amount=amount+1 where order_no=v_order_no;
+              raise exception 'order amount guard did not block';
+            exception when others then
+              if sqlerrm not like '%payment_fields_are_server_owned%' then raise; end if;
+            end;
+            begin
+              update public.orders set payment_contract_version=null where order_no=v_order_no;
+              raise exception 'payment contract version guard did not block';
+            exception when others then
+              if sqlerrm not like '%payment_fields_are_server_owned%' then raise; end if;
+            end;
+            begin
+              update public.orders set checkout_request_key_hash=repeat('0',64) where order_no=v_order_no;
+              raise exception 'checkout request identity guard did not block';
+            exception when others then
+              if sqlerrm not like '%payment_fields_are_server_owned%' then raise; end if;
+            end;
+            begin
+              update public.orders set restock_required=true where order_no=v_order_no;
+              raise exception 'restock flag guard did not block';
+            exception when others then
+              if sqlerrm not like '%payment_fields_are_server_owned%' then raise; end if;
+            end;
+            begin
+              update public.orders set payment_review_required=true where order_no=v_order_no;
+              raise exception 'payment review flag guard did not block';
+            exception when others then
+              if sqlerrm not like '%payment_fields_are_server_owned%' then raise; end if;
+            end;
+            begin
+              update public.orders set payment_terminal_at=now() where order_no=v_order_no;
+              raise exception 'payment terminal timestamp guard did not block';
+            exception when others then
+              if sqlerrm not like '%payment_fields_are_server_owned%' then raise; end if;
+            end;
+            begin
+              update public.orders set order_no=order_no || 'X' where order_no=v_order_no;
+              raise exception 'order identity guard did not block';
+            exception when others then
+              if sqlerrm not like '%payment_fields_are_server_owned%' then raise; end if;
+            end;
+          end $$;
+          set local role service_role;
+          set local request.jwt.claims = '{"role":"service_role"}';
           select public.finalize_paid_order_v2(
             :'order_no', :'amount'::bigint, 'CARD', :'order_no', 'dry-run-tx', null, null, 0
           );
           select public.finalize_paid_order_v2(
             :'order_no', :'amount'::bigint, 'CARD', :'order_no', 'dry-run-tx', null, null, 0
           );
-          update public.orders set status='returning' where order_no=:'order_no';
+          update public.orders
+             set payment_review_required=true
+           where order_no=:'order_no';
+          select public.clear_confirmed_payment_review_v1(
+            :'order_no', :'order_no', :'amount'::bigint + 1
+          ) as mismatched_review_clear \gset
+          select exists (
+            select 1 from public.orders
+             where order_no=:'order_no' and payment_review_required
+          ) as mismatched_review_preserved \gset
+          \if :mismatched_review_clear
+            \echo 'mismatched provider value cleared payment review'
+            \quit 1
+          \endif
+          \if :mismatched_review_preserved
+          \else
+            \echo 'mismatched provider value changed payment review state'
+            \quit 1
+          \endif
+          select public.clear_confirmed_payment_review_v1(
+            :'order_no', :'order_no', :'amount'::bigint
+          ) as exact_review_clear \gset
+          select exists (
+            select 1 from public.orders
+             where order_no=:'order_no' and not payment_review_required
+          ) as exact_review_cleared \gset
+          \if :exact_review_clear
+          \else
+            \echo 'exact confirmed provider payment did not clear review'
+            \quit 1
+          \endif
+          \if :exact_review_cleared
+          \else
+            \echo 'exact confirmed provider payment left review flag set'
+            \quit 1
+          \endif
+          reset role;
+          set local request.jwt.claims = '{"role":"authenticated"}';
+          update public.orders set status='delivered' where order_no=:'order_no';
+          update public.orders set status='cancel_req' where order_no=:'order_no';
+          do $$
+          declare v_order_no text := current_setting('app.guard_test_order_no');
+          begin
+            begin
+              update public.orders set status='refunded' where order_no=v_order_no;
+              raise exception 'operational order entered financial state directly';
+            exception when others then
+              if sqlerrm not like '%payment_fields_are_server_owned%' then raise; end if;
+            end;
+          end $$;
+          set local role service_role;
+          set local request.jwt.claims = '{"role":"service_role"}';
+          select public.mark_order_payment_review(
+            :'order_no', 'dry-run-partial-cancel-review'
+          );
+          do $$
+          declare v_order_no text := current_setting('app.guard_test_order_no');
+          begin
+            if not exists (
+              select 1 from public.orders
+               where order_no=v_order_no and status='cancel_req'
+                 and payment_review_required
+            ) then
+              raise exception 'partial cancellation review overwrote fulfillment lifecycle';
+            end if;
+          end $$;
+          select public.mark_order_refund_pending(
+            :'order_no', 'cancellation_intent:administrator_provider_verified_refund'
+          ) as refund_pending_marked \gset
+          \if :refund_pending_marked
+          \else
+            \echo 'delivered cancellation was not marked refund_pending'
+            \quit 1
+          \endif
+          set constraints all immediate;
+          set constraints all deferred;
+          select exists (
+            select 1 from public.orders
+             where order_no=:'order_no' and status='refund_pending'
+               and restock_required and delivered_at is not null
+          ) and exists (
+            select 1
+              from public.listings as l
+              join public.orders as o on o.id=l.sold_order_id
+             where l.id=:'listing_id'::uuid and l.status='sold'
+               and o.order_no=:'order_no'
+          ) as delivered_cancel_hold_ok \gset
+          \if :delivered_cancel_hold_ok
+            \echo 'delivered to cancel-request physical hold verified'
+          \else
+            \echo 'delivered cancellation lost durable restock evidence'
+            \quit 1
+          \endif
           select public.finalize_order_refund_v2(
             :'order_no', :'amount'::bigint, 'dry-run', 'dry-run-cancel'
           );
@@ -276,40 +842,298 @@ jobs:
           );
           reset role;
 
+          -- Execute the deferred listing normalizer before observing the final
+          -- state, otherwise a rollback-only test could miss its failure.
+          set constraints all immediate;
+          set constraints all deferred;
+
           select exists (
             select 1 from public.orders
              where order_no=:'order_no' and status='refunded'
                and refund_amount=:'amount'::bigint
+               and restock_required and not payment_review_required
           ) and exists (
-            select 1 from public.listings
-             where id=:'listing_id'::uuid and status='on_sale'
-               and sold_order_id is null
+            select 1
+              from public.listings as l
+              join public.orders as o on o.id=l.sold_order_id
+             where l.id=:'listing_id'::uuid and l.status='sold'
+               and o.order_no=:'order_no'
           ) as lifecycle_ok \gset
           \if :lifecycle_ok
-            \echo 'payment/refund/listing lifecycle verified'
+            \echo 'post-fulfilment refund physical hold verified'
           \else
-            \echo 'payment/refund/listing lifecycle verification failed'
+            \echo 'post-fulfilment refund released listing before inspection'
             \quit 1
           \endif
 
+          -- Simulate the explicit server-owned operator action after return
+          -- intake and inspection, then free this rollback fixture for the
+          -- remaining checkout tests.
+          set local role service_role;
+          set local request.jwt.claims = '{"role":"service_role"}';
+          select public.complete_order_restock_v1(:'order_no') as restock_completed \gset
+          set constraints all immediate;
+          set constraints all deferred;
+          reset role;
+          select exists (
+            select 1 from public.orders
+             where order_no=:'order_no' and status='refunded'
+               and not restock_required
+          ) and exists (
+            select 1 from public.listings
+             where id=:'listing_id'::uuid and status='on_sale'
+               and sold_order_id is null and reserved_order_id is null
+          ) as post_inspection_reopen_ok \gset
+          \if :restock_completed
+          \else
+            \echo 'post-inspection restock RPC rejected valid fixture'
+            \quit 1
+          \endif
+          \if :post_inspection_reopen_ok
+            \echo 'post-inspection listing reopen verified'
+          \else
+            \echo 'post-inspection listing reopen verification failed'
+            \quit 1
+          \endif
+
+          -- A paid but not-yet-shipped cancellation must still release the
+          -- listing after a full provider refund; it has no physical hold.
+          set local role service_role;
+          set local request.jwt.claims = '{"role":"service_role"}';
+          select public.create_checkout_order_edge_v1(
+            p_rate_key => repeat('d',64), p_customer_id => null,
+            p_listing_id => :'listing_id'::uuid,
+            p_checkout_request_key_hash => repeat('4',64),
+            p_checkout_token_hash => repeat('5',64),
+            p_expected_amount => :'expected_amount'::bigint,
+            p_buyer_name => '발송 전 취소 검증', p_buyer_phone => '01000000000',
+            p_ship_recipient => '발송 전 취소 수령인', p_ship_phone => '01000000000',
+            p_ship_postcode => '00000', p_ship_addr1 => '발송 전 취소 주소'
+          );
+          select order_no, amount from public.orders
+           where checkout_request_key_hash=repeat('4',64) \gset pre_
+          select public.finalize_paid_order_v2(
+            :'pre_order_no', :'pre_amount'::bigint, 'CARD', :'pre_order_no',
+            'dry-run-pre-cancel', null, null, 0
+          );
+          update public.orders set status='cancel_req' where order_no=:'pre_order_no';
+          select public.mark_order_refund_pending(
+            :'pre_order_no', 'cancellation_intent:administrator_provider_verified_refund'
+          );
+          select public.finalize_order_refund_v2(
+            :'pre_order_no', :'pre_amount'::bigint, 'dry-run-pre-cancel', 'dry-run-pre-refund'
+          );
+          set constraints all immediate;
+          set constraints all deferred;
+          select exists (
+            select 1 from public.orders
+             where order_no=:'pre_order_no' and status='refunded'
+               and not restock_required
+          ) and exists (
+            select 1 from public.listings
+             where id=:'listing_id'::uuid and status='on_sale'
+               and sold_order_id is null and reserved_order_id is null
+          ) as pre_fulfilment_release_ok \gset
+          \if :pre_fulfilment_release_ok
+            \echo 'pre-fulfilment cancellation release verified'
+          \else
+            \echo 'pre-fulfilment cancellation was incorrectly held'
+            \quit 1
+          \endif
+
+          -- Reproduce the stale Edge-snapshot race entirely inside the rollback
+          -- transaction. A provider PAID result obtained before this local
+          -- close must not revive either a failed or a canceled order.
+          set local role service_role;
+          set local request.jwt.claims = '{"role":"service_role"}';
+          select public.create_checkout_order_edge_v1(
+            p_rate_key => repeat('8',64),
+            p_customer_id => null,
+            p_listing_id => :'listing_id'::uuid,
+            p_checkout_request_key_hash => repeat('2',64),
+            p_checkout_token_hash => repeat('7',64),
+            p_expected_amount => :'expected_amount'::bigint,
+            p_buyer_name => '닫힌 주문 검증 구매자',
+            p_buyer_phone => '01000000000',
+            p_ship_recipient => '닫힌 주문 검증 수령인',
+            p_ship_phone => '01000000000',
+            p_ship_postcode => '00000',
+            p_ship_addr1 => '닫힌 주문 검증 주소'
+          );
+          select order_no, amount
+            from public.orders
+           where checkout_token_hash=repeat('7',64)
+           order by created_at desc limit 1 \gset closed_
+          select set_config('app.closed_finalize_test_order_no', :'closed_order_no', true);
+          select set_config('app.closed_finalize_test_amount', :'closed_amount', true);
+          select (payment_terminal_at is null) as pending_terminal_time_clear
+            from public.orders where order_no=:'closed_order_no' \gset
+          \if :pending_terminal_time_clear
+          \else
+            \echo 'pending order received a payment terminal timestamp'
+            \quit 1
+          \endif
+          update public.orders set status='failed' where order_no=:'closed_order_no';
           do $$
           declare
-            v_listing uuid;
+            v_order_no text := current_setting('app.closed_finalize_test_order_no');
+            v_amount bigint := current_setting('app.closed_finalize_test_amount')::bigint;
+            v_terminal_at timestamptz;
+          begin
+            select payment_terminal_at into v_terminal_at
+              from public.orders where order_no=v_order_no;
+            if v_terminal_at is null then
+              raise exception 'failed transition did not stamp payment terminal time';
+            end if;
+            begin
+              perform public.finalize_paid_order_v2(
+                v_order_no, v_amount, 'CARD', v_order_no,
+                'dry-run-stale-failed', null, null, 0
+              );
+              raise exception 'failed order was revived by paid finalization';
+            exception when sqlstate 'P0001' then
+              if sqlerrm <> 'order_closed_before_paid_finalization' then raise; end if;
+            end;
+
+            update public.orders set status='canceled' where order_no=v_order_no;
+            if (select payment_terminal_at from public.orders where order_no=v_order_no)
+               is distinct from v_terminal_at then
+              raise exception 'canceled rewrite changed first payment terminal time';
+            end if;
+            begin
+              perform public.finalize_paid_order_v2(
+                v_order_no, v_amount, 'CARD', v_order_no,
+                'dry-run-stale-canceled', null, null, 0
+              );
+              raise exception 'canceled order was revived by paid finalization';
+            exception when sqlstate 'P0001' then
+              if sqlerrm <> 'order_closed_before_paid_finalization' then raise; end if;
+            end;
+
+            if not exists (
+              select 1 from public.orders
+               where order_no=v_order_no and status='canceled'
+                 and payment_key is null and provider_transaction_id is null
+                 and paid_at is null and payment_terminal_at is not null
+            ) then
+              raise exception 'closed order changed despite paid-finalization rejection';
+            end if;
+          end $$;
+          -- Release the closed fixture before the next checkout test, then put
+          -- deferred constraints back into their production transaction mode.
+          set constraints all immediate;
+          set constraints all deferred;
+          do $$
+          declare v_order_no text := current_setting('app.closed_finalize_test_order_no');
+          begin
+            if exists (
+              select 1
+                from public.listings as l
+                join public.orders as o on o.listing_id=l.id
+               where o.order_no=v_order_no
+                 and (l.reserved_order_id=o.id or l.sold_order_id=o.id)
+            ) then
+              raise exception 'closed paid-finalization fixture retained listing ownership';
+            end if;
+          end $$;
+
+          set local role service_role;
+          set local request.jwt.claims = '{"role":"service_role"}';
+          select set_config('app.amount_test_listing_id', :'listing_id', true);
+          select set_config('app.amount_test_expected', :'expected_amount', true);
+          do $$
+          declare
+            v_listing uuid := current_setting('app.amount_test_listing_id')::uuid;
+            v_expected bigint := current_setting('app.amount_test_expected')::bigint;
+            v_result jsonb;
+          begin
+            v_result := public.create_checkout_order_edge_v1(
+              p_rate_key => repeat('f',64),
+              p_customer_id => null,
+              p_listing_id => v_listing,
+              p_checkout_request_key_hash => repeat('3',64),
+              p_checkout_token_hash => repeat('9',64),
+              p_expected_amount => v_expected + 1,
+              p_buyer_name => '금액 변경 검증 구매자',
+              p_buyer_phone => '01000000000',
+              p_ship_recipient => '금액 변경 검증 수령인',
+              p_ship_phone => '01000000000',
+              p_ship_postcode => '00000',
+              p_ship_addr1 => '금액 변경 검증 주소'
+            );
+            if v_result->>'error' <> 'checkout_amount_changed' then
+              raise exception 'checkout amount mismatch did not return its safe error';
+            end if;
+            if exists (
+              select 1 from public.orders where checkout_token_hash=repeat('9',64)
+            ) or exists (
+              select 1 from public.listings
+               where id=v_listing
+                 and (reserved_order_id is not null or reserved_until is not null)
+            ) then
+              raise exception 'checkout amount mismatch left an order or reservation';
+            end if;
+            if (select attempt_count from public.checkout_rate_limits where key_hash=repeat('f',64)) <> 1 then
+              raise exception 'failed checkout did not retain its rate-limit attempt';
+            end if;
+          end $$;
+
+          do $$
+          declare
+            v_listing record;
             v_index integer := 0;
           begin
             for v_listing in
-              select id from public.listings where status='on_sale' order by id limit 6
+              select l.id,
+                     (priced.true_price + case when priced.true_price >= 5000000 then 35000 else 0 end)::bigint
+                       as expected_amount
+                from public.listings as l
+                cross join lateral (
+                  select case
+                    when 'sale'=any(coalesce(l.tags,'{}'::text[]))
+                     and l.sale_price is not null and l.sale_price > 0
+                     and l.sale_price < trunc(coalesce(l.price,0))::bigint
+                     and coalesce(l.sale_started_at,l.created_at) + interval '72 hours' > now()
+                      then l.sale_price::bigint
+                    else trunc(coalesce(l.price,0))::bigint
+                  end as true_price
+                ) as priced
+               where l.status='on_sale' and l.sold_order_id is null
+                 and (l.reserved_order_id is null or l.reserved_until <= now())
+                 and priced.true_price > 0
+               order by l.id limit 6
             loop
               v_index := v_index + 1;
               if v_index <= 5 then
                 perform public.create_checkout_order_edge_v1(
-                  repeat('c',64), null, v_listing,
-                  lpad(v_index::text,64,'d')
+                  p_rate_key => repeat('c',64),
+                  p_customer_id => null,
+                  p_listing_id => v_listing.id,
+                  p_checkout_request_key_hash => lpad(v_index::text,64,'a'),
+                  p_checkout_token_hash => lpad(v_index::text,64,'d'),
+                  p_expected_amount => v_listing.expected_amount,
+                  p_buyer_name => '검증 구매자',
+                  p_buyer_phone => '01000000000',
+                  p_ship_recipient => '검증 수령인',
+                  p_ship_phone => '01000000000',
+                  p_ship_postcode => '00000',
+                  p_ship_addr1 => '검증 주소'
                 );
               else
                 begin
                   perform public.create_checkout_order_edge_v1(
-                    repeat('c',64), null, v_listing, repeat('e',64)
+                    p_rate_key => repeat('c',64),
+                    p_customer_id => null,
+                    p_listing_id => v_listing.id,
+                    p_checkout_request_key_hash => repeat('6',64),
+                    p_checkout_token_hash => repeat('e',64),
+                    p_expected_amount => v_listing.expected_amount,
+                    p_buyer_name => '검증 구매자',
+                    p_buyer_phone => '01000000000',
+                    p_ship_recipient => '검증 수령인',
+                    p_ship_phone => '01000000000',
+                    p_ship_postcode => '00000',
+                    p_ship_addr1 => '검증 주소'
                   );
                   raise exception 'checkout rate limit did not block attempt 6';
                 exception
@@ -320,20 +1144,76 @@ jobs:
             end loop;
             if v_index < 6 then raise exception 'not enough listings for checkout rate test'; end if;
           end $$;
+          -- Force every deferred constraint trigger to execute inside the
+          -- validation transaction. A plain rollback would otherwise skip
+          -- transaction-end failures and could report a false pass.
+          set constraints all immediate;
           rollback;
           SQL
-          echo "운영 스키마 컴파일·ACL·결제/환불 멱등 테스트 완료(전체 rollback)"
+          echo "분리된 검증 DB에서 스키마 컴파일·ACL·결제/환불 멱등 테스트 완료(전체 rollback)"
 
       - name: Apply authority and payment migration
         if: inputs.task == 'apply-authority-payment'
         env:
           PGCONN: ${{ secrets.SUPABASE_DB_URL }}
+          PGCONNECT_TIMEOUT: "10"
+          PGOPTIONS: "-c lock_timeout=5000 -c statement_timeout=300000 -c idle_in_transaction_session_timeout=360000"
         run: |
           set -euo pipefail
-          docker run --rm -e PGCONN -v "$PWD:/repo:ro" postgres:17 \
-            psql "$PGCONN" -v ON_ERROR_STOP=1 --single-transaction \
-              -f /repo/supabase/migrations/20260824090000_authority_payment_hardening.sql
-          echo "권한·결제 마이그레이션 적용 완료"
+          docker run --rm -i -e PGCONN -e PGCONNECT_TIMEOUT -e PGOPTIONS \
+            -v "$PWD:/repo:ro" postgres:17 \
+            psql "$PGCONN" -X -v ON_ERROR_STOP=1 <<'SQL'
+          begin;
+          do $$
+          begin
+            if to_regclass('supabase_migrations.schema_migrations') is null then
+              raise exception 'migration_ledger_missing';
+            end if;
+            if exists (
+              select 1 from supabase_migrations.schema_migrations
+               where version !~ '^[0-9]{14}$'
+            ) then
+              raise exception 'migration_ledger_noncanonical';
+            end if;
+            if not exists (
+              select 1 from supabase_migrations.schema_migrations
+               where version='20260824090000'
+            ) or not exists (
+              select 1 from supabase_migrations.schema_migrations
+               where version='20260826150000'
+            ) then
+              raise exception 'migration_ledger_baseline_missing';
+            end if;
+            if exists (
+              select 1 from supabase_migrations.schema_migrations
+               where version in (
+                 '20260826160000','20260826170000','20260826180000','20260826190000'
+               )
+            ) then
+              raise exception 'payment_release_migration_already_recorded';
+            end if;
+            if exists (
+              select 1 from supabase_migrations.schema_migrations
+               where version > '20260826150000'
+            ) then
+              raise exception 'migration_ledger_ahead_of_release';
+            end if;
+          end $$;
+
+          \i /repo/supabase/migrations/20260826160000_payment_recovery_listing_state.sql
+          \i /repo/supabase/migrations/20260826170000_checkout_claim_integrity.sql
+          \i /repo/supabase/migrations/20260826180000_order_financial_state_guard.sql
+          \i /repo/supabase/migrations/20260826190000_payment_finalization_closed_order_contract.sql
+
+          insert into supabase_migrations.schema_migrations(version,name,statements)
+          values
+            ('20260826160000','payment_recovery_listing_state',array[]::text[]),
+            ('20260826170000','checkout_claim_integrity',array[]::text[]),
+            ('20260826180000','order_financial_state_guard',array[]::text[]),
+            ('20260826190000','payment_finalization_closed_order_contract',array[]::text[]);
+          commit;
+          SQL
+          echo "권한·결제·복구·체크아웃 귀속·금융상태 가드 마이그레이션 적용 완료"
 
       - name: Verify live authority and payment ACL
         if: inputs.task == 'apply-authority-payment' || inputs.task == 'verify-authority-payment-live'
@@ -344,7 +1224,9 @@ jobs:
           docker run --rm -i -e PGCONN postgres:17 psql "$PGCONN" -v ON_ERROR_STOP=1 <<'SQL'
           do $$
           begin
-            if has_table_privilege('anon','public.orders','insert')
+            if to_regprocedure('public.create_checkout_order_edge_v1(text,uuid,uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb)') is not null
+               or to_regprocedure('public.create_checkout_order_edge_v1(text,uuid,uuid,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)') is not null
+               or has_table_privilege('anon','public.orders','insert')
                or has_table_privilege('authenticated','public.orders','insert')
                or has_function_privilege('anon','public._claim_coupon(public.coupons,uuid)','execute')
                or to_regprocedure('public.finalize_paid_order_v2(text,bigint,text,text,text,text,jsonb,integer)') is null
@@ -354,9 +1236,9 @@ jobs:
                or has_function_privilege('authenticated',
                  'public.create_checkout_order(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)','execute')
                or has_function_privilege('anon',
-                 'public.create_checkout_order_edge_v1(text,uuid,uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb)','execute')
+                 'public.create_checkout_order_edge_v1(text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)','execute')
                or has_function_privilege('authenticated',
-                 'public.create_checkout_order_edge_v1(text,uuid,uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb)','execute')
+                 'public.create_checkout_order_edge_v1(text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)','execute')
                or has_function_privilege('anon',
                  'public.consume_checkout_rate_limit(text)','execute')
                or has_function_privilege('authenticated',
@@ -364,13 +1246,215 @@ jobs:
                or not has_function_privilege('service_role',
                  'public.create_checkout_order(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)','execute')
                or not has_function_privilege('service_role',
-                 'public.create_checkout_order_edge_v1(text,uuid,uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb)','execute')
+                 'public.create_checkout_order_edge_v1(text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)','execute')
                or not has_function_privilege('service_role',
                  'public.consume_checkout_rate_limit(text)','execute')
                or (select count(*) from pg_policies
                     where schemaname='storage' and tablename='objects'
                       and policyname in ('photos_auth_insert','photos_auth_update','photos_auth_delete')) <> 3 then
               raise exception 'authority/payment post-apply verification failed';
+            end if;
+            if to_regprocedure('public.clear_confirmed_payment_review_v1(text,text,bigint)') is null
+               or to_regprocedure('public.order_requires_restock_v1(uuid,smallint,text,boolean,timestamptz,timestamptz,timestamptz)') is null then
+              raise exception 'confirmed payment review/restock evidence RPC missing';
+            end if;
+            if has_function_privilege('anon',
+              'public.clear_confirmed_payment_review_v1(text,text,bigint)','execute')
+               or has_function_privilege('authenticated',
+              'public.clear_confirmed_payment_review_v1(text,text,bigint)','execute')
+               or not has_function_privilege('service_role',
+              'public.clear_confirmed_payment_review_v1(text,text,bigint)','execute')
+               or has_function_privilege('authenticated',
+              'public.order_requires_restock_v1(uuid,smallint,text,boolean,timestamptz,timestamptz,timestamptz)','execute')
+               or not has_function_privilege('service_role',
+              'public.order_requires_restock_v1(uuid,smallint,text,boolean,timestamptz,timestamptz,timestamptz)','execute') then
+              raise exception 'confirmed payment review/restock evidence RPC ACL failed';
+            end if;
+            if not exists (
+              select 1 from information_schema.columns
+               where table_schema='public' and table_name='orders'
+                 and column_name='payment_contract_version'
+                 and data_type='smallint' and is_nullable='YES'
+            ) or not exists (
+              select 1 from information_schema.columns
+               where table_schema='public' and table_name='orders'
+                 and column_name='checkout_request_key_hash'
+                 and data_type='text' and is_nullable='YES'
+            ) or not exists (
+              select 1
+                from pg_constraint as c
+                join pg_class as t on t.oid=c.conrelid
+                join pg_namespace as n on n.oid=t.relnamespace
+               where n.nspname='public' and t.relname='orders'
+                 and c.conname='orders_payment_contract_version_allowed'
+                 and c.contype='c' and c.convalidated
+                 and lower(pg_get_constraintdef(c.oid)) like '%payment_contract_version is null%'
+                 and lower(pg_get_constraintdef(c.oid)) like '%payment_contract_version = 2%'
+            ) then
+              raise exception 'payment contract version schema verification failed';
+            end if;
+            if not exists (
+              select 1
+                from pg_constraint as c
+                join pg_class as t on t.oid=c.conrelid
+                join pg_namespace as n on n.oid=t.relnamespace
+               where n.nspname='public' and t.relname='orders'
+                 and c.conname='orders_checkout_request_key_hash_format'
+                 and c.contype='c' and c.convalidated
+                 and lower(pg_get_constraintdef(c.oid)) like '%checkout_request_key_hash%'
+                 and lower(pg_get_constraintdef(c.oid)) like '%[0-9a-f]{64}%'
+            ) then
+              raise exception 'checkout request hash format verification failed';
+            end if;
+            if not exists (
+              select 1 from information_schema.columns
+               where table_schema='public' and table_name='orders'
+                 and column_name='restock_required'
+                 and data_type='boolean' and is_nullable='NO'
+                 and column_default='false'
+            ) or not exists (
+              select 1 from information_schema.columns
+               where table_schema='public' and table_name='orders'
+                 and column_name='payment_review_required'
+                 and data_type='boolean' and is_nullable='NO'
+                 and column_default='false'
+            ) then
+              raise exception 'restock/payment review schema verification failed';
+            end if;
+            if not exists (
+              select 1 from information_schema.columns
+               where table_schema='public' and table_name='orders'
+                 and column_name='payment_terminal_at'
+                 and data_type='timestamp with time zone' and is_nullable='YES'
+            ) or exists (
+              select 1 from public.orders
+               where payment_contract_version=2
+                 and status in ('failed','canceled')
+                 and payment_terminal_at is null
+            ) or not exists (
+              select 1 from pg_constraint
+               where conrelid='public.orders'::regclass
+                 and conname='orders_v2_terminal_timestamp_required'
+                 and contype='c' and convalidated
+            ) or not exists (
+              select 1 from pg_index as x
+              join pg_class as i on i.oid=x.indexrelid
+               where x.indrelid='public.orders'::regclass
+                 and i.relname='orders_recent_payment_terminal_v2_idx'
+                 and x.indpred is not null
+                 and pg_get_indexdef(x.indexrelid,1,true)='payment_terminal_at'
+                 and pg_get_indexdef(x.indexrelid,2,true)='id'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%payment_contract_version = 2%'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%failed%'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%canceled%'
+            ) or not exists (
+              select 1 from pg_trigger
+               where tgrelid='public.orders'::regclass
+                 and tgname='trg_stamp_order_payment_terminal_at_v1'
+                 and tgfoid=to_regprocedure('public.stamp_order_payment_terminal_at_v1()')
+                 and tgenabled <> 'D' and not tgisinternal
+            ) then
+              raise exception 'payment terminal timestamp schema verification failed';
+            end if;
+            if not exists (
+              select 1
+                from pg_index as x
+                join pg_class as i on i.oid=x.indexrelid
+               where i.relname='orders_one_unresolved_listing_v2_idx'
+                 and x.indrelid='public.orders'::regclass
+                 and x.indisunique and x.indpred is not null
+                 and pg_get_indexdef(x.indexrelid,1,true)='listing_id'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%payment_contract_version = 2%'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%status%'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%failed%'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%canceled%'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%refunded%'
+            ) or not exists (
+              select 1
+                from pg_index as x
+                join pg_class as i on i.oid=x.indexrelid
+               where i.relname='orders_one_unresolved_coupon_idx'
+                 and x.indrelid='public.orders'::regclass
+                 and x.indisunique and x.indpred is not null
+                 and pg_get_indexdef(x.indexrelid,1,true)='coupon_user_id'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%coupon_user_id is not null%'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%payment_contract_version = 2%'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%status%'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%failed%'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%canceled%'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%refunded%'
+            ) or not exists (
+              select 1
+                from pg_index as x
+                join pg_class as i on i.oid=x.indexrelid
+               where i.relname='orders_checkout_request_key_hash_uidx'
+                 and x.indrelid='public.orders'::regclass
+                 and x.indisunique and x.indpred is not null
+                 and pg_get_indexdef(x.indexrelid,1,true)='checkout_request_key_hash'
+                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%checkout_request_key_hash is not null%'
+            ) then
+              raise exception 'v2 unresolved claim indexes verification failed';
+            end if;
+            if not exists (
+              select 1 from pg_trigger
+               where tgrelid='public.orders'::regclass
+                 and tgname='trg_guard_new_checkout_claims_v1'
+                 and tgfoid=to_regprocedure('public.guard_new_checkout_claims_v1()')
+                 and tgenabled <> 'D' and not tgisinternal
+            ) or not exists (
+              select 1 from pg_trigger
+               where tgrelid='public.listings'::regclass
+                 and tgname='trg_guard_listing_reservation_owner_v1'
+                 and tgfoid=to_regprocedure('public.guard_listing_reservation_owner_v1()')
+                 and tgenabled <> 'D' and not tgisinternal
+            ) then
+              raise exception 'checkout claim integrity trigger verification failed';
+            end if;
+            if not exists (
+              select 1 from pg_trigger
+               where tgrelid='public.orders'::regclass
+                 and tgname='trg_guard_order_money_fields'
+                 and tgfoid=to_regprocedure('public.guard_order_money_fields()')
+                 and tgenabled <> 'D' and not tgisinternal
+            ) or has_function_privilege('authenticated',
+              'public.guard_order_money_fields()','execute')
+               or position('payment_contract_version'
+                 in pg_get_functiondef('public.guard_order_money_fields()'::regprocedure))=0
+               or position('checkout_request_key_hash'
+                 in pg_get_functiondef('public.guard_order_money_fields()'::regprocedure))=0
+               or position('restock_required'
+                 in pg_get_functiondef('public.guard_order_money_fields()'::regprocedure))=0
+               or position('payment_review_required'
+                 in pg_get_functiondef('public.guard_order_money_fields()'::regprocedure))=0
+               or position('payment_terminal_at'
+                 in pg_get_functiondef('public.guard_order_money_fields()'::regprocedure))=0
+               or position('new.order_no is distinct from old.order_no'
+                 in pg_get_functiondef('public.guard_order_money_fields()'::regprocedure))=0
+               or position('old.status in'
+                 in pg_get_functiondef('public.guard_order_money_fields()'::regprocedure))=0
+               or position('new.status = ''paid'''
+                 in pg_get_functiondef('public.guard_order_money_fields()'::regprocedure))=0 then
+              raise exception 'order financial state guard verification failed';
+            end if;
+            if position('set_config(''app.payment_contract_version'', ''2'', true)'
+                 in pg_get_functiondef('public.create_checkout_order_edge_v1(text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)'::regprocedure))=0
+               or position('set_config(''app.checkout_request_key_hash'', p_checkout_request_key_hash, true)'
+                 in pg_get_functiondef('public.create_checkout_order_edge_v1(text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)'::regprocedure))=0
+               or position('pg_advisory_xact_lock'
+                 in pg_get_functiondef('public.create_checkout_order_edge_v1(text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)'::regprocedure))=0
+               or position('checkout_request_conflict'
+                 in pg_get_functiondef('public.create_checkout_order_edge_v1(text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)'::regprocedure))=0
+               or position('''checkoutReplayed'', true'
+                 in pg_get_functiondef('public.create_checkout_order_edge_v1(text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)'::regprocedure))=0
+               or position('p_expected_amount'
+                 in pg_get_functiondef('public.create_checkout_order_edge_v1(text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)'::regprocedure))=0
+               or position('checkout_amount_changed'
+                 in pg_get_functiondef('public.create_checkout_order_edge_v1(text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)'::regprocedure))=0
+               or position('''reservationMode'',''provider_terminal'''
+                 in pg_get_functiondef('public.create_checkout_order_edge_v1(text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)'::regprocedure))=0
+               or position('''paymentContractVersion'',2'
+                 in pg_get_functiondef('public.create_checkout_order_edge_v1(text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)'::regprocedure))=0 then
+              raise exception 'provider-terminal checkout wrapper verification failed';
             end if;
           end $$;
           SQL

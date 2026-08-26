@@ -52,4 +52,12 @@ await assert.rejects(provider({
   refreshSession: async () => ({ data: { session: null }, error: { code: 'refresh_failed' } })
 })(), (error) => error.code === 'PAYMENT_SESSION_EXPIRED');
 
+const capabilityFallbackToken = await provider({
+  getSession: async () => ({ data: { session: { access_token: 'expired-token' } }, error: null }),
+  getUser: async () => ({ data: { user: null }, error: { code: 'bad_jwt' } }),
+  refreshSession: async () => ({ data: { session: null }, error: { code: 'refresh_failed' } }),
+})({ confirmationCapability: 'server-issued-checkout-token' });
+assert.equal(capabilityFallbackToken, 'anon-public-key',
+  'an expired login must not prevent verification of the same capability-bound order');
+
 console.log('payment auth session recovery: ok');

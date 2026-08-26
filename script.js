@@ -256,9 +256,9 @@
     var myOrdersCache = [];
     var ordersFilter = '';
     var O_LABEL = {
-        pending: '결제대기', paid: '결제완료', inspecting: '정품검수', preparing: '상품준비중',
+        pending: '결제대기', payment_review: '결제 확인 중', paid: '결제완료', failed: '결제 실패', inspecting: '정품검수', preparing: '상품준비중',
         shipping: '배송중', delivered: '배송완료', confirmed: '구매확정',
-        cancel_req: '취소요청', canceled: '주문취소', cancelled: '주문취소', refunded: '환불완료',
+        cancel_req: '취소요청', canceled: '주문취소', cancelled: '주문취소', refund_pending: '환불 처리 중', refunded: '환불완료',
         return_req: '반품요청', exchange_req: '교환요청', returning: '회수중'
     };
     // 정상 진행 단계(타임라인)
@@ -1494,7 +1494,7 @@
         var isAdminPreview = !!window.BELLORE_isAdmin;
         if (isAdminPreview && !_mpBn.length) {
             _mpBn = [{
-                image: 'assets/m1263340002.png',
+                image: 'assets/products/watch-batch-20260821-2/085-dn8gn68cx9ky/front.webp',
                 title: '마이페이지 배너',
                 subtitle: '배너 수정에서 이미지와 문구를 등록하세요.',
                 adminFallback: true
@@ -1990,8 +1990,7 @@
     var _aOrdersUnsub = null, _aOrdersCache = [], _aOrderFilter = '';
     var _aReturnsUnsub = null, _aReturnsCache = [];
     var _aOrderEditing = null, _adminOrderBound = false;
-    var ADMIN_STATUSES = ['paid', 'inspecting', 'preparing', 'shipping', 'delivered', 'confirmed', 'cancel_req', 'canceled', 'refunded'];
-
+    var ADMIN_STATUSES = ['inspecting', 'preparing', 'shipping', 'delivered', 'confirmed', 'cancel_req'], ADMIN_FINANCIAL_LOCKED = ['pending', 'payment_review', 'failed', 'canceled', 'cancelled', 'refund_pending', 'refunded'];
     function isToday(ts) {
         var ms = (ts && ts.toMillis) ? ts.toMillis() : (ts && ts.seconds ? ts.seconds * 1000 : Date.parse(ts));
         if (!ms || isNaN(ms)) return false;
@@ -2020,6 +2019,7 @@
         _aOrderEditing = o;
         var body = $('#adminOrderBody'); if (!body) return;
         var addr = o.shipAddr1 ? ('(' + esc(o.shipPostcode || '') + ') ' + esc(o.shipAddr1) + ' ' + esc(o.shipAddr2 || '')) : '미입력';
+        var statusLocked = ADMIN_FINANCIAL_LOCKED.indexOf(o.status) >= 0, statusOptions = (statusLocked ? [o.status] : (o.status === 'paid' ? ['paid'].concat(ADMIN_STATUSES) : ADMIN_STATUSES)).map(function (s) { return '<option value="' + s + '"' + (s === o.status ? ' selected' : '') + '>' + (O_LABEL[s] || s) + '</option>'; }).join('');
         body.innerHTML = '' +
             '<div class="op-sec"><h4>' + esc(o.productName || '상품') + '</h4>' +
                 '<div class="op-row"><span>주문번호</span><b>' + esc(o.orderNo) + '</b></div>' +
@@ -2029,8 +2029,8 @@
                 '<div class="op-row"><span>배송지</span><b>' + addr + '</b></div>' +
                 (o.shipRequest ? '<div class="op-row"><span>요청</span><b>' + esc(o.shipRequest) + '</b></div>' : '') +
             '</div>' +
-            '<div class="cp-field"><label>주문 상태</label><select id="aopStatus">' +
-                ADMIN_STATUSES.map(function (s) { return '<option value="' + s + '"' + (s === o.status ? ' selected' : '') + '>' + (O_LABEL[s] || s) + '</option>'; }).join('') +
+            '<div class="cp-field"><label>주문 상태</label><select id="aopStatus"' + (statusLocked ? ' disabled aria-label="결제 시스템에서 처리 중인 주문 상태"' : '') + '>' +
+                statusOptions +
             '</select></div>' +
             '<div class="cp-field"><label>택배사</label><select id="aopCourier">' +
                 '<option value="">선택</option>' +
@@ -2137,14 +2137,14 @@
             var tracking = ($('#aopTracking').value || '').trim();
             var memo = ($('#aopMemo').value || '').trim();
             // 운송장을 새로 넣었는데 상태를 안 바꿨고 아직 배송 전이면 자동으로 배송중 처리
-            if (tracking && status === o.status && ['shipping', 'delivered', 'confirmed'].indexOf(status) < 0) {
+            if (tracking && ADMIN_FINANCIAL_LOCKED.indexOf(status) < 0 && status === o.status && ['shipping', 'delivered', 'confirmed'].indexOf(status) < 0) {
                 status = 'shipping';
             }
             save.disabled = true; save.textContent = '저장 중...';
             // 순차 처리: 메모 → 운송장 → 상태(상태가 마지막에 적용되어 우선)
             var p = NWBackend.adminSetOrderMemo(id, memo);
             p = p.then(function () { return NWBackend.adminSetTracking(id, courier, tracking); });
-            p = p.then(function () { return NWBackend.adminSetOrderStatus(id, status); });
+            if (status !== o.status) p = p.then(function () { return NWBackend.adminSetOrderStatus(id, status); });
             p.then(function () {
                 alert('저장되었습니다.'); closeAdminOrderPage();
                 // realtime 미활성 대비 즉시 목록 재조회(클라 폴백)
@@ -3226,12 +3226,12 @@
         { brand: 'ROLEX', model: '서브마리너 풀세트', img: 'assets/2026-03-18_이미지자료_193209.jpg', basePrice: 1500 },
         { brand: 'PATEK', model: '노틸러스 5711', img: 'assets/KakaoTalk_20250502_221302124_02.jpg', basePrice: 5000 },
         { brand: 'AP', model: '로열오크 15500ST', img: 'assets/KakaoTalk_20250513_003812408_03.jpg', basePrice: 4500 },
-        { brand: 'VACHERON', model: '오버시즈 퍼페추얼', img: 'assets/KakaoTalk_20250428_224216035.jpg', basePrice: 3800 },
+        { brand: 'VACHERON', model: '오버시즈 퍼페추얼', img: 'assets/KakaoTalk_20250428_224216035_03.jpg', basePrice: 3800 },
         { brand: 'ROLEX', model: 'GMT 펩시', img: 'assets/KakaoTalk_20250506_211755713_02.jpg', basePrice: 2100 },
         { brand: 'FRANCK', model: '뱅가드 V45 다이아', img: 'assets/1(487).jpg', basePrice: 3000 },
-        { brand: 'ROLEX', model: '데이트저스트 41 화이트', img: 'assets/m1263340002.png', basePrice: 1600 },
-        { brand: 'ROLEX', model: '데이데이트 다이아베젤', img: 'assets/m128395tbr0032.png', basePrice: 7600 },
-        { brand: 'FRANCK', model: '카사블랑카 6850', img: 'assets/6850CASA.jpg', basePrice: 850 }
+        { brand: 'ROLEX', model: '데이트저스트 41 화이트', img: 'assets/products/watch-batch-20260821-2/085-dn8gn68cx9ky/front.webp', basePrice: 1600 },
+        { brand: 'ROLEX', model: '데이데이트 다이아베젤', img: 'assets/products/watch-batch-20260821-2/076-ftdsfmhzmngx/front.webp', basePrice: 7600 },
+        { brand: 'FRANCK', model: '카사블랑카 6850', img: 'assets/products/watch-batch-20260821-3/115-rjgmw8n74aw1/front.webp', basePrice: 850 }
     ];
 
     function pickBidder() {
@@ -4396,35 +4396,35 @@
         {
             brand: '롤렉스 데이트저스트',
             ref: '126284RBR · 풀세트',
-            img: 'assets/m126284rbr0011.png',
+            img: 'assets/products/watch-batch-20260821-3/146-cy21q4gmqqpg/front.webp',
             avg: 18000000,
             our: 22800000
         },
         {
             brand: '롤렉스 데이데이트',
             ref: '128395TBR · 다이아베젤',
-            img: 'assets/m128395tbr0032.png',
+            img: 'assets/products/watch-batch-20260821-2/076-ftdsfmhzmngx/front.webp',
             avg: 62000000,
             our: 78000000
         },
         {
             brand: '롤렉스 데이트저스트 41',
             ref: '126334 · 풀세트',
-            img: 'assets/m1263340002.png',
+            img: 'assets/products/watch-batch-20260821-2/085-dn8gn68cx9ky/front.webp',
             avg: 13800000,
             our: 16500000
         },
         {
             brand: '롤렉스 데이데이트 36',
             ref: '128239 · 그린 다이얼',
-            img: 'assets/m1282390005.png',
+            img: 'assets/products/watch-batch-20260821-3/126-2x1eremzn2tz/front.webp',
             avg: 44000000,
             our: 52000000
         },
         {
             brand: '롤렉스 데이트저스트 31',
             ref: '278381RBR · 다이아',
-            img: 'assets/m278381rbr0004.png',
+            img: 'assets/products/watch-batch-20260821/041-216nepsyb2nw/front.webp',
             avg: 22000000,
             our: 28500000
         }
@@ -5605,7 +5605,7 @@
         {
             brand: 'VACHERON CONSTANTIN',
             model: '오버시즈 퍼페추얼',
-            img: 'assets/KakaoTalk_20250428_224216035.jpg',
+            img: 'assets/KakaoTalk_20250428_224216035_03.jpg',
             base: 32000000,
             top: 42000000
         },

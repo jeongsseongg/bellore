@@ -61,11 +61,18 @@ assert.match(customerMessage('unauthorized', 'auth'), /로그인하지 못했습
 assert.match(customerMessage('PGRST500', 'identity'), /본인인증을 완료하지 못했습니다/);
 
 const checkoutBusinessCases = [
+  ['checkout_temporarily_unavailable', /잠시 점검 중/],
+  ['checkout_recovery_unavailable', /결제를 시작하지 않았습니다/],
+  ['checkout_request_changed', /현재 입력 내용이 다릅니다/],
+  ['checkout_request_conflict', /다시 결제하지 말고/],
   ['listing_reserved', /현재 구매가 진행 중인 상품/],
   ['listing_unavailable', /현재 구매할 수 없는 상품/],
   ['listing_not_found', /상품 정보를 찾지 못했습니다/],
   ['coupon_invalid', /쿠폰을 해제하거나/],
+  ['coupon_reserved', /이전 결제를 마친 뒤/],
   ['guest_coupon_not_allowed', /로그인하거나 쿠폰을 해제/],
+  ['checkout_shipping_required', /받는 분과 배송 주소/],
+  ['checkout_amount_changed', /새로고침하고 쿠폰을 다시 선택한 뒤 결제를 다시 시도/],
   ['checkout_amount_too_small', /쿠폰과 상품 가격을 확인/],
   ['checkout_rate_limited', /15분 후/],
   ['listing_price_invalid', /상품 가격/],
@@ -82,6 +89,29 @@ assert.equal(pendingConfirmation.classification, 'payment_confirmation_pending')
 assert.match(pendingConfirmation.message, /다시 결제하지 말고/);
 assert.doesNotMatch(pendingConfirmation.message, forbiddenTechnicalText);
 assert(!pendingConfirmation.message.includes('payment_confirmation_pending'));
+const confirmationBusinessCases = [
+  ['payment_confirmation_response_invalid', /다시 결제하지 말고/],
+  ['payment_canceled', /결제를 취소했습니다/],
+  ['payment_declined', /승인되지 않았습니다/],
+  ['payment_automatically_refunded', /자동 취소되었습니다/],
+  ['payment_refund_in_progress', /결제 취소를 진행하고 있습니다/],
+  ['payment_refund_pending', /중복 결제하지 말고/],
+  ['payment_refunded', /환불 처리되었습니다/],
+];
+for (const [code, expectedMessage] of confirmationBusinessCases) {
+  const feedback = customerFeedback({ code, message: code }, 'confirmation');
+  assert.equal(feedback.classification, code);
+  assert.match(feedback.message, expectedMessage);
+  assert.doesNotMatch(feedback.message, forbiddenTechnicalText);
+  assert(!feedback.message.includes(code), 'customer message leaked confirmation code: ' + code);
+}
+const terminalStatePending = customerFeedback(
+  { code: 'payment_terminal_state_pending' },
+  'confirmation',
+);
+assert.match(terminalStatePending.message, /중복 결제하지 말고/);
+assert.doesNotMatch(terminalStatePending.message, forbiddenTechnicalText);
+assert(!terminalStatePending.message.includes('payment_terminal_state_pending'));
 assert.equal(
   customerFeedback({ code: 'listing_reserved' }, 'general').classification,
   'internal_error',
@@ -122,6 +152,17 @@ assert.match(unknown.message, /중복 결제하지 말고/);
 const permissionFailure = paymentProviderCustomerFeedback({ code: 'PERMISSION_DENIED', message: 'permission denied for table orders' });
 assert.equal(permissionFailure.classification, 'payment_provider_unverified');
 assert.match(permissionFailure.message, /중복 결제하지 말고/);
+
+for (const ambiguous of [
+  { code: 'CONNECTION_CLOSED', message: 'connection closed' },
+  { code: 'WINDOW_CLOSED', message: 'window closed' },
+  { code: 'PORTONE_UNKNOWN', message: 'payment cancelled' },
+  { message: '사용자가 결제창을 닫았습니다' },
+]) {
+  const feedback = paymentProviderCustomerFeedback(ambiguous);
+  assert.equal(feedback.classification, 'payment_provider_unverified');
+  assert.match(feedback.message, /중복 결제하지 말고/);
+}
 
 for (const feedback of [canceled, declined, unknown, permissionFailure]) {
   assert.doesNotMatch(feedback.message, forbiddenTechnicalText);

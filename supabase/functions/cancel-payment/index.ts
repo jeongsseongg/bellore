@@ -158,7 +158,8 @@ Deno.serve(async (req) => {
     }
     if (action === "finalize_cancelled" && providerAmount !== null) {
       const reconciliation = await finalizeKnownProviderCancellation({
-        admin, orderNo, refundAmount: providerAmount, reason,
+        admin, orderNo, refundAmount: providerAmount,
+        expectedOrderAmount: Number(order.amount), reason,
       });
       if (!reconciliation.tracked) {
         return json(req, { error: "refund_recovery_not_recorded", providerRefunded: true }, 500);

@@ -13,9 +13,16 @@ function verifyToken(auth, token) {
 }
 
 export function createPaymentAccessToken({ getAuth, getAnonKey }) {
-  return function paymentAccessToken() {
+  return function paymentAccessToken(options = {}) {
     const auth = getAuth();
-    if (!auth) return Promise.reject(new Error('PAYMENT_AUTH_NOT_READY'));
+    const capabilityFallback = () => {
+      const anonKey = options.confirmationCapability ? getAnonKey() : null;
+      if (!anonKey) throw paymentSessionError();
+      return anonKey;
+    };
+    if (!auth) return options.confirmationCapability
+      ? Promise.resolve().then(capabilityFallback)
+      : Promise.reject(new Error('PAYMENT_AUTH_NOT_READY'));
     return auth.getSession().then((sessionResult) => {
       if (sessionResult?.error) throw paymentSessionError();
       const session = sessionResult?.data?.session;
@@ -30,6 +37,6 @@ export function createPaymentAccessToken({ getAuth, getAnonKey }) {
           return verifyToken(auth, refreshed.access_token);
         });
       });
-    });
+    }).catch((error) => options.confirmationCapability ? capabilityFallback() : Promise.reject(error));
   };
 }

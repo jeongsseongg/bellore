@@ -47,11 +47,18 @@ const CONTEXT_COPY = Object.freeze({
 });
 
 const PAYMENT_START_CODE_COPY = Object.freeze({
+  checkout_temporarily_unavailable: '안전한 결제 준비를 위해 잠시 점검 중입니다. 잠시 후 다시 시도해 주세요.',
+  checkout_recovery_unavailable: '안전한 결제 정보를 저장할 수 없어 결제를 시작하지 않았습니다. 브라우저 저장 기능을 확인한 뒤 다시 시도해 주세요.',
+  checkout_request_changed: '이전에 준비하던 결제와 현재 입력 내용이 다릅니다. 결제는 진행되지 않았습니다. 입력한 상품·쿠폰·배송 정보를 다시 확인해 주세요.',
+  checkout_request_conflict: '이전에 준비한 결제 상태를 확인하고 있습니다. 다시 결제하지 말고 잠시 후 결제 내역을 확인해 주세요.',
   listing_reserved: '현재 구매가 진행 중인 상품입니다. 구매가 취소되면 다시 구매할 수 있습니다.',
   listing_unavailable: '현재 구매할 수 없는 상품입니다. 상품 상태를 다시 확인해 주세요.',
   listing_not_found: '상품 정보를 찾지 못했습니다. 화면을 새로고침한 뒤 다시 시도해 주세요.',
   coupon_invalid: '선택한 쿠폰을 사용할 수 없습니다. 쿠폰을 해제하거나 다른 쿠폰을 선택해 주세요.',
+  coupon_reserved: '선택한 쿠폰으로 진행 중인 결제가 있습니다. 이전 결제를 마친 뒤 다시 시도하거나 다른 쿠폰을 선택해 주세요.',
   guest_coupon_not_allowed: '쿠폰은 로그인 후 사용할 수 있습니다. 로그인하거나 쿠폰을 해제해 주세요.',
+  checkout_shipping_required: '받는 분과 배송 주소를 모두 입력해 주세요.',
+  checkout_amount_changed: '상품 가격이나 쿠폰 할인이 변경되었습니다. 화면을 새로고침하고 쿠폰을 다시 선택한 뒤 결제를 다시 시도해 주세요.',
   checkout_amount_too_small: '결제금액은 100원 이상이어야 합니다. 쿠폰과 상품 가격을 확인해 주세요.',
   checkout_rate_limited: '결제 요청이 여러 번 반복되어 잠시 제한되었습니다. 15분 후 다시 시도해 주세요.',
   listing_price_invalid: '상품 가격을 다시 확인하고 결제를 진행해 주세요.',
@@ -60,6 +67,12 @@ const PAYMENT_START_CODE_COPY = Object.freeze({
 const PAYMENT_CONFIRMATION_CODE_COPY = Object.freeze({
   payment_confirmation_pending: '결제 승인 상태를 확인하고 있습니다. 다시 결제하지 말고 주문번호로 고객센터에 문의해 주세요.',
   payment_confirmation_response_invalid: '결제 승인 상태를 확인하지 못했습니다. 다시 결제하지 말고 고객센터로 문의해 주세요.',
+  payment_canceled: '결제를 취소했습니다. 결제는 진행되지 않았습니다.',
+  payment_declined: '결제가 승인되지 않았습니다. 결제 정보를 확인한 뒤 다시 시도해 주세요.',
+  payment_automatically_refunded: '결제 직후 상품 또는 할인 상태가 바뀌어 결제가 자동 취소되었습니다. 카드사 환불 반영까지 시간이 걸릴 수 있습니다.',
+  payment_refund_in_progress: '결제 직후 상품 또는 할인 상태가 바뀌어 결제 취소를 진행하고 있습니다. 중복 결제하지 말고 고객센터로 문의해 주세요.',
+  payment_refund_pending: '결제 취소를 진행하고 있습니다. 중복 결제하지 말고 잠시 후 결제 내역을 확인해 주세요.',
+  payment_refunded: '결제가 취소되어 환불 처리되었습니다. 카드사 반영까지 시간이 걸릴 수 있습니다.',
 });
 
 function contextName(contextOrOptions) {
@@ -163,13 +176,23 @@ export function customerFeedback(value, contextOrOptions = 'general') {
   });
 }
 
-const PROVIDER_CANCEL_PATTERN = /\bcancel(?:ed|led|lation)?\b|\bclosed?\b|failure_type_user|pay_process_cancel|취소|닫았|중단/i;
-const PROVIDER_DECLINE_PATTERN = /\bdeclin(?:e|ed)\b|\breject(?:ed|ion)?\b|\binsufficient\b|\blimit\b|failure_type_pg|card[_ -]?(?:declined|denied)|payment[_ -]?denied|do_not_honor|not approved|거절|승인[\s\S]{0,12}실패|한도|잔액|카드[\s\S]{0,12}(?:실패|사용[\s\S]{0,6}불가)/i;
+const PROVIDER_CANCEL_CODES = new Set([
+  'FAILURE_TYPE_USER',
+  'PAY_PROCESS_CANCEL',
+]);
+const PROVIDER_DECLINE_CODES = new Set([
+  'CARD_DECLINED',
+  'CARD_DENIED',
+  'FAILURE_TYPE_PG',
+  'PAYMENT_DENIED',
+]);
 
 export function paymentProviderCustomerFeedback(value) {
   const text = errorTexts(value).join(' ');
-  const explicitCode = value && typeof value === 'object' ? scalarText(value.code) : '';
-  if (PROVIDER_CANCEL_PATTERN.test(explicitCode)) {
+  const explicitCode = value && typeof value === 'object'
+    ? scalarText(value.code).trim().toUpperCase()
+    : '';
+  if (PROVIDER_CANCEL_CODES.has(explicitCode)) {
     return Object.freeze({
       classification: 'payment_provider_canceled',
       message: '결제를 취소했습니다. 결제는 진행되지 않았습니다.',
@@ -182,13 +205,7 @@ export function paymentProviderCustomerFeedback(value) {
       message: '결제 결과를 확인하지 못했습니다. 중복 결제하지 말고 고객센터로 문의해 주세요.',
     });
   }
-  if (PROVIDER_CANCEL_PATTERN.test(text)) {
-    return Object.freeze({
-      classification: 'payment_provider_canceled',
-      message: '결제를 취소했습니다. 결제는 진행되지 않았습니다.',
-    });
-  }
-  if (PROVIDER_DECLINE_PATTERN.test(text)) {
+  if (PROVIDER_DECLINE_CODES.has(explicitCode)) {
     return Object.freeze({
       classification: 'payment_provider_declined',
       message: '결제가 승인되지 않았습니다. 결제 정보를 확인한 뒤 다시 시도해 주세요.',

@@ -3,10 +3,15 @@ import {
   classifyCheckoutJwtClaims,
   decodeGatewayVerifiedJwtClaims,
 } from "../_shared/checkout-auth.mjs";
+import { publicCheckoutRecovery } from "../_shared/checkout-recovery.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const RATE_KEY_SECRET = Deno.env.get("CHECKOUT_RATE_KEY_SECRET") ?? "";
+// A missing rollout flag must never open production checkout accidentally.
+// Enable only after DB, Edge Functions, webhook, reconciliation, and static UI
+// have all been verified as one release.
+const CHECKOUT_ENABLED = Deno.env.get("PAYMENT_CHECKOUT_ENABLED") === "true";
 
 const ALLOWED_ORIGINS = new Set([
   "https://bellore.co.kr",
@@ -109,20 +114,24 @@ async function sha256Hex(value: string): Promise<string> {
   ).join("");
 }
 
-function randomCapability(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(32));
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
 function publicCheckoutError(error: RpcError): { code: string; status: number } {
   const message = error.message ?? "";
+  if (error.code === "23505" && message.includes("orders_one_unresolved_coupon_idx")) {
+    return { code: "coupon_reserved", status: 409 };
+  }
   const known: Array<[string, number]> = [
+    ["checkout_request_conflict", 409],
+    ["checkout_request_invalid", 400],
+    ["checkout_token_invalid", 400],
     ["checkout_rate_limited", 429],
     ["listing_reserved", 409],
     ["listing_unavailable", 409],
     ["listing_not_found", 404],
     ["coupon_invalid", 409],
+    ["coupon_reserved", 409],
     ["guest_coupon_not_allowed", 403],
+    ["checkout_shipping_required", 400],
+    ["checkout_amount_changed", 409],
     ["checkout_amount_too_small", 409],
     ["listing_price_invalid", 409],
     ["attribution_invalid", 400],
@@ -133,6 +142,17 @@ function publicCheckoutError(error: RpcError): { code: string; status: number } 
   return { code: "checkout_failed", status: 500 };
 }
 
+async function checkoutCaller(admin: ReturnType<typeof createClient>, bearer: string) {
+  const tokenContext = classifyCheckoutJwtClaims(decodeGatewayVerifiedJwtClaims(bearer));
+  if (tokenContext.kind === "guest") return { callerId: null, error: null };
+  if (tokenContext.kind !== "user") return { callerId: null, error: tokenContext.reason };
+  const { data, error } = await admin.auth.getUser(bearer);
+  if (error || !data.user || data.user.id.toLowerCase() !== tokenContext.subject) {
+    return { callerId: null, error: safeText(error?.code, 40) ?? "session_invalid" };
+  }
+  return { callerId: data.user.id, error: null };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     if (!allowedOrigin(req)) return new Response(null, { status: 403 });
@@ -141,12 +161,9 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json(req, { error: "method_not_allowed" }, 405);
   // This endpoint is browser-only. A missing Origin is not silently trusted.
   if (!allowedOrigin(req)) return json(req, { error: "origin_forbidden" }, 403);
-  if (!SUPABASE_URL || !SERVICE_ROLE || RATE_KEY_SECRET.length < 32) {
+  if (!SUPABASE_URL || !SERVICE_ROLE) {
     return json(req, { error: "server_not_configured" }, 503);
   }
-
-  const clientIp = platformClientIp(req);
-  if (!clientIp) return json(req, { error: "client_address_unavailable" }, 400);
 
   try {
     const rawBody = await req.text();
@@ -164,50 +181,95 @@ Deno.serve(async (req) => {
       return json(req, { error: "invalid_json" }, 400);
     }
 
-    const listingId = uuid(body.listingId);
-    const couponUserId = body.couponUserId == null ? null : uuid(body.couponUserId);
-    if (!listingId) return json(req, { error: "listing_required" }, 400);
-    if (body.couponUserId != null && !couponUserId) {
-      return json(req, { error: "coupon_invalid" }, 400);
+    const checkoutRequestKey = uuid(body.checkoutRequestKey);
+    const checkoutToken = safeText(body.checkoutToken, 64)?.toLowerCase() ?? null;
+    if (!checkoutRequestKey || checkoutRequestKey[14] !== "4") {
+      return json(req, { error: "checkout_request_invalid" }, 400);
+    }
+    if (!checkoutToken || !/^[0-9a-f]{64}$/.test(checkoutToken)) {
+      return json(req, { error: "checkout_token_invalid" }, 400);
     }
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
     const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
-    const tokenContext = classifyCheckoutJwtClaims(decodeGatewayVerifiedJwtClaims(bearer));
-    let callerId: string | null = null;
-    if (tokenContext.kind === "user") {
-      const { data, error } = await admin.auth.getUser(bearer);
-      if (error || !data.user || data.user.id.toLowerCase() !== tokenContext.subject) {
-        console.warn("create-checkout user token rejected", {
-          authCode: safeText(error?.code, 40),
-          subjectMatched: false,
-        });
-        return json(req, { error: "session_invalid" }, 401);
-      }
-      callerId = data.user.id;
-    } else if (tokenContext.kind !== "guest") {
-      console.warn("create-checkout token rejected", { reason: tokenContext.reason });
-      return json(req, { error: "unauthorized" }, 401);
+    const caller = await checkoutCaller(admin, bearer);
+    if (caller.error) {
+      console.warn("create-checkout token rejected", { reason: caller.error });
+      return json(req, { error: caller.error === "session_invalid" ? "session_invalid" : "unauthorized" }, 401);
     }
 
-    const checkoutToken = randomCapability();
+    const checkoutRequestKeyHash = await sha256Hex(checkoutRequestKey);
     const checkoutTokenHash = await sha256Hex(checkoutToken);
+    if (body.action === "recover") {
+      const baseRecoveryQuery = admin
+        .from("orders")
+        .select("order_no,amount,status,listing_id,payment_contract_version,customer_id")
+        .eq("checkout_request_key_hash", checkoutRequestKeyHash)
+        .eq("checkout_token_hash", checkoutTokenHash)
+        .eq("payment_contract_version", 2);
+      const recoveryQuery = caller.callerId
+        ? baseRecoveryQuery.eq("customer_id", caller.callerId)
+        : baseRecoveryQuery.is("customer_id", null);
+      const { data: existing, error: recoveryError } = await recoveryQuery
+        .maybeSingle();
+      if (recoveryError) return json(req, { error: "checkout_recovery_failed" }, 500);
+      if (!existing) {
+        return json(req, { exists: false, checkoutRequestKey, checkoutToken });
+      }
+      const recovered = publicCheckoutRecovery(existing, caller.callerId);
+      if (!recovered) return json(req, { error: "checkout_recovery_invalid" }, 502);
+      return json(req, {
+        ...recovered,
+        checkoutRequestKey,
+        checkoutToken,
+      });
+    }
+
+    if (!CHECKOUT_ENABLED) {
+      return json(req, { error: "checkout_temporarily_unavailable" }, 503);
+    }
+    if (RATE_KEY_SECRET.length < 32) return json(req, { error: "server_not_configured" }, 503);
+    const clientIp = platformClientIp(req);
+    if (!clientIp) return json(req, { error: "client_address_unavailable" }, 400);
+
+    const listingId = uuid(body.listingId);
+    const couponUserId = body.couponUserId == null ? null : uuid(body.couponUserId);
+    const expectedAmount = Number(body.expectedAmount);
+    if (!listingId) return json(req, { error: "listing_required" }, 400);
+    if (!Number.isSafeInteger(expectedAmount) || expectedAmount <= 0) {
+      return json(req, { error: "checkout_amount_invalid" }, 400);
+    }
+    if (body.couponUserId != null && !couponUserId) {
+      return json(req, { error: "coupon_invalid" }, 400);
+    }
+    const buyerName = safeText(body.buyerName, 120);
+    const buyerPhone = safeText(body.buyerPhone, 40);
+    const shipRecipient = safeText(body.shipRecipient, 120);
+    const shipPhone = safeText(body.shipPhone, 40);
+    const shipPostcode = safeText(body.shipPostcode, 20);
+    const shipAddr1 = safeText(body.shipAddr1, 300);
+    if (!buyerName || !buyerPhone || !shipRecipient || !shipPhone || !shipPostcode || !shipAddr1) {
+      return json(req, { error: "checkout_shipping_required" }, 400);
+    }
+
     const rateKey = await sha256Hex(`checkout-ip-v1\0${RATE_KEY_SECRET}\0${clientIp}`);
 
     const { data, error } = await admin.rpc("create_checkout_order_edge_v1", {
       p_rate_key: rateKey,
-      p_customer_id: callerId,
+      p_customer_id: caller.callerId,
       p_listing_id: listingId,
+      p_checkout_request_key_hash: checkoutRequestKeyHash,
       p_checkout_token_hash: checkoutTokenHash,
+      p_expected_amount: expectedAmount,
       p_coupon_user_id: couponUserId,
-      p_buyer_name: safeText(body.buyerName, 120),
-      p_buyer_phone: safeText(body.buyerPhone, 40),
-      p_ship_recipient: safeText(body.shipRecipient, 120),
-      p_ship_phone: safeText(body.shipPhone, 40),
-      p_ship_postcode: safeText(body.shipPostcode, 20),
-      p_ship_addr1: safeText(body.shipAddr1, 300),
+      p_buyer_name: buyerName,
+      p_buyer_phone: buyerPhone,
+      p_ship_recipient: shipRecipient,
+      p_ship_phone: shipPhone,
+      p_ship_postcode: shipPostcode,
+      p_ship_addr1: shipAddr1,
       p_ship_addr2: safeText(body.shipAddr2, 300),
       p_ship_request: safeText(body.shipRequest, 300),
       p_attribution: sanitizeAttribution(body.attribution),
@@ -224,13 +286,20 @@ Deno.serve(async (req) => {
     const order = data && typeof data === "object" && !Array.isArray(data)
       ? data as JsonRecord
       : null;
+    const domainError = safeText(order?.error, 80);
+    if (domainError) {
+      const publicError = publicCheckoutError({ message: domainError });
+      return json(req, { error: publicError.code }, publicError.status);
+    }
     const orderNo = safeText(order?.orderNo, 160);
     const amount = Number(order?.amount);
     const responseListingId = uuid(order?.listingId);
     const payType = safeText(order?.payType, 20);
-    const expiresAt = safeText(order?.expiresAt, 80);
+    const reservationMode = safeText(order?.reservationMode, 40);
+    const paymentContractVersion = Number(order?.paymentContractVersion);
     if (!orderNo || !Number.isSafeInteger(amount) || amount < 100 ||
-      responseListingId !== listingId || payType !== "full" || !expiresAt) {
+      responseListingId !== listingId || payType !== "full" ||
+      reservationMode !== "provider_terminal" || paymentContractVersion !== 2) {
       console.error("create-checkout rpc returned an invalid public order");
       return json(req, { error: "checkout_response_invalid" }, 502);
     }
@@ -240,7 +309,9 @@ Deno.serve(async (req) => {
       amount,
       payType,
       listingId: responseListingId,
-      expiresAt,
+      reservationMode,
+      paymentContractVersion,
+      checkoutRequestKey,
       checkoutToken,
     });
   } catch (error) {

@@ -1,4 +1,4 @@
-import { effectiveListingStatus, listingAvailability } from '../../core/listing-display.js?v=20260826-payment-recovery-hero-v1';
+import { effectiveListingStatus, listingAvailability } from '../../core/listing-display.js?v=20260826-payment-final-v3';
 
 function diagnosticCode(value) {
   const raw = value && typeof value === 'object'
@@ -145,5 +145,46 @@ export function createPaymentFlow({ window: win, notify = (message) => win.alert
     });
   }
 
-  return Object.freeze({ canOpen, confirm, customerMessage, guard, log, preflight, readResponse, resetButton, startFailure, state });
+  function confirmationPresentation(result, paymentId, checkoutAbandoned = false) {
+    const orderNo = String(paymentId || '');
+    if (result?.ok || result?.alreadyPaid) {
+      return {
+        kind: 'paid', ok: true, clearPending: true, refreshListings: true,
+        title: '결제가 완료되었습니다',
+        message: `주문번호 ${orderNo}\n주문번호를 보관해 주세요. 배송 관련 문의 시 빠르게 확인해 드립니다.`,
+      };
+    }
+    if (result?.pending === true || Number(result?.httpStatus) === 202) {
+      return {
+        kind: 'pending', ok: false,
+        title: checkoutAbandoned ? '결제 취소 확인 중' : '결제 확인 중',
+        message: `주문번호 ${orderNo}\n${checkoutAbandoned
+          ? '결제 취소 상태를 안전하게 확인하고 있습니다. 다시 결제하지 말고 잠시 후 상품 상태를 확인해 주세요.'
+          : '결제 상태를 안전하게 확인하고 있습니다. 다시 결제하지 말고 고객센터에 주문번호로 문의해 주세요.'}`,
+      };
+    }
+    const code = diagnosticCode(result?.error || result);
+    log('confirmation_failed', result);
+    if (['payment_automatically_refunded', 'payment_refund_in_progress', 'payment_refund_pending', 'payment_refunded'].includes(code)) {
+      const completed = code === 'payment_automatically_refunded' || code === 'payment_refunded';
+      return {
+        kind: code, ok: false, clearPending: true, refreshListings: true,
+        title: completed ? '결제가 취소 및 환불되었습니다' : '환불 상태를 확인하고 있습니다',
+        message: customerMessage(code, 'confirmation', false),
+      };
+    }
+    if (code === 'payment_canceled' || code === 'payment_declined') {
+      return {
+        kind: code, ok: false, clearPending: true, refreshListings: true,
+        title: code === 'payment_canceled' ? '결제가 취소되었습니다' : '결제가 승인되지 않았습니다',
+        message: customerMessage(code, 'confirmation', false),
+      };
+    }
+    return {
+      kind: 'failed', ok: false, title: '결제 확인 필요',
+      message: customerMessage(code === 'unknown_error' ? result : code, 'confirmation', false),
+    };
+  }
+
+  return Object.freeze({ canOpen, confirm, confirmationPresentation, customerMessage, guard, log, preflight, readResponse, resetButton, startFailure, state });
 }

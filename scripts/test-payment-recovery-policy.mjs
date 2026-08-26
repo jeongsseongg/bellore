@@ -1,11 +1,16 @@
 import assert from 'node:assert/strict';
 import {
+  CLOSED_ORDER_FINALIZATION_ERROR,
   CONFIRMATION_RETRY_DELAYS_MS,
-  PENDING_RECOVERY_EXPIRY_MS,
+  NOT_FOUND_RELEASE_AGE_MS,
+  PENDING_REVIEW_AGE_MS,
   RECONCILIATION_ROTATION_MS,
   adminCancellationAction,
+  confirmedPaymentReconciliationAction,
   confirmationRetryDelayMs,
   fairReconciliationBatch,
+  paidFinalizationDatabaseFailureKind,
+  paidFinalizationRecoveryAction,
   paidRecoveryAction,
   providerCancelledAmount,
   providerPaidAmount,
@@ -13,13 +18,15 @@ import {
   providerTotalAmount,
   reconciliationSummaryOk,
   rotatingReconciliationWindowOffset,
-  shouldExpirePendingOrder,
+  shouldEscalatePendingOrder,
   shouldFinalizeDuringRecovery,
+  shouldReleaseNotFoundOrder,
   shouldRetryConfirmation,
 } from '../supabase/functions/_shared/payment-recovery-policy.mjs';
 
 assert.deepEqual(CONFIRMATION_RETRY_DELAYS_MS, [400, 800, 1200]);
-assert.equal(PENDING_RECOVERY_EXPIRY_MS, 86_400_000);
+assert.equal(NOT_FOUND_RELEASE_AGE_MS, 900_000);
+assert.equal(PENDING_REVIEW_AGE_MS, 86_400_000);
 assert.equal(RECONCILIATION_ROTATION_MS, 300_000);
 assert.equal(providerStatusKind('PAID'), 'paid');
 assert.equal(providerStatusKind('READY'), 'pending');
@@ -62,8 +69,69 @@ assert.equal(paidRecoveryAction('pending', true), 'finalize');
 assert.equal(paidRecoveryAction('payment_review', true), 'finalize');
 assert.equal(paidRecoveryAction('refund_pending', true), 'continue_cancellation');
 assert.equal(paidRecoveryAction('paid', true), 'none');
-assert.equal(paidRecoveryAction('pending', false), 'review_amount_mismatch');
+assert.equal(paidRecoveryAction('pending', false, true), 'cancel_amount_mismatch');
+assert.equal(paidRecoveryAction('pending', false, false), 'review_amount_missing');
+assert.equal(paidRecoveryAction('failed', true, true), 'cancel_late_payment');
+assert.equal(paidRecoveryAction('canceled', true, true), 'cancel_late_payment');
 assert.equal(paidRecoveryAction('refund_pending', false), 'continue_cancellation');
+const confirmedInput = {
+  locallyConfirmed: true,
+  providerStatus: 'PAID',
+  paidAmount: 1300,
+  expectedAmount: 1300,
+  storedPaymentKey: 'payment-live-1',
+  lookupPaymentId: 'payment-live-1',
+  paidAt: '2026-08-26T12:00:00.000Z',
+};
+assert.equal(confirmedPaymentReconciliationAction(confirmedInput), 'healthy');
+assert.equal(confirmedPaymentReconciliationAction({ ...confirmedInput, locallyConfirmed: false }), 'not_applicable');
+assert.equal(confirmedPaymentReconciliationAction({ ...confirmedInput, providerStatus: 'CANCELLED' }), 'finalize_cancelled');
+for (const providerStatus of ['PARTIAL_CANCELLED', 'FAILED', 'PENDING', 'UNEXPECTED']) {
+  assert.equal(confirmedPaymentReconciliationAction({ ...confirmedInput, providerStatus }), 'review');
+}
+for (const override of [
+  { paidAmount: 1299 },
+  { storedPaymentKey: null },
+  { lookupPaymentId: 'payment-other' },
+  { paidAt: null },
+]) {
+  assert.equal(confirmedPaymentReconciliationAction({ ...confirmedInput, ...override }), 'review');
+}
+assert.deepEqual(CLOSED_ORDER_FINALIZATION_ERROR, {
+  code: 'P0001',
+  message: 'order_closed_before_paid_finalization',
+});
+assert.equal(
+  paidFinalizationDatabaseFailureKind(
+    CLOSED_ORDER_FINALIZATION_ERROR.code,
+    CLOSED_ORDER_FINALIZATION_ERROR.message,
+  ),
+  'locally_closed',
+);
+assert.equal(
+  paidFinalizationDatabaseFailureKind('P0001', 'ORDER_CLOSED_BEFORE_PAID_FINALIZATION'),
+  null,
+  'the closed-order refund authority must match the exact database message',
+);
+assert.equal(
+  paidFinalizationDatabaseFailureKind(' P0001 ', CLOSED_ORDER_FINALIZATION_ERROR.message),
+  null,
+  'the closed-order refund authority must match the exact SQLSTATE',
+);
+assert.equal(
+  paidFinalizationDatabaseFailureKind('23505', CLOSED_ORDER_FINALIZATION_ERROR.message),
+  null,
+  'a matching message with the wrong SQLSTATE must never authorize a refund',
+);
+assert.equal(
+  paidFinalizationDatabaseFailureKind('P0001', `${CLOSED_ORDER_FINALIZATION_ERROR.message}:failed`),
+  null,
+  'a message prefix must never authorize a refund',
+);
+assert.equal(paidFinalizationRecoveryAction('listing_conflict'), 'cancel_conflict');
+assert.equal(paidFinalizationRecoveryAction('coupon_conflict'), 'cancel_conflict');
+assert.equal(paidFinalizationRecoveryAction('locally_closed'), 'cancel_conflict');
+assert.equal(paidFinalizationRecoveryAction(null), 'review');
 
 assert.equal(adminCancellationAction('PAID', 1300), 'cancel_paid');
 assert.equal(adminCancellationAction('PAID', null), 'review');
@@ -76,10 +144,19 @@ assert.equal(adminCancellationAction('CANCELLED', null), 'review');
 assert.equal(adminCancellationAction('UNEXPECTED', 1300), 'review');
 
 const now = Date.parse('2026-08-26T12:00:00.000Z');
-assert.equal(shouldExpirePendingOrder('pending', now - PENDING_RECOVERY_EXPIRY_MS, now), true);
-assert.equal(shouldExpirePendingOrder('pending', now - PENDING_RECOVERY_EXPIRY_MS + 1, now), false);
-assert.equal(shouldExpirePendingOrder('payment_review', now - PENDING_RECOVERY_EXPIRY_MS, now), false);
-assert.equal(shouldExpirePendingOrder('pending', 'invalid-date', now), false);
+assert.equal(shouldReleaseNotFoundOrder('pending', now - NOT_FOUND_RELEASE_AGE_MS, now), true);
+assert.equal(shouldReleaseNotFoundOrder('pending', now - NOT_FOUND_RELEASE_AGE_MS + 1, now), false);
+assert.equal(shouldReleaseNotFoundOrder('payment_review', now - NOT_FOUND_RELEASE_AGE_MS, now), false);
+assert.equal(shouldReleaseNotFoundOrder('pending', 'invalid-date', now), false);
+assert.equal(shouldEscalatePendingOrder('pending', now - PENDING_REVIEW_AGE_MS, now), true);
+assert.equal(shouldEscalatePendingOrder('pending', now - PENDING_REVIEW_AGE_MS + 1, now), false);
+assert.equal(shouldEscalatePendingOrder('payment_review', now - PENDING_REVIEW_AGE_MS, now), false);
+assert.equal(shouldEscalatePendingOrder('pending', 'invalid-date', now), false);
+for (const age of [15 * 60 * 1000, PENDING_REVIEW_AGE_MS + 1, 7 * 24 * 60 * 60 * 1000]) {
+  assert.notEqual(providerStatusKind('READY'), 'failed', `READY must never become terminal after ${age}ms`);
+  assert.notEqual(providerStatusKind('PENDING'), 'cancelled', `PENDING must never become terminal after ${age}ms`);
+  assert.equal(providerStatusKind('NOT_FOUND'), 'unknown', 'not-found is not provider terminal truth');
+}
 
 const overQuotaGroups = ['payment_review', 'refund_pending', 'pending'].map((status) =>
   Array.from({ length: 25 }, (_, index) => ({ order_no: `${status}-${index}`, status, index }))

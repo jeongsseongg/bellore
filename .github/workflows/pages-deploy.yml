@@ -26,7 +26,7 @@ jobs:
   build:
     if: >-
       github.ref == 'refs/heads/main' &&
-      (vars.PRODUCTION_DEPLOY_ENABLED != 'false' ||
+      (vars.PRODUCTION_DEPLOY_ENABLED == 'true' ||
       (github.event_name == 'workflow_dispatch' && inputs.static_release_sha != ''))
     needs: truth_guard
     runs-on: ubuntu-latest
@@ -95,7 +95,7 @@ jobs:
   deploy:
     if: >-
       github.ref == 'refs/heads/main' &&
-      (vars.PRODUCTION_DEPLOY_ENABLED != 'false' ||
+      (vars.PRODUCTION_DEPLOY_ENABLED == 'true' ||
       (github.event_name == 'workflow_dispatch' && inputs.static_release_sha != ''))
     environment:
       name: github-pages

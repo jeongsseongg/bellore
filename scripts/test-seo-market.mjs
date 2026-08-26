@@ -182,7 +182,7 @@ await test('product page has unique metadata, Product/Offer/Breadcrumb and every
   assert.match(html, /<meta property="og:url" content="https:\/\/bellore\.co\.kr\/market\/tst-n1-1\/">/);
   assert.match(html, /<a class="cta" href="https:\/\/bellore\.co\.kr\/#p=listing-1">벨로르에서 상품 보기<\/a>/);
   assert.match(html, /data-market-listing-status/);
-  assert.match(html, /market-static-status\.js\?v=20260826-payment-recovery-hero-v1/);
+  assert.match(html, /market-static-status\.js\?v=20260826-payment-final-v3/);
   assert.doesNotMatch(html, /화면에 노출하면 안 되는 일반 상품 설명|추가 정보|평가 근거|상품화 처리/);
   assert.doesNotMatch(html, /소재 · 기능|>케이스<|>밴드</);
   assert.match(html, />무브먼트<\/dt><dd>오토매틱<\/dd>/);

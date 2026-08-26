@@ -83,7 +83,7 @@ ${header()}
 ${body}
 ${footer()}
 <script defer src="/supabase-config.js?v=20260814-kg-card-review"></script>
-<script type="module" src="/app/features/listing-availability/market-static-status.js?v=20260826-payment-recovery-hero-v1"></script>
+<script type="module" src="/app/features/listing-availability/market-static-status.js?v=20260826-payment-final-v3"></script>
 </body>
 </html>`;
 }

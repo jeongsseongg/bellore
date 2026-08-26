@@ -4,8 +4,8 @@ import {
   hasRefundablePaymentStatus,
 } from "../_shared/order-payment-states.ts";
 import {
-  cancelAndReconcile,
   finalizeKnownProviderCancellation,
+  queueCancellationIntent,
 } from "../_shared/portone-cancellation.ts";
 import {
   finalizePaidOrderFromProvider,
@@ -17,6 +17,7 @@ import {
   type JsonRecord,
 } from "../_shared/payment-recovery.ts";
 import {
+  paidFinalizationRecoveryAction,
   paidRecoveryAction,
   providerCancelledAmount,
   providerPaidAmount,
@@ -116,8 +117,11 @@ Deno.serve(async (req) => {
       .from("orders")
       .select("id,order_no,amount,status,payment_key,paid_at,receipt_url")
       .eq("order_no", paymentId)
+      .eq("payment_contract_version", 2)
       .single();
-    if (orderError || !order) return json({ error: "order_not_found" }, 404);
+    if (orderError || !order) {
+      return json({ ok: true, ignored: true, reason: "order_not_in_payment_contract" });
+    }
 
     const lookup = await lookupPortOnePayment({
       apiBase: PORTONE_API_BASE,
@@ -137,6 +141,7 @@ Deno.serve(async (req) => {
     const payment = lookup.payment;
 
     const statusKind = providerStatusKind(payment.status);
+    const locallyClosed = order.status === "failed" || order.status === "canceled";
     if (statusKind === "cancelled") {
       if (order.status === "refunded") return json({ ok: true, alreadyRefunded: true });
       if (!hasRefundablePaymentStatus(order.status)) {
@@ -144,7 +149,7 @@ Deno.serve(async (req) => {
       }
       const cancelledAmount = providerCancelledAmount(payment);
       if (cancelledAmount === null) {
-        const { data: marked, error: markError } = await admin.rpc("mark_order_refund_pending", {
+        const { data: marked, error: markError } = await admin.rpc("mark_order_payment_review", {
           p_order_no: paymentId,
           p_reason: "provider_cancelled_amount_missing",
         });
@@ -153,6 +158,7 @@ Deno.serve(async (req) => {
       }
       const reconciliation = await finalizeKnownProviderCancellation({
         admin, orderNo: paymentId, refundAmount: cancelledAmount,
+        expectedOrderAmount: Number(order.amount),
         reason: "portone_cancelled_webhook",
       });
       if (!reconciliation.tracked) {
@@ -170,13 +176,12 @@ Deno.serve(async (req) => {
       return json({ ok: true, ignored: true, reason: "cancel_pending_without_local_request" });
     }
     if (statusKind === "partial_cancelled") {
-      const markerName = order.status === "refund_pending"
-        ? "mark_order_refund_pending"
-        : "mark_order_payment_review";
-      const { data: marked, error: markError } = await admin.rpc(markerName, {
+      const { data: marked, error: markError } = await admin.rpc("mark_order_payment_review", {
         p_order_no: paymentId,
-        p_reason: order.status === "refund_pending"
-          ? "refund_pending_partial_cancel_review:provider"
+        p_reason: order.status === "refund_pending" || locallyClosed
+          ? locallyClosed
+            ? "late_payment_partial_cancel_review:provider"
+            : "refund_pending_partial_cancel_review:provider"
           : "partial_cancel_review:provider",
       });
       if (markError || marked !== true) return json({ error: "payment_review_record_failed" }, 500);
@@ -193,7 +198,15 @@ Deno.serve(async (req) => {
 
     const paidAmount = providerPaidAmount(payment);
     if (hasConfirmedPaymentStatus(order.status)) {
-      if (order.payment_key === paymentId && paidAmount === Number(order.amount)) {
+      if (order.payment_key === paymentId && Boolean(order.paid_at) &&
+        paidAmount === Number(order.amount)) {
+        const { data: cleared, error: clearError } = await admin.rpc(
+          "clear_confirmed_payment_review_v1",
+          { p_order_no: paymentId, p_payment_key: paymentId, p_amount: paidAmount },
+        );
+        if (clearError || cleared !== true) {
+          return json({ error: "payment_review_clear_failed" }, 500);
+        }
         return json({ ok: true, alreadyPaid: true });
       }
       console.error("payment-webhook confirmed order conflict", JSON.stringify({
@@ -205,19 +218,30 @@ Deno.serve(async (req) => {
     const recoveryAction = paidRecoveryAction(
       order.status,
       paidAmount !== null && paidAmount === Number(order.amount),
+      paidAmount !== null,
     );
-    if (recoveryAction === "review_amount_mismatch") {
+    if (recoveryAction === "review_amount_missing") {
+      if (locallyClosed) {
+        const { data: marked, error: markError } = await admin.rpc("mark_order_refund_pending", {
+          p_order_no: paymentId,
+          p_reason: "late_payment_provider_paid_amount_missing",
+        });
+        if (markError || marked !== true) {
+          return json({ error: "payment_recovery_not_recorded" }, 500);
+        }
+        return json({ error: "refund_amount_review", reviewRequired: true, refundPending: true }, 500);
+      }
       const reviewRecorded = await markPaymentReviewIfUnsettled(
         admin,
-        order.id,
-        "provider_paid_amount_mismatch",
+        order.order_no,
+        "provider_paid_amount_missing",
       );
-      console.error("payment-webhook amount mismatch requires review", JSON.stringify({
+      console.error("payment-webhook paid amount missing", JSON.stringify({
         paymentRef: paymentRef(paymentId),
         reviewRecorded,
       }));
       if (!reviewRecorded) return json({ error: "payment_recovery_not_recorded" }, 500);
-      return json({ error: "amount_mismatch_review", reviewRequired: true }, 500);
+      return json({ error: "refund_amount_review", reviewRequired: true }, 500);
     }
     if (recoveryAction === "continue_cancellation") {
       if (paidAmount === null) {
@@ -228,31 +252,32 @@ Deno.serve(async (req) => {
         if (markError || marked !== true) return json({ error: "payment_recovery_not_recorded" }, 500);
         return json({ error: "refund_amount_review", reviewRequired: true, refundPending: true }, 500);
       }
-      const cancellation = await cancelAndReconcile({
-        admin,
-        apiBase: PORTONE_API_BASE,
-        apiSecret: PORTONE_API_SECRET,
-        storeId: PORTONE_STORE_ID,
-        paymentId,
-        orderNo: paymentId,
-        refundAmount: paidAmount,
-        intentCode: "refund_pending_recovery",
-        reason: "webhook_refund_pending_recovery",
-      });
-      const retry = !cancellation.tracked ||
-        (cancellation.providerRefunded && !cancellation.dbFinalized) ||
-        cancellation.state === "failed";
       return json({
-        ok: !retry,
-        refundPending: !cancellation.dbFinalized,
-        cancellationState: cancellation.state,
-        providerRefunded: cancellation.providerRefunded,
-      }, retry ? 500 : 200);
+        ok: true,
+        refundPending: true,
+        cancellationQueued: true,
+      });
+    }
+    if (recoveryAction === "cancel_amount_mismatch" || recoveryAction === "cancel_late_payment") {
+      if (paidAmount === null) return json({ error: "payment_recovery_policy_error" }, 500);
+      const queued = await queueCancellationIntent(
+        admin,
+        paymentId,
+        recoveryAction === "cancel_amount_mismatch"
+          ? "amount_mismatch_auto_cancel"
+          : "paid_finalization_conflict_auto_cancel",
+      );
+      if (!queued) return json({ error: "payment_recovery_not_recorded" }, 500);
+      return json({
+        ok: true,
+        refundPending: true,
+        cancellationQueued: true,
+      });
     }
     if (recoveryAction !== "finalize") {
       const reviewRecorded = await markPaymentReviewIfUnsettled(
         admin,
-        order.id,
+        order.order_no,
         `provider_paid_unexpected_order_state:${String(order.status).slice(0, 80)}`,
       );
       if (!reviewRecorded) return json({ error: "payment_recovery_not_recorded" }, 500);
@@ -278,10 +303,24 @@ Deno.serve(async (req) => {
       const committed = await readMatchingConfirmedOrder(admin, paymentId, paymentId, paidAmount);
       if (committed) return json({ ok: true, alreadyPaid: true });
 
+      if (paidFinalizationRecoveryAction(finalized.failureKind) === "cancel_conflict") {
+        const queued = await queueCancellationIntent(
+          admin,
+          paymentId,
+          "paid_finalization_conflict_auto_cancel",
+        );
+        if (!queued) return json({ error: "payment_recovery_not_recorded" }, 500);
+        return json({
+          ok: true,
+          refundPending: true,
+          cancellationQueued: true,
+        });
+      }
+
       const dbCode = finalized.errorCode ?? "invalid_result";
       const reviewRecorded = await markPaymentReviewIfUnsettled(
         admin,
-        order.id,
+        order.order_no,
         `provider_paid_finalize_retry:${dbCode}`,
       );
       if (!reviewRecorded) {

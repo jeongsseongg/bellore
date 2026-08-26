@@ -9,12 +9,14 @@ const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const runtime = fs.readFileSync(path.join(root, 'app', 'legacy', 'page-runtime.js'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
 const bootstrap = fs.readFileSync(path.join(root, 'app', 'bootstrap.js'), 'utf8');
-const releaseKey = '20260826-payment-recovery-hero-v1';
+const releaseKey = '20260826-payment-final-v3';
 
 const urls = {
   styles: html.match(/<link rel="stylesheet" href="(styles\.css\?v=[^"]+)"/)?.[1],
   script: html.match(/<script src="(script\.js\?v=[^"]+)"/)?.[1],
   payments: html.match(/<script src="(payments\.js\?v=[^"]+)"/)?.[1],
+  wishlist: html.match(/<script src="(wishlist\.js\?v=[^"]+)"/)?.[1],
+  search: html.match(/<script src="(search\.js\?v=[^"]+)"/)?.[1],
   dialog: html.match(/<script src="(ui-dialog\.js\?v=[^"]+)"/)?.[1],
   features: html.match(/<script src="(bellore-features\.js\?v=[^"]+)"/)?.[1],
   quotes: html.match(/<script src="(cq-demo\.js\?v=[^"]+)"/)?.[1],
@@ -28,10 +30,10 @@ for (const [name, url] of Object.entries(urls)) {
   assert(url, `${name} release URL is missing`);
   assert.equal(new URL(url, 'https://bellore.co.kr/').searchParams.get('v'), releaseKey, `${name} release key must advance together`);
 }
-for (const name of ['styles', 'script', 'payments', 'dialog', 'features', 'quotes', 'auction', 'bootstrap', 'pageRuntime']) {
+for (const name of ['styles', 'script', 'payments', 'wishlist', 'search', 'dialog', 'features', 'quotes', 'auction', 'bootstrap', 'pageRuntime']) {
   assert(serviceWorker.includes(`'./${urls[name]}'`), `service worker must precache the exact ${name} URL`);
 }
-assert.match(serviceWorker, /const VERSION = "bellore-v293-payment-recovery-hero";/, 'service-worker cache namespace must advance with the combined release');
+assert.match(serviceWorker, /const VERSION = "bellore-v295-payment-final";/, 'service-worker cache namespace must advance with the combined release');
 for (const asset of [
   'app/vendor/recommendation-engine.js',
   'app/features/home-merchandising/home-merchandising.js',
@@ -40,6 +42,11 @@ for (const asset of [
   'app/services/listings/listing-catalog-service.js',
   'app/core/listing-display.js',
   'app/features/checkout/payment-flow.js',
+  'app/services/payments/payment-auth.js',
+  'app/services/payments/checkout-request-recovery.js',
+  'app/services/payments/checkout-client.js',
+  'app/services/payments/payment-network.js',
+  'app/services/payments/pending-payment-recovery.js',
   'app/legacy/customer-feedback.js',
   'app/core/customer-error.mjs',
   'app/features/listing-availability/market-static-status.js',
@@ -51,6 +58,11 @@ for (const specifier of [
   './features/home-rows/home-rows.js', './features/listing-availability/listing-availability-ui.js',
   './services/listings/listing-catalog-service.js', './core/listing-display.js',
   './features/checkout/payment-flow.js', './legacy/customer-feedback.js',
+  './services/payments/payment-auth.js',
+  './services/payments/checkout-request-recovery.js',
+  './services/payments/checkout-client.js',
+  './services/payments/payment-network.js',
+  './services/payments/pending-payment-recovery.js',
 ]) {
   assert(bootstrap.includes(`${specifier}?v=${releaseKey}`), `bootstrap must import exact ESM release URL: ${specifier}`);
 }

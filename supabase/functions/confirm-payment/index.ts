@@ -1,5 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
 import { hasConfirmedPaymentStatus } from "../_shared/order-payment-states.ts";
+import {
+  confirmationAuthorized,
+  publicOrder,
+  safeEqual,
+  sanitizePaymentAttribution,
+  sha256Hex,
+} from "../_shared/payment-edge-utils.ts";
 import { cancelAndReconcile } from "../_shared/portone-cancellation.ts";
 import {
   finalizePaidOrderFromProvider,
@@ -12,6 +19,8 @@ import {
 } from "../_shared/payment-recovery.ts";
 import {
   CONFIRMATION_RETRY_DELAYS_MS,
+  paidFinalizationRecoveryAction,
+  paidRecoveryAction,
   providerPaidAmount,
   providerStatusKind,
 } from "../_shared/payment-recovery-policy.mjs";
@@ -59,72 +68,6 @@ function json(req: Request, body: unknown, status = 200) {
   });
 }
 
-function sanitizeAttribution(value: unknown) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const source = value as JsonRecord;
-  const uuid = (candidate: unknown) =>
-    typeof candidate === "string" &&
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(candidate)
-      ? candidate
-      : null;
-  const touch = (candidate: unknown) => {
-    if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) return null;
-    const input = candidate as JsonRecord;
-    const keys = [
-      "utm_id", "utm_source", "utm_medium", "utm_campaign", "utm_source_platform",
-      "utm_term", "utm_content", "gclid", "dclid", "wbraid", "gbraid", "msclkid",
-      "fbclid", "ttclid", "n_media", "n_query", "n_keyword", "n_campaign",
-      "n_campaign_type", "n_ad_group", "n_ad", "n_rank", "n_click_id",
-      "referrer_host", "channel",
-    ];
-    const output: Record<string, string> = {};
-    for (const key of keys) {
-      const text = safeText(input[key], 200);
-      if (text) output[key] = text;
-    }
-    return output;
-  };
-  return {
-    event_id: uuid(source.event_id),
-    anonymous_id: uuid(source.anonymous_id),
-    session_id: uuid(source.session_id),
-    first_touch: touch(source.first_touch),
-    session_touch: touch(source.session_touch),
-    conversion_touch: touch(source.conversion_touch),
-  };
-}
-
-async function sha256Hex(value: string): Promise<string> {
-  const bytes = new TextEncoder().encode(value);
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
-function publicOrder(order: JsonRecord | null | undefined) {
-  if (!order) return null;
-  return {
-    id: order.id,
-    order_no: order.order_no,
-    listing_id: order.listing_id,
-    status: order.status,
-    amount: order.amount,
-    paid_at: order.paid_at,
-    receipt_url: order.receipt_url,
-  };
-}
-
-function safeEqual(left: string, right: string): boolean {
-  const encoder = new TextEncoder();
-  const leftBytes = encoder.encode(left);
-  const rightBytes = encoder.encode(right);
-  const length = Math.max(leftBytes.length, rightBytes.length);
-  let difference = leftBytes.length ^ rightBytes.length;
-  for (let index = 0; index < length; index += 1) {
-    difference |= (leftBytes[index] ?? 0) ^ (rightBytes[index] ?? 0);
-  }
-  return difference === 0;
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     if (!allowedOrigin(req)) return new Response(null, { status: 403 });
@@ -145,7 +88,8 @@ Deno.serve(async (req) => {
     const body = await req.json() as JsonRecord;
     const paymentId = safeText(body.paymentId ?? body.orderId, 160);
     const checkoutToken = safeText(body.checkoutToken, 256);
-    const attribution = sanitizeAttribution(body.attribution);
+    const checkoutAbandoned = body.checkoutAbandoned === true;
+    const attribution = sanitizePaymentAttribution(body.attribution);
     if (!paymentId) return json(req, { error: "missing_payment_id" }, 400);
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
@@ -155,21 +99,22 @@ Deno.serve(async (req) => {
       .from("orders")
       .select("id,order_no,customer_id,listing_id,amount,status,checkout_token_hash,payment_key,paid_at,receipt_url")
       .eq("order_no", paymentId)
+      .eq("payment_contract_version", 2)
       .single();
     if (orderError || !order) return json(req, { error: "order_not_found" }, 404);
 
+    const checkoutTokenMatches = Boolean(
+      checkoutToken && order.checkout_token_hash &&
+      safeEqual(await sha256Hex(checkoutToken), order.checkout_token_hash),
+    );
     const authorization = req.headers.get("Authorization") ?? "";
     const bearer = authorization.replace(/^Bearer\s+/i, "");
     let callerId: string | null = null;
-    if (bearer) {
+    if (!checkoutTokenMatches && bearer) {
       const { data } = await admin.auth.getUser(bearer);
       callerId = data.user?.id ?? null;
     }
-    if (order.customer_id) {
-      if (!callerId || callerId !== order.customer_id) {
-        return json(req, { error: "order_forbidden" }, 403);
-      }
-    } else if (!checkoutToken || !safeEqual(await sha256Hex(checkoutToken), order.checkout_token_hash ?? "")) {
+    if (!confirmationAuthorized(order.customer_id, callerId, checkoutTokenMatches)) {
       return json(req, { error: "order_forbidden" }, 403);
     }
 
@@ -180,7 +125,14 @@ Deno.serve(async (req) => {
       return json(req, { error: "payment_refunded" }, 409);
     }
     if (hasConfirmedPaymentStatus(order.status)) {
-      return json(req, { ok: true, alreadyPaid: true, order: publicOrder(order) });
+      if (order.payment_key === paymentId && Boolean(order.paid_at))
+        return json(req, { ok: true, alreadyPaid: true, order: publicOrder(order) });
+      console.error("confirm-payment confirmed order integrity mismatch", JSON.stringify({
+        paymentRef: paymentRef(paymentId), paymentKeyMatches: order.payment_key === paymentId,
+        hasPaidAt: Boolean(order.paid_at),
+      }));
+      return json(req, { ok: false, pending: true, error: "payment_confirmation_pending",
+        phase: "confirmed_order_integrity", retryAfterMs: 2000 }, 202);
     }
 
     const lookup = await lookupPortOnePayment({
@@ -192,8 +144,25 @@ Deno.serve(async (req) => {
       timeoutMs: 5000,
       retryDelaysMs: CONFIRMATION_RETRY_DELAYS_MS,
       retryPendingStatus: true,
-      notFoundResult: "pending",
+      // Bounded retries distinguish a durable provider 404 from a transient one.
+      // Only an explicit browser abandonment may release on that exact result.
+      notFoundResult: "not_found",
     });
+    if (lookup.result === "not_found") {
+      if (!checkoutAbandoned) {
+        return json(req, { ok: false, pending: true,
+          error: "payment_confirmation_pending", retryAfterMs: 2000 }, 202);
+      }
+      const { data: marked, error: markError } = await admin.rpc("fail_unsettled_order", {
+        p_order_no: paymentId,
+        p_reason: "provider_payment_not_found_after_checkout_abandonment",
+      });
+      if (markError || marked !== true) {
+        return json(req, { ok: false, pending: true,
+          error: "payment_terminal_state_pending", retryAfterMs: 2000 }, 202);
+      }
+      return json(req, { error: "payment_canceled" }, 409);
+    }
     if (lookup.error || !lookup.payment) {
       console.warn("confirm-payment provider rejected", JSON.stringify({
         paymentRef: paymentRef(paymentId),
@@ -234,16 +203,26 @@ Deno.serve(async (req) => {
             : "provider_payment_canceled",
         });
         if (markError || marked !== true) {
-          console.warn("confirm-payment terminal state not recorded", JSON.stringify({
+          console.warn("confirm-payment terminal state pending", JSON.stringify({
             paymentRef: paymentRef(paymentId),
             providerStatus: safeText(payment.status, 40),
           }));
+          return json(req, {
+            ok: false,
+            pending: true,
+            error: "payment_terminal_state_pending",
+            retryAfterMs: 2000,
+          }, 202);
         }
       }
       if (statusKind === "partial_cancelled") {
-        const { data: marked, error: markError } = await admin.rpc("mark_order_payment_review", {
+        const locallyClosed = order.status === "failed" || order.status === "canceled";
+        const markerName = locallyClosed ? "mark_order_refund_pending" : "mark_order_payment_review";
+        const { data: marked, error: markError } = await admin.rpc(markerName, {
           p_order_no: paymentId,
-          p_reason: "provider_payment_partially_cancelled",
+          p_reason: locallyClosed
+            ? "late_payment_partially_cancelled_review"
+            : "provider_payment_partially_cancelled",
         });
         if (markError || marked !== true) {
           return json(req, { error: "payment_review_not_recorded" }, 500);
@@ -263,13 +242,30 @@ Deno.serve(async (req) => {
       return json(req, { error: code, status: payment.status }, 409);
     }
     if (paidAmount === null) {
+      const locallyClosed = order.status === "failed" || order.status === "canceled";
+      if (locallyClosed) {
+        const { data: marked, error: markError } = await admin.rpc("mark_order_refund_pending", {
+          p_order_no: paymentId,
+          p_reason: "late_payment_provider_paid_amount_missing",
+        });
+        if (markError || marked !== true) {
+          return json(req, { error: "payment_recovery_not_recorded" }, 500);
+        }
+        return json(req, { error: "payment_refund_in_progress" }, 409);
+      }
       const reviewRecorded = await markPaymentReviewIfUnsettled(
-        admin, order.id, "provider_paid_amount_missing",
+        admin, order.order_no, "provider_paid_amount_missing",
       );
       if (!reviewRecorded) return json(req, { error: "payment_review_not_recorded" }, 500);
       return json(req, { error: "payment_requires_review" }, 409);
     }
-    if (paidAmount !== Number(order.amount)) {
+    const recoveryAction = paidRecoveryAction(
+      order.status,
+      paidAmount === Number(order.amount),
+      true,
+    );
+    if (recoveryAction === "cancel_late_payment" || recoveryAction === "cancel_amount_mismatch") {
+      const latePayment = recoveryAction === "cancel_late_payment";
       const cancellation = await cancelAndReconcile({
         admin,
         apiBase: PORTONE_API_BASE,
@@ -278,11 +274,17 @@ Deno.serve(async (req) => {
         paymentId,
         orderNo: paymentId,
         refundAmount: paidAmount,
-        intentCode: "amount_mismatch_auto_cancel",
-        reason: "amount_mismatch_auto_cancel",
+        intentCode: latePayment
+          ? "paid_finalization_conflict_auto_cancel"
+          : "amount_mismatch_auto_cancel",
+        reason: latePayment
+          ? "late_payment_auto_cancel"
+          : "amount_mismatch_auto_cancel",
       });
       return json(req, {
-        error: "amount_mismatch",
+        error: cancellation.dbFinalized
+          ? "payment_automatically_refunded"
+          : "payment_refund_in_progress",
         cancellationState: cancellation.state,
         providerRefunded: cancellation.providerRefunded,
         recoveryTracked: cancellation.tracked,
@@ -315,10 +317,32 @@ Deno.serve(async (req) => {
         });
       }
 
+      if (paidFinalizationRecoveryAction(finalized.failureKind) === "cancel_conflict") {
+        const cancellation = await cancelAndReconcile({
+          admin,
+          apiBase: PORTONE_API_BASE,
+          apiSecret: PORTONE_API_SECRET,
+          storeId: PORTONE_STORE_ID,
+          paymentId,
+          orderNo: paymentId,
+          refundAmount: paidAmount,
+          intentCode: "paid_finalization_conflict_auto_cancel",
+          reason: `paid_finalization_${finalized.failureKind}_auto_cancel`,
+        });
+        return json(req, {
+          error: cancellation.dbFinalized
+            ? "payment_automatically_refunded"
+            : "payment_refund_in_progress",
+          cancellationState: cancellation.state,
+          providerRefunded: cancellation.providerRefunded,
+          recoveryTracked: cancellation.tracked,
+        }, cancellation.tracked ? 409 : 500);
+      }
+
       const dbCode = finalized.errorCode ?? "invalid_result";
       const reviewRecorded = await markPaymentReviewIfUnsettled(
         admin,
-        order.id,
+        order.order_no,
         `provider_paid_finalize_retry:${dbCode}`,
       );
       if (!reviewRecorded) {

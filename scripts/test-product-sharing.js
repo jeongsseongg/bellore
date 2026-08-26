@@ -122,6 +122,7 @@ function fakeEventTarget() {
   const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
   const buildPages = fs.readFileSync(path.join(root, 'tools', 'build-pages.mjs'), 'utf8');
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  assert.match(html, /<base href="\/">/, 'SPA 상품 URL에서도 상대 자산은 사이트 루트에서 불러와야 합니다.');
   const pageRuntime = fs.readFileSync(path.join(root, 'app', 'legacy', 'page-runtime.js'), 'utf8');
 
   assert.match(bootstrap, /import \{ initProductDetailRoute, initProductSharing \} from '\.\/features\/product-sharing\/product-sharing\.mjs';/);
@@ -152,11 +153,11 @@ function fakeEventTarget() {
     assert(buildPages.includes(`'${asset.slice(2)}'`), `Pages allowlist 누락: ${asset}`);
   }
   for (const [asset, releaseKey] of [
-    ['script.js', '20260826-payment-recovery-hero-v1'],
-    ['app/bootstrap.js', '20260826-payment-recovery-hero-v1'],
-    ['sw.js', '20260826-payment-recovery-hero-v1'],
-    ['wishlist.js', '20260824-purl-v2'],
-    ['search.js', '20260824-purl-v2'],
+    ['script.js', '20260826-payment-final-v3'],
+    ['app/bootstrap.js', '20260826-payment-final-v3'],
+    ['sw.js', '20260826-payment-final-v3'],
+    ['wishlist.js', '20260826-payment-final-v3'],
+    ['search.js', '20260826-payment-final-v3'],
   ]) {
     const registrationSource = asset === 'sw.js' ? pageRuntime : html;
     assert(registrationSource.includes(`${asset}?v=${releaseKey}`), `런타임 캐시 키 누락: ${asset}`);

@@ -44,22 +44,20 @@
     if (!it || (!it.brand && !it.model)) return;
     var id = String(it.id || (it.brand + '|' + it.model));
     var arr = lsGet(VIEWED_KEY).filter(function (x) { return String(x.id) !== id; });
-    arr.unshift({ id: id, product_no: it.productNo || it.product_no || '', brand: it.brand || '', model: it.model || '', price: it.price || 0, sale_price: it.sale_price || 0, img: it.img || it.image || '', ts: Date.now() });
+    arr.unshift({ id: id, product_no: it.productNo || it.product_no || '', brand: it.brand || '', model: it.model || '', price: it.price || 0, sale_price: it.sale_price || 0, img: it.img || it.image || '', status: it.status || 'on_sale', ts: Date.now() });
     lsSet(VIEWED_KEY, arr.slice(0, 20));
   };
   function getViewed() { return lsGet(VIEWED_KEY); }
-  function removeViewed(id) {
-    lsSet(VIEWED_KEY, getViewed().filter(function (x) { return String(x.id) !== String(id); }));
-  }
+  function removeViewed(id) { lsSet(VIEWED_KEY, getViewed().filter(function (x) { return String(x.id) !== String(id); })); }
   function clearViewed() { lsSet(VIEWED_KEY, []); }
   window.BELLORE_getViewed = getViewed;
-
+  function refreshViewedStatuses() { return window.BELLORE_LISTING_UI.refreshViewedStatuses(window.NWBackend); }
   /* ---------- 검색 홈 90일 시세 ---------- */
   var MARKET_WATCHES = [
     { rank: 1, model: '서브마리너 데이트', image: 'assets/KakaoTalk_20250515_135819220.jpg', change: '2.4%', direction: 'up' },
-    { rank: 2, model: '데이데이트 36', image: 'assets/m3362380004.png', change: '3.1%', direction: 'up' },
-    { rank: 3, model: '데이트저스트 36 다이아', image: 'assets/m126284rbr0011.png', change: '2.0%', direction: 'down' },
-    { rank: 4, model: '스카이드웰러 42', image: 'assets/m3369330001.png', change: '0.0%', direction: 'flat' }
+    { rank: 2, model: '데이데이트 36', image: 'assets/products/watch-batch-20260821-2/076-ftdsfmhzmngx/front.webp', change: '3.1%', direction: 'up' },
+    { rank: 3, model: '데이트저스트 36 다이아', image: 'assets/products/watch-batch-20260821-3/146-cy21q4gmqqpg/front.webp', change: '2.0%', direction: 'down' },
+    { rank: 4, model: '스카이드웰러 42', image: 'assets/m3362390002.png', change: '0.0%', direction: 'flat' }
   ];
 
   function shortWon(n) {
@@ -221,6 +219,7 @@
     document.documentElement.style.overflow = 'hidden';   /* PC: 뒤 페이지 스크롤바 숨김(오른쪽 1개만) */
     document.body.classList.add('is-searching');
     switchTab(tab || 'word');
+    refreshViewedStatuses().then(function () { if (!page.hidden && curTab === 'word' && !(input && input.value)) renderWord(); }, function () {});
     setTimeout(function () { if ((tab || 'word') === 'word') input.focus(); }, 50);
   }
   function closePage() {
@@ -304,9 +303,10 @@
     var viewedHTML = viewed.length
       ? '<div class="sp-viewed-row">' + viewed.map(function (it) {
           var price = it.sale_price && it.sale_price < it.price ? it.sale_price : it.price;
-          return '<article class="sp-viewed" data-pid="' + esc(it.id) + '" data-no="' + esc(it.product_no || '') + '" data-brand="' + esc(it.brand) + '" data-model="' + esc(it.model) + '" data-price="' + (it.price || 0) + '" data-sprice="' + (it.sale_price || '') + '">' +
+          var ui = window.BELLORE_LISTING_UI, saleState = ui ? ui.state(it.status) : { status: it.status || 'on_sale' }, saleBadge = ui ? ui.cardMarkup(it) : '';
+          return '<article class="sp-viewed" data-pid="' + esc(it.id) + '" data-no="' + esc(it.product_no || '') + '" data-brand="' + esc(it.brand) + '" data-model="' + esc(it.model) + '" data-price="' + (it.price || 0) + '" data-sprice="' + (it.sale_price || '') + '" data-status="' + esc(saleState.status) + '">' +
             '<button type="button" class="sp-viewed-open" aria-label="' + esc(it.model || it.brand) + ' 상세 보기">' +
-              '<span class="sp-viewed-img"><img src="' + esc(it.img || 'assets/images.jpg') + '" alt="" loading="lazy"></span>' +
+              '<span class="sp-viewed-img"><img src="' + esc(it.img || 'assets/images.jpg') + '" alt="" loading="lazy">' + saleBadge + '</span>' +
               '<span class="sp-viewed-brand">' + esc(it.brand) + '</span>' +
               '<span class="sp-viewed-model">' + esc(it.model) + '</span>' +
               '<span class="sp-viewed-price">' + shortWon(price) + '</span>' +
@@ -539,7 +539,7 @@
     var card = document.createElement('article');
     card.className = 'hcard'; card.dataset.pid = v.dataset.pid; card.dataset.no = v.dataset.no || '';
     card.dataset.brand = v.dataset.brand; card.dataset.model = v.dataset.model;
-    card.dataset.price = v.dataset.price; card.dataset.sprice = v.dataset.sprice || '';
+    card.dataset.price = v.dataset.price; card.dataset.sprice = v.dataset.sprice || ''; card.dataset.status = v.dataset.status || 'on_sale';
     card.innerHTML = '<div class="hcard-img"><img src="' + (v.querySelector('img') ? v.querySelector('img').src : '') + '"></div>' +
       '<p class="hcard-brand">' + esc(v.dataset.brand) + '</p><p class="hcard-model">' + esc(v.dataset.model) + '</p>';
     if (window.BELLORE_openProductCard) window.BELLORE_openProductCard(card);

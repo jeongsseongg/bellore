@@ -1277,19 +1277,45 @@
   var listingRefreshers = [];
 
   function subscribeListings(category, cb) {
+    var requestGeneration = 0, active = true;
     function load() {
-      sb.from('listings').select('*').eq('category', category)
+      var currentGeneration = ++requestGeneration;
+      return sb.from('listings').select('*').eq('category', category)
         .neq('status', 'hidden')
         .order('created_at', { ascending: false })
-        .then(function (res) { cb((res.data || []).map(mapListing)); });
+        .then(function (res) {
+          if (!active || currentGeneration !== requestGeneration) return false;
+          if (res.error) { console.warn('[BELLORE_LISTINGS]', { event: 'refresh_failed', category: category, code: res.error.code || 'query_failed' }); return false; }
+          cb((res.data || []).map(mapListing));
+          return true;
+        }, function (error) {
+          if (active && currentGeneration === requestGeneration) {
+            console.warn('[BELLORE_LISTINGS]', { event: 'refresh_failed', category: category, code: error && error.code || 'network_failed' });
+          }
+          return false;
+        });
     }
     load();
     listingRefreshers.push(load);
     // listings 는 실시간 publication 대상이 아니므로 변경 시 수동 새로고침
-    return function () { removeFrom(listingRefreshers, load); };
+    return function () { active = false; requestGeneration += 1; removeFrom(listingRefreshers, load); };
   }
-  function refreshListingFeeds() { listingRefreshers.slice().forEach(function (fn) { try { fn(); } catch (e) {} }); }
+  function refreshListingFeeds() {
+    return Promise.all(listingRefreshers.slice().map(function (fn) {
+      try { return Promise.resolve(fn()); } catch (e) { return Promise.resolve(false); }
+    }));
+  }
   Backend.refreshListings = function () { refreshListingFeeds(); };
+  var lastListingResumeRefreshAt = 0;
+  function refreshListingsAfterResume() {
+    if (document.visibilityState && document.visibilityState !== 'visible') return;
+    var now = Date.now();
+    if (now - lastListingResumeRefreshAt < 1000) return;
+    lastListingResumeRefreshAt = now;
+    refreshListingFeeds();
+  }
+  if (window.addEventListener) window.addEventListener('focus', refreshListingsAfterResume);
+  if (document.addEventListener) document.addEventListener('visibilitychange', refreshListingsAfterResume);
   // 벨로르 판매시계
   Backend.subscribeProducts = function (cb) { return subscribeListings(CATS.listing.brand, cb); };
   // 고객 판매 마켓 (검수 완료되어 게시된 매물)
@@ -1407,7 +1433,7 @@
     return sb.from('listings').select('*').eq('id', id).single()
       .then(function (res) { if (res.error) throw res.error; return mapListing(res.data); });
   };
-
+  Backend.getListingsByIds = function (ids) { var safe = Array.isArray(ids) ? ids.slice(0, 100) : []; return safe.length ? sb.from('listings').select('*').in('id', safe).then(function (res) { if (res.error) throw res.error; return (res.data || []).map(mapListing); }) : Promise.resolve([]); };
   Backend.updateProduct = function (id, data) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
     // 새로 추가한 사진이 있으면 업로드 후 기존 사진 뒤에 이어붙임
@@ -1991,53 +2017,26 @@
       paidAt: o.paid_at ? tsObj(o.paid_at) : null
     };
   }
-  function paymentAccessToken() {
+  function paymentAccessToken(options) {
     return typeof Backend.paymentAccessToken === 'function'
-      ? Backend.paymentAccessToken()
+      ? Backend.paymentAccessToken(options)
       : Promise.reject(new Error('PAYMENT_AUTH_NOT_READY'));
   }
 
   // 체크아웃: pending 주문 생성 → 포트원에 넘길 order_no 반환
+  function paymentFetch(url, options, timeoutMs) {
+    var network = window.BELLORE_PAYMENT_NETWORK;
+    if (!network || typeof network.request !== 'function') return Promise.reject(new Error('payment_network_unavailable'));
+    return network.request(url, options, timeoutMs);
+  }
   Backend.createOrder = function (data) {
-    // IP 제한·예약·가격·주문번호·체크아웃 capability는 서버가 한 경계에서 결정한다.
-    var PAY = window.BELLORE_PAYMENTS || {};
-    if (!PAY.checkoutUrl) {
-      return Promise.reject(new Error('PAYMENT_CHECKOUT_NOT_CONFIGURED'));
-    }
-    return paymentAccessToken().then(function (token) {
-      return fetch(PAY.checkoutUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + token,
-          'apikey': CFG.anonKey
-        },
-        body: JSON.stringify({
-          listingId: data.listingId || null,
-          couponUserId: data.couponUserId || null,
-          buyerName: data.buyerName || (profile && profile.display_name) || null,
-          buyerPhone: data.buyerPhone || (profile && profile.phone) || null,
-          shipRecipient: data.shipRecipient || data.buyerName || null,
-          shipPhone: data.shipPhone || data.buyerPhone || null,
-          shipPostcode: data.shipPostcode || null,
-          shipAddr1: data.shipAddr1 || null,
-          shipAddr2: data.shipAddr2 || null,
-          shipRequest: data.shipRequest || null,
-          attribution: data.attribution || null
-        })
-      }).then(function (response) {
-        return response.json().catch(function () {
-          return { error: 'checkout_response_invalid' };
-        }).then(function (payload) {
-          if (!response.ok || !payload || !payload.orderNo || !payload.checkoutToken) {
-            var code = (payload && payload.error) || 'CHECKOUT_CREATE_FAILED', error = new Error(code);
-            error.code = code;
-            error.status = response.status;
-            throw error;
-          }
-          return payload;
-        });
-      });
+    var PAY = window.BELLORE_PAYMENTS || {}, client = window.BELLORE_CHECKOUT_CLIENT;
+    if (!PAY.checkoutUrl) return Promise.reject(new Error('PAYMENT_CHECKOUT_NOT_CONFIGURED'));
+    if (!client || typeof client.create !== 'function') return Promise.reject(new Error('checkout_recovery_unavailable'));
+    return client.create({
+      data: data, profile: profile, paymentConfig: PAY, anonKey: CFG.anonKey,
+      recovery: window.BELLORE_CHECKOUT_REQUEST_RECOVERY,
+      getAccessToken: paymentAccessToken, request: paymentFetch
     });
   };
 
@@ -2047,8 +2046,8 @@
     if (!PAY.confirmUrl) {
       return Promise.reject(new Error('PAYMENT_CONFIRM_NOT_CONFIGURED'));
     }
-    return paymentAccessToken().then(function (token) {
-      return fetch(PAY.confirmUrl, {
+    return paymentAccessToken({ confirmationCapability: params.checkoutToken }).then(function (token) {
+      return paymentFetch(PAY.confirmUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2058,9 +2057,9 @@
         body: JSON.stringify({
           paymentId: params.paymentId || params.orderId,
           checkoutToken: params.checkoutToken || null,
-          attribution: params.attribution || null
+          attribution: params.attribution || null, checkoutAbandoned: params.checkoutAbandoned === true
         })
-      }).then(function (response) { return window.BELLORE_PAYMENT_FLOW.readResponse(response); });
+      }, 75000).then(function (response) { return window.BELLORE_PAYMENT_FLOW.readResponse(response); });
     });
   };
 
@@ -2314,10 +2313,10 @@
     var d = 0;
     if (c.discount_type === 'percent') {
       d = Math.floor(base * (Number(c.discount_value) || 0) / 100);
-      if (c.max_discount) d = Math.min(d, Number(c.max_discount));
     } else {
       d = Number(c.discount_value) || 0;
     }
+    if (c.max_discount) d = Math.min(d, Number(c.max_discount));
     return Math.max(0, Math.min(d, base));
   }
   Backend.couponDiscount = couponDiscount;

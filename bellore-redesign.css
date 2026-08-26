@@ -622,7 +622,10 @@ html[data-width="full"] .page-collection .col-grid-inner {
 
 /* 결제·구매확정 상태는 할인/컨디션 배지와 분리해 사진 오른쪽 위에 고정한다. */
 #homeOnSale .listing-sale-state,
-.page-collection .listing-sale-state {
+.page-collection .listing-sale-state,
+#wishGrid .listing-sale-state,
+.search-page .sp-viewed-img .listing-sale-state,
+.wish-recent-thumb .listing-sale-state {
   position: absolute;
   top: 50px;
   right: 10px;
@@ -637,7 +640,10 @@ html[data-width="full"] .page-collection .col-grid-inner {
   letter-spacing: -.02em;
 }
 #homeOnSale .listing-sale-state.is-sold,
-.page-collection .listing-sale-state.is-sold {
+.page-collection .listing-sale-state.is-sold,
+#wishGrid .listing-sale-state.is-sold,
+.search-page .listing-sale-state.is-sold,
+.wish-recent-thumb .listing-sale-state.is-sold {
   background: rgba(17, 17, 17, .9);
   letter-spacing: .04em;
 }
@@ -1255,6 +1261,14 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
   font-weight: 850;
   letter-spacing: -.02em;
 }
+.search-page .sp-viewed-img .listing-sale-state,
+.wish-recent-thumb .listing-sale-state {
+  top: 8px;
+  right: 8px;
+  padding: 5px 8px;
+  font-size: 10px;
+}
+.wish-recent-thumb { position: relative; overflow: hidden; }
 .pp-sale-state[hidden] { display: none !important; }
 .pp-sale-state.is-sold { background: #171719; letter-spacing: .04em; }
 .pp-bottom .pp-buy:disabled {
@@ -1450,6 +1464,7 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
 #wishGrid .wish-card-acts { display: flex; flex-direction: column; gap: 8px; margin: 14px 0 0; padding: 0; }
 #wishGrid .wish-card-acts button { width: 100%; border-radius: 11px; font: inherit; font-weight: 750; cursor: pointer; }
 #wishGrid .wish-card-acts .wish-buy { padding: 13px 0; border: 0; background: #1a2925; color: #fff; font-size: 14.5px; }
+#wishGrid .wish-card-acts .wish-buy:disabled { background: #aaa7a1; cursor: not-allowed; }
 #wishGrid .wish-card-acts .wish-addcart { padding: 11px 0; border: 1px solid #ececea; background: #fff; color: #3a3833; font-size: 13px; font-weight: 700; }
 
 /* 배송비 안내 물음표(툴팁 버튼) — 지저분한 줄글 대신 아이콘+말풍선 */

@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v293-payment-recovery-hero";
+const VERSION = "bellore-v295-payment-final";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -8,69 +8,78 @@ const OFFLINE_FALLBACK = './index.html';
 const SHELL_ASSETS = [
   './',
   './index.html',
-  './styles.css?v=20260826-payment-recovery-hero-v1',
+  './styles.css?v=20260826-payment-final-v3',
   './wanted-theme.css?v=20260818-pretendard-v1',
   './vendor-reference.css?v=20260731-photo-viewer',
   './reference-layout.css?v=20260821-tabbar-safe-area-v1',
   './mypick.css?v=20260731-mypick-reference-4',
-  './bellore-redesign.css?v=20260826-payment-recovery-hero-v1',
-  './script.js?v=20260826-payment-recovery-hero-v1',
-  './payments.js?v=20260826-payment-recovery-hero-v1',
+  './bellore-redesign.css?v=20260826-payment-final-v3',
+  './script.js?v=20260826-payment-final-v3',
+  './payments.js?v=20260826-payment-final-v3',
   './naverpay.js?v=20260728-naver-review-fixes-2',
-  './ui-dialog.js?v=20260826-payment-recovery-hero-v1',
+  './ui-dialog.js?v=20260826-payment-final-v3',
   './supabase-config.js?v=20260814-kg-card-review',
   './analytics-core.js?v=20260810-analytics-v3',
   './analytics-client.js?v=20260826-ai-consent-v1',
   './brands.js',
-  './supabase.js?v=20260826-payment-recovery-hero-v1',
-  './bellore-features.js?v=20260826-payment-recovery-hero-v1',
-  './cq-demo.js?v=20260826-payment-recovery-hero-v1',
-  './wishlist.js?v=20260824-purl-v2',
+  './supabase.js?v=20260826-payment-final-v3',
+  './bellore-features.js?v=20260826-payment-final-v3',
+  './cq-demo.js?v=20260826-payment-final-v3',
+  './wishlist.js?v=20260826-payment-final-v3',
   './alerts.js?v=20260820-tabs-alerts-v1',
-  './auction.js?v=20260826-payment-recovery-hero-v1',
-  './search.js?v=20260824-purl-v2',
+  './auction.js?v=20260826-payment-final-v3',
+  './search.js?v=20260826-payment-final-v3',
   './ai-advisor.js?v=20260814-kg-card-review',
   './ai-advisor-admin.js?v=20260725-ai-log',
-  './app/bootstrap.js?v=20260826-payment-recovery-hero-v1',
+  './app/bootstrap.js?v=20260826-payment-final-v3',
   './app/features/analytics-consent/analytics-consent.css?v=20260826-ai-consent-v1',
   './app/features/checkout/checkout-addresses.css?v=20260826-checkout-addresses-v1',
   './app/features/checkout/checkout-addresses.mjs',
   './app/core/customer-error.mjs',
-  './app/core/customer-error.mjs?v=20260826-payment-recovery-hero-v1',
+  './app/core/customer-error.mjs?v=20260826-payment-final-v3',
   './app/core/listing-display.js',
-  './app/core/listing-display.js?v=20260826-payment-recovery-hero-v1',
+  './app/core/listing-display.js?v=20260826-payment-final-v3',
   './app/core/market-product-url.mjs',
   './app/features/home-banners/home-banners.js',
   './app/features/home-banners/home-banner-data.js',
   './app/features/home-merchandising/home-merchandising.js',
-  './app/features/home-merchandising/home-merchandising.js?v=20260826-payment-recovery-hero-v1',
-  './app/features/home-banners/home-banners.css?v=20260826-payment-recovery-hero-v1',
+  './app/features/home-merchandising/home-merchandising.js?v=20260826-payment-final-v3',
+  './app/features/home-banners/home-banners.css?v=20260826-payment-final-v3',
   './app/features/home-quicklinks/home-quicklinks.js',
-  './app/features/home-quicklinks/home-quicklinks.js?v=20260826-payment-recovery-hero-v1',
-  './app/features/home-quicklinks/home-quicklinks.css?v=20260826-payment-recovery-hero-v1',
-  './app/features/checkout/checkout-coupon.css?v=20260826-payment-recovery-hero-v1',
+  './app/features/home-quicklinks/home-quicklinks.js?v=20260826-payment-final-v3',
+  './app/features/home-quicklinks/home-quicklinks.css?v=20260826-payment-final-v3',
+  './app/features/checkout/checkout-coupon.css?v=20260826-payment-final-v3',
   './app/features/checkout/checkout-coupon.js',
   './app/features/home-rows/home-rows.js',
-  './app/features/home-rows/home-rows.js?v=20260826-payment-recovery-hero-v1',
-  './app/features/home-rows/home-rows.css?v=20260826-payment-recovery-hero-v1',
+  './app/features/home-rows/home-rows.js?v=20260826-payment-final-v3',
+  './app/features/home-rows/home-rows.css?v=20260826-payment-final-v3',
   './app/features/listing-availability/listing-availability-ui.js',
-  './app/features/listing-availability/listing-availability-ui.js?v=20260826-payment-recovery-hero-v1',
-  './app/features/listing-availability/market-static-status.js?v=20260826-payment-recovery-hero-v1',
+  './app/features/listing-availability/listing-availability-ui.js?v=20260826-payment-final-v3',
+  './app/features/listing-availability/market-static-status.js?v=20260826-payment-final-v3',
   './app/features/checkout/payment-flow.js',
-  './app/features/checkout/payment-flow.js?v=20260826-payment-recovery-hero-v1',
+  './app/features/checkout/payment-flow.js?v=20260826-payment-final-v3',
   './app/features/home-rows/home-row-admin.js',
   './app/services/listings/listing-catalog-service.js',
-  './app/services/listings/listing-catalog-service.js?v=20260826-payment-recovery-hero-v1',
+  './app/services/listings/listing-catalog-service.js?v=20260826-payment-final-v3',
   './app/services/payments/payment-auth.js',
+  './app/services/payments/payment-auth.js?v=20260826-payment-final-v3',
+  './app/services/payments/checkout-request-recovery.js',
+  './app/services/payments/checkout-request-recovery.js?v=20260826-payment-final-v3',
+  './app/services/payments/checkout-client.js',
+  './app/services/payments/checkout-client.js?v=20260826-payment-final-v3',
+  './app/services/payments/payment-network.js',
+  './app/services/payments/payment-network.js?v=20260826-payment-final-v3',
+  './app/services/payments/pending-payment-recovery.js',
+  './app/services/payments/pending-payment-recovery.js?v=20260826-payment-final-v3',
   './app/legacy/legacy-collection.js',
   './app/legacy/legacy-collection.js?v=20260825-home-typography-admin-layout-v8',
   './app/legacy/home-merchandising-grid.js',
   './app/legacy/customer-feedback.js',
-  './app/legacy/customer-feedback.js?v=20260826-payment-recovery-hero-v1',
+  './app/legacy/customer-feedback.js?v=20260826-payment-final-v3',
   './app/legacy/checkout-coupon.js',
   './app/legacy/payment-auth.js',
   './app/legacy/legacy-reveal.js',
-  './app/legacy/page-runtime.js?v=20260826-payment-recovery-hero-v1',
+  './app/legacy/page-runtime.js?v=20260826-payment-final-v3',
   './app/features/insights/insight-filter.js',
   './app/features/insights/insight-reader.js',
   './app/features/legal/legal-modals.js',
@@ -82,7 +91,7 @@ const SHELL_ASSETS = [
   './app/ui/navigation-history.js',
   './app/ui/width-preference.js',
   './app/vendor/recommendation-engine.js',
-  './app/vendor/recommendation-engine.js?v=20260826-payment-recovery-hero-v1',
+  './app/vendor/recommendation-engine.js?v=20260826-payment-final-v3',
   './manifest.json',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
@@ -137,10 +146,12 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   if (req.mode === 'navigate') {
+    const paymentReturn = url.searchParams.get('pay') === 'portone' ||
+      url.searchParams.has('paymentId') || url.searchParams.has('code');
     event.respondWith(
       fetch(req)
         .then(async (res) => {
-          if (res && res.status === 200) {
+          if (res && res.status === 200 && !paymentReturn) {
             const copy = res.clone();
             const cache = await caches.open(RUNTIME_CACHE);
             await cache.put(req, copy);
@@ -148,7 +159,7 @@ self.addEventListener('fetch', (event) => {
           return res;
         })
         .catch(async () => {
-          const exactPage = await caches.match(req);
+          const exactPage = paymentReturn ? null : await caches.match(req);
           return exactPage || caches.match(OFFLINE_FALLBACK);
         })
     );

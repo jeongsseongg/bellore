@@ -1,6 +1,9 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
 import { hasConfirmedPaymentStatus } from "./order-payment-states.ts";
-import { providerStatusKind } from "./payment-recovery-policy.mjs";
+import {
+  paidFinalizationDatabaseFailureKind,
+  providerStatusKind,
+} from "./payment-recovery-policy.mjs";
 
 export type JsonRecord = Record<string, unknown>;
 
@@ -19,6 +22,7 @@ export type FinalizePaidResult = {
   transactionId: string | null;
   receiptUrl: string | null;
   errorCode: string | null;
+  failureKind: "listing_conflict" | "coupon_conflict" | "locally_closed" | null;
 };
 
 export function safeText(value: unknown, max: number): string | null {
@@ -29,6 +33,17 @@ export function safeText(value: unknown, max: number): string | null {
 
 export function paymentRef(paymentId: string): string {
   return paymentId.slice(-8);
+}
+
+export function paidFinalizationFailureKind(error: unknown): FinalizePaidResult["failureKind"] {
+  if (!error || typeof error !== "object" || Array.isArray(error)) return null;
+  const source = error as JsonRecord;
+  // Automatic refunds are financial actions. Only our exact PL/pgSQL exception
+  // contract may trigger them; arbitrary details/hints must never be classified.
+  return paidFinalizationDatabaseFailureKind(
+    source.code,
+    source.message,
+  ) as FinalizePaidResult["failureKind"];
 }
 
 function wait(milliseconds: number): Promise<void> {
@@ -163,6 +178,7 @@ export async function readMatchingConfirmedOrder(
   if (error || !data) return null;
   return hasConfirmedPaymentStatus(data.status) &&
       data.payment_key === paymentId &&
+      Boolean(data.paid_at) &&
       Number(data.amount) === paidAmount
     ? data as JsonRecord
     : null;
@@ -170,17 +186,15 @@ export async function readMatchingConfirmedOrder(
 
 export async function markPaymentReviewIfUnsettled(
   admin: SupabaseClient,
-  orderId: string,
+  orderNo: string,
   reason: string,
 ): Promise<boolean> {
-  const statuses = ["pending", "failed", "canceled", "payment_review"];
   const { data, error } = await admin
-    .from("orders")
-    .update({ status: "payment_review", admin_memo: reason.slice(0, 1000) })
-    .eq("id", orderId)
-    .in("status", statuses)
-    .select("id");
-  return !error && Array.isArray(data) && data.length === 1;
+    .rpc("mark_order_payment_review", {
+      p_order_no: orderNo,
+      p_reason: reason.slice(0, 1000),
+    });
+  return !error && data === true;
 }
 
 export async function finalizePaidOrderFromProvider(input: {
@@ -224,5 +238,6 @@ export async function finalizePaidOrderFromProvider(input: {
     transactionId,
     receiptUrl,
     errorCode: error ? safeText(error.code, 80) ?? "database_error" : order ? null : "invalid_result",
+    failureKind: paidFinalizationFailureKind(error),
   };
 }

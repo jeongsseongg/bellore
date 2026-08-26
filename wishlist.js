@@ -15,9 +15,7 @@
 
   var WK = 'bellore_wish', CK = 'bellore_cart';
   var B = window.NWBackend;
-  var state = { wish: [], cart: [] };   // 메모리 캐시(로그인=DB, 게스트=localStorage)
-  var selectedCart = {};
-  var loggedIn = false;
+  var state = { wish: [], cart: [] }, selectedCart = {}, loggedIn = false; // 메모리 캐시
 
   function lsLoad(k) { try { return JSON.parse(localStorage.getItem(k) || '[]'); } catch (e) { return []; } }
   function lsSave(k, a) { try { localStorage.setItem(k, JSON.stringify(a)); } catch (e) {} }
@@ -31,16 +29,21 @@
   function indexOf(arr, id) { for (var i = 0; i < arr.length; i++) { if (idOf(arr[i]) === id) return i; } return -1; }
   function findById(arr, id) { var i = indexOf(arr, id); return i >= 0 ? arr[i] : null; }
   function has(arr, id) { return indexOf(arr, id) >= 0; }
+  function availability(it) { var ui = window.BELLORE_LISTING_UI; return ui ? ui.state(it && it.status) : { status: (it && it.status) || 'on_sale', label: '', message: '', purchasable: true, visible: false }; }
+  function isPurchasable(it) { return availability(it).purchasable; }
+  function listingBadge(it) { var ui = window.BELLORE_LISTING_UI; return ui ? ui.cardMarkup(it || {}) : ''; }
+  function hydrateCollections(collections) { var ui = window.BELLORE_LISTING_UI; return ui ? ui.hydrateCollections(B, collections, { preferSalePrice: true }) : Promise.resolve(collections); }
 
   // 계정/게스트 상태에 맞춰 찜·장바구니 로드
   function loadState() {
-    if (usingDB()) {
-      Promise.all([B.listPicks('wish'), B.listPicks('cart')]).then(function (r) {
-        state.wish = r[0] || []; state.cart = r[1] || []; refreshAll();
-      }, function () { state.wish = lsLoad(WK); state.cart = lsLoad(CK); refreshAll(); });
-    } else {
-      state.wish = lsLoad(WK); state.cart = lsLoad(CK); refreshAll();
+    function accept(collections) {
+      return hydrateCollections(collections).catch(function () { return collections; }).then(function (fresh) {
+        state.wish = fresh[0] || []; state.cart = fresh[1] || []; refreshAll();
+        var ui = window.BELLORE_LISTING_UI; if (ui) return ui.refreshViewedStatuses(B).then(renderPage, function () {});
+      });
     }
+    var source = usingDB() ? Promise.all([B.listPicks('wish'), B.listPicks('cart')]) : Promise.resolve([lsLoad(WK), lsLoad(CK)]);
+    source.catch(function () { return [lsLoad(WK), lsLoad(CK)]; }).then(accept);
   }
   // 게스트로 담아둔 것 → 로그인 시 그 계정으로 병합
   function mergeGuestToDB() {
@@ -56,11 +59,8 @@
   }
   // 변경 영속화 (로그인=DB, 게스트=localStorage). 낙관적 업데이트.
   function persist(kind, action, payload) {
-    if (usingDB()) {
-      (action === 'add' ? B.addPick(kind, payload) : B.removePick(kind, payload)).catch(function () {});
-    } else {
-      lsSave(keyOf(kind), arrOf(kind));
-    }
+    if (usingDB()) (action === 'add' ? B.addPick(kind, payload) : B.removePick(kind, payload)).catch(function () {});
+    else lsSave(keyOf(kind), arrOf(kind));
   }
 
   function priceFromCard(card) {
@@ -78,7 +78,7 @@
       id: card.dataset.pid || (b + '|' + m), product_no: card.dataset.no || '',
       brand: b, model: m,
       price: parseInt(card.dataset.price, 10) || priceFromCard(card),
-      img: img ? img.getAttribute('src') : ''
+      img: img ? img.getAttribute('src') : '', status: card.dataset.status || 'on_sale'
     };
   }
 
@@ -142,9 +142,9 @@
     var buy = e.target.closest('.wish-buy');
     if (!buy) return;
     e.preventDefault(); e.stopPropagation();
-    var it = findById(getWish(), buy.getAttribute('data-buy'));
+    var it = findById(getWish(), buy.getAttribute('data-buy')); if (it && !isPurchasable(it)) { alert(availability(it).message); return; }
     if (it && window.BELLORE_openCheckout) {
-      window.BELLORE_openCheckout({ listingId: it.id, brand: it.brand, model: it.model, price: it.price, image: it.img });
+      window.BELLORE_openCheckout({ listingId: it.id, brand: it.brand, model: it.model, price: it.price, image: it.img, status: it.status });
     }
   });
 
@@ -169,7 +169,7 @@
       return;
     }
     if (e.target.closest('#cartSelectAll')) {
-      var cart = getCart(), shouldSelect = selectedItems().length !== cart.length;
+      var cart = getCart().filter(isPurchasable), shouldSelect = selectedItems().length !== cart.length;
       cart.forEach(function (it) { selectedCart[idOf(it)] = shouldSelect; });
       renderPage();
       return;
@@ -234,9 +234,9 @@
         }
         return;
       }
-      var it = items[0];
+      var it = items[0]; if (!isPurchasable(it)) { toast(availability(it).message); return; }
       if (window.BELLORE_openCheckout) {
-        window.BELLORE_openCheckout({ listingId: it.id, brand: it.brand, model: it.model, price: it.price, image: it.img });
+        window.BELLORE_openCheckout({ listingId: it.id, brand: it.brand, model: it.model, price: it.price, image: it.img, status: it.status });
       }
       return;
     }
@@ -264,7 +264,7 @@
     var w = e.target.closest('#pmWish, #pmWishTop'), c = e.target.closest('#pmCart');
     if (!w && !c) return;
     var p = window.BELLORE_currentProduct; if (!p) return;
-    var it = { id: p.listingId || (p.brand + '|' + p.model), product_no: p.productNo || '', brand: p.brand, model: p.model, price: p.price, img: p.image };
+    var it = { id: p.listingId || (p.brand + '|' + p.model), product_no: p.productNo || '', brand: p.brand, model: p.model, price: p.price, img: p.image, status: p.status || 'on_sale' };
     if (w) {
       var added = toggleWish(it);
       $$('#pmWish, #pmWishTop').forEach(function (b) { b.classList.toggle('on', added); });
@@ -318,28 +318,28 @@
   }, true);
 
   /* ---------- 렌더 ---------- */
-  function cardHTML(it, kind) {
-    return '<article class="hcard wish-card" data-pid="' + esc(idOf(it)) + '" data-brand="' + esc(it.brand) + '" data-model="' + esc(it.model) + '" data-price="' + (it.price || 0) + '">' +
-      '<div class="hcard-img"><img src="' + esc(it.img || 'assets/images.jpg') + '" alt="">' +
+  function cardHTML(it, kind) { var saleState = availability(it);
+    return '<article class="hcard wish-card" data-pid="' + esc(idOf(it)) + '" data-brand="' + esc(it.brand) + '" data-model="' + esc(it.model) + '" data-price="' + (it.price || 0) + '" data-status="' + esc(saleState.status) + '">' +
+      '<div class="hcard-img"><img src="' + esc(it.img || 'assets/images.jpg') + '" alt="">' + listingBadge(it) +
       '<button type="button" class="wish-remove wish-heart-on" data-kind="' + kind + '" data-id="' + esc(idOf(it)) + '" aria-label="찜 해제"><svg viewBox="0 0 24 24"><path d="M12 20.3s-7.5-4.6-7.5-9.7A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 3c0 5.1-7.5 9.7-7.5 9.7Z"/></svg></button></div>' +
       '<p class="hcard-brand">' + esc(it.brand) + '</p>' +
       '<p class="hcard-model">' + esc(it.model) + '</p>' +
       '<p class="wish-price-label">즉시 구매가</p>' +
       '<p class="hcard-price">' + (it.price ? fmt(it.price) + '<em>원</em>' : '가격 문의') + '</p>' +
       '<div class="wish-card-acts">' +
-        '<button type="button" class="wish-buy" data-buy="' + esc(idOf(it)) + '">구매하기</button>' +
+        '<button type="button" class="wish-buy" data-buy="' + esc(idOf(it)) + '"' + (saleState.purchasable ? '' : ' disabled aria-disabled="true"') + '>' + (saleState.purchasable ? '구매하기' : esc(saleState.label || '구매불가')) + '</button>' +
         '<button type="button" class="wish-addcart" data-id="' + esc(idOf(it)) + '">장바구니 담기</button>' +
       '</div>' +
       '</article>';
   }
   function cartRowHTML(it) {
-    var id = idOf(it), on = !!selectedCart[id];
+    var id = idOf(it), on = !!selectedCart[id], saleState = availability(it);
     var isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
     var metaId = (id.indexOf('|') >= 0 || isUuid) ? '' : id + ' · ';
-    return '<article class="wish-cart-row" data-cart-id="' + esc(id) + '">' +
-      '<button type="button" class="wish-check-btn' + (on ? ' on' : '') + '" data-cart-check="' + esc(id) + '" aria-label="상품 선택"><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7"/></svg></button>' +
+    return '<article class="wish-cart-row" data-cart-id="' + esc(id) + '" data-status="' + esc(saleState.status) + '">' +
+      '<button type="button" class="wish-check-btn' + (on ? ' on' : '') + '" data-cart-check="' + esc(id) + '" aria-label="상품 선택"' + (saleState.purchasable ? '' : ' disabled aria-disabled="true"') + '><svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7"/></svg></button>' +
       '<button type="button" class="wish-cart-thumb" data-pid="' + esc(id) + '"><img src="' + esc(it.img || 'assets/images.jpg') + '" alt=""></button>' +
-      '<span class="wish-cart-copy"><b>' + esc(it.brand) + '</b><strong>' + esc(it.model) + '</strong><em>' + (it.price ? fmt(it.price) + '원' : '가격 문의') + '</em><small>' + esc(metaId) + '무료배송</small></span>' +
+      '<span class="wish-cart-copy"><b>' + esc(it.brand) + '</b><strong>' + esc(it.model) + '</strong><em>' + (it.price ? fmt(it.price) + '원' : '가격 문의') + '</em><small>' + (saleState.purchasable ? esc(metaId) + '무료배송' : esc(saleState.label || '구매불가')) + '</small></span>' +
       '<button type="button" class="wish-remove wish-cart-remove" data-kind="cart" data-id="' + esc(id) + '" aria-label="삭제"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>' +
       '</article>';
   }
@@ -374,8 +374,8 @@
     return list.map(function (it) {
       var day = recentDay(it.ts), head = day !== last ? '<h4 class="wish-recent-day">' + day + '</h4>' : '';
       last = day;
-      return head + '<article class="wish-recent-row" data-pid="' + esc(idOf(it)) + '" data-brand="' + esc(it.brand) + '" data-model="' + esc(it.model) + '">' +
-        '<span class="wish-recent-thumb"><img src="' + esc(it.img || 'assets/images.jpg') + '" alt=""></span>' +
+      return head + '<article class="wish-recent-row" data-pid="' + esc(idOf(it)) + '" data-brand="' + esc(it.brand) + '" data-model="' + esc(it.model) + '" data-status="' + esc(availability(it).status) + '">' +
+        '<span class="wish-recent-thumb"><img src="' + esc(it.img || 'assets/images.jpg') + '" alt="">' + listingBadge(it) + '</span>' +
         '<span class="wish-recent-copy"><b>' + esc(it.brand) + '</b><strong>' + esc(it.model) + '</strong><em>' + (it.price ? fmt(it.price) + '원' : '가격 문의') + '</em></span>' +
         '<button type="button" class="wish-recent-heart' + (has(getWish(), idOf(it)) ? ' on' : '') + '" data-recent-wish="' + esc(idOf(it)) + '" aria-label="찜"><svg viewBox="0 0 24 24"><path d="M12 20.3s-7.5-4.6-7.5-9.7A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 3c0 5.1-7.5 9.7-7.5 9.7Z"/></svg></button>' +
         '</article>';
@@ -383,7 +383,7 @@
   }
   function renderPage() {
     var wish = getWish(), cart = getCart(), recent = viewedItems();
-    cart.forEach(function (it) { var id = idOf(it); if (!(id in selectedCart)) selectedCart[id] = true; });
+    cart.forEach(function (it) { var id = idOf(it); if (!isPurchasable(it)) selectedCart[id] = false; else if (!(id in selectedCart)) selectedCart[id] = true; });
     Object.keys(selectedCart).forEach(function (id) { if (!findById(cart, id)) delete selectedCart[id]; });
     var wg = $('#wishGrid'), cg = $('#cartGrid'), rg = $('#recentList');
     if (wg) wg.innerHTML = wish.map(function (it) { return cardHTML(it, 'wish'); }).join('');
@@ -405,7 +405,7 @@
     if ($('#recentCount')) $('#recentCount').textContent = recent.length;
     renderCartSummary();
   }
-  function selectedItems() { return getCart().filter(function (it) { return !!selectedCart[idOf(it)]; }); }
+  function selectedItems() { return getCart().filter(function (it) { return isPurchasable(it) && !!selectedCart[idOf(it)]; }); }
   function renderCartSummary() {
     var cart = getCart(), picked = selectedItems(), total = picked.reduce(function (sum, it) { return sum + Number(it.price || 0); }, 0);
     var tools = $('#cartTools'), summary = $('#cartSummary'), all = $('#cartSelectAll');

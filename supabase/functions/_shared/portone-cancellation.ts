@@ -10,6 +10,7 @@ type RpcClient = {
 export type ProviderCancellation = {
   state: "succeeded" | "requested" | "failed";
   cancellationId: string | null;
+  cancelledAmount: number | null;
   recovered: boolean;
 };
 
@@ -23,6 +24,18 @@ function safeText(value: unknown, max: number): string | null {
   return typeof value === "string" && value.trim()
     ? value.trim().slice(0, max)
     : null;
+}
+
+function positiveInteger(value: unknown): number | null {
+  const amount = Number(value);
+  return Number.isSafeInteger(amount) && amount > 0 ? amount : null;
+}
+
+function providerCancelledAmount(payment: JsonRecord | null): number | null {
+  const amount = payment?.amount && typeof payment.amount === "object" && !Array.isArray(payment.amount)
+    ? payment.amount as JsonRecord
+    : null;
+  return positiveInteger(amount?.cancelled);
 }
 
 async function readJson(response: Response): Promise<JsonRecord | null> {
@@ -41,44 +54,64 @@ export async function cancelPortOnePayment(input: {
   apiSecret: string;
   storeId: string;
   paymentId: string;
+  refundAmount: number;
   reason: string;
 }): Promise<ProviderCancellation> {
   const endpoint = `${input.apiBase}/payments/${encodeURIComponent(input.paymentId)}`;
   const idempotencyKeyRaw = `bellore-cancel-${input.paymentId}`.slice(0, 254);
   const idempotencyKey = `\"${idempotencyKeyRaw}\"`;
-  const response = await fetch(`${endpoint}/cancel`, {
-    method: "POST",
-    headers: {
-      Authorization: `PortOne ${input.apiSecret}`,
-      "Content-Type": "application/json",
-      "Idempotency-Key": idempotencyKey,
-    },
-    body: JSON.stringify({ storeId: input.storeId, reason: PROVIDER_CANCELLATION_REASON }),
-    signal: AbortSignal.timeout(10000),
-  });
-  const payload = await readJson(response);
+  let response: Response | null = null;
+  try {
+    response = await fetch(`${endpoint}/cancel`, {
+      method: "POST",
+      headers: {
+        Authorization: `PortOne ${input.apiSecret}`,
+        "Content-Type": "application/json",
+        "Idempotency-Key": idempotencyKey,
+      },
+      body: JSON.stringify({
+        storeId: input.storeId,
+        reason: PROVIDER_CANCELLATION_REASON,
+        amount: input.refundAmount,
+        currentCancellableAmount: input.refundAmount,
+      }),
+      // PortOne documents that PG cancellation can take longer than ordinary
+      // API calls. Keep the request alive for the recommended minimum window.
+      signal: AbortSignal.timeout(60000),
+    });
+  } catch {
+    // The provider may have accepted the idempotent cancellation even when
+    // our connection ended. The authoritative payment lookup below decides.
+  }
+  const payload = response ? await readJson(response) : null;
   const cancellation = payload?.cancellation && typeof payload.cancellation === "object"
     ? payload.cancellation as JsonRecord
     : null;
   const cancellationId = safeText(cancellation?.id, 160);
   const status = safeText(cancellation?.status, 40)?.toUpperCase();
+  const cancelledAmount = positiveInteger(cancellation?.totalAmount);
 
-  if (response.ok && status === "SUCCEEDED") {
-    return { state: "succeeded", cancellationId, recovered: false };
+  if (response?.ok && status === "SUCCEEDED") {
+    return { state: "succeeded", cancellationId, cancelledAmount, recovered: false };
   }
-  if (response.ok && status === "REQUESTED") {
-    return { state: "requested", cancellationId, recovered: false };
+  if (response?.ok && status === "REQUESTED") {
+    return { state: "requested", cancellationId, cancelledAmount: null, recovered: false };
   }
 
   const lookup = await fetch(endpoint, {
     headers: { Authorization: `PortOne ${input.apiSecret}` },
-    signal: AbortSignal.timeout(10000),
+    signal: AbortSignal.timeout(60000),
   });
   const payment = await readJson(lookup);
   if (lookup.ok && payment?.storeId === input.storeId && payment.status === "CANCELLED") {
-    return { state: "succeeded", cancellationId, recovered: true };
+    return {
+      state: "succeeded",
+      cancellationId,
+      cancelledAmount: providerCancelledAmount(payment),
+      recovered: true,
+    };
   }
-  return { state: "failed", cancellationId, recovered: false };
+  return { state: "failed", cancellationId, cancelledAmount: null, recovered: false };
 }
 
 export async function cancelAndReconcile(input: {
@@ -128,79 +161,120 @@ export async function cancelAndReconcile(input: {
     };
   }
   if (cancellation.state === "succeeded") {
+    if (cancellation.cancelledAmount === null || cancellation.cancelledAmount !== input.refundAmount) {
+      await input.admin.rpc("mark_order_refund_pending", {
+        p_order_no: input.orderNo,
+        p_reason: cancellation.cancelledAmount === null
+          ? `cancellation_intent:${input.intentCode}|provider_refunded_amount_missing`
+          : `cancellation_intent:${input.intentCode}|provider_refunded_amount_mismatch`,
+      });
+      return {
+        ...cancellation,
+        dbFinalized: false,
+        tracked: true,
+        providerRefunded: true,
+      };
+    }
     const finalized = await input.admin.rpc("finalize_order_refund_v2", {
       p_order_no: input.orderNo,
-      p_refund_amount: input.refundAmount,
+      p_refund_amount: cancellation.cancelledAmount,
       p_reason: input.reason,
       p_provider_cancellation_id: cancellation.cancellationId,
     });
     if (!finalized.error && Boolean((finalized.data as JsonRecord | null)?.ok)) {
       return { ...cancellation, dbFinalized: true, tracked: true, providerRefunded: true };
     }
-    const pending = await input.admin.rpc("mark_order_refund_pending", {
+    await input.admin.rpc("mark_order_refund_pending", {
       p_order_no: input.orderNo,
       p_reason: `cancellation_intent:${input.intentCode}|provider_refunded_db_finalize_failed:${finalized.error?.message ?? "unknown"}`,
     });
     return {
       ...cancellation,
       dbFinalized: false,
-      tracked: !pending.error && pending.data === true,
+      tracked: true,
       providerRefunded: true,
     };
   }
 
-  const marker = cancellation.state === "requested"
-    ? await input.admin.rpc("mark_order_refund_pending", {
+  if (cancellation.state === "requested") {
+    await input.admin.rpc("mark_order_refund_pending", {
       p_order_no: input.orderNo,
       p_reason: `cancellation_intent:${input.intentCode}|provider_cancel_requested:${cancellation.cancellationId ?? "pending"}`,
-    })
-    : await input.admin.rpc("mark_order_refund_pending", {
+    });
+  } else {
+    await input.admin.rpc("mark_order_refund_pending", {
       p_order_no: input.orderNo,
       p_reason: `cancellation_intent:${input.intentCode}|provider_cancel_failed`,
     });
+  }
   return {
     ...cancellation,
     dbFinalized: false,
-    tracked: !marker.error && marker.data === true,
+    tracked: true,
     providerRefunded: false,
   };
+}
+
+export async function queueCancellationIntent(
+  admin: RpcClient,
+  orderNo: string,
+  intentCode: string,
+): Promise<boolean> {
+  const marker = await admin.rpc("mark_order_refund_pending", {
+    p_order_no: orderNo,
+    p_reason: `cancellation_intent:${intentCode}`,
+  });
+  return !marker.error && marker.data === true;
 }
 
 export async function finalizeKnownProviderCancellation(input: {
   admin: RpcClient;
   orderNo: string;
   refundAmount: number;
+  expectedOrderAmount: number;
   reason: string;
 }): Promise<CancellationReconciliation> {
-  const intentCode = "provider_already_cancelled_recovery";
-  const intentMarker = await input.admin.rpc("mark_order_refund_pending", {
-    p_order_no: input.orderNo,
-    p_reason: `cancellation_intent:${intentCode}`,
-  });
-  if (intentMarker.error || intentMarker.data !== true) {
+  const cancelledAmount = Number.isSafeInteger(input.refundAmount) && input.refundAmount > 0
+    ? input.refundAmount
+    : null;
+  const expectedOrderAmount = Number.isSafeInteger(input.expectedOrderAmount) && input.expectedOrderAmount > 0
+    ? input.expectedOrderAmount
+    : null;
+  if (cancelledAmount === null || expectedOrderAmount === null) {
+    const reviewCode = cancelledAmount === null
+      ? "provider_cancelled_amount_invalid"
+      : "order_amount_invalid";
+    const marker = await input.admin.rpc("mark_order_payment_review", {
+      p_order_no: input.orderNo,
+      p_reason: `provider_cancelled_recovery_review:${reviewCode}`,
+    });
     return {
-      state: "succeeded", cancellationId: null, recovered: true,
-      dbFinalized: false, tracked: false, providerRefunded: true,
+      state: "succeeded", cancellationId: null, cancelledAmount, recovered: true,
+      dbFinalized: false, tracked: !marker.error && marker.data === true, providerRefunded: true,
     };
   }
+  // Let the locked DB finalizer decide amount safety. It accepts a mismatch
+  // only when an earlier, durable auto-cancellation intent already exists.
+  // Calling it before writing a generic marker avoids turning an unexplained
+  // partial cancellation into an actionable refund_pending state.
   const finalized = await input.admin.rpc("finalize_order_refund_v2", {
     p_order_no: input.orderNo,
-    p_refund_amount: input.refundAmount,
+    p_refund_amount: cancelledAmount,
     p_reason: input.reason,
     p_provider_cancellation_id: null,
   });
   if (!finalized.error && Boolean((finalized.data as JsonRecord | null)?.ok)) {
     return {
-      state: "succeeded", cancellationId: null, recovered: true,
+      state: "succeeded", cancellationId: null, cancelledAmount, recovered: true,
       dbFinalized: true, tracked: true, providerRefunded: true,
     };
   }
-  await input.admin.rpc("mark_order_refund_pending", {
+  const marker = await input.admin.rpc("mark_order_payment_review", {
     p_order_no: input.orderNo,
-    p_reason: `cancellation_intent:${intentCode}|provider_refunded_db_finalize_failed:${finalized.error?.message ?? "unknown"}`,
+    p_reason: `provider_cancelled_recovery_review:${finalized.error?.message ?? "unknown"}`,
   });
   return {
-    state: "succeeded", cancellationId: null, recovered: true,
-    dbFinalized: false, tracked: true, providerRefunded: true,
+    state: "succeeded", cancellationId: null, cancelledAmount, recovered: true,
+    dbFinalized: false, tracked: !marker.error && marker.data === true, providerRefunded: true,
   };
 }

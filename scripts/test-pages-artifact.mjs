@@ -67,12 +67,17 @@ async function validateDeployConfig() {
   assert.doesNotMatch(firebaseWorkflow, /tools\/generate-seo\.mjs/, 'Firebase가 레거시 루트 생성기를 사용하면 안 됩니다.');
   assert.match(firebaseWorkflow, /group:\s*firebase-hosting-live/, 'Firebase live 배포는 동시 실행을 막아야 합니다.');
   assert.match(firebaseWorkflow, /deploy:\s*\n\s+if:\s*github\.ref == 'refs\/heads\/main'/, 'Firebase live job은 main에서만 실행해야 합니다.');
+  assert.match(firebaseWorkflow, /vars\.PRODUCTION_DEPLOY_ENABLED == 'true'/, 'Firebase 배포는 운영 변수가 정확히 true일 때만 열려야 합니다.');
+  assert.doesNotMatch(firebaseWorkflow, /PRODUCTION_DEPLOY_ENABLED != 'false'/, 'Firebase 배포 조건은 fail-open이면 안 됩니다.');
   assert.match(firebaseWorkflow, /deploy:\s*[\s\S]*?needs:\s*truth_guard/, 'Firebase live job은 Truth Guard를 직접 통과해야 합니다.');
 
   assert.match(pagesWorkflow, /branches:\s*\[main\]/, 'Pages push 배포는 main만 받아야 합니다.');
   assert.match(pagesWorkflow, /build:\s*\n\s+if:\s*>-\s*\n\s+github\.ref == 'refs\/heads\/main'/, 'Pages build job은 main에서만 실행해야 합니다.');
   assert.match(pagesWorkflow, /deploy:\s*\n\s+if:\s*>-\s*\n\s+github\.ref == 'refs\/heads\/main'/, 'Pages deploy job은 main에서만 실행해야 합니다.');
   assert.match(pagesWorkflow, /static_release_sha:[\s\S]*?required:\s*false/, 'Pages 수동 프론트 릴리스는 명시적 SHA 입력만 받아야 합니다.');
+  assert.equal((pagesWorkflow.match(/vars\.PRODUCTION_DEPLOY_ENABLED == 'true'/g) || []).length, 2,
+    'Pages build와 deploy는 운영 변수가 정확히 true이거나 잠금형 SHA가 있을 때만 열려야 합니다.');
+  assert.doesNotMatch(pagesWorkflow, /PRODUCTION_DEPLOY_ENABLED != 'false'/, 'Pages 배포 조건은 fail-open이면 안 됩니다.');
   assert.match(pagesWorkflow, /refs\/heads\/codex\/locked-pages-release/, '잠금형 Pages 릴리스는 전용 브랜치만 허용해야 합니다.');
   assert.match(pagesWorkflow, /git merge-base --is-ancestor "\$WORKFLOW_MAIN_SHA" "\$STATIC_RELEASE_SHA"/, '잠금형 릴리스는 실행 시점 main 전체를 포함해야 합니다.');
   assert.match(pagesWorkflow, /build:\s*[\s\S]*?needs:\s*truth_guard/, 'Pages build job은 Truth Guard를 먼저 통과해야 합니다.');
@@ -198,7 +203,11 @@ async function validateArtifact(site, { expectSeo }) {
   assert(shellBlock, '서비스워커 SHELL_ASSETS를 찾지 못했습니다.');
   const shellAssets = [...shellBlock.matchAll(/['"](\.\/[^'"]+)['"]/g)]
     .map((match) => match[1].split(/[?#]/, 1)[0]);
-  assert.equal(shellAssets.length, 103, '서비스워커 셸 자산 개수가 기준과 다릅니다.');
+  assert.equal(shellAssets.length, 112, '서비스워커 셸 자산 개수가 기준과 다릅니다.');
+  assert(shellAssets.includes('./app/services/payments/checkout-request-recovery.js'));
+  assert(shellAssets.includes('./app/services/payments/checkout-client.js'));
+  assert(shellAssets.includes('./app/services/payments/payment-network.js'));
+  assert(shellAssets.includes('./app/services/payments/pending-payment-recovery.js'));
   assert(shellAssets.includes('./app/features/analytics-consent/analytics-consent.css'),
     '독립 동의 카드 스타일이 서비스워커 셸에 포함되어야 합니다.');
   for (const asset of shellAssets) {
