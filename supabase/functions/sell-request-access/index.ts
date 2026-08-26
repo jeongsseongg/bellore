@@ -10,6 +10,7 @@ const ALLOW_TEST_IDENTITY = Deno.env.get("ALLOW_TEST_IDENTITY") === "true";
 const PUBLIC_ORIGIN = "https://bellore.co.kr/";
 
 type Json = Record<string, unknown>;
+type SB = ReturnType<typeof createClient<any, "public">>;
 
 const ALLOWED_ORIGINS = ["https://bellore.co.kr", "https://www.bellore.co.kr", "http://localhost", "http://127.0.0.1"];
 function allowedOrigin(req: Request) {
@@ -86,7 +87,7 @@ function photos(value: unknown) {
 function maskPhone(value: string) {
   return value.length >= 8 ? `${value.slice(0, 3)}-****-${value.slice(-4)}` : "";
 }
-async function caller(admin: ReturnType<typeof createClient>, req: Request) {
+async function caller(admin: SB, req: Request) {
   const auth = req.headers.get("authorization") ?? "";
   if (!auth.startsWith("Bearer ")) return null;
   const jwt = auth.slice(7).trim();
@@ -100,7 +101,7 @@ async function rateKey(req: Request, scope: string, discriminator = "") {
   const network = req.headers.get("cf-connecting-ip") || req.headers.get("x-forwarded-for")?.split(",")[0] || "unknown";
   return sha256Hex(`bellore-sell-rate-v1\0${scope}\0${network}\0${discriminator}`);
 }
-async function limited(admin: ReturnType<typeof createClient>, req: Request, scope: string, discriminator: string, limit: number, minutes: number) {
+async function limited(admin: SB, req: Request, scope: string, discriminator: string, limit: number, minutes: number) {
   const key = await rateKey(req, scope, discriminator);
   const since = new Date(Date.now() - minutes * 60_000).toISOString();
   const found = await admin.from("guest_sell_access_attempts").select("id", { count: "exact", head: true })
@@ -111,7 +112,7 @@ async function limited(admin: ReturnType<typeof createClient>, req: Request, sco
   if (inserted.error) throw inserted.error;
   return false;
 }
-async function issue(admin: ReturnType<typeof createClient>, requestId: string, kind: "link" | "session", hours: number) {
+async function issue(admin: SB, requestId: string, kind: "link" | "session", hours: number) {
   const value = token();
   const row = {
     token_hash: await hashToken(value), request_id: requestId, token_kind: kind,
@@ -121,7 +122,7 @@ async function issue(admin: ReturnType<typeof createClient>, requestId: string, 
   if (inserted.error) throw inserted.error;
   return value;
 }
-async function requestView(admin: ReturnType<typeof createClient>, requestId: string) {
+async function requestView(admin: SB, requestId: string) {
   const result = await admin.from("sell_service_requests").select("*").eq("id", requestId).single();
   if (result.error) throw result.error;
   const row = result.data;
@@ -139,7 +140,7 @@ async function requestView(admin: ReturnType<typeof createClient>, requestId: st
     quoteRequestId: row.quote_request_id, bids, createdAt: row.created_at, updatedAt: row.updated_at,
   };
 }
-async function createRequest(admin: ReturnType<typeof createClient>, req: Request, body: Json) {
+async function createRequest(admin: SB, req: Request, body: Json) {
   if (await limited(admin, req, "create", "", 5, 60)) return jsonResponse(req, { ok: false, code: "RATE_LIMIT" }, 429);
   const user = await caller(admin, req);
   const method = String(body.method ?? "");
@@ -181,7 +182,7 @@ async function createRequest(admin: ReturnType<typeof createClient>, req: Reques
   const accessUrl = `${PUBLIC_ORIGIN}?sellGuest=${encodeURIComponent(created.data.receipt_no)}&sellToken=${encodeURIComponent(linkToken)}`;
   return jsonResponse(req, { ok: true, member: false, receiptNo: created.data.receipt_no, accessUrl, record: await requestView(admin, created.data.id) });
 }
-async function listMember(admin: ReturnType<typeof createClient>, req: Request) {
+async function listMember(admin: SB, req: Request) {
   const user = await caller(admin, req);
   if (!user) return jsonResponse(req, { ok: false, code: "UNAUTHORIZED" }, 401);
   const result = await admin.from("sell_service_requests").select("id").eq("owner_user_id", user.id).order("created_at", { ascending: false }).limit(100);
@@ -189,7 +190,7 @@ async function listMember(admin: ReturnType<typeof createClient>, req: Request) 
   const records = await Promise.all((result.data ?? []).map((row) => requestView(admin, row.id)));
   return jsonResponse(req, { ok: true, records });
 }
-async function exchangeLink(admin: ReturnType<typeof createClient>, req: Request, body: Json) {
+async function exchangeLink(admin: SB, req: Request, body: Json) {
   const raw = String(body.token ?? "");
   if (raw.length < 32) return jsonResponse(req, { ok: false, code: "INVALID_TOKEN" }, 400);
   const hashed = await hashToken(raw);
@@ -203,7 +204,7 @@ async function exchangeLink(admin: ReturnType<typeof createClient>, req: Request
   const sessionToken = await issue(admin, found.data.request_id, "session", 24 * 30);
   return jsonResponse(req, { ok: true, sessionToken, record: await requestView(admin, found.data.request_id) });
 }
-async function statusByToken(admin: ReturnType<typeof createClient>, req: Request, body: Json) {
+async function statusByToken(admin: SB, req: Request, body: Json) {
   const raw = String(body.sessionToken ?? "");
   if (raw.length < 32) return jsonResponse(req, { ok: false, code: "INVALID_SESSION" }, 400);
   const hashed = await hashToken(raw);
@@ -214,7 +215,7 @@ async function statusByToken(admin: ReturnType<typeof createClient>, req: Reques
   await admin.from("guest_sell_access_tokens").update({ last_used_at: new Date().toISOString() }).eq("token_hash", hashed);
   return jsonResponse(req, { ok: true, record: await requestView(admin, found.data.request_id) });
 }
-async function verifyGuestPhone(admin: ReturnType<typeof createClient>, req: Request, body: Json) {
+async function verifyGuestPhone(admin: SB, req: Request, body: Json) {
   if (!PORTONE_API_SECRET || !PORTONE_STORE_ID || !PORTONE_IDENTITY_CHANNEL_KEY) return jsonResponse(req, { ok: false, code: "NOT_CONFIGURED" }, 503);
   const receiptNo = receipt(body.receiptNo);
   const identityVerificationId = safeText(body.identityVerificationId, 80) ?? "";
@@ -240,7 +241,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return jsonResponse(req, { ok: false, code: "METHOD" }, 405);
   if (rejectDisallowedOrigin(req)) return jsonResponse(req, { ok: false, code: "ORIGIN_FORBIDDEN" }, 403);
   if (!SUPABASE_URL || !SERVICE_ROLE) return jsonResponse(req, { ok: false, code: "NOT_CONFIGURED" }, 503);
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false, autoRefreshToken: false } });
+  const admin: SB = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false, autoRefreshToken: false } });
   try {
     const body = await req.json() as Json;
     const action = String(body.action ?? "");
