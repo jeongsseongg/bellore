@@ -7,11 +7,10 @@ const submitButton = document.getElementById('adminLoginButton');
 const errorBox = document.getElementById('adminAuthError');
 
 function getClient() {
-  const config = window.BELLORE_SUPABASE;
-  if (!window.supabase?.createClient || !config?.url || !config?.anonKey) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     throw new Error('관리자 인증 설정을 불러오지 못했습니다.');
   }
-  return window.supabase.createClient(config.url, config.anonKey, {
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
@@ -112,3 +111,7 @@ export async function signOutAdmin() {
   await client.auth.signOut();
   window.location.replace('/admin/');
 }
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const SUPABASE_URL = 'https://iumsnacuxgssnnbckurq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml1bXNuYWN1eGdzc25uYmNrdXJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NDQ5ODQsImV4cCI6MjA5NjIyMDk4NH0.lwej8g4YCaiYuoQSXczwRp6ez-X26DD5d1ycMkYwpIk';
