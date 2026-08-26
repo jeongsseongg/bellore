@@ -162,6 +162,21 @@ jobs:
           fi
           grep -Eq 'TABLE public orders ' "$schema_dir/production-schema.toc"
           grep -Eq 'TABLE public listings ' "$schema_dir/production-schema.toc"
+
+          # Supabase Cloud provisions this ownership-only role outside the
+          # pinned self-hosted Postgres image. Recreate only its verified,
+          # non-privileged attributes inside the disposable validation DB.
+          docker exec --env PGPASSWORD="$validation_password" -i "$validation_container" \
+            psql -h localhost -U supabase_admin -d postgres -X -v ON_ERROR_STOP=1 <<'SQL'
+          do $role$
+          begin
+            if not exists (select 1 from pg_catalog.pg_roles where rolname='supabase_realtime_admin') then
+              create role supabase_realtime_admin
+                nologin nosuperuser nocreatedb nocreaterole noinherit noreplication nobypassrls;
+            end if;
+          end
+          $role$;
+          SQL
           docker exec --env PGPASSWORD="$validation_password" -i "$validation_container" \
             pg_restore --clean --if-exists --exit-on-error --single-transaction \
               --host=localhost --username=supabase_admin --dbname=postgres \

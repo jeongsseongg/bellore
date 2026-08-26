@@ -169,6 +169,11 @@ assert.match(prepareBlock, /\(SUBSCRIPTION\( TABLE\)\?\|USER MAPPING\)/,
   'full TOC must reject subscription and user-mapping external connections');
 assert.doesNotMatch(prepareBlock, /grep -Eiq|TABLE DATA\|SEQUENCE SET|BLOB\|BLOB COMMENTS|LARGE OBJECT\|SUBSCRIPTION/,
   'archive safety must not use case-insensitive object-name substring matching');
+assert.match(prepareBlock, /if not exists \(select 1 from pg_catalog\.pg_roles where rolname='supabase_realtime_admin'\)/);
+assert.match(prepareBlock, /create role supabase_realtime_admin\s+nologin nosuperuser nocreatedb nocreaterole noinherit noreplication nobypassrls/,
+  'the disposable DB role stub must match the verified non-privileged Cloud owner role');
+assert.doesNotMatch(prepareBlock, /create role supabase_realtime_admin[\s\S]{0,160}\b(login|superuser|createdb|createrole|inherit|replication|bypassrls)\b(?!\s*;)/i,
+  'the disposable owner role must not gain Cloud service privileges');
 assert.match(prepareBlock, /pg_restore --clean --if-exists --exit-on-error --single-transaction/);
 assert.match(prepareBlock, /--host=localhost --username=supabase_admin --dbname=postgres/);
 assert.doesNotMatch(prepareBlock, /upload-artifact|TABLE DATA.*production-schema/i,
