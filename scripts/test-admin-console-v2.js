@@ -23,6 +23,7 @@ const wantedCss = read('features/workspace/admin-wanted.css');
 const homeCss = read('features/home-editor/admin-home-editor.css');
 const mypageCss = read('features/mypage-editor/admin-mypage-editor.css');
 const mypageShadowCss = read('features/mypage-editor/admin-mypage-editor-shadow.css');
+const publicConfig = fs.readFileSync(path.join(root, 'supabase-config.js'), 'utf8');
 
 const requiredFiles = [
   'index.html',
@@ -47,7 +48,7 @@ requiredFiles.forEach((file) => assert.ok(fs.existsSync(path.join(base, file)), 
 assert.match(html, /id="adminNav"/, 'shell owns navigation mount');
 assert.match(html, /id="adminWorkspace"/, 'shell owns workspace mount');
 assert.match(html, /id="caseDrawer"/, 'shell owns case drawer');
-assert.match(html, /type="module" src="\.\/bootstrap\.js\?v=20260826-admin-release-v2"/, 'versioned native module bootstrap is used');
+assert.match(html, /type="module" src="\.\/bootstrap\.js\?v=20260826-admin-release-v3"/, 'versioned native module bootstrap is used');
 assert.doesNotMatch(html, /<script(?![^>]*src=)[^>]*>/, 'no executable inline scripts');
 assert.doesNotMatch(html, /style="/, 'no inline style attributes in shell');
 
@@ -80,10 +81,14 @@ assert.match(data, /운영 데이터에 판매방식이 구분 저장되지 않�
 
 assert.match(bootstrap, /createAdminNavigation/, 'bootstrap composes navigation feature');
 assert.match(bootstrap, /await requireAdminSession\(\)/, 'admin workspace waits for the authorization gate');
-assert.match(auth, /storageKey: 'bellore-admin-auth-v1'/, 'admin auth uses an isolated session');
+assert.match(auth, /STORAGE_KEY = 'bellore-admin-auth-v1'/, 'admin auth uses an isolated session');
 assert.match(auth, /profile\?\.role !== 'admin'|profile\.role !== 'admin'/, 'database profile role is required');
 assert.match(auth, /tokenRole !== 'admin'/, 'trusted app metadata role is required');
-assert.match(html, /@supabase\/supabase-js@2/, 'production admin uses the storefront-compatible Supabase SDK loader');
+assert.match(auth, /\/auth\/v1\/token\?grant_type=password/, 'production admin signs in through the Supabase Auth endpoint');
+assert.match(auth, /\/rest\/v1\/rpc\/email_for_username/, 'production admin resolves the public username through the existing RPC');
+assert.doesNotMatch(html, /cdn\.jsdelivr\.net|@supabase\/supabase-js/, 'production admin must not depend on an external SDK script');
+const adminAnonKey = auth.match(/SUPABASE_ANON_KEY = '([^']+)'/)?.[1];
+assert.ok(adminAnonKey && publicConfig.includes(adminAnonKey), 'admin auth anon key must exactly match the storefront public config');
 assert.match(html, /method="post" action="\/admin\/"/, 'login form must not leak credentials into the URL if JavaScript fails');
 assert.match(auth, /searchParams\.delete\('password'\)/, 'legacy credential query parameters are removed immediately');
 assert.doesNotMatch(auth, /service[_-]?role|qpffhfm|password\s*[:=]\s*['"]/i, 'admin auth must not embed a privileged key or password');

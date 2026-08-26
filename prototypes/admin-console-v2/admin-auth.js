@@ -1,5 +1,6 @@
 const SUPABASE_URL = 'https://iumsnacuxgssnnbckurq.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml1bXNuYWN1eGdzc25uYmNrdXJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NDQ5ODQsImV4cCI6MjA5NjIyMDk4NH0.lwej8g4YCaiYuoQSXczwRp6ez-X26DD5d1ycMkYwpIk';
+const STORAGE_KEY = 'bellore-admin-auth-v1';
 
 const startupUrl = new URL(window.location.href);
 if (startupUrl.searchParams.has('username') || startupUrl.searchParams.has('password')) {
@@ -16,21 +17,82 @@ const passwordInput = document.getElementById('adminLoginPassword');
 const submitButton = document.getElementById('adminLoginButton');
 const errorBox = document.getElementById('adminAuthError');
 
-function getClient() {
-  if (!window.supabase?.createClient || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    throw new Error('관리자 인증 설정을 불러오지 못했습니다.');
+function readSession() {
+  try {
+    return JSON.parse(window.localStorage.getItem(STORAGE_KEY) || 'null');
+  } catch {
+    return null;
   }
-  return window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: false,
-      storageKey: 'bellore-admin-auth-v1'
-    }
-  });
 }
 
-const client = getClient();
+function writeSession(session) {
+  if (session) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+  else window.localStorage.removeItem(STORAGE_KEY);
+}
+
+async function requestJson(path, { method = 'GET', body, token } = {}) {
+  const response = await window.fetch(`${SUPABASE_URL}${path}`, {
+    method,
+    cache: 'no-store',
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${token || SUPABASE_ANON_KEY}`,
+      ...(body === undefined ? {} : { 'Content-Type': 'application/json' })
+    },
+    body: body === undefined ? undefined : JSON.stringify(body)
+  });
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message = payload?.error_description || payload?.msg || payload?.message || '인증 요청에 실패했습니다.';
+    const error = new Error(message);
+    error.status = response.status;
+    throw error;
+  }
+  return payload;
+}
+
+function normalizeSession(payload) {
+  return {
+    access_token: payload.access_token,
+    refresh_token: payload.refresh_token,
+    expires_at: Math.floor(Date.now() / 1000) + Number(payload.expires_in || 3600),
+    user: payload.user
+  };
+}
+
+async function refreshSession(session) {
+  if (!session?.refresh_token) return null;
+  try {
+    const payload = await requestJson('/auth/v1/token?grant_type=refresh_token', {
+      method: 'POST',
+      body: { refresh_token: session.refresh_token }
+    });
+    const next = normalizeSession(payload);
+    writeSession(next);
+    return next;
+  } catch {
+    writeSession(null);
+    return null;
+  }
+}
+
+async function activeSession(candidate = readSession()) {
+  if (!candidate?.access_token) return null;
+  if (Number(candidate.expires_at || 0) <= Math.floor(Date.now() / 1000) + 60) {
+    return refreshSession(candidate);
+  }
+  return candidate;
+}
+
+async function revokeSession(session) {
+  writeSession(null);
+  if (!session?.access_token) return;
+  try {
+    await requestJson('/auth/v1/logout', { method: 'POST', token: session.access_token });
+  } catch {
+    // 로컬 세션은 이미 제거했으며 서버 만료 실패는 다음 토큰 만료로 제한됩니다.
+  }
+}
 
 function showError(message) {
   errorBox.textContent = message;
@@ -42,36 +104,60 @@ function setPending(pending) {
   submitButton.textContent = pending ? '확인 중' : '로그인';
 }
 
-async function getAdminIdentity() {
-  const { data: userData, error: userError } = await client.auth.getUser();
-  if (userError || !userData?.user) return null;
+async function getAdminIdentity(candidate) {
+  const session = await activeSession(candidate);
+  if (!session) return null;
 
-  const user = userData.user;
-  const { data: profile, error: profileError } = await client
-    .from('profiles')
-    .select('id, username, display_name, role, approved, suspended')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  const tokenRole = user.app_metadata?.role;
-  if (profileError || profile?.role !== 'admin' || tokenRole !== 'admin' || profile.suspended || !profile.approved) {
-    await client.auth.signOut();
+  try {
+    const user = await requestJson('/auth/v1/user', { token: session.access_token });
+    const rows = await requestJson(`/rest/v1/profiles?id=eq.${encodeURIComponent(user.id)}&select=id,username,display_name,role,approved,suspended`, {
+      token: session.access_token
+    });
+    const profile = Array.isArray(rows) ? rows[0] : null;
+    const tokenRole = user?.app_metadata?.role;
+    if (profile?.role !== 'admin' || tokenRole !== 'admin' || profile.suspended || !profile.approved) {
+      await revokeSession(session);
+      return null;
+    }
+    session.user = user;
+    writeSession(session);
+    return { user, profile, session };
+  } catch (error) {
+    if (error?.status === 401) {
+      const refreshed = await refreshSession(session);
+      return refreshed ? getAdminIdentity(refreshed) : null;
+    }
+    await revokeSession(session);
     return null;
   }
-  return { user, profile };
 }
 
 async function signIn(username, password) {
   const normalized = String(username || '').trim();
   if (!normalized || !password) throw new Error('아이디와 비밀번호를 입력해 주세요.');
 
-  const { data: emailData, error: emailError } = await client.rpc('email_for_username', { uname: normalized });
-  if (emailError || !emailData) throw new Error('아이디 또는 비밀번호를 확인해 주세요.');
+  let email;
+  try {
+    email = await requestJson('/rest/v1/rpc/email_for_username', {
+      method: 'POST',
+      body: { uname: normalized }
+    });
+  } catch {
+    throw new Error('아이디 또는 비밀번호를 확인해 주세요.');
+  }
+  if (!email) throw new Error('아이디 또는 비밀번호를 확인해 주세요.');
 
-  const { error: signInError } = await client.auth.signInWithPassword({ email: emailData, password });
-  if (signInError) throw new Error('아이디 또는 비밀번호를 확인해 주세요.');
+  let session;
+  try {
+    session = normalizeSession(await requestJson('/auth/v1/token?grant_type=password', {
+      method: 'POST',
+      body: { email, password }
+    }));
+  } catch {
+    throw new Error('아이디 또는 비밀번호를 확인해 주세요.');
+  }
 
-  const identity = await getAdminIdentity();
+  const identity = await getAdminIdentity(session);
   if (!identity) throw new Error('관리자 권한이 확인되지 않았습니다.');
   return identity;
 }
@@ -118,6 +204,6 @@ export async function requireAdminSession() {
 }
 
 export async function signOutAdmin() {
-  await client.auth.signOut();
+  await revokeSession(readSession());
   window.location.replace('/admin/');
 }
