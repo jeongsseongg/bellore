@@ -1400,6 +1400,12 @@ jobs:
             if v_index < 6 then raise exception 'not enough listings for checkout rate test'; end if;
           end $$;
 
+          -- TRUNCATE cannot run while earlier checkout fixtures still have
+          -- pending deferred trigger events. Execute those events first, then
+          -- restore production-style deferral before testing the hold trigger.
+          set constraints all immediate;
+          set constraints all deferred;
+
           -- The runtime service role can read the hold only through the
           -- security-definer helper; it must never write the server-only table.
           do $$

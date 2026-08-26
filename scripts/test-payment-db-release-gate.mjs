@@ -213,6 +213,13 @@ assert.match(validateBlock, /set local session_replication_role=replica;[\s\S]{0
 assert.match(validateBlock, /set local session_replication_role=replica;[\s\S]{0,900}generate_series\(1,6\)[\s\S]{0,120}set local session_replication_role=origin;/);
 assert.match(validateBlock, /order_requires_restock_v1\(\s*v_test_id, 2::smallint,/,
   'the rollback fixture must call the exact smallint restock-helper signature');
+const rateFixtureEnd = validateBlock.indexOf('not enough listings for checkout rate test');
+const deferredEventFlush = validateBlock.indexOf('set constraints all immediate;', rateFixtureEnd);
+const productionDeferralRestore = validateBlock.indexOf('set constraints all deferred;', deferredEventFlush);
+const holdWriteProbe = validateBlock.indexOf('service role direct hold insert was not blocked', productionDeferralRestore);
+assert(rateFixtureEnd >= 0 && deferredEventFlush > rateFixtureEnd &&
+  productionDeferralRestore > deferredEventFlush && holdWriteProbe > productionDeferralRestore,
+  'pending checkout trigger events must run before the hold TRUNCATE probe');
 assert.match(
   validateBlock,
   /service role direct hold insert was not blocked[\s\S]{0,240}exception when insufficient_privilege then[\s\S]{0,240}reset role;[\s\S]{0,700}rollback_fixture_order[\s\S]{0,240}set local role service_role;[\s\S]{0,900}held order update was not blocked/,
