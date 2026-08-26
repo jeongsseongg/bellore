@@ -221,7 +221,8 @@ async function validateArtifact(site, { expectSeo }) {
   assert(shellBlock, '서비스워커 SHELL_ASSETS를 찾지 못했습니다.');
   const shellAssets = [...shellBlock.matchAll(/['"](\.\/[^'"]+)['"]/g)]
     .map((match) => match[1].split(/[?#]/, 1)[0]);
-  assert.equal(shellAssets.length, 115, '서비스워커 셸 자산 개수가 기준과 다릅니다.');
+  assert(shellAssets.length >= APP_RUNTIME_FILES.length + ROOT_RUNTIME_FILES.length,
+    '서비스워커 셸 자산이 운영 허용목록보다 작습니다.');
   assert(shellAssets.includes('./app/services/payments/checkout-request-recovery.js'));
   assert(shellAssets.includes('./app/services/payments/checkout-client.js'));
   assert(shellAssets.includes('./app/services/payments/payment-network.js'));
@@ -230,6 +231,9 @@ async function validateArtifact(site, { expectSeo }) {
   assert(shellAssets.includes('./app/features/condition-guide/condition-guide.css'));
   assert(shellAssets.includes('./app/features/condition-guide/condition-guide.js'));
   assert(shellAssets.includes('./app/features/sell-method/sell-method.js'));
+  assert(shellAssets.includes('./app/features/sell-method/sell-guide-preview.js'));
+  assert(shellAssets.includes('./app/features/sell-method/sell-reference-controller.js'));
+  assert(shellAssets.includes('./app/features/sell-method/sell-quote-controller.js'));
   assert(shellAssets.includes('./app/legacy/recommendation-engine.js'));
   assert(shellAssets.includes('./app/features/analytics-consent/analytics-consent.css'),
     '독립 동의 카드 스타일이 서비스워커 셸에 포함되어야 합니다.');

@@ -7,6 +7,9 @@ const css = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-metho
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const script = fs.readFileSync(path.join(root, 'script.js'), 'utf8');
 const moduleJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-method.js'), 'utf8');
+const referenceJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-reference-controller.js'), 'utf8');
+const quoteJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-quote-controller.js'), 'utf8');
+const quoteCss = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-quotes.css'), 'utf8');
 
 const sheetRule = css.match(/\.sell-method__sheet\s*\{([\s\S]*?)\}/)?.[1] || '';
 
@@ -19,7 +22,7 @@ assert.match(
 assert.doesNotMatch(sheetRule, /720px/, 'sell sheet must never use the out-of-spec 720px width');
 assert.match(
   html,
-  /sell-method\.css\?v=20260826-payment-sell-motion-v1/,
+  /sell-method\.css\?v=20260826-sell-quotes-v3/,
   'the page requests the panel-width-corrected stylesheet'
 );
 assert.match(sheetRule, /transform:\s*translateY\(104%\)/, 'the closed sheet starts below the Bellore frame');
@@ -61,5 +64,18 @@ assert.match(html, /스탬핑\/연식/, 'the purchase timing field uses the appr
 assert.match(html, /assets\/cq-guide\/front\.jpg/, 'the guided detail page uses the supplied photo examples');
 assert.match(css, /\.sell-method__form-mount\.is-guided-details[\s\S]*?#sellWatchInfoBlock/, 'the second guided page hides already-completed watch fields');
 assert.match(moduleJs, /stage:\s*entryMode,\s*guideComplete/, 'the completed guided stage is persisted with the draft');
+assert.match(referenceJs, /subscribeProducts/, 'reference previews use the live Bellore listing catalog');
+assert.match(referenceJs, /function render\(/, 'reference previews are filtered after brand and model selection');
+assert.match(quoteCss, /\.sell-guide__preview--text/, 'reference and year rows do not render circular initials');
+assert.match(quoteJs, /id="sellMethodQuoteStatus"/, 'the chooser exposes an active quote status card');
+assert.match(quoteJs, /data-sell-view="quotes"/, 'quote details stay inside the fixed sell sheet');
+assert.match(quoteJs, /방문거래[\s\S]*택배거래[\s\S]*퀵거래/, 'a customer can select all three requested transaction methods');
+assert.match(script, /act:\s*'quotes',\s*label:\s*'내 비교견적'/, 'customer My Page links back to the sell quote sheet');
+assert.match(quoteJs, /awardBid\(quoteId, bidId,[\s\S]*tradeMethod\)/, 'sale requests persist the selected quote and transaction method');
+assert.match(quoteJs, /seconds[\s\S]*초/, 'active quote countdown includes seconds');
+assert.doesNotMatch(quoteJs, /vendor_name/, 'customer bid cards do not expose vendor names');
+assert.match(quoteCss, /\.sell-quotes__bid b\s*\{\s*color:\s*#176fb8/, 'customer quote amounts use the requested blue emphasis');
+assert.doesNotMatch(html, />\s*온라인\s*·\s*비교견적/, 'quote status does not spell out online as Korean copy');
+assert.match(quoteCss, /@keyframes sell-online-pulse/, 'active quote status uses the requested online pulse animation');
 
 console.log('sell method sheet width invariants: ok');

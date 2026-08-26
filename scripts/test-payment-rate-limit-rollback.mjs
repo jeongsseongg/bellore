@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
-const read = (path) => readFileSync(resolve(root, path), 'utf8');
+const read = (path) => readFileSync(resolve(root, path), 'utf8').replace(/\r\n?/g, '\n');
 const migration = read('supabase/migrations/20260826170000_checkout_claim_integrity.sql');
 const checkout = read('supabase/functions/create-checkout/index.ts');
 const workflow = read('.github/workflows/db-maintenance.yml');

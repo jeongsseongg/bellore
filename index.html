@@ -77,7 +77,8 @@
     <link rel="stylesheet" href="app/features/analytics-consent/analytics-consent.css?v=20260826-ai-consent-v1">
     <link rel="stylesheet" href="app/features/checkout/checkout-addresses.css?v=20260826-checkout-addresses-v1">
     <link rel="stylesheet" href="app/features/checkout/checkout-coupon.css?v=20260826-payment-condition-v1">
-    <link rel="stylesheet" href="app/features/sell-method/sell-method.css?v=20260826-payment-sell-motion-v1">
+    <link rel="stylesheet" href="app/features/sell-method/sell-method.css?v=20260826-sell-quotes-v3">
+    <link rel="stylesheet" href="app/features/sell-method/sell-quotes.css?v=20260826-sell-quotes-v3">
     <link rel="stylesheet" href="app/features/condition-guide/condition-guide.css?v=20260826-payment-condition-v1">
 
     <!-- PWA -->
@@ -1832,7 +1833,7 @@
     </div>
 
     <script type="module" src="app/bootstrap.js?v=20260826-payment-condition-v1"></script>
-    <script type="module" src="app/features/sell-method/sell-method.js?v=20260826-payment-sell-motion-v1"></script>
+    <script type="module" src="app/features/sell-method/sell-method.js?v=20260826-sell-quotes-v3"></script>
 
     <!-- PWA 설치 모달 -->
     <div id="pwaInstallModal" hidden aria-modal="true" role="dialog">
@@ -3244,9 +3245,7 @@
                         <label class="sell-guide__field">레퍼런스
                             <input type="search" id="sellGuideRefInput" placeholder="예: 126610LN" autocomplete="off">
                         </label>
-                        <div class="sell-guide__quick-actions" id="sellGuideRefSuggestions">
-                            <button type="button" data-guide-ref="잘 모름">레퍼런스를 잘 모르겠어요</button>
-                        </div>
+                        <div class="sell-guide__suggestions sell-guide__suggestions--references" id="sellGuideRefSuggestions" aria-live="polite"></div>
                         <label class="sell-guide__field">스탬핑/연식
                             <input type="search" id="sellGuideYearInput" placeholder="예: 2023년" autocomplete="off">
                         </label>

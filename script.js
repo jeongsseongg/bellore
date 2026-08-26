@@ -1464,6 +1464,7 @@
         var rows = [];
         rows.push({ cap: '거래' });
         rows.push({ act: 'orders', label: '주문 내역', count: orderN });
+        if (role === 'customer') rows.push({ act: 'quotes', label: '내 비교견적' });
         rows.push({ act: 'auction', label: '경매' });
         if (role === 'vendor' || role === 'partner') rows.push({ act: 'bids', label: '비교견적 · 입찰 내역' });
         if (role === 'partner') rows.push({ act: 'sales', label: '공급상품 · 정산 내역' });
@@ -1476,7 +1477,7 @@
         box.innerHTML = rows.map(function (r) {
             if (r.cap) return '<p class="mp-menu-cap">' + r.cap + '</p>';
             // 경매는 auction.js 가 data-auction-open 으로 처리
-            var attr = (r.act === 'auction') ? 'data-auction-open' : ('data-mpmenu="' + r.act + '"');
+            var attr = (r.act === 'auction') ? 'data-auction-open' : (r.act === 'quotes' ? 'data-sell-quotes-open' : ('data-mpmenu="' + r.act + '"'));
             return '<button type="button" class="mp-menu-row" ' + attr + '>' +
                 '<span class="mr-label">' + r.label + '</span>' +
                 (typeof r.count === 'number' ? '<span class="mr-count">' + r.count + '건</span>' : '') +
