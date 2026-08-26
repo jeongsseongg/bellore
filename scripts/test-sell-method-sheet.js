@@ -7,12 +7,19 @@ const css = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-metho
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const script = fs.readFileSync(path.join(root, 'script.js'), 'utf8');
 const moduleJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-method.js'), 'utf8');
+const draftOwnerJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-draft-owner.js'), 'utf8');
 const referenceJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-reference-controller.js'), 'utf8');
 const quoteJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-quote-controller.js'), 'utf8');
 const quoteCss = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-quotes.css'), 'utf8');
 const serviceJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-service-pages.js'), 'utf8');
 const serviceCss = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-service-pages.css'), 'utf8');
 const serviceActionCss = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-service-action.css'), 'utf8');
+const serviceNavigationCss = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-service-navigation.css'), 'utf8');
+const guestCss = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-guest-access.css'), 'utf8');
+const guestJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-guest-access.js'), 'utf8');
+const backendJs = fs.readFileSync(path.join(root, 'app/services/sell/sell-request-access.js'), 'utf8');
+const guestEdge = fs.readFileSync(path.join(root, 'supabase/functions/sell-request-access/index.ts'), 'utf8');
+const guestMigration = fs.readFileSync(path.join(root, 'supabase/migrations/20260826234000_sell_request_guest_access.sql'), 'utf8');
 
 const sheetRule = css.match(/\.sell-method__sheet\s*\{([\s\S]*?)\}/)?.[1] || '';
 
@@ -25,7 +32,7 @@ assert.match(
 assert.doesNotMatch(sheetRule, /720px/, 'sell sheet must never use the out-of-spec 720px width');
 assert.match(
   html,
-  /sell-method\.css\?v=20260826-sell-services-member-v2/,
+  /sell-method\.css\?v=20260826-sell-guest-access-v1/,
   'the page requests the panel-width-corrected stylesheet'
 );
 assert.match(sheetRule, /transform:\s*translateY\(104%\)/, 'the closed sheet starts below the Bellore frame');
@@ -99,6 +106,16 @@ assert.match(serviceActionCss, /\.sell-service-action__methods img[\s\S]*?object
 assert.match(serviceCss, /\.sell-service__status--blue[\s\S]*?#eef6ff/, 'all service status cards use the common blue surface');
 assert.doesNotMatch(serviceCss, /#(?:fff7ed|fff5e9|a95f12|a85d10|efd7b9)/i, 'gold and orange accents cannot return to sell service pages');
 assert.doesNotMatch(script, /saleMethod === 'consignment' && !desiredPrice/, 'consignment no longer asks the customer to choose a price first');
-assert.match(script, /p\.saleMethod === 'compare'[\s\S]*NWBackend\.addListing/, 'only comparison estimates enter the partner bidding backend path');
+assert.match(script, /NWBackend\.createSellRequest/, 'all three sell methods use the server request path');
+assert.match(draftOwnerJs, /'member:' \+ member\.uid/, 'member drafts are scoped by the authenticated member id');
+assert.match(draftOwnerJs, /'guest:' \+ guestId/, 'guest drafts are scoped by a random browser owner id instead of IP');
+assert.match(guestJs, /id=\\?"sellGuestAccessToggle/, 'a guest access icon sits beside the sell notification control');
+assert.match(guestJs, /verifyGuestSellRequest/, 'guest lookup requires the phone identity verification flow');
+assert.match(guestCss, /\.sell-method__guest-toggle/, 'guest access uses the shared sell panel styling');
+assert.match(backendJs, /action: 'verify-phone'/, 'the client sends the PortOne result to the server for verification');
+assert.match(guestEdge, /validatePortOneIdentity/, 'the Edge Function validates the provider response server-side');
+assert.match(guestEdge, /token_kind", "link"/, 'security links are exchanged through a one-time link token');
+assert.match(guestMigration, /revoke all on table public\.sell_service_requests from anon, authenticated/i, 'guest records have no direct Data API access');
+assert.match(guestMigration, /auth\.uid\(\).*owner_user_id/i, 'member records are protected by an ownership RLS policy');
 
 console.log('sell method sheet width invariants: ok');

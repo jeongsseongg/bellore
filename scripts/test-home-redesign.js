@@ -105,6 +105,8 @@ assert.match(banners, /while \(next === backgroundIndex && BUYIN_BACKGROUNDS\.le
 assert.match(bannersCss, /\.feat-card \{[\s\S]*aspect-ratio: 430 \/ 189/, 'featured banner is 1.4x taller');
 assert.equal((banners.match(/assets\/banners\/product-stage-\d{2}\.webp/g) || []).length, 6, '6 product stages');
 assert.equal((banners.match(/assets\/banners\/buyin-\d{2}\.webp/g) || []).length, 6, '6 buy-in backgrounds');
+assert.match(banners, /class="bn-buy" data-sell-method-open/, 'the lower buy-in banner opens the unified sell-method sheet');
+assert.doesNotMatch(banners, /href="#compare" data-nav="compare"/, 'the lower buy-in banner never routes to the retired compare page');
 assert.match(banners, /function balancedTitleLines\(value\)/, 'featured title uses deterministic balanced lines');
 assert.match(banners, /class="feat-showcase"/, 'featured product uses a separate showroom layer');
 assert.match(banners, /class="feat-nm-line"/, 'featured title renders explicit semantic lines');

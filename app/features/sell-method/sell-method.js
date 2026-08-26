@@ -1,11 +1,10 @@
 import { createSellReferenceController } from './sell-reference-controller.js?v=20260826-sell-services-blue-v1';
 import { createSellQuoteController } from './sell-quote-controller.js?v=20260826-sell-services-blue-v1';
 import { createSellGuidePreview } from './sell-guide-preview.js?v=20260826-sell-services-blue-v1';
-
+import { createSellDraftOwner } from './sell-draft-owner.js?v=20260826-sell-guest-access-v1';
 const METHODS = new Set(['compare', 'consignment', 'instant']);
 const DB_NAME = 'bellore-sell-drafts';
 const STORE_NAME = 'drafts';
-const DRAFT_ID = 'current';
 const FALLBACK_BRANDS = [
   { slug: 'rolex', name: '롤렉스', eng: 'ROLEX', models: ['서브마리너', '데이트저스트', '데이데이트', 'GMT마스터 II', '스카이드웰러', '요트마스터', '데이토나', '익스플로러', '씨드웰러', '에어킹', '오이스터 퍼페추얼'] },
   { slug: 'patek', name: '파텍필립', eng: 'PATEK PHILIPPE', models: ['노틸러스', '아쿠아넛', '칼라트라바', '컴플리케이션', '그랜드 컴플리케이션'] },
@@ -98,6 +97,7 @@ export function initSellMethodSheet({ document, window, backend }) {
   let referenceController;
   let quoteController;
 
+  const draftOwner = createSellDraftOwner({ window, backend });
   mount.append(hero, form);
   const oldPage = document.getElementById('compare');
   if (oldPage) oldPage.remove();
@@ -353,7 +353,7 @@ export function initSellMethodSheet({ document, window, backend }) {
   }
 
   async function readDraft() {
-    try { return await dbRequest(window, 'readonly', (store) => store.get(DRAFT_ID)); }
+    try { return await dbRequest(window, 'readonly', (store) => store.get(draftOwner.draftId())); }
     catch (error) { console.warn('[Bellore] 판매 양식 저장본을 읽지 못했습니다.', error); return null; }
   }
 
@@ -368,14 +368,14 @@ export function initSellMethodSheet({ document, window, backend }) {
 
   async function writeDraft() {
     if (!isDirty()) {
-      try { await dbRequest(window, 'readwrite', (store) => store.delete(DRAFT_ID)); }
+      try { await dbRequest(window, 'readwrite', (store) => store.delete(draftOwner.draftId())); }
       catch (error) { console.warn('[Bellore] 비어 있는 판매 양식 저장본 정리 실패', error); }
       lastDraft = null;
       updateResume(null);
       if (draftStatus) draftStatus.textContent = '입력 내용 자동 저장';
       return null;
     }
-    const draft = { id: DRAFT_ID, method: document.getElementById('saleMethodInput')?.value || 'compare', stage: entryMode, guideComplete, values: formValues(), photos: getPhotos(), updatedAt: Date.now() };
+    const draft = { id: draftOwner.draftId(), owner: draftOwner.ownerId(), method: document.getElementById('saleMethodInput')?.value || 'compare', stage: entryMode, guideComplete, values: formValues(), photos: getPhotos(), updatedAt: Date.now() };
     try {
       await dbRequest(window, 'readwrite', (store) => store.put(draft));
       lastDraft = draft;
@@ -391,7 +391,7 @@ export function initSellMethodSheet({ document, window, backend }) {
 
   async function clearDraft() {
     window.clearTimeout(saveTimer);
-    try { await dbRequest(window, 'readwrite', (store) => store.delete(DRAFT_ID)); }
+    try { await dbRequest(window, 'readwrite', (store) => store.delete(draftOwner.draftId())); }
     catch (error) { console.warn('[Bellore] 제출 후 판매 양식 저장본 삭제 실패', error); }
     lastDraft = null;
     updateResume(null);
@@ -576,6 +576,7 @@ export function initSellMethodSheet({ document, window, backend }) {
   resetGuide();
   setEntryMode('guided');
   readDraft().then((draft) => { lastDraft = draft; updateResume(draft); });
+  draftOwner.bindAuth(() => readDraft().then((draft) => { lastDraft = draft; updateResume(draft); if (!root.hidden) showView('chooser'); }));
 }
 
 function boot() { initSellMethodSheet({ document, window, backend: globalThis['NWBackend'] }); }

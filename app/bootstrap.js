@@ -31,12 +31,14 @@ import { installCustomerFeedback } from './legacy/customer-feedback.js?v=2026082
 import { installLegacyCheckoutCoupon } from './legacy/checkout-coupon.js';
 import { createLegacyMypageSettingsAdapter } from './legacy/mypage-settings-adapter.js?v=20260826-mypage-live-v1';
 import { initMypageSettings } from './features/mypage-settings/mypage-settings.js?v=20260826-mypage-live-v1';
-import { initSellServicePages } from './features/sell-method/sell-service-pages.js?v=20260826-sell-services-member-v2';
+import { initSellServicePages } from './features/sell-method/sell-service-pages.js?v=20260826-sell-guest-access-v1';
+import { installSellRequestAccess } from './services/sell/sell-request-access.js?v=20260826-sell-guest-access-v1';
 import { installLegacyMemberVerificationUi } from './legacy/member-verification-ui.js?v=20260826-member-verification-live-v2';
 import { installLegacyMemberVerificationService } from './legacy/member-verification-service.js?v=20260826-member-verification-live-v2';
 
 installLegacyMemberVerificationUi({ window, document });
 installLegacyMemberVerificationService({ window });
+installSellRequestAccess({ window });
 
 // 레거시 상품 카드가 DOMContentLoaded에서 그려지기 전에 동일한 판매 상태 규칙을 노출한다.
 Object.defineProperty(window, 'BELLORE_LISTING_AVAILABILITY', { configurable: true, value: Object.freeze({

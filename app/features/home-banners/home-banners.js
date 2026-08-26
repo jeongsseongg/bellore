@@ -133,12 +133,12 @@ function renderBuyinBanner({ doc, win, mount }) {
   writeMemory(win, BUYIN_MEMORY_KEY, pick);
 
   mount.innerHTML =
-    '<a class="bn-buy" href="#compare" data-nav="compare">' +
+    '<button type="button" class="bn-buy" data-sell-method-open aria-haspopup="dialog" aria-controls="sellMethodSheet">' +
     '<span class="bn-fx"></span>' +
     '<span class="bn-tx">' +
     '<span class="bn-lead"></span>' +
     '<span class="bn-t"></span>' +
-    '</span></a>';
+    '</span></button>';
 
   const banner = mount.querySelector('.bn-buy');
   let index = pick;

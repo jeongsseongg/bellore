@@ -51,3 +51,7 @@ verify_jwt = false
 
 [functions.reconcile-payments]
 verify_jwt = false
+
+# Guests reach this function without a user JWT. Sensitive reads require a hashed token or verified identity.
+[functions.sell-request-access]
+verify_jwt = false

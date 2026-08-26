@@ -1,0 +1,66 @@
+.sell-method__guest-toggle {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  padding: 5px 3px 3px;
+  border: 1px solid #b9d9f7;
+  border-radius: 50%;
+  background: #eef6ff;
+  color: #176db8;
+  cursor: pointer;
+}
+
+.sell-method__guest-toggle svg { width: 20px; height: 20px; }
+.sell-method__guest-toggle small { margin-top: -2px; font-size: 8px; font-weight: 900; line-height: 1; }
+.sell-guest-view { min-height: 560px; }
+.sell-guest-access {
+  display: grid;
+  justify-items: stretch;
+  max-width: 520px;
+  margin: 54px auto 0;
+  padding: 0 22px 30px;
+  text-align: center;
+}
+.sell-guest-access__icon {
+  display: grid;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 20px;
+  place-items: center;
+  border-radius: 50%;
+  background: #eef6ff;
+  color: #176db8;
+}
+.sell-guest-access__icon svg { width: 34px; height: 34px; }
+.sell-guest-access h2 { margin: 0; color: #202522; font-size: 26px; letter-spacing: -0.04em; }
+.sell-guest-access > p { margin: 12px 0 28px; color: #727b76; font-size: 14px; line-height: 1.65; }
+.sell-guest-access label { display: grid; gap: 8px; text-align: left; }
+.sell-guest-access label span { color: #3a433f; font-size: 13px; font-weight: 800; }
+.sell-guest-access input {
+  width: 100%;
+  height: 52px;
+  padding: 0 16px;
+  border: 1px solid #dfe4e2;
+  border-radius: 12px;
+  background: #fff;
+  color: #202522;
+  font: inherit;
+  text-transform: uppercase;
+}
+.sell-guest-access .sell-guest-access__status { min-height: 22px; margin: 10px 0; color: #176db8; font-size: 13px; font-weight: 800; }
+.sell-guest-access button[type="submit"] {
+  min-height: 54px;
+  border: 0;
+  border-radius: 12px;
+  background: #176db8;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+}
+@media (max-width: 520px) {
+  .sell-method__guest-toggle { width: 44px; height: 44px; }
+  .sell-guest-access { margin-top: 34px; padding-inline: 18px; }
+  .sell-guest-access h2 { font-size: 23px; }
+}

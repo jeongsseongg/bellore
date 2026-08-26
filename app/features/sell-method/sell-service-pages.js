@@ -1,3 +1,4 @@
+import { createSellGuestAccess } from './sell-guest-access.js?v=20260826-sell-guest-access-v1';
 const STORAGE_KEY = 'bellore-sell-service-records-v1';
 const METHOD_LABEL = { compare: '비교견적', consignment: '위탁판매', instant: '즉시매입' };
 
@@ -119,7 +120,7 @@ export function initSellServicePages({ document, window, backend }) {
   const chooser = root?.querySelector('[data-sell-view="chooser"]');
   if (!root || !sheet || !chooser) return null;
   const header = chooser.querySelector('.sell-method__header');
-  header.insertAdjacentHTML('beforeend', '<button type="button" class="sell-method__notice-toggle" id="sellServiceNoticeToggle" aria-label="판매 알림 보기" aria-controls="sellServiceNoticePanel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg><b class="sell-method__notice-badge" id="sellServiceNoticeBadge" hidden>0</b></button>');
+  header.insertAdjacentHTML('beforeend', '<div class="sell-method__header-actions"><button type="button" class="sell-method__notice-toggle" id="sellServiceNoticeToggle" aria-label="판매 알림 보기" aria-controls="sellServiceNoticePanel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg><b class="sell-method__notice-badge" id="sellServiceNoticeBadge" hidden>0</b></button></div>');
   header.insertAdjacentHTML('afterend', '<aside class="sell-service-notice" id="sellServiceNoticePanel" hidden><strong>판매 알림</strong><div class="sell-service-notice__list" id="sellServiceNoticeList"></div></aside>');
   const leaveView = root.querySelector('[data-sell-view="leave"]');
   leaveView.insertAdjacentHTML('beforebegin', '<div class="sell-service-view" data-sell-view="service" hidden><div class="sell-method__form-toolbar"><button type="button" data-sell-service-back aria-label="판매방식 선택으로 돌아가기">←</button><span><strong id="sellServiceTitle">판매 현황</strong><small id="sellServiceSubtitle">신청 내용과 현재 진행상태</small></span></div><div class="sell-service" id="sellServiceContent" aria-live="polite"></div></div>');
@@ -146,6 +147,7 @@ export function initSellServicePages({ document, window, backend }) {
   let selectedTrade = '';
   let unsubscribe = null;
   let myPageLinks = document.getElementById('sellServiceMyPageLinks');
+  let guestAccess;
 
   // saved drafts live only in the top-right notification menu
   // 저장 중인 양식은 판매방식 본문에 노출하지 않고 우측 상단 알림함에서만 연다.
@@ -165,7 +167,7 @@ export function initSellServicePages({ document, window, backend }) {
 
   function writeLocal() {
     if (preview) return;
-    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(records.filter((item) => item.source !== 'backend'))); }
+    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(records.filter((item) => !String(item.source || '').includes('backend')))); }
     catch (error) { console.warn('[Bellore] 판매 현황 저장에 실패했습니다.', error); }
   }
 
@@ -239,12 +241,21 @@ export function initSellServicePages({ document, window, backend }) {
     action.querySelector('[data-sell-action-confirm]').disabled = true;
     action.hidden = false;
   }
-
   function closeAction() {
     action.hidden = true;
     selectedTrade = '';
   }
-
+  function serverRecord(record, source) {
+    return { ...record, source: source || 'backend', photo: record.photos?.[0] || record.photo || '',
+      expiresAt: record.method === 'compare' ? Date.parse(record.createdAt || Date.now()) + 72 * 3600 * 1000 : null };
+  }
+  function openGuestRecord(record, source) {
+    const mapped = serverRecord(record, source || 'guest-backend');
+    records = [mapped, ...records.filter((item) => String(item.id) !== String(mapped.id))];
+    renderNotice();
+    open(guestAccess?.toggle, mapped.method, mapped.id);
+  }
+  guestAccess = createSellGuestAccess({ document, window, backend, root, header, leaveView, showView, openRecord: openGuestRecord });
   async function connectBackend() {
     if (preview) {
       records = previewRecords(Date.now());
@@ -253,7 +264,14 @@ export function initSellServicePages({ document, window, backend }) {
     }
     records = readLocal();
     renderNotice();
-    if (!backend?.subscribeMyListings || !backend?.currentUser?.()) return;
+    if (!backend?.currentUser?.()) return;
+    if (backend.listMySellRequests) {
+      backend.listMySellRequests().then((memberRows) => {
+        const nonCompare = (memberRows || []).filter((row) => row.method !== 'compare').map((row) => serverRecord(row, 'backend'));
+        records = [...nonCompare, ...records.filter((item) => item.method === 'compare' || item.source !== 'backend')];
+        renderNotice(); }).catch((error) => console.warn('[Bellore] 회원별 판매 신청을 불러오지 못했습니다.', error));
+    }
+    if (!backend.subscribeMyListings) return;
     if (unsubscribe) unsubscribe();
     unsubscribe = backend.subscribeMyListings((rows) => {
       const other = records.filter((item) => item.method !== 'compare' || item.source !== 'backend');
@@ -263,9 +281,15 @@ export function initSellServicePages({ document, window, backend }) {
       if (activeMethod === 'compare') renderPage();
     });
   }
-
   function addSubmitted(detail) {
     const method = METHOD_LABEL[detail?.saleMethod] ? detail.saleMethod : 'compare';
+    if (detail?.serverRecord) {
+      const source = detail.submissionMode === 'member' ? 'backend' : 'guest-backend';
+      const mapped = serverRecord(detail.serverRecord, source);
+      records = [mapped, ...records.filter((item) => String(item.id) !== String(mapped.id))];
+      if (detail.submissionMode === 'guest' && detail.receiptNo) window.localStorage.setItem('bellore-last-guest-sell-receipt', detail.receiptNo);
+      renderNotice(); return;
+    }
     if (method === 'compare' && detail?.submissionMode === 'member') return;
     const record = {
       id: 'local-' + Date.now(), method, status: 'reviewing', brand: detail?.brand || '', model: detail?.model || '', ref: detail?.ref || '', year: detail?.year || '',
@@ -277,6 +301,7 @@ export function initSellServicePages({ document, window, backend }) {
   }
 
   async function handleClick(event) {
+    if (guestAccess.handleClick(event)) { panel.hidden = true; return true; }
     if (event.target.closest('#sellServiceNoticeToggle')) {
       panel.hidden = !panel.hidden;
       return true;
@@ -346,7 +371,7 @@ export function initSellServicePages({ document, window, backend }) {
       new MutationObserver(renderNotice).observe(draftResume, { attributes: true, attributeFilter: ['hidden'] });
     }
     document.addEventListener('click', (event) => {
-      const control = event.target.closest('#sellServiceNoticeToggle, [data-sell-service-back], [data-sell-service-open], [data-sell-service-bid], [data-sell-service-accept], [data-sell-action-close], [data-sell-trade], [data-sell-action-confirm]');
+      const control = event.target.closest('#sellServiceNoticeToggle, ' + guestAccess.selector + ', [data-sell-service-back], [data-sell-service-open], [data-sell-service-bid], [data-sell-service-accept], [data-sell-action-close], [data-sell-trade], [data-sell-action-confirm]');
       if (control) {
         event.preventDefault();
         event.stopPropagation();
@@ -363,6 +388,7 @@ export function initSellServicePages({ document, window, backend }) {
       const record = current();
       if (countdown && record) countdown.textContent = remaining(record);
     }, 1000);
+    guestAccess.restoreLink();
     if (preview) {
       const method = new URLSearchParams(window.location.search).get('servicePage');
       if (METHOD_LABEL[method]) window.setTimeout(() => open(null, method), 80);

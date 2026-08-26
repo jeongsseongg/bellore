@@ -17,6 +17,6 @@ assert.equal(cardChannel, expectedLiveChannel, 'production card payments must us
 assert.doesNotMatch(config, new RegExp(retiredTestChannel), 'retired PortOne TEST channel must not return to production config');
 assert.match(html, /supabase-config\.js\?v=20260826-payment-live-v1/, 'HTML must request the live payment config release');
 assert.match(serviceWorker, /\.\/supabase-config\.js\?v=20260826-payment-live-v1/, 'service worker must precache the exact live payment config release');
-assert.match(serviceWorker, /const VERSION = "bellore-v345-payment-live-channel";/, 'service worker cache must advance for the live payment channel');
+assert.match(serviceWorker, /const VERSION = "bellore-v346-sell-guest-access";/, 'later cache releases must preserve the live payment channel');
 
 console.log('PortOne live payment channel contract: 5/5 passed');

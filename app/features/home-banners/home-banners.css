@@ -201,6 +201,7 @@
 .bn-buy {
   position: relative; display: block; width: 100%; aspect-ratio: 430 / 125; overflow: hidden;
   background-color: #12211d; background-size: cover; background-position: center; container-type: inline-size;
+  border: 0; padding: 0; color: inherit; text-align: inherit; font: inherit; cursor: pointer; appearance: none;
 }
 .bn-buy .bn-fx { display: none; }
 .bn-buy .bn-tx { left: 6.5%; width: 43%; }

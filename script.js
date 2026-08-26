@@ -5494,15 +5494,8 @@
                 parts: (fd.getAll ? fd.getAll('parts') : []),
                 photos: uploadedPhotos.slice(0), photoCount: uploadedPhotos.length
             };
-
-            // 이미 로그인한 회원 → 바로 신청
-            if (backendOn() && NWBackend.currentUser()) {
-                doCompareSubmit(payload, 'member');
-                return;
-            }
-
-            // 비회원도 로그인·회원가입 단계 없이 바로 신청한다.
-            doCompareSubmit(payload, 'guest');
+            // 회원은 현재 user_id로, 비회원은 서버 발급 접수번호로 분리 저장한다.
+            doCompareSubmit(payload, backendOn() && NWBackend.currentUser() ? 'member' : 'guest');
         });
 
         // 회원가입/로그인이 완료되면, 대기 중인 견적을 자동으로 이어서 신청 + 메일 발송
@@ -5530,8 +5523,13 @@
             사진수: p.photoCount + '장', 회원여부: (mode === 'member' ? '회원' : '비회원')
         });
 
-        function notifySubmitted() {
-            window.dispatchEvent(new CustomEvent('bellore:sell-submitted', { detail: { saleMethod: p.saleMethod, submissionMode: mode, brand: p.brand, model: p.model, ref: p.ref || '', year: p.year || '', parts: p.parts || [], photos: p.photos || [] } }));
+        function notifySubmitted(result) {
+            window.dispatchEvent(new CustomEvent('bellore:sell-submitted', { detail: {
+                saleMethod: p.saleMethod, submissionMode: mode, brand: p.brand, model: p.model,
+                ref: p.ref || '', year: p.year || '', parts: p.parts || [], photos: p.photos || [],
+                receiptNo: result && result.receiptNo || '', accessUrl: result && result.accessUrl || '',
+                serverRecord: result && result.record || null
+            } }));
         }
 
         function finishLocal() {
@@ -5555,22 +5553,20 @@
             }, 600);
         }
 
-        // 회원이면 DB에 매물 등록(실시간 입찰 대상), 비회원이면 로컬 목록만
-        if (p.saleMethod === 'compare' && mode === 'member' && backendOn() && NWBackend.currentUser()) {
+        // 설정된 운영 백엔드는 세 판매방식을 모두 서버에 저장한다.
+        if (backendOn() && NWBackend.createSellRequest) {
             var btn = form && form.querySelector('[type="submit"]');
             if (btn) btn.disabled = true;
-            NWBackend.addListing({
-                brand: p.brand, model: p.model, name: p.name, phone: p.phone, memo: p.memo,
-                ref: p.ref || '', year: p.year || '',
-                parts: (p.parts && p.parts.length ? p.parts.join(', ') : ''),
-                photos: p.photos, photoCount: p.photoCount
-            }).then(function () {
-                if (form) { showSubmitSuccess(form); form.reset(); }
+            NWBackend.createSellRequest({
+                method: p.saleMethod, brand: p.brand, model: p.model, name: p.name, phone: p.phone,
+                memo: p.memo, ref: p.ref || '', year: p.year || '', parts: p.parts || [], photos: p.photos
+            }).then(function (result) {
+                if (form) { showSubmitSuccess(form, result.receiptNo); form.reset(); }
                 uploadedPhotos.length = 0;
                 renderUploadGrid();
-                notifySubmitted();
+                notifySubmitted(result);
             }).catch(function (err) {
-                alert('매물 등록 실패: ' + (err && err.message ? err.message : err));
+                alert('신청 저장 실패: ' + (err && err.message ? err.message : err));
             }).then(function () {
                 if (btn) btn.disabled = false;
             });
@@ -5578,7 +5574,6 @@
             finishLocal();
         }
     }
-
     // 회원가입하고 신청 — 입력값/사진을 보관한 뒤 회원가입 탭을 연다
     function startSignupThenSubmit(p) {
         pendingCompare = p;
@@ -5613,14 +5608,14 @@
         }).join('');
     }
 
-    function showSubmitSuccess(form) {
+    function showSubmitSuccess(form, receiptNo) {
         var old = $('.submit-success');
         if (old) old.remove();
         var box = document.createElement('div');
         box.className = 'submit-success';
         box.innerHTML =
             '<strong>✓ 등록이 완료되었습니다</strong>' +
-            '<p>정가품 구별 및 감정 승인 대기중 입니다.<br>승인 완료 시 카카오톡으로 안내드립니다.</p>';
+            '<p>' + (receiptNo ? ('접수번호 <b>' + receiptNo + '</b><br>') : '') + '정가품 구별 및 감정 승인 대기중 입니다.<br>승인 완료 시 카카오톡으로 안내드립니다.</p>';
         form.parentNode.appendChild(box);
         setTimeout(function () {
             box.style.transition = 'opacity 0.5s';
