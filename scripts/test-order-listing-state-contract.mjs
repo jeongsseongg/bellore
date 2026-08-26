@@ -16,10 +16,17 @@ const integrityMigrationPath = path.join(
   'migrations',
   '20260826170000_checkout_claim_integrity.sql',
 );
+const paidOnlyMigrationPath = path.join(
+  root,
+  'supabase',
+  'migrations',
+  '20260826203000_checkout_cancellation_release.sql',
+);
 const workflowPath = path.join(root, '.github', 'workflows', 'payment-reconcile.yml');
 
 const migration = fs.readFileSync(migrationPath, 'utf8');
 const integrityMigration = fs.readFileSync(integrityMigrationPath, 'utf8');
+const paidOnlyMigration = fs.readFileSync(paidOnlyMigrationPath, 'utf8');
 const workflow = fs.readFileSync(workflowPath, 'utf8');
 
 function sqlStatuses(fragment) {
@@ -147,6 +154,16 @@ assert.match(
   integrityMigration,
   /old\.reserved_order_id is not null[\s\S]*old\.reserved_order_id <> new\.reserved_order_id[\s\S]*coalesce\(old\.reserved_until, 'infinity'::timestamptz\) > now\(\)[\s\S]*raise exception 'listing_reserved'/i,
   'a later checkout must not replace an existing reservation owner',
+);
+assert.match(
+  paidOnlyMigration,
+  /return v_result \|\| jsonb_build_object\([\s\S]*'reservationMode','paid_only'[\s\S]*'paymentContractVersion',2/i,
+  'the final checkout response must expose the paid-only contract',
+);
+assert.match(
+  paidOnlyMigration,
+  /new\.reserved_order_id := null;[\s\S]{0,120}new\.reserved_until := null;/i,
+  'non-held pending v2 orders must not reserve a listing',
 );
 assert.match(
   integrityMigration,

@@ -2,17 +2,19 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
 import { hasConfirmedPaymentStatus, hasRefundablePaymentStatus } from "../_shared/order-payment-states.ts";
 import { guardPaymentOperation, readPaymentOperationControl } from "../_shared/payment-operation-guard.ts";
 import { safeEqual } from "../_shared/payment-edge-utils.ts";
-import { cancelAndReconcile, finalizeKnownProviderCancellation } from "../_shared/portone-cancellation.ts";
+import { cancelAndReconcile } from "../_shared/portone-cancellation.ts";
 import { finalizePaidOrderFromProvider, lookupPortOnePayment, markPaymentReviewIfUnsettled,
   paymentRef, readMatchingConfirmedOrder, safeText } from "../_shared/payment-recovery.ts";
 import { confirmedPaymentReconciliationAction, paidFinalizationRecoveryAction, paidRecoveryAction,
-  providerCancelledAmount, providerPaidAmount, providerStatusKind, reconciliationSummaryOk,
+  providerPaidAmount, providerStatusKind, reconciliationSummaryOk,
   shouldEscalatePendingOrder, shouldReleaseNotFoundOrder } from "../_shared/payment-recovery-policy.mjs";
 import { loadReconciliationOrders, MAX_ORDERS_PER_RECONCILIATION_GROUP, RECONCILIATION_CONCURRENCY,
   type ReconciliationOrderRow as OrderRow } from "../_shared/reconciliation-orders.ts";
 import { addReconciliationCounters, emptyReconciliationCounters, markNonActionablePaymentReview,
   preserveRefundPendingForReview, recordCancellationOutcome,
   type ReconciliationCounters as Counters } from "../_shared/reconciliation-outcomes.ts";
+import { cancelUnsettledCheckout, reconcileProviderCancelledCheckout } from
+  "../_shared/unsettled-checkout-cancellation.ts";
 const PORTONE_API_SECRET = Deno.env.get("PORTONE_API_SECRET") ?? "";
 const PORTONE_API_BASE = Deno.env.get("PORTONE_API_BASE") ?? "https://api.portone.io";
 const PORTONE_STORE_ID = Deno.env.get("PORTONE_STORE_ID") ?? "";
@@ -86,11 +88,10 @@ async function reconcileOrder(admin: SupabaseAdmin, order: OrderRow): Promise<Co
   }
   if (lookup.result === "not_found" && order.status === "pending") {
     if (shouldReleaseNotFoundOrder(order.status, order.created_at, Date.now())) {
-      const { data: failed, error: failError } = await admin.rpc("fail_unsettled_order", {
-        p_order_no: order.order_no,
-        p_reason: "provider_payment_not_found_after_grace",
-      });
-      if (!failError && failed === true) counters.failed += 1;
+      const canceled = await cancelUnsettledCheckout(
+        admin, order.order_no, "provider_payment_not_found_after_grace",
+      );
+      if (canceled) counters.failed += 1;
       else counters.errors += 1;
     } else {
       counters.pending += 1;
@@ -277,20 +278,14 @@ async function reconcileOrder(admin: SupabaseAdmin, order: OrderRow): Promise<Co
   }
 
   if (statusKind === "cancelled" && hasRefundablePaymentStatus(order.status)) {
-    const cancelledAmount = providerCancelledAmount(payment);
-    if (cancelledAmount === null) {
-      await markNonActionablePaymentReview(
-        admin, order.order_no, "provider_cancelled_amount_missing", counters,
-      );
-      return counters;
-    }
-    const reconciliation = await finalizeKnownProviderCancellation({
-      admin, operationControl: "reconcile_payments",
-      orderNo: order.order_no, refundAmount: cancelledAmount,
-      expectedOrderAmount: Number(order.amount),
-      reason: "scheduled_cancel_reconciliation",
+    const outcome = await reconcileProviderCancelledCheckout({
+      admin, operationControl: "reconcile_payments", orderNo: order.order_no,
+      orderStatus: order.status, expectedOrderAmount: Number(order.amount), payment,
     });
-    recordCancellationOutcome(counters, reconciliation);
+    if (outcome === "canceled") counters.failed += 1;
+    else if (outcome === "refunded") counters.refunded += 1;
+    else if (outcome === "review") counters.reviewRequired += 1;
+    else counters.errors += 1;
     return counters;
   }
 

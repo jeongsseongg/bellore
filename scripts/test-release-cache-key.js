@@ -34,9 +34,12 @@ for (const [name, url] of Object.entries(urls)) {
 for (const name of ['styles', 'script', 'payments', 'wishlist', 'search', 'dialog', 'features', 'quotes', 'auction', 'bootstrap', 'conditionGuide', 'pageRuntime']) {
   assert(serviceWorker.includes(`'./${urls[name]}'`), `service worker must precache the exact ${name} URL`);
 }
-assert.match(serviceWorker, /const VERSION = "bellore-v333-admin-catalog-operations";/, 'service-worker cache namespace must advance for the shipping-address popup release');
+assert.match(serviceWorker, /const VERSION = "bellore-v336-admin-catalog-operations";/, 'service-worker cache namespace must advance for the admin catalog release');
 for (const heroAsset of ['home-banners.js', 'home-banner-data.js', 'home-banners.css']) {
-  assert(serviceWorker.includes(`./app/features/home-banners/${heroAsset}?v=20260826-hero-motion-v4`), `service worker must precache exact restored hero asset: ${heroAsset}`);
+  assert(serviceWorker.includes(`./app/features/home-banners/${heroAsset}?v=20260826-hero-layout-v7`), `service worker must precache exact restored hero asset: ${heroAsset}`);
+}
+for (const quicklinkAsset of ['home-quicklinks.js', 'home-quicklinks.css']) {
+  assert(serviceWorker.includes(`./app/features/home-quicklinks/${quicklinkAsset}?v=20260826-hero-layout-v7`), `service worker must precache exact quicklink asset: ${quicklinkAsset}`);
 }
 for (const asset of [
   'app/vendor/recommendation-engine.js',
