@@ -63,6 +63,8 @@ export const APP_RUNTIME_FILES = Object.freeze([
   'app/features/home-merchandising/home-merchandising.js',
   'app/features/home-quicklinks/home-quicklinks.css',
   'app/features/home-quicklinks/home-quicklinks.js',
+  'app/features/condition-guide/condition-guide.css',
+  'app/features/condition-guide/condition-guide.js',
   'app/features/home-rows/home-rows.css',
   'app/features/home-rows/home-rows.js',
   'app/features/home-rows/home-row-admin.js',
@@ -189,7 +191,9 @@ async function copyRuntimeDirectory(sourceRelative, targetRelative, output) {
     recursive: true,
     filter(path) {
       if (path === source) return true;
-      return ['.css', '.html', '.js'].includes(extname(path).toLowerCase());
+      const extension = extname(path).toLowerCase();
+      if (!extension) return true;
+      return ['.css', '.html', '.js'].includes(extension);
     },
   });
 }

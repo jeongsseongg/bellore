@@ -76,6 +76,12 @@ assert.match(banners, /while \(next === backgroundIndex && BUYIN_BACKGROUNDS\.le
 assert.match(bannersCss, /\.feat-card \{[\s\S]*aspect-ratio: 430 \/ 189/, 'featured banner is 1.4x taller');
 assert.equal((banners.match(/assets\/banners\/product-stage-\d{2}\.webp/g) || []).length, 6, '6 product stages');
 assert.equal((banners.match(/assets\/banners\/buyin-\d{2}\.webp/g) || []).length, 6, '6 buy-in backgrounds');
+assert.match(banners, /function balancedTitleLines\(value\)/, 'featured title uses deterministic balanced lines');
+assert.match(banners, /class="feat-showcase"/, 'featured product uses a separate showroom layer');
+assert.match(banners, /class="feat-nm-line"/, 'featured title renders explicit semantic lines');
+assert.match(bannersCss, /\.feat-ph \{[\s\S]*height: 78%[\s\S]*object-fit: contain/, 'featured cutout remains fully visible inside the stage');
+assert.match(bannersCss, /\.feat-plinth \{/, 'featured cutout stands on a display plinth');
+assert.match(bannersCss, /\.feat-gs \{[\s\S]*bottom: 11%/, 'featured cutout is grounded by a restrained shadow');
 assert.match(rowsCss, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
 assert.match(rowsCss, /\.hrow-card \{ flex-basis: 180px; \}/);
 assert.match(rowsCss, /\.hrow-block \{ margin: 34px 0; \}/);

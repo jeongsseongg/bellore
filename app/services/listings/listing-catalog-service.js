@@ -1,7 +1,7 @@
 /* 판매 상품 목록의 외부 경계. 백엔드(NWBackend)와 레거시 전역을 여기서만 만진다.
    기능 모듈은 이 서비스가 돌려주는 평범한 객체만 본다. */
 
-import { effectiveListingStatus } from '../../core/listing-display.js?v=20260826-payment-full-v2';
+import { effectiveListingStatus } from '../../core/listing-display.js?v=20260826-payment-condition-v1';
 
 export function createListingCatalog({ window: win }) {
   function saleActive(row) {

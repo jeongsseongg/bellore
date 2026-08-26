@@ -22,6 +22,24 @@ const BUYIN_MEMORY_KEY = 'bl_buyin_banner';
 const ROTATION_MS = 15000;
 const FEATURED_AFTER_CARD = 6;
 
+function textUnits(value) {
+  return Array.from(String(value || '')).reduce((sum, char) => sum + (/\s/.test(char) ? .35 : /[\x00-\x7F]/.test(char) ? .58 : 1), 0);
+}
+
+/* 상품명은 의미 단위의 단어 묶음이 가장 균형적인 지점에서 최대 2줄로 나눈다. */
+function balancedTitleLines(value) {
+  const tokens = String(value || '').trim().split(/\s+/).filter(Boolean);
+  if (tokens.length < 2 || textUnits(tokens.join(' ')) <= 13) return [tokens.join(' ')];
+  let best = null;
+  for (let index = 1; index < tokens.length; index += 1) {
+    const lines = [tokens.slice(0, index).join(' '), tokens.slice(index).join(' ')];
+    const widths = lines.map(textUnits);
+    const score = Math.abs(widths[0] - widths[1]) + Math.max(0, Math.max(...widths) - 14) * 2;
+    if (!best || score < best.score) best = { lines, score };
+  }
+  return best ? best.lines : [tokens.join(' ')];
+}
+
 function readMemory(win, key) {
   try { return win.localStorage.getItem(key); } catch (error) { return null; }
 }
@@ -156,20 +174,23 @@ function createFeaturedBanner({ doc, window: win, mount, collection }) {
     const spec = featuredMetaText(item);
     const presentation = listingPresentation(item);
     const detail = presentation.featureMovement || spec;
+    const titleLines = balancedTitleLines(presentation.modelSize);
     card.dataset.pid = item.id;
     card.style.backgroundImage = `url(${PRODUCT_STAGES[stableIndex(item.id, PRODUCT_STAGES.length)]})`;
     card.innerHTML =
       '<span class="bn-fx"></span>' +
-      (cutout ? '<span class="feat-gs"></span>' : '') +
-      `<span class="feat-ph${cutout ? '' : ' card'}"></span>` +
+      '<span class="feat-showcase" aria-hidden="true">' +
+      (cutout ? '<span class="feat-light"></span><span class="feat-plinth"></span><span class="feat-gs"></span>' : '') +
+      `<img class="feat-ph${cutout ? '' : ' card'}" alt="" decoding="async">` +
+      '</span>' +
       '<span class="bn-tx">' +
       `<span class="feat-br">${item.brand}</span>` +
-      `<span class="feat-nm">${presentation.modelSize}</span>` +
+      `<span class="feat-nm">${titleLines.map((line) => `<span class="feat-nm-line">${line}</span>`).join('')}</span>` +
       (presentation.referenceText ? `<span class="feat-ref">${presentation.referenceText}</span>` : '') +
       (detail ? `<span class="feat-sp">${detail}</span>` : '') +
       `<span class="feat-pr">${priceText(item.price)}<i>원</i></span>` +
       '</span>';
-    card.querySelector('.feat-ph').style.backgroundImage = `url(${item.image})`;
+    card.querySelector('.feat-ph').src = item.image;
   }
 
   function pickRandom() {

@@ -67,7 +67,7 @@ jobs:
     uses: ./.github/workflows/truth-guard.yml
 
   run:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || inputs.task == 'validate-authority-payment'
     needs: truth_guard
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -96,6 +96,7 @@ jobs:
           fi
 
           validation_image='supabase/postgres@sha256:3e2a7ab48783077d0122dc72ed5174afb543110c38266c845716c51d130658e4'
+          validation_client_image='postgres@sha256:d13db94ae661d517c5ed57c509a578d5ea64aae639871ba25294f4f42d83de28'
           validation_container='bellore-payment-validation-db'
           validation_password="$(openssl rand -hex 24)"
           echo "::add-mask::$validation_password"
@@ -119,7 +120,12 @@ jobs:
 
           ready=false
           for _ in $(seq 1 90); do
-            if docker exec "$validation_container" pg_isready -U postgres -d postgres >/dev/null 2>&1; then
+            if docker exec "$validation_container" sh -c \
+                 'test "$(cat /proc/1/comm)" = postgres' && \
+               docker exec "$validation_container" \
+                 psql -U supabase_admin -d postgres -X -qAt -v ON_ERROR_STOP=1 \
+                   -c "select count(*) from pg_roles where rolname in ('anon','authenticated','service_role','supabase_admin')" \
+                 | grep -qx '4'; then
               ready=true; break
             fi
             sleep 2
@@ -129,12 +135,14 @@ jobs:
           fi
 
           PGCONN="$PRODUCTION_DB_URL" docker run --rm \
-            --env PGCONN --volume "$schema_dir:/schema" postgres:17 \
+            --platform linux/amd64 --env PGCONN --volume "$schema_dir:/schema" \
+            "$validation_client_image" \
             sh -c 'pg_dump "$PGCONN" --format=custom --schema-only \
               --no-subscriptions --no-publications --no-comments \
               --no-security-labels --no-tablespaces --lock-wait-timeout=5000 \
               --file=/schema/production-schema.dump'
-          docker run --rm --volume "$schema_dir:/schema:ro" postgres:17 \
+          docker run --rm --platform linux/amd64 \
+            --volume "$schema_dir:/schema:ro" "$validation_client_image" \
             pg_restore --list /schema/production-schema.dump > "$schema_dir/production-schema.toc"
           if grep -Eiq 'TABLE DATA|SEQUENCE SET|BLOB|LARGE OBJECT|SUBSCRIPTION|USER MAPPING' \
                "$schema_dir/production-schema.toc"; then
@@ -144,7 +152,7 @@ jobs:
           grep -Eq 'TABLE public listings ' "$schema_dir/production-schema.toc"
           docker exec -i "$validation_container" \
             pg_restore --clean --if-exists --exit-on-error --single-transaction \
-              --username=postgres --dbname=postgres \
+              --username=supabase_admin --dbname=postgres \
             < "$schema_dir/production-schema.dump"
 
           echo "운영 행 데이터 0건인 일회성 Supabase 검증 DB 준비 완료"
@@ -158,7 +166,9 @@ jobs:
           validation_system_id="$(docker exec "$PAYMENT_VALIDATION_CONTAINER" \
             psql -U postgres -d postgres -X -qAt -v ON_ERROR_STOP=1 \
               -c "select system_identifier::text from pg_control_system()")"
-          production_system_id="$(PGCONN="$PRODUCTION_DB_URL" docker run --rm -e PGCONN postgres:17 \
+          production_system_id="$(PGCONN="$PRODUCTION_DB_URL" docker run --rm \
+            --platform linux/amd64 -e PGCONN \
+            postgres@sha256:d13db94ae661d517c5ed57c509a578d5ea64aae639871ba25294f4f42d83de28 \
             sh -c 'psql "$PGCONN" -X -qAt -v ON_ERROR_STOP=1 \
               -c "select system_identifier::text from pg_control_system()"')"
           if ! [[ "$validation_system_id" =~ ^[0-9]+$ ]] ||

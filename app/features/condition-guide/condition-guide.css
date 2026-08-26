@@ -1,0 +1,96 @@
+.has-condition-guide {
+  gap: 6px;
+}
+
+.condition-guide-help {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 19px;
+  height: 19px;
+  padding: 0;
+  border: 1px solid #c8c5bf;
+  border-radius: 50%;
+  background: #fff;
+  color: #56534e;
+  font: 750 12px/1 Pretendard, -apple-system, BlinkMacSystemFont, sans-serif;
+  cursor: pointer;
+}
+
+#productModal .pp-speclist .has-condition-guide {
+  display: flex;
+  align-items: center;
+  width: fit-content;
+}
+
+.condition-guide-popover {
+  position: fixed;
+  z-index: 10090;
+  padding: 16px;
+  border: 1px solid #dedbd4;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .98);
+  box-shadow: 0 14px 40px rgba(23, 32, 28, .16);
+  color: #172a25;
+}
+
+.condition-guide-popover[hidden],
+.condition-guide-modal[hidden] { display: none; }
+.condition-guide-popover b { display: block; font-size: 14px; }
+.condition-guide-popover p { margin: 7px 0 13px; color: #66625c; font-size: 12.5px; line-height: 1.55; }
+.condition-guide-popover button {
+  width: 100%; min-height: 36px; border: 0; border-radius: 9px;
+  background: #172a25; color: #fff; font-size: 12.5px; font-weight: 750;
+}
+
+.condition-guide-modal { position: fixed; inset: 0; z-index: 10100; }
+.condition-guide-backdrop { position: absolute; inset: 0; background: rgba(11, 17, 15, .48); backdrop-filter: blur(2px); }
+.condition-guide-sheet {
+  position: absolute;
+  left: 50%; bottom: 0;
+  width: min(100%, 660px);
+  max-height: min(82dvh, 760px);
+  padding: 24px 22px calc(28px + env(safe-area-inset-bottom));
+  border-radius: 24px 24px 0 0;
+  background: #fff;
+  box-shadow: 0 -18px 50px rgba(13, 24, 20, .22);
+  overflow-y: auto;
+  transform: translateX(-50%);
+}
+.condition-guide-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.condition-guide-head p { margin: 0 0 6px; color: #a58649; font-size: 11px; font-weight: 800; letter-spacing: .16em; }
+.condition-guide-head h2 { margin: 0; color: #151917; font-size: 24px; line-height: 1.25; letter-spacing: -.035em; }
+.condition-guide-close {
+  flex: 0 0 auto; width: 38px; height: 38px; padding: 0; border: 0; border-radius: 50%;
+  background: #f2f2f0; color: #4d4b47; font-size: 27px; font-weight: 300; line-height: 1;
+}
+.condition-guide-current {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  margin: 22px 0 12px; padding: 14px 16px; border-radius: 12px; background: #172a25; color: #fff;
+}
+.condition-guide-current[hidden] { display: none; }
+.condition-guide-current span { color: rgba(255,255,255,.68); font-size: 12px; }
+.condition-guide-current strong { font-size: 15px; }
+.condition-guide-intro { display: grid; gap: 5px; margin: 18px 0; }
+.condition-guide-intro b { color: #172a25; font-size: 15px; }
+.condition-guide-intro span { color: #77736d; font-size: 12.5px; line-height: 1.55; }
+.condition-guide-scale { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.condition-guide-scale li {
+  display: grid; grid-template-columns: 47px 1fr; align-items: center; gap: 10px;
+  min-height: 78px; padding: 12px; border: 1px solid #e9e7e2; border-radius: 13px; background: #fafaf8;
+}
+.condition-guide-scale li > strong { color: #172a25; font-size: 22px; letter-spacing: -.04em; }
+.condition-guide-scale li > strong small { font-size: 11px; font-weight: 700; letter-spacing: 0; }
+.condition-guide-scale li div { display: grid; gap: 3px; }
+.condition-guide-scale li div b { color: #272a28; font-size: 12.5px; }
+.condition-guide-scale li div span { color: #77736d; font-size: 10.5px; line-height: 1.42; word-break: keep-all; }
+.condition-guide-scale li.is-current { border-color: #172a25; background: #eef3f0; box-shadow: inset 0 0 0 1px #172a25; }
+.condition-guide-note { margin: 18px 0 0; padding-top: 15px; border-top: 1px solid #eceae6; color: #8a8781; font-size: 11px; line-height: 1.6; }
+body.condition-guide-open { overflow: hidden; }
+
+@media (max-width: 430px) {
+  .condition-guide-sheet { padding-left: 18px; padding-right: 18px; }
+  .condition-guide-head h2 { font-size: 22px; }
+  .condition-guide-scale { grid-template-columns: 1fr; }
+  .condition-guide-scale li { min-height: 66px; grid-template-columns: 44px 1fr; }
+}

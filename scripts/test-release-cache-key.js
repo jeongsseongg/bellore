@@ -9,7 +9,7 @@ const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const runtime = fs.readFileSync(path.join(root, 'app', 'legacy', 'page-runtime.js'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
 const bootstrap = fs.readFileSync(path.join(root, 'app', 'bootstrap.js'), 'utf8');
-const releaseKey = '20260826-payment-full-v2';
+const releaseKey = '20260826-payment-condition-v1';
 
 const urls = {
   styles: html.match(/<link rel="stylesheet" href="(styles\.css\?v=[^"]+)"/)?.[1],
@@ -22,6 +22,7 @@ const urls = {
   quotes: html.match(/<script src="(cq-demo\.js\?v=[^"]+)"/)?.[1],
   auction: html.match(/<script src="(auction\.js\?v=[^"]+)"/)?.[1],
   bootstrap: html.match(/<script type="module" src="(app\/bootstrap\.js\?v=[^"]+)"/)?.[1],
+  conditionGuide: html.match(/<link rel="stylesheet" href="(app\/features\/condition-guide\/condition-guide\.css\?v=[^"]+)"/)?.[1],
   pageRuntime: html.match(/<script src="(app\/legacy\/page-runtime\.js\?v=[^"]+)"/)?.[1],
   serviceWorker: runtime.match(/serviceWorker\.register\('(sw\.js\?v=[^']+)'\)/)?.[1],
 };
@@ -30,10 +31,10 @@ for (const [name, url] of Object.entries(urls)) {
   assert(url, `${name} release URL is missing`);
   assert.equal(new URL(url, 'https://bellore.co.kr/').searchParams.get('v'), releaseKey, `${name} release key must advance together`);
 }
-for (const name of ['styles', 'script', 'payments', 'wishlist', 'search', 'dialog', 'features', 'quotes', 'auction', 'bootstrap', 'pageRuntime']) {
+for (const name of ['styles', 'script', 'payments', 'wishlist', 'search', 'dialog', 'features', 'quotes', 'auction', 'bootstrap', 'conditionGuide', 'pageRuntime']) {
   assert(serviceWorker.includes(`'./${urls[name]}'`), `service worker must precache the exact ${name} URL`);
 }
-assert.match(serviceWorker, /const VERSION = "bellore-v320-payment-full";/, 'service-worker cache namespace must advance for the combined payment and full storefront release');
+assert.match(serviceWorker, /const VERSION = "bellore-v321-payment-condition";/, 'service-worker cache namespace must advance for the combined payment and condition-guide release');
 for (const asset of [
   'app/vendor/recommendation-engine.js',
   'app/features/home-merchandising/home-merchandising.js',
@@ -48,6 +49,8 @@ for (const asset of [
   'app/services/payments/payment-network.js',
   'app/services/payments/pending-payment-recovery.js',
   'app/legacy/customer-feedback.js',
+  'app/features/condition-guide/condition-guide.css',
+  'app/features/condition-guide/condition-guide.js',
   'app/core/customer-error.mjs',
   'app/features/listing-availability/market-static-status.js',
 ]) {
@@ -63,6 +66,7 @@ for (const specifier of [
   './services/payments/checkout-client.js',
   './services/payments/payment-network.js',
   './services/payments/pending-payment-recovery.js',
+  './features/condition-guide/condition-guide.js',
 ]) {
   assert(bootstrap.includes(`${specifier}?v=${releaseKey}`), `bootstrap must import exact ESM release URL: ${specifier}`);
 }

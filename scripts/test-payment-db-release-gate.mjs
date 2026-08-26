@@ -147,16 +147,19 @@ const prepareStart = workflow.indexOf('Prepare — 데이터 없는 일회성 Su
 const prepareBlock = workflow.slice(prepareStart, validateStart);
 assert(prepareStart >= 0 && prepareStart < validateStart, 'isolated validation DB must be prepared first');
 assert.match(prepareBlock, /supabase\/postgres@sha256:3e2a7ab48783077d0122dc72ed5174afb543110c38266c845716c51d130658e4/);
+assert.match(prepareBlock, /postgres@sha256:d13db94ae661d517c5ed57c509a578d5ea64aae639871ba25294f4f42d83de28/);
 assert.match(prepareBlock, /--platform linux\/amd64 --network none/);
 assert.match(prepareBlock, /pg_dump[\s\S]{0,350}--format=custom --schema-only[\s\S]{0,350}--lock-wait-timeout=5000/);
 assert.doesNotMatch(prepareBlock, /--no-owner|--no-acl/,
   'owner and ACL metadata must survive the isolated restore');
 assert.match(prepareBlock, /pg_restore --list[\s\S]{0,260}TABLE DATA\|SEQUENCE SET\|BLOB\|LARGE OBJECT\|SUBSCRIPTION\|USER MAPPING/);
 assert.match(prepareBlock, /pg_restore --clean --if-exists --exit-on-error --single-transaction/);
+assert.match(prepareBlock, /--username=supabase_admin --dbname=postgres/);
 assert.doesNotMatch(prepareBlock, /upload-artifact|TABLE DATA.*production-schema/i,
   'validation schema must remain runner-local and contain no table data');
 const validateBlock = workflow.slice(validateStart, rollback);
 assert.match(validateBlock, /if: inputs\.task == 'validate-authority-payment'/);
+assert.match(workflow, /if: github\.ref == 'refs\/heads\/main' \|\| inputs\.task == 'validate-authority-payment'/);
 assert.doesNotMatch(validateBlock, /apply-authority-payment/,
   'production apply must never execute rollback fixtures');
 assert.match(validateBlock, /docker exec -i "\$PAYMENT_VALIDATION_CONTAINER"[\s\S]{0,100}psql -U postgres -d postgres/);

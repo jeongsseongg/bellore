@@ -195,6 +195,13 @@ async function validateArtifact(site, { expectSeo }) {
   }
   for (const file of [
     'admin/index.html', 'admin/admin-auth.js', 'admin/admin-auth.css', 'admin/bootstrap.js',
+    'admin/data/admin-console-data.js', 'admin/data/admin-home-editor-data.js',
+    'admin/features/home-editor/admin-home-editor.js', 'admin/features/home-editor/admin-home-editor.css',
+    'admin/features/mypage-editor/admin-mypage-editor.js', 'admin/features/mypage-editor/admin-mypage-editor.css',
+    'admin/features/mypage-editor/admin-mypage-editor-shadow.css',
+    'admin/features/navigation/admin-navigation.js',
+    'admin/features/workspace/admin-workspace.js', 'admin/features/workspace/admin-wanted.css',
+    'admin/ui/icons.js',
     'account-roles/account-role-model.js', 'account-roles/account-role-preview.js', 'account-roles/account-role-preview.css',
   ]) {
     const info = await lstat(join(site, file));
@@ -214,12 +221,14 @@ async function validateArtifact(site, { expectSeo }) {
   assert(shellBlock, '서비스워커 SHELL_ASSETS를 찾지 못했습니다.');
   const shellAssets = [...shellBlock.matchAll(/['"](\.\/[^'"]+)['"]/g)]
     .map((match) => match[1].split(/[?#]/, 1)[0]);
-  assert.equal(shellAssets.length, 113, '서비스워커 셸 자산 개수가 기준과 다릅니다.');
+  assert.equal(shellAssets.length, 115, '서비스워커 셸 자산 개수가 기준과 다릅니다.');
   assert(shellAssets.includes('./app/services/payments/checkout-request-recovery.js'));
   assert(shellAssets.includes('./app/services/payments/checkout-client.js'));
   assert(shellAssets.includes('./app/services/payments/payment-network.js'));
   assert(shellAssets.includes('./app/services/payments/pending-payment-recovery.js'));
   assert(shellAssets.includes('./app/features/listing-availability/market-static-status.js'));
+  assert(shellAssets.includes('./app/features/condition-guide/condition-guide.css'));
+  assert(shellAssets.includes('./app/features/condition-guide/condition-guide.js'));
   assert(shellAssets.includes('./app/features/sell-method/sell-method.js'));
   assert(shellAssets.includes('./app/legacy/recommendation-engine.js'));
   assert(shellAssets.includes('./app/features/analytics-consent/analytics-consent.css'),
