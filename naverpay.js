@@ -94,7 +94,11 @@
     }).then(function (r) {
       return r.json().then(function (data) {
         if (!r.ok || !data.key || !data.merchantNo) {
-          throw new Error(data.error || 'naverpay_order_register_failed');
+          var error = new Error(data.error || 'naverpay_order_register_failed');
+          error.providerCode = data.providerCode || '';
+          error.detail = data.detail || '';
+          error.traceId = data.traceId || '';
+          throw error;
         }
         return { key: data.key, merchantNo: data.merchantNo };
       });
@@ -154,6 +158,11 @@
         },
         onBuyClick: function () {
           return registerOrder([product.listingId]).catch(function (error) {
+            console.error('[BELLORE] 네이버페이 주문등록 실패:', {
+              code: error && error.message,
+              providerCode: error && error.providerCode,
+              traceId: error && error.traceId
+            });
             alert('네이버페이 주문서를 열지 못했습니다. 잠시 후 다시 시도해 주세요.');
             throw error;
           });
@@ -193,6 +202,11 @@
         },
         onBuyClick: function () {
           return registerOrder(products.map(function (item) { return item.id; })).catch(function (error) {
+            console.error('[BELLORE] 네이버페이 장바구니 주문등록 실패:', {
+              code: error && error.message,
+              providerCode: error && error.providerCode,
+              traceId: error && error.traceId
+            });
             alert('네이버페이 주문서를 열지 못했습니다. 잠시 후 다시 시도해 주세요.');
             throw error;
           });

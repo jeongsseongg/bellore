@@ -29,6 +29,25 @@ function json(body: unknown, status = 200) {
   });
 }
 
+function parseProviderFailure(raw: string, status: number) {
+  const normalized = String(raw || "").replace(/[\r\n\t]+/g, " ").trim();
+  const matched = normalized.match(/^FAIL:\[([A-Z0-9_-]{1,64})\]\s*(.*)$/i);
+  if (matched) {
+    let providerMessage = matched[2].trim().slice(0, 160);
+    [MERCHANT_ID, CERTI_KEY].filter(Boolean).forEach((secret) => {
+      providerMessage = providerMessage.split(secret).join("[REDACTED]");
+    });
+    return {
+      providerCode: matched[1].toUpperCase(),
+      providerMessage: providerMessage || "네이버페이 주문 등록이 거절되었습니다.",
+    };
+  }
+  return {
+    providerCode: `HTTP_${status || 0}`,
+    providerMessage: "네이버페이 주문 등록이 거절되었습니다.",
+  };
+}
+
 function escapeXml(value: unknown) {
   return String(value ?? "")
     .replace(/&/g, "&amp;").replace(/</g, "&lt;")
@@ -121,6 +140,7 @@ function configured() {
 }
 
 Deno.serve(async (req) => {
+  const traceId = crypto.randomUUID();
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   const url = new URL(req.url);
 
@@ -192,12 +212,31 @@ Deno.serve(async (req) => {
     });
     const result = (await response.text()).trim();
     if (!response.ok || !result.startsWith("SUCCESS:")) {
-      return json({ error: "naver_order_register_failed", detail: result.slice(0, 200) }, 400);
+      const failure = parseProviderFailure(result, response.status);
+      console.error("[naverpay-order] register_failed", JSON.stringify({
+        traceId,
+        status: response.status,
+        providerCode: failure.providerCode,
+        providerMessage: failure.providerMessage,
+      }));
+      return json({
+        error: "naver_order_register_failed",
+        providerCode: failure.providerCode,
+        detail: failure.providerMessage,
+        traceId,
+      }, 400);
     }
     const parts = result.split(":");
-    if (!parts[1] || !parts[2]) return json({ error: "invalid_naver_response" }, 502);
+    if (!parts[1] || !parts[2]) {
+      console.error("[naverpay-order] invalid_provider_response", JSON.stringify({ traceId }));
+      return json({ error: "invalid_naver_response", traceId }, 502);
+    }
     return json({ ok: true, key: parts[1], merchantNo: parts[2] });
   } catch (error) {
-    return json({ error: "server_error", detail: String(error) }, 500);
+    console.error("[naverpay-order] server_error", JSON.stringify({
+      traceId,
+      errorName: error instanceof Error ? error.name : "UnknownError",
+    }));
+    return json({ error: "server_error", traceId }, 500);
   }
 });
