@@ -437,7 +437,7 @@ export function initSellMethodSheet({ document, window, backend }) {
       root.hidden = true;
       showView('chooser');
       if (restoreFocus && returnFocus && document.contains(returnFocus)) returnFocus.focus();
-    }, 1000);
+    }, 1600);
   }
 
   async function requestClose(action) {

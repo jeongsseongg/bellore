@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v346-sell-guest-access";
+const VERSION = "bellore-v347-home-row-ui-hotfix";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -31,7 +31,7 @@ const SHELL_ASSETS = [
   './search.js?v=20260826-member-verification-live-v2',
   './ai-advisor.js?v=20260826-member-verification-live-v2',
   './ai-advisor-admin.js?v=20260826-member-verification-live-v2',
-  './app/bootstrap.js?v=20260826-sell-guest-access-v1',
+  './app/bootstrap.js?v=20260826-home-row-hotfix-v1',
   './app/features/analytics-consent/analytics-consent.css?v=20260826-ai-consent-v1',
   './app/features/checkout/checkout-addresses.css?v=20260826-shipping-address-popup-v2',
   './app/features/checkout/checkout-addresses.mjs?v=20260826-shipping-address-popup-v2',
@@ -44,10 +44,10 @@ const SHELL_ASSETS = [
   './app/features/home-merchandising/home-merchandising.js?v=20260826-member-verification-live-v2',
   './app/features/home-banners/home-banners.css?v=20260826-hero-layout-v9',
   './app/features/home-quicklinks/home-quicklinks.js?v=20260826-hero-layout-v8',
-  './app/features/home-quicklinks/home-quicklinks.css?v=20260826-rounded-corners-v1',
+  './app/features/home-quicklinks/home-quicklinks.css?v=20260826-rounded-corners-v2',
   './app/features/checkout/checkout-coupon.css?v=20260826-member-verification-live-v2',
   './app/features/checkout/checkout-coupon.js',
-  './app/features/home-rows/home-rows.js?v=20260826-member-verification-live-v2',
+  './app/features/home-rows/home-rows.js?v=20260826-home-row-hotfix-v1',
   './app/features/home-rows/home-rows.css?v=20260826-price-bottom-v1',
   './app/features/condition-guide/condition-guide.css?v=20260826-member-verification-live-v2',
   './app/features/condition-guide/condition-guide.js?v=20260826-member-verification-live-v2',
@@ -111,7 +111,7 @@ const SHELL_ASSETS = [
   './assets/banners/product-stage-04.webp',
   './assets/banners/product-stage-05.webp',
   './assets/banners/product-stage-06.webp',
-  './app/features/sell-method/sell-method.css?v=20260826-sell-guest-access-v1',
+  './app/features/sell-method/sell-method.css?v=20260826-sell-motion-v2',
   './app/features/sell-method/sell-quotes.css?v=20260826-sell-guest-access-v1',
   './app/features/sell-method/sell-service-navigation.css?v=20260826-sell-guest-access-v1',
   './app/features/sell-method/sell-guest-access.css?v=20260826-sell-guest-access-v1',
