@@ -59,6 +59,24 @@
   font-size: 13px;
 }
 
+.sell-service-notice > .sell-method__resume {
+  margin: 0 0 8px;
+  padding: 13px 14px;
+  border-color: #b9d9f7;
+  border-radius: 14px;
+  background: #eef6ff;
+  color: #173b5d;
+}
+
+.sell-service-notice > .sell-method__resume strong {
+  font-size: 14px;
+}
+
+.sell-service-notice > .sell-method__resume small {
+  color: #687c8d;
+  font-size: 11px;
+}
+
 .sell-service-notice__list {
   display: grid;
   gap: 8px;
@@ -189,4 +207,3 @@
 .sell-service-mypage > button strong {
   font-size: 14px;
 }
-

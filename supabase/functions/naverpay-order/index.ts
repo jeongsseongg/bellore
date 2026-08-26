@@ -61,8 +61,12 @@ function shippingXml(price: number) {
     + `</shippingPolicy>`;
 }
 
-function productUrl(id: string) {
-  return `${SITE_URL}/#p=${encodeURIComponent(id)}`;
+function productUrl(listing: any) {
+  const productNo = String(listing?.product_no || "").trim().toLowerCase();
+  if (/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(productNo)) {
+    return `${SITE_URL}/market/${encodeURIComponent(productNo)}/`;
+  }
+  return `${SITE_URL}/#p=${encodeURIComponent(String(listing?.id || ""))}`;
 }
 
 function uuidToNaverId(uuid: string) {
@@ -98,7 +102,7 @@ function productXml(listing: any, includeStock: boolean) {
   const sold = ["hidden", "sold", "reserved"].includes(String(listing.status || "").toLowerCase());
   return `<product><id>${escapeXml(id)}</id><ecMallProductId>${escapeXml(id)}</ecMallProductId>`
     + `<name>${cdata(name)}</name><basePrice>${price}</basePrice><taxType>TAX</taxType>`
-    + `<infoUrl>${cdata(productUrl(listingId))}</infoUrl><imageUrl>${cdata(image)}</imageUrl>`
+    + `<infoUrl>${cdata(productUrl(listing))}</infoUrl><imageUrl>${cdata(image)}</imageUrl>`
     + (includeStock
       ? `<status>${sold ? "NOT_SALE" : "ON_SALE"}</status><stockQuantity>${sold ? 0 : 1}</stockQuantity>`
         + `<supplementSupport>false</supplementSupport><optionSupport>false</optionSupport>`
@@ -175,7 +179,7 @@ Deno.serve(async (req) => {
     const orderXml = `<?xml version="1.0" encoding="utf-8"?><order>`
       + `<merchantId>${escapeXml(MERCHANT_ID)}</merchantId><certiKey>${escapeXml(CERTI_KEY)}</certiKey>`
       + listings.map((listing) => productXml(listing, false)).join("")
-      + `<backUrl>${cdata(listingIds.length === 1 ? productUrl(listingIds[0]) : `${SITE_URL}/#wishlist`)}</backUrl><interface>`
+      + `<backUrl>${cdata(listingIds.length === 1 ? productUrl(listings[0]) : `${SITE_URL}/#wishlist`)}</backUrl><interface>`
       + `<salesCode></salesCode><cpaInflowCode>${escapeXml(body.cpaInflowCode)}</cpaInflowCode>`
       + `<naverInflowCode>${escapeXml(body.naverInflowCode)}</naverInflowCode>`
       + `<saClickId>${escapeXml(body.saClickId)}</saClickId>`

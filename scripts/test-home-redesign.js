@@ -50,7 +50,10 @@ assert.match(bannersCss, /\.hero-slide-db\.is-campaign \{[\s\S]*aspect-ratio: 43
 assert.match(bannersCss, /data-hero-action="vintage"[\s\S]*right: calc\(5% - 15px\);[\s\S]*width: 34%/, 'vintage artwork and copy move right by 15px');
 assert.match(bannersCss, /data-hero-action="sale"[\s\S]*hero-slide-bg \{ left: -20px; right: 0; \}/, 'sale artwork moves left by 20px without exposing a right gap');
 assert.match(bannersCss, /data-hero-action="sale"[\s\S]*strong \{ font-size: clamp\(28\.6px, 7\.41cqw, 50\.7px\); \}/, 'sale banner copy grows by 30 percent');
-assert.match(bannersCss, /data-hero-action="diver"[\s\S]*background-position: 68% center/, 'diver artwork stays shifted left to prevent watch clipping');
+assert.match(bannersCss, /data-hero-action="diver"[\s\S]*hero-slide-bg \{ left: calc\(-10% - 25px\); right: 0;/, 'diver artwork moves left by 25px plus 10 percent');
+assert.match(bannersCss, /data-hero-action="diver"[\s\S]*hero-campaign-copy \{ left: calc\(5\.5% \+ 10px\); \}/, 'diver copy moves right by 10px');
+assert.match(bannersCss, /data-hero-action="diver"[\s\S]*strong \{ font-size: clamp\(24\.2px, 6\.27cqw, 42\.9px\); \}/, 'diver copy grows by 10 percent');
+assert.match(bannersCss, /data-hero-action="women"[\s\S]*hero-slide-bg \{ left: -20px; right: 0; \}/, 'women artwork moves left by 20px');
 assert.match(bannersCss, /\.hero-slide-db\.is-campaign \.hero-slide-blur \{ display: none; \}/, 'hero removes the cinema-style backdrop bars');
 assert.match(bannersCss, /\.hero-campaign-copy \{[\s\S]*background: none/, 'hero copy has no text box');
 assert.match(bannersCss, /\.hero-carousel\.has-db \{[\s\S]*width: 100%;[\s\S]*margin: 0;/, 'hero campaign fills the Bellore app width');

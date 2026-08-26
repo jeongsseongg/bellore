@@ -24,7 +24,7 @@ window.BELLORE_ANALYTICS = {
   policyVersion: "2026-08-10-ip-v1",
   collectUrl: "https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/collect-analytics",
   googleAdsId: "AW-18376230103",
-  naverWcsId: "s_ce48c59488b"
+  naverWcsId: "s_1ffe9440a292"
 };
 
 /* 부트스트랩 관리자 이메일.
@@ -90,7 +90,7 @@ window.BELLORE_PAYMENTS = {
 window.BELLORE_NAVERPAY = {
   enabled: true,
   testOnly: true,
-  endpoint: "https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/naverpay-order"
+  endpoint: "/naverpay-order"
 };
 
 /* ============================================================
