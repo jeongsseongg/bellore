@@ -3,12 +3,12 @@
 
 .bn-block { margin: 14px 0; }
 
-/* 캠페인 이미지 규격(430:189)을 화면 틀로 사용해 상하 레터박스 없이 전부 보인다. */
+/* 승인된 캠페인 이미지 규격(430:245.7)을 화면 틀로 사용한다. */
 .hero-carousel.has-db {
   background: transparent; border-radius: 0;
 }
 .hero-slide-db.is-campaign {
-  display: block; height: auto; min-height: 0; max-height: none; aspect-ratio: 430 / 189;
+  display: block; height: auto; min-height: 0; max-height: none; aspect-ratio: 430 / 245.7;
   padding: 0; border: 0; color: inherit; background: transparent;
   cursor: pointer; font: inherit; text-align: left; container-type: inline-size;
 }
@@ -27,6 +27,14 @@
 .hero-campaign-copy.is-right { left: auto; right: 5.5%; }
 .hero-campaign-copy.is-top-left { top: 12%; width: 37%; transform: none; }
 .hero-campaign-copy.is-compact { width: 34%; padding: 0; }
+.hero-slide-db[data-hero-action="wedding"] .hero-campaign-copy {
+  left: 5.5%; top: 3%; width: 48%; transform: none;
+}
+.hero-slide-db[data-hero-action="wedding"] .hero-campaign-copy small { display: none; }
+.hero-slide-db[data-hero-action="vintage"] .hero-campaign-copy {
+  left: auto; right: 5%; top: 50%; width: 34%; transform: translateY(-50%);
+}
+.hero-slide-db[data-hero-action="diver"] .hero-slide-bg { background-position: 68% center; }
 
 /* 점 대신 우측 하단에 현재 순서와 이전·다음만 작게 표시한다. */
 .hero-dots {
