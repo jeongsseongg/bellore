@@ -29,7 +29,7 @@ import { initCheckoutAddresses } from './features/checkout/checkout-addresses.mj
 import { createPaymentFlow } from './features/checkout/payment-flow.js?v=20260826-member-verification-live-v1';
 import { installCustomerFeedback } from './legacy/customer-feedback.js?v=20260826-member-verification-live-v1';
 import { installLegacyCheckoutCoupon } from './legacy/checkout-coupon.js';
-import { initSellServicePages } from './features/sell-method/sell-service-pages.js?v=20260826-sell-services-member-v1';
+import { initSellServicePages } from './features/sell-method/sell-service-pages.js?v=20260826-sell-services-member-v2';
 import { installLegacyMemberVerificationUi } from './legacy/member-verification-ui.js?v=20260826-member-verification-live-v1';
 import { installLegacyMemberVerificationService } from './legacy/member-verification-service.js?v=20260826-member-verification-live-v1';
 

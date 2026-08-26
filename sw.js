@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v338-sell-services-member-live";
+const VERSION = "bellore-v339-sell-draft-notification";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -14,7 +14,7 @@ const SHELL_ASSETS = [
   './reference-layout.css?v=20260821-tabbar-safe-area-v1',
   './mypick.css?v=20260826-member-verification-live-v1',
   './bellore-redesign.css?v=20260826-member-verification-live-v1',
-  './script.js?v=20260826-sell-services-member-v1',
+  './script.js?v=20260826-sell-services-member-v2',
   './payments.js?v=20260826-member-verification-live-v1',
   './naverpay.js?v=20260728-naver-review-fixes-2',
   './ui-dialog.js?v=20260826-member-verification-live-v1',
@@ -31,7 +31,7 @@ const SHELL_ASSETS = [
   './search.js?v=20260826-member-verification-live-v1',
   './ai-advisor.js?v=20260826-member-verification-live-v1',
   './ai-advisor-admin.js?v=20260826-member-verification-live-v1',
-  './app/bootstrap.js?v=20260826-sell-services-member-v1',
+  './app/bootstrap.js?v=20260826-sell-services-member-v2',
   './app/features/analytics-consent/analytics-consent.css?v=20260826-ai-consent-v1',
   './app/features/checkout/checkout-addresses.css?v=20260826-shipping-address-popup-v2',
   './app/features/checkout/checkout-addresses.mjs?v=20260826-shipping-address-popup-v2',
@@ -69,7 +69,7 @@ const SHELL_ASSETS = [
   './app/legacy/legacy-reveal.js',
   './app/legacy/member-verification-service.js?v=20260826-member-verification-live-v1',
   './app/legacy/member-verification-ui.js?v=20260826-member-verification-live-v1',
-  './app/legacy/page-runtime.js?v=20260826-sell-services-member-v1',
+  './app/legacy/page-runtime.js?v=20260826-sell-services-member-v2',
   './app/features/insights/insight-filter.js',
   './app/features/insights/insight-reader.js',
   './app/features/legal/legal-modals.js',
@@ -109,17 +109,17 @@ const SHELL_ASSETS = [
   './assets/banners/product-stage-04.webp',
   './assets/banners/product-stage-05.webp',
   './assets/banners/product-stage-06.webp',
-  './app/features/sell-method/sell-method.css?v=20260826-sell-services-member-v1',
-  './app/features/sell-method/sell-quotes.css?v=20260826-sell-services-member-v1',
-  './app/features/sell-method/sell-service-navigation.css?v=20260826-sell-services-member-v1',
-  './app/features/sell-method/sell-service-pages.css?v=20260826-sell-services-member-v1',
-  './app/features/sell-method/sell-service-action.css?v=20260826-sell-services-member-v1',
+  './app/features/sell-method/sell-method.css?v=20260826-sell-services-member-v2',
+  './app/features/sell-method/sell-quotes.css?v=20260826-sell-services-member-v2',
+  './app/features/sell-method/sell-service-navigation.css?v=20260826-sell-services-member-v2',
+  './app/features/sell-method/sell-service-pages.css?v=20260826-sell-services-member-v2',
+  './app/features/sell-method/sell-service-action.css?v=20260826-sell-services-member-v2',
   './app/legacy/recommendation-engine.js?v=20260826-member-verification-live-v1',
-  './app/features/sell-method/sell-method.js?v=20260826-sell-services-member-v1',
+  './app/features/sell-method/sell-method.js?v=20260826-sell-services-member-v2',
   './app/features/sell-method/sell-guide-preview.js?v=20260826-sell-quotes-v3',
   './app/features/sell-method/sell-reference-controller.js?v=20260826-sell-quotes-v3',
   './app/features/sell-method/sell-quote-controller.js?v=20260826-sell-quotes-v3',
-  './app/features/sell-method/sell-service-pages.js?v=20260826-sell-services-member-v1',
+  './app/features/sell-method/sell-service-pages.js?v=20260826-sell-services-member-v2',
   './assets/sell/trade/방문거래.png',
   './assets/sell/trade/택배거래.png',
   './assets/sell/trade/퀵거래.png',

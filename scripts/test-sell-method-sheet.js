@@ -25,7 +25,7 @@ assert.match(
 assert.doesNotMatch(sheetRule, /720px/, 'sell sheet must never use the out-of-spec 720px width');
 assert.match(
   html,
-  /sell-method\.css\?v=20260826-sell-services-member-v1/,
+  /sell-method\.css\?v=20260826-sell-services-member-v2/,
   'the page requests the panel-width-corrected stylesheet'
 );
 assert.match(sheetRule, /transform:\s*translateY\(104%\)/, 'the closed sheet starts below the Bellore frame');
@@ -81,6 +81,9 @@ assert.match(quoteCss, /\.sell-quotes__bid b\s*\{\s*color:\s*#176fb8/, 'customer
 assert.doesNotMatch(html, />\s*온라인\s*·\s*비교견적/, 'quote status does not spell out online as Korean copy');
 assert.match(quoteCss, /@keyframes sell-online-pulse/, 'active quote status uses the requested online pulse animation');
 assert.match(serviceJs, /id=\\?"sellServiceNoticeToggle/, 'active applications live in the top-right notification menu');
+assert.ok(serviceJs.includes('list.before(draftResume)'), 'saved drafts live only in the top-right notification menu');
+assert.match(serviceJs, /visible\.length \+ draftCount/, 'the notification badge counts both drafts and active applications');
+assert.match(serviceJs, /MutationObserver\(renderNotice\)/, 'draft save and removal refresh the notification badge immediately');
 assert.match(serviceJs, /data-sell-view=\\?"service/, 'service applications open a dedicated page inside the Bellore sheet');
 assert.match(serviceJs, /data-service-page="compare"/, 'comparison estimates have a dedicated quote page');
 assert.match(serviceJs, /data-service-page="consignment"/, 'consignment has a dedicated offer and fee page');

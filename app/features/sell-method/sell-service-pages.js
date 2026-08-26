@@ -132,6 +132,7 @@ export function initSellServicePages({ document, window, backend }) {
   const badge = document.getElementById('sellServiceNoticeBadge');
   const panel = document.getElementById('sellServiceNoticePanel');
   const list = document.getElementById('sellServiceNoticeList');
+  const draftResume = document.getElementById('sellMethodResume');
   const title = document.getElementById('sellServiceTitle');
   const subtitle = document.getElementById('sellServiceSubtitle');
   const content = document.getElementById('sellServiceContent');
@@ -145,6 +146,10 @@ export function initSellServicePages({ document, window, backend }) {
   let selectedTrade = '';
   let unsubscribe = null;
   let myPageLinks = document.getElementById('sellServiceMyPageLinks');
+
+  // saved drafts live only in the top-right notification menu
+  // 저장 중인 양식은 판매방식 본문에 노출하지 않고 우측 상단 알림함에서만 연다.
+  if (draftResume) list.before(draftResume);
 
   if (!myPageLinks && myPageSection) {
     myPageLinks = document.createElement('section');
@@ -180,12 +185,14 @@ export function initSellServicePages({ document, window, backend }) {
 
   function renderNotice() {
     const visible = records.filter((item) => ['compare', 'consignment', 'instant'].includes(item.method));
-    badge.hidden = !visible.length;
-    badge.textContent = String(visible.length);
+    const draftCount = draftResume && !draftResume.hidden ? 1 : 0;
+    const noticeCount = visible.length + draftCount;
+    badge.hidden = !noticeCount;
+    badge.textContent = String(noticeCount);
     list.innerHTML = visible.length ? visible.map((record) => {
       const copy = statusCopy(record);
       return `<button type="button" class="sell-service-notice__item sell-service-notice__item--${record.method}" data-sell-service-open="${record.method}" data-sell-service-id="${escapeHtml(record.id)}"><span><small>${copy.label}</small><strong>${copy.strong}</strong><em>${copy.small}</em></span><b aria-hidden="true">→</b></button>`;
-    }).join('') : '<p class="sell-service-notice__empty">진행 중인 판매 내역이 없습니다.</p>';
+    }).join('') : (draftCount ? '' : '<p class="sell-service-notice__empty">진행 중인 판매 내역이 없습니다.</p>');
     if (myPageLinks) {
       myPageLinks.innerHTML = visible.length ? `<div class="sell-service-mypage__head"><strong>내 시계판매 현황</strong><span>${visible.length}건</span></div>${visible.map((record) => {
         const copy = statusCopy(record);
@@ -335,6 +342,9 @@ export function initSellServicePages({ document, window, backend }) {
   }
 
   function connect() {
+    if (draftResume && typeof MutationObserver === 'function') {
+      new MutationObserver(renderNotice).observe(draftResume, { attributes: true, attributeFilter: ['hidden'] });
+    }
     document.addEventListener('click', (event) => {
       const control = event.target.closest('#sellServiceNoticeToggle, [data-sell-service-back], [data-sell-service-open], [data-sell-service-bid], [data-sell-service-accept], [data-sell-action-close], [data-sell-trade], [data-sell-action-confirm]');
       if (control) {

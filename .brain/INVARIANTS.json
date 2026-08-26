@@ -51,6 +51,18 @@
       "why": "3897462에서 확정한 홈 히어로와 바로가기 레이아웃을 판매 기능 이식이 과거 버전으로 되돌리지 않게 한다."
     },
     {
+      "id": "sell-draft-resume-only-in-notification",
+      "files": [
+        "app/features/sell-method/sell-service-pages.js",
+        "scripts/test-sell-method-sheet.js"
+      ],
+      "must_contain": [
+        "list.before(draftResume)",
+        "saved drafts live only in the top-right notification menu"
+      ],
+      "why": "작성 중 양식과 진행 중 판매 내역은 본문이 아니라 우측 상단 판매 알림함에만 표시한다."
+    },
+    {
       "id": "preview-deploy-base-checker",
       "files": ["scripts/check-preview-deploy-base.py"],
       "must_contain": [
