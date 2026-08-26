@@ -23,6 +23,7 @@ const recoveryAdapter = read('supabase/functions/_shared/payment-recovery.ts');
 const paymentEdgeUtils = read('supabase/functions/_shared/payment-edge-utils.ts');
 const paymentStates = read('supabase/functions/_shared/order-payment-states.ts');
 const cancellation = read('supabase/functions/_shared/portone-cancellation.ts');
+const paidOnlyMigration = read('supabase/migrations/20260826203000_checkout_cancellation_release.sql');
 const reconciliation = read('supabase/functions/reconcile-payments/index.ts');
 const reconciliationOrders = read('supabase/functions/_shared/reconciliation-orders.ts');
 const claimMigration = read('supabase/migrations/20260826170000_checkout_claim_integrity.sql');
@@ -275,6 +276,8 @@ assert.match(recoveryPolicy, /status === 'refund_pending'[\s\S]{0,120}continue_c
 assert.match(recoveryPolicy, /PENDING_REVIEW_AGE_MS = 24 \* 60 \* 60 \* 1000/);
 assert.match(claimMigration, /orders_one_unresolved_listing_v2_idx/);
 assert.match(claimMigration, /orders_one_unresolved_coupon_idx/);
+assert.match(paidOnlyMigration, /drop index if exists public\.orders_one_unresolved_listing_v2_idx/);
+assert.match(paidOnlyMigration, /'reservationMode','paid_only'/);
 assert.match(claimMigration, /payment_contract_version is null or payment_contract_version = 2/);
 assert.match(reconciliationWorkflow, /secrets\.PAYMENT_RECONCILE_TOKEN/);
 assert.match(reconciliationWorkflow, /github\.ref == 'refs\/heads\/main'/);

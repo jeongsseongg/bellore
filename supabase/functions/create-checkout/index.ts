@@ -307,7 +307,7 @@ Deno.serve(async (req) => {
     const paymentContractVersion = Number(order?.paymentContractVersion);
     if (!orderNo || !Number.isSafeInteger(amount) || amount < 100 ||
       responseListingId !== listingId || payType !== "full" ||
-      reservationMode !== "provider_terminal" || paymentContractVersion !== 2) {
+      reservationMode !== "paid_only" || paymentContractVersion !== 2) {
       console.error("create-checkout rpc returned an invalid public order");
       return json(req, { error: "checkout_response_invalid" }, 502);
     }

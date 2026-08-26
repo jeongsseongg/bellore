@@ -54,6 +54,7 @@ for (const migration of [
   '20260826170000_checkout_claim_integrity.sql',
   '20260826180000_order_financial_state_guard.sql',
   '20260826190000_payment_finalization_closed_order_contract.sql',
+  '20260826203000_checkout_cancellation_release.sql',
 ]) {
   assert.match(guide, new RegExp(migration.replaceAll('.', '\\.')));
 }

@@ -458,6 +458,7 @@ jobs:
           \i /repo/supabase/migrations/20260826170000_checkout_claim_integrity.sql
           \i /repo/supabase/migrations/20260826180000_order_financial_state_guard.sql
           \i /repo/supabase/migrations/20260826190000_payment_finalization_closed_order_contract.sql
+          \i /repo/supabase/migrations/20260826203000_checkout_cancellation_release.sql
 
           do $$
           begin
@@ -466,6 +467,8 @@ jobs:
                or to_regclass('public.payment_reconciliation_orders_edge_v1') is null
                or to_regprocedure('public.read_payment_operation_control_v1(text)') is null
                or to_regprocedure('public.is_payment_operation_hash_held_v1(text)') is null
+               or to_regprocedure('public.cancel_unsettled_checkout_v1(text,text)') is null
+               or to_regprocedure('public.create_checkout_order_paid_only_v1(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)') is null
                or has_table_privilege('anon','public.payment_operation_holds','select')
                or has_table_privilege('authenticated','public.payment_operation_holds','select')
                or has_table_privilege('service_role','public.payment_operation_holds','select')
@@ -480,6 +483,18 @@ jobs:
                  'public.payment_order_no_sha256_v1(text)','execute')
                or has_function_privilege('authenticated',
                  'public.payment_order_no_sha256_v1(text)','execute')
+               or has_function_privilege('anon',
+                 'public.cancel_unsettled_checkout_v1(text,text)','execute')
+               or has_function_privilege('authenticated',
+                 'public.cancel_unsettled_checkout_v1(text,text)','execute')
+               or not has_function_privilege('service_role',
+                 'public.cancel_unsettled_checkout_v1(text,text)','execute')
+               or has_function_privilege('anon',
+                 'public.create_checkout_order_paid_only_v1(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)','execute')
+               or has_function_privilege('authenticated',
+                 'public.create_checkout_order_paid_only_v1(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)','execute')
+               or not has_function_privilege('service_role',
+                 'public.create_checkout_order_paid_only_v1(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)','execute')
                or not has_table_privilege('service_role',
                  'public.payment_reconciliation_orders_edge_v1','select')
                or has_table_privilege('anon',
@@ -648,23 +663,8 @@ jobs:
             ) then
               raise exception 'checkout request hash format check missing or unvalidated';
             end if;
-            if not exists (
-              select 1
-                from pg_index as x
-                join pg_class as i on i.oid=x.indexrelid
-                join pg_class as t on t.oid=x.indrelid
-                join pg_namespace as n on n.oid=t.relnamespace
-               where n.nspname='public' and t.relname='orders'
-                 and i.relname='orders_one_unresolved_listing_v2_idx'
-                 and x.indisunique and x.indpred is not null
-                 and pg_get_indexdef(x.indexrelid,1,true)='listing_id'
-                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%payment_contract_version = 2%'
-                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%status%'
-                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%failed%'
-                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%canceled%'
-                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%refunded%'
-            ) then
-              raise exception 'v2 unresolved listing unique index contract missing';
+            if to_regclass('public.orders_one_unresolved_listing_v2_idx') is not null then
+              raise exception 'paid-only checkout must not keep an unresolved listing unique index';
             end if;
             if not exists (
               select 1
@@ -855,15 +855,15 @@ jobs:
             p_ship_addr1 => '검증 주소'
           ) as checkout_contract \gset
           select (
-            :'checkout_contract'::jsonb->>'reservationMode'='provider_terminal'
+            :'checkout_contract'::jsonb->>'reservationMode'='paid_only'
             and (:'checkout_contract'::jsonb->>'paymentContractVersion')::integer=2
             and (:'checkout_contract'::jsonb->>'checkoutReplayed')::boolean=false
             and not (:'checkout_contract'::jsonb ? 'expiresAt')
           ) as checkout_contract_ok \gset
           \if :checkout_contract_ok
-            \echo 'provider-terminal checkout contract verified'
+            \echo 'paid-only checkout contract verified'
           \else
-            \echo 'provider-terminal checkout contract verification failed'
+            \echo 'paid-only checkout contract verification failed'
             \quit 1
           \endif
           select public.create_checkout_order_edge_v1(
@@ -933,6 +933,36 @@ jobs:
             \echo 'payment contract version 2 row verification failed'
             \quit 1
           \endif
+          select public.create_checkout_order_edge_v1(
+            p_rate_key => repeat('e',64),
+            p_customer_id => null,
+            p_listing_id => :'listing_id'::uuid,
+            p_checkout_request_key_hash => repeat('2',64),
+            p_checkout_token_hash => repeat('d',64),
+            p_expected_amount => :'expected_amount'::bigint,
+            p_buyer_name => '두 번째 검증 구매자',
+            p_buyer_phone => '01000000001',
+            p_ship_recipient => '두 번째 검증 수령인',
+            p_ship_phone => '01000000001',
+            p_ship_postcode => '00001',
+            p_ship_addr1 => '두 번째 검증 주소'
+          ) as second_checkout_contract \gset
+          select (
+            :'second_checkout_contract'::jsonb->>'reservationMode'='paid_only'
+            and :'second_checkout_contract'::jsonb->>'orderNo' <> :'checkout_contract'::jsonb->>'orderNo'
+            and (select count(*) from public.orders
+                  where listing_id=:'listing_id'::uuid
+                    and payment_contract_version=2 and status='pending')=2
+            and (select status='on_sale' and sold_order_id is null
+                        and reserved_order_id is null and reserved_until is null
+                   from public.listings where id=:'listing_id'::uuid)
+          ) as simultaneous_pending_ok \gset
+          \if :simultaneous_pending_ok
+            \echo 'two pending checkouts left the listing available and unreserved'
+          \else
+            \echo 'paid-only pending checkout concurrency contract failed'
+            \quit 1
+          \endif
           reset role;
           set local request.jwt.claims = '{"role":"authenticated"}';
           select set_config('app.guard_test_order_no', :'order_no', true);
@@ -996,6 +1026,38 @@ jobs:
           select public.finalize_paid_order_v2(
             :'order_no', :'amount'::bigint, 'CARD', :'order_no', 'dry-run-tx', null, null, 0
           );
+          select order_no, amount from public.orders
+           where checkout_request_key_hash=repeat('2',64) \gset second_
+          select (
+            (select status='reserved' and reserved_order_id=(select id from public.orders where order_no=:'order_no')
+                    and reserved_until='infinity'::timestamptz and sold_order_id is null
+               from public.listings where id=:'listing_id'::uuid)
+            and (select status='pending' from public.orders where order_no=:'second_order_no')
+          ) as paid_winner_reserved_ok \gset
+          \if :paid_winner_reserved_ok
+            \echo 'first verified payment reserved the listing and left the other checkout pending'
+          \else
+            \echo 'verified payment did not create the reserved winner state'
+            \quit 1
+          \endif
+          select set_config('app.second_order_no', :'second_order_no', true);
+          select set_config('app.second_order_amount', :'second_amount', true);
+          do $$
+          begin
+            begin
+              perform public.finalize_paid_order_v2(
+                current_setting('app.second_order_no'),
+                current_setting('app.second_order_amount')::bigint,
+                'CARD', current_setting('app.second_order_no'),
+                'dry-run-simultaneous-loser', null, null, 0
+              );
+              raise exception 'second verified payment also claimed the one-off listing';
+            exception when others then
+              if sqlerrm not like '%listing_unavailable%'
+                 and sqlerrm not like '%listing_reserved_by_other_order%' then raise; end if;
+            end;
+          end $$;
+          \echo 'second verified payment was rejected by the single-winner listing lock'
           update public.orders
              set payment_review_required=true
            where order_no=:'order_no';
@@ -1205,7 +1267,7 @@ jobs:
             p_rate_key => repeat('8',64),
             p_customer_id => null,
             p_listing_id => :'listing_id'::uuid,
-            p_checkout_request_key_hash => repeat('2',64),
+            p_checkout_request_key_hash => repeat('9',64),
             p_checkout_token_hash => repeat('7',64),
             p_expected_amount => :'expected_amount'::bigint,
             p_buyer_name => '닫힌 주문 검증 구매자',
@@ -1530,7 +1592,8 @@ jobs:
             if exists (
               select 1 from supabase_migrations.schema_migrations
                where version in (
-                 '20260826155000','20260826160000','20260826170000','20260826180000','20260826190000'
+                 '20260826155000','20260826160000','20260826170000','20260826180000','20260826190000',
+                 '20260826203000'
                )
             ) then
               raise exception 'payment_release_migration_already_recorded';
@@ -1746,6 +1809,8 @@ jobs:
                or to_regprocedure('public.order_requires_restock_v1(uuid,smallint,text,boolean,timestamptz,timestamptz,timestamptz)') is not null
                or to_regprocedure('public.clear_confirmed_payment_review_v1(text,text,bigint)') is not null
                or to_regprocedure('public.recover_checkout_order_edge_v1(text,text,uuid)') is not null
+               or to_regprocedure('public.cancel_unsettled_checkout_v1(text,text)') is not null
+               or to_regprocedure('public.create_checkout_order_paid_only_v1(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)') is not null
                or exists (
                  select 1 from information_schema.columns
                   where table_schema='public' and table_name='orders'
@@ -1803,6 +1868,7 @@ jobs:
           \i /repo/supabase/migrations/20260826170000_checkout_claim_integrity.sql
           \i /repo/supabase/migrations/20260826180000_order_financial_state_guard.sql
           \i /repo/supabase/migrations/20260826190000_payment_finalization_closed_order_contract.sql
+          \i /repo/supabase/migrations/20260826203000_checkout_cancellation_release.sql
 
           insert into supabase_migrations.schema_migrations(version,name,statements)
           values
@@ -1810,7 +1876,8 @@ jobs:
             ('20260826160000','payment_recovery_listing_state',array[]::text[]),
             ('20260826170000','checkout_claim_integrity',array[]::text[]),
             ('20260826180000','order_financial_state_guard',array[]::text[]),
-            ('20260826190000','payment_finalization_closed_order_contract',array[]::text[]);
+            ('20260826190000','payment_finalization_closed_order_contract',array[]::text[]),
+            ('20260826203000','checkout_cancellation_release',array[]::text[]);
 
           set constraints all immediate;
           commit;
@@ -1852,6 +1919,8 @@ jobs:
                or to_regclass('public.payment_reconciliation_orders_edge_v1') is null
                or to_regprocedure('public.read_payment_operation_control_v1(text)') is null
                or to_regprocedure('public.is_payment_operation_hash_held_v1(text)') is null
+               or to_regprocedure('public.cancel_unsettled_checkout_v1(text,text)') is null
+               or to_regprocedure('public.create_checkout_order_paid_only_v1(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)') is null
                or has_table_privilege('anon','public.payment_operation_holds','select')
                or has_table_privilege('authenticated','public.payment_operation_holds','select')
                or has_table_privilege('service_role','public.payment_operation_holds','select')
@@ -1866,6 +1935,18 @@ jobs:
                  'public.payment_order_no_sha256_v1(text)','execute')
                or has_function_privilege('authenticated',
                  'public.payment_order_no_sha256_v1(text)','execute')
+               or has_function_privilege('anon',
+                 'public.cancel_unsettled_checkout_v1(text,text)','execute')
+               or has_function_privilege('authenticated',
+                 'public.cancel_unsettled_checkout_v1(text,text)','execute')
+               or not has_function_privilege('service_role',
+                 'public.cancel_unsettled_checkout_v1(text,text)','execute')
+               or has_function_privilege('anon',
+                 'public.create_checkout_order_paid_only_v1(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)','execute')
+               or has_function_privilege('authenticated',
+                 'public.create_checkout_order_paid_only_v1(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)','execute')
+               or not has_function_privilege('service_role',
+                 'public.create_checkout_order_paid_only_v1(uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)','execute')
                or not has_table_privilege('service_role',
                  'public.payment_reconciliation_orders_edge_v1','select')
                or has_table_privilege('anon',
@@ -2046,20 +2127,10 @@ jobs:
             ) then
               raise exception 'payment terminal timestamp schema verification failed';
             end if;
+            if to_regclass('public.orders_one_unresolved_listing_v2_idx') is not null then
+              raise exception 'paid-only checkout retained an unresolved listing unique index';
+            end if;
             if not exists (
-              select 1
-                from pg_index as x
-                join pg_class as i on i.oid=x.indexrelid
-               where i.relname='orders_one_unresolved_listing_v2_idx'
-                 and x.indrelid='public.orders'::regclass
-                 and x.indisunique and x.indpred is not null
-                 and pg_get_indexdef(x.indexrelid,1,true)='listing_id'
-                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%payment_contract_version = 2%'
-                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%status%'
-                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%failed%'
-                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%canceled%'
-                 and lower(pg_get_expr(x.indpred,x.indrelid)) like '%refunded%'
-            ) or not exists (
               select 1
                 from pg_index as x
                 join pg_class as i on i.oid=x.indexrelid
@@ -2083,7 +2154,7 @@ jobs:
                  and pg_get_indexdef(x.indexrelid,1,true)='checkout_request_key_hash'
                  and lower(pg_get_expr(x.indpred,x.indrelid)) like '%checkout_request_key_hash is not null%'
             ) then
-              raise exception 'v2 unresolved claim indexes verification failed';
+              raise exception 'coupon ownership or checkout idempotency index verification failed';
             end if;
             if not exists (
               select 1 from pg_trigger
@@ -2140,11 +2211,21 @@ jobs:
                  in pg_get_functiondef('public.create_checkout_order_edge_v1(text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)'::regprocedure))=0
                or position('checkout_amount_changed'
                  in pg_get_functiondef('public.create_checkout_order_edge_v1(text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)'::regprocedure))=0
-               or position('''reservationMode'',''provider_terminal'''
+               or position('''reservationMode'',''paid_only'''
                  in pg_get_functiondef('public.create_checkout_order_edge_v1(text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)'::regprocedure))=0
                or position('''paymentContractVersion'',2'
                  in pg_get_functiondef('public.create_checkout_order_edge_v1(text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)'::regprocedure))=0 then
-              raise exception 'provider-terminal checkout wrapper verification failed';
+              raise exception 'paid-only checkout wrapper verification failed';
+            end if;
+            if position('set status = ''reserved'''
+                 in pg_get_functiondef('public.finalize_paid_order_v2(text,bigint,text,text,text,text,jsonb,integer)'::regprocedure))=0
+               or position('reserved_order_id = v_order.id'
+                 in pg_get_functiondef('public.finalize_paid_order_v2(text,bigint,text,text,text,text,jsonb,integer)'::regprocedure))=0
+               or position('reserved_until = ''infinity''::timestamptz'
+                 in pg_get_functiondef('public.finalize_paid_order_v2(text,bigint,text,text,text,text,jsonb,integer)'::regprocedure))=0
+               or position('set status = ''sold'''
+                 in pg_get_functiondef('public.finalize_paid_order_v2(text,bigint,text,text,text,text,jsonb,integer)'::regprocedure))>0 then
+              raise exception 'verified payment reservation finalizer verification failed';
             end if;
           end $$;
           SQL
