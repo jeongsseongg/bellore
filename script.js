@@ -253,12 +253,6 @@
             }, 200);
         });
 
-        // 캐시된 배너를 먼저 즉시 렌더 → 기본배너 깜빡임 방지(DB 응답 시 갱신)
-        try {
-            var _cb = JSON.parse(localStorage.getItem('bellore_banners') || 'null');
-            if (_cb && _cb.length) window.belloreSetBanners(_cb);
-        } catch (e) {}
-
         function escapeHtml(s) {
             return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;').replace(/"/g, '&quot;');

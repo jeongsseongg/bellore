@@ -12,6 +12,7 @@ const rows = read('app/features/home-rows/home-rows.js');
 const rowAdmin = read('app/features/home-rows/home-row-admin.js');
 const rowsCss = read('app/features/home-rows/home-rows.css');
 const legacy = read('script.js');
+const features = read('bellore-features.js');
 const buildPages = read('tools/build-pages.mjs');
 
 const order = ['rowSaleBlock', 'rowDropBlock', 'catBannerBlock', 'rowNewBlock', 'buyBannerBlock', 'homeOnSale'];
@@ -26,6 +27,8 @@ assert.match(data, /export const HERO_CAMPAIGNS = \[/, 'hero campaigns stay in t
 assert.equal((data.match(/image: 'assets\/banners\/hero-\d{2}\.webp'/g) || []).length, 8, 'iconic deletion leaves 8 hero images');
 assert.doesNotMatch(data, /action: 'icons'/, 'deleted iconic campaign must not return');
 assert.doesNotMatch(data, /hero-04\.webp/, 'deleted iconic artwork must not be referenced');
+assert.doesNotMatch(features, /belloreSetBanners\(list\)/, 'database subscription must not overwrite the fixed hero campaigns');
+assert.doesNotMatch(legacy, /belloreSetBanners\(_cb\)/, 'cached database banners must not flash before the fixed campaigns');
 assert.match(banners, /collection\.openPreset\(\{ action: campaign\.action, label: campaign\.title \}\)/, 'hero click keeps the collection contract');
 assert.match(bannersCss, /data-hero-action="vintage"[\s\S]*right: 5%;[\s\S]*width: 34%/, 'vintage copy stays in the right empty area');
 assert.match(bannersCss, /data-hero-action="diver"[\s\S]*background-position: 68% center/, 'diver artwork shifts left to reveal the right watch');

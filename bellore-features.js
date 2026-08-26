@@ -428,13 +428,8 @@
     // (구) 흩어진 등록 버튼은 제거하고, 우측 상단 "+" 하나로 통합 (하단 adminFab)
 
     /* ========== 히어로 배너 ========== */
-    // 방문자: 활성 배너를 캐러셀에 주입 (홈)
-    if (typeof B.subscribeBanners === 'function') {
-      B.subscribeBanners(function (list) {
-        try { localStorage.setItem('bellore_banners', JSON.stringify(list || [])); } catch (e) {}
-        if (window.belloreSetBanners) window.belloreSetBanners(list);
-      });
-    }
+    // 홈 히어로는 승인된 8개 캠페인이 정본이다. DB 배너는 관리자 목록에서만 관리하고
+    // 방문자 캐러셀에 다시 주입하지 않는다(구독 응답이 정본을 덮는 회귀 방지).
     // 마이페이지 광고 배너 주입 (placement=mypage)
     if (typeof B.subscribeMypageBanners === 'function') {
       B.subscribeMypageBanners(function (list) {
