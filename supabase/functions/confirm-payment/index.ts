@@ -8,7 +8,8 @@ import { finalizePaidOrderFromProvider, lookupPortOnePayment, markPaymentReviewI
   paymentRef, readMatchingConfirmedOrder, safeText, type JsonRecord } from "../_shared/payment-recovery.ts";
 import { CONFIRMATION_RETRY_DELAYS_MS, paidFinalizationRecoveryAction, paidRecoveryAction,
   providerPaidAmount, providerStatusKind } from "../_shared/payment-recovery-policy.mjs";
-
+import { cancelUnsettledCheckout, reconcileProviderCancelledCheckout } from
+  "../_shared/unsettled-checkout-cancellation.ts";
 const PORTONE_API_SECRET = Deno.env.get("PORTONE_API_SECRET") ?? "";
 const PORTONE_API_BASE = Deno.env.get("PORTONE_API_BASE") ?? "https://api.portone.io";
 const PORTONE_STORE_ID = Deno.env.get("PORTONE_STORE_ID") ?? "";
@@ -22,7 +23,6 @@ const ALLOWED_ORIGINS = new Set([
   "http://localhost",
   "http://127.0.0.1",
 ]);
-
 function allowedOrigin(req: Request): string | null {
   const origin = req.headers.get("Origin");
   if (!origin) return null;
@@ -34,7 +34,6 @@ function allowedOrigin(req: Request): string | null {
     return null;
   }
 }
-
 function cors(req: Request): HeadersInit {
   const origin = allowedOrigin(req);
   return {
@@ -44,14 +43,12 @@ function cors(req: Request): HeadersInit {
     "Vary": "Origin",
   };
 }
-
 function json(req: Request, body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...cors(req), "Content-Type": "application/json" },
   });
 }
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     if (!allowedOrigin(req)) return new Response(null, { status: 403 });
@@ -141,8 +138,6 @@ Deno.serve(async (req) => {
       timeoutMs: 5000,
       retryDelaysMs: CONFIRMATION_RETRY_DELAYS_MS,
       retryPendingStatus: true,
-      // Bounded retries distinguish a durable provider 404 from a transient one.
-      // Only an explicit browser abandonment may release on that exact result.
       notFoundResult: "not_found",
     });
     if (lookup.result === "not_found") {
@@ -150,11 +145,10 @@ Deno.serve(async (req) => {
         return json(req, { ok: false, pending: true,
           error: "payment_confirmation_pending", retryAfterMs: 2000 }, 202);
       }
-      const { data: marked, error: markError } = await admin.rpc("fail_unsettled_order", {
-        p_order_no: paymentId,
-        p_reason: "provider_payment_not_found_after_checkout_abandonment",
-      });
-      if (markError || marked !== true) {
+      const canceled = await cancelUnsettledCheckout(
+        admin, paymentId, "provider_payment_not_found_after_checkout_abandonment",
+      );
+      if (!canceled) {
         return json(req, { ok: false, pending: true,
           error: "payment_terminal_state_pending", retryAfterMs: 2000 }, 202);
       }
@@ -192,12 +186,10 @@ Deno.serve(async (req) => {
       }, 202);
     }
     if (statusKind !== "paid") {
-      if (statusKind === "failed" || statusKind === "cancelled") {
+      if (statusKind === "failed") {
         const { data: marked, error: markError } = await admin.rpc("fail_unsettled_order", {
           p_order_no: paymentId,
-          p_reason: statusKind === "failed"
-            ? "provider_payment_failed"
-            : "provider_payment_canceled",
+          p_reason: "provider_payment_failed",
         });
         if (markError || marked !== true) {
           console.warn("confirm-payment terminal state pending", JSON.stringify({
@@ -211,6 +203,15 @@ Deno.serve(async (req) => {
             retryAfterMs: 2000,
           }, 202);
         }
+      }
+      if (statusKind === "cancelled") {
+        const outcome = await reconcileProviderCancelledCheckout({
+          admin, operationControl: "confirm_payment", orderNo: order.order_no,
+          orderStatus: order.status, expectedOrderAmount: Number(order.amount), payment,
+        });
+        if (outcome === "pending") return json(req, { ok: false, pending: true,
+          error: "payment_terminal_state_pending", retryAfterMs: 2000 }, 202);
+        if (outcome === "review") return json(req, { error: "payment_requires_review" }, 409);
       }
       if (statusKind === "partial_cancelled") {
         const locallyClosed = order.status === "failed" || order.status === "canceled";

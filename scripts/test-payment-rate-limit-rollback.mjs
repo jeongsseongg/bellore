@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 const root = resolve(import.meta.dirname, '..');
 const read = (path) => readFileSync(resolve(root, path), 'utf8').replace(/\r\n?/g, '\n');
 const migration = read('supabase/migrations/20260826170000_checkout_claim_integrity.sql');
+const paidOnlyMigration = read('supabase/migrations/20260826203000_checkout_cancellation_release.sql');
 const checkout = read('supabase/functions/create-checkout/index.ts');
 const workflow = read('.github/workflows/db-maintenance.yml');
 
@@ -15,6 +16,12 @@ assert.ok(rateCall >= 0 && protectedBlock > rateCall && caughtError > protectedB
   'rate increment must be outside the rollback-only checkout subtransaction');
 assert.match(migration, /v_error_state = '23505'[\s\S]{0,180}orders_one_unresolved_coupon_idx[\s\S]{0,160}coupon_reserved/);
 assert.match(migration, /v_error_state = '23505'[\s\S]{0,180}orders_one_unresolved_listing_v2_idx[\s\S]{0,160}listing_reserved/);
+assert.match(paidOnlyMigration, /v_error_state = '23505'[\s\S]{0,180}orders_one_unresolved_coupon_idx[\s\S]{0,160}coupon_reserved/);
+assert.doesNotMatch(
+  paidOnlyMigration.match(/create or replace function public\.create_checkout_order_edge_v1[\s\S]*?end;\n\$\$/i)?.[0] || '',
+  /orders_one_unresolved_listing_v2_idx|listing_reserved/,
+  'the final paid-only wrapper must allow more than one pending checkout for a listing',
+);
 assert.match(migration, /return jsonb_build_object\('error',v_error\)/);
 assert.match(checkout, /const domainError = safeText\(order\?\.error, 80\)/);
 assert.ok(

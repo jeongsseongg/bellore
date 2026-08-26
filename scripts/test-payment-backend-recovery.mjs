@@ -14,17 +14,19 @@ const cancellation = read('supabase/functions/_shared/portone-cancellation.ts');
 const policy = read('supabase/functions/_shared/payment-recovery-policy.mjs');
 const reconciliationOrders = read('supabase/functions/_shared/reconciliation-orders.ts');
 const reconciliationOutcomes = read('supabase/functions/_shared/reconciliation-outcomes.ts');
+const unsettledCancellation = read('supabase/functions/_shared/unsettled-checkout-cancellation.ts');
 const confirm = read('supabase/functions/confirm-payment/index.ts');
 const cancel = read('supabase/functions/cancel-payment/index.ts');
 const webhook = read('supabase/functions/payment-webhook/index.ts');
 const reconcile = read('supabase/functions/reconcile-payments/index.ts');
 const listingMigration = read('supabase/migrations/20260826160000_payment_recovery_listing_state.sql');
 const claimMigration = read('supabase/migrations/20260826170000_checkout_claim_integrity.sql');
+const cancellationMigration = read('supabase/migrations/20260826203000_checkout_cancellation_release.sql');
 const reconcileWorkflow = read('.github/workflows/payment-reconcile.yml');
 const dbWorkflow = read('.github/workflows/db-maintenance.yml');
 
 for (const [name, source] of Object.entries({
-  shared, edgeUtils, cancellation, reconciliationOrders, reconciliationOutcomes,
+  shared, edgeUtils, cancellation, reconciliationOrders, reconciliationOutcomes, unsettledCancellation,
   confirm, cancel, webhook, reconcile,
 })) {
   assert(lines(source) <= 400, name + ' must stay within the 400-line source ceiling');
@@ -86,13 +88,13 @@ assert.match(confirm, /retryDelaysMs: CONFIRMATION_RETRY_DELAYS_MS/);
 assert.match(confirm, /const checkoutAbandoned = body\.checkoutAbandoned === true/);
 assert.match(confirm, /notFoundResult: "not_found"/);
 assert.match(confirm, /\.eq\("payment_contract_version", 2\)/);
-assert.equal(occurrences(confirm, /fail_unsettled_order/g), 2);
+assert.equal(occurrences(confirm, /fail_unsettled_order/g), 1);
 const notFoundBlock = confirm.match(
   /if \(lookup\.result === "not_found"\)([\s\S]*?)if \(lookup\.error \|\| !lookup\.payment\)/,
 )?.[1] || '';
 assert.match(notFoundBlock, /if \(!checkoutAbandoned\)[\s\S]*payment_confirmation_pending[\s\S]*202/);
 assert.match(notFoundBlock, /provider_payment_not_found_after_checkout_abandonment/);
-assert.match(notFoundBlock, /fail_unsettled_order[\s\S]*payment_terminal_state_pending[\s\S]*202/);
+assert.match(notFoundBlock, /cancelUnsettledCheckout[\s\S]*payment_terminal_state_pending[\s\S]*202/);
 assert.match(notFoundBlock, /payment_canceled[\s\S]*409/);
 const lookupErrorBlock = confirm.match(
   /if \(lookup\.error \|\| !lookup\.payment\)([\s\S]*?)const payment = lookup\.payment/,
@@ -101,8 +103,9 @@ assert.doesNotMatch(lookupErrorBlock, /fail_unsettled_order/);
 const pendingBlock = confirm.match(/if \(statusKind === "pending"\)([\s\S]*?)if \(statusKind !== "paid"\)/)?.[1] || '';
 assert.doesNotMatch(pendingBlock, /fail_unsettled_order/);
 const terminalBlock = confirm.match(/if \(statusKind !== "paid"\)([\s\S]*?)if \(paidAmount === null\)/)?.[1] || '';
-assert.match(terminalBlock, /statusKind === "failed" \|\| statusKind === "cancelled"/);
+assert.match(terminalBlock, /statusKind === "failed"/);
 assert.match(terminalBlock, /fail_unsettled_order/);
+assert.match(terminalBlock, /statusKind === "cancelled"[\s\S]*reconcileProviderCancelledCheckout/);
 assert.match(terminalBlock, /payment_terminal_state_pending[\s\S]*202/);
 assert.match(confirm, /cancel_amount_mismatch/);
 assert.match(confirm, /paid_finalization_conflict_auto_cancel/);
@@ -178,11 +181,11 @@ assert.match(reconcile, /provider_payment_not_found_after_grace/);
 assert.match(reconcile, /provider_payment_pending_review/);
 assert.match(reconcile, /shouldEscalatePendingOrder/);
 assert.doesNotMatch(reconcile, /provider_payment_(?:not_found|pending)_expired|expirePendingOrder/);
-assert.equal(occurrences(reconcile, /fail_unsettled_order/g), 2);
+assert.equal(occurrences(reconcile, /fail_unsettled_order/g), 1);
 const notFoundPendingBlock = reconcile.match(
   /if \(lookup\.result === "not_found" && order\.status === "pending"\)([\s\S]*?)if \(lookup\.result === "not_found" && locallyClosed\)/,
 )?.[1] || '';
-assert.match(notFoundPendingBlock, /shouldReleaseNotFoundOrder\(order\.status, order\.created_at, Date\.now\(\)\)[\s\S]*fail_unsettled_order/);
+assert.match(notFoundPendingBlock, /shouldReleaseNotFoundOrder\(order\.status, order\.created_at, Date\.now\(\)\)[\s\S]*cancelUnsettledCheckout/);
 assert.match(notFoundPendingBlock, /else \{[\s\S]*counters\.pending \+= 1/);
 const providerPendingBlock = reconcile.match(
   /if \(statusKind === "pending"\)([\s\S]*?)if \(order\.status === "refund_pending"/,
@@ -200,7 +203,7 @@ assert.match(reconcile, /locallyClosed && statusKind === "failed"/);
 assert.doesNotMatch(reconcile, /locallyClosed && \(statusKind === "failed" \|\| statusKind === "cancelled"\)/);
 assert.match(
   reconcile,
-  /statusKind === "cancelled" && hasRefundablePaymentStatus\(order\.status\)[\s\S]{0,520}finalizeKnownProviderCancellation\([\s\S]{0,220}expectedOrderAmount: Number\(order\.amount\)/,
+  /statusKind === "cancelled" && hasRefundablePaymentStatus\(order\.status\)[\s\S]{0,360}reconcileProviderCancelledCheckout\([\s\S]{0,220}expectedOrderAmount: Number\(order\.amount\)/,
   'provider cancellation must be reconciled even when the local order was already failed or canceled',
 );
 assert.match(
@@ -229,17 +232,30 @@ const confirmedReviewBlock = reconcile.match(
 )?.[1] || '';
 assert.doesNotMatch(confirmedReviewBlock, /preserveRefundPendingForReview|fail_unsettled_order/);
 assert.match(
-  reconcile,
-  /cancelledAmount === null[\s\S]{0,180}markNonActionablePaymentReview[\s\S]{0,160}provider_cancelled_amount_missing/,
+  unsettledCancellation,
+  /cancelledAmount === null[\s\S]{0,260}paidAmount === null[\s\S]{0,220}cancelUnsettledCheckout/,
 );
+assert.match(unsettledCancellation, /markPaymentReviewIfUnsettled[\s\S]{0,180}provider_cancelled_amount_missing/);
 
 assert.match(policy, /PENDING_REVIEW_AGE_MS = 24 \* 60 \* 60 \* 1000/);
-assert.match(policy, /NOT_FOUND_RELEASE_AGE_MS = 15 \* 60 \* 1000/);
+assert.match(policy, /NOT_FOUND_RELEASE_AGE_MS = 60 \* 60 \* 1000/);
 assert.match(policy, /shouldReleaseNotFoundOrder/);
 assert.match(policy, /cancel_amount_mismatch/);
 assert.match(policy, /cancel_late_payment/);
 assert.match(policy, /continue_cancellation/);
 assert.match(policy, /failureKind === 'locally_closed'[\s\S]{0,80}'cancel_conflict'/);
+assert.match(unsettledCancellation, /providerCancelledAmount/);
+assert.match(unsettledCancellation, /providerPaidAmount/);
+assert.match(unsettledCancellation, /cancelUnsettledCheckout/);
+assert.match(unsettledCancellation, /finalizeKnownProviderCancellation/);
+assert.match(cancellationMigration, /create or replace function public\.cancel_unsettled_checkout_v1/);
+assert.match(cancellationMigration, /payment_contract_version = 2/);
+assert.match(cancellationMigration, /status in \('pending', 'payment_review'\)/);
+assert.match(cancellationMigration, /set status = 'canceled'/);
+assert.match(cancellationMigration, /coalesce\(auth\.role\(\), ''\) <> 'service_role'/);
+assert.match(cancellationMigration, /assert_payment_operation_open_v1/);
+assert.match(cancellationMigration, /grant execute[\s\S]*to service_role/);
+assert.doesNotMatch(cancellationMigration, /payment_contract_version is null|update[\s\S]{0,100}where payment_contract_version is null/i);
 assert.match(shared, /paidFinalizationDatabaseFailureKind\([\s\S]{0,120}source\.message/);
 for (const source of [confirm, reconcile]) {
   assert.match(
@@ -297,6 +313,19 @@ assert.match(claimMigration, /checkout_contract_forbidden/);
 assert.match(claimMigration, /set_config\('app\.payment_contract_version', '2', true\)/);
 assert.match(claimMigration, /'reservationMode','provider_terminal'/);
 assert.match(claimMigration, /'paymentContractVersion',2/);
+assert.match(cancellationMigration, /drop index if exists public\.orders_one_unresolved_listing_v2_idx/);
+assert.match(cancellationMigration, /create or replace function public\.create_checkout_order_paid_only_v1/);
+assert.match(cancellationMigration, /v_result := public\.create_checkout_order_paid_only_v1/);
+assert.match(cancellationMigration, /'reservationMode','paid_only'/);
+const finalClaimGuard = cancellationMigration.match(
+  /create or replace function public\.guard_new_checkout_claims_v1\(\)[\s\S]*?end;\n\$\$/i,
+)?.[0] || '';
+assert.doesNotMatch(finalClaimGuard, /existing\.listing_id|listing_reserved/);
+assert.match(finalClaimGuard, /existing\.coupon_user_id[\s\S]{0,260}coupon_reserved/);
+const paidOnlyCore = cancellationMigration.match(
+  /create or replace function public\.create_checkout_order_paid_only_v1[\s\S]*?end;\n\$\$/i,
+)?.[0] || '';
+assert.doesNotMatch(paidOnlyCore, /reserved_order_id|reserved_until/);
 assert.equal(
   occurrences(claimMigration, /status not in \('failed','canceled','refunded','refund_pending'\)/g),
   6,
@@ -315,6 +344,7 @@ for (const migration of [
   '20260826170000_checkout_claim_integrity.sql',
   '20260826180000_order_financial_state_guard.sql',
   '20260826190000_payment_finalization_closed_order_contract.sql',
+  '20260826203000_checkout_cancellation_release.sql',
 ]) assert.match(dbWorkflow, new RegExp(migration.replace('.', '\\.')));
 assert.doesNotMatch(dbWorkflow, /-f \/repo\/supabase\/migrations\/20260824090000_authority_payment_hardening\.sql/);
 

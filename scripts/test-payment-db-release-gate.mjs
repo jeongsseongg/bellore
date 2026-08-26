@@ -9,6 +9,7 @@ const read = (file) => readFileSync(join(root, file), 'utf8').replace(/\r\n?/g, 
 const migration = read('supabase/migrations/20260826170000_checkout_claim_integrity.sql');
 const recoveryMigration = read('supabase/migrations/20260826160000_payment_recovery_listing_state.sql');
 const finalizationContractMigration = read('supabase/migrations/20260826190000_payment_finalization_closed_order_contract.sql');
+const paidOnlyMigration = read('supabase/migrations/20260826203000_checkout_cancellation_release.sql');
 const workflow = read('.github/workflows/db-maintenance.yml');
 const guide = read('docs/PAYMENTS_SETUP.md');
 
@@ -40,7 +41,8 @@ assert.match(
   'post-fulfilment history variable must be declared inside the restock helper',
 );
 
-// Both physical-watch and coupon ownership are partial, unique, v2-only claims.
+// The historical claim migration made both claims unique. The final paid-only
+// migration deliberately removes only the physical listing claim.
 assert.match(
   migration,
   /create unique index if not exists orders_one_unresolved_listing_v2_idx[\s\S]{0,180}on public\.orders\(listing_id\)[\s\S]{0,180}payment_contract_version = 2[\s\S]{0,180}status not in \('failed','canceled','refunded','refund_pending'\)/,
@@ -90,6 +92,15 @@ assert.match(migration, new RegExp(`revoke all on function public\\.create_check
 assert.match(migration, /v_result - 'expiresAt'/);
 assert.match(migration, /'reservationMode','provider_terminal'/);
 assert.match(migration, /'paymentContractVersion',2/);
+assert.match(paidOnlyMigration, /drop index if exists public\.orders_one_unresolved_listing_v2_idx/);
+assert.match(paidOnlyMigration, /create or replace function public\.create_checkout_order_paid_only_v1/);
+assert.match(paidOnlyMigration, /v_result := public\.create_checkout_order_paid_only_v1/);
+assert.match(paidOnlyMigration, /'reservationMode','paid_only'/);
+assert.doesNotMatch(
+  paidOnlyMigration.match(/create or replace function public\.create_checkout_order_paid_only_v1[\s\S]*?end;\n\$\$/i)?.[0] || '',
+  /reserved_order_id|reserved_until/,
+  'a pending paid-only checkout must not reserve the physical listing',
+);
 
 // The rollback gate validates catalog metadata as well as the runtime wrapper
 // result and persisted order version. The live gate repeats schema metadata.
@@ -97,14 +108,14 @@ for (const marker of [
   "column_name='payment_contract_version'",
   "conname='orders_payment_contract_version_allowed'",
   "c.convalidated",
-  "i.relname='orders_one_unresolved_listing_v2_idx'",
+  "to_regclass('public.orders_one_unresolved_listing_v2_idx') is not null",
   "i.relname='orders_one_unresolved_coupon_idx'",
   "pg_get_expr(x.indpred,x.indrelid)",
   "tgrelid='public.orders'::regclass",
   "tgfoid=to_regprocedure('public.guard_new_checkout_claims_v1()')",
   "tgrelid='public.listings'::regclass",
   "tgfoid=to_regprocedure('public.guard_listing_reservation_owner_v1()')",
-  "'provider_terminal'",
+  "'paid_only'",
   "'paymentContractVersion'",
   "payment_contract_row_ok",
   "column_name='payment_terminal_at'",
@@ -136,8 +147,8 @@ assert.match(
 );
 assert.equal(
   (workflow.match(/pg_get_expr\(x\.indpred,x\.indrelid\)\) like '%payment_contract_version = 2%'/g) || []).length,
-  6,
-  'rollback and live gates must verify all three indexes are v2-only',
+  4,
+  'rollback and live gates must verify the remaining v2-only indexes',
 );
 
 const validateStart = workflow.indexOf('Validate authority and payment migration (always rollback)');
@@ -231,6 +242,7 @@ for (const file of [
   '20260826170000_checkout_claim_integrity.sql',
   '20260826180000_order_financial_state_guard.sql',
   '20260826190000_payment_finalization_closed_order_contract.sql',
+  '20260826203000_checkout_cancellation_release.sql',
 ]) assert(validateBlock.includes(file), `rollback validation omits ${file}`);
 assert.doesNotMatch(validateBlock, /20260824090000_authority_payment_hardening\.sql/,
   'an applied historical migration must not be replayed by validation');
@@ -246,6 +258,7 @@ for (const file of [
   '20260826170000_checkout_claim_integrity.sql',
   '20260826180000_order_financial_state_guard.sql',
   '20260826190000_payment_finalization_closed_order_contract.sql',
+  '20260826203000_checkout_cancellation_release.sql',
 ]) assert(applyBlock.includes(file), `production apply omits ${file}`);
 assert.match(applyBlock, /PGOPTIONS: "-c lock_timeout=5000 -c statement_timeout=300000/);
 assert.match(applyBlock, /PGCONNECT_TIMEOUT: "10"/);
@@ -280,7 +293,7 @@ assert.match(applyBlock, /payment_release_migration_already_recorded/);
 assert.match(applyBlock, /migration_ledger_ahead_of_release/);
 assert.match(
   applyBlock,
-  /begin;[\s\S]*insert into supabase_migrations\.schema_migrations\(version,name,statements\)[\s\S]{0,900}'20260826155000'[\s\S]{0,900}'20260826190000'[\s\S]{0,180}commit;/,
+  /begin;[\s\S]*insert into supabase_migrations\.schema_migrations\(version,name,statements\)[\s\S]{0,1100}'20260826155000'[\s\S]{0,1100}'20260826203000'[\s\S]{0,180}commit;/,
   'all release migrations must be recorded in the Supabase ledger inside the apply transaction',
 );
 
@@ -324,10 +337,11 @@ assert.match(workflow, /Cleanup — 일회성 Supabase 검증 DB[\s\S]{0,300}doc
 assert.match(guide, /payment_contract_version=2/);
 assert.match(guide, /NULL.*레거시 주문/);
 assert.match(guide, /자동 확정·해제·취소 대상에 포함하지 않습니다/);
-assert.match(guide, /provider_terminal/);
-assert.match(guide, /`PENDING`은 결제 실패가 아니며 24시간 뒤 검토 상태에서도 자동 해제하지 않습니다/);
-assert.match(guide, /`NOT_FOUND`도 단일 응답으로는 해제하지 않고[\s\S]{0,100}예외에서만 종료합니다/);
-assert.match(guide, /15분 age 값은 확정된 PG 보장이 아닌 보수적 운영 후보입니다/);
+assert.match(guide, /`paid_only`/);
+assert.match(guide, /상품 보기, 결제창 열기, `pending`·`payment_review`[\s\S]{0,80}상품을 예약하지 않습니다/);
+assert.match(guide, /먼저 원자적으로 확정한 한 주문만 성공[\s\S]{0,80}자동 전액 취소·환불/);
+assert.match(guide, /생성 후 1시간 이상 지난 뒤 정기 재대조에서도 계속 `NOT_FOUND`/);
+assert.match(guide, /주문·쿠폰 정리 시점/);
 assert.match(guide, /늦은 `PAID`[\s\S]{0,80}전액 자동 취소합니다/);
 assert.match(guide, /cancellation\.totalAmount/);
 assert.match(guide, /payment\.amount\.cancelled/);

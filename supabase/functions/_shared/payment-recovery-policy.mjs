@@ -9,7 +9,7 @@ export const CONFIRMATION_RETRY_DELAYS_MS = Object.freeze([400, 800, 1200]);
 // Conservative rollout candidate, not a measured PortOne/PG delivery SLA.
 // Provider PENDING uses the independent 24-hour review path and is never
 // released by this NOT_FOUND-only threshold.
-export const NOT_FOUND_RELEASE_AGE_MS = 15 * 60 * 1000;
+export const NOT_FOUND_RELEASE_AGE_MS = 60 * 60 * 1000;
 export const PENDING_REVIEW_AGE_MS = 24 * 60 * 60 * 1000;
 export const RECONCILIATION_ROTATION_MS = 5 * 60 * 1000;
 export const CLOSED_ORDER_FINALIZATION_ERROR = Object.freeze({

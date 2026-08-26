@@ -25,7 +25,7 @@ import {
 } from '../supabase/functions/_shared/payment-recovery-policy.mjs';
 
 assert.deepEqual(CONFIRMATION_RETRY_DELAYS_MS, [400, 800, 1200]);
-assert.equal(NOT_FOUND_RELEASE_AGE_MS, 900_000);
+assert.equal(NOT_FOUND_RELEASE_AGE_MS, 3_600_000);
 assert.equal(PENDING_REVIEW_AGE_MS, 86_400_000);
 assert.equal(RECONCILIATION_ROTATION_MS, 300_000);
 assert.equal(providerStatusKind('PAID'), 'paid');
