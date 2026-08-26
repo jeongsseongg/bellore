@@ -24,11 +24,11 @@ assert.match(config, /testOnly:\s*false/, 'customer-facing Naver Pay must be ena
 assert.match(edge, /https:\/\/api\.pay\.naver\.com\/o\/customer\/api\/order\/v20\/register/, 'Edge must default to the production order API');
 assert.match(edge, /sandbox:\s*false/, 'Edge public config must select the production order flow');
 assert.equal((html.match(/id="npay-button-container"/g) || []).length, 1, 'product page must have one Naver Pay button container');
-assert.match(html, /<div class="pp-bottom">[\s\S]*id="npay-button-container"[\s\S]*id="pmBuy"/, 'Naver Pay must sit immediately before the regular purchase action');
+assert.match(html, /<div class="pp-bottom">[\s\S]*id="pmBuy"[\s\S]*id="npay-button-container"/, 'regular purchase must sit immediately before the Naver Pay action');
 assert.match(css, /\.pp-bottom \.pp-npay-action/, 'bottom purchase bar must size the Naver Pay action');
 assert.match(client, /classList\.toggle\('has-npay', visible\)/, 'purchase bar must reserve space only when Naver Pay is visible');
 assert.match(client, /sessionStorage\.setItem\(testSessionKey, '1'\)/, 'Naver Pay test mode must survive canonical product routing in the same tab');
 assert.match(client, /sessionStorage\.removeItem\(testSessionKey\)/, 'Naver Pay test mode must support an explicit opt-out');
-assert.match(sw, /bellore-v349-auth-shell/, 'latest service worker cache namespace must preserve the live Naver Pay release');
+assert.match(sw, /bellore-v350-purchasebar-harmony/, 'latest service worker cache namespace must preserve the live Naver Pay release');
 
 console.log('Naver Pay live release contract: 19/19 passed');

@@ -1260,12 +1260,104 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
 .pp-bottom .pp-npay-action > * {
   max-width: 100% !important;
 }
+
+/* 2026-08-26 — unified product purchase bar */
+.pp-bottom {
+  align-items: center;
+  gap: 12px;
+  padding: 24px 18px calc(14px + env(safe-area-inset-bottom));
+}
+.pp-bottom .pp-wish {
+  width: 52px;
+  height: 52px;
+  min-height: 52px;
+  margin: 3px 0;
+  border: 0;
+  border-radius: 50%;
+  background: #f3f3f1;
+  color: #656565;
+}
+.pp-bottom .pp-buyprice {
+  min-width: 178px;
+  min-height: 58px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 8px;
+  font-size: 20px;
+  line-height: 1;
+}
+.pp-bottom .pp-buyprice::before {
+  content: '판매가';
+  color: #929292;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .01em;
+}
+.pp-bottom .pp-buyprice .won {
+  margin-left: 2px;
+  color: #777;
+  font-size: 14px;
+  font-weight: 750;
+}
+.pp-bottom .pp-buy {
+  height: 58px;
+  min-height: 58px;
+  border-radius: 14px;
+  font-size: 18px;
+}
+.pp-bottom .pp-npay-action {
+  position: relative;
+  align-self: center;
+  height: 58px;
+  min-height: 58px;
+  max-height: 58px;
+  border-radius: 14px;
+  overflow: visible;
+}
+.pp-bottom .pp-npay-action > * {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100% !important;
+  margin: 0 !important;
+  overflow: visible !important;
+}
+.pp-bottom .pp-npay-action iframe {
+  display: block;
+  width: 100% !important;
+  border: 0;
+  border-radius: 14px;
+  overflow: visible;
+}
 .pp-bottom.has-npay .pp-buyprice { display: none; }
 .pp-bottom.has-npay .pp-buy,
 .pp-bottom.has-npay .pp-npay-action { flex-basis: 0; }
 @media (min-width: 680px) {
   .pp-bottom.has-npay .pp-buyprice { display: flex; }
-  .pp-bottom .pp-npay-action { max-width: 210px; }
+  .pp-bottom .pp-npay-action { max-width: 260px; }
+}
+@media (max-width: 679px) {
+  .pp-bottom {
+    gap: 8px;
+    padding: 22px 12px calc(11px + env(safe-area-inset-bottom));
+  }
+  .pp-bottom .pp-wish {
+    width: 48px;
+    height: 48px;
+    min-height: 48px;
+    margin: 3px 0;
+    border-radius: 50%;
+  }
+  .pp-bottom .pp-buy,
+  .pp-bottom .pp-npay-action {
+    height: 54px;
+    min-height: 54px;
+    max-height: 54px;
+    border-radius: 12px;
+  }
 }
 .pp-sale-state {
   display: inline-flex;

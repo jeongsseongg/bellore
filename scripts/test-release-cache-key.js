@@ -47,7 +47,7 @@ for (const [name, url] of Object.entries(urls)) {
 for (const name of ['styles', 'script', 'payments', 'wishlist', 'search', 'dialog', 'features', 'quotes', 'auction', 'bootstrap', 'conditionGuide', 'pageRuntime']) {
   assert(serviceWorker.includes(`'./${urls[name]}'`), `service worker must precache the exact ${name} URL`);
 }
-assert.match(serviceWorker, /const VERSION = "bellore-v349-auth-shell";/, 'service-worker cache namespace must preserve the live release and add the 660px auth shell');
+assert.match(serviceWorker, /const VERSION = "bellore-v350-purchasebar-harmony";/, 'service-worker cache namespace must preserve the live release and add the unified purchase bar');
 assert(serviceWorker.includes("'./login.html'"), 'service worker must precache the independent login page');
 assert(serviceWorker.includes(`'./app/features/auth-login/auth-login.css?v=${authPageAssetKey}'`), 'service worker must precache login page styles');
 assert(serviceWorker.includes(`'./app/features/auth-login/auth-login.js?v=${authPageAssetKey}'`), 'service worker must precache login page behavior');
