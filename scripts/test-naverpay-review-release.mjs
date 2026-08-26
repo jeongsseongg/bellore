@@ -26,6 +26,8 @@ assert.equal((html.match(/id="npay-button-container"/g) || []).length, 1, 'produ
 assert.match(html, /<div class="pp-bottom">[\s\S]*id="npay-button-container"[\s\S]*id="pmBuy"/, 'Naver Pay must sit immediately before the regular purchase action');
 assert.match(css, /\.pp-bottom \.pp-npay-action/, 'bottom purchase bar must size the Naver Pay action');
 assert.match(client, /classList\.toggle\('has-npay', visible\)/, 'purchase bar must reserve space only when Naver Pay is visible');
-assert.match(sw, /bellore-v343-admin-member-lifecycle/, 'service worker cache namespace must preserve the button relocation in the integrated release');
+assert.match(client, /sessionStorage\.setItem\(testSessionKey, '1'\)/, 'Naver Pay test mode must survive canonical product routing in the same tab');
+assert.match(client, /sessionStorage\.removeItem\(testSessionKey\)/, 'Naver Pay test mode must support an explicit opt-out');
+assert.match(sw, /bellore-v344-admin-member-lifecycle/, 'service worker cache namespace must preserve the test-session fix in the integrated release');
 
-console.log('Naver Pay review release contract: 16/16 passed');
+console.log('Naver Pay review release contract: 18/18 passed');
