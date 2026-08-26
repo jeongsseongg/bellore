@@ -22,7 +22,7 @@
         <h1 id="adminAuthTitle">관리자 로그인</h1>
         <p>등록된 운영 계정으로 로그인해 주세요.</p>
       </div>
-      <form id="adminLoginForm" novalidate>
+      <form id="adminLoginForm" method="post" action="/admin/" novalidate>
         <label><span>아이디</span><input id="adminLoginId" name="username" autocomplete="username" required></label>
         <label><span>비밀번호</span><input id="adminLoginPassword" name="password" type="password" autocomplete="current-password" required></label>
         <p class="admin-auth-error" id="adminAuthError" role="alert" hidden></p>

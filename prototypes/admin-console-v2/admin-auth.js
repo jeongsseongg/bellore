@@ -1,3 +1,15 @@
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const SUPABASE_URL = 'https://iumsnacuxgssnnbckurq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml1bXNuYWN1eGdzc25uYmNrdXJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NDQ5ODQsImV4cCI6MjA5NjIyMDk4NH0.lwej8g4YCaiYuoQSXczwRp6ez-X26DD5d1ycMkYwpIk';
+
+const startupUrl = new URL(window.location.href);
+if (startupUrl.searchParams.has('username') || startupUrl.searchParams.has('password')) {
+  startupUrl.searchParams.delete('username');
+  startupUrl.searchParams.delete('password');
+  window.history.replaceState({}, '', startupUrl);
+}
+
 const authRoot = document.getElementById('adminAuth');
 const appRoot = document.getElementById('adminApp');
 const form = document.getElementById('adminLoginForm');
@@ -111,7 +123,3 @@ export async function signOutAdmin() {
   await client.auth.signOut();
   window.location.replace('/admin/');
 }
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-
-const SUPABASE_URL = 'https://iumsnacuxgssnnbckurq.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml1bXNuYWN1eGdzc25uYmNrdXJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2NDQ5ODQsImV4cCI6MjA5NjIyMDk4NH0.lwej8g4YCaiYuoQSXczwRp6ez-X26DD5d1ycMkYwpIk';

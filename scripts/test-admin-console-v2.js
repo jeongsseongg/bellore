@@ -83,6 +83,8 @@ assert.match(bootstrap, /await requireAdminSession\(\)/, 'admin workspace waits 
 assert.match(auth, /storageKey: 'bellore-admin-auth-v1'/, 'admin auth uses an isolated session');
 assert.match(auth, /profile\?\.role !== 'admin'|profile\.role !== 'admin'/, 'database profile role is required');
 assert.match(auth, /tokenRole !== 'admin'/, 'trusted app metadata role is required');
+assert.match(html, /method="post" action="\/admin\/"/, 'login form must not leak credentials into the URL if JavaScript fails');
+assert.match(auth, /searchParams\.delete\('password'\)/, 'legacy credential query parameters are removed immediately');
 assert.doesNotMatch(auth, /service[_-]?role|qpffhfm|password\s*[:=]\s*['"]/i, 'admin auth must not embed a privileged key or password');
 assert.match(bootstrap, /createAdminWorkspace/, 'bootstrap composes workspace feature');
 assert.match(bootstrap, /createAdminHomeEditor/, 'bootstrap composes home editor feature');
