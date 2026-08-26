@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
-const workflow = readFileSync(resolve(root, '.github/workflows/pages-deploy.yml'), 'utf8');
+const workflow = readFileSync(resolve(root, '.github/workflows/pages-deploy.yml'), 'utf8').replace(/\r\n/g, '\n');
 const buildJob = workflow.match(/\n  build:\n([\s\S]*?)\n  deploy:\n/)?.[1] || '';
 const deployJob = workflow.match(/\n  deploy:\n([\s\S]*)$/)?.[1] || '';
 

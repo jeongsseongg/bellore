@@ -73,6 +73,7 @@ async function validateDeployConfig() {
 
   assert.match(pagesWorkflow, /branches:\s*\[main\]/, 'Pages push 배포는 main만 받아야 합니다.');
   assert.match(pagesWorkflow, /build:\s*\n\s+if:\s*>-\s*\n\s+github\.ref == 'refs\/heads\/main'/, 'Pages build job은 main에서만 실행해야 합니다.');
+  assert.doesNotMatch(pagesWorkflow, /build:\s*[\s\S]*?needs:\s*truth_guard/, 'Pages build 검사는 Truth Guard와 병렬 실행해야 합니다.');
   assert.match(pagesWorkflow, /deploy:\s*\n\s+if:\s*>-\s*\n\s+github\.ref == 'refs\/heads\/main'/, 'Pages deploy job은 main에서만 실행해야 합니다.');
   assert.match(pagesWorkflow, /static_release_sha:[\s\S]*?required:\s*false/, 'Pages 수동 프론트 릴리스는 명시적 SHA 입력만 받아야 합니다.');
   assert.equal((pagesWorkflow.match(/vars\.PRODUCTION_DEPLOY_ENABLED == 'true'/g) || []).length, 2,
@@ -80,7 +81,6 @@ async function validateDeployConfig() {
   assert.doesNotMatch(pagesWorkflow, /PRODUCTION_DEPLOY_ENABLED != 'false'/, 'Pages 배포 조건은 fail-open이면 안 됩니다.');
   assert.match(pagesWorkflow, /refs\/heads\/codex\/locked-pages-release/, '잠금형 Pages 릴리스는 전용 브랜치만 허용해야 합니다.');
   assert.match(pagesWorkflow, /git merge-base --is-ancestor "\$WORKFLOW_MAIN_SHA" "\$STATIC_RELEASE_SHA"/, '잠금형 릴리스는 실행 시점 main 전체를 포함해야 합니다.');
-  assert.match(pagesWorkflow, /build:\s*[\s\S]*?needs:\s*truth_guard/, 'Pages build job은 Truth Guard를 먼저 통과해야 합니다.');
   assert.match(pagesWorkflow, /deploy:\s*[\s\S]*?needs:\s*\[truth_guard,\s*build\]/, 'Pages deploy는 Truth Guard와 검증된 build job에 직접 의존해야 합니다.');
   assert.match(pagesWorkflow, /run:\s*node tools\/build-pages\.mjs/, 'Pages 배포 전 _site 빌드가 필요합니다.');
   assert.match(pagesWorkflow, /run:\s*node scripts\/test-pages-artifact\.mjs --site _site --expect-seo/, 'Pages 최종 artifact 검사가 필요합니다.');
