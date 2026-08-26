@@ -168,6 +168,7 @@ export async function cancelAndReconcile(input: {
     return {
       state: "failed",
       cancellationId: null,
+      cancelledAmount: null,
       recovered: false,
       dbFinalized: false,
       tracked: false,
@@ -185,6 +186,7 @@ export async function cancelAndReconcile(input: {
     return {
       state: "failed",
       cancellationId: null,
+      cancelledAmount: null,
       recovered: false,
       dbFinalized: false,
       tracked: false,
@@ -203,6 +205,7 @@ export async function cancelAndReconcile(input: {
     return {
       state: "failed",
       cancellationId: null,
+      cancelledAmount: null,
       recovered: false,
       dbFinalized: false,
       tracked: true,

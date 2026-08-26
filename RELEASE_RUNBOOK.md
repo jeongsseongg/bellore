@@ -11,12 +11,16 @@
 
 DB·Storage 정책·Edge Function이 포함되면 `PRODUCTION_DEPLOY_ENABLED=false`로 자동 웹 게시를 먼저 잠그고 다음 순서를 고정한다.
 
-1. 24시간 이내 암호화 DB 백업 workflow가 실제 `db-backup` artifact를 만들고 성공했는지 확인한다. 시크릿 누락으로 건너뛴 실행은 백업 성공이 아니다.
-2. `DB Maintenance`의 `validate-authority-payment`로 운영 스키마에서 전체 migration과 결제/환불 멱등 흐름을 실행한 뒤 전부 rollback한다.
-3. `apply-authority-payment`에 정확한 `confirm_sha`와 백업 `run_id`를 입력한다. 같은 rollback 검사를 다시 통과한 뒤 한 트랜잭션으로 적용하고 false 결과도 실패시킨다.
-4. `confirm-payment`, `cancel-payment`, `payment-webhook` Edge Function을 배포하고 배포된 함수 목록·JWT 설정·비밀값 존재만 확인한다. 비밀값 자체는 출력하지 않는다.
-5. PortOne V2 실연동 webhook URL을 `payment-webhook`으로 등록하고 호출 테스트를 통과시킨다.
-6. `PRODUCTION_DEPLOY_ENABLED=true`로 되돌린 다음 Pages와 Firebase를 수동 실행한다.
+1. GitHub와 Supabase의 재대조 및 신규 결제 환경 스위치를 모두 `false`로 두고, 정적 자동 배포도 `PRODUCTION_DEPLOY_ENABLED=false`로 잠근다.
+2. DB 제어 RPC가 없거나 `false`이면 주문·결제사 접근 전에 503으로 닫히는 Edge를 `payment-webhook` → `confirm-payment` → `cancel-payment` → `reconcile-payments` → `create-checkout` 순서로 배포한다. 함수별로 동일 잠금 응답과 결제사 호출 0회를 확인한다.
+3. 잠금 전에 시작된 최대 150초 요청이 끝나도록 180초 drain한다.
+4. `DB Maintenance`의 `validate-authority-payment`를 운영과 물리 system identifier가 다른 일회성 검증 DB에서 실행하고, 전체 migration·결제/환불 픽스처와 즉시 제약 검사를 전부 rollback한다. 운영 DB에서는 rollback 픽스처를 실행하지 않는다.
+5. 24시간 이내 암호화 DB 백업 workflow가 실제 `db-backup` artifact를 만들고 성공했는지 확인한다. 시크릿 누락으로 건너뛴 실행은 백업 성공이 아니다.
+6. `apply-authority-payment`에 정확한 `confirm_sha`, 백업 `run_id`, hash-only 주문 보류값과 승인 문자열을 입력한다. 보호 주문 원문은 입력·로그·DB에 남기지 않는다. 사전 스키마 지문을 통과한 뒤 대상 5개 migration과 원장 5개를 한 트랜잭션으로 적용한다.
+7. 운영 ACL·RLS·trigger·hold 사후검사와 Supabase security/performance advisor를 확인한다. 보호 주문 행은 직접 조회하지 않는다.
+8. 동일 SHA의 Edge와 Pages artifact를 다시 검사하고, `PRODUCTION_DEPLOY_ENABLED=false`를 유지한 채 잠금 브랜치 SHA로 GitHub Pages를 수동 배포한다. Firebase는 공개 도메인의 주 운영 경로가 아니다.
+9. DB 제어를 `payment_webhook` → `confirm_payment` → `cancel_payment` 순서로 먼저 연다. 보류 주문 제외가 검증된 재대조만 그 다음 열고, `create_checkout`과 신규 결제 환경 스위치는 마지막에 연다.
+10. 새 별도 테스트 주문으로 승인→웹훅→예약 표시를 확인하고, 별도 승인된 테스트 주문으로 취소·전액 환불을 검증한다.
 
 어느 단계든 실패하면 뒤 단계를 진행하지 않는다. migration의 재실행 안전성, 적용 후 검증 SQL, 되돌리기 또는 복원 방법을 먼저 준비하고 결과 건수를 기록한다.
 

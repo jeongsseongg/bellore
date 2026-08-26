@@ -219,6 +219,10 @@ assert.ok(
 assert.match(workflow, /This check does not prove that the dump can be restored/);
 assert.doesNotMatch(workflow, /recoverable backup|prove the artifact is recoverable/i);
 assert.match(workflow, /SUPABASE_VALIDATION_DB_URL/);
+assert.match(workflow, /validation_system_id/);
+assert.match(workflow, /production_system_id/);
+assert.match(workflow, /pg_control_system\(\)/);
+assert.match(workflow, /검증 DB와 운영 DB가 같은 물리 클러스터입니다/);
 assert.match(workflow, /VALIDATION_DB_URL" = "\$PRODUCTION_DB_URL"/);
 
 // Operator guidance mirrors executable invariants, including real provider

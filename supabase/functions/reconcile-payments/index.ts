@@ -27,7 +27,9 @@ const PROVIDER_INTEGRITY_ERRORS = new Set([
   "provider_payment_id_missing", "provider_payment_id_mismatch", "provider_store_mismatch",
   "provider_currency_mismatch", "provider_channel_not_live", "provider_response_invalid",
 ]);
-type SupabaseAdmin = ReturnType<typeof createClient>;
+const createAdminClient = () => createClient(SUPABASE_URL, SERVICE_ROLE,
+  { auth: { persistSession: false, autoRefreshToken: false } });
+type SupabaseAdmin = ReturnType<typeof createAdminClient>;
 class PaymentOperationGuardUnavailable extends Error {}
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -37,7 +39,6 @@ function json(body: unknown, status = 200) {
 function secretByteLength(value: string): number {
   return new TextEncoder().encode(value).byteLength;
 }
-
 function shouldReviewPending(order: OrderRow): boolean {
   return shouldEscalatePendingOrder(order.status, order.created_at, Date.now());
 }
@@ -354,8 +355,7 @@ Deno.serve(async (req) => {
   if (!Number.isInteger(POINT_EARN_BPS) || POINT_EARN_BPS < 0 || POINT_EARN_BPS > 10000) {
     return json({ error: "point_policy_invalid" }, 503);
   }
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE,
-    { auth: { persistSession: false, autoRefreshToken: false } });
+  const admin = createAdminClient();
   const reconcileGate = await readPaymentOperationControl(admin, "reconcile_payments");
   if (!reconcileGate.ok || !reconcileGate.enabled)
     return json({ error: "payment_operations_temporarily_unavailable" }, 503);

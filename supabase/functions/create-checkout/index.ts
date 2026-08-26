@@ -27,6 +27,9 @@ const MAX_BODY_BYTES = 16 * 1024;
 
 type JsonRecord = Record<string, unknown>;
 type RpcError = { code?: string; message?: string };
+const createAdminClient = () => createClient(SUPABASE_URL, SERVICE_ROLE,
+  { auth: { persistSession: false, autoRefreshToken: false } });
+type CheckoutAdmin = ReturnType<typeof createAdminClient>;
 
 function allowedOrigin(req: Request): string | null {
   const origin = req.headers.get("Origin");
@@ -144,7 +147,7 @@ function publicCheckoutError(error: RpcError): { code: string; status: number } 
   return { code: "checkout_failed", status: 500 };
 }
 
-async function checkoutCaller(admin: ReturnType<typeof createClient>, bearer: string) {
+async function checkoutCaller(admin: CheckoutAdmin, bearer: string) {
   const tokenContext = classifyCheckoutJwtClaims(decodeGatewayVerifiedJwtClaims(bearer));
   if (tokenContext.kind === "guest") return { callerId: null, error: null };
   if (tokenContext.kind !== "user") return { callerId: null, error: tokenContext.reason };
@@ -171,9 +174,7 @@ Deno.serve(async (req) => {
     if (!CHECKOUT_ENABLED) {
       return json(req, { error: "payment_operations_temporarily_unavailable" }, 503);
     }
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+    const admin = createAdminClient();
     const checkoutGate = await readPaymentOperationControl(admin, "create_checkout");
     if (!checkoutGate.ok || !checkoutGate.enabled) {
       return json(req, { error: "payment_operations_temporarily_unavailable" }, 503);

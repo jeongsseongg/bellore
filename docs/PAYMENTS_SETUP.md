@@ -37,7 +37,7 @@ API Secret은 브라우저 코드나 저장소에 넣지 않습니다.
 
 SQL Editor에 과거 `payment_full_only.sql`을 붙여 넣지 않습니다. GitHub Actions의 `DB Maintenance`에서 아래 순서로 실행합니다.
 
-먼저 운영 DB와 분리된 일회성 검증 DB의 연결 문자열을 GitHub repository secret `SUPABASE_VALIDATION_DB_URL`에 설정합니다. 운영 `SUPABASE_DB_URL`과 같은 값을 넣지 않습니다. `validate-authority-payment`의 픽스처는 이 검증 DB에만 접근하며 운영 DB에서는 실행되지 않습니다. 검증 DB에는 현재 운영과 동일한 authority/payment 스키마와 `customer_shipping_addresses` 마이그레이션, 테스트 가능한 판매 상품 데이터가 필요합니다.
+먼저 운영 DB와 분리된 일회성 검증 DB의 연결 문자열을 GitHub repository secret `SUPABASE_VALIDATION_DB_URL`에 설정합니다. 운영 `SUPABASE_DB_URL`과 같은 값을 넣지 않습니다. URL 문자열뿐 아니라 `pg_control_system()`의 물리 system identifier도 운영과 달라야 검증을 시작합니다. `validate-authority-payment`의 픽스처는 이 검증 DB에만 접근하며 운영 DB에서는 실행되지 않습니다. 검증 DB에는 현재 운영과 동일한 authority/payment 스키마와 `customer_shipping_addresses` 마이그레이션, 테스트 가능한 판매 상품 데이터가 필요합니다.
 
 1. `validate-authority-payment`: 별도 검증 DB에서 전체 마이그레이션과 픽스처를 실행한 뒤 항상 rollback합니다.
 2. 24시간 이내의 성공한 `Daily DB Backup` run ID를 확인합니다.
