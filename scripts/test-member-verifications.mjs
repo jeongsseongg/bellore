@@ -11,6 +11,7 @@ const config = read('supabase', 'config.toml');
 const identity = read('supabase', 'functions', 'verify-identity', 'index.ts');
 const business = read('supabase', 'functions', 'verify-business', 'index.ts');
 const account = read('supabase', 'functions', 'verify-account', 'index.ts');
+const accountMigration = read('supabase', 'migrations', '20260826121009_kftc_account_verification.sql');
 const admin = read('supabase', 'functions', 'admin-manage-verification', 'index.ts');
 const memberOps = read('supabase', 'functions', 'admin-member-ops', 'index.ts');
 const adminAccountConfig = read('prototypes', 'admin-console-v2', 'features', 'operations', 'admin-account-config.js');
@@ -66,6 +67,8 @@ assert.match(client, /accountVersionById/);
 assert.match(client, /VERSION_REQUIRED_REFRESH/);
 assert.match(client, /body\.expectedVersion = expectedVersion/);
 assert.doesNotMatch(client, /phone_verified:\s*true/);
+assert.doesNotMatch(client, /provider:\s*['"]naver['"]/, 'unsupported Supabase Naver provider must never be called');
+assert.match(client, /NAVER_LOGIN_NOT_CONFIGURED/);
 assert.match(legacyFeatures, /KG이니시스 통합인증/);
 assert.match(legacyFeatures, /B\.verifyIdentityPortone\(\)/);
 assert.doesNotMatch(legacyFeatures, /B\.sendPhoneOtp\(/);
@@ -82,8 +85,11 @@ assert.doesNotMatch(identity, /di\s*:/i, 'DI must not be persisted');
 
 assert.match(business, /ntsBusinessResult\(nts\)\.valid/);
 assert.doesNotMatch(business, /valid === true \|\|/);
-assert.match(account, /Provider is intentionally not guessed/);
-assert.match(account, /code: "NOT_CONFIGURED"/);
+assert.match(account, /requestKftcClientToken/);
+assert.match(account, /lookupKftcAccount/);
+assert.match(account, /BUSINESS_VERIFICATION_REQUIRED/);
+assert.match(account, /p_subject: \{ bank_name: bank, bank_account: account, bank_holder: holder \}/);
+assert.match(accountMigration, /bank_account = nullif\(p_subject->>'bank_account', ''\)/);
 
 assert.match(admin, /select\("role,approved,suspended"\)/);
 assert.match(admin, /actorProfile\.approved !== true/);
@@ -104,6 +110,8 @@ const sharedUrl = pathToFileURL(path.join(root, 'supabase', 'functions', '_share
 const shared = await import(sharedUrl);
 const providersUrl = pathToFileURL(path.join(root, 'supabase', 'functions', '_shared', 'member-verification-providers.mjs')).href;
 const providers = await import(providersUrl);
+const kftcUrl = pathToFileURL(path.join(root, 'supabase', 'functions', '_shared', 'kftc-account-provider.mjs')).href;
+const kftc = await import(kftcUrl);
 assert.equal(shared.normalizePhone('+82 10-1234-5678'), '01012345678');
 assert.equal(shared.normalizePhone('010-1234-5678'), '01012345678');
 assert.equal(shared.normalizePhone('02-123-4567'), null);
@@ -126,5 +134,49 @@ assert.throws(() => providers.validatePortOneIdentity({ ...verifiedIdentity, cha
 }), /CHANNEL_NOT_LIVE/);
 assert.deepEqual(providers.ntsBusinessResult({ data: [{ valid: '01' }] }), { valid: true });
 assert.deepEqual(providers.ntsBusinessResult({ data: [{ valid: '02' }] }), { valid: false });
+assert.equal(kftc.resolveKftcBankCode('국민은행'), '004');
+assert.equal(kftc.resolveKftcBankCode('카카오뱅크'), '090');
+assert.equal(kftc.resolveKftcBankCode('092'), '092');
+assert.equal(kftc.resolveKftcBankCode('없는은행'), null);
+assert.equal(kftc.normalizeAccountHolder('(주) 벨로르'), '주벨로르');
+assert.equal(kftc.kftcBaseUrl('test'), 'https://testapi.openbanking.or.kr');
+assert.equal(kftc.kftcBaseUrl('production'), 'https://openapi.openbanking.or.kr');
+assert.equal(kftc.kftcBaseUrl('other'), null);
+assert.match(kftc.createBankTranId('F123456789'), /^F123456789U[A-F0-9]{9}$/);
+assert.equal(kftc.formatKftcTranDtime(new Date('2026-08-26T01:02:03Z')), '20260826100203');
+
+let tokenRequest;
+const token = await kftc.requestKftcClientToken({
+  baseUrl: 'https://testapi.openbanking.or.kr', clientId: 'client-id', clientSecret: 'client-secret',
+  fetchFn: async (url, options) => {
+    tokenRequest = { url, options };
+    return new Response(JSON.stringify({ access_token: 'token', client_use_code: 'F123456789', expires_in: 7200 }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } });
+  },
+});
+assert.equal(token.accessToken, 'token');
+assert.equal(token.clientUseCode, 'F123456789');
+assert.equal(tokenRequest.url, 'https://testapi.openbanking.or.kr/oauth/2.0/token');
+assert.match(String(tokenRequest.options.body), /grant_type=client_credentials/);
+assert.match(String(tokenRequest.options.body), /scope=oob/);
+
+let lookupRequest;
+const lookup = await kftc.lookupKftcAccount({
+  baseUrl: 'https://testapi.openbanking.or.kr', accessToken: 'token', clientUseCode: 'F123456789',
+  bankCode: '004', accountNumber: '1234567890', holderInfoType: '4', holderInfo: '1234567890',
+  fetchFn: async (url, options) => {
+    lookupRequest = { url, options, body: JSON.parse(options.body) };
+    return new Response(JSON.stringify({ rsp_code: 'A0000', bank_rsp_code: '000', account_holder_name: '벨로르' }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } });
+  },
+});
+assert.equal(lookup.ok, true);
+assert.equal(lookup.holderName, '벨로르');
+assert.equal(lookupRequest.url, 'https://testapi.openbanking.or.kr/v2.0/inquiry/real_name');
+assert.equal(lookupRequest.options.headers.Authorization, 'Bearer token');
+assert.equal(lookupRequest.body.bank_code_std, '004');
+assert.equal(lookupRequest.body.account_holder_info, '1234567890');
+assert.match(lookupRequest.body.bank_tran_id, /^F123456789U[A-F0-9]{9}$/);
+assert.match(lookupRequest.body.tran_dtime, /^\d{14}$/);
 
 console.log('member verification security contract: ok');

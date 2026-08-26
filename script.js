@@ -545,15 +545,7 @@
         var nv = $('#loginNaver');
         if (nv) {
             nv.addEventListener('click', function () {
-                if (!NWBackend.signInWithNaver) { alert('네이버 로그인은 준비 중입니다.'); return; }
-                try { sessionStorage.setItem('bellore_social_pending', '1'); } catch (e) {}
-                NWBackend.signInWithNaver()
-                    .then(function () { closeLoginModal(); })
-                    .catch(function (err) {
-                        var m = (err && err.message) || '';
-                        if (/provider|not enabled|unsupported|validation/i.test(m)) alert('네이버 로그인은 현재 준비 중입니다.');
-                        else alert('네이버 로그인 실패: ' + authErrorMsg(err));
-                    });
+                alert('네이버 로그인은 현재 준비 중입니다.');
             });
         }
 

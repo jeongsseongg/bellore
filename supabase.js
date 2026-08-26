@@ -427,13 +427,9 @@
   };
 
   Backend.signInWithNaver = function () {
-    return sb.auth.signInWithOAuth({
-      provider: 'naver',
-      options: { redirectTo: location.origin + location.pathname }
-    }).then(function (res) {
-      if (res.error) throw res.error;
-      return { displayName: '' };
-    });
+    var error = new Error('NAVER_LOGIN_NOT_CONFIGURED');
+    error.code = 'NAVER_LOGIN_NOT_CONFIGURED';
+    return Promise.reject(error);
   };
 
   // 아이디(username) 사용 가능 여부 — email_for_username RPC 가 이메일을 돌려주면 이미 사용 중.

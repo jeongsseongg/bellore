@@ -7,7 +7,7 @@
 | 휴대폰 | KG이니시스 통합인증(포트원 V2 채널) | `verify-identity` | 포트원 본인인증 채널·시크릿·운영 조회 검증 |
 | 이메일 | Supabase Auth 이메일 OTP | `sync-email-verification` | 이메일 템플릿에 `{{ .Token }}` 적용 후 송수신 검증 |
 | 사업자 | 국세청 사업자등록정보 진위확인 API | `verify-business` | 공공데이터포털 서비스키·Edge 배포 검증 |
-| 계좌 | 계약 사업자 미정 | `verify-account` | 실제 사업자 계약과 응답 서명/조회 규격 구현 전까지 차단 |
+| 계좌 | 금융결제원 오픈뱅킹 계좌실명조회 | `verify-account` | 테스트/운영 키·실명번호 구분코드·실계좌 종단검증 후 활성화 |
 
 브라우저 성공 응답은 인증 완료의 근거가 아니다. 모든 인증 플래그는 서버가 공급자 결과를 재조회하거나 Supabase Auth의 확인 시각을 확인한 후 DB 트랜잭션으로 기록한다.
 
@@ -28,7 +28,8 @@
 - 휴대폰: `PORTONE_API_SECRET`, `PORTONE_STORE_ID`, `PORTONE_IDENTITY_CHANNEL_KEY`
 - 선택: `PORTONE_API_BASE`(기본 `https://api.portone.io`), `ALLOW_TEST_IDENTITY=true`(로컬 시험 전용)
 - 사업자: `NTS_SERVICE_KEY`
-- 계좌: 사업자 확정 후 별도 정의. 현재 `ACCOUNT_VERIFY_PROVIDER`는 상태 식별용이며 인증을 활성화하지 않는다.
+- 계좌: `KFTC_OPENBANKING_ENV`(`test` 또는 `production`), `KFTC_CLIENT_ID`, `KFTC_CLIENT_SECRET`, `KFTC_ACCOUNT_HOLDER_INFO_TYPE`
+- 계좌 인증은 국세청 사업자 인증이 완료된 계정의 사업자등록번호만 서버에서 읽어 사용한다. Client Secret·Access Token·사업자번호·계좌번호 원문은 감사기록에 저장하지 않는다.
 
 ## 배포 전 순서
 
@@ -47,4 +48,4 @@
 - 감사: `{ "action":"list_events", "targetUserId":"uuid", "limit":50 }`
 - 수동 처리: `{ "action":"set_status", "targetUserId":"uuid", "method":"phone|email|business|account", "verified":true, "reason":"5자 이상 사유" }`
 
-계좌 실명조회는 사업자 규격을 추정해 연결하지 않는다. 공급자 계약 전에는 `NOT_CONFIGURED`가 정상 결과다.
+계좌 실명조회는 금융결제원의 Client Credentials(`scope=oob`)와 계좌실명조회 API를 사용한다. 테스트 키는 `test` 환경에서만 사용하며, 운영 이용승인과 운영 키 발급 전에는 공개 설정의 `account.enabled`를 켜지 않는다.
