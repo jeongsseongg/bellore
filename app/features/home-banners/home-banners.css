@@ -3,26 +3,44 @@
 
 .bn-block { margin: 14px 0; }
 
-/* 캠페인 이미지를 원본 비율로 보이고, 비어 있는 영역에만 반응형 문구를 배치한다. */
+/* 캠페인 이미지 규격(430:189)을 화면 틀로 사용해 상하 레터박스 없이 전부 보인다. */
+.hero-carousel.has-db {
+  background: transparent; border-radius: 0;
+}
 .hero-slide-db.is-campaign {
-  display: block; padding: 0; border: 0; color: inherit; background: #07100d;
+  display: block; height: auto; min-height: 0; max-height: none; aspect-ratio: 430 / 189;
+  padding: 0; border: 0; color: inherit; background: transparent;
   cursor: pointer; font: inherit; text-align: left; container-type: inline-size;
 }
-.hero-slide-db.is-campaign .hero-slide-bg { background-size: contain; }
+.hero-slide-db.is-campaign .hero-slide-blur { display: none; }
+.hero-slide-db.is-campaign .hero-slide-bg { background-size: cover; }
 .hero-campaign-copy {
-  position: absolute; z-index: 5; left: 5%; top: 50%; width: 43%; padding: 3.2cqw 3.5cqw;
-  transform: translateY(-50%); border-radius: clamp(8px, 2cqw, 16px); box-sizing: border-box;
-  color: #fff; background: rgba(5, 17, 13, .78); font-family: var(--font-sans, "Wanted Sans", sans-serif);
-  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  position: absolute; z-index: 5; left: 5.5%; top: 50%; width: 43%; padding: 0;
+  transform: translateY(-50%); box-sizing: border-box; color: #fff; background: none;
+  font-family: var(--font-sans, "Wanted Sans", sans-serif); text-shadow: 0 1px 8px rgba(0, 0, 0, .58);
 }
 .hero-campaign-copy small, .hero-campaign-copy strong, .hero-campaign-copy em { display: block; font-style: normal; word-break: keep-all; }
 .hero-campaign-copy small { margin-bottom: .7cqw; font-size: clamp(9px, 2.1cqw, 14px); font-weight: 720; opacity: .78; }
 .hero-campaign-copy strong { font-size: clamp(17px, 4.4cqw, 30px); font-weight: 850; letter-spacing: -.055em; line-height: 1.08; }
 .hero-campaign-copy em { margin-top: 1.1cqw; font-size: clamp(9px, 2cqw, 13px); font-weight: 650; line-height: 1.25; opacity: .8; }
-.hero-campaign-copy.is-light { color: #17221f; background: rgba(255, 255, 255, .84); }
-.hero-campaign-copy.is-right { left: auto; right: 5%; }
-.hero-campaign-copy.is-top-left { top: 8%; width: 37%; transform: none; }
-.hero-campaign-copy.is-compact { width: 34%; padding: 2.2cqw 2.6cqw; }
+.hero-campaign-copy.is-light { color: #17221f; background: none; text-shadow: 0 1px 8px rgba(255, 255, 255, .5); }
+.hero-campaign-copy.is-right { left: auto; right: 5.5%; }
+.hero-campaign-copy.is-top-left { top: 12%; width: 37%; transform: none; }
+.hero-campaign-copy.is-compact { width: 34%; padding: 0; }
+
+/* 점 대신 우측 하단에 현재 순서와 이전·다음만 작게 표시한다. */
+.hero-dots {
+  left: auto; right: 5%; bottom: clamp(9px, 2.2cqw, 15px); width: auto;
+  justify-content: flex-end; align-items: center; gap: clamp(5px, 1.2cqw, 9px);
+  color: #fff; opacity: 1; text-shadow: 0 1px 7px rgba(0, 0, 0, .72);
+}
+.hero-count { min-width: 3.2em; font-size: clamp(10px, 2.2cqw, 13px); font-weight: 700; text-align: right; }
+.hero-count-nav {
+  display: inline-flex; align-items: center; justify-content: center; width: auto; height: auto;
+  padding: 0; border: 0; border-radius: 0; background: none; color: inherit;
+  font: inherit; font-size: clamp(17px, 3.5cqw, 22px); line-height: 1; cursor: pointer;
+}
+.hero-count-nav:focus-visible { outline: 1px solid currentColor; outline-offset: 3px; }
 
 /* 공통 오버레이·텍스트 */
 .bn-fx {
@@ -117,15 +135,14 @@
   position: relative; display: block; width: 100%; aspect-ratio: 430 / 125; overflow: hidden;
   background-color: #12211d; background-size: cover; background-position: center; container-type: inline-size;
 }
-.bn-buy .bn-fx { background: linear-gradient(90deg, rgba(0, 0, 0, .42), rgba(0, 0, 0, .08) 46%, transparent 64%); }
-.bn-buy .bn-tx { left: 7%; width: 45%; }
+.bn-buy .bn-fx { display: none; }
+.bn-buy .bn-tx { left: 6.5%; width: 43%; }
 .bn-buy .bn-lead { line-height: 1.2; }
 .bn-buy .bn-lead { font-size: clamp(11px, 2.35cqw, 15px); }
-.bn-buy .bn-t { font-size: clamp(17px, 4.25cqw, 28px); line-height: 1.18; }
-.bn-buy.is-dark-copy .bn-fx { background: linear-gradient(90deg, rgba(255, 255, 255, .22), rgba(255, 255, 255, .04) 50%, transparent 68%); }
+.bn-buy .bn-t { font-size: clamp(17px, 4.25cqw, 28px); line-height: 1.18; text-shadow: 0 1px 8px rgba(0, 0, 0, .56); }
 .bn-buy.is-dark-copy .bn-tx,
 .bn-buy.is-dark-copy .bn-lead { color: #20231f; }
-.bn-buy.is-dark-copy .bn-t { text-shadow: none; }
+.bn-buy.is-dark-copy .bn-t { text-shadow: 0 1px 8px rgba(255, 255, 255, .5); }
 
 /* 가격대 배너에서 컬렉션 필터를 대신 눌러줄 때 필터 화면이 깜빡이지 않게 */
 .bn-filter-silent #filterPage { visibility: hidden; }

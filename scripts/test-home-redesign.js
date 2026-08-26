@@ -45,6 +45,13 @@ assert.match(legacy, /window\.BELLORE_HOME_CAMPAIGNS \|\| \[\]/);
 assert.match(legacy, /dataset\.heroAction = b\.action/);
 assert.match(legacy, /hero-campaign-copy/);
 assert.match(bannersCss, /\.hero-campaign-copy \{/);
+assert.match(bannersCss, /\.hero-slide-db\.is-campaign \{[\s\S]*aspect-ratio: 430 \/ 189/, 'hero uses the source banner ratio without letterboxing');
+assert.match(bannersCss, /\.hero-slide-db\.is-campaign \.hero-slide-blur \{ display: none; \}/, 'hero removes the cinema-style backdrop bars');
+assert.match(bannersCss, /\.hero-campaign-copy \{[\s\S]*background: none/, 'hero copy has no text box');
+assert.match(legacy, /class="hero-count">' \+ \(index \+ 1\) \+ '\/' \+ n/);
+assert.match(legacy, /class="hero-count-nav hero-count-prev"/);
+assert.match(legacy, /class="hero-count-nav hero-count-next"/);
+assert.doesNotMatch(legacy, /className = 'hero-dot'/);
 for (const text of ['매일을 함께할 클래식', '1,000만원 이상의 명작', '깊이에서도 흔들리지 않는', '500만원 미만 컬렉션', '여성 명품시계', '1,000만원 미만 컬렉션', '예물 시계', '빈티지 컬렉션', '풀세트 컬렉션', '300만원 미만 컬렉션']) {
   assert.ok(data.includes(text), `category copy: ${text}`);
 }
@@ -64,6 +71,7 @@ assert.match(listingDisplay, /listing\.pack[\s\S]*'단품'/);
 assert.match(collection, /BELLORE_applyColFilters/);
 assert.doesNotMatch(banners, /bn-num|counterMarkup/);
 assert.match(bannersCss, /\.bn-buy \{[\s\S]*aspect-ratio: 430 \/ 125/, 'buy-in banner keeps the compact home ratio');
+assert.match(bannersCss, /\.bn-buy \.bn-fx \{ display: none; \}/, 'buy-in copy does not cover the artwork with an overlay');
 assert.match(banners, /while \(next === backgroundIndex && BUYIN_BACKGROUNDS\.length > 1\)/, 'buy-in photo changes independently without an immediate repeat');
 assert.match(bannersCss, /\.feat-card \{[\s\S]*aspect-ratio: 430 \/ 189/, 'featured banner is 1.4x taller');
 assert.equal((banners.match(/assets\/banners\/product-stage-\d{2}\.webp/g) || []).length, 6, '6 product stages');

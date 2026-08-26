@@ -8,7 +8,7 @@ const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const runtime = fs.readFileSync(path.join(root, 'app', 'legacy', 'page-runtime.js'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
-const releaseKey = '20260826-hero-campaigns-v6';
+const releaseKey = '20260826-hero-campaigns-v7';
 
 const urls = {
   styles: html.match(/<link rel="stylesheet" href="(styles\.css\?v=[^"]+)"/)?.[1],
@@ -30,6 +30,6 @@ for (const [name, url] of Object.entries(urls)) {
 for (const name of ['styles', 'script', 'payments', 'dialog', 'features', 'quotes', 'auction', 'bootstrap', 'pageRuntime']) {
   assert(serviceWorker.includes(`'./${urls[name]}'`), `service worker must precache the exact ${name} URL`);
 }
-assert.match(serviceWorker, /const VERSION = "bellore-v294-buyin-mix";/, 'service-worker cache namespace must advance with the release');
+assert.match(serviceWorker, /const VERSION = "bellore-v295-banner-minimal";/, 'service-worker cache namespace must advance with the release');
 
 console.log('phase 7-11 release cache-key invariants: ok');

@@ -152,9 +152,9 @@ function fakeEventTarget() {
     assert(buildPages.includes(`'${asset.slice(2)}'`), `Pages allowlist 누락: ${asset}`);
   }
   for (const [asset, releaseKey] of [
-    ['script.js', '20260826-hero-campaigns-v6'],
-    ['app/bootstrap.js', '20260826-hero-campaigns-v6'],
-    ['sw.js', '20260826-hero-campaigns-v6'],
+    ['script.js', '20260826-hero-campaigns-v7'],
+    ['app/bootstrap.js', '20260826-hero-campaigns-v7'],
+    ['sw.js', '20260826-hero-campaigns-v7'],
     ['wishlist.js', '20260824-purl-v2'],
     ['search.js', '20260824-purl-v2'],
   ]) {
