@@ -15,7 +15,7 @@ assert.match(index, /id="homeQuickCategories"/);
 assert.ok(index.indexOf('id="homeQuickCategories"') > index.indexOf('id="heroCarousel"'));
 assert.ok(index.indexOf('id="homeQuickCategories"') < index.indexOf('id="rowSaleBlock"'));
 assert.match(bootstrap, /initHomeQuicklinks\(\{ document, window, collection \}\)/);
-assert.match(bootstrap, /home-quicklinks\.js\?v=20260826-hero-campaigns-v7/);
+assert.match(bootstrap, /home-quicklinks\.js\?v=20260826-hero-campaigns-v8/);
 assert.match(bootstrap, /legacy-collection\.js\?v=20260825-home-typography-admin-layout-v8/);
 
 for (const label of ['TIME SALE', '브랜드', '빈티지', '300만원 ↓', '시계판매', '수리\/진단']) {
@@ -48,7 +48,7 @@ assert.match(index, /전체 <b id="catTotalCount">0<\/b>개/);
 assert.match(index, /id="catFilteredCount" hidden>현재 <b id="catCount">0<\/b>개/);
 assert.match(css, /grid-template-columns: repeat\(6,/);
 assert.match(css, /border-radius: 50%/);
-assert.match(css, /aspect-ratio: 3155 \/ 1662/);
+assert.match(css, /\.page-home \.hero-slide-db \{[^}]*aspect-ratio: 430 \/ 189/);
 assert.match(css, /background-size: contain, cover/);
 assert.match(css, /container-type: inline-size/);
 assert.doesNotMatch(css, /\.page-home \.hero-default \.hero-image \{[^}]*background-size: cover/);
