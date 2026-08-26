@@ -37,7 +37,7 @@
       "id": "preview-deploy-minimum-public-base",
       "files": [".brain/LATEST_PUBLIC_BASE.json"],
       "must_contain": [
-        "\"minimumPublicSha\": \"003c63e06a5e9ff7f32d1d60e47681328a937a68\""
+        "\"minimumPublicSha\": \"b6415b990c3651c28247675e6b399e1bd75853e1\""
       ],
       "why": "최신 통합본보다 오래된 화면 트리에서 미리보기나 배포를 시작하지 않는다."
     },

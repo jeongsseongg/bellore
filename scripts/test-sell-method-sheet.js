@@ -25,7 +25,7 @@ assert.match(
 assert.doesNotMatch(sheetRule, /720px/, 'sell sheet must never use the out-of-spec 720px width');
 assert.match(
   html,
-  /sell-method\.css\?v=20260826-sell-services-trade-v1/,
+  /sell-method\.css\?v=20260826-sell-services-member-v1/,
   'the page requests the panel-width-corrected stylesheet'
 );
 assert.match(sheetRule, /transform:\s*translateY\(104%\)/, 'the closed sheet starts below the Bellore frame');
