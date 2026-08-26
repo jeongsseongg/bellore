@@ -15,7 +15,7 @@ assert.match(index, /id="homeQuickCategories"/);
 assert.ok(index.indexOf('id="homeQuickCategories"') > index.indexOf('id="heroCarousel"'));
 assert.ok(index.indexOf('id="homeQuickCategories"') < index.indexOf('id="rowSaleBlock"'));
 assert.match(bootstrap, /initHomeQuicklinks\(\{ document, window, collection \}\)/);
-assert.match(bootstrap, /home-quicklinks\.js\?v=20260826-hero-campaigns-v5/);
+assert.match(bootstrap, /home-quicklinks\.js\?v=20260826-hero-campaigns-v6/);
 assert.match(bootstrap, /legacy-collection\.js\?v=20260825-home-typography-admin-layout-v8/);
 
 for (const label of ['TIME SALE', '브랜드', '빈티지', '300만원 ↓', '시계판매', '수리\/진단']) {
