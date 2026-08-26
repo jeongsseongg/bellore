@@ -151,8 +151,8 @@ assert.match(prepareBlock, /postgres@sha256:d13db94ae661d517c5ed57c509a578d5ea64
 assert.match(prepareBlock, /--platform linux\/amd64 --network none/);
 assert.match(prepareBlock, /seq 1 90/,
   'Supabase initialization must have a bounded three-minute readiness window');
-assert.match(prepareBlock, /basename "\$\(readlink \/proc\/1\/exe\)"\)" = postgres[\s\S]{0,360}rolname in \('anon','authenticated','service_role','supabase_admin'\)/,
-  'readiness must reject the temporary init server and require the final postmaster roles');
+assert.match(prepareBlock, /State\.Health\.Status[\s\S]{0,360}rolname in \('anon','authenticated','service_role','supabase_admin'\)/,
+  'readiness must require the TCP healthcheck and authenticated final-server roles');
 assert.match(prepareBlock, /PAYMENT_VALIDATION_PASSWORD=\$validation_password/);
 assert.match(prepareBlock, /docker exec --env PGPASSWORD="\$validation_password"[\s\S]{0,180}psql -h localhost -U supabase_admin/,
   'readiness must authenticate over localhost instead of relying on peer auth');

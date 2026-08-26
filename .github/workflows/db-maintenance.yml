@@ -121,12 +121,11 @@ jobs:
 
           ready=false
           # The pinned Supabase image runs its bundled role/extension migrations
-          # before the entrypoint execs the final postmaster. Require PID 1's
-          # executable plus authenticated role checks so the temporary init
-          # server cannot satisfy readiness.
+          # on a Unix-socket-only temporary server. Its pinned healthcheck probes
+          # localhost TCP, so require healthy plus an authenticated role query;
+          # the temporary init server cannot satisfy both conditions.
           for _ in $(seq 1 90); do
-            if docker exec "$validation_container" sh -c \
-                 'test "$(basename "$(readlink /proc/1/exe)")" = postgres' && \
+            if [ "$(docker inspect --format '{{.State.Health.Status}}' "$validation_container")" = "healthy" ] && \
                docker exec --env PGPASSWORD="$validation_password" "$validation_container" \
                  psql -h localhost -U supabase_admin -d postgres -X -qAt -v ON_ERROR_STOP=1 \
                    -c "select count(*) from pg_roles where rolname in ('anon','authenticated','service_role','supabase_admin')" \
