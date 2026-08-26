@@ -762,11 +762,9 @@
   };
   // 제휴사 수수료율 변경(관리자)
   Backend.setPartnerCommission = function (id, rate) {
-    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
     var v = Number(rate);
     if (!(v >= 0 && v <= 1)) return Promise.reject(new Error('INVALID_RATE'));
-    return sb.from('profiles').update({ commission_rate: v }).eq('id', id)
-      .then(function (r) { if (r.error) throw r.error; return true; });
+    return adminMemberOperation(id, 'update_profile', '협력사 수수료율 변경', { commission_rate: v });
   };
 
   /* ---------------- 비교견적 (quote_requests + bids) ---------------- */
@@ -1629,61 +1627,53 @@
   };
   function refreshAccounts() { accountRefreshers.slice().forEach(function (fn) { try { fn(); } catch (e) {} }); }
 
-  Backend.setVendorApproved = function (id, approved) {
+  function adminMemberOperation(id, action, reason, patch) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
-    return sb.from('profiles').update({ approved: approved }).eq('id', id)
+    var body = { targetUserId: id, action: action, reason: reason };
+    if (patch) body.patch = patch;
+    return sb.functions.invoke('admin-member-ops', { body: body }).then(function (res) {
+      if (res.error) throw res.error;
+      if (!res.data || res.data.ok !== true) throw new Error((res.data && res.data.code) || 'OPERATION_FAILED');
+      refreshVendors(); refreshAccounts();
+      return res.data;
+    });
+  }
+
+  Backend.setVendorApproved = function (id, approved) {
+    return adminMemberOperation(id, 'update_profile', approved ? '업체 운영 승인 처리' : '업체 운영 승인 취소', { approved: !!approved })
       .then(function (res) {
-        if (res.error) throw res.error;
         if (approved) Backend.createNotification({ uid: id, type: 'approved', text: '업체 승인이 완료되었습니다. 이제 비교견적 입찰에 참여할 수 있어요.' });
-        refreshVendors(); refreshAccounts();
+        return res;
       });
   };
 
   // 제휴사 승인/취소 (관리자)
   Backend.setPartnerApproved = function (id, approved) {
-    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
-    return sb.from('profiles').update({ approved: approved }).eq('id', id)
+    return adminMemberOperation(id, 'update_profile', approved ? '협력사 운영 승인 처리' : '협력사 운영 승인 취소', { approved: !!approved })
       .then(function (res) {
-        if (res.error) throw res.error;
         if (approved) Backend.createNotification({ uid: id, type: 'approved', text: '공급협력사 승인이 완료되었습니다. 이제 벨로르에 공급할 상품을 등록할 수 있어요.' });
-        refreshVendors(); refreshAccounts();
+        return res;
       });
   };
 
   // VIP 업체 지정/해제 (관리자) — VIP 는 새 견적 시 카톡 알림톡까지 발송 대상
   Backend.setVip = function (id, vip) {
-    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
-    return sb.from('profiles').update({ vip: !!vip }).eq('id', id)
-      .then(function (res) {
-        if (res.error) throw res.error;
-        refreshVendors(); refreshAccounts();
-      });
+    return adminMemberOperation(id, 'update_profile', vip ? '우수 견적업체 지정' : '우수 견적업체 지정 해제', { vip: !!vip });
   };
 
   // 관리자: 업체 사용정지 / 해제 (profiles.suspended)
   Backend.setVendorSuspended = function (id, on) {
-    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
-    return sb.from('profiles').update({ suspended: !!on }).eq('id', id)
-      .then(function (res) { if (res.error) throw res.error; refreshVendors(); refreshAccounts(); });
+    return adminMemberOperation(id, on ? 'suspend' : 'resume', on ? '관리자 업체 사용정지' : '관리자 업체 사용재개');
   };
   Backend.adminRenameVendor = function (id, companyName) {
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
     var name = String(companyName || '').trim();
     if (!name) return Promise.reject(new Error('업체명을 입력해주세요.'));
-    return sb.from('profiles').update({ company_name: name }).eq('id', id)
-      .select('id,company_name').maybeSingle()
-      .then(function (res) {
-        if (res.error) throw res.error;
-        if (!res.data) throw new Error('변경할 업체를 찾지 못했습니다.');
-        refreshVendors(); refreshAccounts();
-        return res.data;
-      });
+    return adminMemberOperation(id, 'update_profile', '관리자 업체명 변경 처리', { company_name: name });
   };
-  // 관리자: 업체/회원 프로필 삭제 (auth 계정 완전 삭제는 Supabase 콘솔에서)
+  // 관리자: 업체/회원 로그인 계정과 연결 프로필 삭제
   Backend.deleteAccount = function (id) {
-    if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
-    return sb.from('profiles').delete().eq('id', id)
-      .then(function (res) { if (res.error) throw res.error; refreshVendors(); refreshAccounts(); });
+    return adminMemberOperation(id, 'delete', '관리자 회원 계정 삭제');
   };
   // 업체 본인: 상호 / 로고 이미지 수정 (logoFile: PC·모바일에서 직접 첨부한 파일)
   Backend.updateMyVendorProfile = function (data) {

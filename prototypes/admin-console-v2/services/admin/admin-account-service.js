@@ -5,19 +5,15 @@ export function createAdminAccountService(client, operatorId) {
     });
   }
 
-  function updateProfile(id, patch) {
-    return client.update('profiles', { id: `eq.${id}` }, patch);
-  }
-
   function notification(userId, type, body) {
     return client.insert('notifications', {
       user_id: userId, type, title: '알림', body, is_read: false
     });
   }
 
-  async function saveProfile(item, role, patch) {
+  async function saveProfile(item, role, patch, reason = '관리자 프로필 정보 수정') {
     const next = { ...patch };
-    const rows = await updateProfile(item.id, next);
+    const result = await manageMember(item.id, 'update_profile', reason, next, item.admin_operation_version);
     const notices = [];
     if (next.approved && !item.approved && role === 'vendor') {
       notices.push(notification(item.id, 'approved', '업체 승인이 완료되었습니다. 이제 비교견적 입찰에 참여할 수 있어요.'));
@@ -31,21 +27,33 @@ export function createAdminAccountService(client, operatorId) {
         console.warn('프로필 변경은 완료됐지만 앱 알림 저장은 실패했습니다.', result.reason);
       });
     }
-    return rows;
+    return result;
   }
 
-  async function manageMember(id, action, reason = '') {
-    const result = await client.edge('admin-member-ops', { targetUserId: id, action, reason: reason || null });
+  async function manageMember(id, action, reason = '', patch = null, expectedVersion = null) {
+    const result = await client.edge('admin-member-ops', {
+      targetUserId: id, action, reason: reason || null,
+      ...(patch ? { patch } : {}),
+      ...(Number(expectedVersion) > 0 ? { expectedVersion: Number(expectedVersion) } : {})
+    });
     if (result?.warning) console.warn('회원 작업은 반영됐지만 후속 기록 확인이 필요합니다.', result.warning);
     return result;
   }
 
-  function setMemberSuspended(id, suspended) {
-    return manageMember(id, suspended ? 'suspend' : 'resume');
+  function setMemberSuspended(item, suspended, reason = '') {
+    const target = typeof item === 'object' ? item : { id: item };
+    return manageMember(
+      target.id,
+      suspended ? 'suspend' : 'resume',
+      reason || (suspended ? '관리자 계정 사용정지' : '관리자 계정 사용재개'),
+      null,
+      target.admin_operation_version
+    );
   }
 
-  function deleteMember(id, reason = '') {
-    return manageMember(id, 'delete', reason);
+  function deleteMember(item, reason = '') {
+    const target = typeof item === 'object' ? item : { id: item };
+    return manageMember(target.id, 'delete', reason, null, target.admin_operation_version);
   }
 
   function listAuditEvents(limit = 100) {
@@ -149,7 +157,7 @@ export function createAdminAccountService(client, operatorId) {
   }
 
   return {
-    listProfiles, updateProfile, saveProfile, setMemberSuspended, deleteMember,
+    listProfiles, saveProfile, setMemberSuspended, deleteMember,
     getMemberVerification, listMemberVerificationEvents, setMemberVerification, listAuditEvents, listSettlements, updateSettlement,
     listSupportThreads, replySupport, loadAnalytics, loadAdvisor, updateAdvisor,
     deleteAdvisor, listNotifications, updateNotification, deleteNotification

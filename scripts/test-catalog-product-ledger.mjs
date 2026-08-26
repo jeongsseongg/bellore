@@ -68,6 +68,10 @@ assert.match(workflow, /validate-catalog-product[\s\S]*apply-catalog-product[\s\
 assert.match(workflow, /apply-catalog-product'[\s\S]*confirm_sha must exactly match GITHUB_SHA[\s\S]*BACKUP_PASSPHRASE/);
 assert.match(workflow, /catalog_product_ledger_dry_run\.sql[\s\S]*catalog_product_ledger_live_verify\.sql/);
 assert.match(workflow, /insert into supabase_migrations\.schema_migrations[\s\S]*20260826200000[\s\S]*20260826201000/);
+assert.match(dryRun, /20260826210000_harden_admin_member_lifecycle\.sql/,
+  '상품 원장 검증은 함께 적용되는 회원 운영 마이그레이션도 같은 롤백 트랜잭션에서 컴파일해야 합니다.');
+assert.match(workflow, /migration_version_name_collision/,
+  '운영 적용 전에 동일 버전의 다른 migration 이름 충돌을 차단해야 합니다.');
 assert.match(dryRun, /begin;[\s\S]*catalog_product_ledger\.sql[\s\S]*catalog_product_operations\.sql[\s\S]*rollback;/);
 assert.match(dryRun, /CATALOG_VERSION_CONFLICT_NOT_BLOCKED[\s\S]*CATALOG_LIFECYCLE_ACTIVATION_FAILED[\s\S]*CATALOG_DRAFT_DELETE_FAILED/);
 assert.match(dryRun, /CATALOG_RETURN_HOLD_FAILED[\s\S]*complete_order_restock_v1[\s\S]*CATALOG_RESTOCK_SYNC_FAILED/);

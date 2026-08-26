@@ -29,17 +29,20 @@ const urls = {
 
 for (const [name, url] of Object.entries(urls)) {
   assert(url, `${name} release URL is missing`);
-  assert.equal(new URL(url, 'https://bellore.co.kr/').searchParams.get('v'), releaseKey, `${name} release key must advance together`);
+  assert.equal(new URL(url, 'https://bellore.co.kr/').searchParams.get('v'), releaseKey, `${name} must use the integrated release key`);
 }
 for (const name of ['styles', 'script', 'payments', 'wishlist', 'search', 'dialog', 'features', 'quotes', 'auction', 'bootstrap', 'conditionGuide', 'pageRuntime']) {
   assert(serviceWorker.includes(`'./${urls[name]}'`), `service worker must precache the exact ${name} URL`);
 }
-assert.match(serviceWorker, /const VERSION = "bellore-v336-admin-catalog-operations";/, 'service-worker cache namespace must advance for the admin catalog release');
+assert.match(serviceWorker, /const VERSION = "bellore-v339-admin-catalog-integrated";/, 'service-worker cache namespace must advance for the integrated admin catalog release');
 for (const heroAsset of ['home-banners.js', 'home-banner-data.js', 'home-banners.css']) {
   assert(serviceWorker.includes(`./app/features/home-banners/${heroAsset}?v=20260826-hero-layout-v7`), `service worker must precache exact restored hero asset: ${heroAsset}`);
 }
 for (const quicklinkAsset of ['home-quicklinks.js', 'home-quicklinks.css']) {
   assert(serviceWorker.includes(`./app/features/home-quicklinks/${quicklinkAsset}?v=20260826-hero-layout-v7`), `service worker must precache exact quicklink asset: ${quicklinkAsset}`);
+}
+for (const tradeAsset of ['방문거래.png', '택배거래.png', '퀵거래.png']) {
+  assert(serviceWorker.includes(`./assets/sell/trade/${tradeAsset}`), `service worker must precache transaction artwork: ${tradeAsset}`);
 }
 for (const asset of [
   'app/vendor/recommendation-engine.js',

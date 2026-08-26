@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v336-admin-catalog-operations";
+const VERSION = "bellore-v339-admin-catalog-integrated";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -18,7 +18,7 @@ const SHELL_ASSETS = [
   './payments.js?v=20260826-admin-catalog-v1',
   './naverpay.js?v=20260728-naver-review-fixes-2',
   './ui-dialog.js?v=20260826-admin-catalog-v1',
-  './supabase-config.js?v=20260814-kg-card-review',
+  './supabase-config.js?v=20260826-admin-catalog-v1',
   './analytics-core.js?v=20260810-analytics-v3',
   './analytics-client.js?v=20260826-ai-consent-v1',
   './brands.js',
@@ -64,8 +64,8 @@ const SHELL_ASSETS = [
   './app/legacy/legacy-collection.js?v=20260826-admin-catalog-v1',
   './app/legacy/home-merchandising-grid.js',
   './app/legacy/mypage-settings-adapter.js?v=20260826-mypage-live-v1',
-  './app/legacy/member-verification-ui.js',
-  './app/legacy/member-verification-service.js',
+  './app/legacy/member-verification-ui.js?v=20260826-admin-catalog-v1',
+  './app/legacy/member-verification-service.js?v=20260826-admin-catalog-v1',
   './app/legacy/customer-feedback.js?v=20260826-admin-catalog-v1',
   './app/legacy/checkout-coupon.js',
   './app/legacy/payment-auth.js',
@@ -111,13 +111,20 @@ const SHELL_ASSETS = [
   './assets/banners/product-stage-04.webp',
   './assets/banners/product-stage-05.webp',
   './assets/banners/product-stage-06.webp',
-  './app/features/sell-method/sell-method.css?v=20260826-sell-quotes-v3',
-  './app/features/sell-method/sell-quotes.css?v=20260826-sell-quotes-v3',
+  './app/features/sell-method/sell-method.css?v=20260826-sell-services-member-v1',
+  './app/features/sell-method/sell-quotes.css?v=20260826-sell-services-member-v1',
+  './app/features/sell-method/sell-service-navigation.css?v=20260826-sell-services-member-v1',
+  './app/features/sell-method/sell-service-pages.css?v=20260826-sell-services-member-v1',
+  './app/features/sell-method/sell-service-action.css?v=20260826-sell-services-member-v1',
   './app/legacy/recommendation-engine.js?v=20260826-admin-catalog-v1',
-  './app/features/sell-method/sell-method.js?v=20260826-sell-quotes-v3',
+  './app/features/sell-method/sell-method.js?v=20260826-sell-services-member-v1',
   './app/features/sell-method/sell-guide-preview.js?v=20260826-sell-quotes-v3',
   './app/features/sell-method/sell-reference-controller.js?v=20260826-sell-quotes-v3',
   './app/features/sell-method/sell-quote-controller.js?v=20260826-sell-quotes-v3',
+  './app/features/sell-method/sell-service-pages.js?v=20260826-sell-services-member-v1',
+  './assets/sell/trade/방문거래.png',
+  './assets/sell/trade/택배거래.png',
+  './assets/sell/trade/퀵거래.png',
   './시계판매 이미지/비교견적.png',
   './시계판매 이미지/위탁판매.png',
   './시계판매 이미지/즉시매입.png',

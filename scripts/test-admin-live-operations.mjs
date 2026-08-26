@@ -107,8 +107,8 @@ assert.deepEqual(profileNotices, ['approved']);
 
 await accounts.setMemberVerification('vendor-1', 'business', true, '서류 원본 확인 완료');
 await accounts.listMemberVerificationEvents('vendor-1', 30);
-await accounts.setMemberSuspended('vendor-1', true);
-await accounts.deleteMember('customer-1', '탈퇴 요청 본인 확인');
+await accounts.setMemberSuspended({ id: 'vendor-1', admin_operation_version: 3 }, true);
+await accounts.deleteMember({ id: 'customer-1', admin_operation_version: 7 }, '탈퇴 요청 본인 확인');
 assert.deepEqual(await accounts.listAuditEvents(150), { ok: true, events: [] });
 const verificationRequest = requests.find((item) => item.url.includes('/functions/v1/admin-manage-verification')
   && JSON.parse(item.options.body).action === 'set_status');
@@ -117,8 +117,19 @@ assert.deepEqual(JSON.parse(verificationRequest.options.body), {
 });
 const memberActions = requests.filter((item) => item.url.includes('/functions/v1/admin-member-ops'))
   .map((item) => JSON.parse(item.options.body));
-assert.deepEqual(memberActions.map((item) => item.action), ['suspend', 'delete']);
-assert.equal(memberActions[1].reason, '탈퇴 요청 본인 확인');
+assert.deepEqual(memberActions.map((item) => item.action), ['update_profile', 'suspend', 'delete']);
+assert.equal(memberActions[0].reason, '관리자 프로필 정보 수정');
+assert.deepEqual(memberActions[0].patch, { approved: true });
+assert.equal(memberActions[1].expectedVersion, 3);
+assert.equal(memberActions[2].reason, '탈퇴 요청 본인 확인');
+assert.equal(memberActions[2].expectedVersion, 7);
+
+const legacyBackend = await readFile(new URL('../supabase.js', import.meta.url), 'utf8');
+for (const field of ['approved', 'vip', 'suspended', 'company_name', 'commission_rate']) {
+  assert.doesNotMatch(legacyBackend, new RegExp(`from\\('profiles'\\)\\.update\\(\\{ ${field}:`),
+    `기존 관리자 화면도 ${field}를 직접 변경하면 안 됩니다.`);
+}
+assert.match(legacyBackend, /functions\.invoke\('admin-member-ops'/);
 
 await accounts.updateSettlement({ id: 'settlement-1', seller_id: 'partner-1', net_amount: 2300000, status: 'pending' }, 'paid', '지급 확인');
 await new Promise((resolve) => setTimeout(resolve, 0));

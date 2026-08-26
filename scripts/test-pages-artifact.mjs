@@ -234,6 +234,10 @@ async function validateArtifact(site, { expectSeo }) {
   assert(shellAssets.includes('./app/features/sell-method/sell-guide-preview.js'));
   assert(shellAssets.includes('./app/features/sell-method/sell-reference-controller.js'));
   assert(shellAssets.includes('./app/features/sell-method/sell-quote-controller.js'));
+  assert(shellAssets.includes('./app/features/sell-method/sell-service-pages.js'));
+  assert(shellAssets.includes('./app/features/sell-method/sell-service-pages.css'));
+  assert(shellAssets.includes('./app/features/sell-method/sell-service-navigation.css'));
+  assert(shellAssets.includes('./app/features/sell-method/sell-service-action.css'));
   assert(shellAssets.includes('./app/legacy/recommendation-engine.js'));
   assert(shellAssets.includes('./app/features/analytics-consent/analytics-consent.css'),
     '독립 동의 카드 스타일이 서비스워커 셸에 포함되어야 합니다.');

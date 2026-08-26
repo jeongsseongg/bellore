@@ -34,15 +34,15 @@ function profileConfig(service, role, title) {
       ...(role === 'partner' ? { commission_rate: numberOrNull(values.commission_rate) } : {})
     }),
     actions: [
-      { id: 'approve', label: '운영 승인', when: (item) => role !== 'customer' && !item.approved, run: (item) => service.saveProfile(item, role, { approved: true }) },
-      { id: 'revoke-approval', label: '승인 취소', when: (item) => role !== 'customer' && item.approved, confirm: '이 계정의 운영 권한을 회수할까요?', run: (item) => service.saveProfile(item, role, { approved: false }) },
-      { id: 'suspend', label: '계정 정지', danger: true, when: (item) => !item.suspended, confirm: '이 계정을 정지하고 새 로그인을 차단할까요?', run: (item) => service.setMemberSuspended(item.id, true) },
-      { id: 'resume', label: '계정 재개', when: (item) => item.suspended, confirm: '이 계정의 로그인을 다시 허용할까요?', run: (item) => service.setMemberSuspended(item.id, false) },
+      { id: 'approve', label: '운영 승인', when: (item) => role !== 'customer' && !item.approved, reasonPrompt: '운영 승인 근거를 5자 이상 입력해 주세요.', run: (item, input) => service.saveProfile(item, role, { approved: true }, input.reason) },
+      { id: 'revoke-approval', label: '승인 취소', when: (item) => role !== 'customer' && item.approved, confirm: '이 계정의 운영 권한을 회수할까요?', reasonPrompt: '승인 취소 사유를 5자 이상 입력해 주세요.', run: (item, input) => service.saveProfile(item, role, { approved: false }, input.reason) },
+      { id: 'suspend', label: '계정 정지', danger: true, when: (item) => !item.suspended, confirm: '이 계정을 정지하고 새 로그인을 차단할까요?', reasonPrompt: '계정 정지 사유를 5자 이상 입력해 주세요.', run: (item, input) => service.setMemberSuspended(item, true, input.reason) },
+      { id: 'resume', label: '계정 재개', when: (item) => item.suspended, confirm: '이 계정의 로그인을 다시 허용할까요?', reasonPrompt: '계정 재개 사유를 5자 이상 입력해 주세요.', run: (item, input) => service.setMemberSuspended(item, false, input.reason) },
       ...verificationSpecs.flatMap((spec) => [
         { id: `verify-${spec.method}`, label: `${spec.label} 수동 인증`, when: (item) => !item[spec.key], reasonPrompt: `${spec.label} 인증 사유를 5자 이상 입력해 주세요.`, run: (item, input) => service.setMemberVerification(item.id, spec.method, true, input.reason) },
         { id: `revoke-${spec.method}`, label: `${spec.label} 인증 해제`, danger: true, when: (item) => !!item[spec.key], reasonPrompt: `${spec.label} 인증 해제 사유를 5자 이상 입력해 주세요.`, run: (item, input) => service.setMemberVerification(item.id, spec.method, false, input.reason) }
       ]),
-      { id: 'delete', label: '회원 계정 삭제', danger: true, confirm: '로그인 계정과 연결 프로필을 삭제합니다. 되돌릴 수 없습니다.', promptText: '삭제', run: (item) => service.deleteMember(item.id, `${title} 관리자 삭제`) }
+      { id: 'delete', label: '회원 계정 삭제', danger: true, confirm: '로그인 계정과 연결 프로필을 삭제합니다. 되돌릴 수 없습니다.', promptText: '삭제', run: (item) => service.deleteMember(item, `${title} 관리자 삭제`) }
     ]
   };
 }

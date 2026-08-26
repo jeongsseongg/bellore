@@ -31,8 +31,9 @@ import { installCustomerFeedback } from './legacy/customer-feedback.js?v=2026082
 import { installLegacyCheckoutCoupon } from './legacy/checkout-coupon.js';
 import { createLegacyMypageSettingsAdapter } from './legacy/mypage-settings-adapter.js?v=20260826-mypage-live-v1';
 import { initMypageSettings } from './features/mypage-settings/mypage-settings.js?v=20260826-mypage-live-v1';
-import { installLegacyMemberVerificationUi } from './legacy/member-verification-ui.js';
-import { installLegacyMemberVerificationService } from './legacy/member-verification-service.js';
+import { initSellServicePages } from './features/sell-method/sell-service-pages.js?v=20260826-sell-services-member-v1';
+import { installLegacyMemberVerificationUi } from './legacy/member-verification-ui.js?v=20260826-admin-catalog-v1';
+import { installLegacyMemberVerificationService } from './legacy/member-verification-service.js?v=20260826-admin-catalog-v1';
 
 installLegacyMemberVerificationUi({ window, document });
 installLegacyMemberVerificationService({ window });
@@ -72,6 +73,7 @@ function bootstrap() {
   initConditionGuide({ document, window });
   initHeroParallax({ document, window });
   initLegalModals({ document, window });
+  initSellServicePages({ document, window, backend: window.NWBackend });
   initCheckoutAddresses({ document, window, getClient: () => window.sbClient, getUser: () => window.NWBackend?.currentUser?.() });
   initProductSharing({
     document,

@@ -3,6 +3,18 @@
   "hooks": {
     "PreToolUse": [
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "command": "python3 scripts/check-preview-deploy-base.py --hook",
+            "commandWindows": "python scripts/check-preview-deploy-base.py --hook",
+            "statusMessage": "Checking Bellore preview and deployment base",
+            "timeout": 10,
+            "type": "command"
+          }
+        ]
+      },
+      {
         "matcher": "apply_patch|Edit|Write",
         "hooks": [
           {

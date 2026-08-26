@@ -2191,7 +2191,7 @@
     var usv = e.target.closest('[data-cqd-unsuspendv]');
     if (usv) { B.setVendorSuspended(usv.getAttribute('data-cqd-unsuspendv'), false).catch(function (err) { alert('실패: ' + msg(err)); }); return; }
     var dv = e.target.closest('[data-cqd-delv]');
-    if (dv) { bellConfirm('이 업체를 삭제할까요? (Auth 계정 완전 삭제는 콘솔에서)').then(function (ok) { if (ok) B.deleteAccount(dv.getAttribute('data-cqd-delv')).then(function(){ go('a-vendors', null, true); }).catch(function (err) { alert('실패: ' + msg(err)); }); }); return; }
+    if (dv) { bellConfirm('이 업체의 로그인 계정과 연결 프로필을 삭제할까요? 되돌릴 수 없습니다.').then(function (ok) { if (ok) B.deleteAccount(dv.getAttribute('data-cqd-delv')).then(function(){ go('a-vendors', null, true); }).catch(function (err) { alert('실패: ' + msg(err)); }); }); return; }
     var dc = e.target.closest('[data-cqd-delc]');
     if (dc) { bellConfirm('이 고객 계정을 삭제할까요?').then(function (ok) { if (ok) B.deleteAccount(dc.getAttribute('data-cqd-delc')).catch(function (err) { alert('실패: ' + msg(err)); }); }); return; }
     /* data-resetpw 는 전역 핸들러(bellore-features.js)가 처리 */

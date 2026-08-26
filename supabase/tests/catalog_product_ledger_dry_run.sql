@@ -3,11 +3,26 @@
 begin;
 set local lock_timeout='5s';
 set local statement_timeout='2min';
+\i /repo/supabase/migrations/20260826172707_harden_member_verifications.sql
+\i /repo/supabase/migrations/20260826173419_admin_member_operations.sql
+\i /repo/supabase/migrations/20260826210000_harden_admin_member_lifecycle.sql
 \i /repo/supabase/migrations/20260826200000_catalog_product_ledger.sql
 \i /repo/supabase/migrations/20260826201000_catalog_product_operations.sql
 
 do $$
 begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='profiles'
+      and column_name='admin_operation_version'
+  ) or has_function_privilege('authenticated',
+       'public.admin_manage_member_profile(uuid,uuid,text,jsonb,text,bigint)','execute')
+    or not has_function_privilege('service_role',
+       'public.admin_manage_member_profile(uuid,uuid,text,jsonb,text,bigint)','execute')
+    or has_table_privilege('authenticated','public.profiles','delete')
+    or has_table_privilege('anon','public.profiles','delete') then
+    raise exception 'MEMBER_LIFECYCLE_GUARDS_INVALID';
+  end if;
   if (select count(*) from public.listing_operational_state)
      <> (select count(*) from public.listings) then
     raise exception 'CATALOG_STATE_BACKFILL_INCOMPLETE';
