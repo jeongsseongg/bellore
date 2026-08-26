@@ -1,47 +1,18 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
-import {
-  hasConfirmedPaymentStatus,
-  hasRefundablePaymentStatus,
-} from "../_shared/order-payment-states.ts";
+import { hasConfirmedPaymentStatus, hasRefundablePaymentStatus } from "../_shared/order-payment-states.ts";
+import { guardPaymentOperation, readPaymentOperationControl } from "../_shared/payment-operation-guard.ts";
 import { safeEqual } from "../_shared/payment-edge-utils.ts";
-import {
-  cancelAndReconcile,
-  finalizeKnownProviderCancellation,
-} from "../_shared/portone-cancellation.ts";
-import {
-  finalizePaidOrderFromProvider,
-  lookupPortOnePayment,
-  markPaymentReviewIfUnsettled,
-  paymentRef,
-  readMatchingConfirmedOrder,
-  safeText,
-} from "../_shared/payment-recovery.ts";
-import {
-  confirmedPaymentReconciliationAction,
-  paidFinalizationRecoveryAction,
-  paidRecoveryAction,
-  providerCancelledAmount,
-  providerPaidAmount,
-  providerStatusKind,
-  reconciliationSummaryOk,
-  shouldEscalatePendingOrder,
-  shouldReleaseNotFoundOrder,
-} from "../_shared/payment-recovery-policy.mjs";
-import {
-  loadReconciliationOrders,
-  MAX_ORDERS_PER_RECONCILIATION_GROUP,
-  RECONCILIATION_CONCURRENCY,
-  type ReconciliationOrderRow as OrderRow,
-} from "../_shared/reconciliation-orders.ts";
-import {
-  addReconciliationCounters,
-  emptyReconciliationCounters,
-  markNonActionablePaymentReview,
-  preserveRefundPendingForReview,
-  recordCancellationOutcome,
-  type ReconciliationCounters as Counters,
-} from "../_shared/reconciliation-outcomes.ts";
-
+import { cancelAndReconcile, finalizeKnownProviderCancellation } from "../_shared/portone-cancellation.ts";
+import { finalizePaidOrderFromProvider, lookupPortOnePayment, markPaymentReviewIfUnsettled,
+  paymentRef, readMatchingConfirmedOrder, safeText } from "../_shared/payment-recovery.ts";
+import { confirmedPaymentReconciliationAction, paidFinalizationRecoveryAction, paidRecoveryAction,
+  providerCancelledAmount, providerPaidAmount, providerStatusKind, reconciliationSummaryOk,
+  shouldEscalatePendingOrder, shouldReleaseNotFoundOrder } from "../_shared/payment-recovery-policy.mjs";
+import { loadReconciliationOrders, MAX_ORDERS_PER_RECONCILIATION_GROUP, RECONCILIATION_CONCURRENCY,
+  type ReconciliationOrderRow as OrderRow } from "../_shared/reconciliation-orders.ts";
+import { addReconciliationCounters, emptyReconciliationCounters, markNonActionablePaymentReview,
+  preserveRefundPendingForReview, recordCancellationOutcome,
+  type ReconciliationCounters as Counters } from "../_shared/reconciliation-outcomes.ts";
 const PORTONE_API_SECRET = Deno.env.get("PORTONE_API_SECRET") ?? "";
 const PORTONE_API_BASE = Deno.env.get("PORTONE_API_BASE") ?? "https://api.portone.io";
 const PORTONE_STORE_ID = Deno.env.get("PORTONE_STORE_ID") ?? "";
@@ -56,15 +27,13 @@ const PROVIDER_INTEGRITY_ERRORS = new Set([
   "provider_payment_id_missing", "provider_payment_id_mismatch", "provider_store_mismatch",
   "provider_currency_mismatch", "provider_channel_not_live", "provider_response_invalid",
 ]);
-
 type SupabaseAdmin = ReturnType<typeof createClient>;
-
+class PaymentOperationGuardUnavailable extends Error {}
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status, headers: { "Content-Type": "application/json" },
   });
 }
-
 function secretByteLength(value: string): number {
   return new TextEncoder().encode(value).byteLength;
 }
@@ -96,6 +65,9 @@ async function reconcileOrder(admin: SupabaseAdmin, order: OrderRow): Promise<Co
   }
 
   const lookup = await lookupPortOnePayment({
+    operationAdmin: admin,
+    operationControl: "reconcile_payments",
+    operationOrderNo: order.order_no,
     apiBase: PORTONE_API_BASE,
     apiSecret: PORTONE_API_SECRET,
     storeId: PORTONE_STORE_ID,
@@ -104,6 +76,13 @@ async function reconcileOrder(admin: SupabaseAdmin, order: OrderRow): Promise<Co
     timeoutMs: 5000,
     notFoundResult: "not_found",
   });
+  if (lookup.error === "payment_operation_held") {
+    return counters;
+  }
+  if (lookup.error === "payment_operations_temporarily_unavailable" ||
+    lookup.error === "payment_operation_guard_unavailable") {
+    throw new PaymentOperationGuardUnavailable();
+  }
   if (lookup.result === "not_found" && order.status === "pending") {
     if (shouldReleaseNotFoundOrder(order.status, order.created_at, Date.now())) {
       const { data: failed, error: failError } = await admin.rpc("fail_unsettled_order", {
@@ -196,6 +175,7 @@ async function reconcileOrder(admin: SupabaseAdmin, order: OrderRow): Promise<Co
       }
       const cancellation = await cancelAndReconcile({
         admin,
+        operationControl: "reconcile_payments",
         apiBase: PORTONE_API_BASE,
         apiSecret: PORTONE_API_SECRET,
         storeId: PORTONE_STORE_ID,
@@ -216,6 +196,7 @@ async function reconcileOrder(admin: SupabaseAdmin, order: OrderRow): Promise<Co
       }
       const cancellation = await cancelAndReconcile({
         admin,
+        operationControl: "reconcile_payments",
         apiBase: PORTONE_API_BASE,
         apiSecret: PORTONE_API_SECRET,
         storeId: PORTONE_STORE_ID,
@@ -239,6 +220,7 @@ async function reconcileOrder(admin: SupabaseAdmin, order: OrderRow): Promise<Co
 
     const finalized = await finalizePaidOrderFromProvider({
       admin,
+      operationControl: "reconcile_payments",
       orderNo: order.order_no,
       paymentId,
       paidAmount,
@@ -258,6 +240,7 @@ async function reconcileOrder(admin: SupabaseAdmin, order: OrderRow): Promise<Co
     if (paidFinalizationRecoveryAction(finalized.failureKind) === "cancel_conflict") {
       const cancellation = await cancelAndReconcile({
         admin,
+        operationControl: "reconcile_payments",
         apiBase: PORTONE_API_BASE,
         apiSecret: PORTONE_API_SECRET,
         storeId: PORTONE_STORE_ID,
@@ -301,7 +284,8 @@ async function reconcileOrder(admin: SupabaseAdmin, order: OrderRow): Promise<Co
       return counters;
     }
     const reconciliation = await finalizeKnownProviderCancellation({
-      admin, orderNo: order.order_no, refundAmount: cancelledAmount,
+      admin, operationControl: "reconcile_payments",
+      orderNo: order.order_no, refundAmount: cancelledAmount,
       expectedOrderAmount: Number(order.amount),
       reason: "scheduled_cancel_reconciliation",
     });
@@ -362,7 +346,7 @@ async function reconcileOrder(admin: SupabaseAdmin, order: OrderRow): Promise<Co
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
-  if (!RECONCILE_ENABLED) return json({ error: "reconciliation_temporarily_disabled" }, 503);
+  if (!RECONCILE_ENABLED) return json({ error: "payment_operations_temporarily_unavailable" }, 503);
   if (!PORTONE_API_SECRET || !PORTONE_STORE_ID || !SUPABASE_URL || !SERVICE_ROLE ||
     secretByteLength(RECONCILE_TOKEN) < 32) {
     return json({ error: "server_not_configured" }, 503);
@@ -370,29 +354,46 @@ Deno.serve(async (req) => {
   if (!Number.isInteger(POINT_EARN_BPS) || POINT_EARN_BPS < 0 || POINT_EARN_BPS > 10000) {
     return json({ error: "point_policy_invalid" }, 503);
   }
-  if (!safeEqual(req.headers.get("x-reconcile-token") ?? "", RECONCILE_TOKEN)) {
+  const admin = createClient(SUPABASE_URL, SERVICE_ROLE,
+    { auth: { persistSession: false, autoRefreshToken: false } });
+  const reconcileGate = await readPaymentOperationControl(admin, "reconcile_payments");
+  if (!reconcileGate.ok || !reconcileGate.enabled)
+    return json({ error: "payment_operations_temporarily_unavailable" }, 503);
+  if (!safeEqual(req.headers.get("x-reconcile-token") ?? "", RECONCILE_TOKEN))
     return json({ error: "unauthorized" }, 401);
-  }
 
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const nowMs = Date.now();
-  const staleBefore = new Date(nowMs - STALE_PENDING_AGE_MS).toISOString();
-  const loaded = await loadReconciliationOrders({
-    admin, staleBefore, nowMs, limit: MAX_ORDERS_PER_RECONCILIATION_GROUP,
-  });
-  if (!loaded.orders) return json({ error: "orders_lookup_failed" }, 500);
-  const orders = loaded.orders;
-  const summary = emptyReconciliationCounters();
-  for (let index = 0; index < orders.length; index += RECONCILIATION_CONCURRENCY) {
-    const batch = orders.slice(index, index + RECONCILIATION_CONCURRENCY);
-    const results = await Promise.all(batch.map((order) => reconcileOrder(admin, order)));
-    for (const result of results) addReconciliationCounters(summary, result);
-  }
+  try {
+    const nowMs = Date.now();
+    const staleBefore = new Date(nowMs - STALE_PENDING_AGE_MS).toISOString();
+    const loaded = await loadReconciliationOrders(
+      { admin, staleBefore, nowMs, limit: MAX_ORDERS_PER_RECONCILIATION_GROUP });
+    if (!loaded.orders) return json({ error: "orders_lookup_failed" }, 500);
 
-  return json({
-    ok: reconciliationSummaryOk(summary),
-    ...summary,
-  });
+    // Resolve every candidate hold before starting any provider work. A single
+    // guard failure aborts the whole batch, while held candidates are skipped.
+    const guarded = await Promise.all(loaded.orders.map(async (order) => ({
+      order,
+      operation: await guardPaymentOperation(
+        { admin, control: "reconcile_payments", orderNo: order.order_no }),
+    })));
+    if (guarded.some(({ operation }) =>
+      !operation.allowed && operation.reason !== "operation_held")) {
+      return json({ error: "payment_operations_temporarily_unavailable" }, 503);
+    }
+    const orders = guarded.filter(({ operation }) => operation.allowed).map(({ order }) => order);
+    const heldSkipped = guarded.length - orders.length;
+    const summary = emptyReconciliationCounters();
+    for (let index = 0; index < orders.length; index += RECONCILIATION_CONCURRENCY) {
+      const batch = orders.slice(index, index + RECONCILIATION_CONCURRENCY);
+      const results = await Promise.all(batch.map((order) => reconcileOrder(admin, order)));
+      for (const result of results) addReconciliationCounters(summary, result);
+    }
+
+    return json({ ok: reconciliationSummaryOk(summary), heldSkipped, ...summary });
+  } catch (error) {
+    if (error instanceof PaymentOperationGuardUnavailable)
+      return json({ error: "payment_operations_temporarily_unavailable" }, 503);
+    console.error("reconcile-payments", error instanceof Error ? error.name : "unknown");
+    return json({ error: "reconciliation_failed" }, 500);
+  }
 });

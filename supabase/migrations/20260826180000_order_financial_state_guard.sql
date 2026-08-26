@@ -81,6 +81,7 @@ declare
   v_new_status text;
 begin
   if auth.uid() is null then raise exception 'LOGIN_REQUIRED'; end if;
+  perform public.assert_payment_operation_open_v1(p_order_no);
   select * into v_order
     from public.orders
    where order_no = p_order_no

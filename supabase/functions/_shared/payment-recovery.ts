@@ -1,6 +1,12 @@
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
 import { hasConfirmedPaymentStatus } from "./order-payment-states.ts";
 import {
+  guardPaymentOperation,
+  readPaymentOperationHold,
+  type PaymentOperationControl,
+  type PaymentOperationRpcClient,
+} from "./payment-operation-guard.ts";
+import {
   paidFinalizationDatabaseFailureKind,
   providerStatusKind,
 } from "./payment-recovery-policy.mjs";
@@ -86,6 +92,9 @@ function providerIdentityError(input: {
 }
 
 export async function lookupPortOnePayment(input: {
+  operationAdmin: PaymentOperationRpcClient;
+  operationControl: PaymentOperationControl;
+  operationOrderNo: string;
   apiBase: string;
   apiSecret: string;
   storeId: string;
@@ -98,6 +107,25 @@ export async function lookupPortOnePayment(input: {
 }): Promise<ProviderLookup> {
   const retryDelays = input.retryDelaysMs ?? [];
   for (let attempt = 0; attempt <= retryDelays.length; attempt += 1) {
+    // Re-check immediately before every provider request. This closes the race
+    // where an operator adds a hold during a bounded provider retry delay.
+    const operation = await guardPaymentOperation({
+      admin: input.operationAdmin,
+      control: input.operationControl,
+      orderNo: input.operationOrderNo,
+    });
+    if (!operation.allowed) {
+      return {
+        payment: null,
+        result: "error",
+        error: operation.reason === "operation_held"
+          ? "payment_operation_held"
+          : operation.reason === "operation_disabled"
+          ? "payment_operations_temporarily_unavailable"
+          : "payment_operation_guard_unavailable",
+        errorStatus: operation.reason === "operation_held" ? 409 : 503,
+      };
+    }
     let response: Response;
     try {
       response = await fetch(
@@ -170,6 +198,8 @@ export async function readMatchingConfirmedOrder(
   paymentId: string,
   paidAmount: number,
 ): Promise<JsonRecord | null> {
+  const hold = await readPaymentOperationHold(admin, orderNo);
+  if (!hold.ok || hold.held) return null;
   const { data, error } = await admin
     .from("orders")
     .select("id,order_no,listing_id,amount,status,payment_key,paid_at,receipt_url")
@@ -199,6 +229,7 @@ export async function markPaymentReviewIfUnsettled(
 
 export async function finalizePaidOrderFromProvider(input: {
   admin: SupabaseClient;
+  operationControl: PaymentOperationControl;
   orderNo: string;
   paymentId: string;
   paidAmount: number;
@@ -206,6 +237,19 @@ export async function finalizePaidOrderFromProvider(input: {
   attribution: JsonRecord | null;
   pointEarnBps: number;
 }): Promise<FinalizePaidResult> {
+  const operation = await guardPaymentOperation({
+    admin: input.admin, control: input.operationControl, orderNo: input.orderNo,
+  });
+  if (!operation.allowed) {
+    return {
+      order: null, alreadyPaid: false, earnedPoints: 0, method: null,
+      transactionId: null, receiptUrl: null,
+      errorCode: operation.reason === "operation_held"
+        ? "payment_operation_held"
+        : "payment_operations_temporarily_unavailable",
+      failureKind: null,
+    };
+  }
   const method = input.payment.method && typeof input.payment.method === "object"
     ? safeText(
       (input.payment.method as JsonRecord).type ?? (input.payment.method as JsonRecord).provider,

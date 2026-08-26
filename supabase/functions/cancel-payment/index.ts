@@ -1,6 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
 import { hasRefundablePaymentStatus } from "../_shared/order-payment-states.ts";
 import {
+  guardPaymentOperation,
+  readPaymentOperationControl,
+} from "../_shared/payment-operation-guard.ts";
+import {
   cancelAndReconcile,
   finalizeKnownProviderCancellation,
 } from "../_shared/portone-cancellation.ts";
@@ -85,6 +89,10 @@ Deno.serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
+    const cancelGate = await readPaymentOperationControl(admin, "cancel_payment");
+    if (!cancelGate.ok || !cancelGate.enabled) {
+      return json(req, { error: "payment_operations_temporarily_unavailable" }, 503);
+    }
     const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
     if (!bearer) return json(req, { error: "unauthorized" }, 401);
     const { data: userResult } = await admin.auth.getUser(bearer);
@@ -96,6 +104,21 @@ Deno.serve(async (req) => {
       .eq("id", uid)
       .single();
     if (profile?.role !== "admin") return json(req, { error: "forbidden" }, 403);
+
+    const operation = await guardPaymentOperation({
+      admin,
+      control: "cancel_payment",
+      orderNo,
+    });
+    if (!operation.allowed) {
+      return json(
+        req,
+        { error: operation.reason === "operation_held"
+          ? "payment_operation_held"
+          : "payment_operations_temporarily_unavailable" },
+        operation.reason === "operation_held" ? 409 : 503,
+      );
+    }
 
     const { data: order, error: orderError } = await admin
       .from("orders")
@@ -113,6 +136,9 @@ Deno.serve(async (req) => {
     // The local order is not proof of a captured payment. Read the provider
     // first and make every financial transition from that verified state.
     const lookup = await lookupPortOnePayment({
+      operationAdmin: admin,
+      operationControl: "cancel_payment",
+      operationOrderNo: orderNo,
       apiBase: PORTONE_API_BASE,
       apiSecret: PORTONE_API_SECRET,
       storeId: PORTONE_STORE_ID,
@@ -121,6 +147,13 @@ Deno.serve(async (req) => {
       timeoutMs: 10000,
     });
     if (!lookup.payment || lookup.result !== "found") {
+      if (lookup.error === "payment_operation_held") {
+        return json(req, { error: "payment_operation_held" }, 409);
+      }
+      if (lookup.error === "payment_operations_temporarily_unavailable" ||
+        lookup.error === "payment_operation_guard_unavailable") {
+        return json(req, { error: "payment_operations_temporarily_unavailable" }, 503);
+      }
       return json(req, { error: lookup.error ?? "provider_lookup_failed" }, lookup.errorStatus || 502);
     }
     const providerStatus = providerStatusKind(lookup.payment.status);
@@ -158,7 +191,7 @@ Deno.serve(async (req) => {
     }
     if (action === "finalize_cancelled" && providerAmount !== null) {
       const reconciliation = await finalizeKnownProviderCancellation({
-        admin, orderNo, refundAmount: providerAmount,
+        admin, operationControl: "cancel_payment", orderNo, refundAmount: providerAmount,
         expectedOrderAmount: Number(order.amount), reason,
       });
       if (!reconciliation.tracked) {
@@ -175,6 +208,7 @@ Deno.serve(async (req) => {
 
     const cancellation = await cancelAndReconcile({
       admin,
+      operationControl: "cancel_payment",
       apiBase: PORTONE_API_BASE,
       apiSecret: PORTONE_API_SECRET,
       storeId: PORTONE_STORE_ID,

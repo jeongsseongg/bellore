@@ -33,6 +33,9 @@ begin
     select 1
       from public.orders
      where payment_contract_version = 2
+       and not public.is_payment_operation_hash_held_v1(
+         public.payment_order_no_sha256_v1(order_no)
+       )
        and status not in ('failed','canceled','refunded','refund_pending')
      group by listing_id
     having count(*) > 1
@@ -44,6 +47,9 @@ begin
       from public.orders
      where coupon_user_id is not null
        and payment_contract_version = 2
+       and not public.is_payment_operation_hash_held_v1(
+         public.payment_order_no_sha256_v1(order_no)
+       )
        and status not in ('failed','canceled','refunded','refund_pending')
      group by coupon_user_id
     having count(*) > 1
@@ -215,6 +221,20 @@ begin
     raise exception 'checkout_amount_invalid';
   end if;
 
+  -- A response-loss replay must not materialize a protected order. The hold is
+  -- keyed only by the SHA-256 identifier and is checked before selecting the
+  -- existing row into a record or taking its row lock.
+  if exists (
+    select 1
+      from public.orders as held_order
+     where held_order.checkout_request_key_hash = p_checkout_request_key_hash
+       and public.is_payment_operation_hash_held_v1(
+         public.payment_order_no_sha256_v1(held_order.order_no)
+       )
+  ) then
+    raise exception 'payment_operation_held';
+  end if;
+
   -- Serialize the first insert and every retry before rate consumption. A
   -- concurrent response-loss retry waits, then reuses the committed order.
   perform pg_catalog.pg_advisory_xact_lock(
@@ -223,6 +243,9 @@ begin
   select * into v_existing
     from public.orders
    where checkout_request_key_hash = p_checkout_request_key_hash
+     and not public.is_payment_operation_hash_held_v1(
+       public.payment_order_no_sha256_v1(order_no)
+     )
    for update;
   if found then
     if v_existing.payment_contract_version = 2
@@ -319,3 +342,58 @@ revoke all on function public.create_checkout_order_edge_v1(
 grant execute on function public.create_checkout_order_edge_v1(
   text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb
 ) to service_role;
+
+-- Checkout recovery is server-owned so the Edge function never reads orders
+-- directly. Active holds return NULL and expose no order fields.
+create or replace function public.recover_checkout_order_edge_v1(
+  p_checkout_request_key_hash text,
+  p_checkout_token_hash text,
+  p_customer_id uuid
+) returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_result jsonb;
+begin
+  if coalesce(auth.role(),'') <> 'service_role' then
+    raise exception 'checkout_core_forbidden';
+  end if;
+  if p_checkout_request_key_hash is null
+     or p_checkout_request_key_hash !~ '^[0-9a-f]{64}$' then
+    raise exception 'checkout_request_invalid';
+  end if;
+  if p_checkout_token_hash is null
+     or p_checkout_token_hash !~ '^[0-9a-f]{64}$' then
+    raise exception 'checkout_token_invalid';
+  end if;
+
+  select jsonb_build_object(
+    'order_no', orders.order_no,
+    'amount', orders.amount,
+    'status', orders.status,
+    'listing_id', orders.listing_id,
+    'customer_id', orders.customer_id,
+    'payment_contract_version', orders.payment_contract_version
+  )
+    into v_result
+    from public.orders as orders
+   where orders.checkout_request_key_hash = p_checkout_request_key_hash
+     and orders.checkout_token_hash = p_checkout_token_hash
+     and orders.payment_contract_version = 2
+     and orders.customer_id is not distinct from p_customer_id
+     and not public.is_payment_operation_hash_held_v1(
+       public.payment_order_no_sha256_v1(orders.order_no)
+     )
+   limit 1;
+
+  return v_result;
+end;
+$$;
+
+revoke all on function public.recover_checkout_order_edge_v1(text,text,uuid)
+  from public, anon, authenticated;
+grant execute on function public.recover_checkout_order_edge_v1(text,text,uuid)
+  to service_role;

@@ -10,6 +10,7 @@ const setFetch = (value) => Object.defineProperty(globalThis, 'fetch', {
   configurable: true, writable: true, value,
 });
 const baseInput = {
+  operationControl: 'cancel_payment',
   apiBase: 'https://api.portone.test',
   apiSecret: 'secret',
   storeId: 'store-live',
@@ -34,6 +35,14 @@ function adminRecorder(options = {}) {
     admin: {
       rpc(name, args) {
         calls.push({ name, args });
+        if (name === 'read_payment_operation_control_v1') {
+          if (options.failGuard) return Promise.resolve({ data: null, error: { message: 'guard unavailable' } });
+          return Promise.resolve({ data: true, error: null });
+        }
+        if (name === 'is_payment_operation_hash_held_v1') {
+          if (options.failGuard) return Promise.resolve({ data: null, error: { message: 'guard unavailable' } });
+          return Promise.resolve({ data: options.held === true, error: null });
+        }
         if (name === 'finalize_order_refund_v2') {
           if (options.failFinalize) return Promise.resolve({ data: null, error: { message: 'refund_amount_mismatch' } });
           return Promise.resolve({ data: { ok: true }, error: null });
@@ -56,17 +65,44 @@ try {
     });
     const recorder = adminRecorder();
     assert.equal(await queueCancellationIntent(
-      recorder.admin, 'order-queued', 'amount_mismatch_auto_cancel',
+      recorder.admin, 'order-queued', 'amount_mismatch_auto_cancel', 'payment_webhook',
     ), true);
-    assert.deepEqual(recorder.calls, [{
+    assert.deepEqual(recorder.calls.at(-1), {
       name: 'mark_order_refund_pending',
       args: {
         p_order_no: 'order-queued',
         p_reason: 'cancellation_intent:amount_mismatch_auto_cancel',
       },
-    }]);
+    });
     assert.equal(providerCalled, false,
       'webhook must return after durable intent and leave provider cancellation to reconciliation');
+  }
+
+  {
+    let providerCalled = false;
+    setFetch(async () => {
+      providerCalled = true;
+      throw new Error('held cancellation must not call PortOne');
+    });
+    const recorder = adminRecorder({ held: true });
+    const result = await cancelAndReconcile({ ...baseInput, admin: recorder.admin });
+    assert.equal(providerCalled, false);
+    assert.equal(result.dbFinalized, false);
+    assert.equal(recorder.calls.some((call) => call.name === 'mark_order_refund_pending'), false,
+      'held cancellation must stop before durable intent mutation');
+  }
+
+  {
+    let providerCalled = false;
+    setFetch(async () => {
+      providerCalled = true;
+      throw new Error('unavailable guard must not call PortOne');
+    });
+    const recorder = adminRecorder({ failGuard: true });
+    const result = await cancelAndReconcile({ ...baseInput, admin: recorder.admin });
+    assert.equal(providerCalled, false);
+    assert.equal(result.dbFinalized, false);
+    assert.equal(recorder.calls.some((call) => call.name === 'mark_order_refund_pending'), false);
   }
 
   {
@@ -155,6 +191,7 @@ try {
     const recorder = adminRecorder();
     const result = await finalizeKnownProviderCancellation({
       admin: recorder.admin,
+      operationControl: 'reconcile_payments',
       orderNo: 'order-provider-cancelled-full',
       refundAmount: 1300,
       expectedOrderAmount: 1300,
@@ -170,6 +207,7 @@ try {
     const recorder = adminRecorder({ failFinalize: true });
     const result = await finalizeKnownProviderCancellation({
       admin: recorder.admin,
+      operationControl: 'reconcile_payments',
       orderNo: 'order-provider-cancelled-partial',
       refundAmount: 900,
       expectedOrderAmount: 1300,
@@ -187,6 +225,7 @@ try {
     const recorder = adminRecorder();
     const result = await finalizeKnownProviderCancellation({
       admin: recorder.admin,
+      operationControl: 'reconcile_payments',
       orderNo: 'order-auto-cancel-response-lost',
       refundAmount: 1100,
       expectedOrderAmount: 1000,
@@ -203,6 +242,7 @@ try {
     const recorder = adminRecorder();
     const result = await finalizeKnownProviderCancellation({
       admin: recorder.admin,
+      operationControl: 'reconcile_payments',
       orderNo: 'order-provider-cancelled-missing-total',
       refundAmount: 1300,
       expectedOrderAmount: Number.NaN,

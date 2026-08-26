@@ -1,29 +1,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
 import { hasConfirmedPaymentStatus } from "../_shared/order-payment-states.ts";
-import {
-  confirmationAuthorized,
-  publicOrder,
-  safeEqual,
-  sanitizePaymentAttribution,
-  sha256Hex,
-} from "../_shared/payment-edge-utils.ts";
+import { guardPaymentOperation } from "../_shared/payment-operation-guard.ts";
+import { confirmationAuthorized, publicOrder, safeEqual,
+  sanitizePaymentAttribution, sha256Hex } from "../_shared/payment-edge-utils.ts";
 import { cancelAndReconcile } from "../_shared/portone-cancellation.ts";
-import {
-  finalizePaidOrderFromProvider,
-  lookupPortOnePayment,
-  markPaymentReviewIfUnsettled,
-  paymentRef,
-  readMatchingConfirmedOrder,
-  safeText,
-  type JsonRecord,
-} from "../_shared/payment-recovery.ts";
-import {
-  CONFIRMATION_RETRY_DELAYS_MS,
-  paidFinalizationRecoveryAction,
-  paidRecoveryAction,
-  providerPaidAmount,
-  providerStatusKind,
-} from "../_shared/payment-recovery-policy.mjs";
+import { finalizePaidOrderFromProvider, lookupPortOnePayment, markPaymentReviewIfUnsettled,
+  paymentRef, readMatchingConfirmedOrder, safeText, type JsonRecord } from "../_shared/payment-recovery.ts";
+import { CONFIRMATION_RETRY_DELAYS_MS, paidFinalizationRecoveryAction, paidRecoveryAction,
+  providerPaidAmount, providerStatusKind } from "../_shared/payment-recovery-policy.mjs";
 
 const PORTONE_API_SECRET = Deno.env.get("PORTONE_API_SECRET") ?? "";
 const PORTONE_API_BASE = Deno.env.get("PORTONE_API_BASE") ?? "https://api.portone.io";
@@ -95,6 +79,16 @@ Deno.serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
+    const operation = await guardPaymentOperation({
+      admin, control: "confirm_payment", orderNo: paymentId,
+    });
+    if (!operation.allowed) {
+      if (operation.reason === "operation_held") {
+        return json(req, { ok: false, pending: true,
+          error: "payment_confirmation_pending", retryAfterMs: 5000 }, 202);
+      }
+      return json(req, { error: "payment_operations_temporarily_unavailable" }, 503);
+    }
     const { data: order, error: orderError } = await admin
       .from("orders")
       .select("id,order_no,customer_id,listing_id,amount,status,checkout_token_hash,payment_key,paid_at,receipt_url")
@@ -136,6 +130,9 @@ Deno.serve(async (req) => {
     }
 
     const lookup = await lookupPortOnePayment({
+      operationAdmin: admin,
+      operationControl: "confirm_payment",
+      operationOrderNo: paymentId,
       apiBase: PORTONE_API_BASE,
       apiSecret: PORTONE_API_SECRET,
       storeId: PORTONE_STORE_ID,
@@ -268,6 +265,7 @@ Deno.serve(async (req) => {
       const latePayment = recoveryAction === "cancel_late_payment";
       const cancellation = await cancelAndReconcile({
         admin,
+        operationControl: "confirm_payment",
         apiBase: PORTONE_API_BASE,
         apiSecret: PORTONE_API_SECRET,
         storeId: PORTONE_STORE_ID,
@@ -293,6 +291,7 @@ Deno.serve(async (req) => {
 
     const finalized = await finalizePaidOrderFromProvider({
       admin,
+      operationControl: "confirm_payment",
       orderNo: paymentId,
       paymentId,
       paidAmount,
@@ -320,6 +319,7 @@ Deno.serve(async (req) => {
       if (paidFinalizationRecoveryAction(finalized.failureKind) === "cancel_conflict") {
         const cancellation = await cancelAndReconcile({
           admin,
+          operationControl: "confirm_payment",
           apiBase: PORTONE_API_BASE,
           apiSecret: PORTONE_API_SECRET,
           storeId: PORTONE_STORE_ID,

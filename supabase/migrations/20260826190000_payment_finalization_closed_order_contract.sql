@@ -26,6 +26,7 @@ declare
 begin
   if p_order_no is null or p_payment_key is null then raise exception 'payment_identity_missing'; end if;
   if p_point_earn_bps < 0 or p_point_earn_bps > 10000 then raise exception 'point_rate_invalid'; end if;
+  perform public.assert_payment_operation_open_v1(p_order_no);
 
   select * into v_order
     from public.orders
@@ -142,3 +143,20 @@ revoke all on function public.finalize_paid_order_v2(
 grant execute on function public.finalize_paid_order_v2(
   text,bigint,text,text,text,text,jsonb,integer
 ) to service_role;
+
+-- Reconciliation must not materialize an actively held order in Edge code.
+-- SECURITY BARRIER prevents caller predicates from being pushed through the
+-- hold boundary; the view is read-only to the service role by privilege.
+create or replace view public.payment_reconciliation_orders_edge_v1
+with (security_barrier = true, security_invoker = true)
+as
+select orders.*
+  from public.orders as orders
+ where not public.is_payment_operation_hash_held_v1(
+   public.payment_order_no_sha256_v1(orders.order_no)
+ );
+
+revoke all on public.payment_reconciliation_orders_edge_v1
+  from public, anon, authenticated, service_role;
+grant select on public.payment_reconciliation_orders_edge_v1
+  to service_role;

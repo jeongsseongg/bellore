@@ -3,6 +3,7 @@ import {
   hasConfirmedPaymentStatus,
   hasRefundablePaymentStatus,
 } from "../_shared/order-payment-states.ts";
+import { guardPaymentOperation } from "../_shared/payment-operation-guard.ts";
 import {
   finalizeKnownProviderCancellation,
   queueCancellationIntent,
@@ -101,6 +102,20 @@ Deno.serve(async (req) => {
     if (!eventType?.startsWith("Transaction.") || !paymentId) {
       return json({ ok: true, ignored: true });
     }
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const operation = await guardPaymentOperation({
+      admin,
+      control: "payment_webhook",
+      orderNo: paymentId,
+    });
+    if (!operation.allowed) {
+      if (operation.reason === "operation_held") {
+        return json({ ok: true, ignored: true, reason: "operation_held" });
+      }
+      return json({ error: "payment_operations_temporarily_unavailable" }, 503);
+    }
     if (notifiedStoreId !== PORTONE_STORE_ID) {
       console.warn("payment-webhook store mismatch ignored", JSON.stringify({
         eventType,
@@ -110,9 +125,6 @@ Deno.serve(async (req) => {
     }
 
     // 먼저 존재하는 주문인지 확인해 임의 결제번호로 PortOne 조회를 남발하지 못하게 한다.
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
     const { data: order, error: orderError } = await admin
       .from("orders")
       .select("id,order_no,amount,status,payment_key,paid_at,receipt_url")
@@ -124,6 +136,9 @@ Deno.serve(async (req) => {
     }
 
     const lookup = await lookupPortOnePayment({
+      operationAdmin: admin,
+      operationControl: "payment_webhook",
+      operationOrderNo: paymentId,
       apiBase: PORTONE_API_BASE,
       apiSecret: PORTONE_API_SECRET,
       storeId: PORTONE_STORE_ID,
@@ -132,6 +147,13 @@ Deno.serve(async (req) => {
       timeoutMs: 10000,
     });
     if (!lookup.payment) {
+      if (lookup.error === "payment_operation_held") {
+        return json({ ok: true, ignored: true, reason: "operation_held" });
+      }
+      if (lookup.error === "payment_operations_temporarily_unavailable" ||
+        lookup.error === "payment_operation_guard_unavailable") {
+        return json({ error: "payment_operations_temporarily_unavailable" }, 503);
+      }
       console.warn("payment-webhook provider rejected", JSON.stringify({
         paymentRef: paymentRef(paymentId),
         code: lookup.error ?? lookup.result,
@@ -157,7 +179,8 @@ Deno.serve(async (req) => {
         return json({ error: "refund_amount_review", reviewRequired: true }, 500);
       }
       const reconciliation = await finalizeKnownProviderCancellation({
-        admin, orderNo: paymentId, refundAmount: cancelledAmount,
+        admin, operationControl: "payment_webhook",
+        orderNo: paymentId, refundAmount: cancelledAmount,
         expectedOrderAmount: Number(order.amount),
         reason: "portone_cancelled_webhook",
       });
@@ -266,6 +289,7 @@ Deno.serve(async (req) => {
         recoveryAction === "cancel_amount_mismatch"
           ? "amount_mismatch_auto_cancel"
           : "paid_finalization_conflict_auto_cancel",
+        "payment_webhook",
       );
       if (!queued) return json({ error: "payment_recovery_not_recorded" }, 500);
       return json({
@@ -292,6 +316,7 @@ Deno.serve(async (req) => {
 
     const finalized = await finalizePaidOrderFromProvider({
       admin,
+      operationControl: "payment_webhook",
       orderNo: paymentId,
       paymentId,
       paidAmount,
@@ -308,6 +333,7 @@ Deno.serve(async (req) => {
           admin,
           paymentId,
           "paid_finalization_conflict_auto_cancel",
+          "payment_webhook",
         );
         if (!queued) return json({ error: "payment_recovery_not_recorded" }, 500);
         return json({

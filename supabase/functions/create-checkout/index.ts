@@ -4,6 +4,7 @@ import {
   decodeGatewayVerifiedJwtClaims,
 } from "../_shared/checkout-auth.mjs";
 import { publicCheckoutRecovery } from "../_shared/checkout-recovery.ts";
+import { readPaymentOperationControl } from "../_shared/payment-operation-guard.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -11,6 +12,7 @@ const RATE_KEY_SECRET = Deno.env.get("CHECKOUT_RATE_KEY_SECRET") ?? "";
 // A missing rollout flag must never open production checkout accidentally.
 // Enable only after DB, Edge Functions, webhook, reconciliation, and static UI
 // have all been verified as one release.
+// Legacy checkout_temporarily_unavailable is superseded by the shared lock response.
 const CHECKOUT_ENABLED = Deno.env.get("PAYMENT_CHECKOUT_ENABLED") === "true";
 
 const ALLOWED_ORIGINS = new Set([
@@ -166,6 +168,17 @@ Deno.serve(async (req) => {
   }
 
   try {
+    if (!CHECKOUT_ENABLED) {
+      return json(req, { error: "payment_operations_temporarily_unavailable" }, 503);
+    }
+    const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const checkoutGate = await readPaymentOperationControl(admin, "create_checkout");
+    if (!checkoutGate.ok || !checkoutGate.enabled) {
+      return json(req, { error: "payment_operations_temporarily_unavailable" }, 503);
+    }
+
     const rawBody = await req.text();
     if (new TextEncoder().encode(rawBody).byteLength > MAX_BODY_BYTES) {
       return json(req, { error: "request_too_large" }, 413);
@@ -189,10 +202,6 @@ Deno.serve(async (req) => {
     if (!checkoutToken || !/^[0-9a-f]{64}$/.test(checkoutToken)) {
       return json(req, { error: "checkout_token_invalid" }, 400);
     }
-
-    const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
     const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
     const caller = await checkoutCaller(admin, bearer);
     if (caller.error) {
@@ -203,18 +212,19 @@ Deno.serve(async (req) => {
     const checkoutRequestKeyHash = await sha256Hex(checkoutRequestKey);
     const checkoutTokenHash = await sha256Hex(checkoutToken);
     if (body.action === "recover") {
-      const baseRecoveryQuery = admin
-        .from("orders")
-        .select("order_no,amount,status,listing_id,payment_contract_version,customer_id")
-        .eq("checkout_request_key_hash", checkoutRequestKeyHash)
-        .eq("checkout_token_hash", checkoutTokenHash)
-        .eq("payment_contract_version", 2);
-      const recoveryQuery = caller.callerId
-        ? baseRecoveryQuery.eq("customer_id", caller.callerId)
-        : baseRecoveryQuery.is("customer_id", null);
-      const { data: existing, error: recoveryError } = await recoveryQuery
-        .maybeSingle();
-      if (recoveryError) return json(req, { error: "checkout_recovery_failed" }, 500);
+      // The SECURITY DEFINER RPC applies the hash-only hold predicate inside
+      // Postgres, so a held order row is never returned to the Edge runtime.
+      const { data: existing, error: recoveryError } = await admin.rpc(
+        "recover_checkout_order_edge_v1",
+        {
+          p_checkout_request_key_hash: checkoutRequestKeyHash,
+          p_checkout_token_hash: checkoutTokenHash,
+          p_customer_id: caller.callerId,
+        },
+      );
+      if (recoveryError) {
+        return json(req, { error: "payment_operations_temporarily_unavailable" }, 503);
+      }
       if (!existing) {
         return json(req, { exists: false, checkoutRequestKey, checkoutToken });
       }
@@ -227,9 +237,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!CHECKOUT_ENABLED) {
-      return json(req, { error: "checkout_temporarily_unavailable" }, 503);
-    }
     if (RATE_KEY_SECRET.length < 32) return json(req, { error: "server_not_configured" }, 503);
     const clientIp = platformClientIp(req);
     if (!clientIp) return json(req, { error: "client_address_unavailable" }, 400);

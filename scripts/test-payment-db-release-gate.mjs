@@ -21,7 +21,7 @@ assert.doesNotMatch(migration, /update\s+public\.orders\s+set\s+payment_contract
 // checkout creation time. Existing v2 terminal rows are safely backfilled.
 assert.match(recoveryMigration, /add column if not exists payment_terminal_at timestamptz/);
 assert.match(recoveryMigration, /set payment_terminal_at = least\([\s\S]{0,500}orders\.canceled_at[\s\S]{0,300}to_jsonb\(orders\)->>'updated_at'[\s\S]{0,200}orders\.created_at/);
-assert.match(recoveryMigration, /where orders\.payment_contract_version = 2[\s\S]{0,100}orders\.status in \('failed','canceled'\)[\s\S]{0,100}orders\.payment_terminal_at is null/);
+assert.match(recoveryMigration, /where orders\.payment_contract_version = 2[\s\S]{0,240}not public\.is_payment_operation_hash_held_v1[\s\S]{0,160}orders\.status in \('failed','canceled'\)[\s\S]{0,100}orders\.payment_terminal_at is null/);
 assert.match(recoveryMigration, /orders_v2_terminal_timestamp_required[\s\S]{0,300}payment_terminal_at is not null[\s\S]{0,200}validate constraint orders_v2_terminal_timestamp_required/);
 assert.match(recoveryMigration, /orders_recent_payment_terminal_v2_idx[\s\S]{0,160}payment_terminal_at,id[\s\S]{0,200}status in \('failed','canceled'\)/);
 const terminalStamp = recoveryMigration.match(
@@ -151,6 +151,7 @@ assert.match(validateBlock, /PGCONN: \$\{\{ secrets\.SUPABASE_VALIDATION_DB_URL 
 assert.doesNotMatch(validateBlock, /PGCONN: \$\{\{ secrets\.SUPABASE_DB_URL \}\}/,
   'rollback fixtures must not receive the production DB URL');
 for (const file of [
+  '20260826155000_payment_operation_hold.sql',
   '20260826160000_payment_recovery_listing_state.sql',
   '20260826170000_checkout_claim_integrity.sql',
   '20260826180000_order_financial_state_guard.sql',
@@ -165,6 +166,7 @@ const applyBlock = workflow.slice(applyStart, liveStart);
 assert.doesNotMatch(applyBlock, /20260824090000_authority_payment_hardening\.sql/,
   'an applied historical migration must not be replayed in production');
 for (const file of [
+  '20260826155000_payment_operation_hold.sql',
   '20260826160000_payment_recovery_listing_state.sql',
   '20260826170000_checkout_claim_integrity.sql',
   '20260826180000_order_financial_state_guard.sql',
@@ -180,7 +182,7 @@ assert.match(applyBlock, /payment_release_migration_already_recorded/);
 assert.match(applyBlock, /migration_ledger_ahead_of_release/);
 assert.match(
   applyBlock,
-  /begin;[\s\S]*insert into supabase_migrations\.schema_migrations\(version,name,statements\)[\s\S]{0,700}'20260826160000'[\s\S]{0,700}'20260826190000'[\s\S]{0,120}commit;/,
+  /begin;[\s\S]*insert into supabase_migrations\.schema_migrations\(version,name,statements\)[\s\S]{0,900}'20260826155000'[\s\S]{0,900}'20260826190000'[\s\S]{0,180}commit;/,
   'all release migrations must be recorded in the Supabase ledger inside the apply transaction',
 );
 
@@ -189,17 +191,20 @@ assert.match(
 // successful restore.
 assert.match(workflow, /production_apply_ack:[\s\S]{0,220}APPLY_AUTHORITY_PAYMENT_TO_PRODUCTION/);
 assert.match(workflow, /payment_locks_ack:[\s\S]{0,220}PAYMENT_CHECKOUT_AND_RECONCILE_LOCKED/);
+assert.match(workflow, /payment_hold_ack:[\s\S]{0,220}SEED_HASH_ONLY_PAYMENT_OPERATION_HOLD/);
+assert.match(workflow, /payment_hold_sha256 must be a 64-character lowercase SHA-256/);
 assert.match(workflow, /PRODUCTION_DEPLOY_FLAG: \$\{\{ vars\.PRODUCTION_DEPLOY_ENABLED \}\}/);
 assert.match(workflow, /RECONCILE_REPOSITORY_FLAG: \$\{\{ vars\.PAYMENT_RECONCILE_ENABLED \}\}/);
 assert.match(workflow, /PRODUCTION_DEPLOY_ENABLED must be explicitly false/);
 assert.match(workflow, /PAYMENT_RECONCILE_ENABLED repository variable must be explicitly false/);
-assert.match(workflow, /Verify deployed payment Edge locks before production apply/);
-assert.equal((workflow.match(/--connect-timeout 10 --max-time 20/g) || []).length, 2,
-  'both deployed Edge lock probes must fail within a bounded time');
-assert.match(workflow, /checkout_status" != "503"[\s\S]{0,220}checkout_temporarily_unavailable/);
-assert.match(workflow, /reconcile_status" != "503"[\s\S]{0,220}reconciliation_temporarily_disabled/);
+assert.match(workflow, /Verify all deployed payment Edge locks before production apply/);
+assert.match(workflow, /--connect-timeout 10 --max-time 20/);
+assert.equal((workflow.match(/probe_lock (?:create-checkout|confirm-payment|cancel-payment|payment-webhook|reconcile-payments)/g) || []).length, 5,
+  'all five deployed Edge paths must be probed through the bounded helper');
+assert.match(workflow, /status" != "503"[\s\S]{0,220}payment_operations_temporarily_unavailable/);
+assert.match(workflow, /Waiting 180 seconds[\s\S]*sleep 180/);
 assert.ok(
-  workflow.indexOf('Verify deployed payment Edge locks before production apply') <
+  workflow.indexOf('Verify all deployed payment Edge locks before production apply') <
     workflow.indexOf('Apply authority and payment migration'),
   'deployed Edge locks must be proven before the production DB apply step',
 );

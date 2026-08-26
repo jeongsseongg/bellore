@@ -57,13 +57,18 @@ assert.equal(
   6,
   'every listing backfill source must be scoped to payment contract v2',
 );
+assert.equal(
+  occurrences(backfill, /not public\.is_payment_operation_hash_held_v1/g),
+  6,
+  'every listing backfill source must exclude actively held orders',
+);
 
 const cleanupBody = migration.match(
   /create or replace function public\.release_expired_checkout_reservations\(\)([\s\S]*?)\$\$;/,
 )?.[1] || '';
 assert.match(
   cleanupBody,
-  /where payment_contract_version = 2\s+and status in \('refunded', 'canceled', 'failed'\)\s+and not coalesce\(restock_required, false\)/,
+  /where payment_contract_version = 2[\s\S]{0,220}not public\.is_payment_operation_hash_held_v1[\s\S]{0,180}status in \('refunded', 'canceled', 'failed'\)[\s\S]{0,120}not coalesce\(restock_required, false\)/,
   'scheduled listing cleanup must ignore legacy terminal orders',
 );
 assert.match(

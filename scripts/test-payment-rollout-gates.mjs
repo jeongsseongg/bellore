@@ -25,8 +25,9 @@ assert.ok(
 assert.match(reconcileWorkflow, /vars\.PAYMENT_RECONCILE_ENABLED == 'true'/);
 assert.match(dbWorkflow, /PGCONN: \$\{\{ secrets\.SUPABASE_VALIDATION_DB_URL \}\}/);
 assert.match(dbWorkflow, /if: inputs\.task == 'validate-authority-payment'/);
-assert.match(dbWorkflow, /checkout_temporarily_unavailable/);
-assert.match(dbWorkflow, /reconciliation_temporarily_disabled/);
+assert.match(dbWorkflow, /payment_operations_temporarily_unavailable/);
+assert.equal((dbWorkflow.match(/probe_lock (?:create-checkout|confirm-payment|cancel-payment|payment-webhook|reconcile-payments)/g) || []).length, 5);
+assert.match(dbWorkflow, /Waiting 180 seconds[\s\S]*sleep 180/);
 assert.match(dbWorkflow, /lock_timeout=5000/);
 assert.match(dbWorkflow, /statement_timeout=300000/);
 assert.match(dbWorkflow, /insert into supabase_migrations\.schema_migrations/);
@@ -36,11 +37,15 @@ assert.doesNotMatch(
   'production apply must not run the rollback fixture step',
 );
 
-const immediate = dbWorkflow.lastIndexOf('set constraints all immediate;');
-const rollback = dbWorkflow.lastIndexOf('rollback;');
+const validationBlock = dbWorkflow.match(
+  /Validate authority and payment migration \(always rollback\)[\s\S]*?Apply authority and payment migration/,
+)?.[0] || '';
+const immediate = validationBlock.lastIndexOf('set constraints all immediate;');
+const rollback = validationBlock.lastIndexOf('rollback;');
 assert.ok(immediate >= 0 && immediate < rollback, 'deferred constraints must fire before validation rollback');
 
 for (const migration of [
+  '20260826155000_payment_operation_hold.sql',
   '20260826160000_payment_recovery_listing_state.sql',
   '20260826170000_checkout_claim_integrity.sql',
   '20260826180000_order_financial_state_guard.sql',
@@ -48,7 +53,8 @@ for (const migration of [
 ]) {
   assert.match(guide, new RegExp(migration.replaceAll('.', '\\.')));
 }
-assert.match(guide, /잠금 함수 → 별도 DB 검증 → 운영 DB 적용 → Edge 전체 → 웹훅 → 정적 사이트 → 정적 배포 재잠금 → 재대조 → 체크아웃 개방/);
-assert.match(guide, /`PRODUCTION_DEPLOY_ENABLED=false`를 다시 확인/);
+assert.match(guide, /DB 제어 RPC가 없거나 false이면 닫히는 새 Edge 함수 다섯 개/);
+assert.match(guide, /`payment_webhook` → `confirm_payment` → `cancel_payment` 제어만 먼저 개방/);
+assert.match(guide, /마지막으로 DB `create_checkout`/);
 
 console.log('payment rollout fail-closed gates: ok');

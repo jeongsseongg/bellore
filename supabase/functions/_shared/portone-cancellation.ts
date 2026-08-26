@@ -1,3 +1,9 @@
+import {
+  guardPaymentOperation,
+  type PaymentOperationControl,
+  type PaymentOperationRpcClient,
+} from "./payment-operation-guard.ts";
+
 type JsonRecord = Record<string, unknown>;
 const PROVIDER_CANCELLATION_REASON = "벨로르 결제 취소";
 
@@ -50,6 +56,9 @@ async function readJson(response: Response): Promise<JsonRecord | null> {
 }
 
 export async function cancelPortOnePayment(input: {
+  admin: PaymentOperationRpcClient;
+  operationControl: PaymentOperationControl;
+  orderNo: string;
   apiBase: string;
   apiSecret: string;
   storeId: string;
@@ -57,6 +66,19 @@ export async function cancelPortOnePayment(input: {
   refundAmount: number;
   reason: string;
 }): Promise<ProviderCancellation> {
+  const operation = await guardPaymentOperation({
+    admin: input.admin,
+    control: input.operationControl,
+    orderNo: input.orderNo,
+  });
+  if (!operation.allowed) {
+    return {
+      state: "failed",
+      cancellationId: null,
+      cancelledAmount: null,
+      recovered: false,
+    };
+  }
   const endpoint = `${input.apiBase}/payments/${encodeURIComponent(input.paymentId)}`;
   const idempotencyKeyRaw = `bellore-cancel-${input.paymentId}`.slice(0, 254);
   const idempotencyKey = `\"${idempotencyKeyRaw}\"`;
@@ -98,6 +120,17 @@ export async function cancelPortOnePayment(input: {
     return { state: "requested", cancellationId, cancelledAmount: null, recovered: false };
   }
 
+  // A hold may be activated while a slow or ambiguous cancellation POST is
+  // in flight. Re-check before the recovery GET so the new hold takes effect
+  // without waiting for this invocation to finish.
+  const fallbackOperation = await guardPaymentOperation({
+    admin: input.admin,
+    control: input.operationControl,
+    orderNo: input.orderNo,
+  });
+  if (!fallbackOperation.allowed) {
+    return { state: "failed", cancellationId, cancelledAmount: null, recovered: false };
+  }
   const lookup = await fetch(endpoint, {
     headers: { Authorization: `PortOne ${input.apiSecret}` },
     signal: AbortSignal.timeout(60000),
@@ -116,6 +149,7 @@ export async function cancelPortOnePayment(input: {
 
 export async function cancelAndReconcile(input: {
   admin: RpcClient;
+  operationControl: PaymentOperationControl;
   apiBase: string;
   apiSecret: string;
   storeId: string;
@@ -125,6 +159,21 @@ export async function cancelAndReconcile(input: {
   intentCode: string;
   reason: string;
 }): Promise<CancellationReconciliation> {
+  const operation = await guardPaymentOperation({
+    admin: input.admin,
+    control: input.operationControl,
+    orderNo: input.orderNo,
+  });
+  if (!operation.allowed) {
+    return {
+      state: "failed",
+      cancellationId: null,
+      recovered: false,
+      dbFinalized: false,
+      tracked: false,
+      providerRefunded: false,
+    };
+  }
   // Persist the cancellation intent before touching the provider. If the
   // provider accepts the POST but the response is lost, reconciliation still
   // has a durable state to retry from.
@@ -219,7 +268,10 @@ export async function queueCancellationIntent(
   admin: RpcClient,
   orderNo: string,
   intentCode: string,
+  operationControl: PaymentOperationControl,
 ): Promise<boolean> {
+  const operation = await guardPaymentOperation({ admin, control: operationControl, orderNo });
+  if (!operation.allowed) return false;
   const marker = await admin.rpc("mark_order_refund_pending", {
     p_order_no: orderNo,
     p_reason: `cancellation_intent:${intentCode}`,
@@ -229,11 +281,21 @@ export async function queueCancellationIntent(
 
 export async function finalizeKnownProviderCancellation(input: {
   admin: RpcClient;
+  operationControl: PaymentOperationControl;
   orderNo: string;
   refundAmount: number;
   expectedOrderAmount: number;
   reason: string;
 }): Promise<CancellationReconciliation> {
+  const operation = await guardPaymentOperation({
+    admin: input.admin, control: input.operationControl, orderNo: input.orderNo,
+  });
+  if (!operation.allowed) {
+    return {
+      state: "failed", cancellationId: null, cancelledAmount: null, recovered: false,
+      dbFinalized: false, tracked: false, providerRefunded: false,
+    };
+  }
   const cancelledAmount = Number.isSafeInteger(input.refundAmount) && input.refundAmount > 0
     ? input.refundAmount
     : null;

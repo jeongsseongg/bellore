@@ -54,16 +54,16 @@ export async function loadReconciliationOrders(input: {
   // others. Contract v2 excludes every legacy order from automated recovery.
   const [paymentReviewCountResult, refundPendingCountResult, pendingCountResult,
     recentTerminalCountResult, confirmedCountResult] = await Promise.all([
-    admin.from("orders").select("id", { count: "exact", head: true })
+    admin.from("payment_reconciliation_orders_edge_v1").select("id", { count: "exact", head: true })
       .eq("payment_contract_version", 2).eq("status", "payment_review"),
-    admin.from("orders").select("id", { count: "exact", head: true })
+    admin.from("payment_reconciliation_orders_edge_v1").select("id", { count: "exact", head: true })
       .eq("payment_contract_version", 2).eq("status", "refund_pending"),
-    admin.from("orders").select("id", { count: "exact", head: true })
+    admin.from("payment_reconciliation_orders_edge_v1").select("id", { count: "exact", head: true })
       .eq("payment_contract_version", 2).eq("status", "pending").lt("created_at", staleBefore),
-    admin.from("orders").select("id", { count: "exact", head: true })
+    admin.from("payment_reconciliation_orders_edge_v1").select("id", { count: "exact", head: true })
       .eq("payment_contract_version", 2).in("status", ["failed", "canceled"])
       .gte("payment_terminal_at", recentTerminalAfter),
-    admin.from("orders").select("id", { count: "exact", head: true })
+    admin.from("payment_reconciliation_orders_edge_v1").select("id", { count: "exact", head: true })
       .eq("payment_contract_version", 2).in("status", CONFIRMED_RECONCILIATION_STATUSES),
   ]);
   const countResults = [
@@ -78,21 +78,21 @@ export async function loadReconciliationOrders(input: {
   const selection = "id,order_no,amount,status,payment_key,paid_at,payment_terminal_at,created_at";
   const [paymentReviewResult, refundPendingResult, pendingResult, recentTerminalResult,
     confirmedResult] = await Promise.all([
-    admin.from("orders").select(selection).eq("payment_contract_version", 2)
+    admin.from("payment_reconciliation_orders_edge_v1").select(selection).eq("payment_contract_version", 2)
       .eq("status", "payment_review").order("created_at", { ascending: true })
       .order("id", { ascending: true }).range(paymentReviewOffset, paymentReviewOffset + limit - 1),
-    admin.from("orders").select(selection).eq("payment_contract_version", 2)
+    admin.from("payment_reconciliation_orders_edge_v1").select(selection).eq("payment_contract_version", 2)
       .eq("status", "refund_pending").order("created_at", { ascending: true })
       .order("id", { ascending: true }).range(refundPendingOffset, refundPendingOffset + limit - 1),
-    admin.from("orders").select(selection).eq("payment_contract_version", 2)
+    admin.from("payment_reconciliation_orders_edge_v1").select(selection).eq("payment_contract_version", 2)
       .eq("status", "pending").lt("created_at", staleBefore)
       .order("created_at", { ascending: true }).order("id", { ascending: true })
       .range(pendingOffset, pendingOffset + limit - 1),
-    admin.from("orders").select(selection).eq("payment_contract_version", 2)
+    admin.from("payment_reconciliation_orders_edge_v1").select(selection).eq("payment_contract_version", 2)
       .in("status", ["failed", "canceled"]).gte("payment_terminal_at", recentTerminalAfter)
       .order("payment_terminal_at", { ascending: true }).order("id", { ascending: true })
       .range(recentTerminalOffset, recentTerminalOffset + limit - 1),
-    admin.from("orders").select(selection).eq("payment_contract_version", 2)
+    admin.from("payment_reconciliation_orders_edge_v1").select(selection).eq("payment_contract_version", 2)
       .in("status", CONFIRMED_RECONCILIATION_STATUSES)
       .order("created_at", { ascending: true }).order("id", { ascending: true })
       .range(confirmedOffset, confirmedOffset + limit - 1),

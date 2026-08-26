@@ -31,7 +31,7 @@ PAYMENT_RECONCILE_ENABLED=false
 
 API Secret은 브라우저 코드나 저장소에 넣지 않습니다.
 
-`PAYMENT_RECONCILE_TOKEN`은 GitHub Actions의 동명 repository secret에도 같은 값으로 등록합니다. 운영 DB apply 직전의 비변경 잠금 점검용으로 GitHub Actions repository secret `SUPABASE_ANON_KEY`에도 현재 프로젝트의 anon key를 등록합니다. 이 점검은 유효한 상품을 전달하지 않으며 두 엔드포인트가 정확한 503 잠금 응답을 내는지만 확인합니다. `CHECKOUT_RATE_KEY_SECRET`과 `PAYMENT_RECONCILE_TOKEN`은 서로 다른 값이어야 합니다. `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`는 Supabase가 함수에 제공합니다.
+`PAYMENT_RECONCILE_TOKEN`은 GitHub Actions의 동명 repository secret에도 같은 값으로 등록합니다. 운영 DB apply 직전의 비변경 잠금 점검용으로 GitHub Actions repository secret `SUPABASE_ANON_KEY`에도 현재 프로젝트의 anon key를 등록합니다. 이 점검은 유효한 상품이나 주문을 전달하지 않으며 체크아웃·승인확인·취소·웹훅·재대조 다섯 엔드포인트가 DB나 결제사를 읽기 전에 정확한 503 잠금 응답을 내는지만 확인합니다. `CHECKOUT_RATE_KEY_SECRET`과 `PAYMENT_RECONCILE_TOKEN`은 서로 다른 값이어야 합니다. `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`는 Supabase가 함수에 제공합니다.
 
 ## 3. DB 권한·결제 마이그레이션
 
@@ -41,18 +41,21 @@ SQL Editor에 과거 `payment_full_only.sql`을 붙여 넣지 않습니다. GitH
 
 1. `validate-authority-payment`: 별도 검증 DB에서 전체 마이그레이션과 픽스처를 실행한 뒤 항상 rollback합니다.
 2. 24시간 이내의 성공한 `Daily DB Backup` run ID를 확인합니다.
-3. 정적 배포, 새 체크아웃, 재대조가 모두 잠겼고 두 Edge 잠금 응답이 실제 503이며 새 주문·예약이 0건인지 확인합니다. GitHub variables `PRODUCTION_DEPLOY_ENABLED=false`, `PAYMENT_RECONCILE_ENABLED=false`도 명시적으로 설정합니다. apply 워크플로가 같은 503 응답을 다시 기계 확인하며, 정확한 잠금 오류가 아니면 DB를 건드리기 전에 중단합니다.
-4. `apply-authority-payment`: 배포할 정확한 main SHA, backup run ID, `production_apply_ack=APPLY_AUTHORITY_PAYMENT_TO_PRODUCTION`, `payment_locks_ack=PAYMENT_CHECKOUT_AND_RECONCILE_LOCKED`를 입력합니다. 마지막 문자열은 앞 단계의 실제 잠금 점검을 마친 운영자의 명시 확인입니다.
+3. 정적 배포와 다섯 결제 Edge 경로가 모두 잠겼고 다섯 응답이 실제 503이며 새 주문·예약이 0건인지 확인합니다. GitHub variables `PRODUCTION_DEPLOY_ENABLED=false`, `PAYMENT_RECONCILE_ENABLED=false`도 명시적으로 설정합니다. apply 워크플로가 같은 503 응답을 다시 기계 확인하며, 정확한 잠금 오류가 아니면 DB를 건드리기 전에 중단합니다.
+4. `apply-authority-payment`: 배포할 정확한 main SHA, backup run ID, `production_apply_ack=APPLY_AUTHORITY_PAYMENT_TO_PRODUCTION`, `payment_locks_ack=PAYMENT_CHECKOUT_AND_RECONCILE_LOCKED`, 보호 주문번호를 로컬에서 변환한 64자리 소문자 `payment_hold_sha256`, `payment_hold_ack=SEED_HASH_ONLY_PAYMENT_OPERATION_HOLD`를 입력합니다. 주문번호 원문은 저장소·워크플로 입력·로그·hold 테이블에 넣지 않습니다.
 5. 워크플로는 백업 아티팩트가 복호화·압축 해제되고 SQL dump 표식을 포함하는지만 확인합니다. 이 검사는 **실제 복원이 된다는 증거가 아닙니다**. 별도 격리 DB 복원 훈련이 성공한 시점·대상·명령을 운영 기록으로 남긴 경우에만 “복원 가능”이라고 표현합니다.
-6. 운영 apply는 `supabase_migrations.schema_migrations`에 `20260824090000`과 `20260826150000`이 이미 기록돼 있고, 대상 4개가 아직 하나도 기록되지 않았을 때만 진행합니다. 이력이 없거나 일부 적용·후속 버전이 감지되면 SQL 실행 전에 중단하고, 실제 스키마를 확인한 뒤 별도 승인으로 `supabase migration repair`를 수행합니다.
-7. 대상 SQL 4개와 해당 이력 4개는 한 트랜잭션에서 함께 기록됩니다. DB 잠금은 5초, 문장 실행은 5분을 넘기면 전체 트랜잭션을 실패시킵니다. 적용 뒤 ACL 전수검사와 10개 동시 세션 제한 검사를 수행합니다.
+6. 운영 apply는 `supabase_migrations.schema_migrations`에 `20260824090000`과 `20260826150000`이 이미 기록돼 있고, 대상 5개가 아직 하나도 기록되지 않았을 때만 진행합니다. 이력이 없거나 일부 적용·후속 버전이 감지되면 SQL 실행 전에 중단하고, 실제 스키마를 확인한 뒤 별도 승인으로 `supabase migration repair`를 수행합니다.
+7. 대상 SQL 5개와 해당 이력 5개는 한 트랜잭션에서 함께 기록됩니다. 가장 먼저 hash-only hold와 DB 제어 스위치를 만들고 보호 hash를 활성화한 뒤 후속 마이그레이션을 실행합니다. 운영 apply는 보호 주문을 개별 조회하거나 잠그지 않으며, 모든 백필터의 hold 제외 조건과 DB trigger가 변경을 이중 차단합니다. DB 잠금은 5초, 문장 실행은 5분을 넘기면 전체 트랜잭션을 실패시킵니다. 적용 뒤 ACL 전수검사와 10개 동시 세션 제한 검사를 수행합니다.
 
-적용 파일은 아래 4개이며 반드시 이 순서로 한 트랜잭션에 적용합니다.
+적용 파일은 아래 5개이며 반드시 이 순서로 한 트랜잭션에 적용합니다.
 
-1. `supabase/migrations/20260826160000_payment_recovery_listing_state.sql`
-2. `supabase/migrations/20260826170000_checkout_claim_integrity.sql`
-3. `supabase/migrations/20260826180000_order_financial_state_guard.sql`
-4. `supabase/migrations/20260826190000_payment_finalization_closed_order_contract.sql`
+1. `supabase/migrations/20260826155000_payment_operation_hold.sql`
+2. `supabase/migrations/20260826160000_payment_recovery_listing_state.sql`
+3. `supabase/migrations/20260826170000_checkout_claim_integrity.sql`
+4. `supabase/migrations/20260826180000_order_financial_state_guard.sql`
+5. `supabase/migrations/20260826190000_payment_finalization_closed_order_contract.sql`
+
+첫 번째 마이그레이션은 다섯 결제 경로를 기본 `false`로 두는 DB 제어 스위치와 SHA-256 기반 주문 보류를 설치합니다. 활성 hold 주문과 연결 상품은 Edge 결제사 호출 전에 제외되고 DB trigger에서도 UPDATE·DELETE·TRUNCATE가 차단됩니다. 보류 해제는 이번 배포 범위가 아니며 별도 승인 없이 `released_at`을 변경하거나 hold 행을 삭제하지 않습니다.
 
 `20260824090000_authority_payment_hardening.sql`은 이미 적용된 역사 마이그레이션이므로 수정하거나 이 경로에서 다시 실행하지 않습니다. 새 결제 계약 변경은 위 후속 마이그레이션에만 추가합니다. Supabase는 적용 여부를 `supabase_migrations.schema_migrations`로 판단하므로 SQL만 직접 실행하고 이력을 남기지 않는 방식도 금지합니다.
 
@@ -63,15 +66,18 @@ SQL Editor에 과거 `payment_full_only.sql`을 붙여 넣지 않습니다. GitH
 ## 4. Edge Function 배포
 
 ```bash
-supabase functions deploy create-checkout
+supabase functions deploy payment-webhook --no-verify-jwt
 supabase functions deploy confirm-payment
 supabase functions deploy cancel-payment
-supabase functions deploy payment-webhook --no-verify-jwt
 supabase functions deploy reconcile-payments --no-verify-jwt
+supabase functions deploy create-checkout
 ```
 
+운영 잠금 배포에서는 외부 비동기 이벤트가 먼저 들어오는 경로를 닫기 위해 `payment-webhook`을 반드시 첫 번째로 교체합니다. 그 다음 `confirm-payment` → `cancel-payment` 순서로 교체하고, 기존 환경 스위치로 이미 잠긴 `reconcile-payments`와 `create-checkout`을 마지막에 교체합니다.
+
 - `create-checkout`: 브라우저가 네트워크 요청 전에 세션용 UUID 요청키와 32바이트 주문 capability를 생성·저장합니다. Edge는 두 값을 검증해 SHA-256 해시만 DB에 전달하며, DB에는 원문 capability를 저장하지 않습니다. 응답이 유실돼도 같은 입력은 같은 요청키·주문으로 재개하고, 다른 입력은 충돌로 닫습니다. IP별 15분 요청 상한은 최초 주문에만 소비합니다. `CHECKOUT_RATE_KEY_SECRET`에는 32바이트 이상의 무작위 secret을 설정합니다.
-- `PAYMENT_CHECKOUT_ENABLED`는 값이 정확히 `true`일 때만 새 결제를 허용합니다. 누락 또는 `false`이면 주문이나 예약을 만들기 전에 중단하며, 고객에게는 내부 설정값 대신 "잠시 점검 중" 안내가 표시됩니다.
+- 모든 함수는 각 DB 제어 스위치가 정확히 `true`일 때만 작동합니다. 제어 RPC가 없거나 읽기에 실패하거나 값이 `false`이면 주문 DB와 포트원을 읽기 전에 503으로 닫힙니다.
+- `PAYMENT_CHECKOUT_ENABLED`는 기존 환경 스위치와 DB `create_checkout`이 둘 다 정확히 `true`일 때만 새 결제를 허용합니다. 누락 또는 `false`이면 주문이나 예약을 만들기 전에 중단하며, 고객에게는 내부 설정값 대신 "잠시 점검 중" 안내가 표시됩니다.
 - `confirm-payment`: v2 주문만 포트원 결제 상태, 상점 ID, DB 상품가격, 배송비, 쿠폰을 서버에서 재검증합니다. 결제창 이탈 신호만으로는 해제하지 않으며, bounded 재조회가 모두 정확한 404일 때만 미결제 주문을 종료합니다.
 - `cancel-payment`: 관리자 JWT를 확인한 뒤 포트원 V2 취소 API를 호출합니다.
 - `payment-webhook`: JWT 대신 포트원 서버 재조회로 v2 결제·취소 상태를 검증하고 DB와 동기화합니다. 레거시 또는 계약 버전을 확인할 수 없는 주문은 자동 변경하지 않습니다.
@@ -85,18 +91,18 @@ supabase functions deploy reconcile-payments --no-verify-jwt
 1. 정적 배포를 잠급니다: repository variable `PRODUCTION_DEPLOY_ENABLED=false`.
 2. 재대조를 잠급니다: GitHub variable과 Supabase Function Secret의 `PAYMENT_RECONCILE_ENABLED=false`.
 3. 새 결제를 잠급니다: Supabase Function Secret `PAYMENT_CHECKOUT_ENABLED=false`.
-4. 잠금 기능이 포함된 `create-checkout`과 `reconcile-payments`를 먼저 배포하고, 실제로 각각 503 점검 응답·주문/예약 0건임을 확인합니다.
-5. 품질 게이트가 통과한 동일 main SHA로 DB `validate-authority-payment`를 **별도 검증 DB**에서 실행합니다. 이 검사는 `SET CONSTRAINTS ALL IMMEDIATE`까지 실행한 뒤 rollback해야 하며 운영 DB URL을 사용하면 안 됩니다.
-6. 24시간 이내 백업 아티팩트의 복호화·압축·SQL dump 표식 검사를 통과시킵니다. 이것만으로 복원 가능하다고 단정하지 말고, 최근 격리 복원 훈련 기록을 별도로 확인합니다. 그 뒤 정확한 두 승인 문자열과 SHA를 입력해 운영 DB 마이그레이션 4개를 한 트랜잭션으로 apply합니다.
-7. `confirm-payment` → `cancel-payment` → `payment-webhook` → `reconcile-payments` → `create-checkout` 순서로 같은 SHA의 Edge 함수 전체를 배포합니다. 두 안전 스위치는 아직 `false`로 둡니다.
-8. 포트원 운영 웹훅 URL과 시크릿을 확인하고, 운영 DB 계약 사후검사를 통과시킵니다.
-9. `PRODUCTION_DEPLOY_ENABLED=false`를 유지한 채 Pages의 수동 `static_release_sha` 경로로 잠금 브랜치의 같은 SHA만 배포합니다. 자동 push·schedule 배포는 변수가 정확히 `true`일 때만 열리며, 값이 없거나 다른 값이면 닫힙니다. Firebase는 공개 도메인 경로가 아니므로 별도 승인된 보조 배포로만 취급합니다.
-10. 정적 배포 직후 `PRODUCTION_DEPLOY_ENABLED=false`를 다시 확인합니다. 예외적으로 자동 배포를 위해 잠시 `true`로 바꿨다면 다음 단계 전에 즉시 `false`로 되돌리고, 후속 push와 Firebase schedule이 실행되지 않는지 확인합니다.
-11. Supabase와 GitHub의 `PAYMENT_RECONCILE_ENABLED=true`를 먼저 적용하고 수동 재대조 1회를 통과시킵니다.
-12. 마지막으로 `PAYMENT_CHECKOUT_ENABLED=true`를 적용해 새 결제를 엽니다.
+4. DB 제어 RPC가 없거나 false이면 닫히는 새 Edge 함수 다섯 개를 `payment-webhook` → `confirm-payment` → `cancel-payment` → `reconcile-payments` → `create-checkout` 순서로 배포합니다. 함수별 교체 직후 동일한 503 점검 응답이며 주문 DB·포트원 호출이 0회인지 확인합니다.
+5. 잠금 전 시작된 요청이 끝나도록 180초 drain한 뒤에만 DB 검증·적용으로 이동합니다. 이는 재대조 함수의 150초 실행 상한보다 긴 보수적 대기입니다.
+6. 품질 게이트가 통과한 동일 main SHA로 DB `validate-authority-payment`를 **별도 검증 DB**에서 실행합니다. 이 검사는 `SET CONSTRAINTS ALL IMMEDIATE`까지 실행한 뒤 rollback해야 하며 운영 DB URL을 사용하면 안 됩니다.
+7. 24시간 이내 백업 아티팩트의 복호화·압축·SQL dump 표식 검사를 통과시킵니다. 이것만으로 복원 가능하다고 단정하지 말고, 최근 격리 복원 훈련 기록을 별도로 확인합니다. 그 뒤 정확한 승인 문자열·보호 hash·SHA를 입력해 운영 DB 마이그레이션 5개를 한 트랜잭션으로 apply합니다.
+8. 운영 DB 계약·hold·trigger·ACL 사후검사와 Supabase 보안/성능 advisor를 통과시킵니다. 사후검사는 hold hash 행과 계약 객체만 확인하며 보호 주문을 직접 조회하지 않습니다.
+9. 배포된 Edge 다섯 개가 같은 release SHA의 소스인지 다시 확인하고 Pages를 검증한 뒤, `PRODUCTION_DEPLOY_ENABLED=false`를 유지한 채 Pages 수동 `static_release_sha` 경로로 배포합니다. Firebase는 공개 도메인 경로가 아닙니다.
+10. DB `payment_webhook` → `confirm_payment` → `cancel_payment` 제어만 먼저 개방하고 비변경 요청으로 정상 응답 경계를 확인합니다.
+11. held 주문 제외가 확인된 수동 재대조 1회를 통과한 뒤에만 DB `reconcile_payments`, Supabase/GitHub `PAYMENT_RECONCILE_ENABLED`을 함께 개방합니다.
+12. 마지막으로 DB `create_checkout`과 Supabase `PAYMENT_CHECKOUT_ENABLED`을 함께 개방해 새 결제를 엽니다.
 13. 운영 도메인에서 새 주문으로 모바일 결제 승인→웹훅→재대조→예약 표시를 확인하고, 승인된 별도 테스트 주문으로 취소·전액 환불도 검증합니다.
 
-잠금 함수 → 별도 DB 검증 → 운영 DB 적용 → Edge 전체 → 웹훅 → 정적 사이트 → 정적 배포 재잠금 → 재대조 → 체크아웃 개방 순서를 바꾸지 않습니다. 단계가 실패하면 두 결제 스위치와 정적 배포 스위치를 `false`로 유지하며, 이미 적용한 DB를 임의로 되돌리지 않습니다.
+웹훅 잠금 Edge → 나머지 잠금 Edge → 5개 잠금 확인 → 180초 drain → 별도 DB 검증 → 운영 DB 적용 → Edge·정적 사이트 검증 → 정적 배포 → 웹훅/확인/취소 개방 → 재대조 → 체크아웃 개방 순서를 바꾸지 않습니다. 단계가 실패하면 결제·재대조·정적 배포 스위치를 `false`로 유지하며, 이미 적용한 DB를 임의로 되돌리지 않습니다.
 
 ## 6. 운영 전 필수 테스트
 

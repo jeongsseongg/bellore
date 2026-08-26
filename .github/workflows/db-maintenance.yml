@@ -45,6 +45,14 @@ on:
         description: "DB apply 때만: PAYMENT_CHECKOUT_AND_RECONCILE_LOCKED 정확히 입력"
         type: string
         required: false
+      payment_hold_sha256:
+        description: "DB apply 때만: 보류할 주문번호의 SHA-256(64자리 소문자 hex, 원문 금지)"
+        type: string
+        required: false
+      payment_hold_ack:
+        description: "DB apply 때만: SEED_HASH_ONLY_PAYMENT_OPERATION_HOLD 정확히 입력"
+        type: string
+        required: false
 
 permissions:
   contents: read
@@ -62,7 +70,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     needs: truth_guard
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -100,6 +108,8 @@ jobs:
           BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
           PRODUCTION_APPLY_ACK: ${{ inputs.production_apply_ack }}
           PAYMENT_LOCKS_ACK: ${{ inputs.payment_locks_ack }}
+          PAYMENT_HOLD_SHA256: ${{ inputs.payment_hold_sha256 }}
+          PAYMENT_HOLD_ACK: ${{ inputs.payment_hold_ack }}
           PRODUCTION_DEPLOY_FLAG: ${{ vars.PRODUCTION_DEPLOY_ENABLED }}
           RECONCILE_REPOSITORY_FLAG: ${{ vars.PAYMENT_RECONCILE_ENABLED }}
         run: |
@@ -109,6 +119,12 @@ jobs:
           fi
           if [ "$PAYMENT_LOCKS_ACK" != "PAYMENT_CHECKOUT_AND_RECONCILE_LOCKED" ]; then
             echo "payment_locks_ack is missing or incorrect"; exit 1
+          fi
+          if [ "$PAYMENT_HOLD_ACK" != "SEED_HASH_ONLY_PAYMENT_OPERATION_HOLD" ]; then
+            echo "payment_hold_ack is missing or incorrect"; exit 1
+          fi
+          if ! [[ "$PAYMENT_HOLD_SHA256" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "payment_hold_sha256 must be a 64-character lowercase SHA-256; raw order identifiers are forbidden"; exit 1
           fi
           if [ "$PRODUCTION_DEPLOY_FLAG" != "false" ]; then
             echo "PRODUCTION_DEPLOY_ENABLED must be explicitly false"; exit 1
@@ -155,43 +171,50 @@ jobs:
           echo "Exact release SHA verified; backup artifact decrypts, decompresses, and contains SQL dump markers"
           echo "This check does not prove that the dump can be restored"
 
-      - name: Verify deployed payment Edge locks before production apply
+      - name: Verify all deployed payment Edge locks before production apply
         if: inputs.task == 'apply-authority-payment'
         env:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           set -euo pipefail
           if [ -z "$SUPABASE_ANON_KEY" ]; then
-            echo "SUPABASE_ANON_KEY is required for the non-mutating checkout lock probe"; exit 1
+            echo "SUPABASE_ANON_KEY is required for non-mutating payment lock probes"; exit 1
           fi
           probe_dir="$(mktemp -d)"
           trap 'rm -rf "$probe_dir"' EXIT
 
-          checkout_status="$(curl --silent --show-error \
-            --connect-timeout 10 --max-time 20 \
-            --output "$probe_dir/checkout.json" --write-out '%{http_code}' \
-            --request POST \
-            --header 'Origin: https://bellore.co.kr' \
-            --header 'Content-Type: application/json' \
-            --header "apikey: $SUPABASE_ANON_KEY" \
-            --header "Authorization: Bearer $SUPABASE_ANON_KEY" \
-            --data '{"checkoutRequestKey":"00000000-0000-4000-8000-000000000001","checkoutToken":"0000000000000000000000000000000000000000000000000000000000000000"}' \
-            https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/create-checkout)"
-          if [ "$checkout_status" != "503" ] ||
-             ! jq -e '.error == "checkout_temporarily_unavailable"' "$probe_dir/checkout.json" >/dev/null; then
-            echo "create-checkout is not confirmed locked"; exit 1
-          fi
+          probe_lock() {
+            local name="$1"
+            local payload="$2"
+            local status
+            status="$(curl --silent --show-error \
+              --connect-timeout 10 --max-time 20 \
+              --output "$probe_dir/$name.json" --write-out '%{http_code}' \
+              --request POST \
+              --header 'Origin: https://bellore.co.kr' \
+              --header 'Content-Type: application/json' \
+              --header "apikey: $SUPABASE_ANON_KEY" \
+              --header "Authorization: Bearer $SUPABASE_ANON_KEY" \
+              --data "$payload" \
+              "https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/$name")"
+            if [ "$status" != "503" ] ||
+               ! jq -e '.error == "payment_operations_temporarily_unavailable"' "$probe_dir/$name.json" >/dev/null; then
+              echo "$name is not confirmed fail-closed"; exit 1
+            fi
+          }
 
-          reconcile_status="$(curl --silent --show-error \
-            --connect-timeout 10 --max-time 20 \
-            --output "$probe_dir/reconcile.json" --write-out '%{http_code}' \
-            --request POST \
-            https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/reconcile-payments)"
-          if [ "$reconcile_status" != "503" ] ||
-             ! jq -e '.error == "reconciliation_temporarily_disabled"' "$probe_dir/reconcile.json" >/dev/null; then
-            echo "reconcile-payments is not confirmed locked"; exit 1
-          fi
-          echo "Deployed checkout and reconciliation endpoints are fail-closed"
+          probe_lock create-checkout '{"checkoutRequestKey":"00000000-0000-4000-8000-000000000001","checkoutToken":"0000000000000000000000000000000000000000000000000000000000000000"}'
+          probe_lock confirm-payment '{"paymentId":"PAYMENT-LOCK-PROBE"}'
+          probe_lock cancel-payment '{"orderNo":"PAYMENT-LOCK-PROBE"}'
+          probe_lock payment-webhook '{"type":"Transaction.Paid","data":{"paymentId":"PAYMENT-LOCK-PROBE"}}'
+          probe_lock reconcile-payments '{}'
+          echo "All five deployed payment endpoints are fail-closed before DB/provider access"
+
+      - name: Drain in-flight payment operations before production apply
+        if: inputs.task == 'apply-authority-payment'
+        run: |
+          echo "Waiting 180 seconds for pre-lock payment requests to finish"
+          sleep 180
 
       - name: Apply discord_quote SQL (재실행 안전)
         if: inputs.task == 'apply-discord-quote'
@@ -277,6 +300,11 @@ jobs:
           docker run --rm -i -e PGCONN -v "$PWD:/repo:ro" postgres:17 \
             psql "$PGCONN" -v ON_ERROR_STOP=1 <<'SQL'
           begin;
+          \i /repo/supabase/migrations/20260826155000_payment_operation_hold.sql
+          insert into public.payment_operation_holds(order_no_sha256, reason_code)
+          values (repeat('a',64), 'rollback_fixture')
+          on conflict (order_no_sha256) do update
+            set released_at=null, release_note=null, reason_code=excluded.reason_code;
           \i /repo/supabase/migrations/20260826160000_payment_recovery_listing_state.sql
           \i /repo/supabase/migrations/20260826170000_checkout_claim_integrity.sql
           \i /repo/supabase/migrations/20260826180000_order_financial_state_guard.sql
@@ -284,6 +312,60 @@ jobs:
 
           do $$
           begin
+            if to_regclass('public.payment_operation_controls') is null
+               or to_regclass('public.payment_operation_holds') is null
+               or to_regclass('public.payment_reconciliation_orders_edge_v1') is null
+               or to_regprocedure('public.read_payment_operation_control_v1(text)') is null
+               or to_regprocedure('public.is_payment_operation_hash_held_v1(text)') is null
+               or has_table_privilege('anon','public.payment_operation_holds','select')
+               or has_table_privilege('authenticated','public.payment_operation_holds','select')
+               or has_table_privilege('service_role','public.payment_operation_holds','select')
+               or not has_function_privilege('service_role',
+                 'public.read_payment_operation_control_v1(text)','execute')
+               or not has_function_privilege('service_role',
+                 'public.is_payment_operation_hash_held_v1(text)','execute')
+               or not has_function_privilege('service_role',
+                 'public.payment_order_no_sha256_v1(text)','execute')
+               or has_function_privilege('anon',
+                 'public.payment_order_no_sha256_v1(text)','execute')
+               or has_function_privilege('authenticated',
+                 'public.payment_order_no_sha256_v1(text)','execute')
+               or not has_table_privilege('service_role',
+                 'public.payment_reconciliation_orders_edge_v1','select')
+               or has_table_privilege('anon',
+                 'public.payment_reconciliation_orders_edge_v1','select')
+               or has_table_privilege('authenticated',
+                 'public.payment_reconciliation_orders_edge_v1','select')
+               or (select count(*) from public.payment_operation_controls
+                    where control_name in (
+                      'create_checkout','confirm_payment','cancel_payment',
+                      'payment_webhook','reconcile_payments'
+                    )) <> 5 then
+              raise exception 'payment operation hold/control contract verification failed';
+            end if;
+            if not exists (
+              select 1 from pg_trigger
+               where tgrelid='public.orders'::regclass
+                 and tgname='trg_00_payment_operation_hold_order'
+                 and tgenabled <> 'D' and not tgisinternal
+            ) or not exists (
+              select 1 from pg_trigger
+               where tgrelid='public.listings'::regclass
+                 and tgname='trg_00_payment_operation_hold_listing'
+                 and tgenabled <> 'D' and not tgisinternal
+            ) or not exists (
+              select 1 from pg_trigger
+               where tgrelid='public.orders'::regclass
+                 and tgname='trg_00_payment_operation_hold_orders_truncate'
+                 and tgenabled <> 'D' and not tgisinternal
+            ) or not exists (
+              select 1 from pg_trigger
+               where tgrelid='public.listings'::regclass
+                 and tgname='trg_00_payment_operation_hold_listings_truncate'
+                 and tgenabled <> 'D' and not tgisinternal
+            ) then
+              raise exception 'payment operation hold trigger verification failed';
+            end if;
             if to_regprocedure('public.create_checkout_order_edge_v1(text,uuid,uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb)') is not null
                or to_regprocedure('public.create_checkout_order_edge_v1(text,uuid,uuid,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)') is not null then
               raise exception 'obsolete non-idempotent checkout wrapper still exists';
@@ -1144,6 +1226,46 @@ jobs:
             end loop;
             if v_index < 6 then raise exception 'not enough listings for checkout rate test'; end if;
           end $$;
+          -- Prove the generalized hash-only hold blocks every DB mutation
+          -- without logging or persisting a raw order identifier.
+          do $$
+          declare
+            v_order public.orders%rowtype;
+          begin
+            select * into strict v_order
+              from public.orders
+             where order_no=current_setting('app.guard_test_order_no');
+
+            insert into public.payment_operation_holds(order_no_sha256, reason_code)
+            values (public.payment_order_no_sha256_v1(v_order.order_no), 'rollback_fixture_order');
+
+            if public.read_payment_operation_control_v1('unknown_control')
+               or public.read_payment_operation_control_v1('payment_webhook') then
+              raise exception 'payment operation controls are not fail-closed';
+            end if;
+
+            begin
+              update public.orders set status=status where id=v_order.id;
+              raise exception 'held order update was not blocked';
+            exception when others then
+              if sqlerrm not like '%payment_operation_held%' then raise; end if;
+            end;
+
+            begin
+              update public.listings set status=status where id=v_order.listing_id;
+              raise exception 'held listing update was not blocked';
+            exception when others then
+              if sqlerrm not like '%payment_operation_held%' then raise; end if;
+            end;
+
+            begin
+              truncate public.orders cascade;
+              raise exception 'held order truncate was not blocked';
+            exception when others then
+              if sqlerrm not like '%payment_operation_held%' then raise; end if;
+            end;
+          end $$;
+
           -- Force every deferred constraint trigger to execute inside the
           -- validation transaction. A plain rollback would otherwise skip
           -- transaction-end failures and could report a false pass.
@@ -1156,13 +1278,15 @@ jobs:
         if: inputs.task == 'apply-authority-payment'
         env:
           PGCONN: ${{ secrets.SUPABASE_DB_URL }}
+          PAYMENT_HOLD_SHA256: ${{ inputs.payment_hold_sha256 }}
           PGCONNECT_TIMEOUT: "10"
           PGOPTIONS: "-c lock_timeout=5000 -c statement_timeout=300000 -c idle_in_transaction_session_timeout=360000"
         run: |
           set -euo pipefail
           docker run --rm -i -e PGCONN -e PGCONNECT_TIMEOUT -e PGOPTIONS \
             -v "$PWD:/repo:ro" postgres:17 \
-            psql "$PGCONN" -X -v ON_ERROR_STOP=1 <<'SQL'
+            psql "$PGCONN" -X -v ON_ERROR_STOP=1 \
+              -v payment_hold_sha256="$PAYMENT_HOLD_SHA256" <<'SQL'
           begin;
           do $$
           begin
@@ -1187,7 +1311,7 @@ jobs:
             if exists (
               select 1 from supabase_migrations.schema_migrations
                where version in (
-                 '20260826160000','20260826170000','20260826180000','20260826190000'
+                 '20260826155000','20260826160000','20260826170000','20260826180000','20260826190000'
                )
             ) then
               raise exception 'payment_release_migration_already_recorded';
@@ -1200,6 +1324,26 @@ jobs:
             end if;
           end $$;
 
+          \i /repo/supabase/migrations/20260826155000_payment_operation_hold.sql
+
+          insert into public.payment_operation_holds(order_no_sha256, reason_code)
+          values (:'payment_hold_sha256', 'release_protection')
+          on conflict (order_no_sha256) do update
+            set released_at=null,
+                release_note=null,
+                reason_code=excluded.reason_code;
+
+          select (count(*)=1) as payment_hold_seed_ok
+            from public.payment_operation_holds
+           where order_no_sha256=:'payment_hold_sha256'
+             and released_at is null \gset
+          \if :payment_hold_seed_ok
+            \echo 'hash-only payment operation hold verified'
+          \else
+            \echo 'payment operation hold seed failed'
+            \quit 1
+          \endif
+
           \i /repo/supabase/migrations/20260826160000_payment_recovery_listing_state.sql
           \i /repo/supabase/migrations/20260826170000_checkout_claim_integrity.sql
           \i /repo/supabase/migrations/20260826180000_order_financial_state_guard.sql
@@ -1207,13 +1351,37 @@ jobs:
 
           insert into supabase_migrations.schema_migrations(version,name,statements)
           values
+            ('20260826155000','payment_operation_hold',array[]::text[]),
             ('20260826160000','payment_recovery_listing_state',array[]::text[]),
             ('20260826170000','checkout_claim_integrity',array[]::text[]),
             ('20260826180000','order_financial_state_guard',array[]::text[]),
             ('20260826190000','payment_finalization_closed_order_contract',array[]::text[]);
+
+          set constraints all immediate;
           commit;
           SQL
           echo "권한·결제·복구·체크아웃 귀속·금융상태 가드 마이그레이션 적용 완료"
+
+      - name: Verify hash-only hold without reading the protected order
+        if: inputs.task == 'apply-authority-payment'
+        env:
+          PGCONN: ${{ secrets.SUPABASE_DB_URL }}
+          PAYMENT_HOLD_SHA256: ${{ inputs.payment_hold_sha256 }}
+        run: |
+          set -euo pipefail
+          hold_count="$(docker run --rm -i -e PGCONN postgres:17 \
+            psql "$PGCONN" -X -qAt -v ON_ERROR_STOP=1 \
+              -v payment_hold_sha256="$PAYMENT_HOLD_SHA256" <<'SQL'
+          select count(*)
+            from public.payment_operation_holds
+           where order_no_sha256=:'payment_hold_sha256'
+             and released_at is null;
+          SQL
+          )"
+          if [ "$hold_count" != "1" ]; then
+            echo "Exact hash-only hold verification failed"; exit 1
+          fi
+          echo "Exact hash-only hold is active; protected order was not queried"
 
       - name: Verify live authority and payment ACL
         if: inputs.task == 'apply-authority-payment' || inputs.task == 'verify-authority-payment-live'
@@ -1224,6 +1392,60 @@ jobs:
           docker run --rm -i -e PGCONN postgres:17 psql "$PGCONN" -v ON_ERROR_STOP=1 <<'SQL'
           do $$
           begin
+            if to_regclass('public.payment_operation_controls') is null
+               or to_regclass('public.payment_operation_holds') is null
+               or to_regclass('public.payment_reconciliation_orders_edge_v1') is null
+               or to_regprocedure('public.read_payment_operation_control_v1(text)') is null
+               or to_regprocedure('public.is_payment_operation_hash_held_v1(text)') is null
+               or has_table_privilege('anon','public.payment_operation_holds','select')
+               or has_table_privilege('authenticated','public.payment_operation_holds','select')
+               or has_table_privilege('service_role','public.payment_operation_holds','select')
+               or not has_function_privilege('service_role',
+                 'public.read_payment_operation_control_v1(text)','execute')
+               or not has_function_privilege('service_role',
+                 'public.is_payment_operation_hash_held_v1(text)','execute')
+               or not has_function_privilege('service_role',
+                 'public.payment_order_no_sha256_v1(text)','execute')
+               or has_function_privilege('anon',
+                 'public.payment_order_no_sha256_v1(text)','execute')
+               or has_function_privilege('authenticated',
+                 'public.payment_order_no_sha256_v1(text)','execute')
+               or not has_table_privilege('service_role',
+                 'public.payment_reconciliation_orders_edge_v1','select')
+               or has_table_privilege('anon',
+                 'public.payment_reconciliation_orders_edge_v1','select')
+               or has_table_privilege('authenticated',
+                 'public.payment_reconciliation_orders_edge_v1','select')
+               or (select count(*) from public.payment_operation_controls
+                    where control_name in (
+                      'create_checkout','confirm_payment','cancel_payment',
+                      'payment_webhook','reconcile_payments'
+                    )) <> 5 then
+              raise exception 'payment operation hold/control contract verification failed';
+            end if;
+            if not exists (
+              select 1 from pg_trigger
+               where tgrelid='public.orders'::regclass
+                 and tgname='trg_00_payment_operation_hold_order'
+                 and tgenabled <> 'D' and not tgisinternal
+            ) or not exists (
+              select 1 from pg_trigger
+               where tgrelid='public.listings'::regclass
+                 and tgname='trg_00_payment_operation_hold_listing'
+                 and tgenabled <> 'D' and not tgisinternal
+            ) or not exists (
+              select 1 from pg_trigger
+               where tgrelid='public.orders'::regclass
+                 and tgname='trg_00_payment_operation_hold_orders_truncate'
+                 and tgenabled <> 'D' and not tgisinternal
+            ) or not exists (
+              select 1 from pg_trigger
+               where tgrelid='public.listings'::regclass
+                 and tgname='trg_00_payment_operation_hold_listings_truncate'
+                 and tgenabled <> 'D' and not tgisinternal
+            ) then
+              raise exception 'payment operation hold trigger verification failed';
+            end if;
             if to_regprocedure('public.create_checkout_order_edge_v1(text,uuid,uuid,text,uuid,text,text,text,text,text,text,text,text,jsonb)') is not null
                or to_regprocedure('public.create_checkout_order_edge_v1(text,uuid,uuid,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)') is not null
                or has_table_privilege('anon','public.orders','insert')

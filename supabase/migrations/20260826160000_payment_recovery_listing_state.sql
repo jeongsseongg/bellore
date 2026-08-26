@@ -38,6 +38,9 @@ update public.orders as orders
      now()
    )
  where orders.payment_contract_version = 2
+   and not public.is_payment_operation_hash_held_v1(
+     public.payment_order_no_sha256_v1(orders.order_no)
+   )
    and orders.status in ('failed','canceled')
    and orders.payment_terminal_at is null;
 
@@ -174,6 +177,8 @@ as $$
 declare
   v_updated integer := 0;
 begin
+  perform public.assert_payment_operation_open_v1(new.order_no);
+
   if new.payment_contract_version is distinct from 2 then
     return null;
   end if;
@@ -338,6 +343,9 @@ update public.orders
      else null
    end
  where refund_intent_code is null
+   and not public.is_payment_operation_hash_held_v1(
+     public.payment_order_no_sha256_v1(order_no)
+   )
    and (
      coalesce(admin_memo,'') like '%cancellation_intent:amount_mismatch_auto_cancel%'
      or coalesce(admin_memo,'') like '%cancellation_intent:paid_finalization_conflict_auto_cancel%'
@@ -390,6 +398,7 @@ begin
   if coalesce(auth.role(),'') <> 'service_role' then
     raise exception 'checkout_core_forbidden';
   end if;
+  perform public.assert_payment_operation_open_v1(p_order_no);
   update public.orders
      set status=case
            when payment_contract_version = 2
@@ -430,6 +439,7 @@ begin
   if coalesce(auth.role(),'') <> 'service_role' then
     raise exception 'checkout_core_forbidden';
   end if;
+  perform public.assert_payment_operation_open_v1(p_order_no);
 
   update public.orders
      set payment_review_required=false
@@ -463,6 +473,7 @@ declare
   v_count integer;
   v_intent_code text;
 begin
+  perform public.assert_payment_operation_open_v1(p_order_no);
   v_intent_code := case
     when coalesce(p_reason,'') like 'cancellation_intent:amount_mismatch_auto_cancel%'
       then 'amount_mismatch_auto_cancel'
@@ -531,6 +542,7 @@ declare
   v_listing_id uuid;
   v_restock_required boolean := false;
 begin
+  perform public.assert_payment_operation_open_v1(p_order_no);
   update public.orders
      set status='failed', cancel_reason=left(coalesce(p_reason,'provider_payment_failed'),300)
    where order_no=p_order_no
@@ -571,6 +583,7 @@ declare
   v_balance integer;
   v_restock_required boolean := false;
 begin
+  perform public.assert_payment_operation_open_v1(p_order_no);
   select * into v_order
     from public.orders
    where order_no = p_order_no
@@ -696,6 +709,7 @@ begin
   if coalesce(auth.role(),'') <> 'service_role' then
     raise exception 'checkout_core_forbidden';
   end if;
+  perform public.assert_payment_operation_open_v1(p_order_no);
 
   select id, listing_id
     into v_order_id, v_listing_id
@@ -746,6 +760,9 @@ execute function public.sync_listing_state_from_order_v1();
 update public.orders as orders
    set restock_required=true
  where orders.payment_contract_version=2
+   and not public.is_payment_operation_hash_held_v1(
+     public.payment_order_no_sha256_v1(orders.order_no)
+   )
    and not coalesce(orders.restock_required, false)
    and public.order_requires_restock_v1(
      orders.id, orders.payment_contract_version, orders.status,
@@ -763,6 +780,9 @@ begin
     into v_listing_id
     from public.orders as orders
    where orders.payment_contract_version = 2
+     and not public.is_payment_operation_hash_held_v1(
+       public.payment_order_no_sha256_v1(orders.order_no)
+     )
      and orders.listing_id is not null
      and (
        orders.status in (
@@ -808,6 +828,9 @@ update public.listings as listing
   from public.orders as orders
  where listing.id = orders.listing_id
    and orders.payment_contract_version = 2
+   and not public.is_payment_operation_hash_held_v1(
+     public.payment_order_no_sha256_v1(orders.order_no)
+   )
    and orders.status in ('refunded', 'canceled', 'failed')
    and not coalesce(orders.restock_required, false)
    and (
@@ -824,6 +847,9 @@ begin
     from public.orders as orders
     join public.listings as listing on listing.id = orders.listing_id
    where orders.payment_contract_version = 2
+     and not public.is_payment_operation_hash_held_v1(
+       public.payment_order_no_sha256_v1(orders.order_no)
+     )
      and (
        orders.status in (
          'payment_review',
@@ -872,6 +898,9 @@ update public.listings as listing
   from public.orders as orders
  where listing.id = orders.listing_id
    and orders.payment_contract_version = 2
+   and not public.is_payment_operation_hash_held_v1(
+     public.payment_order_no_sha256_v1(orders.order_no)
+   )
    and orders.status = 'payment_review';
 
 update public.listings as listing
@@ -883,6 +912,9 @@ update public.listings as listing
   from public.orders as orders
  where listing.id = orders.listing_id
    and orders.payment_contract_version = 2
+   and not public.is_payment_operation_hash_held_v1(
+     public.payment_order_no_sha256_v1(orders.order_no)
+   )
    and orders.status in (
      'paid',
      'inspecting',
@@ -905,6 +937,9 @@ update public.listings as listing
   from public.orders as orders
  where listing.id = orders.listing_id
    and orders.payment_contract_version = 2
+   and not public.is_payment_operation_hash_held_v1(
+     public.payment_order_no_sha256_v1(orders.order_no)
+   )
    and (
      orders.status in ('confirmed', 'return_req', 'exchange_req', 'returning', 'done')
      or (
@@ -930,6 +965,9 @@ begin
     select id, listing_id
       from public.orders
      where payment_contract_version = 2
+       and not public.is_payment_operation_hash_held_v1(
+         public.payment_order_no_sha256_v1(order_no)
+       )
        and status in ('refunded', 'canceled', 'failed')
        and not coalesce(restock_required, false)
   ), released_listings as (
