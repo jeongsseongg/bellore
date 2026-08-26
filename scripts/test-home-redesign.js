@@ -71,6 +71,7 @@ assert.match(rowsCss, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
 assert.match(rowsCss, /\.hrow-card \{ flex-basis: 180px; \}/);
 assert.match(rowsCss, /\.hrow-block \{ margin: 34px 0; \}/);
 assert.match(rowsCss, /\.hrow-card:first-child \{ margin-left: 20px; \}/);
+assert.match(rowsCss, /\.hrow-card:focus-visible \{[\s\S]*outline: none;[\s\S]*\.hrow-card:focus-visible \.hrow-name \{[\s\S]*text-decoration: underline;/, 'card focus uses the product name instead of drawing a clipped browser box');
 assert.match(rowsCss, /\.hrow-view-all:last-child \{ margin-right: 20px; \}/);
 assert.match(rows, /mount: 'rowDropBlock', key: 'home_row_drop', title: 'TIME SALE'/);
 assert.match(rows, /class="hrow-meta"/);
