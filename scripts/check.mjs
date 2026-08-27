@@ -328,6 +328,10 @@ const localClassicScripts = htmlDocuments.reduce((sum, document) => sum + [...do
   return normalizeLocalReference(src) && (attributeValue(match[1], 'type') || '').toLowerCase() !== 'module';
 }).length, 0);
 ceiling('local classic scripts', localClassicScripts, baseline.legacyCeilings.localClassicScripts);
+const indexPasswordInputs = [...markupHtml.matchAll(/<input\b[^>]*\btype\s*=\s*["']password["']/gi)].length;
+const indexModalIds = [...markupHtml.matchAll(/\bid\s*=\s*["'][^"']*Modal["']/gi)].length;
+ceiling('index password inputs', indexPasswordInputs, baseline.legacyCeilings.indexPasswordInputs);
+ceiling('index modal ids', indexModalIds, baseline.legacyCeilings.indexModalIds);
 
 console.log('[3/6] new app boundaries');
 const appRoot = join(root, 'app');

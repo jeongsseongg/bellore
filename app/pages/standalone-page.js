@@ -1,0 +1,48 @@
+const dependencies = [
+  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
+  '/ui-dialog.js?v=20260826-member-verification-live-v2',
+  '/supabase-config.js?v=20260826-naverpay-live-v2',
+  '/analytics-core.js?v=20260810-analytics-v3',
+  '/analytics-client.js?v=20260826-ai-consent-v1',
+  '/brands.js',
+  '/supabase.js?v=20260826-member-verification-live-v2',
+  '/bellore-features.js?v=20260826-member-verification-live-v2',
+  '/cq-demo.js?v=20260826-member-verification-live-v2',
+  '/script.js?v=20260827-standalone-pages-v1',
+  '/app/legacy/recommendation-engine.js?v=20260826-member-verification-live-v2',
+  '/wishlist.js?v=20260826-member-verification-live-v2',
+  '/alerts.js?v=20260820-tabs-alerts-v1',
+  '/auction.js?v=20260826-member-verification-live-v2',
+  '/search.js?v=20260826-member-verification-live-v2',
+  '/ai-advisor.js?v=20260826-member-verification-live-v2',
+  '/ai-advisor-admin.js?v=20260826-member-verification-live-v2',
+  '/payments.js?v=20260826-member-verification-live-v2',
+  '/naverpay.js?v=20260826-naverpay-live-v1',
+  '/app/legacy/page-runtime.js?v=20260826-naverpay-live-v1'
+];
+
+function loadClassicScript(src) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.onload = resolve;
+    script.onerror = () => reject(new Error(`standalone_dependency_failed:${src}`));
+    document.head.append(script);
+  });
+}
+
+for (const dependency of dependencies) await loadClassicScript(dependency);
+
+function openStandalonePage() {
+  const page = document.body?.dataset.belloreStandalonePage;
+  const openMyPage = globalThis['BELLORE_openMyPage'];
+  if (page === 'mypage' && typeof openMyPage === 'function') {
+    openMyPage();
+  }
+}
+
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', openStandalonePage, { once: true });
+} else {
+  openStandalonePage();
+}
