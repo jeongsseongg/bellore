@@ -22,8 +22,8 @@ const ACCESSORY_QUESTIONS = [
 ];
 const METHOD_CONTENT = {
   compare: { label: '비교견적', eyebrow: '72시간 파트너 입찰', title: '비교견적 신청', description: '시계 정보를 한 번만 등록하면 벨로르 제휴사들의 견적을 비교하고 원하는 금액을 선택할 수 있습니다.', image: '시계판매 이미지/비교견적.png', submit: '비교견적 신청하기', note: '* 등록 후 정가품 구별 및 감정 승인 절차가 진행됩니다.' },
-  consignment: { label: '위탁판매', eyebrow: '희망금액 판매', title: '위탁판매 신청', description: '희망 판매금액을 직접 정해 맡기면 벨로르가 상품 등록부터 상담과 판매까지 전 과정을 진행합니다.', image: '시계판매 이미지/위탁판매.png', submit: '위탁판매 신청하기', note: '* 희망금액과 시계 상태를 확인한 뒤 위탁 조건을 안내드립니다.' },
-  instant: { label: '즉시매입', eyebrow: '빠른 매입금액 안내', title: '즉시매입 신청', description: '전문 검수 후 매입 금액을 바로 안내받고 복잡한 판매 절차 없이 빠르게 판매할 수 있습니다.', image: '시계판매 이미지/즉시매입.png', submit: '즉시매입 신청하기', note: '* 시계 정보 확인 후 가능한 빠르게 매입금액을 안내드립니다.' }
+  consignment: { label: '위탁판매', eyebrow: '벨로르 판매금액 안내', title: '위탁판매 신청', description: '시계 정보를 보내주시면 벨로르가 판매금액을 안내하고, 수락 후 실물 검수와 판매를 진행합니다.', image: '시계판매 이미지/위탁판매.png', submit: '위탁판매 신청하기', note: '* 판매 성사 시 안내 판매금액의 7% 수수료가 발생합니다.' },
+  instant: { label: '즉시매입', eyebrow: '빠른 매입금액 안내', title: '즉시매입 신청', description: '사진과 정보를 확인해 매입 가능금액을 안내하고, 실물 검수 후 감가 사유와 최종금액을 안내합니다.', image: '시계판매 이미지/즉시매입.png', submit: '즉시매입 신청하기', note: '* 실물이 사진·정보와 다르면 감가 사유와 변경된 최종금액을 안내드립니다.' }
 };
 
 function dbRequest(window, mode, action) {
@@ -326,8 +326,8 @@ export function initSellMethodSheet({ document, window }) {
     if (eyebrow) eyebrow.textContent = content.eyebrow;
     if (title) title.textContent = content.title;
     if (description) description.textContent = content.description;
-    if (priceField) priceField.hidden = safeMethod !== 'consignment';
-    if (priceInput) priceInput.required = safeMethod === 'consignment';
+    if (priceField) priceField.hidden = true;
+    if (priceInput) priceInput.required = false;
     if (submit) submit.textContent = content.submit;
     if (note) note.textContent = content.note;
     if (draftTitle) draftTitle.textContent = content.label + ' 양식';
@@ -442,7 +442,7 @@ export function initSellMethodSheet({ document, window }) {
       root.hidden = true;
       showView('chooser');
       if (restoreFocus && returnFocus && document.contains(returnFocus)) returnFocus.focus();
-    }, 340);
+    }, 1000);
   }
 
   async function requestClose(action) {

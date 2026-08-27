@@ -1,0 +1,93 @@
+.sell-service-action[hidden] {
+  display: none;
+}
+
+.sell-service-action {
+  position: fixed;
+  z-index: 10060;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(16, 22, 19, 0.52);
+}
+
+.sell-service-action__panel {
+  width: 100%;
+  max-width: var(--app-panel-w, 660px);
+  padding: 22px 22px calc(24px + env(safe-area-inset-bottom));
+  border-radius: 26px 26px 0 0;
+  background: #fff;
+  box-shadow: 0 -18px 48px rgba(15, 29, 23, 0.2);
+}
+
+.sell-service-action__panel h2 {
+  margin: 0;
+  color: #202824;
+  font-size: 24px;
+  letter-spacing: -0.04em;
+}
+
+.sell-service-action__amount {
+  margin: 8px 0 18px;
+  color: #1976c7;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.sell-service-action__methods {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.sell-service-action__methods button {
+  min-height: 82px;
+  padding: 10px;
+  border: 1px solid #dce1df;
+  border-radius: 14px;
+  background: #fff;
+  color: #303934;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.sell-service-action__methods button.is-selected {
+  border-color: #2d8fe5;
+  background: #eef6ff;
+  box-shadow: inset 0 0 0 1px #2d8fe5;
+}
+
+.sell-service-action__buttons {
+  display: grid;
+  grid-template-columns: 0.7fr 1.3fr;
+  gap: 9px;
+  margin-top: 16px;
+}
+
+.sell-service-action__buttons button {
+  min-height: 54px;
+  border-radius: 13px;
+  font-size: 15px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.sell-service-action__buttons button:first-child {
+  border: 1px solid #dce1df;
+  background: #fff;
+  color: #343d38;
+}
+
+.sell-service-action__buttons button:last-child {
+  border: 0;
+  background: #176db8;
+  color: #fff;
+}
+
+.sell-service-action__buttons button:disabled {
+  background: #e5e8e6;
+  color: #9aa19d;
+  cursor: default;
+}

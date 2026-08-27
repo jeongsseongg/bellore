@@ -7,6 +7,9 @@ const css = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-metho
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const script = fs.readFileSync(path.join(root, 'script.js'), 'utf8');
 const moduleJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-method.js'), 'utf8');
+const serviceJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-service-pages.js'), 'utf8');
+const serviceCss = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-service-pages.css'), 'utf8');
+const serviceActionCss = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-service-action.css'), 'utf8');
 
 const sheetRule = css.match(/\.sell-method__sheet\s*\{([\s\S]*?)\}/)?.[1] || '';
 
@@ -19,7 +22,7 @@ assert.match(
 assert.doesNotMatch(sheetRule, /720px/, 'sell sheet must never use the out-of-spec 720px width');
 assert.match(
   html,
-  /sell-method\.css\?v=20260826-sell-motion-v1/,
+  /sell-method\.css\?v=20260826-sell-services-blue-v1/,
   'the page requests the panel-width-corrected stylesheet'
 );
 assert.doesNotMatch(html, /class="compare-entry"/, 'the superseded sell landing page is removed');
@@ -59,7 +62,16 @@ assert.match(html, /assets\/cq-guide\/front\.jpg/, 'the guided detail page uses 
 assert.match(css, /\.sell-method__form-mount\.is-guided-details[\s\S]*?#sellWatchInfoBlock/, 'the second guided page hides already-completed watch fields');
 assert.match(moduleJs, /stage:\s*entryMode,\s*guideComplete/, 'the completed guided stage is persisted with the draft');
 assert.match(sheetRule, /transform:\s*translateY\(104%\)/, 'closed state stays below the viewport');
-assert.match(css, /transition:\s*transform 340ms/, 'opening and closing use the full vertical slide duration');
-assert.match(moduleJs, /\}, 340\);/, 'the sheet remains mounted until the closing slide finishes');
+assert.match(css, /transition:\s*transform 1000ms/, 'opening and closing use the approved one-second vertical slide duration');
+assert.match(moduleJs, /\}, 1000\);/, 'the sheet remains mounted until the one-second closing slide finishes');
+assert.match(serviceJs, /id=\\?"sellServiceNoticeToggle/, 'the chooser keeps active applications inside the top-right notification menu');
+assert.match(serviceJs, /data-sell-view=\\?"service/, 'service applications open a dedicated status page inside the Bellore sheet');
+assert.match(serviceJs, /data-service-page="compare"/, 'comparison estimates have a dedicated quote page');
+assert.match(serviceJs, /data-service-page="consignment"/, 'consignment has a dedicated offer and fee page');
+assert.match(serviceJs, /data-service-page="instant"/, 'instant purchase has a dedicated appraisal and deduction page');
+assert.match(serviceJs, /0\.07[\s\S]*판매 수수료/, 'consignment page calculates and explains the seven-percent fee');
+assert.match(serviceJs, /감가 사유/, 'instant purchase page exposes itemized depreciation reasons');
+assert.match(serviceJs, /견적 \$\{index \+ 1\}/, 'comparison quote rows use anonymous quote numbers instead of vendor names');
+assert.match(serviceActionCss, /max-width:\s*var\(--app-panel-w,\s*660px\)/, 'nested transaction popup inherits the same 660px panel token');
 
 console.log('sell method sheet width invariants: ok');
