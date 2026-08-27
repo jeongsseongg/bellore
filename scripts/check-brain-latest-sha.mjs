@@ -117,10 +117,10 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     const result = shouldSync ? syncBrainLatestSha(repoRoot) : checkBrainLatestSha(repoRoot);
     console.log(`main HEAD: ${result.mainHead}`);
     for (const record of result.records || []) console.log(`${record.label}: ${record.sha}`);
-    const detail = shouldSync
+    const detail = result.reason || (shouldSync
       ? `Brain SHA 포인터 동기화 ${result.updated || 0}/${result.targets || 0}`
-      : `Brain 최신 SHA 대조 ${result.records.length}/${result.records.length}`;
-    console.log(`${result.status}: ${result.reason || detail}`);
+      : `Brain 최신 SHA 대조 ${result.records.length}/${result.records.length}`);
+    console.log(`${result.status}: ${detail}`);
     if (result.status === 'FAIL') process.exitCode = 1;
   } catch (error) {
     console.error(`ERROR: ${error instanceof Error ? error.message : String(error)}`);

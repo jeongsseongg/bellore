@@ -57,6 +57,21 @@ assert.ok(
 );
 assert.match(syncedContext, new RegExp(`Preserve: ${staleSha}`), 'unrelated SHA text must remain unchanged');
 assert.match(syncedIndex, new RegExp(`Preserve: ${staleSha}`), 'unrelated SHA text must remain unchanged');
+
+const noBrainRepo = path.join(fixture, 'standalone');
+mkdirSync(noBrainRepo, { recursive: true });
+execFileSync('git', ['init', '--initial-branch=main'], { cwd: noBrainRepo, stdio: 'ignore' });
+execFileSync('git', ['config', 'user.email', 'test@example.invalid'], { cwd: noBrainRepo });
+execFileSync('git', ['config', 'user.name', 'Bellore Test'], { cwd: noBrainRepo });
+writeFileSync(path.join(noBrainRepo, 'fixture.txt'), 'fixture\n');
+execFileSync('git', ['add', 'fixture.txt'], { cwd: noBrainRepo });
+execFileSync('git', ['commit', '-m', 'fixture'], { cwd: noBrainRepo, stdio: 'ignore' });
+const noBrainOutput = execFileSync(
+  process.execPath,
+  [path.join(root, 'scripts', 'check-brain-latest-sha.mjs')],
+  { cwd: noBrainRepo, encoding: 'utf8' },
+);
+assert.match(noBrainOutput, /NOT_MEASURED:/, 'checkout without private Brain must fail open explicitly');
 rmSync(fixture, { recursive: true, force: true });
 
 for (const script of scripts) {
