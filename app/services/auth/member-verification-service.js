@@ -113,7 +113,7 @@ export function createMemberVerificationService({ getClient, getPortOne, getVeri
       channelKey: verify.channelKey,
       redirectUrl: identityReturnUrl(),
       customer: {
-        name,
+        fullName: name,
         phoneNumber,
         birthYear: birthDate.slice(0, 4),
         birthMonth: birthDate.slice(4, 6),

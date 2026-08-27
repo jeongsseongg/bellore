@@ -129,6 +129,9 @@ assert.match(sendPhoneOtp, /messages\/v4\/send-many\/detail/);
 assert.match(sendPhoneOtp, /failedMessageList/);
 assert.match(verifyPhoneOtp, /member_signup_phone_tickets/);
 assert.match(verifyPhoneOtp, /finalize_member_verification/);
+assert.match(verifyPhoneOtp, /consume_checkout_rate_limit/);
+assert.match(verifyPhoneOtp, /"challenge", challenge/);
+assert.match(verifyPhoneOtp, /"ip", forwarded/);
 assert.match(phoneOtpShared, /createOtpChallenge/);
 assert.match(phoneOtpShared, /verifyOtpChallenge/);
 assert.match(verificationService, /invoke\('verify-business'/);
@@ -175,7 +178,7 @@ await service.verifyIdentity({ phone: '010-1234-5678', name: '홍길동', birthD
 assert.equal(identityCalls[0].request.bypass.inicisUnified.directAgency, undefined);
 assert.equal(identityCalls[0].request.bypass.inicisUnified.flgFixedUser, 'Y');
 assert.deepEqual(identityCalls[0].request.customer, {
-  name: '홍길동', phoneNumber: '01012345678', birthYear: '1990', birthMonth: '01', birthDay: '02',
+  fullName: '홍길동', phoneNumber: '01012345678', birthYear: '1990', birthMonth: '01', birthDay: '02',
 });
 assert.deepEqual(identityCalls[1], { name: 'verify-identity', body: { identityVerificationId: 'idv_provider_response' } });
 const kftcUrl = pathToFileURL(path.join(root, 'supabase', 'functions', '_shared', 'kftc-account-provider.mjs')).href;
@@ -185,6 +188,9 @@ const phoneOtp = await import(phoneOtpUrl);
 const challenge = await phoneOtp.createOtpChallenge({ secret: 'test-signing-key', phone: '01012345678', code: '654321' });
 assert.equal((await phoneOtp.verifyOtpChallenge({ secret: 'test-signing-key', challenge: challenge.challenge, phone: '01012345678', code: '654321' })).nonce, challenge.nonce);
 await assert.rejects(() => phoneOtp.verifyOtpChallenge({ secret: 'test-signing-key', challenge: challenge.challenge, phone: '01012345678', code: '000000' }), /OTP_INVALID/);
+assert.deepEqual(phoneOtp.publicOtpVerifyError(new Error('OTP_CHALLENGE_INVALID')), { code: 'OTP_INVALID', status: 401 });
+assert.deepEqual(phoneOtp.publicOtpVerifyError(new Error('OTP_EXPIRED')), { code: 'OTP_EXPIRED', status: 410 });
+assert.deepEqual(phoneOtp.publicOtpVerifyError(new Error('database secret leaked')), { code: 'OTP_VERIFY_FAILED', status: 502 });
 assert.equal(shared.normalizePhone('+82 10-1234-5678'), '01012345678');
 assert.equal(shared.normalizePhone('010-1234-5678'), '01012345678');
 assert.equal(shared.normalizePhone('02-123-4567'), null);

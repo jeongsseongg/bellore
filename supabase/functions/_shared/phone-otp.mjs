@@ -49,6 +49,16 @@ export async function verifyOtpChallenge({ secret, challenge, phone, code }) {
   return { nonce: parsed.nonce, expiresAt: parsed.expiresAt };
 }
 
+export function publicOtpVerifyError(error) {
+  const internalCode = String(error?.message || 'OTP_VERIFY_FAILED');
+  if (internalCode === 'OTP_RATE_LIMITED') return { code: internalCode, status: 429 };
+  if (internalCode === 'OTP_EXPIRED') return { code: internalCode, status: 410 };
+  if (internalCode === 'OTP_INVALID' || internalCode === 'OTP_CHALLENGE_INVALID') {
+    return { code: 'OTP_INVALID', status: 401 };
+  }
+  return { code: 'OTP_VERIFY_FAILED', status: 502 };
+}
+
 export async function solapiAuthorization(apiKey, apiSecret) {
   const date = new Date().toISOString();
   const salt = crypto.randomUUID().replaceAll('-', '');
