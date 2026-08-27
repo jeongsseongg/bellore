@@ -33,8 +33,21 @@ function extractSha(text, pattern, label) {
   return match[1].toLowerCase();
 }
 
+export function resolveMainHead(repoRoot, env = process.env) {
+  try {
+    return git(repoRoot, 'rev-parse', 'refs/heads/main').toLowerCase();
+  } catch (error) {
+    if (env.GITHUB_ACTIONS !== 'true' || !/^[0-9a-f]{40}$/i.test(env.GITHUB_SHA || '')) throw error;
+    const checkoutHead = git(repoRoot, 'rev-parse', 'HEAD').toLowerCase();
+    if (checkoutHead !== env.GITHUB_SHA.toLowerCase()) {
+      throw new Error('detached CI checkout HEAD가 GITHUB_SHA와 일치하지 않습니다.');
+    }
+    return checkoutHead;
+  }
+}
+
 export function checkBrainLatestSha(repoRoot) {
-  const mainHead = git(repoRoot, 'rev-parse', 'refs/heads/main').toLowerCase();
+  const mainHead = resolveMainHead(repoRoot);
   const memoryRoot = findMemoryRoot(repoRoot);
   if (!memoryRoot) {
     return { status: 'NOT_MEASURED', mainHead, reason: '비공개 상위 Brain이 이 checkout에 없습니다.' };
