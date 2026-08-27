@@ -25,8 +25,9 @@ import { createLegacyCollection } from './legacy/legacy-collection.js?v=20260826
 import { initLegacyHomeMerchandisingGrid } from './legacy/home-merchandising-grid.js';
 import { installLegacyPaymentAuth } from './legacy/payment-auth.js';
 import { installLegacyReveal } from './legacy/legacy-reveal.js';
-import { initCheckoutAddresses } from './features/checkout/checkout-addresses.mjs?v=20260826-shipping-address-popup-v2';
+import { initCheckoutAddresses } from './features/checkout/checkout-addresses.mjs?v=20260827-checkout-address-search-v1';
 import { createPaymentFlow } from './features/checkout/payment-flow.js?v=20260826-member-verification-live-v2';
+import { createCheckoutPresentation } from './features/checkout/checkout-presentation.js?v=20260827-checkout-logos-v1';
 import { installCustomerFeedback } from './legacy/customer-feedback.js?v=20260826-member-verification-live-v2';
 import { installLegacyCheckoutCoupon } from './legacy/checkout-coupon.js';
 import { createLegacyMypageSettingsAdapter } from './legacy/mypage-settings-adapter.js?v=20260826-mypage-live-v1';
@@ -46,6 +47,7 @@ Object.defineProperty(window, 'BELLORE_LISTING_AVAILABILITY', { configurable: tr
 }) });
 Object.defineProperty(window, 'BELLORE_LISTING_UI', { configurable: true, value: createListingAvailabilityUi({ document, window }) });
 Object.defineProperty(window, 'BELLORE_PAYMENT_FLOW', { configurable: true, value: createPaymentFlow({ window }) });
+Object.defineProperty(window, 'BELLORE_CHECKOUT_PRESENTATION', { configurable: true, value: createCheckoutPresentation() });
 Object.defineProperty(window, 'BELLORE_CHECKOUT_REQUEST_RECOVERY', { configurable: true, value: createCheckoutRequestRecovery({
   cryptoApi: window.crypto,
   getStorage: () => window.sessionStorage,

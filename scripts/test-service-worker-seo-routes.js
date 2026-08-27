@@ -61,7 +61,7 @@ function navigationRequest(pathname) {
   const swPath = path.resolve(__dirname, '..', 'sw.js');
   const source = fs.readFileSync(swPath, 'utf8');
   const version = source.match(/const VERSION = "([^"]+)";/)?.[1];
-  assert.equal(version, 'bellore-v351-auth-signup-integration', 'signup integration advances the cache version without dropping Naver Pay');
+  assert.equal(version, 'bellore-v357-checkout-receive-ui', 'refined receive UI advances the cache version without dropping Naver Pay');
   assert.doesNotMatch(source, /req\.mode === 'navigate' \? '\.\/index\.html'/, 'navigation never overwrites the home cache key');
 
   const listeners = new Map();

@@ -78,6 +78,7 @@ export const navGroups = [
       { id: 'homeSettings', label: '홈 화면 관리', icon: 'home', current: true },
       { id: 'banners', label: '배너 관리', icon: 'banner', current: true },
       { id: 'mypageSettings', label: '마이페이지 관리', icon: 'home', current: true },
+      { id: 'themePalette', label: '색상 비교', icon: 'chart', current: true },
       { id: 'content', label: '사이트 내용 관리', icon: 'building', current: true },
       { id: 'community', label: '인사이트 · 후기', icon: 'support', current: true }
     ]
@@ -336,6 +337,10 @@ export const moduleViews = {
   },
   mypageSettings: {
     eyebrow: '고객 화면 관리', title: '고객·업체·관리자 마이페이지 관리', description: '고객과 업체, 관리자 마이페이지를 같은 관리자 화면에서 비교합니다.',
+    current: true, filters: [], rows: []
+  },
+  themePalette: {
+    eyebrow: '화면 관리', title: '벨로르 그린 색상 비교', description: '네이버 대표 초록을 포함한 30가지 그린 색상을 실제 화면 형태로 비교합니다.',
     current: true, filters: [], rows: []
   },
   banners: {

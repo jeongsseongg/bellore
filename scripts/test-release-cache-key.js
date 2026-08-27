@@ -15,6 +15,8 @@ const authPageReleaseKey = '20260826-auth-page-v1';
 const authPageAssetKey = '20260826-auth-page-v2';
 const signupAssetKey = '20260827-auth-signup-v1';
 const shellStyleKey = '20260826-auth-shell-v1';
+const checkoutReleaseKey = '20260827-checkout-methods-v1';
+const checkoutBootstrapReleaseKey = '20260827-checkout-logos-v1';
 
 const urls = {
   styles: html.match(/<link rel="stylesheet" href="(styles\.css\?v=[^"]+)"/)?.[1],
@@ -39,7 +41,9 @@ for (const [name, url] of Object.entries(urls)) {
     : name === 'script'
     ? authPageReleaseKey
     : name === 'bootstrap'
-    ? sellReleaseKey
+    ? checkoutBootstrapReleaseKey
+    : name === 'payments'
+    ? checkoutReleaseKey
     : name === 'serviceWorker'
     ? shellStyleKey
     : (name === 'pageRuntime' ? sellReleaseKey : releaseKey);
@@ -48,7 +52,7 @@ for (const [name, url] of Object.entries(urls)) {
 for (const name of ['styles', 'script', 'payments', 'wishlist', 'search', 'dialog', 'features', 'quotes', 'auction', 'bootstrap', 'conditionGuide', 'pageRuntime']) {
   assert(serviceWorker.includes(`'./${urls[name]}'`), `service worker must precache the exact ${name} URL`);
 }
-assert.match(serviceWorker, /const VERSION = "bellore-v351-auth-signup-integration";/, 'service-worker cache namespace must include the integrated signup flow');
+assert.match(serviceWorker, /const VERSION = "bellore-v357-checkout-receive-ui";/, 'service-worker cache namespace must include the refined checkout receive UI');
 assert(serviceWorker.includes("'./login.html'"), 'service worker must precache the independent login page');
 assert(serviceWorker.includes(`'./app/features/auth-login/auth-login.css?v=${authPageAssetKey}'`), 'service worker must precache login page styles');
 assert(serviceWorker.includes(`'./app/features/auth-login/auth-login.js?v=${authPageAssetKey}'`), 'service worker must precache login page behavior');

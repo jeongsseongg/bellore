@@ -1,0 +1,48 @@
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+  background: #f7f8f7;
+}
+
+.theme-demo-shell {
+  min-height: 100vh;
+  color: var(--ink-900);
+  background: #f7f8f7;
+}
+
+.theme-demo-header {
+  height: 66px;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  border-bottom: 1px solid var(--line);
+  background: #fff;
+}
+
+.theme-demo-header img {
+  width: 124px;
+  height: auto;
+  display: block;
+}
+
+.theme-demo-header span {
+  padding-left: 18px;
+  border-left: 1px solid var(--line);
+  color: var(--ink-500);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.theme-demo-main {
+  width: min(calc(100% - 40px), 1200px);
+  margin: 0 auto;
+  padding: 36px 0 64px;
+}
+
+@media (max-width: 560px) {
+  .theme-demo-header { height: 58px; padding: 0 20px; }
+  .theme-demo-header img { width: 104px; }
+  .theme-demo-main { width: min(calc(100% - 28px), 1200px); padding-top: 24px; }
+}

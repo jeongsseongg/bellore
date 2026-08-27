@@ -63,6 +63,7 @@
     return {
       id: 'naver-order',
       label: '네이버페이',
+      hint: '네이버페이 주문형',
       kind: 'naver-order'
     };
   }
@@ -99,11 +100,8 @@
       if (selectedChannel && chans[i].id === selectedChannel.id) selected = chans[i];
     }
     selectedChannel = selected || chans[0];
-    box.innerHTML = chans.map(function (c) {
-      var on = (c === selectedChannel);
-      return '<button type="button" class="co-method' + (on ? ' active' : '') +
-        '" data-ch="' + escLite(c.id) + '">' + escLite(c.label) + '</button>';
-    }).join('');
+    var presentation = window.BELLORE_CHECKOUT_PRESENTATION;
+    box.innerHTML = presentation ? presentation.methodMarkup(chans, selectedChannel, escLite) : '';
   }
   function selectChannel(id) {
     var chans = availableChannels();
@@ -117,21 +115,6 @@
     var ship = $('#coShipSec');
     if (ship) ship.hidden = false;
     updateAmount();
-  }
-
-  function openPostcode() {
-    if (!window.daum || !window.daum.Postcode) {
-      alert('주소 검색을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
-      return;
-    }
-    new window.daum.Postcode({
-      oncomplete: function (data) {
-        var addr = data.roadAddress || data.jibunAddress || '';
-        if ($('#coPostcode')) $('#coPostcode').value = data.zonecode || '';
-        if ($('#coAddr1')) $('#coAddr1').value = addr;
-        var d = $('#coAddr2'); if (d) d.focus();
-      }
-    }).open();
   }
 
   /* ---------------- 쿠폰 ---------------- */
@@ -204,11 +187,19 @@
   function updateAmount() {
     var ui = couponUi(); if (ui) ui.sync();
     var b = baseAmount();
+    var productPrice = product ? (Number(product.price) || 0) : 0;
+    var shipping = shipFee(productPrice);
     var disc = currentDiscount(b);
     var amt = Math.max(0, b - disc);
     var row = $('#coDiscountRow'), dEl = $('#coDiscount');
     if (row) row.hidden = !(disc > 0);
     if (dEl) dEl.textContent = '-' + fmt(disc) + '원';
+    var subtotalEl = $('#coSubtotal');
+    var shippingEl = $('#coShipping');
+    var amountTotalEl = $('#coAmountTotal');
+    if (subtotalEl) subtotalEl.textContent = fmt(productPrice) + '원';
+    if (shippingEl) shippingEl.textContent = shipping > 0 ? ('+' + fmt(shipping) + '원') : '무료';
+    if (amountTotalEl) amountTotalEl.textContent = fmt(amt) + '원';
     var totalEl = $('#coTotal');
     if (totalEl) totalEl.textContent = fmt(amt) + '원';
   }
@@ -219,6 +210,8 @@
     $('#coBrand').textContent = product.brand || '';
     $('#coModel').textContent = product.model || '';
     $('#coListPrice').textContent = product.price ? (fmt(product.price) + '원') : '가격 문의';
+
+    if (window.BELLORE_CHECKOUT_PRESENTATION) window.BELLORE_CHECKOUT_PRESENTATION.renderProductDetails(product, $);
 
     // 로그인 사용자 정보 채우기
     var u = currentUser();
@@ -346,7 +339,7 @@
     }
 
     if (!portoneReady()) {
-      alert('현재 카드 결제를 준비하지 못했습니다. 새로고침 후에도 같으면 고객센터로 문의해 주세요.');
+      alert('현재 결제를 준비하지 못했습니다. 새로고침 후에도 같으면 고객센터로 문의해 주세요.');
       renderMethods();
       return;
     }
@@ -489,9 +482,6 @@
       var btn = e.target.closest('.co-method');
       if (btn) selectChannel(btn.dataset.ch);
     });
-
-    var findAddr = $('#coFindAddr');
-    if (findAddr) findAddr.addEventListener('click', openPostcode);
 
     // 쿠폰 선택 변경 → 금액 재계산
     var cSel = $('#coCouponSelect');

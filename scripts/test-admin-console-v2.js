@@ -24,6 +24,8 @@ const wantedCss = read('features/workspace/admin-wanted.css');
 const homeCss = read('features/home-editor/admin-home-editor.css');
 const mypageCss = read('features/mypage-editor/admin-mypage-editor.css');
 const mypageShadowCss = read('features/mypage-editor/admin-mypage-editor-shadow.css');
+const themePreview = read('features/theme-preview/admin-theme-preview.js');
+const themePreviewCss = read('features/theme-preview/admin-theme-preview.css');
 const operationController = read('features/operations/admin-operation-controller.js');
 const operationOverview = read('features/operations/admin-live-overview.js');
 const operationView = read('features/operations/admin-operation-view.js');
@@ -51,6 +53,8 @@ const requiredFiles = [
   'features/mypage-editor/admin-mypage-editor.js',
   'features/mypage-editor/admin-mypage-editor.css',
   'features/mypage-editor/admin-mypage-editor-shadow.css',
+  'features/theme-preview/admin-theme-preview.js',
+  'features/theme-preview/admin-theme-preview.css',
   'features/operations/admin-operation-controller.js',
   'features/operations/admin-operation-model.js',
   'features/operations/admin-display-text.js',
@@ -75,7 +79,7 @@ requiredFiles.forEach((file) => assert.ok(fs.existsSync(path.join(base, file)), 
 assert.match(html, /id="adminNav"/, 'shell owns navigation mount');
 assert.match(html, /id="adminWorkspace"/, 'shell owns workspace mount');
 assert.match(html, /id="caseDrawer"/, 'shell owns case drawer');
-assert.match(html, /type="module" src="\.\/bootstrap\.js\?v=20260826-catalog-ledger-v3"/, 'versioned native module bootstrap is used');
+assert.match(html, /type="module" src="\.\/bootstrap\.js\?v=20260827-theme-palette-v1"/, 'versioned native module bootstrap is used');
 assert.doesNotMatch(html, /<script(?![^>]*src=)[^>]*>/, 'no executable inline scripts');
 assert.doesNotMatch(html, /style="/, 'no inline style attributes in shell');
 assert.doesNotMatch(html, /surface-menu|partner-slot/, 'duplicate top and footer navigation are removed');
@@ -89,7 +93,7 @@ assert.match(data, /입찰 권한은 현 코드 충돌 확인 후 확정/, 'part
 
 const currentModules = [
   'orders', 'quotes', 'returns', 'listings', 'auctions', 'customers', 'vendors',
-  'partners', 'mypageSettings', 'settlements', 'coupons', 'support', 'banners', 'advisor', 'analytics',
+  'partners', 'mypageSettings', 'themePalette', 'settlements', 'coupons', 'support', 'banners', 'advisor', 'analytics',
   'homeSettings', 'community', 'content', 'coverage', 'notifications', 'audit'
 ];
 const plannedModules = ['consignments', 'purchases', 'inspections', 'permissions'];
@@ -133,8 +137,8 @@ assert.doesNotMatch(bootstrap, /createAdminHomeEditor|homeEditorData/, 'prototyp
 assert.match(bootstrap, /createAdminMypageEditor/, 'bootstrap composes My Page editor feature');
 assert.match(bootstrap, /createAdminOperationsService/, 'bootstrap composes the existing operations service boundary');
 assert.match(bootstrap, /settingsService: operationsService\.catalog/, 'My Page editor uses the shared catalog service');
-assert.match(bootstrap, /specialViews: \{ mypageSettings: mypageEditor \}/,
-  'only the reusable My Page editor is mounted as a special workspace');
+assert.match(bootstrap, /specialViews: \{ mypageSettings: mypageEditor, themePalette: themePreview \}/,
+  'My Page editor and theme comparison are mounted as special workspaces');
 assert.match(navigation, /onNavigate/, 'navigation communicates through callback');
 assert.match(navigation, /data-nav-group-toggle[\s\S]*aria-expanded/, 'navigation groups expose an accessible collapse control');
 assert.match(navigation, /openGroup\(next\.closest\('\[data-nav-group\]'\)\)/,
@@ -233,6 +237,12 @@ assert.match(mypageShadowCss, /\[data-copy-config\][\s\S]*\[data-reset-config\][
   'embedded editor hides duplicate copy and reset actions');
 assert.match(mypageEditor, /역할 선택[\s\S]*내용 수정[\s\S]*미리보기 확인 후 저장/,
   'embedded editor presents one concise three-step workflow');
+assert.equal((themePreview.match(/^\s+\['/gm) || []).length, 30, 'theme comparison exposes exactly thirty palettes');
+assert.match(themePreview, /'naver'[\s\S]*'#03c75a'/i, 'theme comparison includes the official Naver green reference');
+assert.match(themePreview, /data-theme-id[\s\S]*data-theme-reset[\s\S]*style\.setProperty/,
+  'theme comparison renders all choices and applies the selected tokens to the actual admin shell');
+assert.match(themePreviewCss, /grid-template-columns:\s*repeat\(4,[\s\S]*@media \(max-width: 560px\)[\s\S]*grid-template-columns:\s*1fr/,
+  'theme comparison is responsive from four columns to one');
 assert.match(wantedCss, /width: min\(100%, 1200px\)/, 'Wanted content canvas is 1200px');
 assert.match(wantedCss, /min-height: 54px/, 'Wanted primary action height is 54px');
 assert.doesNotMatch(workspace + html, /OPERATIONS HOME|WORK QUEUE|CONTROL SIGNAL|PIPELINE|RECENT ACTIVITY|PORTAL ARCHITECTURE|ROLE CONTRACT|WATCH CASE FILE|FUTURE PORTAL|GLOBAL SEARCH/, 'decorative English is removed');

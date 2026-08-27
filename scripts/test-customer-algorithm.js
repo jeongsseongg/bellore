@@ -47,7 +47,7 @@ assert.match(recommendationEngine, /heuristic_action_proxy/);
 assert.match(recommendationEngine, /purchased_cooldown/);
 assert.match(html, /app\/legacy\/recommendation-engine\.js\?v=20260826-member-verification-live-v2/);
 assert.match(html, /ai-advisor\.js\?v=20260826-member-verification-live-v2/);
-assert.match(html, /payments\.js\?v=20260826-member-verification-live-v2/);
+assert.match(html, /payments\.js\?v=20260827-checkout-methods-v1/);
 assert(html.indexOf('recommendation-engine.js') < html.indexOf('wishlist.js'));
 assert(html.indexOf('recommendation-engine.js') < html.indexOf('ai-advisor.js'));
 assert.match(html, /선택적 맞춤 추천과 프로파일링/);

@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v351-auth-signup-integration";
+const VERSION = "bellore-v357-checkout-receive-ui";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -16,10 +16,10 @@ const SHELL_ASSETS = [
   './mypick.css?v=20260826-member-verification-live-v2',
   './bellore-redesign.css?v=20260826-purchasebar-harmony-v1',
   './script.js?v=20260826-auth-page-v1',
-  './payments.js?v=20260826-member-verification-live-v2',
+  './payments.js?v=20260827-checkout-methods-v1',
   './naverpay.js?v=20260826-naverpay-live-v1',
   './ui-dialog.js?v=20260826-member-verification-live-v2',
-  './supabase-config.js?v=20260826-naverpay-live-v2',
+  './supabase-config.js?v=20260827-checkout-methods-v1',
   './analytics-core.js?v=20260810-analytics-v3',
   './analytics-client.js?v=20260826-ai-consent-v1',
   './brands.js',
@@ -32,7 +32,7 @@ const SHELL_ASSETS = [
   './search.js?v=20260826-member-verification-live-v2',
   './ai-advisor.js?v=20260826-member-verification-live-v2',
   './ai-advisor-admin.js?v=20260826-member-verification-live-v2',
-  './app/bootstrap.js?v=20260826-naverpay-live-v1',
+  './app/bootstrap.js?v=20260827-checkout-logos-v1',
   './app/features/auth-login/auth-login.css?v=20260826-auth-page-v2',
   './app/features/auth-login/auth-login.js?v=20260826-auth-page-v2',
   './app/services/auth/auth-login-backend.js',
@@ -40,9 +40,16 @@ const SHELL_ASSETS = [
   './app/features/auth-signup/auth-signup.js?v=20260827-auth-signup-v1',
   './app/services/auth/auth-signup-backend.js',
   './app/features/analytics-consent/analytics-consent.css?v=20260826-ai-consent-v1',
-  './app/features/checkout/checkout-addresses.css?v=20260826-shipping-address-popup-v2',
-  './app/features/checkout/checkout-addresses.mjs?v=20260826-shipping-address-popup-v2',
+  './app/features/checkout/checkout-addresses.css?v=20260827-checkout-address-search-v2',
+  './app/features/checkout/checkout-addresses.mjs?v=20260827-checkout-address-search-v1',
   './app/features/checkout/shipping-address-popup.mjs',
+  './app/features/checkout/checkout-order.css?v=20260827-checkout-receive-v1',
+  './app/features/checkout/checkout-presentation.js?v=20260827-checkout-logos-v1',
+  './assets/payment-methods/card.svg',
+  './assets/payment-methods/virtual-account.svg',
+  './assets/payment-methods/naverpay-badge.svg',
+  './assets/payment-methods/kakaopay.png',
+  './assets/payment-methods/tosspay.png',
   './app/core/customer-error.mjs?v=20260826-member-verification-live-v2',
   './app/core/listing-display.js?v=20260826-member-verification-live-v2',
   './app/core/market-product-url.mjs',

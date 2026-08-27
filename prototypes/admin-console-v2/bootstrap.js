@@ -2,6 +2,7 @@ import { getAdminAccessToken, requireAdminSession, signOutAdmin } from './admin-
 import { roleContracts, navGroups, overview, moduleViews, caseDetail } from './data/admin-console-data.js?v=20260826-admin-crud-v1';
 import { createAdminNavigation } from './features/navigation/admin-navigation.js?v=20260826-admin-crud-v1';
 import { createAdminMypageEditor } from './features/mypage-editor/admin-mypage-editor.js?v=20260826-admin-simple-v1';
+import { createAdminThemePreview } from './features/theme-preview/admin-theme-preview.js?v=20260827-theme-palette-v1';
 import { createAdminOperationController } from './features/operations/admin-operation-controller.js?v=20260826-catalog-ledger-v3';
 import { createAdminWorkspace } from './features/workspace/admin-workspace.js';
 import { createAdminOperationsService } from './services/admin/admin-operations-service.js?v=20260826-catalog-ledger-v3';
@@ -45,6 +46,7 @@ const mypageEditor = createAdminMypageEditor({
   settingsService: operationsService.catalog,
   onToast: toast
 });
+const themePreview = createAdminThemePreview();
 
 const operations = createAdminOperationController({
   root,
@@ -64,7 +66,7 @@ const workspace = createAdminWorkspace({
   overview,
   roles: roleContracts,
   views: { ...moduleViews, caseDetail },
-  specialViews: { mypageSettings: mypageEditor },
+  specialViews: { mypageSettings: mypageEditor, themePalette: themePreview },
   operations,
   onNavigate: navigate,
   onToast: toast

@@ -63,12 +63,10 @@ window.BELLORE_PAYMENTS = {
   //   test: true 인 채널은 localhost 또는 ?paymentTest=1 주소에서만 노출됩니다.
   //   운영 심사용 신용카드 채널은 결제창에 항상 노출합니다.
   channels: [
-    { id: "card",     label: "신용·체크카드", payMethod: "CARD", channelKey: "channel-key-f9693f47-56c9-4732-822d-bace693db3cb" },
-    { id: "kakaopay", label: "카카오페이",   payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_KAKAOPAY" },
-    { id: "naverpay", label: "네이버페이",   payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_NAVERPAY" },
-    { id: "tosspay",  label: "토스페이",     payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_TOSSPAY" },
-    { id: "payco",    label: "페이코",       payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_PAYCO" },
-    { id: "smilepay", label: "스마일페이",   payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_SMILEPAY" }
+    { id: "card", label: "신용·체크카드", hint: "KG이니시스 안전결제", payMethod: "CARD", channelKey: "channel-key-f9693f47-56c9-4732-822d-bace693db3cb" },
+    { id: "virtual", label: "가상계좌", hint: "발급 계좌로 입금", payMethod: "VIRTUAL_ACCOUNT", channelKey: "channel-key-f9693f47-56c9-4732-822d-bace693db3cb" },
+    { id: "kakaopay", label: "카카오페이", hint: "카카오톡 간편결제", payMethod: "EASY_PAY", channelKey: "channel-key-f9693f47-56c9-4732-822d-bace693db3cb", easyPayProvider: "KAKAOPAY" },
+    { id: "tosspay", label: "토스페이", hint: "토스 간편결제", payMethod: "EASY_PAY", channelKey: "channel-key-f9693f47-56c9-4732-822d-bace693db3cb", easyPayProvider: "TOSSPAY" }
   ],
   // 주문 예약·서버 capability 발급 Edge Function. 브라우저에서 DB RPC를 직접 호출하지 않습니다.
   checkoutUrl: "https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/create-checkout",

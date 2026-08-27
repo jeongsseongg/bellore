@@ -130,8 +130,11 @@ function fakeEventTarget() {
   assert.match(bootstrap, /initProductDetailRoute\(\{ document, window \}\);/);
   assert.doesNotMatch(legacy, /function shareCurrentProduct\(/, '레거시 UUID 공유 함수가 제거됩니다.');
   const currentProductBlocks = [...legacy.matchAll(/BELLORE_currentProduct\s*=\s*\{([\s\S]*?)\n\s*\};/g)];
-  assert.equal(currentProductBlocks.length, 3, '현재 상품 상태 생성 지점 수가 바뀌면 검토가 필요합니다.');
+  assert.equal(currentProductBlocks.length, 1, '카드 즉시 표시용 현재 상품 상태 생성 지점 수가 바뀌면 검토가 필요합니다.');
   assert(currentProductBlocks.every((match) => /\bproductNo\s*:/.test(match[1])), '모든 현재 상품 상태가 상품번호를 보존합니다.');
+  assert.match(legacy, /function checkoutProductFromListing\(it\)/, 'DB 상품의 주문서 데이터는 하나의 정본 변환기로 구성합니다.');
+  assert.match(legacy, /listingId:\s*it\.id,[\s\S]*productNo:\s*it\.product_no/, 'DB 상품 주문서 데이터도 상품번호를 보존합니다.');
+  assert.equal((legacy.match(/window\.BELLORE_currentProduct = checkoutProductFromListing\(it\)/g) || []).length, 2, '비동기 상품 상세 두 경로는 같은 주문서 정본 변환기를 사용합니다.');
   assert.equal(
     (legacy.match(/no: it\.product_no \|\| String\(it\.id\)\.slice\(0, 8\)\.toUpperCase\(\)/g) || []).length,
     2,
@@ -154,7 +157,7 @@ function fakeEventTarget() {
   }
   for (const [asset, releaseKey] of [
     ['script.js', '20260826-auth-page-v1'],
-    ['app/bootstrap.js', '20260826-naverpay-live-v1'],
+    ['app/bootstrap.js', '20260827-checkout-logos-v1'],
     ['sw.js', '20260826-auth-shell-v1'],
     ['wishlist.js', '20260826-member-verification-live-v2'],
     ['search.js', '20260826-member-verification-live-v2'],

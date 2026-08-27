@@ -96,6 +96,16 @@ export function initCheckoutAddresses({ document: doc, window: win, getClient, g
     fields.addr2.value = data.addr2;
   }
 
+  function currentCheckoutAddress() {
+    return normalizeAddress({
+      recipient: fields.recipient?.value,
+      phone: fields.phone?.value,
+      postcode: fields.postcode?.value,
+      addr1: fields.addr1?.value,
+      addr2: fields.addr2?.value,
+    });
+  }
+
   const popup = createShippingAddressPopup({
     document: doc, window: win, max: repository.max, formatPhone: formatKoreanPhone,
     onUse: fill,
@@ -141,6 +151,7 @@ export function initCheckoutAddresses({ document: doc, window: win, getClient, g
   fields.buyerPhone?.addEventListener('input', () => syncBuyer(false));
   same?.addEventListener('change', () => syncBuyer(true));
   byId('coManageAddresses')?.addEventListener('click', async (event) => { popup.open(event.currentTarget); await refresh(false); });
+  byId('coFindAddr')?.addEventListener('click', (event) => { popup.openSearch(event.currentTarget, currentCheckoutAddress()); });
   doc.addEventListener('bellore:checkout-opened', async () => {
     fields.buyerPhone.value = formatKoreanPhone(fields.buyerPhone.value);
     fields.phone.value = formatKoreanPhone(fields.phone.value);
