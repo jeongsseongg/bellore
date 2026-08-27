@@ -13,6 +13,7 @@ const releaseKey = '20260826-member-verification-live-v2';
 const sellReleaseKey = '20260826-naverpay-live-v1';
 const authPageReleaseKey = '20260826-auth-page-v1';
 const authPageAssetKey = '20260826-auth-page-v2';
+const signupAssetKey = '20260827-auth-signup-v1';
 const shellStyleKey = '20260826-auth-shell-v1';
 
 const urls = {
@@ -47,10 +48,12 @@ for (const [name, url] of Object.entries(urls)) {
 for (const name of ['styles', 'script', 'payments', 'wishlist', 'search', 'dialog', 'features', 'quotes', 'auction', 'bootstrap', 'conditionGuide', 'pageRuntime']) {
   assert(serviceWorker.includes(`'./${urls[name]}'`), `service worker must precache the exact ${name} URL`);
 }
-assert.match(serviceWorker, /const VERSION = "bellore-v350-purchasebar-harmony";/, 'service-worker cache namespace must preserve the live release and add the unified purchase bar');
+assert.match(serviceWorker, /const VERSION = "bellore-v351-auth-signup-integration";/, 'service-worker cache namespace must include the integrated signup flow');
 assert(serviceWorker.includes("'./login.html'"), 'service worker must precache the independent login page');
 assert(serviceWorker.includes(`'./app/features/auth-login/auth-login.css?v=${authPageAssetKey}'`), 'service worker must precache login page styles');
 assert(serviceWorker.includes(`'./app/features/auth-login/auth-login.js?v=${authPageAssetKey}'`), 'service worker must precache login page behavior');
+assert(serviceWorker.includes(`'./app/features/auth-signup/auth-signup.css?v=${signupAssetKey}'`), 'service worker must precache signup page styles');
+assert(serviceWorker.includes(`'./app/features/auth-signup/auth-signup.js?v=${signupAssetKey}'`), 'service worker must precache signup page behavior');
 for (const heroAsset of ['home-banners.js', 'home-banner-data.js']) {
   assert(serviceWorker.includes(`./app/features/home-banners/${heroAsset}?v=20260826-hero-layout-v7`), `service worker must precache exact restored hero asset: ${heroAsset}`);
 }
