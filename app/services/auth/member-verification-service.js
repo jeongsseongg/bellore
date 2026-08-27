@@ -106,14 +106,20 @@ export function createMemberVerificationService({ getClient, getPortOne, getVeri
       identityVerificationId,
       channelKey: verify.channelKey,
       redirectUrl: identityReturnUrl(),
-      bypass: { inicisUnified: { flgFixedUser: 'N', ...(agency ? { directAgency: agency } : {}) } },
+      bypass: {
+        inicisUnified: {
+          flgFixedUser: 'N',
+          ...(agency ? { directAgency: agency } : {}),
+        },
+      },
     });
     if (response?.code != null) {
       const error = new Error(response.message || 'IDENTITY_FAILED');
       error.code = response.code || 'IDENTITY_FAILED';
       throw error;
     }
-    const result = await completeIdentityVerification(response?.identityVerificationId || identityVerificationId);
+    const completedId = response?.identityVerificationId || identityVerificationId;
+    const result = await completeIdentityVerification(completedId);
     try { globalThis.sessionStorage?.removeItem('belloreIdentityVerificationId'); } catch { /* storage unavailable */ }
     return result;
   }

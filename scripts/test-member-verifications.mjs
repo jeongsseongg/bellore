@@ -74,7 +74,9 @@ assert.doesNotMatch(client, /provider:\s*['"]naver['"]/, 'unsupported Supabase N
 assert.match(client, /NAVER_LOGIN_NOT_CONFIGURED/);
 assert.match(legacyFeatures, /KG이니시스 통합인증/);
 assert.match(legacyFeatures, /B\.verifyIdentityPortone\(\)/);
-assert.doesNotMatch(legacyFeatures, /B\.sendPhoneOtp\(/);
+assert.match(legacyFeatures, /휴대폰 번호 인증/);
+assert.match(legacyFeatures, /verifyIdentityPortone\(\{ agency: 'SMS' \}\)/);
+assert.match(legacyFeatures, /completeReturnedIdentity/);
 
 assert.match(config, /\[functions\.verify-identity\]\s+verify_jwt = false/);
 for (const fn of ['sync-email-verification', 'complete-otp-signup', 'verify-business', 'verify-account', 'admin-manage-verification']) {
@@ -105,6 +107,10 @@ assert.match(verificationService, /invoke\('verify-identity'/);
 assert.match(verificationService, /redirectUrl: identityReturnUrl\(\)/);
 assert.match(verificationService, /flgFixedUser: 'N'/);
 assert.match(verificationService, /invoke\('sync-email-verification'/);
+assert.match(verificationService, /redirectUrl: identityReturnUrl\(\)/);
+assert.match(verificationService, /response\?\.identityVerificationId \|\| identityVerificationId/);
+assert.match(verificationService, /flgFixedUser: 'N'/);
+assert.match(verificationService, /directAgency: agency/);
 assert.match(verificationService, /invoke\('verify-business'/);
 assert.match(verificationService, /invoke\('verify-account'/);
 assert.match(verificationService, /response\.error\.context\?\.clone/);
@@ -128,6 +134,27 @@ const sharedUrl = pathToFileURL(path.join(root, 'supabase', 'functions', '_share
 const shared = await import(sharedUrl);
 const providersUrl = pathToFileURL(path.join(root, 'supabase', 'functions', '_shared', 'member-verification-providers.mjs')).href;
 const providers = await import(providersUrl);
+const serviceUrl = pathToFileURL(path.join(root, 'app', 'services', 'auth', 'member-verification-service.js')).href;
+const { createMemberVerificationService } = await import(serviceUrl);
+const identityCalls = [];
+const service = createMemberVerificationService({
+  getClient: () => ({
+    functions: { invoke: async (name, options) => {
+      identityCalls.push({ name, body: options.body });
+      return { data: { ok: true, identityVerificationId: options.body.identityVerificationId }, error: null };
+    } },
+  }),
+  getPortOne: () => ({ requestIdentityVerification: async (request) => {
+    identityCalls.push({ request });
+    return { transactionType: 'IDENTITY_VERIFICATION', identityVerificationId: 'idv_provider_response' };
+  } }),
+  getVerifyConfig: () => ({ phone: { channelKey: 'channel-live' } }),
+  getPaymentConfig: () => ({ storeId: 'store-live' }),
+});
+await service.verifyIdentity({ agency: 'SMS' });
+assert.equal(identityCalls[0].request.bypass.inicisUnified.directAgency, 'SMS');
+assert.equal(identityCalls[0].request.bypass.inicisUnified.flgFixedUser, 'N');
+assert.deepEqual(identityCalls[1], { name: 'verify-identity', body: { identityVerificationId: 'idv_provider_response' } });
 const kftcUrl = pathToFileURL(path.join(root, 'supabase', 'functions', '_shared', 'kftc-account-provider.mjs')).href;
 const kftc = await import(kftcUrl);
 assert.equal(shared.normalizePhone('+82 10-1234-5678'), '01012345678');

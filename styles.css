@@ -7003,6 +7003,7 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 /* ===== 인증 모달 (휴대폰 / 계좌) ===== */
 .vf-desc { font-size: 14px; color: var(--text-2); line-height: 1.6; margin: 0 0 18px; }
 .vf-method { padding: 18px; border: 1px solid var(--border); border-radius: 14px; background: #fff; }
+.vf-method + .vf-method { margin-top: 12px; }
 .vf-method-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
 .vf-method-head strong { font-size: 16px; color: var(--text); }
 .vf-provider, .vrow-provider { padding: 4px 8px; border-radius: 999px; background: var(--bg-soft); color: var(--text-2); font-size: 11px; font-weight: 700; white-space: nowrap; }

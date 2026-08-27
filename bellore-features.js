@@ -978,7 +978,7 @@
       if (b) { e.preventDefault(); openCmsEditor(b.getAttribute('data-cms-edit')); }
     });
 
-    /* ===== 휴대폰 본인인증 (KG이니시스 통합인증) ===== */
+    /* ===== 휴대폰 번호 인증 / 간편 본인인증 ===== */
     var phoneModal = null;
     function notConfiguredMsg(err) {
       var m = (err && err.message) || String(err || '');
@@ -995,13 +995,25 @@
       if (!phoneModal) phoneModal = makeModal('phoneVerifyModal', 'IDENTITY', '본인인증');
       var box = phoneModal.querySelector('.modal-body');
       box.innerHTML =
-        '<div class="vf-method"><div class="vf-method-head"><strong>간편 본인인증</strong><span class="vf-provider">KG이니시스 통합인증</span></div>' +
+        '<div class="vf-method"><div class="vf-method-head"><strong>휴대폰 번호 인증</strong><span class="vf-provider">문자 인증번호</span></div>' +
+        '<p class="vf-desc">통신사와 휴대폰 번호를 입력하고 문자 인증번호로 본인을 확인합니다.</p>' +
+        '<button type="button" class="vf-confirm" id="vfSmsIdentity">휴대폰 인증 시작</button></div>' +
+        '<div class="vf-method"><div class="vf-method-head"><strong>간편인증</strong><span class="vf-provider">KG이니시스 통합인증</span></div>' +
         '<p class="vf-desc">본인 명의 휴대폰으로 인증하면 명의와 휴대폰 번호를 함께 확인합니다.</p>' +
         '<button type="button" class="vf-confirm" id="vfIdentity">본인인증 시작</button>' +
-        '<p class="vf-note">문자로 인증번호만 받는 휴대폰 번호 확인과는 다른 본인확인 절차입니다.</p></div>' +
+        '<p class="vf-note">통신사 PASS·카카오·네이버 등 제공되는 간편인증 수단을 선택할 수 있습니다.</p></div>' +
         '<p class="vf-msg" id="vfMsg"></p>';
       var msg = box.querySelector('#vfMsg');
       function setMsg(t, ok) { msg.textContent = t || ''; msg.className = 'vf-msg' + (ok ? ' ok' : t ? ' err' : ''); }
+      box.querySelector('#vfSmsIdentity').addEventListener('click', function () {
+        var btn = this; btn.disabled = true; btn.textContent = '발송 중…';
+        B.verifyIdentityPortone({ agency: 'SMS' })
+          .then(function () {
+            setMsg('휴대폰 번호 인증이 완료되었습니다.', true);
+            setTimeout(function () { closeModal(phoneModal); if (opts.onDone) opts.onDone(); }, 700);
+          })
+          .catch(function (err) { btn.disabled = false; btn.textContent = '휴대폰 인증 시작'; setMsg(notConfiguredMsg(err)); });
+      });
       box.querySelector('#vfIdentity').addEventListener('click', function () {
         var btn = this; btn.disabled = true; btn.textContent = '인증 중…';
         B.verifyIdentityPortone()
@@ -1013,6 +1025,40 @@
       });
       openModal(phoneModal);
     };
+
+    var identityReturnHandled = false;
+    function completeReturnedIdentity() {
+      if (identityReturnHandled || !B.completeIdentityVerification) return false;
+      var url = new URL(window.location.href);
+      var isReturn = url.searchParams.get('belloreIdentityReturn') === '1';
+      var returnedId = url.searchParams.get('identityVerificationId');
+      var returnedCode = url.searchParams.get('code');
+      var storedId = '';
+      try { storedId = sessionStorage.getItem('belloreIdentityVerificationId') || ''; } catch (e) {}
+      if (!isReturn && !returnedId) return false;
+      identityReturnHandled = true;
+      ['belloreIdentityReturn', 'identityVerificationId', 'identityVerificationTxId', 'transactionType', 'code', 'message', 'pgCode', 'pgMessage'].forEach(function (key) {
+        url.searchParams.delete(key);
+      });
+      history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+      if (returnedCode) {
+        try { sessionStorage.removeItem('belloreIdentityVerificationId'); } catch (e) {}
+        belloreAlert('간편인증을 완료하지 못했습니다. 다시 시도해 주세요.');
+        return true;
+      }
+      var identityId = returnedId || storedId;
+      if (!identityId) {
+        belloreAlert('간편인증 결과를 확인할 수 없습니다. 다시 시도해 주세요.');
+        return true;
+      }
+      B.completeIdentityVerification(identityId)
+        .then(function () {
+          try { sessionStorage.removeItem('belloreIdentityVerificationId'); } catch (e) {}
+          belloreAlert('간편인증이 완료되었습니다.');
+        })
+        .catch(function (err) { belloreAlert(notConfiguredMsg(err)); });
+      return true;
+    }
 
     /* ===== 업체 계좌 인증 ===== */
     var acctModal = null;
@@ -1193,7 +1239,7 @@
       applyMyPageRole(info);
       renderInsight();
       renderCmsBlocks();
-      if (user) window.belloreMaybePromptVerify(lastInfo);
+      if (user && !completeReturnedIdentity()) window.belloreMaybePromptVerify(lastInfo);
     });
   });
 })();
