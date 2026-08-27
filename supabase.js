@@ -1961,6 +1961,7 @@
       customerId: o.customer_id || null,   // null = 비회원(게스트)
       buyerName: o.buyer_name || '',
       buyerPhone: o.buyer_phone || '',
+      fulfillmentMethod: o.fulfillment_method === 'pickup' ? 'pickup' : 'delivery',
       // 배송
       shipRecipient: o.ship_recipient || '',
       shipPhone: o.ship_phone || '',

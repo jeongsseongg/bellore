@@ -20,17 +20,19 @@ async function responsePayload(response) {
 }
 
 function checkoutBody(data, profile) {
+  const pickup = data.fulfillmentMethod === 'pickup';
   return {
     listingId: data.listingId || null,
     couponUserId: data.couponUserId || null,
     buyerName: data.buyerName || profile?.display_name || null,
     buyerPhone: data.buyerPhone || profile?.phone || null,
-    shipRecipient: data.shipRecipient || data.buyerName || null,
-    shipPhone: data.shipPhone || data.buyerPhone || null,
-    shipPostcode: data.shipPostcode || null,
-    shipAddr1: data.shipAddr1 || null,
-    shipAddr2: data.shipAddr2 || null,
-    shipRequest: data.shipRequest || null,
+    fulfillmentMethod: pickup ? 'pickup' : 'delivery',
+    shipRecipient: pickup ? null : (data.shipRecipient || data.buyerName || null),
+    shipPhone: pickup ? null : (data.shipPhone || data.buyerPhone || null),
+    shipPostcode: pickup ? null : (data.shipPostcode || null),
+    shipAddr1: pickup ? null : (data.shipAddr1 || null),
+    shipAddr2: pickup ? null : (data.shipAddr2 || null),
+    shipRequest: pickup ? null : (data.shipRequest || null),
     expectedAmount: data.amount,
     attribution: data.attribution || null,
   };
@@ -114,7 +116,8 @@ export function createCheckoutClient() {
     function accepted(result) {
       return result.response.ok && result.payload.orderNo &&
         result.payload.checkoutRequestKey === result.attempt.requestKey &&
-        result.payload.checkoutToken === result.attempt.checkoutToken;
+        result.payload.checkoutToken === result.attempt.checkoutToken &&
+        result.payload.fulfillmentMethod === body.fulfillmentMethod;
     }
 
     let result = await sendCreate(attempt);
