@@ -313,7 +313,36 @@
         refreshMyOrders(); // 열 때 최신 상태 재조회(취소/변동 즉시 반영)
     }
     function closeOrdersList() {
+        if (document.body && document.body.dataset.belloreStandalonePage === 'orders') {
+            if (history.length > 1) history.back();
+            else window.location.assign('/pages/mypage.html');
+            return;
+        }
         var m = $('#ordersModal'); if (m) { m.hidden = true; document.body.style.overflow = 'hidden'; }
+    }
+    function handleOrdersModalClick(e) {
+        if (e.target.closest('[data-ordclose]')) { closeOrdersList(); return; }
+        var tab = e.target.closest('.orders-tab');
+        if (tab) { openOrdersList(tab.dataset.ofilter || ''); return; }
+        var pay = e.target.closest('[data-opay]');
+        if (pay) {
+            e.stopPropagation();
+            alert('입금 안내\n\n주문번호 ' + pay.dataset.opay + '\n결제/입금은 카카오톡 상담으로 도와드립니다.');
+            window.open('https://open.kakao.com/o/sMuCaAFh', '_blank');
+            return;
+        }
+        var del = e.target.closest('[data-odel]');
+        if (del) {
+            e.stopPropagation();
+            bellConfirm('이 주문을 구매내역에서 삭제할까요?\n(취소·환불 완료된 주문만 숨겨지며, 회계·세금 기록은 보존됩니다.)').then(function (ok) {
+                if (!ok) return;
+                hideOrder(del.dataset.odel);
+                renderOrdersList();
+            });
+            return;
+        }
+        var view = e.target.closest('[data-oview]');
+        if (view) openOrderDetail(view.dataset.oview);
     }
     // 주문 캐시 반영 + 현황/메뉴/목록 갱신 (구독 콜백 & 수동 폴백 공용)
     function applyMyOrders(orders) {
@@ -452,30 +481,7 @@
             });
             // 주문 모달: 탭 전환 · 닫기 · 입금안내
             var om = $('#ordersModal');
-            if (om) om.addEventListener('click', function (e) {
-                if (e.target.closest('[data-ordclose]')) { closeOrdersList(); return; }
-                var tab = e.target.closest('.orders-tab');
-                if (tab) { openOrdersList(tab.dataset.ofilter || ''); return; }
-                var pay = e.target.closest('[data-opay]');
-                if (pay) {
-                    e.stopPropagation();
-                    alert('입금 안내\n\n주문번호 ' + pay.dataset.opay + '\n결제/입금은 카카오톡 상담으로 도와드립니다.');
-                    window.open('https://open.kakao.com/o/sMuCaAFh', '_blank');
-                    return;
-                }
-                var del = e.target.closest('[data-odel]');
-                if (del) {
-                    e.stopPropagation();
-                    bellConfirm('이 주문을 구매내역에서 삭제할까요?\n(취소·환불 완료된 주문만 숨겨지며, 회계·세금 기록은 보존됩니다.)').then(function (ok) {
-                        if (!ok) return;
-                        hideOrder(del.dataset.odel);
-                        renderOrdersList();
-                    });
-                    return;
-                }
-                var view = e.target.closest('[data-oview]');
-                if (view) { openOrderDetail(view.dataset.oview); return; }
-            });
+            if (om) om.addEventListener('click', handleOrdersModalClick);
         }
     }
     function closeMyPage() {
@@ -6709,6 +6715,15 @@
             } catch (e) {}
             if (pid) setTimeout(function () { openProductById(pid); }, 400);
         })();
+    }
+
+    if (document.body && document.body.dataset.belloreStandalonePage === 'orders') {
+        var standaloneOrders = $('#ordersModal');
+        if (standaloneOrders) standaloneOrders.addEventListener('click', handleOrdersModalClick);
+        setTimeout(function () {
+            var status = new URLSearchParams(location.search).get('status') || '';
+            openOrdersList(status);
+        }, 0);
     }
 
 })();
