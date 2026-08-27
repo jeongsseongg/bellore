@@ -162,9 +162,14 @@ Deno.serve(async (req) => {
       }, retry ? 500 : 200);
     }
 
-    const method = payment.method && typeof payment.method === "object"
-      ? safeText((payment.method as JsonRecord).type ?? (payment.method as JsonRecord).provider, 80)
+    const methodObject = payment.method && typeof payment.method === "object"
+      ? payment.method as JsonRecord
       : null;
+    const methodType = safeText(methodObject?.type, 40);
+    const methodProvider = safeText(methodObject?.provider, 40);
+    const method = [methodType, methodProvider]
+      .filter((value, index, values) => value && values.indexOf(value) === index)
+      .join(':') || null;
     const { data: finalized, error: finalizeError } = await admin.rpc("finalize_paid_order_v2", {
       p_order_no: paymentId,
       p_paid_amount: paidAmount,

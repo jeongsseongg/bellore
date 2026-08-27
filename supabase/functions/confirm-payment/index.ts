@@ -225,9 +225,14 @@ Deno.serve(async (req) => {
       }, cancellation.tracked ? 409 : 500);
     }
 
-    const method = payment.method && typeof payment.method === "object"
-      ? safeText((payment.method as JsonRecord).type ?? (payment.method as JsonRecord).provider, 80)
+    const methodObject = payment.method && typeof payment.method === "object"
+      ? payment.method as JsonRecord
       : null;
+    const methodType = safeText(methodObject?.type, 40);
+    const methodProvider = safeText(methodObject?.provider, 40);
+    const method = [methodType, methodProvider]
+      .filter((value, index, values) => value && values.indexOf(value) === index)
+      .join(':') || null;
     const receiptUrl = safeText(payment.receiptUrl, 500);
     const transactionId = safeText(payment.transactionId, 160);
     const { data: finalized, error: finalizeError } = await admin.rpc("finalize_paid_order_v2", {

@@ -20,6 +20,30 @@ verify_jwt = true
 [functions.cancel-payment]
 verify_jwt = true
 
+[functions.verify-identity]
+verify_jwt = true
+
+[functions.sync-email-verification]
+verify_jwt = true
+
+[functions.complete-otp-signup]
+verify_jwt = true
+
+[functions.verify-business]
+verify_jwt = true
+
+[functions.verify-account]
+verify_jwt = true
+
+[functions.admin-manage-verification]
+verify_jwt = true
+
+[functions.admin-member-ops]
+verify_jwt = true
+
+[functions.admin-audit-events]
+verify_jwt = true
+
 # PortOne notifications carry no Supabase user JWT. The handler treats the body
 # only as a hint and re-fetches the payment with the server-side PortOne secret.
 [functions.payment-webhook]
