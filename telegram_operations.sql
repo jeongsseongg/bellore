@@ -350,11 +350,11 @@ begin
     from public.profiles where id = quote_row.customer_id;
 
   if customer_phone is null then
-    select coalesce(customer_phone, ''), coalesce(nullif(customer_name, ''), '고객')
+    select coalesce(s.customer_phone, ''), coalesce(nullif(s.customer_name, ''), '고객')
       into customer_phone, customer_name
-      from public.sell_service_requests
-     where quote_request_id = quote_row.id
-     order by created_at desc
+      from public.sell_service_requests s
+     where s.quote_request_id = quote_row.id
+     order by s.created_at desc
      limit 1;
   end if;
 

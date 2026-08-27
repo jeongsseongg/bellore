@@ -12,6 +12,10 @@ const offerRpc = await readFile(
   'utf8'
 );
 const bootstrap = await readFile(new URL('telegram_operations.sql', root), 'utf8');
+const contactFix = await readFile(
+  new URL('supabase/migrations/20260827170000_qualify_guest_quote_contact.sql', root),
+  'utf8'
+);
 
 assert.match(migration, /drop trigger if exists trg_notify_bid on public\.bids/i,
   'the legacy trigger that writes a NULL notification recipient must be removed');
@@ -26,8 +30,12 @@ assert.match(currentNotification, /exception\s+when others then[\s\S]*raise warn
 for (const source of [offerRpc, bootstrap]) {
   assert.match(source, /if quote_row\.customer_id is not null then[\s\S]*insert into public\.notifications/i,
     'member-only notification rows must not block guest quote offers');
-  assert.match(source, /from public\.sell_service_requests[\s\S]*where quote_request_id = quote_row\.id/i,
+  assert.match(source, /from public\.sell_service_requests(?: s)?[\s\S]*where (?:s\.)?quote_request_id = quote_row\.id/i,
     'guest quote customer delivery must use the sell request contact fallback');
 }
+assert.match(bootstrap, /coalesce\(s\.customer_phone[\s\S]*from public\.sell_service_requests s/i,
+  'bootstrap SQL must qualify guest contact columns against PL/pgSQL variables');
+assert.match(contactFix, /guest_quote_contact_source_mismatch[\s\S]*execute corrected/i,
+  'the applied RPC correction must fail closed when its source contract changes');
 
 console.log('telegram guest quote offer migration checks passed');
