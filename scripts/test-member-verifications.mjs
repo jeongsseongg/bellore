@@ -72,10 +72,11 @@ assert.match(client, /body\.expectedVersion = expectedVersion/);
 assert.doesNotMatch(client, /phone_verified:\s*true/);
 assert.doesNotMatch(client, /provider:\s*['"]naver['"]/, 'unsupported Supabase Naver provider must never be called');
 assert.match(client, /NAVER_LOGIN_NOT_CONFIGURED/);
-assert.match(legacyFeatures, /KG이니시스 통합인증/);
+assert.match(legacyFeatures, /간편인증으로 인증하기/);
 assert.match(legacyFeatures, /B\.verifyIdentityPortone\(\)/);
-assert.match(legacyFeatures, /휴대폰 번호 인증/);
-assert.match(legacyFeatures, /verifyIdentityPortone\(\{ agency: 'SMS' \}\)/);
+assert.match(legacyFeatures, /id="vfPhoneNumber"/);
+assert.match(legacyFeatures, /문자 인증번호 받기[\s\S]*간편인증으로 인증하기/);
+assert.match(legacyFeatures, /verifyIdentityPortone\(\{ agency: 'SMS', phone: phone \}\)/);
 assert.match(legacyFeatures, /completeReturnedIdentity/);
 
 assert.match(config, /\[functions\.verify-identity\]\s+verify_jwt = false/);
@@ -151,9 +152,10 @@ const service = createMemberVerificationService({
   getVerifyConfig: () => ({ phone: { channelKey: 'channel-live' } }),
   getPaymentConfig: () => ({ storeId: 'store-live' }),
 });
-await service.verifyIdentity({ agency: 'SMS' });
+await service.verifyIdentity({ agency: 'SMS', phone: '010-1234-5678' });
 assert.equal(identityCalls[0].request.bypass.inicisUnified.directAgency, 'SMS');
 assert.equal(identityCalls[0].request.bypass.inicisUnified.flgFixedUser, 'N');
+assert.deepEqual(identityCalls[0].request.customer, { phoneNumber: '01012345678' });
 assert.deepEqual(identityCalls[1], { name: 'verify-identity', body: { identityVerificationId: 'idv_provider_response' } });
 const kftcUrl = pathToFileURL(path.join(root, 'supabase', 'functions', '_shared', 'kftc-account-provider.mjs')).href;
 const kftc = await import(kftcUrl);

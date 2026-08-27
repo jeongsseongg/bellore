@@ -495,6 +495,21 @@
         document.body.classList.remove('mypage-open');
         closeMpSub();
     }
+
+    function openWishlistFromMyPage(view) {
+        var target = view === 'cart' || view === 'recent' ? view : 'wish';
+        if (document.body && document.body.dataset.belloreStandalonePage === 'mypage') {
+            try { sessionStorage.setItem('bellore_pending_wishlist_tab', target); } catch (e) {}
+            window.location.assign('/#wishlist');
+            return;
+        }
+        closeMyPage();
+        location.hash = '#wishlist';
+        setTimeout(function () {
+            var tab = document.querySelector('.wish-tab[data-wishtab="' + target + '"]');
+            if (tab) tab.click();
+        }, 80);
+    }
     window.BELLORE_openMyPage = openMyPage;
 
     // 마이페이지 서브페이지(쿠폰·소식시계 등): 스크롤 대신 해당 화면으로 전환
@@ -616,22 +631,12 @@
                     if (act === 'sales') { openMpSub('partnerBox'); return; }
                     if (act === 'point') { openMpSub('myPointSection'); return; }
                     if (act === 'interest' || act === 'recent') {
-                        closeMyPage();
-                        location.hash = '#wishlist';
-                        setTimeout(function () {
-                            var wt = document.querySelector('.wish-tab[data-wishtab="' + (act === 'recent' ? 'recent' : 'wish') + '"]');
-                            if (wt) wt.click();
-                        }, 80);
+                        openWishlistFromMyPage(act === 'recent' ? 'recent' : 'wish');
                         return;
                     }
                     if (act === 'coupon') { openMpSub('myCouponSection'); return; }
                     if (act === 'cart') {
-                        closeMyPage();
-                        location.hash = '#wishlist';
-                        setTimeout(function () {
-                            var ct = document.querySelector('.wish-tab[data-wishtab="cart"]');
-                            if (ct) ct.click();
-                        }, 80);
+                        openWishlistFromMyPage('cart');
                         return;
                     }
                     if (act === 'profile') {
@@ -643,12 +648,7 @@
                 }
                 // 장바구니 전체보기 → 찜/장바구니 페이지 장바구니 탭
                 if (e.target.closest('[data-myact="cart"]')) {
-                    closeMyPage();
-                    location.hash = '#wishlist';
-                    setTimeout(function () {
-                        var t = document.querySelector('.wish-tab[data-wishtab="cart"]');
-                        if (t) t.click();
-                    }, 80);
+                    openWishlistFromMyPage('cart');
                     return;
                 }
                 // 장바구니/최근 본 상품 미니카드 → 상세 열기

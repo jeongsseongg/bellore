@@ -34,7 +34,7 @@ import { initMypageSettings } from './features/mypage-settings/mypage-settings.j
 import { initSellServicePages } from './features/sell-method/sell-service-pages.js?v=20260826-sell-guest-access-v1';
 import { installSellRequestAccess } from './services/sell/sell-request-access.js?v=20260826-sell-guest-access-v1';
 import { installLegacyMemberVerificationUi } from './legacy/member-verification-ui.js?v=20260826-member-verification-live-v2';
-import { installLegacyMemberVerificationService } from './legacy/member-verification-service.js?v=20260826-member-verification-live-v2';
+import { installLegacyMemberVerificationService } from './legacy/member-verification-service.js?v=20260827-mypage-contracts-v1';
 
 installLegacyMemberVerificationUi({ window, document });
 installLegacyMemberVerificationService({ window });
@@ -121,6 +121,13 @@ function bootstrap() {
     document,
     service: createLegacyMypageSettingsAdapter({ window })
   });
+  try {
+    const pendingWishlistTab = window.sessionStorage.getItem('bellore_pending_wishlist_tab');
+    if (['wish', 'cart', 'recent'].includes(pendingWishlistTab)) {
+      window.sessionStorage.removeItem('bellore_pending_wishlist_tab');
+      window.setTimeout(() => document.querySelector(`.wish-tab[data-wishtab="${pendingWishlistTab}"]`)?.click(), 0);
+    }
+  } catch { /* storage unavailable */ }
 }
 
 if (document.readyState === 'loading') {

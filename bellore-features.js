@@ -995,24 +995,27 @@
       if (!phoneModal) phoneModal = makeModal('phoneVerifyModal', 'IDENTITY', '본인인증');
       var box = phoneModal.querySelector('.modal-body');
       box.innerHTML =
-        '<div class="vf-method"><div class="vf-method-head"><strong>휴대폰 번호 인증</strong><span class="vf-provider">문자 인증번호</span></div>' +
-        '<p class="vf-desc">통신사와 휴대폰 번호를 입력하고 문자 인증번호로 본인을 확인합니다.</p>' +
-        '<button type="button" class="vf-confirm" id="vfSmsIdentity">휴대폰 인증 시작</button></div>' +
-        '<div class="vf-method"><div class="vf-method-head"><strong>간편인증</strong><span class="vf-provider">KG이니시스 통합인증</span></div>' +
-        '<p class="vf-desc">본인 명의 휴대폰으로 인증하면 명의와 휴대폰 번호를 함께 확인합니다.</p>' +
-        '<button type="button" class="vf-confirm" id="vfIdentity">본인인증 시작</button>' +
-        '<p class="vf-note">통신사 PASS·카카오·네이버 등 제공되는 간편인증 수단을 선택할 수 있습니다.</p></div>' +
+        '<div class="vf-phone-flow">' +
+        '<label class="vf-field" for="vfPhoneNumber"><span>휴대폰 번호</span>' +
+        '<input type="tel" id="vfPhoneNumber" inputmode="numeric" autocomplete="tel" maxlength="13" placeholder="01012345678"></label>' +
+        '<p class="vf-desc">본인 명의 휴대폰 번호를 입력하고 문자 인증을 진행해 주세요.</p>' +
+        '<button type="button" class="vf-confirm" id="vfSmsIdentity">문자 인증번호 받기</button>' +
+        '<div class="vf-alternative"><span>다른 방법이 필요하신가요?</span>' +
+        '<button type="button" id="vfIdentity">간편인증으로 인증하기</button></div>' +
+        '<p class="vf-note">간편인증에서는 PASS·카카오·네이버 등 제공되는 수단을 선택할 수 있습니다.</p></div>' +
         '<p class="vf-msg" id="vfMsg"></p>';
       var msg = box.querySelector('#vfMsg');
       function setMsg(t, ok) { msg.textContent = t || ''; msg.className = 'vf-msg' + (ok ? ' ok' : t ? ' err' : ''); }
       box.querySelector('#vfSmsIdentity').addEventListener('click', function () {
+        var phone = String(box.querySelector('#vfPhoneNumber').value || '').replace(/\D/g, '');
+        if (!/^010\d{8}$/.test(phone)) { setMsg('휴대폰 번호 11자리를 확인해 주세요.'); return; }
         var btn = this; btn.disabled = true; btn.textContent = '발송 중…';
-        B.verifyIdentityPortone({ agency: 'SMS' })
+        B.verifyIdentityPortone({ agency: 'SMS', phone: phone })
           .then(function () {
             setMsg('휴대폰 번호 인증이 완료되었습니다.', true);
             setTimeout(function () { closeModal(phoneModal); if (opts.onDone) opts.onDone(); }, 700);
           })
-          .catch(function (err) { btn.disabled = false; btn.textContent = '휴대폰 인증 시작'; setMsg(notConfiguredMsg(err)); });
+          .catch(function (err) { btn.disabled = false; btn.textContent = '문자 인증번호 받기'; setMsg(notConfiguredMsg(err)); });
       });
       box.querySelector('#vfIdentity').addEventListener('click', function () {
         var btn = this; btn.disabled = true; btn.textContent = '인증 중…';
@@ -1021,7 +1024,7 @@
             setMsg('인증이 완료되었습니다.', true);
             setTimeout(function () { closeModal(phoneModal); if (opts.onDone) opts.onDone(); }, 700);
           })
-          .catch(function (err) { btn.disabled = false; btn.textContent = '본인인증 시작'; setMsg(notConfiguredMsg(err)); });
+          .catch(function (err) { btn.disabled = false; btn.textContent = '간편인증으로 인증하기'; setMsg(notConfiguredMsg(err)); });
       });
       openModal(phoneModal);
     };

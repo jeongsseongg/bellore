@@ -12,11 +12,11 @@ const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
 const bootstrap = fs.readFileSync(path.join(root, 'app', 'bootstrap.js'), 'utf8');
 const releaseKey = '20260826-member-verification-live-v2';
 const sellReleaseKey = '20260826-naverpay-live-v1';
-const bootstrapReleaseKey = '20260827-sell-request-persistence-v1';
-const authPageReleaseKey = '20260826-auth-page-v1';
+const bootstrapReleaseKey = '20260827-mypage-contracts-v1';
+const authPageReleaseKey = '20260827-mypage-contracts-v1';
 const signupStyleKey = '20260827-signup-role-v1';
 const signupScriptKey = '20260827-signup-flow-v2';
-const signupIdentityKey = '20260827-signup-identity-v1';
+const signupIdentityKey = '20260827-mypage-contracts-v1';
 const shellStyleKey = '20260826-auth-shell-v1';
 const loginStyleUrl = loginHtml.match(/href="(app\/features\/auth-login\/auth-login\.css\?v=[^"]+)"/)?.[1];
 const loginScriptUrl = loginHtml.match(/src="(app\/features\/auth-login\/auth-login\.js\?v=[^"]+)"/)?.[1];
@@ -62,7 +62,7 @@ assert(loginStyleUrl && serviceWorker.includes(`'./${loginStyleUrl}'`), 'service
 assert(loginScriptUrl && serviceWorker.includes(`'./${loginScriptUrl}'`), 'service worker must precache the exact login page behavior');
 assert(serviceWorker.includes(`'./app/features/auth-signup/auth-signup.css?v=${signupStyleKey}'`), 'service worker must precache signup page styles');
 assert(serviceWorker.includes(`'./app/features/auth-signup/auth-signup.js?v=${signupScriptKey}'`), 'service worker must precache signup page behavior');
-assert(serviceWorker.includes(`'./supabase.js?v=${signupIdentityKey}'`), 'service worker must precache the signup verification backend with the release key');
+assert(serviceWorker.includes("'./supabase.js?v=20260827-signup-identity-v1'"), 'service worker must precache the unchanged signup verification backend with its release key');
 assert(serviceWorker.includes("'./assets/icons/favicon-32.png'"), 'service worker must precache the favicon used by standalone pages');
 for (const heroAsset of ['home-banners.js', 'home-banner-data.js']) {
   assert(serviceWorker.includes(`./app/features/home-banners/${heroAsset}?v=20260826-hero-layout-v7`), `service worker must precache exact restored hero asset: ${heroAsset}`);

@@ -21,15 +21,22 @@ for (const id of ['mpProfile', 'mpMenuList', 'myInterestSection', 'myRecentSecti
 }
 assert.match(page, /type=["']module["'][^>]*app\/pages\/standalone-page\.js/i,
   'the page must use one module entry instead of duplicating legacy script tags');
-assert.match(runtime, /BELLORE_openMyPage[\s\S]*page === 'mypage'/);
-assert.match(runtime, /document\.readyState === 'loading'[\s\S]*openStandalonePage\(\)/,
-  'dynamically loaded standalone pages must open after or before DOMContentLoaded');
+assert.match(runtime, /page === 'mypage'[\s\S]*BELLORE_openMyPage/);
+for (const id of ['settingsPage', 'profilePage', 'notiPage', 'termsModal', 'privacyModal', 'refundModal', 'guideModal', 'bizInfoModal']) {
+  assert.match(runtime, new RegExp(`['"]${id}['"]`), `${id} must be hydrated before legacy handlers bind`);
+}
+assert.match(runtime, /hydrateMypageSupport\(\)[\s\S]*loadClassicScript[\s\S]*import\('\/app\/bootstrap\.js/,
+  'standalone mypage must restore the same support shell and module composition before opening');
+assert.match(runtime, /waitForLegacyOpen\('BELLORE_openMyPage'\)/,
+  'standalone mypage must wait for late legacy initialization instead of racing it');
 assert.match(legacy, /else \{\s*setTimeout\(init, 0\);\s*\}/,
   'late-loaded legacy initialization must wait until the script has finished defining its router');
 assert.match(legacy, /window\.location\.assign\('\/pages\/mypage\.html'\)/,
   'the existing mypage entry point must deep-link to the standalone page');
 assert.match(legacy, /belloreStandalonePage === 'mypage'[\s\S]*history\.back\(\)/,
   'standalone close must preserve browser back navigation');
+assert.match(legacy, /bellore_pending_wishlist_tab[\s\S]*window\.location\.assign\('\/#wishlist'\)/,
+  'standalone interest, recent, and cart actions must resume on the catalog shell');
 assert.match(sw, /app\/pages\/standalone-page\.js/);
 assert.match(build, /discoverPageHtmlFiles\(ROOT\)/);
 

@@ -101,11 +101,13 @@ export function createMemberVerificationService({ getClient, getPortOne, getVeri
     const identityVerificationId = `idv_${randomId}`;
     try { globalThis.sessionStorage?.setItem('belloreIdentityVerificationId', identityVerificationId); } catch { /* storage unavailable */ }
     const agency = options?.agency === 'SMS' ? 'SMS' : null;
+    const phoneNumber = String(options?.phone || '').replace(/\D/g, '');
     const response = await portOne.requestIdentityVerification({
       storeId: payment.storeId,
       identityVerificationId,
       channelKey: verify.channelKey,
       redirectUrl: identityReturnUrl(),
+      ...(phoneNumber ? { customer: { phoneNumber } } : {}),
       bypass: {
         inicisUnified: {
           flgFixedUser: 'N',

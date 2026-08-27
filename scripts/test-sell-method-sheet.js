@@ -120,7 +120,7 @@ assert.match(
   /installSellRequestAccess\(\{[\s\S]*?backend:\s*window\.NWBackend,[\s\S]*?getClient:\s*\(\)\s*=>\s*window\.sbClient,[\s\S]*?window,[\s\S]*?\}\);/,
   'the sell request client receives the live backend and Supabase client instead of silently skipping installation'
 );
-assert.match(html, /app\/bootstrap\.js\?v=20260827-sell-request-persistence-v1/, 'the repaired bootstrap bypasses the previous browser cache key');
+assert.match(html, /app\/bootstrap\.js\?v=20260827-mypage-contracts-v1/, 'the repaired bootstrap uses the current browser cache key');
 assert.match(guestEdge, /validatePortOneIdentity/, 'the Edge Function validates the provider response server-side');
 assert.match(guestEdge, /token_kind", "link"/, 'security links are exchanged through a one-time link token');
 assert.match(guestMigration, /revoke all on table public\.sell_service_requests from anon, authenticated/i, 'guest records have no direct Data API access');
