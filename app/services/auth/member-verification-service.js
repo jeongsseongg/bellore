@@ -15,6 +15,7 @@ export function createMemberVerificationService({ getClient, getPortOne, getVeri
       const code = payload?.code || response.error.code || response.error.message || 'VERIFICATION_FAILED';
       const error = new Error(code);
       error.code = code;
+      error.traceId = payload?.traceId || null;
       throw error;
     }
     if (!response.data?.ok) throw new Error(response.data?.code || 'VERIFICATION_FAILED');
@@ -100,18 +101,27 @@ export function createMemberVerificationService({ getClient, getPortOne, getVeri
       : `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
     const identityVerificationId = `idv_${randomId}`;
     try { globalThis.sessionStorage?.setItem('belloreIdentityVerificationId', identityVerificationId); } catch { /* storage unavailable */ }
-    const agency = options?.agency === 'SMS' ? 'SMS' : null;
     const phoneNumber = String(options?.phone || '').replace(/\D/g, '');
+    const name = String(options?.name || '').trim();
+    const birthDate = String(options?.birthDate || '').replace(/\D/g, '');
+    if (!/^01\d{8,9}$/.test(phoneNumber)) throw new Error('BAD_PHONE');
+    if (!name) throw new Error('NAME_REQUIRED');
+    if (!/^\d{8}$/.test(birthDate)) throw new Error('BIRTH_DATE_REQUIRED');
     const response = await portOne.requestIdentityVerification({
       storeId: payment.storeId,
       identityVerificationId,
       channelKey: verify.channelKey,
       redirectUrl: identityReturnUrl(),
-      ...(phoneNumber ? { customer: { phoneNumber } } : {}),
+      customer: {
+        name,
+        phoneNumber,
+        birthYear: birthDate.slice(0, 4),
+        birthMonth: birthDate.slice(4, 6),
+        birthDay: birthDate.slice(6, 8),
+      },
       bypass: {
         inicisUnified: {
-          flgFixedUser: 'N',
-          ...(agency ? { directAgency: agency } : {}),
+          flgFixedUser: 'Y',
         },
       },
     });
@@ -123,6 +133,22 @@ export function createMemberVerificationService({ getClient, getPortOne, getVeri
     const completedId = response?.identityVerificationId || identityVerificationId;
     const result = await completeIdentityVerification(completedId);
     try { globalThis.sessionStorage?.removeItem('belloreIdentityVerificationId'); } catch { /* storage unavailable */ }
+    return result;
+  }
+
+  async function sendPhoneOtp(phone) {
+    return invoke('send-phone-otp', { phone: String(phone || '').replace(/\D/g, '') });
+  }
+
+  async function verifyPhoneOtp({ phone, code, challenge }) {
+    const result = await invoke('verify-phone-otp', {
+      phone: String(phone || '').replace(/\D/g, ''),
+      code: String(code || '').replace(/\D/g, ''),
+      challenge: String(challenge || '').trim(),
+    });
+    if (result?.signupTicket) {
+      try { globalThis.sessionStorage?.setItem('belloreSignupPhoneTicket', result.signupTicket); } catch { /* storage unavailable */ }
+    }
     return result;
   }
 
@@ -154,6 +180,8 @@ export function createMemberVerificationService({ getClient, getPortOne, getVeri
     verifyEmailOtp,
     verifyIdentity,
     completeIdentityVerification,
+    sendPhoneOtp,
+    verifyPhoneOtp,
     verifyAccount,
     verifyBusiness,
     setAdminStatus,

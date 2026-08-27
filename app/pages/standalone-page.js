@@ -5,8 +5,8 @@ import {
 
 const authDependencies = [
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
-  '/supabase-config.js?v=20260826-naverpay-live-v2',
-  '/supabase.js?v=20260827-signup-identity-v1',
+  '/supabase-config.js?v=20260828-phone-auth-paths-v1',
+  '/supabase.js?v=20260828-phone-auth-paths-v1',
 ];
 
 const pageDependencies = [
@@ -14,7 +14,7 @@ const pageDependencies = [
   '/analytics-core.js?v=20260810-analytics-v3',
   '/analytics-client.js?v=20260826-ai-consent-v1',
   '/brands.js',
-  '/bellore-features.js?v=20260827-mypage-contracts-v1',
+  '/bellore-features.js?v=20260828-phone-auth-paths-v1',
   '/cq-demo.js?v=20260826-member-verification-live-v2',
   '/script.js?v=20260827-mypage-contracts-v1',
   '/app/legacy/recommendation-engine.js?v=20260826-member-verification-live-v2',
@@ -82,7 +82,7 @@ if (authResult.allowed) {
   document.body.dataset.standaloneAuthReady = 'true';
   await hydrateMypageSupport();
   for (const dependency of pageDependencies) await loadClassicScript(dependency);
-  await import('/app/bootstrap.js?v=20260827-mypage-contracts-v1');
+  await import('/app/bootstrap.js?v=20260828-phone-auth-paths-v1');
 }
 
 async function waitForLegacyOpen(name, timeoutMs = 5000) {

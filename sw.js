@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v360-mypage-clean-routes-design";
+const VERSION = "bellore-v361-phone-auth-two-paths";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -26,12 +26,12 @@ const SHELL_ASSETS = [
   './payments.js?v=20260826-member-verification-live-v2',
   './naverpay.js?v=20260826-naverpay-live-v1',
   './ui-dialog.js?v=20260826-member-verification-live-v2',
-  './supabase-config.js?v=20260826-naverpay-live-v2',
+  './supabase-config.js?v=20260828-phone-auth-paths-v1',
   './analytics-core.js?v=20260810-analytics-v3',
   './analytics-client.js?v=20260826-ai-consent-v1',
   './brands.js',
-  './supabase.js?v=20260827-signup-identity-v1',
-  './bellore-features.js?v=20260827-mypage-contracts-v1',
+  './supabase.js?v=20260828-phone-auth-paths-v1',
+  './bellore-features.js?v=20260828-phone-auth-paths-v1',
   './cq-demo.js?v=20260826-member-verification-live-v2',
   './wishlist.js?v=20260826-member-verification-live-v2',
   './alerts.js?v=20260820-tabs-alerts-v1',
@@ -39,7 +39,7 @@ const SHELL_ASSETS = [
   './search.js?v=20260826-member-verification-live-v2',
   './ai-advisor.js?v=20260826-member-verification-live-v2',
   './ai-advisor-admin.js?v=20260826-member-verification-live-v2',
-  './app/bootstrap.js?v=20260827-mypage-contracts-v1',
+  './app/bootstrap.js?v=20260828-phone-auth-paths-v1',
   './app/pages/standalone-auth-gate.mjs?v=20260828-standalone-auth-v1',
   './app/pages/standalone-page.css?v=20260828-clean-routes-v2',
   './app/pages/standalone-page.js?v=20260828-mypage-contracts-auth-v1',
@@ -50,8 +50,8 @@ const SHELL_ASSETS = [
   './app/features/auth-login/auth-login.css?v=20260827-auth-page-v3',
   './app/features/auth-login/auth-login.js?v=20260828-return-to-v1',
   './app/services/auth/auth-login-backend.js',
-  './app/features/auth-signup/auth-signup.css?v=20260827-signup-role-v1',
-  './app/features/auth-signup/auth-signup.js?v=20260827-signup-flow-v2',
+  './app/features/auth-signup/auth-signup.css?v=20260828-phone-auth-paths-v1',
+  './app/features/auth-signup/auth-signup.js?v=20260828-phone-auth-paths-v1',
   './app/services/auth/auth-signup-backend.js',
   './app/features/analytics-consent/analytics-consent.css?v=20260826-ai-consent-v1',
   './app/features/checkout/checkout-addresses.css?v=20260826-shipping-address-popup-v2',
@@ -86,7 +86,7 @@ const SHELL_ASSETS = [
   './app/legacy/home-merchandising-grid.js',
   './app/legacy/mypage-settings-adapter.js?v=20260826-mypage-live-v1',
   './app/legacy/member-verification-ui.js?v=20260826-member-verification-live-v2',
-  './app/legacy/member-verification-service.js?v=20260827-mypage-contracts-v1',
+  './app/legacy/member-verification-service.js?v=20260828-phone-auth-paths-v1',
   './app/legacy/customer-feedback.js?v=20260826-member-verification-live-v2',
   './app/legacy/checkout-coupon.js',
   './app/legacy/payment-auth.js',

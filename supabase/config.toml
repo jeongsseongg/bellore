@@ -23,6 +23,12 @@ verify_jwt = true
 [functions.verify-identity]
 verify_jwt = false
 
+[functions.send-phone-otp]
+verify_jwt = false
+
+[functions.verify-phone-otp]
+verify_jwt = false
+
 [functions.sync-email-verification]
 verify_jwt = true
 

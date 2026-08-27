@@ -1,4 +1,4 @@
-import { createMemberVerificationService } from '../services/auth/member-verification-service.js?v=20260827-mypage-contracts-v1';
+import { createMemberVerificationService } from '../services/auth/member-verification-service.js?v=20260828-phone-auth-paths-v1';
 
 export function installLegacyMemberVerificationService({ window }) {
   Object.defineProperty(window, 'BelloreMemberVerificationService', {

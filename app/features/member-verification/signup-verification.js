@@ -6,7 +6,7 @@ export function createSignupVerification({ document, form, backend, config }) {
     account: { ok: false, real: false, nc: false },
   };
   const fieldKind = {
-    suPhone: 'phone', suEmail: 'email', suCompany: 'biz', suBizNo: 'biz',
+    suName: 'phone', suPhone: 'phone', suBirthDate: 'phone', suEmail: 'email', suCompany: 'biz', suBizNo: 'biz',
     suCeo: 'biz', suBizOpen: 'biz', suBank: 'account', suAccount: 'account', suHolder: 'account',
   };
   const softMessage = '준비 중 — 입력만으로 가입 진행됩니다.';
@@ -58,6 +58,8 @@ export function createSignupVerification({ document, form, backend, config }) {
     });
   });
   syncEmailValue();
+  const smsBlock = form.querySelector('[data-phone-sms]');
+  if (smsBlock) smsBlock.hidden = config.phone?.smsEnabled !== true;
 
   function requireEmailSession(kind, done) {
     if (backend.currentUser && backend.currentUser()) return true;
@@ -71,14 +73,36 @@ export function createSignupVerification({ document, form, backend, config }) {
     button.disabled = true;
     const done = () => { button.disabled = false; };
 
+    if (kind === 'phoneOtp') {
+      const phone = String(data.get('phone') || '').replace(/\D/g, '');
+      if (!/^010\d{8}$/.test(phone)) { setState('phone', 'err', '휴대폰 번호 11자리를 확인해 주세요.'); done(); return; }
+      if (config.phone?.smsEnabled !== true || !backend.sendPhoneOtp) {
+        setState('phone', 'err', '문자 인증은 현재 준비 중입니다. 간편인증을 이용해 주세요.'); done(); return;
+      }
+      setState('phone', '', '문자로 인증번호를 보내고 있습니다…');
+      backend.sendPhoneOtp(phone)
+        .then((result) => {
+          state.phone = { ok: false, real: false, nc: false, sent: true, challenge: result.challenge || '', ticket: '' };
+          showCode('phone', true);
+          setState('phone', '', '문자로 받은 6자리 인증번호를 입력해 주세요.');
+        })
+        .catch((error) => setState('phone', 'err', customerMessage(error, 'identity', '문자 인증번호를 보내지 못했습니다.')))
+        .then(done);
+      return;
+    }
+
     if (kind === 'phone') {
       const phone = String(data.get('phone') || '').replace(/\D/g, '');
-      if (phone.length < 10) { setState(kind, 'err', '휴대폰 번호를 정확히 입력해주세요.'); done(); return; }
+      const name = String(data.get('name') || '').trim();
+      const birthDate = String(data.get('birthDate') || '').replace(/\D/g, '');
+      if (!/^010\d{8}$/.test(phone)) { setState(kind, 'err', '휴대폰 번호 11자리를 확인해 주세요.'); done(); return; }
+      if (!name) { setState(kind, 'err', '이름을 입력해 주세요.'); done(); return; }
+      if (!/^\d{8}$/.test(birthDate)) { setState(kind, 'err', '생년월일 8자리를 입력해 주세요.'); done(); return; }
       if (!isLive(kind) || !backend.verifyIdentityPortone) {
         state.phone = { ok: true, real: false, nc: true }; setState(kind, 'ok', softMessage); done(); return;
       }
       setState(kind, '', '본인인증 진행 중…');
-      backend.verifyIdentityPortone({ phone })
+      backend.verifyIdentityPortone({ phone, name, birthDate })
         .then((result) => {
           const verifiedPhone = displayPhone(result?.phone);
           const input = document.getElementById('suPhone');
@@ -143,8 +167,27 @@ export function createSignupVerification({ document, form, backend, config }) {
   }
 
   function confirm(kind, button) {
-    if (kind !== 'email') return;
     const data = new FormData(form);
+    if (kind === 'phoneOtp') {
+      const phone = String(data.get('phone') || '').replace(/\D/g, '');
+      const code = String(document.getElementById('suPhoneCode')?.value || '').replace(/\D/g, '');
+      if (!/^\d{6}$/.test(code)) { setState('phone', 'err', '문자로 받은 6자리 인증번호를 입력해 주세요.'); return; }
+      if (!state.phone.challenge || !backend.verifyPhoneOtp) { setState('phone', 'err', '인증번호를 다시 받아 주세요.'); return; }
+      button.disabled = true;
+      setState('phone', '', '인증번호 확인 중…');
+      backend.verifyPhoneOtp({ phone, code, challenge: state.phone.challenge })
+        .then((result) => {
+          const input = document.getElementById('suPhone');
+          if (result?.phone && input) input.value = displayPhone(result.phone);
+          state.phone = { ok: true, real: true, nc: false, sent: true, challenge: '', ticket: result?.signupTicket || '' };
+          showCode('phone', false);
+          setState('phone', 'ok', '✓ 문자 휴대폰 인증 완료');
+        })
+        .catch((error) => setState('phone', 'err', customerMessage(error, 'identity', '인증번호가 올바르지 않거나 만료되었습니다.')))
+        .then(() => { button.disabled = false; });
+      return;
+    }
+    if (kind !== 'email') return;
     const email = String(data.get('email') || '').trim();
     const code = String(document.getElementById('suEmailCode')?.value || '').trim();
     if (!code) { setState(kind, 'err', '인증번호를 입력해주세요.'); return; }

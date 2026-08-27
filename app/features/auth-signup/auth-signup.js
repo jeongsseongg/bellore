@@ -13,7 +13,7 @@ const heading = document.getElementById('signupTitle');
 let checkedUsername = '';
 const SIGNUP_DRAFT_KEY = 'bellore.signup.draft.v1';
 const DRAFT_FIELDS = [
-  'suName', 'suUsername', 'suEmail', 'signupPostcode', 'signupAddr1', 'signupAddr2',
+  'suName', 'suBirthDate', 'suUsername', 'suEmail', 'signupPostcode', 'signupAddr1', 'signupAddr2',
   'suPhone', 'suCompany', 'suBizNo', 'suCeo', 'suBizOpen',
 ];
 let currentStep = 1;

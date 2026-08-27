@@ -579,8 +579,8 @@
     return '+' + d;
   }
   Backend.normalizePhone = toE164;
-  Backend.sendPhoneOtp = function () { return Backend.verifyIdentityPortone({ agency: 'SMS' }); };
-  Backend.verifyPhoneOtp = function () { return Promise.reject(new Error('PHONE_OTP_HANDLED_BY_PROVIDER')); };
+  Backend.sendPhoneOtp = function (phone) { return verificationService().sendPhoneOtp(phone); };
+  Backend.verifyPhoneOtp = function (data) { return verificationService().verifyPhoneOtp(data); };
 
   /* ---------------- 업체 계좌 인증 ---------------- */
   // 통장사본 업로드 + 계좌정보 저장(관리자 승인 대기 상태)

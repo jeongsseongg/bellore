@@ -29,6 +29,7 @@ button { cursor: pointer; }
 .field input:focus, .verification input:focus { border-color: #27735d; box-shadow: 0 0 0 2px rgba(39,115,93,.1); }
 .field-action, .verification-action, .verification-code { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
 .field-action button, .verification button { min-height: 50px; padding: 0 16px; border: 1px solid #183029; border-radius: 10px; background: #fff; color: #183029; font-weight: 750; }
+.verification-action > button:only-child { grid-column: 1 / -1; width: 100%; }
 .field small, .vrow-state { min-height: 18px; color: #6e7471; }
 .field small.err, .vrow-state.err { color: #b3261e; }
 .field small.ok, .vrow-state.ok { color: #187253; }

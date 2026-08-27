@@ -32,7 +32,7 @@ function eventTarget() {
   assert(bootstrapUrl, 'bootstrap URL has a release cache key');
   assert(serviceWorkerUrl, 'service worker registration has a release cache key');
   const releaseKey = (url) => url.match(/[?&]v=([^&]+)/)?.[1];
-  assert.equal(releaseKey(bootstrapUrl), '20260827-mypage-contracts-v1', 'bootstrap uses the latest page-contract release key');
+  assert.equal(releaseKey(bootstrapUrl), '20260828-phone-auth-paths-v1', 'bootstrap uses the latest authentication release key');
   assert.equal(releaseKey(scriptUrl), '20260827-mypage-contracts-v1', 'legacy script uses the latest page-contract release key');
   assert.equal(releaseKey(serviceWorkerUrl), '20260826-auth-shell-v1', 'service worker registration uses the latest auth shell release key');
   assert(serviceWorker.includes(`'./${scriptUrl}'`), 'service worker precaches the exact script URL');

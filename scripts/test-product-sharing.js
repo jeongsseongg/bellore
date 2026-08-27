@@ -154,7 +154,7 @@ function fakeEventTarget() {
   }
   for (const [asset, releaseKey] of [
     ['script.js', '20260827-mypage-contracts-v1'],
-    ['app/bootstrap.js', '20260827-mypage-contracts-v1'],
+    ['app/bootstrap.js', '20260828-phone-auth-paths-v1'],
     ['sw.js', '20260826-auth-shell-v1'],
     ['wishlist.js', '20260826-member-verification-live-v2'],
     ['search.js', '20260826-member-verification-live-v2'],

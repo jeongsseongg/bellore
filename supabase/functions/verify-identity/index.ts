@@ -15,6 +15,7 @@ const ALLOW_TEST_IDENTITY = Deno.env.get("ALLOW_TEST_IDENTITY") === "true";
 type JsonRecord = Record<string, unknown>;
 
 Deno.serve(async (req) => {
+  const traceId = crypto.randomUUID();
   if (req.method === "OPTIONS") {
     if (rejectDisallowedOrigin(req)) return new Response(null, { status: 403 });
     return new Response("ok", { headers: corsHeaders(req) });
@@ -49,17 +50,45 @@ Deno.serve(async (req) => {
       headers: { Authorization: `PortOne ${PORTONE_API_SECRET}` },
     });
     const verification = await providerResponse.json().catch(() => null) as JsonRecord | null;
-    if (!providerResponse.ok || !verification) throw new Error("PROVIDER_LOOKUP_FAILED");
-    const checked = validatePortOneIdentity(verification, {
-      storeId: PORTONE_STORE_ID,
-      channelKey: PORTONE_IDENTITY_CHANNEL_KEY,
-      allowTest: ALLOW_TEST_IDENTITY,
-    });
+    if (!providerResponse.ok || !verification) {
+      const providerCode = safeText(verification?.code, 80) ?? safeText(verification?.type, 80) ?? "PROVIDER_LOOKUP_FAILED";
+      console.error(JSON.stringify({ event: "identity_verification_failed", traceId, code: "PROVIDER_LOOKUP_FAILED",
+        providerStatus: providerResponse.status, providerCode }));
+      return jsonResponse(req, { ok: false, code: "PROVIDER_LOOKUP_FAILED", traceId }, 502);
+    }
+    const actualChannel = verification.channel && typeof verification.channel === "object" && !Array.isArray(verification.channel)
+      ? verification.channel as JsonRecord
+      : null;
+    const diagnostics = {
+      expectedStoreId: PORTONE_STORE_ID,
+      actualStoreId: safeText(verification.storeId, 120),
+      expectedChannelKey: PORTONE_IDENTITY_CHANNEL_KEY,
+      actualChannelKey: safeText(actualChannel?.key, 120),
+      actualChannelType: safeText(actualChannel?.type, 20),
+      providerStatus: safeText(verification.status, 40),
+    };
+    let checked;
+    try {
+      checked = validatePortOneIdentity(verification, {
+        storeId: PORTONE_STORE_ID,
+        channelKey: PORTONE_IDENTITY_CHANNEL_KEY,
+        allowTest: ALLOW_TEST_IDENTITY,
+      });
+    } catch (validationError) {
+      const code = safeText((validationError as Error)?.message, 80) ?? "PROVIDER_VALIDATION_FAILED";
+      console.error(JSON.stringify({ event: "identity_verification_failed", traceId, code, ...diagnostics }));
+      if (user) {
+        await recordVerificationEvent(admin, { userId: user.id, method: "phone", status: "error",
+          provider: "portone_inicis_unified", providerReferenceHash: referenceHash, reasonCode: code });
+      }
+      return jsonResponse(req, { ok: false, code, traceId }, 502);
+    }
     if (!checked.verified) {
       if (user) await recordVerificationEvent(admin, { userId: user.id, method: "phone", status: "rejected",
           provider: "portone_inicis_unified", providerReferenceHash: referenceHash,
           reasonCode: `STATUS_${checked.status}` });
-      return jsonResponse(req, { ok: false, code: "NOT_VERIFIED" }, 409);
+      console.error(JSON.stringify({ event: "identity_verification_failed", traceId, code: "NOT_VERIFIED", ...diagnostics }));
+      return jsonResponse(req, { ok: false, code: "NOT_VERIFIED", traceId }, 409);
     }
     if (!("phone" in checked)) throw new Error("VERIFIED_PHONE_MISSING");
     const phone = checked.phone;
@@ -87,10 +116,11 @@ Deno.serve(async (req) => {
     return jsonResponse(req, { ok: true, phone, name, verifiedAt });
   } catch (error) {
     const reason = safeText((error as Error)?.message, 80) ?? "ERROR";
+    console.error(JSON.stringify({ event: "identity_verification_failed", traceId, code: reason }));
     try {
       if (user) await recordVerificationEvent(admin, { userId: user.id, method: "phone", status: "error",
           provider: "portone_inicis_unified", providerReferenceHash: referenceHash, reasonCode: reason });
     } catch { /* preserve primary failure */ }
-    return jsonResponse(req, { ok: false, code: reason }, 502);
+    return jsonResponse(req, { ok: false, code: reason, traceId }, 502);
   }
 });
