@@ -38,6 +38,13 @@ export function createMemberVerificationService({ getClient, getPortOne, getVeri
       bizOpenDate: data.bizOpenDate || null, bankName: data.bank || null,
       bankAccount: data.account || null, bankHolder: data.holder || null,
     });
+    if (data.role === 'vendor' || data.role === 'partner') {
+      const submitted = await client().rpc('submit_member_onboarding', { p_defer_verification: false });
+      if (submitted.error) throw submitted.error;
+      if (submitted.data?.submitted !== true || submitted.data?.approved !== false) {
+        throw new Error('ONBOARDING_SUBMISSION_FAILED');
+      }
+    }
     return updated.data?.user || user;
   }
 

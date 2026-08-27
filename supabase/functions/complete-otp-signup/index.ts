@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
   }
   const phoneTicket = safeText(body.phoneVerificationTicket, 160);
   let verifiedPhone: string | null = null;
-  if (phoneTicket) {
+  if (phoneTicket && !current.phone_verified) {
     const tokenHash = await sha256Hex(`signup-phone-ticket-v1\0${phoneTicket}`);
     const { data: consumed, error: consumeError } = await admin.rpc("consume_member_signup_phone_ticket", {
       p_user_id: user.id, p_token_hash: tokenHash,

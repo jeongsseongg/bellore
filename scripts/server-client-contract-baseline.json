@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "zeroReferenceCeiling": 6,
+  "intentionalZeroReferences": [
+    {
+      "key": "edge:discord-ingest",
+      "reason": "GitHub Actions Discord poller가 정본이며 이 함수는 비상 대안 수집 경로다."
+    },
+    {
+      "key": "edge:payment-webhook",
+      "reason": "결제사 서버가 호출하는 외부 webhook이라 브라우저 호출부가 없어야 한다."
+    },
+    {
+      "key": "edge:reconcile-payments",
+      "reason": "비밀 토큰으로 실행하는 운영 정합성 작업이며 브라우저에 노출하지 않는다."
+    },
+    {
+      "key": "edge:telegram-ops",
+      "reason": "Telegram webhook과 cron이 호출하는 서버 진입점이라 브라우저 호출부가 없다."
+    },
+    {
+      "key": "rpc:auction_winner_cancel",
+      "reason": "낙찰 취소 UX가 아직 승인·공개되지 않아 몰수 동작을 서버에만 보류했다."
+    },
+    {
+      "key": "rpc:wallet_capture",
+      "reason": "상품 결제의 캐시 사용 입력 계약이 없어 준비용 서비스 RPC로 비활성 유지한다."
+    }
+  ]
+}
