@@ -7009,6 +7009,12 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 .vf-provider, .vrow-provider { padding: 4px 8px; border-radius: 999px; background: var(--bg-soft); color: var(--text-2); font-size: 11px; font-weight: 700; white-space: nowrap; }
 .vf-method .vf-confirm { width: 100%; height: 54px; margin-top: 2px; font-size: 15px; }
 .vf-note { margin: 12px 0 0; font-size: 12px; line-height: 1.55; color: var(--text-3); }
+.vf-phone-flow { padding: 2px 0; } .vf-phone-flow .vf-field { margin-bottom: 10px; }
+.vf-phone-flow .vf-field > input { height: 52px; background: #fff; font-size: 16px; }
+.vf-phone-flow > .vf-confirm { width: 100%; height: 54px; margin-top: 2px; font-size: 15px; }
+.vf-alternative { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 18px; font-size: 12px; color: var(--text-3); }
+.vf-alternative button { border: 0; padding: 4px 0; background: transparent; color: var(--text); font: inherit; font-weight: 750; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.vf-phone-flow .vf-note { margin-top: 7px; text-align: center; }
 .vf-field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
 .vf-field > span { font-size: 13px; font-weight: 700; color: var(--text-2); }
 .vf-row { display: flex; gap: 8px; }

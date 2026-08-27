@@ -6,9 +6,9 @@ const dependencies = [
   '/analytics-client.js?v=20260826-ai-consent-v1',
   '/brands.js',
   '/supabase.js?v=20260827-signup-identity-v1',
-  '/bellore-features.js?v=20260827-signup-identity-v1',
+  '/bellore-features.js?v=20260827-mypage-contracts-v1',
   '/cq-demo.js?v=20260826-member-verification-live-v2',
-  '/script.js?v=20260827-standalone-pages-v4',
+  '/script.js?v=20260827-mypage-contracts-v1',
   '/app/legacy/recommendation-engine.js?v=20260826-member-verification-live-v2',
   '/wishlist.js?v=20260826-member-verification-live-v2',
   '/alerts.js?v=20260820-tabs-alerts-v1',
@@ -21,6 +21,29 @@ const dependencies = [
   '/app/legacy/page-runtime.js?v=20260826-naverpay-live-v1'
 ];
 
+const mypageSupportIds = [
+  'bizInfoModal', 'termsModal', 'privacyModal', 'refundModal', 'guideModal',
+  'partnerModal', 'adminPanel', 'notiPage', 'profilePage', 'settingsPage', 'postModal'
+];
+
+async function hydrateMypageSupport() {
+  if (document.body?.dataset.belloreStandalonePage !== 'mypage') return;
+  const response = await fetch('/index.html');
+  if (!response.ok) throw new Error(`standalone_shell_failed:${response.status}`);
+  const source = new DOMParser().parseFromString(await response.text(), 'text/html');
+  const missing = [];
+  for (const id of mypageSupportIds) {
+    if (document.getElementById(id)) continue;
+    const node = source.getElementById(id);
+    if (!node) {
+      missing.push(id);
+      continue;
+    }
+    document.body.append(node.cloneNode(true));
+  }
+  if (missing.length) throw new Error(`standalone_shell_contract_missing:${missing.join(',')}`);
+}
+
 function loadClassicScript(src) {
   return new Promise((resolve, reject) => {
     const script = document.createElement('script');
@@ -31,18 +54,30 @@ function loadClassicScript(src) {
   });
 }
 
+await hydrateMypageSupport();
 for (const dependency of dependencies) await loadClassicScript(dependency);
+await import('/app/bootstrap.js?v=20260827-mypage-contracts-v1');
 
-function openStandalonePage() {
+async function waitForLegacyOpen(name, timeoutMs = 5000) {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    const candidate = globalThis[name];
+    if (typeof candidate === 'function') return candidate;
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  throw new Error(`standalone_legacy_ready_timeout:${name}`);
+}
+
+async function openStandalonePage() {
   const page = document.body?.dataset.belloreStandalonePage;
-  const openMyPage = globalThis['BELLORE_openMyPage'];
-  if (page === 'mypage' && typeof openMyPage === 'function') {
+  if (page === 'mypage') {
+    const openMyPage = await waitForLegacyOpen('BELLORE_openMyPage');
     openMyPage();
   }
 }
 
 if (document.readyState === 'loading') {
-  window.addEventListener('DOMContentLoaded', openStandalonePage, { once: true });
+  window.addEventListener('DOMContentLoaded', () => void openStandalonePage(), { once: true });
 } else {
-  openStandalonePage();
+  await openStandalonePage();
 }
