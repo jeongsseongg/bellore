@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 
 export function pathKey(file) {
@@ -16,7 +17,18 @@ function commandError(result) {
   return (result.error?.message || result.stderr || result.stdout || 'unknown error').trim();
 }
 
-export function readRegisteredWorktreeBoundaries({ root, toPosix, addFailure, addPass }) {
+function outerTrackedFiles(root, relativePath) {
+  const tracked = spawnSync('git', ['-C', root, 'ls-files', '--', `${relativePath}/`], {
+    encoding: 'utf8',
+    maxBuffer: 8 * 1024 * 1024
+  });
+  return {
+    error: tracked.error || tracked.status !== 0 ? commandError(tracked) : '',
+    files: tracked.stdout.trim().split(/\r?\n/).filter(Boolean)
+  };
+}
+
+export function readRegisteredWorktreeBoundaries({ root, toPosix, addFailure, addPass, writeAudit = () => {} }) {
   const listed = spawnSync('git', ['-C', root, 'worktree', 'list', '--porcelain', '-z'], {
     encoding: 'utf8',
     maxBuffer: 8 * 1024 * 1024
@@ -34,24 +46,60 @@ export function readRegisteredWorktreeBoundaries({ root, toPosix, addFailure, ad
   const boundaries = new Map();
   for (const worktreePath of candidates) {
     const relativePath = toPosix(worktreePath);
-    const tracked = spawnSync('git', ['-C', root, 'ls-files', '--', `${relativePath}/`], {
-      encoding: 'utf8',
-      maxBuffer: 8 * 1024 * 1024
-    });
-    if (tracked.error || tracked.status !== 0) {
-      addFailure(`registered worktree tracked-file check failed for ${relativePath}: ${commandError(tracked)}`);
+    const tracked = outerTrackedFiles(root, relativePath);
+    if (tracked.error) {
+      addFailure(`registered worktree tracked-file check failed for ${relativePath}: ${tracked.error}`);
       continue;
     }
-    const outerTrackedFiles = tracked.stdout.trim().split(/\r?\n/).filter(Boolean);
-    if (outerTrackedFiles.length > 0) {
-      addFailure(`registered worktree boundary contains outer-repository tracked files: ${relativePath} (${outerTrackedFiles.length})`);
+    if (tracked.files.length > 0) {
+      addFailure(`registered worktree boundary contains outer-repository tracked files: ${relativePath} (${tracked.files.length})`);
       continue;
     }
     boundaries.set(pathKey(worktreePath), relativePath);
   }
   addPass(`registered nested worktrees excluded: ${boundaries.size}`);
   for (const relativePath of [...boundaries.values()].sort()) {
-    addPass(`excluded registered worktree: ${relativePath}`);
+    writeAudit(`excluded registered worktree: ${relativePath}`);
   }
   return boundaries;
+}
+
+export function createNestedRepositoryBoundaryGuard({ root, toPosix, addFailure, addPass, writeAudit = () => {} }) {
+  const excluded = new Map();
+  const checked = new Map();
+
+  function shouldExclude(directory) {
+    const key = pathKey(directory);
+    if (checked.has(key)) return checked.get(key);
+    if (!existsSync(resolve(directory, '.git'))) {
+      checked.set(key, false);
+      return false;
+    }
+
+    const relativePath = toPosix(directory);
+    const tracked = outerTrackedFiles(root, relativePath);
+    if (tracked.error) {
+      addFailure(`nested repository tracked-file check failed for ${relativePath}: ${tracked.error}`);
+      checked.set(key, false);
+      return false;
+    }
+    if (tracked.files.length > 0) {
+      addFailure(`nested repository boundary contains outer-repository tracked files: ${relativePath} (${tracked.files.length})`);
+      checked.set(key, false);
+      return false;
+    }
+
+    excluded.set(key, relativePath);
+    checked.set(key, true);
+    return true;
+  }
+
+  function report() {
+    addPass(`nested repositories excluded: ${excluded.size}`);
+    for (const relativePath of [...excluded.values()].sort()) {
+      writeAudit(`excluded nested repository: ${relativePath}`);
+    }
+  }
+
+  return { shouldExclude, report, excluded };
 }

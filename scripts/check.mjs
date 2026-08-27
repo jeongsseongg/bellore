@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { pathKey, readRegisteredWorktreeBoundaries } from './check-worktree-boundaries.mjs';
+import { createNestedRepositoryBoundaryGuard, pathKey, readRegisteredWorktreeBoundaries } from './check-worktree-boundaries.mjs';
 const root = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const baselinePath = join(root, 'scripts', 'architecture-baseline.json');
 const baseline = JSON.parse(readFileSync(baselinePath, 'utf8'));
@@ -10,7 +10,7 @@ const failures = [];
 const warnings = [];
 const passes = [];
 const excludedDirectories = new Set(['.git', 'node_modules', 'assets', 'data', 'design-refs', '_site']);
-let registeredWorktreeBoundaries = new Map();
+let registeredWorktreeBoundaries = new Map(), nestedRepositoryBoundaryGuard;
 function toPosix(file) {
   return relative(root, file).split(sep).join('/');
 }
@@ -19,7 +19,7 @@ function walk(directory, output = []) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     if (entry.isDirectory() && (excludedDirectories.has(entry.name) || entry.name.startsWith('.tmp-pages-test-'))) continue;
     const absolute = join(directory, entry.name);
-    if (entry.isDirectory() && registeredWorktreeBoundaries.has(pathKey(absolute))) continue;
+    if (entry.isDirectory() && (registeredWorktreeBoundaries.has(pathKey(absolute)) || nestedRepositoryBoundaryGuard?.shouldExclude(absolute))) continue;
     if (entry.isDirectory()) walk(absolute, output);
     else if (entry.isFile()) output.push(absolute);
   }
@@ -235,8 +235,8 @@ function runTests(testFiles) {
   if (passed === testFiles.length) addPass(`tests: ${passed}/${testFiles.length}`);
 }
 
-registeredWorktreeBoundaries = readRegisteredWorktreeBoundaries({ root, toPosix, addFailure, addPass });
-const allFiles = walk(root);
+registeredWorktreeBoundaries = readRegisteredWorktreeBoundaries({ root, toPosix, addFailure, addPass, writeAudit: console.log }); nestedRepositoryBoundaryGuard = createNestedRepositoryBoundaryGuard({ root, toPosix, addFailure, addPass, writeAudit: console.log });
+const allFiles = walk(root); nestedRepositoryBoundaryGuard.report();
 const htmlPath = join(root, 'index.html');
 const html = readFileSync(htmlPath, 'utf8');
 const cleanHtml = htmlWithoutComments(html);
