@@ -10,6 +10,7 @@ const css = fs.readFileSync(path.join(prototypeRoot, 'account-role-preview.css')
 const html = fs.readFileSync(path.join(prototypeRoot, 'index.html'), 'utf8');
 const bootstrap = fs.readFileSync(path.join(prototypeRoot, 'bootstrap.js'), 'utf8');
 const adminHtml = fs.readFileSync(path.join(adminRoot, 'index.html'), 'utf8');
+const adminData = fs.readFileSync(path.join(adminRoot, 'data/admin-console-data.js'), 'utf8');
 
 let checks = 0;
 function assert(condition, message) {
@@ -46,7 +47,9 @@ assert(view.includes('data-save-config') && view.includes('data-reset-config'),
 assert(view.includes('data-preview-size="660"') && view.includes('data-preview-size="390"'),
   '660px·390px 화면 비교 기능이 없습니다.');
 assert(view.includes('previewWindow.localStorage.setItem') && view.includes('previewWindow.localStorage.removeItem'),
-  '역할별 시안 저장·복원 구현이 없습니다.');
+  '독립 시안 페이지의 역할별 로컬 저장·복원 구현이 없습니다.');
+assert(view.includes("typeof persistence.save === 'function'") && view.includes('await persistence.save(activeRole, content)'),
+  '관리자 화면에서 운영 저장소로 교체할 수 있는 저장 경계가 없습니다.');
 assert(view.includes('const drafts = {}') && view.includes('dirtyRoles'),
   '역할 전환 전 수정 초안을 보존하지 않습니다.');
 assert(view.includes('updatePreview(root, activeRole, content)'),
@@ -63,8 +66,10 @@ assert(view.includes('class="mp-order-preview"') && view.includes('class="mp-ord
   '최근 주문을 하나의 의미 있는 거래 카드로 구분하지 못했습니다.');
 assert(view.includes('class="mp-menu"') && view.includes('class="mp-menu-label"'),
   '평면 텍스트 메뉴 구조가 없습니다.');
-assert(!view.includes('<svg') && !view.includes('ICONS') && !view.includes('icon('),
-  '마이페이지 코드에 장식용 이모티콘·SVG 아이콘이 남았습니다.');
+assert((view.match(/<svg/g) || []).length === 2 && view.includes("headerIcon('notification')") && view.includes("headerIcon('settings')"),
+  '상단 알림·설정 외의 장식용 SVG 아이콘이 추가됐습니다.');
+assert(!view.includes('ICONS') && !view.includes('icon('),
+  '마이페이지에 공용 장식 아이콘 묶음이 다시 추가됐습니다.');
 assert(view.includes('src="../../assets/logo-bellore.png"') && !view.includes('<strong>BELLORE</strong>'),
   '푸터는 임시 글자가 아닌 벨로르 로고 원본을 사용해야 합니다.');
 assert(view.includes("['홈', '검색', '보관함', '시계판매', '마이']"), '공통 텍스트 하단 탭이 없습니다.');
@@ -91,16 +96,19 @@ assert(css.includes('@media (max-width: 420px)'), '390px급 모바일 반응형 
 
 assert(html.includes('고객·업체 마이페이지 편집'), '문서 제목이 편집 목적을 설명하지 않습니다.');
 assert(html.includes('noindex, nofollow'), '시안 페이지 검색 차단 메타가 없습니다.');
-assert(html.includes('editor-v8') && bootstrap.includes('editor-v8'), '편집 시안 캐시 버전이 일치하지 않습니다.');
+assert(html.includes('mypage-icons-v1') && bootstrap.includes('mypage-icons-v1'), '편집 시안 캐시 버전이 일치하지 않습니다.');
+assert(view.includes('class="mp-head-icon"') && view.includes('aria-label="알림"') && view.includes('aria-label="설정"'),
+  '마이페이지 상단 알림과 설정이 접근 가능한 선 아이콘으로 표시되지 않습니다.');
+assert(!view.includes('class="mp-head-text"'), '마이페이지 상단에 알림·설정 글자 버튼이 남았습니다.');
 assert(!html.match(/<script(?![^>]*src=)[^>]*>/), '인라인 실행 스크립트를 추가하면 안 됩니다.');
 assert(bootstrap.includes('try {') && bootstrap.includes('console.error'),
   '초기화 실패가 조용히 삼켜집니다.');
 
 assert(adminHtml.includes('class="admin-app"') && adminHtml.includes('id="adminSidebar"'),
   '기존 관리자 Wanted 구조가 보존되지 않았습니다.');
-assert(adminHtml.includes('고객·업체 마이페이지 관리') && adminHtml.includes('?view=mypageSettings'),
+assert(adminData.includes("id: 'mypageSettings'") && adminData.includes("label: '마이페이지 관리'"),
   '관리자 콘솔 안에서 역할별 마이페이지 관리 화면으로 이동할 수 없습니다.');
-assert(adminHtml.includes('id="adminLoginForm"') && adminHtml.includes('admin-release-v4'),
+assert(adminHtml.includes('id="adminLoginForm"') && adminHtml.includes('admin-crud-v1'),
   '운영 관리자 로그인 게이트가 없습니다.');
 assert(fs.existsSync(path.join(root, 'assets/products/watch-batch-20260821-3/158-pdj96zas81tz/front.webp')),
   '최근 주문 예시 이미지 자산이 없습니다.');
