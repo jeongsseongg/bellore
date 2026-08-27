@@ -15,7 +15,7 @@ const bootstrapReleaseKey = '20260827-sell-request-persistence-v1';
 const authPageReleaseKey = '20260826-auth-page-v1';
 const authPageAssetKey = '20260826-auth-page-v2';
 const signupStyleKey = '20260827-signup-role-v1';
-const signupScriptKey = '20260827-signup-role-v1';
+const signupScriptKey = '20260827-signup-flow-v2';
 const shellStyleKey = '20260826-auth-shell-v1';
 
 const urls = {

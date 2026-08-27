@@ -7,6 +7,7 @@ const status = document.getElementById('signupStatus');
 const step1 = document.getElementById('signupStep1');
 const step2 = document.getElementById('signupStep2');
 const step3 = document.getElementById('signupStep3');
+const step4 = document.getElementById('signupStep4');
 const progress = document.getElementById('signupProgress');
 const heading = document.getElementById('signupTitle');
 let checkedUsername = '';
@@ -84,12 +85,14 @@ function showStep(number, { historyMode = 'none' } = {}) {
   step1.hidden = number !== 1;
   step2.hidden = number !== 2;
   step3.hidden = number !== 3;
-  progress.textContent = `${number} / 3`;
+  step4.hidden = number !== 4;
+  progress.textContent = `${number} / 4`;
   heading.innerHTML = [
     '',
     '어떤 회원으로<br>가입할까요?',
     '이름과 휴대폰을<br>확인해 주세요.',
     '본인인증을<br>진행해 주세요.',
+    '가입 정보를<br>마무리해 주세요.',
   ][number];
   if (historyMode === 'push') history.pushState({ belloreSignupStep: number }, '', location.href);
   if (historyMode === 'replace') history.replaceState({ ...history.state, belloreSignupStep: number }, '', location.href);
@@ -97,11 +100,11 @@ function showStep(number, { historyMode = 'none' } = {}) {
 }
 
 if (active) {
-  const initialStep = [1, 2, 3].includes(Number(history.state?.belloreSignupStep))
+  const initialStep = [1, 2, 3, 4].includes(Number(history.state?.belloreSignupStep))
     ? Number(history.state.belloreSignupStep) : 1;
   showStep(initialStep, { historyMode: 'replace' });
   window.addEventListener('popstate', (event) => {
-    const next = [1, 2, 3].includes(Number(event.state?.belloreSignupStep))
+    const next = [1, 2, 3, 4].includes(Number(event.state?.belloreSignupStep))
       ? Number(event.state.belloreSignupStep) : 1;
     showStep(next);
   });
@@ -170,8 +173,6 @@ function validateAccountFields() {
   if (password.length < 8) { setStatus('비밀번호는 8자 이상이어야 합니다.'); return; }
   if (password !== document.getElementById('suPw2').value) { setStatus('비밀번호가 일치하지 않습니다.'); return; }
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(fieldValue('suEmail'))) { setStatus('이메일을 정확히 입력해 주세요.'); return; }
-  if (!fieldValue('signupPostcode') || !fieldValue('signupAddr1')) { setStatus('주소를 입력해 주세요.'); return; }
-  if (!document.getElementById('signupAgree').checked) { setStatus('필수 약관에 동의해 주세요.'); return; }
   return true;
 }
 if (active) verification.completeReturnedIdentity()
@@ -181,6 +182,14 @@ document.getElementById('signupRoleNext').addEventListener('click', () => {
   showStep(2, { historyMode: 'push' });
 });
 document.getElementById('signupInfoPrev').addEventListener('click', () => history.back());
+document.getElementById('signupAccountPrev').addEventListener('click', () => history.back());
+document.getElementById('signupVerifyNext').addEventListener('click', () => {
+  if (!validateAccountFields()) return;
+  if (!verified('email')) { setStatus('이메일 인증을 완료해 주세요.'); return; }
+  setStatus('');
+  saveDraft();
+  showStep(4, { historyMode: 'push' });
+});
 document.getElementById('signupPrev').addEventListener('click', () => {
   if (currentStep > 1 && Number(history.state?.belloreSignupStep) === currentStep) history.back();
   else showStep(Math.max(1, currentStep - 1), { historyMode: 'replace' });
@@ -194,6 +203,8 @@ function verified(kind) {
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!validateAccountFields()) return;
+  if (!fieldValue('signupPostcode') || !fieldValue('signupAddr1')) { setStatus('주소를 입력해 주세요.'); return; }
+  if (!document.getElementById('signupAgree').checked) { setStatus('필수 약관에 동의해 주세요.'); return; }
   const required = isBusiness() ? ['email', 'phone', 'biz', 'account'] : ['email', 'phone'];
   if (required.some((kind) => !verified(kind))) { setStatus('필수 인증을 모두 완료해 주세요.'); return; }
   const submit = document.getElementById('signupSubmitBtn');
