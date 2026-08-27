@@ -21,7 +21,7 @@
     "tools/generate-seo.mjs": 615,
     "supabase/functions/ai-learn/index.ts": 591,
     "tools/bellore-shop-ai.mjs": 460,
-    "scripts/check.mjs": 431
+    "scripts/check.mjs": 435
   },
   "legacyCeilings": {
     "executableInlineScriptBlocks": 2,
@@ -30,7 +30,9 @@
     "importantTokens": 379,
     "windowAssignments": 93,
     "scriptStyleAttributeTokens": 86,
-    "localClassicScripts": 23
+    "localClassicScripts": 23,
+    "indexPasswordInputs": 3,
+    "indexModalIds": 14
   },
   "newCodeBudgets": {
     ".js": {

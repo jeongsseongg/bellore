@@ -35,6 +35,7 @@ const SHELL_ASSETS = [
   './ai-advisor.js?v=20260826-member-verification-live-v2',
   './ai-advisor-admin.js?v=20260826-member-verification-live-v2',
   './app/bootstrap.js?v=20260827-sell-request-persistence-v1',
+  './app/pages/standalone-page.js',
   './app/features/auth-login/auth-login.css?v=20260826-auth-page-v2',
   './app/features/auth-login/auth-login.js?v=20260826-auth-page-v2',
   './app/services/auth/auth-login-backend.js',

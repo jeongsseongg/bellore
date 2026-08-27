@@ -258,7 +258,7 @@ async function validateArtifact(site, { expectSeo }) {
 
   const allowedTopLevel = new Set([
     ...ROOT_RUNTIME_FILES.map((file) => file.split('/')[0]),
-    'app', 'assets', 'admin', 'account-roles', ...GENERATED_STATIC,
+    'app', 'assets', 'admin', 'account-roles', 'pages', ...GENERATED_STATIC,
     ...(expectSeo ? ['market', 'sitemap.xml'] : []),
   ]);
   assert.deepEqual(

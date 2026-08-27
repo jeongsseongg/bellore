@@ -299,7 +299,12 @@
     }
     function openOrdersList(status) {
         ordersFilter = status || '';
-        var m = $('#ordersModal'); if (!m) return;
+        var m = $('#ordersModal');
+        if (!m) {
+            var query = ordersFilter ? ('?status=' + encodeURIComponent(ordersFilter)) : '';
+            window.location.assign('/pages/orders.html' + query);
+            return;
+        }
         $$('#ordersTabs .orders-tab').forEach(function (t) {
             t.classList.toggle('active', (t.dataset.ofilter || '') === ordersFilter);
         });
@@ -397,7 +402,10 @@
     }
     function openMyPage() {
         var m = $('#myPageModal');
-        if (!m) return;
+        if (!m) {
+            window.location.assign('/pages/mypage.html');
+            return;
+        }
         m.hidden = false;
         // 하단 탭에서 '마이페이지'를 활성 표시(다른 탭 active 해제) — tabMy 는 data-nav 가 없어
         // applyPage 가 칠해주지 못하므로 여기서 직접 처리한다.
@@ -471,6 +479,11 @@
         }
     }
     function closeMyPage() {
+        if (document.body && document.body.dataset.belloreStandalonePage === 'mypage') {
+            if (history.length > 1) history.back();
+            else window.location.assign('/');
+            return;
+        }
         var m = $('#myPageModal');
         if (m) { m.hidden = true; document.body.style.overflow = ''; }
         document.body.classList.remove('mypage-open');
@@ -5079,7 +5092,7 @@
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
-        init();
+        setTimeout(init, 0);
     }
 
     /* ============ 1. 라우팅 ============ */
