@@ -20,6 +20,10 @@ const scopeFix = await readFile(
   new URL('supabase/migrations/20260827170500_scope_guest_contact_qualification.sql', root),
   'utf8'
 );
+const allBidFix = await readFile(
+  new URL('supabase/migrations/20260827171000_restore_all_bid_quote_lookups.sql', root),
+  'utf8'
+);
 
 assert.match(migration, /drop trigger if exists trg_notify_bid on public\.bids/i,
   'the legacy trigger that writes a NULL notification recipient must be removed');
@@ -43,5 +47,7 @@ assert.match(contactFix, /guest_quote_contact_source_mismatch[\s\S]*execute corr
   'the applied RPC correction must fail closed when its source contract changes');
 assert.match(scopeFix, /from public\\\.bids\\s\+where s\\\.quote_request_id[\s\S]*from public\\\.sell_service_requests s/i,
   'the follow-up correction must distinguish the bid lookup from the guest contact lookup');
+assert.match(allBidFix, /regexp_replace\([\s\S]*from public\\\.bids[\s\S]*'g'[\s\S]*execute corrected/i,
+  'every bid lookup accidentally qualified by the prior migration must be restored');
 
 console.log('telegram guest quote offer migration checks passed');
