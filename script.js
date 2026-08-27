@@ -5510,14 +5510,16 @@
     function doCompareSubmit(p, mode) {
         var form = $('#compareForm');
         var methodLabel = ({ compare: '비교견적', consignment: '위탁판매', instant: '즉시매입' })[p.saleMethod] || '비교견적';
-        sendLead(methodLabel + ' 신청' + (mode === 'guest' ? ' (비회원)' : ''), {
-            판매방식: methodLabel,
-            희망판매금액: p.desiredPrice || '-',
-            브랜드: p.brand, 모델: p.model, '스탬핑/연식': p.year || '-',
-            구성품: (p.parts && p.parts.length ? p.parts.join(', ') : '-'),
-            이름: p.name, 연락처: p.phone, 메모: p.memo || '-',
-            사진수: p.photoCount + '장', 회원여부: (mode === 'member' ? '회원' : '비회원')
-        });
+        function sendAdminLead() {
+            return sendLead(methodLabel + ' 신청' + (mode === 'guest' ? ' (비회원)' : ''), {
+                판매방식: methodLabel,
+                희망판매금액: p.desiredPrice || '-',
+                브랜드: p.brand, 모델: p.model, '스탬핑/연식': p.year || '-',
+                구성품: (p.parts && p.parts.length ? p.parts.join(', ') : '-'),
+                이름: p.name, 연락처: p.phone, 메모: p.memo || '-',
+                사진수: p.photoCount + '장', 회원여부: (mode === 'member' ? '회원' : '비회원')
+            });
+        }
 
         function notifySubmitted(result) {
             window.dispatchEvent(new CustomEvent('bellore:sell-submitted', { detail: {
@@ -5557,6 +5559,7 @@
                 method: p.saleMethod, brand: p.brand, model: p.model, name: p.name, phone: p.phone,
                 memo: p.memo, ref: p.ref || '', year: p.year || '', parts: p.parts || [], photos: p.photos
             }).then(function (result) {
+                sendAdminLead();
                 if (form) { showSubmitSuccess(form, result.receiptNo); form.reset(); }
                 uploadedPhotos.length = 0;
                 renderUploadGrid();
@@ -5567,6 +5570,7 @@
                 if (btn) btn.disabled = false;
             });
         } else {
+            sendAdminLead();
             finishLocal();
         }
     }

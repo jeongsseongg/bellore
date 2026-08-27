@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v351-auth-signup-integration";
+const VERSION = "bellore-v352-sell-request-persistence";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -32,7 +32,7 @@ const SHELL_ASSETS = [
   './search.js?v=20260826-member-verification-live-v2',
   './ai-advisor.js?v=20260826-member-verification-live-v2',
   './ai-advisor-admin.js?v=20260826-member-verification-live-v2',
-  './app/bootstrap.js?v=20260826-naverpay-live-v1',
+  './app/bootstrap.js?v=20260827-sell-request-persistence-v1',
   './app/features/auth-login/auth-login.css?v=20260826-auth-page-v2',
   './app/features/auth-login/auth-login.js?v=20260826-auth-page-v2',
   './app/services/auth/auth-login-backend.js',

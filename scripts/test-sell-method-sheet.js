@@ -18,6 +18,7 @@ const serviceNavigationCss = fs.readFileSync(path.join(root, 'app/features/sell-
 const guestCss = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-guest-access.css'), 'utf8');
 const guestJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-guest-access.js'), 'utf8');
 const backendJs = fs.readFileSync(path.join(root, 'app/services/sell/sell-request-access.js'), 'utf8');
+const bootstrapJs = fs.readFileSync(path.join(root, 'app/bootstrap.js'), 'utf8');
 const guestEdge = fs.readFileSync(path.join(root, 'supabase/functions/sell-request-access/index.ts'), 'utf8');
 const guestMigration = fs.readFileSync(path.join(root, 'supabase/migrations/20260826234000_sell_request_guest_access.sql'), 'utf8');
 
@@ -107,12 +108,19 @@ assert.match(serviceCss, /\.sell-service__status--blue[\s\S]*?#eef6ff/, 'all ser
 assert.doesNotMatch(serviceCss, /#(?:fff7ed|fff5e9|a95f12|a85d10|efd7b9)/i, 'gold and orange accents cannot return to sell service pages');
 assert.doesNotMatch(script, /saleMethod === 'consignment' && !desiredPrice/, 'consignment no longer asks the customer to choose a price first');
 assert.match(script, /NWBackend\.createSellRequest/, 'all three sell methods use the server request path');
+assert.match(script, /NWBackend\.createSellRequest\([\s\S]*?\.then\(function \(result\) \{[\s\S]*?sendAdminLead\(\)/, 'the supplemental inquiry is sent only after the durable server request succeeds');
 assert.match(draftOwnerJs, /'member:' \+ member\.uid/, 'member drafts are scoped by the authenticated member id');
 assert.match(draftOwnerJs, /'guest:' \+ guestId/, 'guest drafts are scoped by a random browser owner id instead of IP');
 assert.match(guestJs, /id=\\?"sellGuestAccessToggle/, 'a guest access icon sits beside the sell notification control');
 assert.match(guestJs, /verifyGuestSellRequest/, 'guest lookup requires the phone identity verification flow');
 assert.match(guestCss, /\.sell-method__guest-toggle/, 'guest access uses the shared sell panel styling');
 assert.match(backendJs, /action: 'verify-phone'/, 'the client sends the PortOne result to the server for verification');
+assert.match(
+  bootstrapJs,
+  /installSellRequestAccess\(\{[\s\S]*?backend:\s*window\.NWBackend,[\s\S]*?getClient:\s*\(\)\s*=>\s*window\.sbClient,[\s\S]*?window,[\s\S]*?\}\);/,
+  'the sell request client receives the live backend and Supabase client instead of silently skipping installation'
+);
+assert.match(html, /app\/bootstrap\.js\?v=20260827-sell-request-persistence-v1/, 'the repaired bootstrap bypasses the previous browser cache key');
 assert.match(guestEdge, /validatePortOneIdentity/, 'the Edge Function validates the provider response server-side');
 assert.match(guestEdge, /token_kind", "link"/, 'security links are exchanged through a one-time link token');
 assert.match(guestMigration, /revoke all on table public\.sell_service_requests from anon, authenticated/i, 'guest records have no direct Data API access');
