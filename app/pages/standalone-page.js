@@ -16,7 +16,7 @@ const pageDependencies = [
   '/brands.js',
   '/bellore-features.js?v=20260828-phone-auth-paths-v1',
   '/cq-demo.js?v=20260826-member-verification-live-v2',
-  '/script.js?v=20260827-mypage-contracts-v1',
+  '/script.js?v=20260828-complete-site-v1',
   '/app/legacy/recommendation-engine.js?v=20260826-member-verification-live-v2',
   '/wishlist.js?v=20260826-member-verification-live-v2',
   '/alerts.js?v=20260820-tabs-alerts-v1',
@@ -24,33 +24,10 @@ const pageDependencies = [
   '/search.js?v=20260826-member-verification-live-v2',
   '/ai-advisor.js?v=20260826-member-verification-live-v2',
   '/ai-advisor-admin.js?v=20260826-member-verification-live-v2',
-  '/payments.js?v=20260826-member-verification-live-v2',
+  '/payments.js?v=20260828-complete-site-v1',
   '/naverpay.js?v=20260826-naverpay-live-v1',
   '/app/legacy/page-runtime.js?v=20260826-naverpay-live-v1'
 ];
-
-const mypageSupportIds = [
-  'bizInfoModal', 'termsModal', 'privacyModal', 'refundModal', 'guideModal',
-  'partnerModal', 'adminPanel', 'notiPage', 'profilePage', 'settingsPage', 'postModal'
-];
-
-async function hydrateMypageSupport() {
-  if (document.body?.dataset.belloreStandalonePage !== 'mypage') return;
-  const response = await fetch('/index.html');
-  if (!response.ok) throw new Error(`standalone_shell_failed:${response.status}`);
-  const source = new DOMParser().parseFromString(await response.text(), 'text/html');
-  const missing = [];
-  for (const id of mypageSupportIds) {
-    if (document.getElementById(id)) continue;
-    const node = source.getElementById(id);
-    if (!node) {
-      missing.push(id);
-      continue;
-    }
-    document.body.append(node.cloneNode(true));
-  }
-  if (missing.length) throw new Error(`standalone_shell_contract_missing:${missing.join(',')}`);
-}
 
 function loadClassicScript(src) {
   return new Promise((resolve, reject) => {
@@ -78,33 +55,10 @@ const authResult = await enforceStandaloneAuth({
   locationObject: window.location,
 });
 
-if (authResult.allowed) {
+if (authResult.allowed && page === 'mypage') {
+  window.location.replace('/?view=mypage');
+} else if (authResult.allowed) {
   document.body.dataset.standaloneAuthReady = 'true';
-  await hydrateMypageSupport();
   for (const dependency of pageDependencies) await loadClassicScript(dependency);
-  await import('/app/bootstrap.js?v=20260828-phone-auth-paths-v1');
-}
-
-async function waitForLegacyOpen(name, timeoutMs = 5000) {
-  const startedAt = Date.now();
-  while (Date.now() - startedAt < timeoutMs) {
-    const candidate = globalThis[name];
-    if (typeof candidate === 'function') return candidate;
-    await new Promise((resolve) => setTimeout(resolve, 20));
-  }
-  throw new Error(`standalone_legacy_ready_timeout:${name}`);
-}
-
-async function openStandalonePage() {
-  if (!authResult.allowed) return;
-  if (page === 'mypage') {
-    const openMyPage = await waitForLegacyOpen('BELLORE_openMyPage');
-    openMyPage();
-  }
-}
-
-if (document.readyState === 'loading') {
-  window.addEventListener('DOMContentLoaded', () => void openStandalonePage(), { once: true });
-} else {
-  await openStandalonePage();
+  await import('/app/bootstrap.js?v=20260828-complete-site-v1');
 }

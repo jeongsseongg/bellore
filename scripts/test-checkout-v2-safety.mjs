@@ -10,6 +10,10 @@ const edge = read('supabase/functions/create-checkout/index.ts');
 const backend = read('supabase.js');
 const client = read('app/services/payments/checkout-client.js');
 const payments = read('payments.js');
+const presentation = read('app/features/checkout/checkout-presentation.js');
+const html = read('index.html');
+const build = read('tools/build-pages.mjs');
+const sw = read('sw.js');
 const workflow = read('.github/workflows/db-maintenance.yml');
 const guide = read('docs/PAYMENTS_SETUP.md');
 const config = read('supabase-config.js');
@@ -41,6 +45,24 @@ assert.doesNotMatch(
   /selectedChannel/,
   'provider request must use the click-time channel snapshot',
 );
+const presentationUrl = payments.match(/import\(['"]([^'"]*checkout-presentation\.js\?v=[^'"]+)['"]\)/)?.[1];
+const checkoutStyleUrl = html.match(/href=["']([^"']*checkout-order\.css\?v=[^"']+)["'][^>]*data-bellore-checkout-order/)?.[1];
+assert(presentationUrl, 'checkout must dynamically import its presentation module');
+assert(checkoutStyleUrl, 'checkout must load one marked presentation stylesheet');
+assert.match(presentation, /id = 'coReceiveSec'/);
+assert.match(presentation, /id = 'coAmountSec'/);
+assert.match(presentation, /querySelector\(['"]input\[name=["']coFulfillment["']\]:checked['"]\)/);
+for (const file of [
+  'app/features/checkout/checkout-order.css',
+  'app/features/checkout/checkout-presentation.js',
+]) {
+  assert(build.includes(`'${file}'`), `${file} must be copied to the Pages artifact`);
+}
+assert(sw.includes(`./${presentationUrl.replace(/^\.\//, '')}`), 'presentation import and service-worker URL must match');
+assert(sw.includes(`./${checkoutStyleUrl}`), 'checkout stylesheet and service-worker URL must match');
+for (const asset of ['card.svg', 'virtual-account.svg', 'naverpay-badge.svg', 'kakaopay.png', 'tosspay.png']) {
+  assert(sw.includes(`./assets/payment-methods/${asset}`), `${asset} must be precached`);
+}
 
 for (const task of ['validate-checkout-v2', 'apply-checkout-v2', 'verify-checkout-v2-live']) {
   assert.match(workflow, new RegExp(`- ${task}`));

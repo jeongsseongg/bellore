@@ -65,6 +65,7 @@
         initLiveBoardLockLink();
         initCatPages();
         initCountdowns();
+        initMypageRoute();
     }
 
     /* ============ 히어로 배너 캐러셀 ============ */
@@ -315,7 +316,7 @@
     function closeOrdersList() {
         if (document.body && document.body.dataset.belloreStandalonePage === 'orders') {
             if (history.length > 1) history.back();
-            else window.location.assign('/pages/mypage');
+            else window.location.assign('/?view=mypage');
             return;
         }
         var m = $('#ordersModal'); if (m) { m.hidden = true; document.body.style.overflow = 'hidden'; }
@@ -432,7 +433,7 @@
     function openMyPage() {
         var m = $('#myPageModal');
         if (!m) {
-            window.location.assign('/pages/mypage');
+            console.error('[Bellore Mypage] root modal contract missing');
             return;
         }
         m.hidden = false;
@@ -485,15 +486,40 @@
         }
     }
     function closeMyPage() {
-        if (document.body && document.body.dataset.belloreStandalonePage === 'mypage') {
-            if (history.length > 1) history.back();
-            else window.location.assign('/');
-            return;
-        }
         var m = $('#myPageModal');
+        var wasOpen = !!(m && !m.hidden);
         if (m) { m.hidden = true; document.body.style.overflow = ''; }
         document.body.classList.remove('mypage-open');
         closeMpSub();
+        var url = new URL(window.location.href);
+        if (wasOpen && url.searchParams.get('view') === 'mypage') {
+            url.searchParams.delete('view');
+            history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+        }
+    }
+
+    function initMypageRoute() {
+        if (new URLSearchParams(location.search).get('view') !== 'mypage') return;
+        var returnTo = location.pathname + location.search + location.hash;
+        var loginUrl = '/login.html?returnTo=' + encodeURIComponent(returnTo);
+        verifyMypageUser().then(function (allowed) {
+            if (allowed) openMyPage();
+            else location.replace(loginUrl);
+        });
+    }
+
+    function verifyMypageUser() {
+        if (!backendOn() || !window.NWBackend || !NWBackend.ready || !window.sbClient || !sbClient.auth) {
+            return Promise.resolve(false);
+        }
+        return NWBackend.ready.then(function () {
+            return sbClient.auth.getUser();
+        }).then(function (result) {
+            return !!(result && result.data && result.data.user);
+        }).catch(function (error) {
+            console.warn('[Bellore Mypage] auth gate failed', error && error.name ? error.name : 'unknown');
+            return false;
+        });
     }
 
     function openWishlistFromMyPage(view) {
@@ -5952,10 +5978,12 @@
     function initLoginModal() {
         var btnMy = $('#btnMy');
 
-        function openMyOrLogin() {
-            // 로그인 상태면 마이페이지, 아니면 독립 로그인 페이지
-            if (backendOn() && NWBackend.currentUser()) { openMyPage(); return; }
-            openLoginModal();
+        function openMyOrLogin(event) {
+            if (event) event.preventDefault();
+            verifyMypageUser().then(function (allowed) {
+                if (allowed) openMyPage();
+                else openLoginModal();
+            });
         }
         if (btnMy) btnMy.addEventListener('click', openMyOrLogin);
         var tabMy = $('#tabMy');

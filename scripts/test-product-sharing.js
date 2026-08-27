@@ -152,16 +152,14 @@ function fakeEventTarget() {
     assert(serviceWorker.includes(`'${asset}'`), `서비스워커 누락: ${asset}`);
     assert(buildPages.includes(`'${asset.slice(2)}'`), `Pages allowlist 누락: ${asset}`);
   }
-  for (const [asset, releaseKey] of [
-    ['script.js', '20260827-mypage-contracts-v1'],
-    ['app/bootstrap.js', '20260828-phone-auth-paths-v1'],
-    ['sw.js', '20260826-auth-shell-v1'],
-    ['wishlist.js', '20260826-member-verification-live-v2'],
-    ['search.js', '20260826-member-verification-live-v2'],
-  ]) {
-    const registrationSource = asset === 'sw.js' ? pageRuntime : html;
-    assert(registrationSource.includes(`${asset}?v=${releaseKey}`), `런타임 캐시 키 누락: ${asset}`);
+  for (const asset of ['script.js', 'app/bootstrap.js', 'wishlist.js', 'search.js']) {
+    const pattern = new RegExp(`(?:src|href)=["'](${asset.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\?v=[^"']+)["']`);
+    const runtimeUrl = html.match(pattern)?.[1];
+    assert(runtimeUrl, `런타임 캐시 키 누락: ${asset}`);
+    assert(serviceWorker.includes(`'./${runtimeUrl}'`), `서비스워커 캐시 키 불일치: ${asset}`);
   }
+  const workerUrl = pageRuntime.match(/serviceWorker\.register\(['"](sw\.js\?v=[^'"]+)['"]\)/)?.[1];
+  assert(workerUrl, '서비스워커 등록 캐시 키 누락');
 
   console.log('product sharing market URL invariants: ok');
 })().catch((error) => {

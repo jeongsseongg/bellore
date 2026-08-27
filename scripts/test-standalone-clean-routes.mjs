@@ -50,8 +50,12 @@ for (const page of ['mypage', 'orders', 'inquiry']) {
   assert.match(html, /<html[^>]*data-standalone-route-pending/i);
   assert.match(html, /<script\s+type=["']module["'][^>]*standalone-route\.js/i);
   assert(routeIndex >= 0 && routeIndex < bodyIndex, `${page}: 레거시 리다이렉트가 인증·UI보다 먼저 실행돼야 합니다.`);
-  assert(routeIndex < tabbarIndex && routeIndex < authIndex,
-    `${page}: 라우트 모듈은 탭바·인증 진입 모듈보다 먼저 선언돼야 합니다.`);
+  assert(routeIndex < authIndex, `${page}: 라우트 모듈은 인증 진입 모듈보다 먼저 선언돼야 합니다.`);
+  if (page === 'mypage') {
+    assert.equal(tabbarIndex, -1, 'mypage 호환 진입점은 중복 탭바를 렌더링하지 않아야 합니다.');
+  } else {
+    assert(routeIndex < tabbarIndex, `${page}: 라우트 모듈은 탭바보다 먼저 선언돼야 합니다.`);
+  }
 }
 
 const css = await readFile(new URL('app/pages/standalone-page.css', root), 'utf8');

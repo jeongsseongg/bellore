@@ -3,49 +3,67 @@ import { readFile } from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
 const read = (path) => readFile(new URL(path, root), 'utf8');
-const [index, page, runtime, legacy, sw, build] = await Promise.all([
+const [index, page, runtime, legacy, css, sw, build] = await Promise.all([
   read('index.html'),
   read('pages/mypage.html'),
   read('app/pages/standalone-page.js'),
   read('script.js'),
+  read('app/features/mypage-personal-shop/mypage-personal-shop.css'),
   read('sw.js'),
   read('tools/build-pages.mjs')
 ]);
 
-assert.doesNotMatch(index, /id=["']myPageModal["']/i,
-  'the main catalog shell must not retain the mypage modal markup');
-assert.match(page, /<body[^>]*data-bellore-standalone-page=["']mypage["']/i);
-assert.match(page, /id=["']myPageModal["'][^>]*hidden/i);
-for (const id of ['mpProfile', 'mpMenuList', 'myInterestSection', 'myRecentSection', 'myPointSection', 'myCouponSection']) {
-  assert.match(page, new RegExp(`id=["']${id}["']`), `${id} moved with the existing design contract`);
-}
-assert.match(page, /id=["']btnSettings["']/, 'the redesigned header must retain the working settings entry point');
-assert.match(page, /type=["']module["'][^>]*app\/pages\/standalone-page\.js/i,
-  'the page must use one module entry instead of duplicating legacy script tags');
-assert.match(runtime, /page === 'mypage'[\s\S]*BELLORE_openMyPage/);
+assert.match(index, /id=["']myPageModal["'][^>]*hidden/i,
+  'the main catalog shell must own the mypage modal contract');
+assert.doesNotMatch(page, /id=["']myPageModal["']/i,
+  'the compatibility route must not duplicate the mypage interface');
 for (const id of [
-  'bizInfoModal', 'termsModal', 'privacyModal', 'refundModal', 'guideModal',
-  'partnerModal', 'adminPanel', 'notiPage', 'profilePage', 'settingsPage', 'postModal',
+  'mpProfile', 'mpMenuList', 'myInterestSection', 'myRecentSection',
+  'myPointSection', 'myCouponSection', 'bizInfoModal', 'termsModal',
+  'privacyModal', 'refundModal', 'guideModal', 'partnerModal', 'adminPanel',
+  'notiPage', 'profilePage', 'settingsPage', 'postModal',
 ]) {
-  assert.match(runtime, new RegExp(`['"]${id}['"]`), `${id} must be hydrated before legacy handlers bind`);
+  assert.match(index, new RegExp(`id=["']${id}["']`), `${id} must remain in the root composition`);
 }
-assert.match(runtime, /hydrateMypageSupport\(\)[\s\S]*loadClassicScript[\s\S]*import\('\/app\/bootstrap\.js/,
-  'standalone mypage must restore the same support shell and module composition before opening');
-assert.match(runtime, /waitForLegacyOpen\('BELLORE_openMyPage'\)/,
-  'standalone mypage must wait for late legacy initialization instead of racing it');
-assert.match(legacy, /else \{\s*setTimeout\(init, 0\);\s*\}/,
-  'late-loaded legacy initialization must wait until the script has finished defining its router');
-assert.match(legacy, /window\.location\.assign\('\/pages\/mypage'\)/,
-  'the existing mypage entry point must deep-link to the standalone page');
-assert.match(page, /rel=["']canonical["'][^>]*href=["']https:\/\/bellore\.co\.kr\/pages\/mypage["']/i,
-  'the extensionless mypage URL must be canonical');
-assert.match(page, /mypage-personal-shop\.css/i,
-  'the production mypage must load the manually ported personal-shop design');
-assert.match(legacy, /belloreStandalonePage === 'mypage'[\s\S]*history\.back\(\)/,
-  'standalone close must preserve browser back navigation');
-assert.match(legacy, /bellore_pending_wishlist_tab[\s\S]*window\.location\.assign\('\/#wishlist'\)/,
-  'standalone interest, recent, and cart actions must resume on the catalog shell');
-assert.match(sw, /app\/pages\/standalone-page\.js/);
+assert.match(index, /id=["']btnSettings["']/, 'the working settings entry point must remain');
+assert.match(page, /<body[^>]*data-bellore-standalone-page=["']mypage["'][^>]*data-standalone-auth=["']required["']/i);
+assert.match(page, /rel=["']canonical["'][^>]*href=["']https:\/\/bellore\.co\.kr\/pages\/mypage["']/i);
+assert.match(page, /assets\/icons\/favicon-32\.png/, 'the compatibility route must keep the favicon');
+const standaloneUrl = page.match(/src=["'](\/app\/pages\/standalone-page\.js\?v=[^"']+)["']/)?.[1];
+assert(standaloneUrl, 'the compatibility route must load the shared auth entry');
+
+const authIndex = runtime.indexOf('await enforceStandaloneAuth');
+const redirectIndex = runtime.indexOf("window.location.replace('/?view=mypage')");
+const dependencyIndex = runtime.indexOf('for (const dependency of pageDependencies)');
+assert(authIndex >= 0 && redirectIndex > authIndex && dependencyIndex > redirectIndex,
+  'server auth must finish before mypage redirects or legacy UI dependencies load');
+assert.doesNotMatch(runtime, /fetch\(['"]\/index\.html/, 'the compatibility route must not clone the root document');
+assert.doesNotMatch(runtime, /hydrateMypageSupport|waitForLegacyOpen/,
+  'the removed duplicate composition cannot return');
+
+assert.match(legacy, /initCountdowns\(\);\s*initMypageRoute\(\);/,
+  'the mypage route gate runs after legacy handlers bind');
+assert.match(legacy, /function verifyMypageUser\([\s\S]*?sbClient\.auth\.getUser\(\)/,
+  'mypage access must verify the current user with the auth server');
+assert.match(legacy, /function initMypageRoute\([\s\S]*?verifyMypageUser\(\)[\s\S]*?if \(allowed\) openMyPage\(\)/,
+  'the root deep link verifies the current user before opening mypage');
+assert.match(legacy, /function openMyOrLogin\([\s\S]*?verifyMypageUser\(\)[\s\S]*?if \(allowed\) openMyPage\(\)/,
+  'the visible MY controls use the same server-verified gate');
+assert.doesNotMatch(legacy, /window\.location\.assign\(['"]\/pages\/mypage/,
+  'root handlers cannot fall back to the broken standalone composition');
+assert.match(legacy, /var wasOpen = !!\(m && !m\.hidden\)/,
+  'route cleanup must distinguish a user close from signed-out state initialization');
+assert.match(legacy, /if \(wasOpen && url\.searchParams\.get\(['"]view['"]\) === ['"]mypage['"]\)[\s\S]*?searchParams\.delete\(['"]view['"]\)/,
+  'only closing a visible mypage clears its deep-link query');
+
+assert.match(css, /body\.mypage-open #myPageModal/);
+assert.doesNotMatch(css, /data-bellore-standalone-page=["']mypage["']/,
+  'the personal-shop design must target the integrated root state');
+assert.doesNotMatch(css, /#myPageModal\s*\{[^}]*position:\s*static/s,
+  'the root modal cannot be flattened into the document flow');
+assert.match(css, /\.partner-settlement-heading\s*\{[^}]*margin-top:\s*18px/s,
+  'the moved partner heading replaces the removed inline style');
+assert(sw.includes(`'.${standaloneUrl}'`), 'the service worker must precache the exact compatibility entry URL');
 assert.match(build, /discoverPageHtmlFiles\(ROOT\)/);
 
-console.log('mypage standalone: markup=1 route=1 history=1 cache=1 passed');
+console.log('mypage integration: root=1 auth-first=1 support=11 cache=1 passed');

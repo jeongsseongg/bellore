@@ -24,6 +24,8 @@ const backendJs = fs.readFileSync(path.join(root, 'app/services/sell/sell-reques
 const bootstrapJs = fs.readFileSync(path.join(root, 'app/bootstrap.js'), 'utf8');
 const guestEdge = fs.readFileSync(path.join(root, 'supabase/functions/sell-request-access/index.ts'), 'utf8');
 const guestMigration = fs.readFileSync(path.join(root, 'supabase/migrations/20260826234000_sell_request_guest_access.sql'), 'utf8');
+const build = fs.readFileSync(path.join(root, 'tools/build-pages.mjs'), 'utf8');
+const sw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
 
 function evaluateExport(source, name) {
   const runnable = `(function () {\n${source.replace(/^export /gm, '')}\nreturn ${name};\n})()`;
@@ -133,6 +135,8 @@ assert.match(sellContent.instant.note, /감가 사유.*최종 매입금액/, 'in
 assert.match(moduleJs, /SELL_METHOD_CONTENT/, 'the sell form reads the single canonical content module');
 assert.doesNotMatch(moduleJs, /const METHOD_CONTENT\s*=/, 'sell-method no longer keeps a second copy of the method content');
 assert.match(moduleJs, /detailsBack\?\.addEventListener[\s\S]*showAccessoryQuestion\(ACCESSORY_QUESTIONS\.length - 1\)/, 'the photo stage can return to the last guided question');
+assert.match(html, /id="sellDetailsBack"/, 'the guided form renders the last-question control');
+assert.match(html, /id="sellMethodProcess"/, 'the selected method renders its canonical process');
 assert.match(sellServiceCss, /\.sell-method__form-mount\.is-guided-details \.sell-details-back/, 'the last-question control is visible only on the photo/details stage');
 assert.doesNotMatch(script, /saleMethod === 'consignment' && !desiredPrice/, 'consignment no longer asks the customer to choose a price first');
 assert.match(script, /NWBackend\.createSellRequest/, 'all three sell methods use the server request path');
@@ -148,7 +152,17 @@ assert.match(
   /installSellRequestAccess\(\{[\s\S]*?backend:\s*window\.NWBackend,[\s\S]*?getClient:\s*\(\)\s*=>\s*window\.sbClient,[\s\S]*?window,[\s\S]*?\}\);/,
   'the sell request client receives the live backend and Supabase client instead of silently skipping installation'
 );
-assert.match(html, /app\/bootstrap\.js\?v=20260828-phone-auth-paths-v1/, 'the repaired bootstrap uses the current browser cache key');
+const bootstrapUrl = html.match(/src=["'](app\/bootstrap\.js\?v=[^"']+)["']/)?.[1];
+const sellContentUrl = moduleJs.match(/from ["'](\.\/sell-content\.js\?v=[^"']+)["']/)?.[1];
+const sellServiceStyleUrl = html.match(/href=["'](app\/features\/sell-method\/sell-service\.css\?v=[^"']+)["']/)?.[1];
+assert(bootstrapUrl, 'the repaired bootstrap uses a browser cache key');
+assert(sellContentUrl, 'the sell controller imports the canonical content with a cache key');
+assert(sellServiceStyleUrl, 'the sell service stylesheet has a cache key');
+for (const file of ['app/features/sell-method/sell-content.js', 'app/features/sell-method/sell-service.css']) {
+  assert(build.includes(`'${file}'`), `${file} must be copied to the Pages artifact`);
+}
+assert(sw.includes(`./app/features/sell-method/${sellContentUrl.replace('./', '')}`));
+assert(sw.includes(`./${sellServiceStyleUrl}`));
 assert.match(guestEdge, /validatePortOneIdentity/, 'the Edge Function validates the provider response server-side');
 assert.match(guestEdge, /token_kind", "link"/, 'security links are exchanged through a one-time link token');
 assert.match(guestMigration, /revoke all on table public\.sell_service_requests from anon, authenticated/i, 'guest records have no direct Data API access');

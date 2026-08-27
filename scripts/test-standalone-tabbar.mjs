@@ -4,9 +4,8 @@ import { resolve } from 'node:path';
 import { discoverPageHtmlFiles } from '../tools/pages-html.mjs';
 
 const root = resolve(import.meta.dirname, '..');
-const TABBAR_EXCEPTIONS = new Set([]);
+const TABBAR_EXCEPTIONS = new Set(['pages/mypage.html']);
 const ACTIVE_TAB = new Map([
-  ['pages/mypage.html', 'my'],
   ['pages/orders.html', 'my'],
   ['pages/inquiry.html', ''],
 ]);
@@ -28,8 +27,8 @@ assert.match(login, /<bellore-tabbar\b[^>]*data-active=["']my["']/i, 'login.html
 assert.match(login, /assets\/icons\/favicon-32\.png/, 'login.html: 실제 존재하는 파비콘을 사용해야 합니다.');
 
 const component = await readFile(resolve(root, 'app/ui/app-tabbar.js'), 'utf8');
-assert.match(component, /\['my', '\/pages\/mypage', '마이'/,
-  '공통 마이 탭은 확장자 없는 정식 마이페이지 URL을 사용해야 합니다.');
+assert.match(component, /\['my', '\/\?view=mypage', '마이'/,
+  '공통 마이 탭은 루트 마이페이지 계약을 사용해야 합니다.');
 assert.match(component, /aria-current=[^\n]*page/, '활성 탭은 aria-current=page를 제공해야 합니다.');
 assert.match(component, /tab-wish-badge/, '공통 탭바는 최신 홈 탭바의 보관함 배지를 포함해야 합니다.');
 for (const iconPath of ['M3 12L12 3l9 9', 'm20 20-3.6-3.6', 'M20.8 4.6', 'M7.5 7.3', 'M4 21c0-4.4']) {
