@@ -154,7 +154,7 @@ function fakeEventTarget() {
   }
   for (const [asset, releaseKey] of [
     ['script.js', '20260826-auth-page-v1'],
-    ['app/bootstrap.js', '20260826-naverpay-live-v1'],
+    ['app/bootstrap.js', '20260827-sell-request-persistence-v1'],
     ['sw.js', '20260826-auth-shell-v1'],
     ['wishlist.js', '20260826-member-verification-live-v2'],
     ['search.js', '20260826-member-verification-live-v2'],

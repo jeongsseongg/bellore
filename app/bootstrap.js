@@ -38,7 +38,11 @@ import { installLegacyMemberVerificationService } from './legacy/member-verifica
 
 installLegacyMemberVerificationUi({ window, document });
 installLegacyMemberVerificationService({ window });
-installSellRequestAccess({ window });
+installSellRequestAccess({
+  backend: window.NWBackend,
+  getClient: () => window.sbClient,
+  window,
+});
 
 // 레거시 상품 카드가 DOMContentLoaded에서 그려지기 전에 동일한 판매 상태 규칙을 노출한다.
 Object.defineProperty(window, 'BELLORE_LISTING_AVAILABILITY', { configurable: true, value: Object.freeze({

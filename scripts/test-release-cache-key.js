@@ -11,6 +11,7 @@ const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
 const bootstrap = fs.readFileSync(path.join(root, 'app', 'bootstrap.js'), 'utf8');
 const releaseKey = '20260826-member-verification-live-v2';
 const sellReleaseKey = '20260826-naverpay-live-v1';
+const bootstrapReleaseKey = '20260827-sell-request-persistence-v1';
 const authPageReleaseKey = '20260826-auth-page-v1';
 const authPageAssetKey = '20260826-auth-page-v2';
 const signupAssetKey = '20260827-auth-signup-v1';
@@ -39,7 +40,7 @@ for (const [name, url] of Object.entries(urls)) {
     : name === 'script'
     ? authPageReleaseKey
     : name === 'bootstrap'
-    ? sellReleaseKey
+    ? bootstrapReleaseKey
     : name === 'serviceWorker'
     ? shellStyleKey
     : (name === 'pageRuntime' ? sellReleaseKey : releaseKey);
@@ -48,7 +49,7 @@ for (const [name, url] of Object.entries(urls)) {
 for (const name of ['styles', 'script', 'payments', 'wishlist', 'search', 'dialog', 'features', 'quotes', 'auction', 'bootstrap', 'conditionGuide', 'pageRuntime']) {
   assert(serviceWorker.includes(`'./${urls[name]}'`), `service worker must precache the exact ${name} URL`);
 }
-assert.match(serviceWorker, /const VERSION = "bellore-v351-auth-signup-integration";/, 'service-worker cache namespace must include the integrated signup flow');
+assert.match(serviceWorker, /const VERSION = "bellore-v352-sell-request-persistence";/, 'service-worker cache namespace must include the restored sell request path');
 assert(serviceWorker.includes("'./login.html'"), 'service worker must precache the independent login page');
 assert(serviceWorker.includes(`'./app/features/auth-login/auth-login.css?v=${authPageAssetKey}'`), 'service worker must precache login page styles');
 assert(serviceWorker.includes(`'./app/features/auth-login/auth-login.js?v=${authPageAssetKey}'`), 'service worker must precache login page behavior');
