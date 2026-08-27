@@ -3,12 +3,14 @@ const VERSION = "bellore-v352-sell-request-persistence";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
+const PAGE_ASSETS = /*__BELLORE_PAGE_ASSETS__*/[];
 
 /* 오프라인에서도 첫 화면이 뜨도록 미리 캐시할 앱 셸 */
 const SHELL_ASSETS = [
   './',
   './index.html',
   './login.html',
+  ...PAGE_ASSETS,
   './styles.css?v=20260826-auth-shell-v1',
   './wanted-theme.css?v=20260818-pretendard-v1',
   './vendor-reference.css?v=20260731-photo-viewer',
