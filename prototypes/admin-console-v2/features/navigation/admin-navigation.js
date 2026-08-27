@@ -17,14 +17,23 @@ function navItemMarkup(item) {
 
 export function createAdminNavigation({ root, groups, onNavigate }) {
   root.innerHTML = groups.map((group) => `
-    <section class="nav-group">
-      <p class="nav-group-label">${group.label}</p>
-      <div class="nav-group-items">${group.items.map(navItemMarkup).join('')}</div>
+    <section class="nav-group is-open" data-nav-group>
+      <button class="nav-group-toggle" type="button" data-nav-group-toggle aria-expanded="true">
+        <span>${group.label}</span><i aria-hidden="true"></i>
+      </button>
+      <div class="nav-group-items" data-nav-group-items>${group.items.map(navItemMarkup).join('')}</div>
     </section>`).join('');
+
+  function openGroup(group) {
+    if (!group) return;
+    group.classList.add('is-open');
+    group.querySelector('[data-nav-group-toggle]')?.setAttribute('aria-expanded', 'true');
+  }
 
   function select(viewId, { focus = false } = {}) {
     const next = root.querySelector(`[data-view="${viewId}"]`);
     if (!next) return;
+    openGroup(next.closest('[data-nav-group]'));
     root.querySelectorAll('[data-view]').forEach((button) => {
       const active = button === next;
       button.classList.toggle('is-active', active);
@@ -34,6 +43,14 @@ export function createAdminNavigation({ root, groups, onNavigate }) {
   }
 
   root.addEventListener('click', (event) => {
+    const toggle = event.target.closest('[data-nav-group-toggle]');
+    if (toggle) {
+      const group = toggle.closest('[data-nav-group]');
+      const open = !group.classList.contains('is-open');
+      group.classList.toggle('is-open', open);
+      toggle.setAttribute('aria-expanded', String(open));
+      return;
+    }
     const button = event.target.closest('[data-view]');
     if (!button) return;
     const viewId = button.dataset.view;

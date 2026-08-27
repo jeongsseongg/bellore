@@ -1,12 +1,12 @@
-import { requireAdminSession, signOutAdmin } from './admin-auth.js?v=20260826-admin-release-v4';
-import { roleContracts, navGroups, overview, moduleViews, caseDetail } from './data/admin-console-data.js?v=20260826-admin-integrated-v1';
-import { homeEditorData } from './data/admin-home-editor-data.js';
-import { createAdminNavigation } from './features/navigation/admin-navigation.js';
-import { createAdminHomeEditor } from './features/home-editor/admin-home-editor.js';
-import { createAdminMypageEditor } from './features/mypage-editor/admin-mypage-editor.js?v=20260826-editor-v8';
+import { getAdminAccessToken, requireAdminSession, signOutAdmin } from './admin-auth.js?v=20260826-admin-release-v5';
+import { roleContracts, navGroups, overview, moduleViews, caseDetail } from './data/admin-console-data.js?v=20260826-admin-crud-v1';
+import { createAdminNavigation } from './features/navigation/admin-navigation.js?v=20260826-admin-crud-v1';
+import { createAdminMypageEditor } from './features/mypage-editor/admin-mypage-editor.js?v=20260826-admin-simple-v1';
+import { createAdminOperationController } from './features/operations/admin-operation-controller.js?v=20260826-catalog-ledger-v3';
 import { createAdminWorkspace } from './features/workspace/admin-workspace.js';
+import { createAdminOperationsService } from './services/admin/admin-operations-service.js?v=20260826-catalog-ledger-v3';
 
-await requireAdminSession();
+const identity = await requireAdminSession();
 
 const root = document.getElementById('adminWorkspace');
 const navRoot = document.getElementById('adminNav');
@@ -19,8 +19,6 @@ const drawerScrim = document.getElementById('drawerScrim');
 const toastRegion = document.getElementById('toastRegion');
 const globalSearch = document.getElementById('globalSearch');
 const globalSearchLabel = globalSearch.closest('.global-search');
-const surfaceButton = document.querySelector('.surface-current');
-const surfaceMenu = document.querySelector('.surface-menu');
 const logoutButton = document.getElementById('adminLogout');
 const validViews = new Set(['overview', ...Object.keys(moduleViews)]);
 
@@ -38,13 +36,25 @@ function closeMobileMenu() {
   mobileScrim.hidden = true;
 }
 
-const homeEditor = createAdminHomeEditor({
-  data: homeEditorData,
-  onToast: toast,
-  onNavigate: navigate
+const operationsService = createAdminOperationsService({
+  getAccessToken: getAdminAccessToken,
+  operatorId: identity.profile.id
 });
 
-const mypageEditor = createAdminMypageEditor({ onToast: toast });
+const mypageEditor = createAdminMypageEditor({
+  settingsService: operationsService.catalog,
+  onToast: toast
+});
+
+const operations = createAdminOperationController({
+  root,
+  drawer,
+  drawerContent,
+  drawerScrim,
+  service: operationsService,
+  operatorId: identity.profile.id,
+  onToast: toast
+});
 
 const workspace = createAdminWorkspace({
   root,
@@ -54,7 +64,8 @@ const workspace = createAdminWorkspace({
   overview,
   roles: roleContracts,
   views: { ...moduleViews, caseDetail },
-  specialViews: { homeSettings: homeEditor, mypageSettings: mypageEditor },
+  specialViews: { mypageSettings: mypageEditor },
+  operations,
   onNavigate: navigate,
   onToast: toast
 });
@@ -69,7 +80,6 @@ function navigate(viewId, { updateUrl = true } = {}) {
   const next = validViews.has(viewId) ? viewId : 'overview';
   navigation.select(next);
   workspace.render(next);
-  closeMobileMenu();
   globalSearch.value = '';
   if (updateUrl) {
     const url = new URL(window.location.href);
@@ -92,15 +102,7 @@ document.querySelectorAll('[data-action="partner-preview"]').forEach((button) =>
   button.addEventListener('click', () => workspace.openPartnerPreview());
 });
 
-surfaceButton.addEventListener('click', () => {
-  surfaceMenu.hidden = !surfaceMenu.hidden;
-});
-
 logoutButton.addEventListener('click', () => signOutAdmin());
-
-document.addEventListener('click', (event) => {
-  if (!event.target.closest('.surface-switch')) surfaceMenu.hidden = true;
-});
 
 let searchTimer = 0;
 globalSearch.addEventListener('input', () => {

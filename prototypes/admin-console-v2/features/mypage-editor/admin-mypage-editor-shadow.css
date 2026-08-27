@@ -31,6 +31,8 @@
 
 .admin-embedded-role-preview .preview-toolbar__title,
 .admin-embedded-role-preview .preview-toolbar__actions a,
+.admin-embedded-role-preview [data-copy-config],
+.admin-embedded-role-preview [data-reset-config],
 .admin-embedded-role-preview .preview-notice {
   display: none;
 }
