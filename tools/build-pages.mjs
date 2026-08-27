@@ -2,6 +2,7 @@ import { cp, lstat, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/prom
 import { spawnSync } from 'node:child_process';
 import { dirname, extname, basename, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { discoverPageHtmlFiles, injectPageAssets } from './pages-html.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -250,12 +251,16 @@ async function verifyGeneratedSeo(output) {
 
 export async function buildPages({ outputDir = '_site', skipSeo = false, quiet = false } = {}) {
   const output = resolveOutput(outputDir);
+  const pageFiles = await discoverPageHtmlFiles(ROOT);
 
   await rm(output, { recursive: true, force: true });
   await mkdir(output, { recursive: true });
 
   for (const file of ROOT_RUNTIME_FILES) await copyFileFromRoot(file, output);
   for (const file of APP_RUNTIME_FILES) await copyFileFromRoot(file, output);
+  for (const file of pageFiles) await copyFileFromRoot(file, output);
+  const serviceWorkerPath = join(output, 'sw.js');
+  await writeFile(serviceWorkerPath, injectPageAssets(await readFile(serviceWorkerPath, 'utf8'), pageFiles));
   await copyAssets(output);
   await copyRuntimeDirectory('prototypes/admin-console-v2', 'admin', output);
   await copyRuntimeDirectory('prototypes/account-roles', 'account-roles', output);
