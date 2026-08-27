@@ -2,9 +2,10 @@
   display: flex;
   align-items: stretch;
   gap: 8px;
-  margin-bottom: 10px;
+  margin: 14px 0 10px;
   min-width: 0;
 }
+.co-coupon-select:disabled { background:#f6f6f6; color:#777; cursor:not-allowed; }
 
 .co-coupon-select {
   flex: 1 1 auto;
@@ -54,14 +55,14 @@
   cursor: pointer;
 }
 .co-coupon-msg { margin: 8px 0 0; font-size: 13px; }
-.co-coupon-msg.ok { color: #1a7f37; }
-.co-coupon-msg.err { color: #c0392b; }
+.co-coupon-msg.ok { color: #4a4a4a; }
+.co-coupon-msg.err { color: #4a4a4a; }
 .co-discount-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 6px;
-  color: #c0392b;
+  color: #4a4a4a;
   font-size: 14px;
 }
 .co-discount-row strong { font-weight: 700; }

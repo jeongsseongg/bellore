@@ -1,17 +1,8 @@
-/* ============================================================
-   벨로르(BELLORE) · 결제(포트원 PortOne V2) 연동
-   ------------------------------------------------------------
-   - 상품 상세의 "바로구매" → 체크아웃 모달 → 결제수단 선택 → 포트원 결제
-   - 전액 결제만 제공하며 구매자·배송지 정보와 주문을 DB에 기록
-   - PG 계약이 완료되어 채널 키가 등록된 결제수단만 노출
-   - 결제 후 Edge Function(confirm-payment)이 포트원 API로 금액·상태 검증
-   ============================================================ */
+/* 벨로르 체크아웃: 서버 주문 생성 → 포트원 결제 → 서버 승인 검증. */
 (function () {
   'use strict';
-
   var PAY = window.BELLORE_PAYMENTS || {};
   var $ = function (s, r) { return (r || document).querySelector(s); };
-
   function fmt(n) { return (n || 0).toLocaleString('ko-KR'); }
   function backendOn() {
     return !!(window.NWBackend && window.NWBackend.enabled);
@@ -20,23 +11,34 @@
     return backendOn() && window.NWBackend.currentUser
       ? window.NWBackend.currentUser() : null;
   }
-
-  // 배송비: 기본 전국 무료. 단, 프리미엄배송 기준액(기본 500만원) 이상 고가 상품은
-  //          안전·보험 프리미엄배송(기본 35,000원) 필수 가산. (약관/배송정책 특약)
-  function shipFee(price) {
+  // 직접거래는 무료, 배송은 500만원 이상 발렉스 안전배송비를 적용한다.
+  function shipFee(price, fulfillmentMethod) {
+    if ((fulfillmentMethod || selectedFulfillment) === 'pickup') return 0;
     var th = PAY.premiumShipThreshold || 5000000;
     return (Number(price) || 0) >= th ? (PAY.shippingFee || 0) : 0;
   }
   function calcFull(price) {
-    return price + shipFee(price);
+    return price + shipFee(price, selectedFulfillment);
   }
-
-  /* ---------------- 체크아웃 모달 ---------------- */
   var modal, product, checkoutGeneration = 0;
   var selectedChannel = null;   // 선택된 결제수단(config.channels 의 한 항목)
-
+  var selectedFulfillment = 'delivery';
+  var checkoutPresentation = window.BELLORE_CHECKOUT_PRESENTATION || null;
+  var checkoutPresentationPromise = null;
   function getModal() { return $('#checkoutModal'); }
   function paymentFlow() { return window.BELLORE_PAYMENT_FLOW; }
+  function presentation() { return window.BELLORE_CHECKOUT_PRESENTATION || checkoutPresentation; }
+  function ensureCheckoutPresentation() {
+    if (!checkoutPresentationPromise) checkoutPresentationPromise = presentation()
+      ? Promise.resolve(presentation())
+      : import('./app/features/checkout/checkout-presentation.js?v=20260828-checkout-methods-v1')
+        .then(function (module) { checkoutPresentation = module.createCheckoutPresentation(); return checkoutPresentation; })
+        .catch(function (error) { console.warn('[Bellore Checkout] presentation unavailable', error?.name || 'unknown'); return null; });
+    return checkoutPresentationPromise.then(function (ui) {
+      if (ui?.install) ui.install(document);
+      syncFulfillmentUi(); renderMethods(); renderProduct(); return ui;
+    });
+  }
   function testPaymentsEnabled() {
     var host = (location.hostname || '').toLowerCase();
     if (host === 'localhost' || host === '127.0.0.1' || host === '[::1]') return true;
@@ -47,12 +49,14 @@
       return false;
     }
   }
-
   // 설정에 채워진 채널만 사용하며 테스트 채널은 명시적인 테스트 주소로 제한한다.
   function activeChannels() {
     var allowTest = testPaymentsEnabled();
     var list = (PAY.channels || []).filter(function (c) {
-      return c && c.channelKey && (!c.test || allowTest);
+      if (!(c && c.channelKey && (!c.test || allowTest))) return false;
+      // 환불계좌 전달·검증 계약이 준비됐다고 명시하기 전에는 가상계좌를 숨긴다.
+      if (c.payMethod === 'VIRTUAL_ACCOUNT' && PAY.virtualAccountRefundReady !== true) return false;
+      return true;
     });
     return list;
   }
@@ -69,7 +73,7 @@
   function availableChannels() {
     var list = activeChannels().slice();
     var naver = naverOrderChannel();
-    if (naver) list.push(naver);
+    if (naver && selectedFulfillment === 'delivery') list.push(naver);
     return list;
   }
   function portoneReady() {
@@ -83,8 +87,6 @@
       PAY.checkoutUrl && PAY.confirmUrl
     );
   }
-
-  // 결제수단 버튼 렌더
   function renderMethods() {
     var box = $('#coMethods');
     if (!box) return;
@@ -99,10 +101,11 @@
       if (selectedChannel && chans[i].id === selectedChannel.id) selected = chans[i];
     }
     selectedChannel = selected || chans[0];
-    box.innerHTML = chans.map(function (c) {
-      var on = (c === selectedChannel);
-      return '<button type="button" class="co-method' + (on ? ' active' : '') +
-        '" data-ch="' + escLite(c.id) + '">' + escLite(c.label) + '</button>';
+    var ui = presentation();
+    box.innerHTML = ui ? ui.methodMarkup(chans, selectedChannel, escLite) : chans.map(function (c) {
+      var on = c === selectedChannel;
+      return '<button type="button" class="co-method' + (on ? ' active' : '') + '" data-ch="' +
+        escLite(c.id) + '">' + escLite(c.label) + '</button>';
     }).join('');
   }
   function selectChannel(id) {
@@ -110,31 +113,14 @@
     for (var i = 0; i < chans.length; i++) {
       if (chans[i].id === id) { selectedChannel = chans[i]; break; }
     }
-    renderMethods();
+    renderMethods(); updateAmount();
   }
-
-  function enableShippingAddress() {
-    var ship = $('#coShipSec');
-    if (ship) ship.hidden = false;
-    updateAmount();
+  function syncFulfillmentUi() {
+    var ui = presentation();
+    selectedFulfillment = ui?.syncFulfillment ? ui.syncFulfillment(document) : 'delivery';
+    var ship = $('#coShipSec'); if (ship && !ui) ship.hidden = false;
+    renderMethods(); updateAmount();
   }
-
-  function openPostcode() {
-    if (!window.daum || !window.daum.Postcode) {
-      alert('주소 검색을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
-      return;
-    }
-    new window.daum.Postcode({
-      oncomplete: function (data) {
-        var addr = data.roadAddress || data.jibunAddress || '';
-        if ($('#coPostcode')) $('#coPostcode').value = data.zonecode || '';
-        if ($('#coAddr1')) $('#coAddr1').value = addr;
-        var d = $('#coAddr2'); if (d) d.focus();
-      }
-    }).open();
-  }
-
-  /* ---------------- 쿠폰 ---------------- */
   var myCoupons = [], couponLoadGeneration = 0;
   function escLite(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -159,27 +145,49 @@
     if (!product) return 0;
     return calcFull(product.price);
   }
-  // 구매결제에 쓸 수 있는 내 쿠폰을 셀렉트에 채운다
   function loadCoupons() {
     var sec = $('#coCouponSec'), sel = $('#coCouponSelect');
     var loadGeneration = ++couponLoadGeneration;
     if (!sel) return Promise.resolve();
-    if (!(backendOn() && window.NWBackend.myCoupons)) { if (sec) sec.hidden = true; return Promise.resolve(); }
+    sel.disabled = true;
+    sel.innerHTML = '<option value="">사용 가능한 쿠폰 확인 중</option>';
+    if (!(backendOn() && window.NWBackend.myCoupons && window.NWBackend.couponDiscount)) {
+      myCoupons = [];
+      sel.innerHTML = '<option value="">사용 가능한 쿠폰 없음</option>';
+      if (sec) sec.hidden = false;
+      updateAmount();
+      return Promise.resolve();
+    }
     return window.NWBackend.myCoupons().then(function (list) {
       if (loadGeneration !== couponLoadGeneration) return;
+      var base = baseAmount();
       myCoupons = (list || []).filter(function (u) {
         var c = u.coupon;
         return u.status === 'active' && c && (c.apply_to === 'order' || c.apply_to === 'both') &&
-          !(c.expires_at && new Date(c.expires_at).getTime() < Date.now());
+          !(c.expires_at && new Date(c.expires_at).getTime() < Date.now()) &&
+          window.NWBackend.couponDiscount(c, base) > 0;
+      }).sort(function (a, b) {
+        return window.NWBackend.couponDiscount(b.coupon, base) - window.NWBackend.couponDiscount(a.coupon, base);
       });
-      sel.innerHTML = '<option value="">쿠폰 사용 안 함</option>' + myCoupons.map(function (u) {
+      if (!myCoupons.length) {
+        sel.innerHTML = '<option value="">사용 가능한 쿠폰 없음</option>';
+        sel.disabled = true;
+        if (sec) sec.hidden = false;
+        setCouponMsg('', true); updateAmount();
+        return;
+      }
+      sel.disabled = false;
+      sel.innerHTML = myCoupons.map(function (u) {
         return '<option value="' + u.id + '">' + escLite(u.coupon.title) + ' (' + couponValTxt(u.coupon) + ')</option>';
-      }).join('');
+      }).join('') + '<option value="">쿠폰 사용 안 함</option>';
+      sel.value = myCoupons[0].id;
+      setCouponMsg('가장 큰 할인 쿠폰이 자동 적용되었습니다.', true);
       if (sec) sec.hidden = false;
       updateAmount();
     }).catch(function (error) {
       if (loadGeneration !== couponLoadGeneration) return;
-      myCoupons = []; sel.value = ''; sel.innerHTML = '<option value="">쿠폰 사용 안 함</option>';
+      myCoupons = []; sel.value = ''; sel.disabled = true;
+      sel.innerHTML = '<option value="">쿠폰 정보를 불러오지 못했습니다</option>';
       setCouponMsg('쿠폰 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.', false);
       updateAmount(); paymentFlow().log('coupon_load', error);
     });
@@ -190,19 +198,10 @@
     el.textContent = text; el.hidden = !text;
     el.className = 'co-coupon-msg' + (ok ? ' ok' : ' err');
   }
-  function couponErrText(e) {
-    var m = (e && (e.message || e.code)) || '';
-    if (/NOT_FOUND/.test(m)) return '존재하지 않는 코드입니다.';
-    if (/ALREADY_OWNED/.test(m)) return '이미 보유한 쿠폰입니다.';
-    if (/EXPIRED/.test(m)) return '만료된 쿠폰입니다.';
-    if (/NOT_STARTED/.test(m)) return '아직 사용할 수 없는 쿠폰입니다.';
-    if (/SOLD_OUT/.test(m)) return '발급이 마감된 쿠폰입니다.';
-    if (/LOGGED_IN/.test(m)) return '로그인이 필요합니다.';
-    return '쿠폰을 등록할 수 없습니다.';
-  }
-
   function updateAmount() {
     var ui = couponUi(); if (ui) ui.sync();
+    var productPrice = product ? (Number(product.price) || 0) : 0;
+    var shipping = shipFee(productPrice, selectedFulfillment);
     var b = baseAmount();
     var disc = currentDiscount(b);
     var amt = Math.max(0, b - disc);
@@ -211,15 +210,22 @@
     if (dEl) dEl.textContent = '-' + fmt(disc) + '원';
     var totalEl = $('#coTotal');
     if (totalEl) totalEl.textContent = fmt(amt) + '원';
+    var rewardBps = Number(PAY.pointEarnBps) || 0;
+    var showReward = rewardBps > 0 && !!currentUser() && !(selectedChannel && selectedChannel.kind === 'naver-order');
+    if (presentation()?.renderAmountSummary) presentation().renderAmountSummary(document, {
+      productPrice: productPrice, shipping: shipping, total: amt, fulfillment: selectedFulfillment,
+      rewardBps: rewardBps, showReward: showReward
+    }, fmt);
   }
-
   function renderProduct() {
     if (!product) return;
     $('#coImg').src = product.image || 'assets/images.jpg';
     $('#coBrand').textContent = product.brand || '';
     $('#coModel').textContent = product.model || '';
     $('#coListPrice').textContent = product.price ? (fmt(product.price) + '원') : '가격 문의';
-
+    if (presentation() && typeof presentation().renderProductDetails === 'function') {
+      presentation().renderProductDetails(product, $);
+    }
     // 로그인 사용자 정보 채우기
     var u = currentUser();
     if (u) {
@@ -250,17 +256,19 @@
     product = candidate;
     modal = getModal();
     if (!modal) return;
+    ensureCheckoutPresentation();
     // 상품상세 모달이 떠 있으면 닫기(겹침 방지)
     var pm = $('#productModal');
     if (pm) pm.hidden = true;
-    enableShippingAddress();
+    var deliveryRadio = document.querySelector('input[name="coFulfillment"][value="delivery"]');
+    if (deliveryRadio) deliveryRadio.checked = true;
+    selectedFulfillment = 'delivery';
+    syncFulfillmentUi();
     renderProduct(); const CheckoutEvent = window.CustomEvent || (typeof CustomEvent === 'function' ? CustomEvent : null); if (CheckoutEvent && typeof document.dispatchEvent === 'function') document.dispatchEvent(new CheckoutEvent('bellore:checkout-opened')); else if (typeof document.dispatch === 'function') document.dispatch('bellore:checkout-opened');
-    // 쿠폰 초기화 후 내 쿠폰 로드
     var cSel = $('#coCouponSelect'); if (cSel) cSel.value = '';
     var cCode = $('#coCouponCode'); if (cCode) cCode.value = '';
     setCouponMsg('', true);
     loadCoupons();
-    // 결제수단 초기화 + 동의 체크 해제
     selectedChannel = null; renderMethods();
     paymentFlow().resetButton($('#coPayBtn'));
     ['#coAgreeTerms', '#coAgreePrivacy', '#coAgreeOrder'].forEach(function (sel) {
@@ -280,11 +288,19 @@
     document.body.style.overflow = '';
   }
 
-  // 결제 요청
-  function requestPay(listingChecked, requestGeneration, requestProduct) {
+  function requestPay(listingChecked, requestGeneration, requestProduct, requestSnapshot) {
     requestGeneration = Number.isInteger(requestGeneration) ? requestGeneration : checkoutGeneration;
     requestProduct = requestProduct || product;
     if (!requestProduct || requestProduct !== product || requestGeneration !== checkoutGeneration || !modal || modal.hidden) { paymentFlow().resetButton($('#coPayBtn')); return; }
+    if (!requestSnapshot && !selectedChannel) { alert('결제 수단을 선택해 주세요.'); return; }
+    requestSnapshot = requestSnapshot || Object.freeze({
+      channel: Object.freeze({ id: selectedChannel.id, kind: selectedChannel.kind || 'portone',
+        channelKey: selectedChannel.channelKey || '', payMethod: selectedChannel.payMethod || 'CARD',
+        easyPayProvider: selectedChannel.easyPayProvider || '' }),
+      fulfillmentMethod: selectedFulfillment === 'pickup' ? 'pickup' : 'delivery'
+    });
+    var requestChannel = requestSnapshot.channel;
+    var requestFulfillment = requestSnapshot.fulfillmentMethod;
     var name = $('#coName').value.trim();
     var phone = $('#coPhone').value.trim();
     var email = ($('#coEmail').value || '').trim();
@@ -292,14 +308,15 @@
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert('이메일 주소를 정확히 입력해 주세요.'); return; }
 
     var ship = {};
-    ship.recipient = ($('#coShipName').value || '').trim() || name;
-    ship.phone = ($('#coShipPhone').value || '').trim() || phone;
-    ship.postcode = ($('#coPostcode').value || '').trim();
-    ship.addr1 = ($('#coAddr1').value || '').trim();
-    ship.addr2 = ($('#coAddr2').value || '').trim();
-    ship.request = ($('#coShipReq').value || '').trim();
-    if (!ship.postcode || !ship.addr1) { alert('배송 주소를 입력해 주세요.'); return; }
-    if (!selectedChannel) { alert('결제 수단을 선택해 주세요.'); return; }
+    if (requestFulfillment === 'delivery') {
+      ship.recipient = ($('#coShipName').value || '').trim() || name;
+      ship.phone = ($('#coShipPhone').value || '').trim() || phone;
+      ship.postcode = ($('#coPostcode').value || '').trim();
+      ship.addr1 = ($('#coAddr1').value || '').trim();
+      ship.addr2 = ($('#coAddr2').value || '').trim();
+      ship.request = ($('#coShipReq').value || '').trim();
+      if (!ship.postcode || !ship.addr1) { alert('배송 주소를 입력해 주세요.'); return; }
+    }
     var requiredAgreements = [
       { el: $('#coAgreeTerms'), message: '이용약관에 동의해 주세요.' },
       { el: $('#coAgreePrivacy'), message: '개인정보 수집·이용에 동의해 주세요.' },
@@ -317,17 +334,17 @@
     }
 
     var uc = getSelectedCoupon();
-    var base = baseAmount();
+    var base = (Number(requestProduct.price) || 0) + shipFee(requestProduct.price, requestFulfillment);
     var discount = uc ? currentDiscount(base) : 0;
     var amount = Math.max(0, base - discount);
     if (amount < 100) { alert(uc ? '선택한 쿠폰을 적용하면 결제금액이 100원 미만입니다. 쿠폰을 해제하거나 다른 쿠폰을 선택해 주세요.' : '결제금액은 100원 이상이어야 합니다. 상품 가격을 확인해 주세요.'); return; }
 
     if (!listingChecked) {
-      paymentFlow().guard(requestProduct, $('#coPayBtn')).then(function (ok) { if (ok) requestPay(true, requestGeneration, requestProduct); });
+      paymentFlow().guard(requestProduct, $('#coPayBtn')).then(function (ok) { if (ok) requestPay(true, requestGeneration, requestProduct, requestSnapshot); });
       return;
     }
 
-    if (selectedChannel.kind === 'naver-order') {
+    if (requestChannel.kind === 'naver-order') {
       if (!window.BELLORE_NPAY_START) {
         alert('네이버페이 연결을 준비 중입니다. 잠시 후 다시 시도해 주세요.');
         return;
@@ -346,7 +363,7 @@
     }
 
     if (!portoneReady()) {
-      alert('현재 카드 결제를 준비하지 못했습니다. 새로고침 후에도 같으면 고객센터로 문의해 주세요.');
+      alert('현재 결제를 준비하지 못했습니다. 새로고침 후에도 같으면 고객센터로 문의해 주세요.');
       renderMethods();
       return;
     }
@@ -372,6 +389,7 @@
           discount: discount,
           buyerName: name,
           buyerPhone: phone,
+          fulfillmentMethod: requestFulfillment,
           shipRecipient: ship.recipient || null,
           shipPhone: ship.phone || null,
           shipPostcode: ship.postcode || null,
@@ -402,12 +420,12 @@
       payBtn.textContent = '결제 진행 중...';
       var req = {
         storeId: PAY.storeId,
-        channelKey: selectedChannel.channelKey,
+        channelKey: requestChannel.channelKey,
         paymentId: order.orderNo,
         orderName: orderName.slice(0, 100),
         totalAmount: serverAmount,
         currency: 'CURRENCY_KRW',
-        payMethod: selectedChannel.payMethod || 'CARD',
+        payMethod: requestChannel.payMethod || 'CARD',
         customer: {
           fullName: name,
           phoneNumber: phone.replace(/[^0-9]/g, ''),
@@ -415,7 +433,7 @@
         },
         redirectUrl: location.origin + '/?pay=portone'
       };
-      if (selectedChannel.easyPayProvider) req.easyPay = { easyPayProvider: selectedChannel.easyPayProvider };
+      if (requestChannel.easyPayProvider) req.easyPay = { easyPayProvider: requestChannel.easyPayProvider };
       return window.PortOne.requestPayment(req).then(function (resp) {
         paymentFlow().resetButton(payBtn);
         if (resp && resp.code != null) {
@@ -431,7 +449,6 @@
       });
     }).catch(function (e) { if (requestGeneration === checkoutGeneration && requestProduct === product) paymentFlow().startFailure(e, payBtn); else paymentFlow().log('stale_checkout_attempt', e); });
   }
-  // 결제 성공 후 서버(Edge Function) 검증
   function verifyPayment(paymentId, attribution, listingId, checkoutToken, checkoutAbandoned, recoveryOnly) {
     showResult(true, recoveryOnly ? '이전 결제 상태 확인 중...' : (checkoutAbandoned ? '결제 취소 확인 중...' : '결제 승인 처리 중...'), '잠시만 기다려 주세요.');
     if (!(backendOn() && window.NWBackend.confirmOrder && PAY.confirmUrl)) {
@@ -458,7 +475,6 @@
       showResult(false, '결제 확인이 지연되고 있습니다', '인터넷 연결을 확인해 주세요. 다시 결제하지 말고 잠시 후 결제 내역을 확인해 주세요.');
     });
   }
-  /* ---------------- 결제 결과 처리 ---------------- */
   function showResult(ok, title, desc) {
     var box = $('#payResult');
     if (!box) { alert(title + '\n' + (desc || '')); return; }
@@ -476,7 +492,6 @@
     recovery.handle({ verify: verifyPayment, showResult: showResult, customerMessage: function (error) { return paymentFlow().customerMessage(error, 'confirmation', true); } });
   }
 
-  /* ---------------- 이벤트 바인딩 ---------------- */
   function init() {
     var closeBtn = $('#coClose');
     if (closeBtn) closeBtn.addEventListener('click', closeCheckout);
@@ -490,33 +505,17 @@
       if (btn) selectChannel(btn.dataset.ch);
     });
 
-    var findAddr = $('#coFindAddr');
-    if (findAddr) findAddr.addEventListener('click', openPostcode);
+    var checkout = getModal();
+    if (checkout) checkout.addEventListener('change', function (event) {
+      if (event.target && event.target.matches('input[name="coFulfillment"]')) {
+        syncFulfillmentUi(); loadCoupons();
+      }
+    });
 
-    // 쿠폰 선택 변경 → 금액 재계산
     var cSel = $('#coCouponSelect');
     if (cSel) cSel.addEventListener('change', function () { setCouponMsg('', true); updateAmount(); });
     var cClear = $('#coCouponClear');
     if (cClear) cClear.addEventListener('click', function () { var ui = couponUi(); if (ui) ui.clear(updateAmount); });
-
-    // 쿠폰 코드 등록
-    var cApply = $('#coCouponApply');
-    if (cApply) cApply.addEventListener('click', function () {
-      var code = ($('#coCouponCode').value || '').trim();
-      if (!code) { setCouponMsg('쿠폰 코드를 입력해 주세요.', false); return; }
-      if (!(backendOn() && window.NWBackend.claimCouponByCode)) { setCouponMsg('로그인이 필요합니다.', false); return; }
-      cApply.disabled = true;
-      window.NWBackend.claimCouponByCode(code).then(function (newUc) {
-        setCouponMsg('쿠폰이 등록되었습니다.', true);
-        $('#coCouponCode').value = '';
-        return loadCoupons().then(function () {
-          var sel = $('#coCouponSelect');
-          if (sel && newUc && newUc.id) { sel.value = newUc.id; updateAmount(); }
-          if (window.belloreRefreshCoupons) window.belloreRefreshCoupons();
-        });
-      }).catch(function (e) { setCouponMsg(couponErrText(e), false); })
-        .then(function () { cApply.disabled = false; });
-    });
 
     var prHome = $('#prHome');
     if (prHome) prHome.addEventListener('click', function () {
@@ -530,6 +529,7 @@
       }
     });
 
+    ensureCheckoutPresentation();
     handleReturn();
   }
 

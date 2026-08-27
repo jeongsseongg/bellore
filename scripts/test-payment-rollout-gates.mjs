@@ -13,7 +13,7 @@ const guide = read('docs/PAYMENTS_SETUP.md');
 
 assert.match(checkout, /PAYMENT_CHECKOUT_ENABLED"\) === "true"/);
 assert.ok(
-  checkout.indexOf('if (!CHECKOUT_ENABLED)') < checkout.indexOf('admin.rpc("create_checkout_order_edge_v1"'),
+  checkout.indexOf('if (!CHECKOUT_ENABLED)') < checkout.indexOf('admin.rpc("create_checkout_order_edge_v2"'),
   'checkout rollout gate must run before the order RPC',
 );
 

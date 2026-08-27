@@ -33,6 +33,13 @@ const { pathToFileURL } = require('node:url');
   assert.match(read('app/bootstrap.js'), /checkout-addresses\.mjs\?v=20260826-shipping-address-popup-v2/);
   assert.match(read('app/bootstrap.js'), /initCheckoutAddresses\(\{ document, window, getClient:/);
   assert.match(read('payments.js'), /bellore:checkout-opened/);
+  for (const asset of ['card.svg', 'virtual-account.svg', 'naverpay-badge.svg', 'kakaopay.png', 'tosspay.png']) {
+    assert.ok(fs.statSync(path.join(root, 'assets/payment-methods', asset)).size > 0, `${asset} must be a non-empty checkout asset`);
+  }
+  const presentation = read('app/features/checkout/checkout-presentation.js');
+  assert.match(presentation, /methodMarkup/);
+  assert.match(presentation, /installCheckoutUi/);
+  assert.match(read('payments.js'), /import\('\.\/app\/features\/checkout\/checkout-presentation\.js/);
   assert.match(read('app/legacy/page-runtime.js'), /BELLORE_BRAND_KR \? window\.BELLORE_BRAND_KR\(bd\)/);
   assert.match(read('script.js'), /BELLORE_BRAND_KR\(c\.dataset\.brand\)/);
 
@@ -48,5 +55,5 @@ const { pathToFileURL } = require('node:url');
   }
   assert.match(migration, /update public\.profiles set postcode = new\.postcode/);
 
-  console.log('search + checkout address checks: 24 passed');
+  console.log('search + checkout address checks: 32 passed');
 })().catch((error) => { console.error(error); process.exitCode = 1; });
