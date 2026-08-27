@@ -13,7 +13,7 @@ const releaseKey = '20260826-member-verification-live-v2';
 const sellReleaseKey = '20260826-naverpay-live-v1';
 const bootstrapReleaseKey = '20260827-sell-request-persistence-v1';
 const authPageReleaseKey = '20260826-auth-page-v1';
-const authPageAssetKey = '20260826-auth-page-v2';
+const authPageAssetKey = '20260827-auth-page-v3';
 const signupAssetKey = '20260827-auth-signup-v1';
 const shellStyleKey = '20260826-auth-shell-v1';
 

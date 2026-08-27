@@ -25,11 +25,14 @@ for (const file of pages) {
 
 const login = await readFile(resolve(root, 'login.html'), 'utf8');
 assert.match(login, /<bellore-tabbar\b[^>]*data-active=["']my["']/i, 'login.html: MY 탭이 활성인 공통 탭바가 필요합니다.');
+assert.match(login, /assets\/icons\/favicon-32\.png/, 'login.html: 실제 존재하는 파비콘을 사용해야 합니다.');
 
 const component = await readFile(resolve(root, 'app/ui/app-tabbar.js'), 'utf8');
 assert.match(component, /aria-current=[^\n]*page/, '활성 탭은 aria-current=page를 제공해야 합니다.');
 const css = await readFile(resolve(root, 'app/ui/app-tabbar.css'), 'utf8');
 assert.match(css, /height:\s*calc\(66px \+ env\(safe-area-inset-bottom\)\)/, '탭바 높이는 모바일 safe-area를 포함해야 합니다.');
 assert.match(css, /padding-bottom:\s*calc\([^;]*env\(safe-area-inset-bottom\)\)/, '페이지 본문은 safe-area 포함 탭바 높이를 확보해야 합니다.');
+const authCss = await readFile(resolve(root, 'app/features/auth-login/auth-login.css'), 'utf8');
+assert.match(authCss, /\.auth-logo img\s*\{[^}]*max-width:\s*100%/s, '320px 로그인 화면에서 로고가 가로 넘침을 만들면 안 됩니다.');
 
 console.log(`standalone tabbar: pages=${pages.length} exceptions=${TABBAR_EXCEPTIONS.size} active=4 safe-area=1 passed`);

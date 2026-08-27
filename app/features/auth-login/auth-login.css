@@ -114,7 +114,7 @@ button, a { font: inherit; }
   .auth-shell { padding: 30px 22px 44px; }
   .auth-close { top: 20px; left: 20px; }
   .auth-logo { margin: 48px 0 44px; }
-  .auth-logo img { height: 70px; }
+  .auth-logo img { width: auto; max-width: 100%; height: auto; max-height: 70px; }
   .auth-field input, .auth-submit { height: 66px; }
   .auth-links { gap: 12px; margin: 28px 0; }
   .auth-links a { font-size: 14px; }

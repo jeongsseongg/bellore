@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v353-standalone-tabbar";
+const VERSION = "bellore-v354-tabbar-mobile-overflow";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -38,8 +38,8 @@ const SHELL_ASSETS = [
   './app/pages/standalone-page.js',
   './app/ui/app-tabbar.css?v=20260827-standalone-tabbar-v1',
   './app/ui/app-tabbar.js?v=20260827-standalone-tabbar-v1',
-  './app/features/auth-login/auth-login.css?v=20260826-auth-page-v2',
-  './app/features/auth-login/auth-login.js?v=20260826-auth-page-v2',
+  './app/features/auth-login/auth-login.css?v=20260827-auth-page-v3',
+  './app/features/auth-login/auth-login.js?v=20260827-auth-page-v3',
   './app/services/auth/auth-login-backend.js',
   './app/features/auth-signup/auth-signup.css?v=20260827-auth-signup-v1',
   './app/features/auth-signup/auth-signup.js?v=20260827-auth-signup-v1',
