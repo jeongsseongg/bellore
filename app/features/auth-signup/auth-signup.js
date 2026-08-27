@@ -69,8 +69,8 @@ function applyRole() {
   const business = isBusiness();
   document.getElementById('suBizBlock').hidden = !business;
   document.getElementById('signupStep2Hint').textContent = business
-    ? '이메일과 휴대폰을 확인한 뒤 사업자·계좌 인증을 진행해 주세요.'
-    : '이메일 인증 후 휴대폰 본인인증을 진행해 주세요.';
+    ? '이메일을 확인한 뒤 사업자·계좌 인증을 진행해 주세요.'
+    : '이메일 인증을 완료해 주세요.';
   document.getElementById('signupSubmitBtn').textContent = business ? '가입 신청' : '가입 완료';
   verification.reset('biz');
   verification.reset('account');
@@ -88,7 +88,7 @@ function showStep(number, { historyMode = 'none' } = {}) {
   heading.innerHTML = [
     '',
     '어떤 회원으로<br>가입할까요?',
-    '회원 정보를<br>입력해 주세요.',
+    '이름과 휴대폰을<br>확인해 주세요.',
     '본인인증을<br>진행해 주세요.',
   ][number];
   if (historyMode === 'push') history.pushState({ belloreSignupStep: number }, '', location.href);
@@ -156,19 +156,26 @@ document.getElementById('signupFindAddr').addEventListener('click', () => {
 });
 
 document.getElementById('signupNext').addEventListener('click', () => {
+  if (!fieldValue('suName')) { setStatus('이름을 입력해 주세요.'); return; }
+  if (!verified('phone')) { setStatus('휴대폰 본인인증을 완료해 주세요.'); return; }
+  setStatus('');
+  saveDraft();
+  showStep(3, { historyMode: 'push' });
+});
+
+function validateAccountFields() {
   const username = fieldValue('suUsername');
   const password = document.getElementById('suPw').value;
-  if (!fieldValue('suName')) { setStatus('이름을 입력해 주세요.'); return; }
   if (checkedUsername !== username) { setStatus('아이디 중복확인을 완료해 주세요.'); return; }
   if (password.length < 8) { setStatus('비밀번호는 8자 이상이어야 합니다.'); return; }
   if (password !== document.getElementById('suPw2').value) { setStatus('비밀번호가 일치하지 않습니다.'); return; }
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(fieldValue('suEmail'))) { setStatus('이메일을 정확히 입력해 주세요.'); return; }
   if (!fieldValue('signupPostcode') || !fieldValue('signupAddr1')) { setStatus('주소를 입력해 주세요.'); return; }
   if (!document.getElementById('signupAgree').checked) { setStatus('필수 약관에 동의해 주세요.'); return; }
-  setStatus('');
-  saveDraft();
-  showStep(3, { historyMode: 'push' });
-});
+  return true;
+}
+if (active) verification.completeReturnedIdentity()
+  .then((handled) => { if (handled) showStep(2, { historyMode: 'replace' }); });
 document.getElementById('signupRoleNext').addEventListener('click', () => {
   saveDraft();
   showStep(2, { historyMode: 'push' });
@@ -186,6 +193,7 @@ function verified(kind) {
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
+  if (!validateAccountFields()) return;
   const required = isBusiness() ? ['email', 'phone', 'biz', 'account'] : ['email', 'phone'];
   if (required.some((kind) => !verified(kind))) { setStatus('필수 인증을 모두 완료해 주세요.'); return; }
   const submit = document.getElementById('signupSubmitBtn');
@@ -197,7 +205,8 @@ form.addEventListener('submit', async (event) => {
     await backend.signUp({
       role: role(), name: fieldValue('suName'), username: fieldValue('suUsername'),
       email: fieldValue('suEmail'), password: document.getElementById('suPw').value,
-      phone: fieldValue('suPhone'), postcode: fieldValue('signupPostcode'),
+      phone: fieldValue('suPhone'), phoneVerificationTicket: verification.state.phone.ticket || '',
+      postcode: fieldValue('signupPostcode'),
       addr1: fieldValue('signupAddr1'), addr2: fieldValue('signupAddr2'),
       adConsent: document.getElementById('signupAdConsent').checked,
       company: fieldValue('suCompany'), bizName: fieldValue('suCompany'),

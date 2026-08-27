@@ -81,3 +81,51 @@ revoke all on function public.admin_review_member_onboarding(uuid,uuid,text,json
   from public, anon, authenticated;
 grant execute on function public.admin_review_member_onboarding(uuid,uuid,text,jsonb,text,bigint)
   to service_role;
+
+create table if not exists public.member_signup_phone_tickets (
+  id uuid primary key default gen_random_uuid(),
+  token_hash text not null unique,
+  phone text not null,
+  verified_name text,
+  provider text not null,
+  provider_reference_hash text not null unique,
+  verified_at timestamptz not null,
+  expires_at timestamptz not null,
+  consumed_by uuid references auth.users(id) on delete set null,
+  consumed_at timestamptz,
+  created_at timestamptz not null default now()
+);
+alter table public.member_signup_phone_tickets enable row level security;
+revoke all on table public.member_signup_phone_tickets from public, anon, authenticated;
+
+create or replace function public.consume_member_signup_phone_ticket(
+  p_user_id uuid,
+  p_token_hash text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare ticket public.member_signup_phone_tickets%rowtype;
+begin
+  select * into ticket from public.member_signup_phone_tickets
+  where token_hash = p_token_hash for update;
+  if not found then raise exception using errcode = 'P0002', message = 'PHONE_TICKET_NOT_FOUND'; end if;
+  if ticket.consumed_at is not null then raise exception using errcode = '23505', message = 'PHONE_TICKET_USED'; end if;
+  if ticket.expires_at <= now() then raise exception using errcode = '22023', message = 'PHONE_TICKET_EXPIRED'; end if;
+
+  perform public.finalize_member_verification(
+    p_user_id, 'phone', ticket.provider, ticket.provider_reference_hash,
+    jsonb_build_object('phone', ticket.phone), ticket.verified_at
+  );
+  update public.member_signup_phone_tickets
+  set consumed_by = p_user_id, consumed_at = now()
+  where id = ticket.id;
+  return jsonb_build_object('phone', ticket.phone, 'name', ticket.verified_name, 'verifiedAt', ticket.verified_at);
+end $$;
+
+revoke all on function public.consume_member_signup_phone_ticket(uuid,text)
+  from public, anon, authenticated;
+grant execute on function public.consume_member_signup_phone_ticket(uuid,text)
+  to service_role;

@@ -23,8 +23,8 @@ for (const [name, html] of [['login', login], ...['mypage', 'orders', 'inquiry']
 }
 assert.doesNotMatch(login, /assets\/favicon\.png/);
 assert.match(login, /id="signupStep1"[\s\S]*일반 회원[\s\S]*파트너사[\s\S]*id="signupRoleNext"/);
-assert.match(login, /id="signupStep2"[\s\S]*id="suName"[\s\S]*id="signupInfoPrev"/);
-assert.match(login, /id="signupStep3"[\s\S]*data-v="email"[\s\S]*data-v="phone"/);
+assert.match(login, /id="signupStep2"[\s\S]*id="suName"[\s\S]*data-v="phone"[\s\S]*id="signupInfoPrev"/);
+assert.match(login, /id="signupStep3"[\s\S]*id="suUsername"[\s\S]*data-v="email"/);
 assert.match(login, /id="suEmailCode"[^>]+minlength="6"[^>]+maxlength="10"/,
   'Supabase가 허용하는 6~10자리 이메일 OTP를 입력할 수 있어야 합니다.');
 assert.doesNotMatch(login, /id="suEmailCode"[^>]+maxlength="6"/);

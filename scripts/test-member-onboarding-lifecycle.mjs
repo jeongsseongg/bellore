@@ -16,5 +16,8 @@ assert.match(migration, /create or replace function public\.admin_review_member_
 assert.match(migration, /public\.admin_manage_member_profile/);
 assert.match(migration, /grant execute on function public\.admin_review_member_onboarding[\s\S]*to service_role/);
 assert.match(edge, /Object\.hasOwn\(patch, "approved"\) \? "admin_review_member_onboarding"/);
+assert.match(migration, /create table if not exists public\.member_signup_phone_tickets/);
+assert.match(migration, /create or replace function public\.consume_member_signup_phone_ticket/);
+assert.match(migration, /PHONE_TICKET_EXPIRED/);
 
-console.log('member onboarding lifecycle: columns=5 submit=1 review=1 edge=1 passed');
+console.log('member onboarding lifecycle: columns=5 submit=1 review=1 ticket=2 edge=1 passed');
