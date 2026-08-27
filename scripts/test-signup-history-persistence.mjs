@@ -10,6 +10,7 @@ const pages = await Promise.all(['mypage', 'orders', 'inquiry']
 assert.match(signup, /history\.pushState\(\{ belloreSignupStep: number \}/);
 assert.match(signup, /addEventListener\('popstate'/);
 assert.match(signup, /history\.back\(\)/);
+assert.match(signup, /\[1, 2, 3\]\.includes/);
 assert.match(signup, /sessionStorage\.setItem\(SIGNUP_DRAFT_KEY/);
 assert.match(signup, /sessionStorage\.removeItem\(SIGNUP_DRAFT_KEY\)/);
 assert.doesNotMatch(signup.match(/const DRAFT_FIELDS = \[[\s\S]*?\];/)?.[0] || '', /suPw/,
@@ -21,8 +22,11 @@ for (const [name, html] of [['login', login], ...['mypage', 'orders', 'inquiry']
   assert.match(html, /rel="manifest"[^>]+manifest\.json/, `${name} manifest가 누락됐습니다.`);
 }
 assert.doesNotMatch(login, /assets\/favicon\.png/);
+assert.match(login, /id="signupStep1"[\s\S]*일반 회원[\s\S]*파트너사[\s\S]*id="signupRoleNext"/);
+assert.match(login, /id="signupStep2"[\s\S]*id="suName"[\s\S]*id="signupInfoPrev"/);
+assert.match(login, /id="signupStep3"[\s\S]*data-v="email"[\s\S]*data-v="phone"/);
 assert.match(login, /id="suEmailCode"[^>]+minlength="6"[^>]+maxlength="10"/,
   'Supabase가 허용하는 6~10자리 이메일 OTP를 입력할 수 있어야 합니다.');
 assert.doesNotMatch(login, /id="suEmailCode"[^>]+maxlength="6"/);
 
-console.log('signup history persistence: history=3 draft=2 favicon=4 otp-range=1 passed');
+console.log('signup history persistence: history=4 draft=2 favicon=4 otp-range=1 role-screen=3 passed');

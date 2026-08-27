@@ -6,6 +6,7 @@ const form = document.getElementById('signupForm');
 const status = document.getElementById('signupStatus');
 const step1 = document.getElementById('signupStep1');
 const step2 = document.getElementById('signupStep2');
+const step3 = document.getElementById('signupStep3');
 const progress = document.getElementById('signupProgress');
 const heading = document.getElementById('signupTitle');
 let checkedUsername = '';
@@ -82,16 +83,28 @@ function showStep(number, { historyMode = 'none' } = {}) {
   currentStep = number;
   step1.hidden = number !== 1;
   step2.hidden = number !== 2;
-  progress.textContent = `${number} / 2`;
-  heading.innerHTML = number === 1 ? '회원 정보를<br>입력해 주세요.' : '본인인증을<br>진행해 주세요.';
+  step3.hidden = number !== 3;
+  progress.textContent = `${number} / 3`;
+  heading.innerHTML = [
+    '',
+    '어떤 회원으로<br>가입할까요?',
+    '회원 정보를<br>입력해 주세요.',
+    '본인인증을<br>진행해 주세요.',
+  ][number];
   if (historyMode === 'push') history.pushState({ belloreSignupStep: number }, '', location.href);
   if (historyMode === 'replace') history.replaceState({ ...history.state, belloreSignupStep: number }, '', location.href);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 if (active) {
-  showStep(Number(history.state?.belloreSignupStep) === 2 ? 2 : 1, { historyMode: 'replace' });
-  window.addEventListener('popstate', (event) => showStep(Number(event.state?.belloreSignupStep) === 2 ? 2 : 1));
+  const initialStep = [1, 2, 3].includes(Number(history.state?.belloreSignupStep))
+    ? Number(history.state.belloreSignupStep) : 1;
+  showStep(initialStep, { historyMode: 'replace' });
+  window.addEventListener('popstate', (event) => {
+    const next = [1, 2, 3].includes(Number(event.state?.belloreSignupStep))
+      ? Number(event.state.belloreSignupStep) : 1;
+    showStep(next);
+  });
   form.addEventListener('input', saveDraft);
   form.addEventListener('change', saveDraft);
 }
@@ -154,11 +167,16 @@ document.getElementById('signupNext').addEventListener('click', () => {
   if (!document.getElementById('signupAgree').checked) { setStatus('필수 약관에 동의해 주세요.'); return; }
   setStatus('');
   saveDraft();
+  showStep(3, { historyMode: 'push' });
+});
+document.getElementById('signupRoleNext').addEventListener('click', () => {
+  saveDraft();
   showStep(2, { historyMode: 'push' });
 });
+document.getElementById('signupInfoPrev').addEventListener('click', () => history.back());
 document.getElementById('signupPrev').addEventListener('click', () => {
-  if (currentStep === 2 && Number(history.state?.belloreSignupStep) === 2) history.back();
-  else showStep(1, { historyMode: 'replace' });
+  if (currentStep > 1 && Number(history.state?.belloreSignupStep) === currentStep) history.back();
+  else showStep(Math.max(1, currentStep - 1), { historyMode: 'replace' });
 });
 
 function verified(kind) {
