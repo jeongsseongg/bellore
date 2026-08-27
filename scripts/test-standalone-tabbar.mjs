@@ -29,9 +29,16 @@ assert.match(login, /assets\/icons\/favicon-32\.png/, 'login.html: 실제 존재
 
 const component = await readFile(resolve(root, 'app/ui/app-tabbar.js'), 'utf8');
 assert.match(component, /aria-current=[^\n]*page/, '활성 탭은 aria-current=page를 제공해야 합니다.');
+assert.match(component, /tab-wish-badge/, '공통 탭바는 최신 홈 탭바의 보관함 배지를 포함해야 합니다.');
+for (const iconPath of ['M3 12L12 3l9 9', 'm20 20-3.6-3.6', 'M20.8 4.6', 'M7.5 7.3', 'M4 21c0-4.4']) {
+  assert.match(component, new RegExp(iconPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), `공통 탭바에 최신 홈 아이콘 ${iconPath}가 필요합니다.`);
+}
 const css = await readFile(resolve(root, 'app/ui/app-tabbar.css'), 'utf8');
 assert.match(css, /height:\s*calc\(66px \+ env\(safe-area-inset-bottom\)\)/, '탭바 높이는 모바일 safe-area를 포함해야 합니다.');
 assert.match(css, /padding-bottom:\s*calc\([^;]*env\(safe-area-inset-bottom\)\)/, '페이지 본문은 safe-area 포함 탭바 높이를 확보해야 합니다.');
+assert.match(css, /border-radius:\s*0/, '공통 탭바는 최신 홈 탭바의 평평한 상단을 유지해야 합니다.');
+assert.match(css, /backdrop-filter:\s*blur\(20px\)/, '공통 탭바는 최신 홈 탭바의 블러 배경을 유지해야 합니다.');
+assert.match(css, /color:\s*#151515/, '공통 탭바 활성색은 최신 홈 탭바와 같아야 합니다.');
 const authCss = await readFile(resolve(root, 'app/features/auth-login/auth-login.css'), 'utf8');
 assert.match(authCss, /\.auth-logo img\s*\{[^}]*max-width:\s*100%/s, '320px 로그인 화면에서 로고가 가로 넘침을 만들면 안 됩니다.');
 

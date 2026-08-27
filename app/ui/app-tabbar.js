@@ -13,8 +13,12 @@ function itemMarkup([name, href, label, icon], active) {
   const sellHook = name === 'sell'
     ? ' data-sell-method-open aria-haspopup="dialog" aria-controls="sellMethodSheet"'
     : '';
-  return `<a class="tab-item${current}" data-app-tab="${name}" href="${href}"${myId}${sellHook}${ariaCurrent}>` +
-    `<svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg><span>${label}</span></a>`;
+  const iconMarkup = name === 'wishlist'
+    ? `<span class="tab-wish-ic"><svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg>` +
+      '<b class="tab-wish-badge" id="tabWishBadge" hidden>0</b></span>'
+    : `<svg viewBox="0 0 24 24" aria-hidden="true">${icon}</svg>`;
+  return `<a class="tab-item${name === 'wishlist' ? ' tab-wish' : ''}${current}" data-app-tab="${name}" href="${href}"${myId}${sellHook}${ariaCurrent}>` +
+    `${iconMarkup}<span>${label}</span></a>`;
 }
 
 class BelloreTabbar extends HTMLElement {

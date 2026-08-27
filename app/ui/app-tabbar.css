@@ -14,9 +14,13 @@ bellore-tabbar {
   max-width: 660px;
   height: calc(66px + env(safe-area-inset-bottom));
   padding: 6px 8px calc(5px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
   transform: translateX(-50%);
   border-top: 1px solid #e8e8ea;
+  border-radius: 0;
   background: rgba(255, 255, 255, .98);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
   box-shadow: 0 -4px 18px rgba(23, 23, 25, .04);
 }
 
@@ -33,13 +37,19 @@ bellore-tabbar {
   padding: 0;
   border: 0;
   background: transparent;
-  color: #8b8d91;
+  color: #9a9a9a;
   text-decoration: none;
+  transition: color .2s, transform .15s;
+}
+
+.app-tabbar .tab-item svg,
+.app-tabbar .tab-item .tab-wish-ic {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
 }
 
 .app-tabbar .tab-item svg {
-  width: 24px;
-  height: 24px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.8;
@@ -54,7 +64,39 @@ bellore-tabbar {
 }
 
 .app-tabbar .tab-item.active {
-  color: #111;
+  color: #151515;
+}
+
+.app-tabbar .tab-item.active span:last-child {
+  font-weight: 700;
+}
+
+.app-tabbar .tab-item:active {
+  transform: scale(.92);
+}
+
+.app-tabbar .tab-wish-ic {
+  position: relative;
+}
+
+.app-tabbar .tab-wish-badge {
+  position: absolute;
+  top: -6px;
+  right: -9px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #e53935;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+}
+
+.app-tabbar .tab-wish-badge[hidden] {
+  display: none;
 }
 
 body[data-bellore-standalone-page] .login-content {

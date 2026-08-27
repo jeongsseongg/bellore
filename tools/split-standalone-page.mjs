@@ -55,12 +55,12 @@ const page = `<!DOCTYPE html>
 <title>${pageTitle} | BELLORE</title>
 <link rel="canonical" href="https://bellore.co.kr/pages/${outputName}">
 ${styles}
-<link rel="stylesheet" href="/app/ui/app-tabbar.css?v=20260827-standalone-tabbar-v1">
+<link rel="stylesheet" href="/app/ui/app-tabbar.css?v=20260827-latest-tabbar-v2">
 </head>
 <body data-bellore-standalone-page="${pageKind}">
 ${modal.markup}
 <bellore-tabbar data-active="${activeTab}"></bellore-tabbar>
-<script type="module" src="/app/ui/app-tabbar.js?v=20260827-standalone-tabbar-v1"></script>
+<script type="module" src="/app/ui/app-tabbar.js?v=20260827-latest-tabbar-v2"></script>
 <script type="module" src="/app/pages/standalone-page.js?v=20260827-standalone-tabbar-v1"></script>
 </body>
 </html>
