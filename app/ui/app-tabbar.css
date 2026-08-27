@@ -63,11 +63,13 @@ bellore-tabbar {
   line-height: 1.2;
 }
 
-.app-tabbar .tab-item.active {
+.app-tabbar .tab-item.active,
+.app-tabbar .tab-item[aria-current="page"] {
   color: #151515;
 }
 
-.app-tabbar .tab-item.active span:last-child {
+.app-tabbar .tab-item.active span:last-child,
+.app-tabbar .tab-item[aria-current="page"] span:last-child {
   font-weight: 700;
 }
 

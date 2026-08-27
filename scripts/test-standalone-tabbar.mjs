@@ -39,6 +39,7 @@ assert.match(css, /padding-bottom:\s*calc\([^;]*env\(safe-area-inset-bottom\)\)/
 assert.match(css, /border-radius:\s*0/, '공통 탭바는 최신 홈 탭바의 평평한 상단을 유지해야 합니다.');
 assert.match(css, /backdrop-filter:\s*blur\(20px\)/, '공통 탭바는 최신 홈 탭바의 블러 배경을 유지해야 합니다.');
 assert.match(css, /color:\s*#151515/, '공통 탭바 활성색은 최신 홈 탭바와 같아야 합니다.');
+assert.match(css, /tab-item\[aria-current=["']page["']\]/, '레거시 페이지 전환기가 active 클래스를 지워도 현재 탭 표시가 유지되어야 합니다.');
 const authCss = await readFile(resolve(root, 'app/features/auth-login/auth-login.css'), 'utf8');
 assert.match(authCss, /\.auth-logo img\s*\{[^}]*max-width:\s*100%/s, '320px 로그인 화면에서 로고가 가로 넘침을 만들면 안 됩니다.');
 
