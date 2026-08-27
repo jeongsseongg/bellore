@@ -1,9 +1,14 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v359-mypage-contracts-auth";
+const VERSION = "bellore-v360-mypage-clean-routes-design";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
 const PAGE_ASSETS = /*__BELLORE_PAGE_ASSETS__*/[];
+const STANDALONE_ROUTE_ASSETS = Object.freeze({
+  '/pages/mypage': './pages/mypage.html',
+  '/pages/orders': './pages/orders.html',
+  '/pages/inquiry': './pages/inquiry.html',
+});
 
 /* 오프라인에서도 첫 화면이 뜨도록 미리 캐시할 앱 셸 */
 const SHELL_ASSETS = [
@@ -36,10 +41,12 @@ const SHELL_ASSETS = [
   './ai-advisor-admin.js?v=20260826-member-verification-live-v2',
   './app/bootstrap.js?v=20260827-mypage-contracts-v1',
   './app/pages/standalone-auth-gate.mjs?v=20260828-standalone-auth-v1',
-  './app/pages/standalone-page.css?v=20260828-standalone-auth-v1',
+  './app/pages/standalone-page.css?v=20260828-clean-routes-v2',
   './app/pages/standalone-page.js?v=20260828-mypage-contracts-auth-v1',
-  './app/ui/app-tabbar.css?v=20260827-latest-tabbar-v3',
-  './app/ui/app-tabbar.js?v=20260827-latest-tabbar-v3',
+  './app/pages/standalone-route.js?v=20260828-clean-routes-v1',
+  './app/ui/app-tabbar.css?v=20260828-clean-routes-v4',
+  './app/ui/app-tabbar.js?v=20260828-clean-routes-v4',
+  './app/features/mypage-personal-shop/mypage-personal-shop.css?v=20260828-personal-shop-v1',
   './app/features/auth-login/auth-login.css?v=20260827-auth-page-v3',
   './app/features/auth-login/auth-login.js?v=20260828-return-to-v1',
   './app/services/auth/auth-login-backend.js',
@@ -206,7 +213,9 @@ self.addEventListener('fetch', (event) => {
         })
         .catch(async () => {
           const exactPage = paymentReturn ? null : await caches.match(req);
-          return exactPage || caches.match(OFFLINE_FALLBACK);
+          const standalonePage = paymentReturn ? null : STANDALONE_ROUTE_ASSETS[url.pathname];
+          const standaloneFallback = standalonePage ? await caches.match(standalonePage) : null;
+          return exactPage || standaloneFallback || caches.match(OFFLINE_FALLBACK);
         })
     );
     return;

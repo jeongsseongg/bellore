@@ -302,7 +302,7 @@
         var m = $('#ordersModal');
         if (!m) {
             var query = ordersFilter ? ('?status=' + encodeURIComponent(ordersFilter)) : '';
-            window.location.assign('/pages/orders.html' + query);
+            window.location.assign('/pages/orders' + query);
             return;
         }
         $$('#ordersTabs .orders-tab').forEach(function (t) {
@@ -315,7 +315,7 @@
     function closeOrdersList() {
         if (document.body && document.body.dataset.belloreStandalonePage === 'orders') {
             if (history.length > 1) history.back();
-            else window.location.assign('/pages/mypage.html');
+            else window.location.assign('/pages/mypage');
             return;
         }
         var m = $('#ordersModal'); if (m) { m.hidden = true; document.body.style.overflow = 'hidden'; }
@@ -432,7 +432,7 @@
     function openMyPage() {
         var m = $('#myPageModal');
         if (!m) {
-            window.location.assign('/pages/mypage.html');
+            window.location.assign('/pages/mypage');
             return;
         }
         m.hidden = false;
@@ -3614,7 +3614,7 @@
         function openInquiry(type) {
             closeLoginModal();
             if (!inquiryModal) {
-                window.location.assign('/pages/inquiry.html?type=' + encodeURIComponent(type || 'partner'));
+                window.location.assign('/pages/inquiry?type=' + encodeURIComponent(type || 'partner'));
                 return;
             }
             $('#inquiryEyebrow').textContent = type === 'partner' ? 'PARTNERSHIP' : 'ADVERTISEMENT';

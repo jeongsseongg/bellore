@@ -27,10 +27,10 @@ for (const file of await discoverPageHtmlFiles(root)) {
 assert.equal(standaloneAuthPolicyFor('mypage'), 'required');
 assert.equal(standaloneAuthPolicyFor('orders'), 'required');
 assert.equal(standaloneAuthPolicyFor('inquiry'), 'public');
-assert.match(standaloneLoginUrl({ pathname: '/pages/orders.html', search: '?status=paid', hash: '' }),
-  /^\/login\.html\?returnTo=%2Fpages%2Forders\.html%3Fstatus%3Dpaid$/);
+assert.match(standaloneLoginUrl({ pathname: '/pages/orders', search: '?status=paid', hash: '' }),
+  /^\/login\.html\?returnTo=%2Fpages%2Forders%3Fstatus%3Dpaid$/);
 
-const signedInLocation = { pathname: '/pages/mypage.html', search: '', hash: '', replace() { throw new Error('unexpected redirect'); } };
+const signedInLocation = { pathname: '/pages/mypage', search: '', hash: '', replace() { throw new Error('unexpected redirect'); } };
 let getUserCalls = 0;
 const signedIn = await enforceStandaloneAuth({
   page: 'mypage',
@@ -46,17 +46,17 @@ const signedOut = await enforceStandaloneAuth({
   page: 'orders',
   backend: { configured: true, ready: Promise.resolve() },
   client: { auth: { getUser: async () => ({ data: { user: null }, error: null }) } },
-  locationObject: { pathname: '/pages/orders.html', search: '?status=paid', hash: '', replace(url) { redirectedTo = url; } },
+  locationObject: { pathname: '/pages/orders', search: '?status=paid', hash: '', replace(url) { redirectedTo = url; } },
 });
 assert.equal(signedOut.allowed, false);
-assert.equal(redirectedTo, '/login.html?returnTo=%2Fpages%2Forders.html%3Fstatus%3Dpaid');
+assert.equal(redirectedTo, '/login.html?returnTo=%2Fpages%2Forders%3Fstatus%3Dpaid');
 
 let publicAuthCalls = 0;
 const publicInquiry = await enforceStandaloneAuth({
   page: 'inquiry',
   backend: null,
   client: { auth: { getUser: async () => { publicAuthCalls += 1; } } },
-  locationObject: { pathname: '/pages/inquiry.html', search: '', hash: '', replace() {} },
+  locationObject: { pathname: '/pages/inquiry', search: '', hash: '', replace() {} },
 });
 assert.equal(publicInquiry.allowed, true);
 assert.equal(publicAuthCalls, 0, '비회원 문의 예외는 로그인 검사를 요구하지 않아야 합니다.');
@@ -64,5 +64,11 @@ assert.equal(publicAuthCalls, 0, '비회원 문의 예외는 로그인 검사를
 const login = await readFile(resolve(root, 'app/features/auth-login/auth-login.js'), 'utf8');
 assert.match(login, /params\.get\(['"]returnTo['"]\)[\s\S]*params\.get\(['"]return['"]\)/,
   '로그인은 returnTo를 우선하고 기존 return 링크도 호환해야 합니다.');
+
+const runtime = await readFile(resolve(root, 'app/pages/standalone-page.js'), 'utf8');
+const authIndex = runtime.indexOf('await enforceStandaloneAuth');
+const supportIndex = runtime.indexOf('await hydrateMypageSupport');
+assert(authIndex >= 0 && supportIndex > authIndex,
+  '인증 검사는 마이페이지 지원 UI 주입보다 먼저 실행돼야 합니다.');
 
 console.log('standalone auth gate: protected=2 public-exceptions=1 returnTo=1 runtime=3 passed');

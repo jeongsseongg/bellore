@@ -17,8 +17,10 @@ for (const id of ['inquiryEyebrow', 'inquiryTitle', 'inquiryForm']) {
   assert.match(page, new RegExp(`id=["']${id}["']`), `${id} moved with the existing design contract`);
 }
 assert.match(page, /type=["']module["'][^>]*app\/pages\/standalone-page\.js/i);
-assert.match(legacy, /window\.location\.assign\('\/pages\/inquiry\.html\?type=' \+ encodeURIComponent/,
+assert.match(legacy, /window\.location\.assign\('\/pages\/inquiry\?type=' \+ encodeURIComponent/,
   'existing inquiry buttons must deep-link to the standalone page');
+assert.match(page, /rel=["']canonical["'][^>]*href=["']https:\/\/bellore\.co\.kr\/pages\/inquiry["']/i,
+  'the extensionless inquiry URL must be canonical');
 assert.match(legacy, /belloreStandalonePage === 'inquiry'[\s\S]*history\.back\(\)/,
   'standalone close must preserve browser back navigation');
 assert.match(legacy, /openInquiry\(new URLSearchParams\(location\.search\)/,

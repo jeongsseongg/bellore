@@ -19,10 +19,14 @@ assert.match(page, /id=["']myPageModal["'][^>]*hidden/i);
 for (const id of ['mpProfile', 'mpMenuList', 'myInterestSection', 'myRecentSection', 'myPointSection', 'myCouponSection']) {
   assert.match(page, new RegExp(`id=["']${id}["']`), `${id} moved with the existing design contract`);
 }
+assert.match(page, /id=["']btnSettings["']/, 'the redesigned header must retain the working settings entry point');
 assert.match(page, /type=["']module["'][^>]*app\/pages\/standalone-page\.js/i,
   'the page must use one module entry instead of duplicating legacy script tags');
 assert.match(runtime, /page === 'mypage'[\s\S]*BELLORE_openMyPage/);
-for (const id of ['settingsPage', 'profilePage', 'notiPage', 'termsModal', 'privacyModal', 'refundModal', 'guideModal', 'bizInfoModal']) {
+for (const id of [
+  'bizInfoModal', 'termsModal', 'privacyModal', 'refundModal', 'guideModal',
+  'partnerModal', 'adminPanel', 'notiPage', 'profilePage', 'settingsPage', 'postModal',
+]) {
   assert.match(runtime, new RegExp(`['"]${id}['"]`), `${id} must be hydrated before legacy handlers bind`);
 }
 assert.match(runtime, /hydrateMypageSupport\(\)[\s\S]*loadClassicScript[\s\S]*import\('\/app\/bootstrap\.js/,
@@ -31,8 +35,12 @@ assert.match(runtime, /waitForLegacyOpen\('BELLORE_openMyPage'\)/,
   'standalone mypage must wait for late legacy initialization instead of racing it');
 assert.match(legacy, /else \{\s*setTimeout\(init, 0\);\s*\}/,
   'late-loaded legacy initialization must wait until the script has finished defining its router');
-assert.match(legacy, /window\.location\.assign\('\/pages\/mypage\.html'\)/,
+assert.match(legacy, /window\.location\.assign\('\/pages\/mypage'\)/,
   'the existing mypage entry point must deep-link to the standalone page');
+assert.match(page, /rel=["']canonical["'][^>]*href=["']https:\/\/bellore\.co\.kr\/pages\/mypage["']/i,
+  'the extensionless mypage URL must be canonical');
+assert.match(page, /mypage-personal-shop\.css/i,
+  'the production mypage must load the manually ported personal-shop design');
 assert.match(legacy, /belloreStandalonePage === 'mypage'[\s\S]*history\.back\(\)/,
   'standalone close must preserve browser back navigation');
 assert.match(legacy, /bellore_pending_wishlist_tab[\s\S]*window\.location\.assign\('\/#wishlist'\)/,

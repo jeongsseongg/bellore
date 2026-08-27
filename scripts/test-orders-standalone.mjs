@@ -17,8 +17,10 @@ for (const id of ['ordersTabs', 'ordersList']) {
   assert.match(page, new RegExp(`id=["']${id}["']`), `${id} moved with the existing design contract`);
 }
 assert.match(page, /type=["']module["'][^>]*app\/pages\/standalone-page\.js/i);
-assert.match(legacy, /window\.location\.assign\('\/pages\/orders\.html' \+ query\)/,
+assert.match(legacy, /window\.location\.assign\('\/pages\/orders' \+ query\)/,
   'the existing orders entry point must deep-link to the standalone page');
+assert.match(page, /rel=["']canonical["'][^>]*href=["']https:\/\/bellore\.co\.kr\/pages\/orders["']/i,
+  'the extensionless orders URL must be canonical');
 assert.match(legacy, /belloreStandalonePage === 'orders'[\s\S]*history\.back\(\)/,
   'standalone close must preserve browser back navigation');
 assert.match(legacy, /new URLSearchParams\(location\.search\)[\s\S]*openOrdersList\(status\)/,
