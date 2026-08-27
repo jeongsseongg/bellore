@@ -1,0 +1,53 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+
+const root = new URL('../', import.meta.url);
+const migration = await readFile(
+  new URL('supabase/migrations/20260827165000_guest_quote_bid_notification.sql', root),
+  'utf8'
+);
+const currentNotification = await readFile(new URL('bid_notify.sql', root), 'utf8');
+const offerRpc = await readFile(
+  new URL('supabase/migrations/20260827165500_guest_quote_offer_rpc.sql', root),
+  'utf8'
+);
+const bootstrap = await readFile(new URL('telegram_operations.sql', root), 'utf8');
+const contactFix = await readFile(
+  new URL('supabase/migrations/20260827170000_qualify_guest_quote_contact.sql', root),
+  'utf8'
+);
+const scopeFix = await readFile(
+  new URL('supabase/migrations/20260827170500_scope_guest_contact_qualification.sql', root),
+  'utf8'
+);
+const allBidFix = await readFile(
+  new URL('supabase/migrations/20260827171000_restore_all_bid_quote_lookups.sql', root),
+  'utf8'
+);
+
+assert.match(migration, /drop trigger if exists trg_notify_bid on public\.bids/i,
+  'the legacy trigger that writes a NULL notification recipient must be removed');
+assert.match(migration, /drop function if exists public\.notify_on_bid\(\)/i,
+  'the obsolete duplicate trigger function must not remain callable');
+assert.match(migration, /trg_notify_customer_on_bid[\s\S]*notify_customer_on_bid/i,
+  'migration must fail closed if the guest-safe notification trigger is absent');
+assert.match(currentNotification, /if not found or customer_id is null then\s+return new;/i,
+  'the retained customer notification trigger must explicitly allow guest quotes');
+assert.match(currentNotification, /exception\s+when others then[\s\S]*raise warning/i,
+  'notification persistence must remain non-fatal to bid persistence');
+for (const source of [offerRpc, bootstrap]) {
+  assert.match(source, /if quote_row\.customer_id is not null then[\s\S]*insert into public\.notifications/i,
+    'member-only notification rows must not block guest quote offers');
+  assert.match(source, /from public\.sell_service_requests(?: s)?[\s\S]*where (?:s\.)?quote_request_id = quote_row\.id/i,
+    'guest quote customer delivery must use the sell request contact fallback');
+}
+assert.match(bootstrap, /coalesce\(s\.customer_phone[\s\S]*from public\.sell_service_requests s/i,
+  'bootstrap SQL must qualify guest contact columns against PL/pgSQL variables');
+assert.match(contactFix, /guest_quote_contact_source_mismatch[\s\S]*execute corrected/i,
+  'the applied RPC correction must fail closed when its source contract changes');
+assert.match(scopeFix, /from public\\\.bids\\s\+where s\\\.quote_request_id[\s\S]*from public\\\.sell_service_requests s/i,
+  'the follow-up correction must distinguish the bid lookup from the guest contact lookup');
+assert.match(allBidFix, /regexp_replace\([\s\S]*from public\\\.bids[\s\S]*'g'[\s\S]*execute corrected/i,
+  'every bid lookup accidentally qualified by the prior migration must be restored');
+
+console.log('telegram guest quote offer migration checks passed');
