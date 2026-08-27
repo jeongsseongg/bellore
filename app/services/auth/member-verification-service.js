@@ -31,12 +31,20 @@ export function createMemberVerificationService({ getClient, getPortOne, getVeri
     await invoke('complete-otp-signup', {
       username: data.username, displayName: data.name || '', role: data.role,
       companyName: data.company || null, bizName: data.bizName || null,
-      phone: data.phone || null, postcode: data.postcode || null,
+      phone: data.phone || null, phoneVerificationTicket: data.phoneVerificationTicket || null,
+      postcode: data.postcode || null,
       addr1: data.addr1 || null, addr2: data.addr2 || null,
       businessNo: data.businessNo || null, ceoName: data.ceoName || null,
       bizOpenDate: data.bizOpenDate || null, bankName: data.bank || null,
       bankAccount: data.account || null, bankHolder: data.holder || null,
     });
+    if (data.role === 'vendor' || data.role === 'partner') {
+      const submitted = await client().rpc('submit_member_onboarding', { p_defer_verification: false });
+      if (submitted.error) throw submitted.error;
+      if (submitted.data?.submitted !== true || submitted.data?.approved !== false) {
+        throw new Error('ONBOARDING_SUBMISSION_FAILED');
+      }
+    }
     return updated.data?.user || user;
   }
 
@@ -62,7 +70,27 @@ export function createMemberVerificationService({ getClient, getPortOne, getVeri
     return { verification, user: response.data?.user || null };
   }
 
-  async function verifyIdentity() {
+  function identityReturnUrl() {
+    if (!globalThis.location) return undefined;
+    const url = new URL(globalThis.location.href);
+    url.searchParams.set('belloreIdentityReturn', '1');
+    url.searchParams.delete('identityVerificationId');
+    url.searchParams.delete('code');
+    url.searchParams.delete('message');
+    return url.toString();
+  }
+
+  async function completeIdentityVerification(identityVerificationId) {
+    const value = String(identityVerificationId || '').trim();
+    if (!value) throw new Error('BAD_IDENTITY_ID');
+    const result = await invoke('verify-identity', { identityVerificationId: value });
+    if (result?.signupTicket) {
+      try { globalThis.sessionStorage?.setItem('belloreSignupPhoneTicket', result.signupTicket); } catch { /* storage unavailable */ }
+    }
+    return result;
+  }
+
+  async function verifyIdentity(options) {
     const verify = getVerifyConfig()?.phone || {};
     const payment = getPaymentConfig() || {};
     const portOne = getPortOne();
@@ -71,17 +99,23 @@ export function createMemberVerificationService({ getClient, getPortOne, getVeri
       ? globalThis.crypto.randomUUID().replace(/-/g, '')
       : `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
     const identityVerificationId = `idv_${randomId}`;
+    try { globalThis.sessionStorage?.setItem('belloreIdentityVerificationId', identityVerificationId); } catch { /* storage unavailable */ }
+    const agency = options?.agency === 'SMS' ? 'SMS' : null;
     const response = await portOne.requestIdentityVerification({
       storeId: payment.storeId,
       identityVerificationId,
       channelKey: verify.channelKey,
+      redirectUrl: identityReturnUrl(),
+      bypass: { inicisUnified: { flgFixedUser: 'N', ...(agency ? { directAgency: agency } : {}) } },
     });
     if (response?.code != null) {
       const error = new Error(response.message || 'IDENTITY_FAILED');
       error.code = response.code || 'IDENTITY_FAILED';
       throw error;
     }
-    return invoke('verify-identity', { identityVerificationId });
+    const result = await completeIdentityVerification(response?.identityVerificationId || identityVerificationId);
+    try { globalThis.sessionStorage?.removeItem('belloreIdentityVerificationId'); } catch { /* storage unavailable */ }
+    return result;
   }
 
   async function verifyAccount(data) {
@@ -111,6 +145,7 @@ export function createMemberVerificationService({ getClient, getPortOne, getVeri
     sendEmailOtp,
     verifyEmailOtp,
     verifyIdentity,
+    completeIdentityVerification,
     verifyAccount,
     verifyBusiness,
     setAdminStatus,

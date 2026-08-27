@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
-import { corsHeaders, digits, jsonResponse, rejectDisallowedOrigin, requireUser, safeText } from "../_shared/verification-core.mjs";
+import { corsHeaders, digits, jsonResponse, rejectDisallowedOrigin, requireUser, safeText, sha256Hex } from "../_shared/verification-core.mjs";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -38,10 +38,20 @@ Deno.serve(async (req) => {
   if (current.username && current.username.toLowerCase() !== username.toLowerCase()) {
     return jsonResponse(req, { ok: false, code: "ALREADY_REGISTERED" }, 409);
   }
+  const phoneTicket = safeText(body.phoneVerificationTicket, 160);
+  let verifiedPhone: string | null = null;
+  if (phoneTicket && !current.phone_verified) {
+    const tokenHash = await sha256Hex(`signup-phone-ticket-v1\0${phoneTicket}`);
+    const { data: consumed, error: consumeError } = await admin.rpc("consume_member_signup_phone_ticket", {
+      p_user_id: user.id, p_token_hash: tokenHash,
+    });
+    if (consumeError) return jsonResponse(req, { ok: false, code: safeText(consumeError.message, 80) ?? "PHONE_TICKET_FAILED" }, 409);
+    verifiedPhone = safeText(consumed?.phone, 20);
+  }
   const patch: JsonRecord = { username, display_name: displayName, role, approved: role === "customer",
     email: user.email, postcode: safeText(body.postcode, 20), addr1: safeText(body.addr1, 240),
     addr2: safeText(body.addr2, 240) };
-  if (!current.phone_verified) patch.phone = digits(body.phone, 20) || null;
+  if (!current.phone_verified) patch.phone = verifiedPhone ?? (digits(body.phone, 20) || null);
   if (role === "vendor" || role === "partner") {
     patch.company_name = safeText(body.companyName, 160);
     patch.biz_name = safeText(body.bizName, 160);

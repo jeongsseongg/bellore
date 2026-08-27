@@ -27,7 +27,6 @@ Deno.serve(async (req) => {
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false, autoRefreshToken: false } });
   const user = await requireUser(admin, req);
-  if (!user) return jsonResponse(req, { ok: false, code: "UNAUTHORIZED" }, 401);
   let referenceHash: string | null = null;
 
   try {
@@ -37,10 +36,10 @@ Deno.serve(async (req) => {
       return jsonResponse(req, { ok: false, code: "BAD_IDENTITY_ID" }, 400);
     }
     referenceHash = await sha256Hex(`portone-identity-v1\0${identityVerificationId}`);
-    const { data: prior } = await admin.from("member_verification_events")
+    const { data: prior } = user ? await admin.from("member_verification_events")
       .select("user_id").eq("method", "phone").eq("provider", "portone_inicis_unified")
-      .eq("provider_reference_hash", referenceHash).eq("status", "verified").maybeSingle();
-    if (prior) {
+      .eq("provider_reference_hash", referenceHash).eq("status", "verified").maybeSingle() : { data: null };
+    if (prior && user) {
       if (prior.user_id !== user.id) return jsonResponse(req, { ok: false, code: "IDENTITY_ALREADY_USED" }, 409);
       const { data: profile } = await admin.from("profiles").select("phone").eq("id", user.id).single();
       return jsonResponse(req, { ok: true, alreadyVerified: true, phone: profile?.phone ?? null });
@@ -57,24 +56,40 @@ Deno.serve(async (req) => {
       allowTest: ALLOW_TEST_IDENTITY,
     });
     if (!checked.verified) {
-      await recordVerificationEvent(admin, { userId: user.id, method: "phone", status: "rejected",
-        provider: "portone_inicis_unified", providerReferenceHash: referenceHash,
-        reasonCode: `STATUS_${checked.status}` });
+      if (user) await recordVerificationEvent(admin, { userId: user.id, method: "phone", status: "rejected",
+          provider: "portone_inicis_unified", providerReferenceHash: referenceHash,
+          reasonCode: `STATUS_${checked.status}` });
       return jsonResponse(req, { ok: false, code: "NOT_VERIFIED" }, 409);
     }
+    if (!("phone" in checked)) throw new Error("VERIFIED_PHONE_MISSING");
     const phone = checked.phone;
+    const name = checked.name ?? null;
     const verifiedAt = new Date().toISOString();
+    if (!user) {
+      const ticket = `${crypto.randomUUID().replaceAll("-", "")}${crypto.randomUUID().replaceAll("-", "")}`;
+      const tokenHash = await sha256Hex(`signup-phone-ticket-v1\0${ticket}`);
+      const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+      const { error: ticketError } = await admin.from("member_signup_phone_tickets").insert({
+        token_hash: tokenHash, phone, verified_name: name, provider: "portone_inicis_unified",
+        provider_reference_hash: referenceHash, verified_at: verifiedAt, expires_at: expiresAt,
+      });
+      if (ticketError) {
+        const code = ticketError.code === "23505" ? "IDENTITY_ALREADY_USED" : "TICKET_CREATE_FAILED";
+        return jsonResponse(req, { ok: false, code }, code === "IDENTITY_ALREADY_USED" ? 409 : 502);
+      }
+      return jsonResponse(req, { ok: true, phone, name, verifiedAt, signupTicket: ticket, expiresAt });
+    }
     const { error: finalizeError } = await admin.rpc("finalize_member_verification", {
       p_user_id: user.id, p_method: "phone", p_provider: "portone_inicis_unified",
       p_provider_reference_hash: referenceHash, p_subject: { phone }, p_verified_at: verifiedAt,
     });
     if (finalizeError) throw finalizeError;
-    return jsonResponse(req, { ok: true, phone, verifiedAt });
+    return jsonResponse(req, { ok: true, phone, name, verifiedAt });
   } catch (error) {
     const reason = safeText((error as Error)?.message, 80) ?? "ERROR";
     try {
-      await recordVerificationEvent(admin, { userId: user.id, method: "phone", status: "error",
-        provider: "portone_inicis_unified", providerReferenceHash: referenceHash, reasonCode: reason });
+      if (user) await recordVerificationEvent(admin, { userId: user.id, method: "phone", status: "error",
+          provider: "portone_inicis_unified", providerReferenceHash: referenceHash, reasonCode: reason });
     } catch { /* preserve primary failure */ }
     return jsonResponse(req, { ok: false, code: reason }, 502);
   }

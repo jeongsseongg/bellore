@@ -1,6 +1,6 @@
 export function createSignupVerification({ document, form, backend, config }) {
   const state = {
-    phone: { ok: false, real: false, nc: false },
+    phone: { ok: false, real: false, nc: false, ticket: '' },
     email: { ok: false, real: false, nc: false, sent: false },
     biz: { ok: false, real: false, nc: false },
     account: { ok: false, real: false, nc: false },
@@ -77,14 +77,15 @@ export function createSignupVerification({ document, form, backend, config }) {
       if (!isLive(kind) || !backend.verifyIdentityPortone) {
         state.phone = { ok: true, real: false, nc: true }; setState(kind, 'ok', softMessage); done(); return;
       }
-      if (!requireEmailSession(kind, done)) return;
       setState(kind, '', '본인인증 진행 중…');
       backend.verifyIdentityPortone({ phone })
         .then((result) => {
           const verifiedPhone = displayPhone(result?.phone);
           const input = document.getElementById('suPhone');
           if (verifiedPhone && input) input.value = verifiedPhone;
-          state.phone = { ok: true, real: true, nc: false };
+          const nameInput = document.getElementById('suName');
+          if (result?.name && nameInput) nameInput.value = result.name;
+          state.phone = { ok: true, real: true, nc: false, ticket: result?.signupTicket || '' };
           setState(kind, 'ok', '✓ 휴대폰 명의 확인 완료');
         })
         .catch((error) => setState(kind, 'err', customerMessage(error, 'identity', '본인인증을 완료하지 못했습니다. 다시 시도해 주세요.')))
@@ -163,5 +164,36 @@ export function createSignupVerification({ document, form, backend, config }) {
     else if (confirmButton) { event.preventDefault(); confirm(confirmButton.dataset.vconfirm, confirmButton); }
   });
 
-  return { state, isLive, reset };
+  async function completeReturnedIdentity() {
+    const url = new URL(document.defaultView.location.href);
+    const returnedId = url.searchParams.get('identityVerificationId');
+    const isReturn = url.searchParams.get('belloreIdentityReturn') === '1';
+    let storedId = '';
+    try { storedId = document.defaultView.sessionStorage.getItem('belloreIdentityVerificationId') || ''; } catch (_) {}
+    if (!isReturn && !returnedId) return false;
+    const identityId = returnedId || storedId;
+    for (const key of ['belloreIdentityReturn', 'identityVerificationId', 'identityVerificationTxId', 'transactionType', 'code', 'message', 'pgCode', 'pgMessage']) {
+      url.searchParams.delete(key);
+    }
+    document.defaultView.history.replaceState(document.defaultView.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+    if (!identityId || !backend.completeIdentityVerification) {
+      setState('phone', 'err', '본인인증 결과를 확인할 수 없습니다. 다시 시도해 주세요.');
+      return true;
+    }
+    try {
+      const result = await backend.completeIdentityVerification(identityId);
+      const input = document.getElementById('suPhone');
+      if (result?.phone && input) input.value = displayPhone(result.phone);
+      const nameInput = document.getElementById('suName');
+      if (result?.name && nameInput) nameInput.value = result.name;
+      state.phone = { ok: true, real: true, nc: false, ticket: result?.signupTicket || '' };
+      setState('phone', 'ok', '✓ 휴대폰 명의 확인 완료');
+      try { document.defaultView.sessionStorage.removeItem('belloreIdentityVerificationId'); } catch (_) {}
+    } catch (error) {
+      setState('phone', 'err', customerMessage(error, 'identity', '본인인증 결과를 확인하지 못했습니다.'));
+    }
+    return true;
+  }
+
+  return { state, isLive, reset, completeReturnedIdentity };
 }

@@ -7,7 +7,9 @@
   <title>로그인 | 벨로르</title>
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
   <link rel="stylesheet" href="app/features/auth-login/auth-login.css?v=20260827-auth-page-v3">
-  <link rel="stylesheet" href="app/features/auth-signup/auth-signup.css?v=20260827-auth-signup-v1">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="app/features/auth-signup/auth-signup.css?v=20260827-signup-role-v1">
   <link rel="stylesheet" href="/app/ui/app-tabbar.css?v=20260827-standalone-tabbar-v1">
 </head>
 <body>
@@ -61,32 +63,38 @@
     <section class="signup-shell" id="signupShell" aria-labelledby="signupTitle" hidden>
       <a class="signup-back" href="/login.html" aria-label="로그인으로 돌아가기">‹</a>
       <a class="signup-logo" href="/" aria-label="벨로르 홈"><img src="assets/logo-bellore.png" alt="BELLORE"></a>
-      <header class="signup-heading"><p id="signupProgress">1 / 2</p><h1 id="signupTitle">회원 정보를<br>입력해 주세요.</h1></header>
+      <header class="signup-heading"><p id="signupProgress">1 / 4</p><h1 id="signupTitle">어떤 회원으로<br>가입할까요?</h1></header>
       <form id="signupForm" class="signup-form" novalidate>
         <section id="signupStep1" class="signup-step">
-          <fieldset class="role-choice"><legend>회원 유형</legend>
+          <fieldset class="role-choice role-choice--standalone"><legend>회원 유형</legend>
             <label><input type="radio" name="role" value="customer" checked><span><b>일반 회원</b><small>구매·비교견적 신청</small></span></label>
-            <label><input type="radio" name="role" value="vendor"><span><b>업체 회원</b><small>비교견적 신청·입찰 참여</small></span></label>
+            <label><input type="radio" name="role" value="vendor"><span><b>파트너사</b><small>승인 후 비교견적 제안·입찰 참여</small></span></label>
           </fieldset>
+          <button type="button" class="primary" id="signupRoleNext">다음</button>
+        </section>
+        <section id="signupStep2" class="signup-step" hidden>
           <label class="field"><span>이름</span><input type="text" name="name" id="suName" autocomplete="name" required></label>
+          <div class="verification" data-v="phone"><div class="verification-title"><b>휴대폰 명의 확인</b><span>필수</span></div><p>KG이니시스에서 본인 명의 휴대폰과 이름을 확인합니다.</p>
+            <div class="verification-action"><input type="tel" name="phone" id="suPhone" placeholder="010-0000-0000"><button type="button" data-vsend="phone">본인인증</button></div><small class="vrow-state" data-vstate="phone" aria-live="polite"></small>
+          </div>
+          <div class="step-actions"><button type="button" class="secondary" id="signupInfoPrev">이전</button><button type="button" class="primary" id="signupNext">다음</button></div>
+        </section>
+        <section id="signupStep3" class="signup-step" hidden>
           <div class="field"><span>아이디</span><div class="field-action"><input type="text" name="username" id="suUsername" autocomplete="username" minlength="4" placeholder="영문·숫자·밑줄 4자 이상" required><button type="button" id="suIdCheck">중복확인</button></div><small id="suIdHelp" aria-live="polite"></small></div>
           <label class="field"><span>비밀번호</span><input type="password" name="pw" id="suPw" autocomplete="new-password" minlength="8" placeholder="8자 이상" required></label>
           <label class="field"><span>비밀번호 확인</span><input type="password" name="pw2" id="suPw2" autocomplete="new-password" minlength="8" required><small id="suPw2Help" aria-live="polite"></small></label>
           <label class="field"><span>이메일</span><input type="email" name="email" id="suEmail" autocomplete="email" placeholder="email@example.com" required></label>
+          <div class="verification" data-v="email"><div class="verification-title"><b>이메일 인증</b><span>필수</span></div><p>입력한 이메일로 받은 인증번호를 확인합니다.</p>
+            <div class="verification-action"><strong id="suEmailVerifyValue">이메일을 확인해 주세요.</strong><button type="button" data-vsend="email">인증번호 받기</button></div>
+            <div class="verification-code vrow-code" hidden><input type="text" id="suEmailCode" inputmode="numeric" autocomplete="one-time-code" minlength="6" maxlength="10" placeholder="메일로 받은 인증번호"><button type="button" data-vconfirm="email">확인</button></div><small class="vrow-state" data-vstate="email" aria-live="polite"></small>
+          </div>
+          <div class="step-actions"><button type="button" class="secondary" id="signupAccountPrev">이전</button><button type="button" class="primary" id="signupVerifyNext">다음</button></div>
+        </section>
+        <section id="signupStep4" class="signup-step" hidden>
           <div class="field"><span>주소</span><div class="field-action"><input type="text" name="postcode" id="signupPostcode" placeholder="우편번호" readonly required><button type="button" id="signupFindAddr">주소 찾기</button></div><input type="text" name="addr1" id="signupAddr1" placeholder="기본 주소" readonly required><input type="text" name="addr2" id="signupAddr2" placeholder="상세 주소"></div>
           <label class="check"><input type="checkbox" id="signupAgree"><span>이용약관과 개인정보처리방침에 동의합니다. (필수)</span></label>
           <label class="check"><input type="checkbox" id="signupAdConsent"><span>혜택·이벤트 알림 수신에 동의합니다. (선택)</span></label>
-          <button type="button" class="primary" id="signupNext">다음</button>
-        </section>
-        <section id="signupStep2" class="signup-step" hidden>
           <p class="step-guide" id="signupStep2Hint">이메일 인증 후 휴대폰 본인인증을 진행해 주세요.</p>
-          <div class="verification" data-v="email"><div class="verification-title"><b>이메일 인증</b><span>필수</span></div><p>입력한 이메일로 받은 6자리 인증번호를 확인합니다.</p>
-            <div class="verification-action"><strong id="suEmailVerifyValue">이메일을 확인해 주세요.</strong><button type="button" data-vsend="email">인증번호 받기</button></div>
-            <div class="verification-code vrow-code" hidden><input type="text" id="suEmailCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="인증번호 6자리"><button type="button" data-vconfirm="email">확인</button></div><small class="vrow-state" data-vstate="email" aria-live="polite"></small>
-          </div>
-          <div class="verification" data-v="phone"><div class="verification-title"><b>휴대폰 명의 확인</b><span>필수</span></div><p>KG이니시스 간편인증 결과를 서버에서 다시 확인합니다.</p>
-            <div class="verification-action"><input type="tel" name="phone" id="suPhone" placeholder="010-0000-0000"><button type="button" data-vsend="phone">본인인증</button></div><small class="vrow-state" data-vstate="phone" aria-live="polite"></small>
-          </div>
           <div id="suBizBlock" hidden>
             <div class="verification verification-fields" data-v="biz"><div class="verification-title"><b>사업자 진위확인</b><span>업체 필수</span></div><p>국세청 등록정보와 일치하는지 확인합니다.</p>
               <input type="text" name="company" id="suCompany" placeholder="상호"><input type="text" name="businessNo" id="suBizNo" inputmode="numeric" placeholder="사업자등록번호 10자리"><input type="text" name="ceoName" id="suCeo" placeholder="대표자명"><input type="text" name="bizOpenDate" id="suBizOpen" inputmode="numeric" placeholder="개업일 8자리"><button type="button" data-vsend="biz">사업자 인증</button><small class="vrow-state" data-vstate="biz" aria-live="polite"></small>
@@ -109,6 +117,6 @@
   <script src="supabase-config.js?v=20260826-payment-live-v1"></script>
   <script src="supabase.js?v=20260826-member-verification-live-v2"></script>
   <script type="module" src="app/features/auth-login/auth-login.js?v=20260827-auth-page-v3"></script>
-  <script type="module" src="app/features/auth-signup/auth-signup.js?v=20260827-auth-signup-v1"></script>
+  <script type="module" src="app/features/auth-signup/auth-signup.js?v=20260827-signup-flow-v2"></script>
 </body>
 </html>

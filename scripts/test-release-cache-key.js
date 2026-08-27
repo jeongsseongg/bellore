@@ -14,7 +14,8 @@ const sellReleaseKey = '20260826-naverpay-live-v1';
 const bootstrapReleaseKey = '20260827-sell-request-persistence-v1';
 const authPageReleaseKey = '20260826-auth-page-v1';
 const authPageAssetKey = '20260827-auth-page-v3';
-const signupAssetKey = '20260827-auth-signup-v1';
+const signupStyleKey = '20260827-signup-role-v1';
+const signupScriptKey = '20260827-signup-flow-v2';
 const shellStyleKey = '20260826-auth-shell-v1';
 
 const urls = {
@@ -54,8 +55,9 @@ assert(serviceWorker.includes(`'./app/bootstrap.js?v=${bootstrapReleaseKey}'`), 
 assert(serviceWorker.includes("'./login.html'"), 'service worker must precache the independent login page');
 assert(serviceWorker.includes(`'./app/features/auth-login/auth-login.css?v=${authPageAssetKey}'`), 'service worker must precache login page styles');
 assert(serviceWorker.includes(`'./app/features/auth-login/auth-login.js?v=${authPageAssetKey}'`), 'service worker must precache login page behavior');
-assert(serviceWorker.includes(`'./app/features/auth-signup/auth-signup.css?v=${signupAssetKey}'`), 'service worker must precache signup page styles');
-assert(serviceWorker.includes(`'./app/features/auth-signup/auth-signup.js?v=${signupAssetKey}'`), 'service worker must precache signup page behavior');
+assert(serviceWorker.includes(`'./app/features/auth-signup/auth-signup.css?v=${signupStyleKey}'`), 'service worker must precache signup page styles');
+assert(serviceWorker.includes(`'./app/features/auth-signup/auth-signup.js?v=${signupScriptKey}'`), 'service worker must precache signup page behavior');
+assert(serviceWorker.includes("'./assets/icons/favicon-32.png'"), 'service worker must precache the favicon used by standalone pages');
 for (const heroAsset of ['home-banners.js', 'home-banner-data.js']) {
   assert(serviceWorker.includes(`./app/features/home-banners/${heroAsset}?v=20260826-hero-layout-v7`), `service worker must precache exact restored hero asset: ${heroAsset}`);
 }

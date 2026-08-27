@@ -618,9 +618,15 @@
     });
   };
 
-  Backend.verifyIdentityPortone = function () {
-    if (!rawUser) return Promise.reject(new Error('NOT_LOGGED_IN'));
-    return verificationService().verifyIdentity().then(function (result) {
+  Backend.verifyIdentityPortone = function (options) {
+    return verificationService().verifyIdentity(options).then(function (result) {
+      if (!rawUser) return result;
+      return loadProfile().then(function () { mapUser(); notifyAuth(); return result; });
+    });
+  };
+  Backend.completeIdentityVerification = function (identityVerificationId) {
+    return verificationService().completeIdentityVerification(identityVerificationId).then(function (result) {
+      if (!rawUser) return result;
       return loadProfile().then(function () { mapUser(); notifyAuth(); return result; });
     });
   };

@@ -79,7 +79,8 @@ Deno.serve(async (req) => {
   }
 
   if (action === "update_profile") {
-    const { data, error } = await admin.rpc("admin_manage_member_profile", {
+    const rpc = Object.hasOwn(patch, "approved") ? "admin_review_member_onboarding" : "admin_manage_member_profile";
+    const { data, error } = await admin.rpc(rpc, {
       p_actor_id: actor.id, p_target_id: targetUserId, p_action: action,
       p_patch: patch, p_reason: reason, p_expected_version: expectedVersion,
     });
