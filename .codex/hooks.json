@@ -1,6 +1,34 @@
 {
-  "description": "Project lifecycle hooks.",
+  "description": "Project lifecycle hooks with Truth Guard and Brain protected invariants.",
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "apply_patch|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 C:/Users/LS/.codex/skills/brain/scripts/check_protected_invariants.py",
+            "commandWindows": "python \"C:/Users/LS/.codex/skills/brain/scripts/check_protected_invariants.py\"",
+            "timeout": 10,
+            "statusMessage": "Checking protected project invariants"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 C:/Users/LS/.codex/skills/brain/scripts/check_protected_invariants.py --check-current",
+            "commandWindows": "python \"C:/Users/LS/.codex/skills/brain/scripts/check_protected_invariants.py\" --check-current",
+            "timeout": 10,
+            "statusMessage": "Rechecking protected project invariants"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [
@@ -10,6 +38,17 @@
             "statusMessage": "Checking Truth Guard",
             "timeout": 30,
             "type": "command"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 C:/Users/LS/.codex/skills/brain/scripts/check_protected_invariants.py --check-current",
+            "commandWindows": "python \"C:/Users/LS/.codex/skills/brain/scripts/check_protected_invariants.py\" --check-current",
+            "timeout": 10,
+            "statusMessage": "Verifying protected project invariants before completion"
           }
         ]
       }

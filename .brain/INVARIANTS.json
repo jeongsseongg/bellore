@@ -1,0 +1,137 @@
+{
+  "_comment": "Approved invariants enforced by the Brain protected-invariant guard. These checks are narrow text guards; runtime DOM verification remains required.",
+  "invariants": [
+    {
+      "id": "home-hero-eight-campaigns",
+      "why": "사용자가 확정한 최신 홈 히어로는 아이코닉을 제외한 정확히 8개다. 6개 또는 다른 개수는 최신 후보가 아니라 회귀다.",
+      "files": ["app/features/home-banners/home-banner-data.js"],
+      "must_contain": [
+        "action: 'fullset'",
+        "action: 'wedding'",
+        "action: 'vintage'",
+        "action: 'newest'",
+        "action: 'sale'",
+        "action: 'diver'",
+        "action: 'women'",
+        "action: 'santos'"
+      ],
+      "must_not_contain": ["action: 'icons'", "hero-04.webp"]
+    },
+    {
+      "id": "home-hero-not-overwritten-by-db",
+      "why": "Supabase 활성 배너 구독과 로컬 캐시가 승인된 8개 캠페인을 6개 구형 배너로 덮어쓴 회귀가 재발하면 안 된다.",
+      "files": ["bellore-features.js", "script.js"],
+      "must_not_contain": ["belloreSetBanners(list)", "belloreSetBanners(_cb)"]
+    },
+    {
+      "id": "home-hero-regression-test-not-weakened",
+      "why": "정적 8개와 런타임 덮어쓰기 금지 회귀 검사를 구현에 맞춰 제거하거나 반전하지 않는다.",
+      "files": ["scripts/test-home-redesign.js"],
+      "must_contain": [
+        "length, 8, 'iconic deletion leaves 8 hero images'",
+        "database subscription must not overwrite the fixed hero campaigns",
+        "cached database banners must not flash before the fixed campaigns"
+      ]
+    },
+    {
+      "id": "home-row-saved-selection",
+      "why": "관리자가 저장한 홈 상품 ID가 고객 홈에서 실제로 읽혀야 하며 제목만 저장되는 시안으로 되돌아가면 안 된다.",
+      "files": ["app/features/home-rows/home-row-admin.js"],
+      "must_contain": [
+        "JSON.parse(content?.body || '{}')",
+        "JSON.stringify({ productIds: selectedIds })",
+        "onSettingsChange()"
+      ]
+    },
+    {
+      "id": "home-row-manual-selection-runtime",
+      "why": "직접 선택 상품은 홈 가로 매물란 앞쪽에 배치되어야 한다.",
+      "files": ["app/features/home-rows/home-rows.js"],
+      "must_contain": [
+        "manualFirst(",
+        "weeklySpecialIds()"
+      ]
+    },
+    {
+      "id": "home-row-recommendation-exclusion",
+      "why": "이번 주 특별가에 직접·자동 선정된 상품은 추천 매물과 중복되면 안 된다.",
+      "files": ["app/features/home-merchandising/home-merchandising.js"],
+      "must_contain": [
+        "!weeklyIds.has(String(item.id))"
+      ]
+    },
+    {
+      "id": "home-row-composition-wiring",
+      "why": "홈 상품 설정 변경은 진열 계산과 실제 추천·가로 매물 화면을 다시 연결해야 한다.",
+      "files": ["app/bootstrap.js"],
+      "must_contain": [
+        "weeklySpecialIds: rows.weeklySpecialIds()",
+        "rows.onSettingsChange(refreshHomeMerchandising)"
+      ]
+    },
+    {
+      "id": "home-recommendation-legacy-render-bridge",
+      "why": "추천 엔진의 중복 제외 결과가 레거시 홈 카드 렌더러에도 그대로 전달되어야 한다.",
+      "files": ["script.js"],
+      "must_contain": [
+        "grid._belloreRecommendedRows",
+        "bellore:home-recommendations"
+      ]
+    },
+    {
+      "id": "home-recommendation-grid-bridge",
+      "why": "추천 엔진이 계산한 ID와 원본 상품 행을 레거시 카드 경계에 전달해야 화면에서 제외 결과가 유지된다.",
+      "files": ["app/legacy/home-merchandising-grid.js"],
+      "must_contain": [
+        "grid._belloreRecommendedRows = legacyRows",
+        "bellore:home-recommendations"
+      ]
+    },
+    {
+      "id": "home-row-selection-tests-not-weakened",
+      "why": "홈 직접 선택 저장 검사를 구현에 맞춰 제거하거나 반전하지 않는다.",
+      "files": ["scripts/test-home-redesign.js"],
+      "must_contain": [
+        "JSON\\.stringify\\(\\{ productIds: selectedIds \\}\\)"
+      ]
+    },
+    {
+      "id": "home-row-exclusion-test-not-weakened",
+      "why": "이번 주 특별가와 추천 매물 중복 제외 검사를 구현에 맞춰 제거하거나 반전하지 않는다.",
+      "files": ["scripts/test-home-merchandising.js"],
+      "must_contain": [
+        "manually selected weekly products must stay out of recommendations"
+      ]
+    },
+    {
+      "id": "home-hero-full-bleed-layout",
+      "why": "승인된 홈 히어로는 앱 프레임 안에서 좌우 여백과 둥근 테두리 없이 100% 폭을 채우고 순서 표시를 오른쪽 끝에 붙인다.",
+      "files": ["app/features/home-banners/home-banners.css"],
+      "must_contain": [
+        "width: 100%; max-width: none; margin: 0;",
+        ".hero-carousel.has-db .hero-track,",
+        "left: auto; right: 0;"
+      ]
+    },
+    {
+      "id": "home-hero-click-survives-pointer-jitter",
+      "why": "배너를 누르는 순간 포인터를 레일이 선점하면 컬렉션 클릭이 사라진다. 실제 12px 초과 드래그 뒤에만 포인터를 캡처한다.",
+      "files": ["script.js"],
+      "must_contain": [
+        "Math.abs(dx) > 12 && !swiped",
+        "track.setPointerCapture(e.pointerId)"
+      ]
+    },
+    {
+      "id": "home-hero-click-contract-tests-not-weakened",
+      "why": "히어로의 컬렉션 연결·풀폭·우측 표시·포인터 클릭 검사를 구현에 맞춰 제거하거나 반전하지 않는다.",
+      "files": ["scripts/test-home-redesign.js"],
+      "must_contain": [
+        "hero click keeps the collection contract",
+        "hero campaign fills the Bellore app width",
+        "hero counter stays attached to the right edge",
+        "hero rail captures the pointer only after a real swipe starts"
+      ]
+    }
+  ]
+}

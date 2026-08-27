@@ -27,6 +27,9 @@ on:
           - validate-authority-payment
           - apply-authority-payment
           - verify-authority-payment-live
+          - validate-catalog-product
+          - apply-catalog-product
+          - verify-catalog-product-live
           - purge-analytics-v3
       confirm_sha:
         description: "DB apply 때만: 이 workflow가 실행할 정확한 커밋 SHA"
@@ -67,8 +70,8 @@ jobs:
             echo "SUPABASE_DB_URL 시크릿 미설정 — 실행 불가"; exit 1
           fi
 
-      - name: Guard authority apply — exact SHA and recoverable backup
-        if: inputs.task == 'apply-authority-payment'
+      - name: Guard DB apply — exact SHA and recoverable backup
+        if: inputs.task == 'apply-authority-payment' || inputs.task == 'apply-catalog-product'
         env:
           GH_TOKEN: ${{ github.token }}
           EXPECTED_SHA: ${{ inputs.confirm_sha }}
@@ -438,6 +441,47 @@ jobs:
             -c "select attempt_count from public.checkout_rate_limits where key_hash='$RATE_KEY'")"
           test "$stored_count" = 5
           echo "Concurrent checkout rate limit verified: allowed=5 limited=5 stored=5"
+
+      - name: Validate catalog product ledger (always rollback)
+        if: inputs.task == 'validate-catalog-product' || inputs.task == 'apply-catalog-product'
+        env:
+          PGCONN: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          docker run --rm -e PGCONN -v "$PWD:/repo:ro" postgres:17 \
+            psql "$PGCONN" -f /repo/supabase/tests/catalog_product_ledger_dry_run.sql
+
+      - name: Apply catalog product ledger
+        if: inputs.task == 'apply-catalog-product'
+        env:
+          PGCONN: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          docker run --rm -i -e PGCONN -v "$PWD:/repo:ro" postgres:17 \
+            psql "$PGCONN" -v ON_ERROR_STOP=1 <<'SQL'
+          begin;
+          set local lock_timeout='5s';
+          set local statement_timeout='2min';
+          \i /repo/supabase/migrations/20260826200000_catalog_product_ledger.sql
+          \i /repo/supabase/migrations/20260826201000_catalog_product_operations.sql
+          insert into supabase_migrations.schema_migrations(version,name,statements)
+          values
+            ('20260826200000','catalog_product_ledger',array[]::text[]),
+            ('20260826201000','catalog_product_operations',array[]::text[])
+          on conflict (version) do nothing;
+          \i /repo/supabase/tests/catalog_product_ledger_live_verify.sql
+          commit;
+          SQL
+          echo "상품 운영 원장 마이그레이션 단일 트랜잭션 적용 완료"
+
+      - name: Verify live catalog product ledger
+        if: inputs.task == 'apply-catalog-product' || inputs.task == 'verify-catalog-product-live'
+        env:
+          PGCONN: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          docker run --rm -e PGCONN -v "$PWD:/repo:ro" postgres:17 \
+            psql "$PGCONN" -f /repo/supabase/tests/catalog_product_ledger_live_verify.sql
 
       - name: Purge expired analytics data
         if: github.event_name == 'schedule' || inputs.task == 'purge-analytics-v3'
