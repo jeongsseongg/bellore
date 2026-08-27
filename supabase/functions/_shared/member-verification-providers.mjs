@@ -20,7 +20,8 @@ export function validatePortOneIdentity(verification, expected) {
     : null;
   const phone = normalizePhone(customer?.phoneNumber ?? customer?.phone);
   if (!phone) throw new Error("VERIFIED_PHONE_MISSING");
-  return { verified: true, phone, channelType };
+  const name = safeText(customer?.name, 80);
+  return { verified: true, phone, channelType, ...(name ? { name } : {}) };
 }
 
 export function ntsBusinessResult(response) {

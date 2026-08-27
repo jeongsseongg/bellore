@@ -21,7 +21,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.verify-identity]
-verify_jwt = true
+verify_jwt = false
 
 [functions.sync-email-verification]
 verify_jwt = true

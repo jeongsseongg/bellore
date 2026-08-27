@@ -76,13 +76,16 @@ assert.match(legacyFeatures, /KG이니시스 통합인증/);
 assert.match(legacyFeatures, /B\.verifyIdentityPortone\(\)/);
 assert.doesNotMatch(legacyFeatures, /B\.sendPhoneOtp\(/);
 
-for (const fn of ['verify-identity', 'sync-email-verification', 'complete-otp-signup', 'verify-business', 'verify-account', 'admin-manage-verification']) {
+assert.match(config, /\[functions\.verify-identity\]\s+verify_jwt = false/);
+for (const fn of ['sync-email-verification', 'complete-otp-signup', 'verify-business', 'verify-account', 'admin-manage-verification']) {
   assert.match(config, new RegExp(`\\[functions\\.${fn}\\]\\s+verify_jwt = true`));
 }
 
 assert.match(identity, /identity-verifications\/\$\{encodeURIComponent\(identityVerificationId\)\}/);
 assert.match(identity, /validatePortOneIdentity/);
 assert.match(identity, /finalize_member_verification/);
+assert.match(identity, /member_signup_phone_tickets/);
+assert.match(identity, /signupTicket/);
 assert.doesNotMatch(identity, /ci\s*:/i, 'CI must not be persisted');
 assert.doesNotMatch(identity, /di\s*:/i, 'DI must not be persisted');
 
@@ -99,6 +102,8 @@ assert.match(admin, /actorProfile\.approved !== true/);
 assert.match(admin, /actorProfile\.suspended === true/);
 assert.match(admin, /admin_set_member_verification/);
 assert.match(verificationService, /invoke\('verify-identity'/);
+assert.match(verificationService, /redirectUrl: identityReturnUrl\(\)/);
+assert.match(verificationService, /flgFixedUser: 'N'/);
 assert.match(verificationService, /invoke\('sync-email-verification'/);
 assert.match(verificationService, /invoke\('verify-business'/);
 assert.match(verificationService, /invoke\('verify-account'/);

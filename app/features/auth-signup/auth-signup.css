@@ -20,6 +20,9 @@ button { cursor: pointer; }
 .role-choice span { display: grid; gap: 5px; min-height: 88px; padding: 18px; border: 1px solid #dededb; border-radius: 13px; }
 .role-choice small { color: #767b78; }
 .role-choice input:checked + span { border-color: #183029; background: #eef5f2; box-shadow: inset 0 0 0 1px #183029; }
+.role-choice--standalone { margin: 18px 0 10px; }
+.role-choice--standalone span { min-height: 132px; align-content: center; }
+.role-choice--standalone b { font-size: 20px; }
 .field { display: grid; gap: 8px; }
 .field > span { font-size: 14px; font-weight: 750; }
 .field input, .verification input { width: 100%; min-width: 0; height: 54px; padding: 0 16px; border: 1px solid #dcdedc; border-radius: 10px; outline: 0; }
