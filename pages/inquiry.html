@@ -6,8 +6,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#000000">
 <meta name="robots" content="noindex, follow">
-<title>주문 내역 | BELLORE</title>
-<link rel="canonical" href="https://bellore.co.kr/pages/orders.html">
+<title>문의 | BELLORE</title>
+<link rel="canonical" href="https://bellore.co.kr/pages/inquiry.html">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css?v=20260826-auth-shell-v1">
@@ -30,23 +30,23 @@
 <link rel="stylesheet" href="app/features/sell-method/sell-service-action.css?v=20260826-sell-guest-access-v1">
 <link rel="stylesheet" href="app/features/condition-guide/condition-guide.css?v=20260826-member-verification-live-v2">
 </head>
-<body data-bellore-standalone-page="orders">
-<div class="login-modal" id="ordersModal" hidden>
-        <div class="login-backdrop" data-ordclose></div>
-        <div class="login-content orders-content">
-            <div class="mp-sub-bar">
-                <button type="button" class="mp-sub-back fp-back" data-ordclose aria-label="뒤로"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
-                <span class="mp-sub-title">구매 내역</span>
+<body data-bellore-standalone-page="inquiry">
+<div class="login-modal" id="inquiryModal" hidden>
+        <div class="login-backdrop" data-iclose></div>
+        <div class="login-content">
+            <button class="login-close" data-iclose aria-label="닫기">×</button>
+            <div class="login-head">
+                <p class="login-eyebrow" id="inquiryEyebrow">PARTNERSHIP</p>
+                <h2 id="inquiryTitle">업체 <strong>제휴 문의</strong></h2>
             </div>
-            <div class="orders-tabs" id="ordersTabs">
-                <button type="button" class="orders-tab active" data-ofilter="">전체</button>
-                <button type="button" class="orders-tab" data-ofilter="pending">결제대기</button>
-                <button type="button" class="orders-tab" data-ofilter="paid">결제완료</button>
-                <button type="button" class="orders-tab" data-ofilter="preparing">준비중</button>
-                <button type="button" class="orders-tab" data-ofilter="shipping">배송중</button>
-                <button type="button" class="orders-tab" data-ofilter="delivered">배송완료</button>
-            </div>
-            <div class="orders-list" id="ordersList"></div>
+            <form class="signup-form" id="inquiryForm">
+                <label><span>업체명 *</span><input type="text" name="company" required></label>
+                <label><span>담당자명 *</span><input type="text" name="name" required></label>
+                <label><span>연락처 *</span><input type="tel" name="phone" required></label>
+                <label><span>이메일</span><input type="email" name="email"></label>
+                <label><span>문의 내용 *</span><textarea name="memo" rows="3" required></textarea></label>
+                <button type="submit" class="login-btn login-default">문의 보내기</button>
+            </form>
         </div>
     </div>
 <script type="module" src="/app/pages/standalone-page.js?v=20260827-standalone-pages-v4"></script>

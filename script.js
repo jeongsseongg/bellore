@@ -3613,7 +3613,10 @@
         var inquiryModal = $('#inquiryModal');
         function openInquiry(type) {
             closeLoginModal();
-            if (!inquiryModal) return;
+            if (!inquiryModal) {
+                window.location.assign('/pages/inquiry.html?type=' + encodeURIComponent(type || 'partner'));
+                return;
+            }
             $('#inquiryEyebrow').textContent = type === 'partner' ? 'PARTNERSHIP' : 'ADVERTISEMENT';
             $('#inquiryTitle').innerHTML = type === 'partner' ? '업체 <strong>제휴 문의</strong>' : '<strong>광고</strong> 문의';
             inquiryModal.hidden = false;
@@ -3628,10 +3631,19 @@
         if (inquiryModal) {
             inquiryModal.addEventListener('click', function (e) {
                 if (e.target.closest('[data-iclose]')) {
+                    if (document.body && document.body.dataset.belloreStandalonePage === 'inquiry') {
+                        if (history.length > 1) history.back();
+                        else window.location.assign('/');
+                        return;
+                    }
                     inquiryModal.hidden = true;
                     document.body.style.overflow = '';
                 }
             });
+        }
+
+        if (document.body && document.body.dataset.belloreStandalonePage === 'inquiry') {
+            openInquiry(new URLSearchParams(location.search).get('type') || 'partner');
         }
 
         var inquiryForm = $('#inquiryForm');
