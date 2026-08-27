@@ -16,6 +16,7 @@ const authPageReleaseKey = '20260826-auth-page-v1';
 const authPageAssetKey = '20260827-auth-page-v3';
 const signupStyleKey = '20260827-signup-role-v1';
 const signupScriptKey = '20260827-signup-flow-v2';
+const signupIdentityKey = '20260827-signup-identity-v1';
 const shellStyleKey = '20260826-auth-shell-v1';
 
 const urls = {
@@ -37,13 +38,15 @@ const urls = {
 for (const [name, url] of Object.entries(urls)) {
   assert(url, `${name} release URL is missing`);
   const expectedKey = name === 'styles'
-    ? shellStyleKey
+    ? signupIdentityKey
     : name === 'script'
     ? authPageReleaseKey
     : name === 'bootstrap'
     ? bootstrapReleaseKey
     : name === 'serviceWorker'
     ? shellStyleKey
+    : name === 'features'
+    ? signupIdentityKey
     : (name === 'pageRuntime' ? sellReleaseKey : releaseKey);
   assert.equal(new URL(url, 'https://bellore.co.kr/').searchParams.get('v'), expectedKey, `${name} must use its current release key`);
 }
@@ -57,6 +60,7 @@ assert(serviceWorker.includes(`'./app/features/auth-login/auth-login.css?v=${aut
 assert(serviceWorker.includes(`'./app/features/auth-login/auth-login.js?v=${authPageAssetKey}'`), 'service worker must precache login page behavior');
 assert(serviceWorker.includes(`'./app/features/auth-signup/auth-signup.css?v=${signupStyleKey}'`), 'service worker must precache signup page styles');
 assert(serviceWorker.includes(`'./app/features/auth-signup/auth-signup.js?v=${signupScriptKey}'`), 'service worker must precache signup page behavior');
+assert(serviceWorker.includes(`'./supabase.js?v=${signupIdentityKey}'`), 'service worker must precache the signup verification backend with the release key');
 assert(serviceWorker.includes("'./assets/icons/favicon-32.png'"), 'service worker must precache the favicon used by standalone pages');
 for (const heroAsset of ['home-banners.js', 'home-banner-data.js']) {
   assert(serviceWorker.includes(`./app/features/home-banners/${heroAsset}?v=20260826-hero-layout-v7`), `service worker must precache exact restored hero asset: ${heroAsset}`);
