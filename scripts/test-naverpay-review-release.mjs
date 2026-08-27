@@ -31,4 +31,12 @@ assert.match(client, /sessionStorage\.setItem\(testSessionKey, '1'\)/, 'Naver Pa
 assert.match(client, /sessionStorage\.removeItem\(testSessionKey\)/, 'Naver Pay test mode must support an explicit opt-out');
 assert.match(sw, /bellore-v351-auth-signup-integration/, 'latest service worker cache namespace must preserve Naver Pay and include signup integration');
 
-console.log('Naver Pay live release contract: 19/19 passed');
+assert.match(edge, /function parseProviderFailure\(/, 'provider failures must be parsed into safe structured diagnostics');
+assert.match(edge, /providerCode:\s*failure\.providerCode/, 'provider error code must be returned to the browser');
+assert.match(edge, /traceId,\s*status:\s*response\.status/, 'provider failures must be correlated without logging order XML');
+assert.doesNotMatch(edge, /console\.error\([^\n]*orderXml/, 'order XML and credentials must never be written to failure logs');
+assert.match(edge, /providerMessage\.split\(secret\)\.join\("\[REDACTED\]"\)/, 'provider diagnostics must redact configured credentials');
+assert.match(client, /error\.providerCode = data\.providerCode/, 'client must retain the provider error code');
+assert.match(client, /traceId:\s*error && error\.traceId/, 'client diagnostics must expose the matching trace ID');
+
+console.log('Naver Pay live release contract: 26/26 passed');
