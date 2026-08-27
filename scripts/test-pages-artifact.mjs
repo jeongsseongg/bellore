@@ -194,6 +194,19 @@ async function validateArtifact(site, { expectSeo }) {
     'admin/features/home-editor/admin-home-editor.js', 'admin/features/home-editor/admin-home-editor.css',
     'admin/features/mypage-editor/admin-mypage-editor.js', 'admin/features/mypage-editor/admin-mypage-editor.css',
     'admin/features/mypage-editor/admin-mypage-editor-shadow.css',
+    'admin/features/operations/admin-operation-controller.js',
+    'admin/features/operations/admin-operation-model.js',
+    'admin/features/operations/admin-operation-view.js',
+    'admin/features/operations/admin-live-overview.js',
+    'admin/features/operations/admin-trade-config.js',
+    'admin/features/operations/admin-catalog-config.js',
+    'admin/features/operations/admin-account-config.js',
+    'admin/features/operations/admin-operations.css',
+    'admin/services/platform/admin-rest-client.js',
+    'admin/services/admin/admin-operations-service.js',
+    'admin/services/admin/admin-trade-service.js',
+    'admin/services/admin/admin-catalog-service.js',
+    'admin/services/admin/admin-account-service.js',
     'admin/features/navigation/admin-navigation.js',
     'admin/features/workspace/admin-workspace.js', 'admin/features/workspace/admin-wanted.css',
     'admin/ui/icons.js',
@@ -216,7 +229,7 @@ async function validateArtifact(site, { expectSeo }) {
   assert(shellBlock, '서비스워커 SHELL_ASSETS를 찾지 못했습니다.');
   const shellAssets = [...shellBlock.matchAll(/['"](\.\/[^'"]+)['"]/g)]
     .map((match) => match[1].split(/[?#]/, 1)[0]);
-  assert.equal(shellAssets.length, 72, '서비스워커 셸 자산 개수가 기준과 다릅니다.');
+  assert.equal(shellAssets.length, 84, '서비스워커 셸 자산 개수가 기준과 다릅니다.');
   for (const asset of shellAssets) {
     await lstat(resolve(site, asset));
   }

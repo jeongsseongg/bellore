@@ -6,9 +6,18 @@ export function createLegacyCollection({ document: doc, window: win }) {
   let activePresetRun = 0;
 
   function openCollectionPage() {
+    if (typeof win.CustomEvent === 'function') {
+      doc.dispatchEvent(new win.CustomEvent('bellore:navigate', { detail: { page: 'collection' } }));
+      return true;
+    }
     const link = doc.querySelector('.tab-item[data-nav="collection"], [data-nav="collection"]');
-    if (link) link.click();
-    else win.location.hash = '#collection';
+    if (link) {
+      link.click();
+      return true;
+    }
+    win.location.hash = '#collection';
+    try { win.dispatchEvent(new win.PopStateEvent('popstate', { state: { page: 'collection' } })); } catch (error) { /* 구형 브라우저 폴백 */ }
+    return false;
   }
 
   return {

@@ -88,7 +88,11 @@
             if (dotsBox) {
                 dotsBox.innerHTML = '';
                 if (multi) {
-                    dotsBox.innerHTML = '<span class="hero-count">' + (index + 1) + '/' + n + '</span>' + '<button type="button" class="hero-count-nav hero-count-prev" aria-label="이전 배너">‹</button>' + '<button type="button" class="hero-count-nav hero-count-next" aria-label="다음 배너">›</button>';
+                    dotsBox.innerHTML = '<button type="button" class="hero-count-nav hero-count-prev" aria-label="이전 배너">‹</button>' +
+                        '<span class="hero-count-current">' + (index + 1) + '</span>' +
+                        '<span class="hero-count-separator" aria-hidden="true">|</span>' +
+                        '<span class="hero-count-total">' + n + '</span>' +
+                        '<button type="button" class="hero-count-nav hero-count-next" aria-label="다음 배너">›</button>';
                     $('.hero-count-prev', dotsBox).addEventListener('click', prev);
                     $('.hero-count-next', dotsBox).addEventListener('click', next);
                 }
@@ -118,13 +122,17 @@
             if (e.button != null && e.button !== 0) return;
             dragging = true; swiped = false; startX = e.clientX; startT = Date.now(); dx = 0;
             track.style.transition = 'none';
-            try { track.setPointerCapture(e.pointerId); } catch (err) {}
             if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
         });
         track.addEventListener('pointermove', function (e) {
             if (!dragging) return;
             dx = e.clientX - startX;
-            if (Math.abs(dx) > 4) swiped = true;
+            // 손가락의 미세한 흔들림은 탭으로 유지한다. 실제 드래그가 시작된 뒤에만
+            // 레일이 포인터를 가져가야 버튼의 일반 클릭 대상이 사라지지 않는다.
+            if (Math.abs(dx) > 12 && !swiped) {
+                swiped = true;
+                try { track.setPointerCapture(e.pointerId); } catch (err) {}
+            }
             track.style.transform = 'translateX(calc(' + (-index * 100) + '% + ' + dx + 'px))';
         });
         // 드래그로 슬라이드를 넘겼으면 그 직후의 클릭(=링크 이동)을 취소
@@ -764,7 +772,10 @@
                         NWBackend.sendEmailOtp(u.email).then(function () { if (st) { st.textContent = '인증번호를 이메일로 보냈어요.'; st.className = 'vrow-state'; } }).catch(function () { if (st) { st.textContent = '발송 실패'; st.className = 'vrow-state err'; } });
                     } else if (_pwMethod === 'phone' && VP.phone && VP.phone.enabled && NWBackend.verifyIdentityPortone) {
                         NWBackend.verifyIdentityPortone({ phone: u.phone }).then(function () { _pwOk = true; gotoP('pw3'); }).catch(function (err) { if (st) { st.textContent = '인증 실패: ' + (err && err.message || err); st.className = 'vrow-state err'; } });
-                    } else { _pwOk = true; gotoP('pw3'); } // 키 미설정(soft) → 즉시 통과
+                    } else if (st) {
+                        st.textContent = '현재 사용할 수 있는 본인인증 수단이 없습니다.';
+                        st.className = 'vrow-state err';
+                    }
                     return;
                 }
             });
@@ -776,12 +787,12 @@
                     NWBackend.verifyIdentityPortone({ phone: phone }).then(function () { if (st) { st.textContent = '✓ 본인인증 완료'; st.className = 'vrow-state ok'; } }).catch(function (err) { if (st) { st.textContent = '인증 실패: ' + (err && err.message || err); st.className = 'vrow-state err'; } });
                 } else if (st) { st.textContent = '준비 중 — 번호만 저장됩니다.'; st.className = 'vrow-state'; }
             });
-            $('#pfPhoneConfirm').addEventListener('click', function () { var st = $('#pfPhoneState'); if (st) { st.textContent = '✓ 인증 완료'; st.className = 'vrow-state ok'; } });
+            $('#pfPhoneConfirm').addEventListener('click', function () { var st = $('#pfPhoneState'); if (st) { st.textContent = '서버 본인인증을 먼저 진행해 주세요.'; st.className = 'vrow-state err'; } });
             $('#pwvConfirm').addEventListener('click', function () {
                 var code = ($('#pwvCode').value || '').trim(), st = $('#pwvState'), u = pUser();
                 if (_pwMethod === 'email' && NWBackend.verifyEmailOtp) {
                     NWBackend.verifyEmailOtp(u.email, code).then(function () { _pwOk = true; gotoP('pw3'); }).catch(function () { if (st) { st.textContent = '인증번호가 올바르지 않습니다.'; st.className = 'vrow-state err'; } });
-                } else { _pwOk = true; gotoP('pw3'); }
+                } else if (st) { st.textContent = '인증번호 확인을 사용할 수 없습니다.'; st.className = 'vrow-state err'; }
             });
 
             $('#profNext').addEventListener('click', function () {
@@ -4161,8 +4172,8 @@
     // 홈 '판매 중인 시계' 그리드 — DB 상품을 최신 등록순으로 최대 12개 노출.
     // 카드 클릭 시 해당 상품 상세가 열리도록 data-pid 부여(홈 정적 데모는 fallback).
     function renderHomeProducts(rows) {
-        var grid = $('#homeOnSale .home-sale-grid');
-        if (!grid) return;
+        var grid = $('#homeOnSale .home-sale-grid'); if (!grid) return;
+        if (grid._belloreRecommendedRows && grid._belloreRecommendedRows.length) rows = grid._belloreRecommendedRows;
         $$('.hcard-dynamic', grid).forEach(function (el) { el.remove(); });
         var statics = $$('.hcard', grid).filter(function (c) { return !c.classList.contains('hcard-dynamic'); });
         if (!rows || !rows.length) { statics.forEach(function (c) { c.style.display = ''; }); return; }
@@ -4191,6 +4202,7 @@
         });
         grid.appendChild(frag);
     }
+    $('#homeOnSale .home-sale-grid')?.addEventListener('bellore:home-recommendations', function (event) { renderHomeProducts(event.detail.rows); });
 
     // 상단 카테고리 탭 페이지(할인시작/미사용신품/오늘의시계/업데이트)를 DB 상품으로 채움
     function fillCatGrid(grid, rows) {
@@ -4806,113 +4818,14 @@
         var signupForm = $('#signupForm');
         if (signupForm) {
             // ===== 회원가입 2단계 위저드 + 4종 인라인 인증 =====
-            var VERIFY = window.BELLORE_VERIFY || {};
-            // 인증 상태: ok=가입 진행 가능, real=실제 인증 통과, nc=해당 인증 미배포(준비 중)
-            var vSt = { phone:{ok:false,real:false,nc:false}, email:{ok:false,real:false,nc:false,sent:false},
-                        biz:{ok:false,real:false,nc:false}, account:{ok:false,real:false,nc:false} };
-            function isLive(k){ var c = VERIFY[k==='biz'?'business':k]; return !!(c && c.enabled); }
-
-            function setVState(kind, cls, msg) {
-                var s = signupForm.querySelector('[data-vstate="' + kind + '"]');
-                if (s) { s.textContent = msg || ''; s.className = 'vrow-state' + (cls ? ' ' + cls : ''); }
-            }
-            function showCode(kind, on) {
-                var row = signupForm.querySelector('[data-v="' + kind + '"]');
-                if (row) { var c = row.querySelector('.vrow-code'); if (c) c.hidden = !on; }
-            }
-            function resetV(kind) { vSt[kind] = {ok:false,real:false,nc:false,sent:false}; setVState(kind,'',''); if(kind==='phone'||kind==='email') showCode(kind,false); }
-            var SOFT = '준비 중 — 입력만으로 가입 진행됩니다.';
-
-            // 입력이 바뀌면 해당 인증 무효화
-            var fieldKind = { suPhone:'phone', suEmail:'email', suCompany:'biz', suBizNo:'biz', suCeo:'biz', suBizOpen:'biz', suBank:'account', suAccount:'account', suHolder:'account' };
-            Object.keys(fieldKind).forEach(function (id) {
-                var el = $('#' + id);
-                if (el) el.addEventListener('input', function () {
-                    var k = fieldKind[id];
-                    if (vSt[k] && (vSt[k].ok || vSt[k].real)) resetV(k);
-                });
+            var verificationUi = window.BelloreMemberVerificationUi.create({
+                form: signupForm,
+                backend: NWBackend,
+                config: window.BELLORE_VERIFY || {}
             });
-
-            // 인증 버튼(발송/인증)
-            function vSend(kind, btn) {
-                var fd = new FormData(signupForm);
-                btn.disabled = true;
-                var done = function () { btn.disabled = false; };
-                if (kind === 'phone') {
-                    var phone = String(fd.get('phone') || '').replace(/[^0-9]/g, '');
-                    if (phone.length < 10) { setVState('phone','err','휴대폰 번호를 정확히 입력해주세요.'); done(); return; }
-                    if (isLive('phone') && NWBackend.verifyIdentityPortone) {
-                        setVState('phone','','본인인증 진행 중…');
-                        NWBackend.verifyIdentityPortone({ phone: phone })
-                            .then(function(){ vSt.phone={ok:true,real:true,nc:false}; setVState('phone','ok','✓ 본인인증 완료'); })
-                            .catch(function(err){ if((err&&err.message)==='NOT_CONFIGURED'){ vSt.phone={ok:true,real:false,nc:true}; setVState('phone','ok',SOFT);} else { setVState('phone','err','본인인증에 실패했습니다. 다시 시도해주세요.'); } })
-                            .then(done);
-                    } else { vSt.phone={ok:true,real:false,nc:true}; setVState('phone','ok',SOFT); done(); }
-                    return;
-                }
-                if (kind === 'email') {
-                    var email = String(fd.get('email') || '').trim();
-                    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { setVState('email','err','이메일 형식을 확인해주세요.'); done(); return; }
-                    if (isLive('email') && NWBackend.sendEmailOtp) {
-                        setVState('email','','인증번호 발송 중…');
-                        NWBackend.sendEmailOtp(email)
-                            .then(function(){ vSt.email.sent=true; showCode('email',true); setVState('email','','메일로 받은 인증번호를 입력하세요.'); })
-                            .catch(function(){ setVState('email','err','발송에 실패했습니다. 잠시 후 다시 시도해주세요.'); })
-                            .then(done);
-                    } else { vSt.email={ok:true,real:false,nc:true,sent:false}; setVState('email','ok',SOFT); done(); }
-                    return;
-                }
-                if (kind === 'biz') {
-                    var bno = String(fd.get('businessNo') || '').replace(/[^0-9]/g, '');
-                    var ceo = String(fd.get('ceoName') || '').trim();
-                    var open = String(fd.get('bizOpenDate') || '').replace(/[^0-9]/g, '');
-                    if (!String(fd.get('company')||'').trim()) { setVState('biz','err','상호를 입력해주세요.'); done(); return; }
-                    if (bno.length !== 10) { setVState('biz','err','사업자등록번호 10자리를 입력해주세요.'); done(); return; }
-                    if (!ceo) { setVState('biz','err','대표자명을 입력해주세요.'); done(); return; }
-                    if (open.length !== 8) { setVState('biz','err','개업일을 YYYYMMDD로 입력해주세요.'); done(); return; }
-                    if (!NWBackend.verifyBusinessData) { vSt.biz={ok:true,real:false,nc:true}; setVState('biz','ok',SOFT); done(); return; }
-                    setVState('biz','','국세청 진위확인 중…');
-                    NWBackend.verifyBusinessData({ businessNo: bno, ceoName: ceo, bizOpenDate: open })
-                        .then(function(){ vSt.biz={ok:true,real:true,nc:false}; setVState('biz','ok','✓ 사업자 인증 완료'); })
-                        .catch(function(err){ var c=(err&&err.message)||''; if(c==='NOT_CONFIGURED'){ vSt.biz={ok:true,real:false,nc:true}; setVState('biz','ok','확인 접수 — 가입 후 관리자 승인으로 처리됩니다.'); } else { setVState('biz','err','인증 실패 — 상호·사업자번호·대표자·개업일을 확인해주세요.'); } })
-                        .then(done);
-                    return;
-                }
-                if (kind === 'account') {
-                    var bank = String(fd.get('bank')||'').trim();
-                    var acc = String(fd.get('account')||'').replace(/[^0-9]/g,'');
-                    var holder = String(fd.get('holder')||'').trim();
-                    if (!bank || !acc || !holder) { setVState('account','err','은행·계좌번호·예금주를 입력해주세요.'); done(); return; }
-                    if (isLive('account') && NWBackend.verifyAccountData) {
-                        setVState('account','','계좌 실명조회 중…');
-                        NWBackend.verifyAccountData({ bank: bank, account: acc, holder: holder })
-                            .then(function(){ vSt.account={ok:true,real:true,nc:false}; setVState('account','ok','✓ 계좌 인증 완료'); })
-                            .catch(function(err){ if((err&&err.message)==='NOT_CONFIGURED'){ vSt.account={ok:true,real:false,nc:true}; setVState('account','ok',SOFT);} else { setVState('account','err','예금주가 일치하지 않습니다. 다시 확인해주세요.'); } })
-                            .then(done);
-                    } else { vSt.account={ok:true,real:false,nc:true}; setVState('account','ok',SOFT); done(); }
-                    return;
-                }
-            }
-            function vConfirm(kind, btn) {
-                if (kind === 'email') {
-                    var fd = new FormData(signupForm);
-                    var email = String(fd.get('email') || '').trim();
-                    var code = String(($('#suEmailCode')||{}).value || '').trim();
-                    if (!code) { setVState('email','err','인증번호를 입력해주세요.'); return; }
-                    if (!NWBackend.verifyEmailOtp) { setVState('email','err','인증을 사용할 수 없습니다.'); return; }
-                    btn.disabled = true;
-                    setVState('email','','인증번호 확인 중…');
-                    NWBackend.verifyEmailOtp(email, code)
-                        .then(function(){ vSt.email={ok:true,real:true,nc:false,sent:true}; showCode('email',false); setVState('email','ok','✓ 이메일 인증 완료'); })
-                        .catch(function(){ setVState('email','err','인증번호가 올바르지 않습니다.'); })
-                        .then(function(){ btn.disabled=false; });
-                }
-            }
-            signupForm.addEventListener('click', function (e) {
-                var s = e.target.closest('[data-vsend]'), c = e.target.closest('[data-vconfirm]');
-                if (s) { e.preventDefault(); vSend(s.getAttribute('data-vsend'), s); }
-                else if (c) { e.preventDefault(); vConfirm(c.getAttribute('data-vconfirm'), c); }
-            });
+            var vSt = verificationUi.state;
+            var isLive = verificationUi.isLive;
+            var resetV = verificationUi.reset;
 
             // 단계 전환
             var step1 = $('#signupStep1'), step2 = $('#signupStep2');
@@ -5058,6 +4971,10 @@
 
                 // 2단계 필수: 휴대폰(필수) / 이메일(선택)
                 if (!d.phone) { alert('휴대폰 번호를 입력해주세요. (필수)'); return; }
+                var needsServerIdentity = isLive('phone') || (bizRole && (isLive('business') || isLive('account')));
+                if (needsServerIdentity && (!d.email || !isLive('email') || !vSt.email.real)) {
+                    alert('서버 인증을 진행하려면 이메일 인증을 먼저 완료해주세요.'); return;
+                }
                 // "라이브"로 켜진 인증은 실제 통과해야 가입. 준비 중(소프트)은 입력만으로 진행.
                 if (isLive('phone') && !vSt.phone.real && !vSt.phone.nc) { alert('휴대폰 본인인증을 완료해주세요.'); return; }
                 // 이메일은 선택 — 입력했고 라이브 인증이 켜져 있으면 통과 필요
@@ -5227,6 +5144,7 @@
         applyPage(target);
     }
 
+    document.addEventListener('bellore:navigate', function (event) { navigate(event.detail.page); });
     function initRouter() {
         var initial = (location.hash || '#home').slice(1) || 'home';
         applyPage(initial);
@@ -5570,11 +5488,6 @@
                 alert('시계 사진을 1장 이상 등록해주세요.');
                 return;
             }
-            if (saleMethod === 'consignment' && !desiredPrice) {
-                alert('희망 판매금액을 입력해주세요.');
-                return;
-            }
-
             var payload = {
                 brand: brand, model: model, name: name, phone: phone, memo: memo,
                 saleMethod: saleMethod, desiredPrice: desiredPrice,
@@ -5632,7 +5545,7 @@
             }
             uploadedPhotos.length = 0;
             renderUploadGrid();
-            window.dispatchEvent(new CustomEvent('bellore:sell-submitted'));
+            window.dispatchEvent(new CustomEvent('bellore:sell-submitted', { detail: Object.assign({}, p, { submissionMode: mode }) }));
             setTimeout(function () {
                 var myItems = $('#myItems');
                 if (myItems) myItems.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -5640,7 +5553,7 @@
         }
 
         // 회원이면 DB에 매물 등록(실시간 입찰 대상), 비회원이면 로컬 목록만
-        if (mode === 'member' && backendOn() && NWBackend.currentUser()) {
+        if (p.saleMethod === 'compare' && mode === 'member' && backendOn() && NWBackend.currentUser()) {
             var btn = form && form.querySelector('[type="submit"]');
             if (btn) btn.disabled = true;
             NWBackend.addListing({
@@ -5652,7 +5565,7 @@
                 if (form) { showSubmitSuccess(form); form.reset(); }
                 uploadedPhotos.length = 0;
                 renderUploadGrid();
-                window.dispatchEvent(new CustomEvent('bellore:sell-submitted'));
+                window.dispatchEvent(new CustomEvent('bellore:sell-submitted', { detail: Object.assign({}, p, { submissionMode: mode }) }));
             }).catch(function (err) {
                 alert('매물 등록 실패: ' + (err && err.message ? err.message : err));
             }).then(function () {

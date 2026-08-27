@@ -67,7 +67,12 @@
   }
   var FALLBACK_IMG = 'assets/og-image.png';
   function errMsg(err) {
-    var m = (err && err.message) ? String(err.message) : String(err || '');
+    var m = (err && err.message) ? String(err.message) : String(err || ''), known = [[/VERSION_REQUIRED/i, '상품 버전 정보가 없습니다. 목록을 새로고침한 뒤 다시 시도해 주세요.'], [/VERSION_CONFLICT/i, '다른 관리자가 먼저 변경했습니다. 목록을 새로고침해 주세요.'],
+      [/CHECKOUT_RESERVATION_ACTIVE/i, '결제가 진행 중인 상품은 변경할 수 없습니다.'], [/SOLD_LISTING_LOCKED/i, '판매가 완료된 상품은 직접 변경할 수 없습니다.'], [/HOME_SALE_REQUIRED/i, '이번 주 특별가에는 현재 할인 중인 상품만 등록할 수 있습니다.'],
+      [/HOME_PRODUCT_NOT_READY/i, '판매 승인·검수·재고·공개 조건을 모두 충족한 상품만 홈에 노출할 수 있습니다.'], [/HOME_SECTION_LIMIT/i, '한 영역에는 상품을 최대 20개까지 등록할 수 있습니다.'],
+      [/DUPLICATE_HOME_PRODUCT/i, '같은 상품이 두 번 선택되어 있습니다.'], [/REASON_REQUIRED/i, '변경 사유를 5자 이상 입력해 주세요.'], [/LISTING_NOT_READY|LISTING_CONTENT_REQUIRED/i, '상품 정보·검수·승인·재고 상태를 확인해 주세요.'], [/CATALOG_RPC_REQUIRED|PRODUCT_NO_SERVER_MANAGED/i, '보호된 상품 정보는 관리자 운영 화면에서만 변경할 수 있습니다.']
+    ];
+    for (var i = 0; i < known.length; i += 1) if (known[i][0].test(m)) return known[i][1];
     if (/row-level security|permission denied|not_admin/i.test(m))
       return '관리자 권한이 없습니다. 이 계정이 admin으로 지정됐는지(아래 SQL) 확인하세요.';
     return m || '알 수 없는 오류';
