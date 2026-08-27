@@ -36,6 +36,8 @@ export function createListingCatalog({ window: win }) {
       priceLowered: onSale,
       saleActive: onSale && saleActive(row),
       isNew: /미착용|신품/.test(String(row.condition || '')) || (row.tags || []).indexOf('new') !== -1,
+      /* 레거시 카드 렌더러에 넘길 원본은 이 경계 밖에서 직접 조회하지 않는다. */
+      legacyRow: row,
     };
   }
 

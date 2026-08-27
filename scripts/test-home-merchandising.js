@@ -1,0 +1,73 @@
+const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
+
+const root = path.join(__dirname, '..');
+const engine = require(path.join(root, 'app', 'legacy', 'recommendation-engine.js'));
+const source = fs.readFileSync(
+  path.join(root, 'app', 'features', 'home-merchandising', 'home-merchandising.js'),
+  'utf8'
+).replace('export function createHomeMerchandising', 'function createHomeMerchandising') +
+  '\nmodule.exports = { createHomeMerchandising };';
+const sandbox = { module: { exports: {} }, exports: {}, console };
+vm.runInNewContext(source, sandbox, { filename: 'home-merchandising.js' });
+const { createHomeMerchandising } = sandbox.module.exports;
+
+function listing(index, saleActive) {
+  return {
+    id: `watch-${index}`,
+    image: `assets/watch-${index}.png`,
+    photos: [`assets/watch-${index}.png`, `assets/watch-${index}-detail.jpg`],
+    brand: index % 3 === 0 ? 'Rolex' : (index % 3 === 1 ? 'Omega' : 'Cartier'),
+    model: `Model ${index}`,
+    productNo: `BEL-${index}`,
+    referenceNumber: `REF-${index}`,
+    price: 1000000 + index * 100000,
+    listPrice: saleActive ? 1500000 + index * 100000 : 1000000 + index * 100000,
+    saleActive,
+    condition: '8점 · 상급',
+    pack: index % 2 ? '풀세트' : '단품',
+    sizeMm: 40,
+    material: '스틸',
+    createdAt: `2026-08-${String(24 - (index % 10)).padStart(2, '0')}T00:00:00Z`,
+  };
+}
+
+const catalog = Array.from({ length: 16 }, (_, index) => listing(index + 1, index < 5));
+const feature = createHomeMerchandising({ window: { BelloreRecommendationEngine: engine } });
+const first = feature.update(catalog);
+const second = feature.update(catalog);
+const manual = feature.update(catalog, { weeklySpecialIds: ['watch-16', 'watch-2'] });
+
+assert.equal(first.weeklySpecial.audit.algorithm_version, 'bellore-reco-v2.0.0');
+assert.equal(first.recommended.audit.algorithm_version, 'bellore-reco-v2.0.0');
+assert.equal(first.weeklySpecial.audit.personalized, false);
+assert.equal(first.recommended.audit.personalized, false);
+assert(first.weeklySpecial.items.length > 0 && first.weeklySpecial.items.length <= 8);
+assert(first.recommended.items.length > 0 && first.recommended.items.length <= 12);
+assert.equal(
+  first.weeklySpecial.items.some((weekly) => first.recommended.items.some((recommended) => recommended.id === weekly.id)),
+  false,
+  'weekly special and recommended listings must not overlap'
+);
+assert.deepEqual(first.recommended.items.map((item) => item.id), second.recommended.items.map((item) => item.id));
+assert.equal(manual.weeklySpecial.items[0].id, 'watch-2');
+assert.equal(manual.weeklySpecial.audit.manual_selected_count, 1);
+assert.equal(
+  manual.recommended.items.some((item) => item.id === 'watch-2'),
+  false,
+  '현재 할인 중인 수동 선택 상품은 추천 영역에 중복되면 안 됩니다.'
+);
+assert.equal(manual.weeklySpecial.items.some((item) => item.id === 'watch-16'), false,
+  '할인이 끝난 상품은 수동 선택돼 있어도 특별가 영역에 남으면 안 됩니다.');
+
+const noSale = feature.update(catalog.map((item) => ({ ...item, saleActive: false, listPrice: item.price })));
+assert.equal(noSale.weeklySpecial.items.length, 0);
+assert.equal(
+  noSale.weeklySpecial.items.some((weekly) => noSale.recommended.items.some((recommended) => recommended.id === weekly.id)),
+  false,
+  'fallback weekly special and recommended listings must not overlap'
+);
+
+console.log('home merchandising algorithm tests passed');

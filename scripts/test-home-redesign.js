@@ -11,6 +11,8 @@ const bannersCss = read('app/features/home-banners/home-banners.css');
 const rows = read('app/features/home-rows/home-rows.js');
 const rowAdmin = read('app/features/home-rows/home-row-admin.js');
 const rowsCss = read('app/features/home-rows/home-rows.css');
+const merchandising = read('app/features/home-merchandising/home-merchandising.js');
+const collectionAdapter = read('app/legacy/legacy-collection.js');
 const legacy = read('script.js');
 const features = read('bellore-features.js');
 const buildPages = read('tools/build-pages.mjs');
@@ -30,6 +32,15 @@ assert.doesNotMatch(data, /hero-04\.webp/, 'deleted iconic artwork must not be r
 assert.doesNotMatch(features, /belloreSetBanners\(list\)/, 'database subscription must not overwrite the fixed hero campaigns');
 assert.doesNotMatch(legacy, /belloreSetBanners\(_cb\)/, 'cached database banners must not flash before the fixed campaigns');
 assert.match(banners, /collection\.openPreset\(\{ action: campaign\.action, label: campaign\.title \}\)/, 'hero click keeps the collection contract');
+assert.match(collectionAdapter, /bellore:navigate/, 'hero collections request the canonical app router through the adapter event');
+assert.match(collectionAdapter, /new win\.PopStateEvent\('popstate'/, 'hero collection fallback activates the page after changing the hash');
+assert.match(bannersCss, /\.hero-carousel\.has-db \{[\s\S]*width: 100%;[\s\S]*margin: 0;/, 'hero campaign fills the Bellore app width');
+assert.match(bannersCss, /\.hero-carousel\.has-db \.hero-track,[\s\S]*border-radius: 0;/, 'hero campaign has no rounded frame');
+assert.match(bannersCss, /\.hero-dots \{[\s\S]*right: 0;/, 'hero counter stays attached to the right edge');
+assert.match(legacy, /addEventListener\('bellore:navigate'[\s\S]*navigate\(event\.detail\.page\)/, 'legacy router consumes one canonical collection navigation event');
+assert.match(legacy, /hero-count-prev[\s\S]*hero-count-current[\s\S]*hero-count-separator[\s\S]*hero-count-total[\s\S]*hero-count-next/, 'hero counter follows previous, current, divider, total, next order');
+assert.match(legacy, /Math\.abs\(dx\) > 12/, 'hero tap tolerates small pointer jitter before treating the gesture as a swipe');
+assert.match(legacy, /Math\.abs\(dx\) > 12 && !swiped[\s\S]*track\.setPointerCapture/, 'hero rail captures the pointer only after a real swipe starts');
 assert.match(bannersCss, /data-hero-action="vintage"[\s\S]*right: 5%;[\s\S]*width: 34%/, 'vintage copy stays in the right empty area');
 assert.match(bannersCss, /data-hero-action="diver"[\s\S]*background-position: 68% center/, 'diver artwork shifts left to reveal the right watch');
 assert.match(data, /export const FEATURED_MAX = 10;/);
@@ -55,20 +66,27 @@ assert.match(rowsCss, /\.hrow-card:first-child \{ margin-left: 20px; \}/);
 assert.match(rowsCss, /\.hrow-view-all:last-child \{ margin-right: 20px; \}/);
 assert.match(rows, /mount: 'rowDropBlock', key: 'home_row_drop', title: 'TIME SALE'/);
 assert.match(rows, /class="hrow-meta"/);
-assert.match(rowAdmin, /브랜드 · 상태 · 구성품/);
 assert.match(rowAdmin, /backend\.getSiteContent\(row\.config\.key\)/);
 assert.match(rowAdmin, /backend\.saveSiteContent\(activeRow\.config\.key/);
 assert.match(rowAdmin, /row\.settingsButton\.hidden = !isAdmin/);
+assert.match(rowAdmin, /노출 상품 직접 지정/);
+assert.match(rowAdmin, /JSON\.stringify\(\{ productIds: selectedIds \}\)/);
+assert.match(rows, /manualFirst\(/);
+assert.match(rows, /weeklySpecialIds\(\)/);
+assert.match(rows, /<span>상품 설정<\/span>/);
 assert.match(rowsCss, /\.hrow-settings\[hidden\] \{ display: none; \}/);
 assert.match(buildPages, /'app\/features\/home-rows\/home-row-admin\.js'/);
 assert.match(rows, /class="hrow-view-all"/);
 assert.doesNotMatch(rows, /hrow-more/);
 assert.doesNotMatch(index, /hrow-more/);
 assert.match(legacy, /rows\.slice\(0, 12\)/);
+assert.match(merchandising, /surface:\s*'weekly_special'/);
+assert.match(merchandising, /surface:\s*'recommended_listings'/);
+assert.match(merchandising, /!weeklyIds\.has\(String\(item\.id\)\)/);
 
 for (let i = 1; i <= 10; i += 1) {
   const file = `assets/banners/category-${String(i).padStart(2, '0')}.webp`;
   assert.ok(fs.existsSync(path.join(root, file)), file);
 }
 
-console.log('home redesign checks: 31 passed');
+console.log('home redesign checks: 49 passed');
