@@ -18,6 +18,44 @@ function escapePattern(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/* DB 원문을 바꾸지 않고 고객·검색 화면에서만 오래된 줄임말과 오탈자를 정규화한다. */
+export function normalizeListingText(value) {
+  return known(value)
+    .replace(/데이저스트\s*36/gi, '데이저스트 36')
+    .replace(/섭마/g, '서브마리너')
+    .replace(/네비타이버|네비타리머/g, '내비타이머')
+    .replace(/슈퍼오션\s*2/gi, '슈퍼오션 II')
+    .replace(/오에스터데이트/g, '오이스터데이트')
+    .replace(/퍼페츄얼/g, '퍼페추얼')
+    .replace(/마스터콜렉션|마스터컬렉션/g, '마스터 컬렉션')
+    .replace(/머스트드\s*탱크/g, '머스트 드 탱크')
+    .replace(/산토스\s*100/gi, '산토스 100')
+    .replace(/라도냐/g, '라 도나')
+    .replace(/카키네이비/g, '카키 네이비')
+    .replace(/H아워/gi, 'H 아워')
+    .replace(/골든엘립스/g, '골든 엘립스')
+    .replace(/애커스/g, '아퀴스')
+    .replace(/(?:어쿠아|아쿠아)테라/g, '아쿠아 테라')
+    .replace(/까레라\s*칼리버\s*(\d+)/gi, '까레라 칼리버 $1')
+    .replace(/칼리버\s*(\d+)/gi, '칼리버 $1')
+    .replace(/크로노\s+그래프/g, '크로노그래프')
+    .replace(/\bj12\b/gi, 'J12')
+    .replace(/18\s*k\b/gi, '18K')
+    .replace(/화이트골드/g, '화이트 골드')
+    .replace(/옐로골드/g, '옐로 골드')
+    .replace(/블루다이얼/g, '블루 다이얼')
+    .replace(/레드다이얼/g, '레드 다이얼')
+    .replace(/그린다이얼/g, '그린 다이얼')
+    .replace(/화이트로만/g, '화이트 로만')
+    .replace(/청콤/g, '블루 콤비')
+    .replace(/흑콤/g, '블랙 콤비')
+    .replace(/녹판/g, '그린 다이얼')
+    .replace(/텐포/g, '10P 다이아 인덱스')
+    .replace(/초코판/g, '초코 다이얼')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export function movementText(value) {
   const raw = known(value);
   if (!raw) return '';
@@ -91,7 +129,7 @@ export function conditionPresentation(value) {
 export function listingPresentation(listing) {
   const size = known(listing.sizeMm ?? listing.size_mm).replace(/mm$/i, '');
   const reference = known(listing.referenceNumber ?? listing.reference_no ?? listing.ref_id ?? listing.ref);
-  let model = known(listing.model ?? listing.description).replace(/^\[?중고\]?\s*/i, '');
+  let model = normalizeListingText(listing.model ?? listing.description).replace(/^\[?중고\]?\s*/i, '');
   const brand = known(listing.brand);
   if (brand) model = model.replace(new RegExp(`^${escapePattern(brand)}\\s+`, 'i'), '');
 
@@ -104,12 +142,21 @@ export function listingPresentation(listing) {
     }
   }
   if (size) {
+    if (!reference) {
+      const sizeIndex = model.search(new RegExp(`(^|\\s)${escapePattern(size)}(?:\\s*(?:mm|미리))?(?=$|\\s)`, 'i'));
+      if (sizeIndex >= 0) {
+        const sizeMatch = model.slice(sizeIndex)
+          .match(new RegExp(`^\\s*${escapePattern(size)}(?:\\s*(?:mm|미리))?`, 'i'))?.[0] || '';
+        feature = model.slice(sizeIndex + sizeMatch.length).trim();
+        model = model.slice(0, sizeIndex).trim();
+      }
+    }
     const sizePattern = new RegExp(`(^|\\s)${escapePattern(size)}(?:\\s*(?:mm|미리))?(?=$|\\s)`, 'ig');
     model = model.replace(sizePattern, ' ').replace(/\s+/g, ' ').trim();
     model = model.replace(new RegExp(`${escapePattern(size)}(?:mm|미리)?$`, 'i'), '').trim();
   }
   model = model.replace(/\s+/g, ' ').trim() || '모델 확인 필요';
-  feature = feature.replace(/소재\s*기능|정보없음/g, '').replace(/\s+/g, ' ').trim();
+  feature = normalizeListingText(feature).replace(/소재\s*기능|정보없음/g, '').replace(/\s+/g, ' ').trim();
   const modelSize = [model, size].filter(Boolean).join(' ');
   const move = movementText(listing.movement);
   return {
