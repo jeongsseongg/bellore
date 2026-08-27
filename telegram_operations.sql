@@ -187,7 +187,10 @@ begin
           jsonb_build_object(
             'quoteId', new.id, 'inputKey', ops_item.input_key,
             'brand', coalesce(new.item_brand, ''), 'model', coalesce(new.item_name, ''),
-            'detail', coalesce(new.item_detail, ''), 'expiresAt', ops_item.expires_at,
+            'ref', coalesce(new.item_ref, ''), 'year', coalesce(new.item_year, ''),
+            'grade', coalesce(new.item_grade, ''), 'stamping', coalesce(new.item_stamping, ''),
+            'parts', coalesce(new.item_parts, ''), 'detail', coalesce(new.item_detail, ''),
+            'expiresAt', ops_item.expires_at,
             'photos', coalesce(to_jsonb(new.photo_urls), '[]'::jsonb)
           )
         ) on conflict (dedupe_key) do nothing;
@@ -212,8 +215,14 @@ begin
         'order_paid', 'order_room',
         jsonb_build_object(
           'orderId', new.id, 'inputKey', ops_item.input_key, 'orderNo', new.order_no,
-          'productName', new.product_name, 'amount', new.amount,
-          'buyerName', coalesce(new.buyer_name, ''), 'buyerPhone', coalesce(new.buyer_phone, '')
+          'productName', new.product_name, 'productImage', coalesce(new.product_image, ''),
+          'amount', new.amount, 'payType', coalesce(new.pay_type, ''),
+          'method', coalesce(new.method, ''),
+          'buyerName', coalesce(new.buyer_name, ''), 'buyerPhone', coalesce(new.buyer_phone, ''),
+          'shipRecipient', coalesce(new.ship_recipient, ''), 'shipPhone', coalesce(new.ship_phone, ''),
+          'shipPostcode', coalesce(new.ship_postcode, ''),
+          'shipAddr1', coalesce(new.ship_addr1, ''), 'shipAddr2', coalesce(new.ship_addr2, ''),
+          'shipRequest', coalesce(new.ship_request, '')
         )
       ) on conflict (dedupe_key) do nothing;
     end if;
@@ -244,8 +253,13 @@ declare
   item_key text;
   company text;
   phone text;
+  customer_name text;
+  quote_brand text;
+  quote_model text;
+  quote_detail text;
+  previous_highest bigint;
 begin
-  if tg_op = 'UPDATE' and new.amount is not distinct from old.amount then return new; end if;
+  if tg_op = 'UPDATE' and new.amount <= old.amount then return new; end if;
 
   select coalesce(p.company_name, p.biz_name, p.display_name, p.email, '업체'), coalesce(p.phone, '')
     into company, phone
@@ -263,9 +277,22 @@ begin
     coalesce(new.offer_source, 'vendor_app'), new.offer_round, now()
   );
 
+  select coalesce(max(b.amount), 0)::bigint into previous_highest
+    from public.bids b
+   where b.quote_request_id = new.quote_request_id and b.id <> new.id;
+  if tg_op = 'UPDATE' then
+    previous_highest := greatest(previous_highest, old.amount);
+  end if;
+  if new.amount <= previous_highest then return new; end if;
+
   if coalesce(new.created_by_admin, false) then return new; end if;
-  select input_key into item_key from public.telegram_ops_items
-   where quote_request_id = new.quote_request_id and status = 'active';
+  select i.input_key, coalesce(nullif(p.display_name, ''), '고객'),
+         coalesce(q.item_brand, ''), coalesce(q.item_name, ''), coalesce(q.item_detail, '')
+    into item_key, customer_name, quote_brand, quote_model, quote_detail
+    from public.telegram_ops_items i
+    join public.quote_requests q on q.id = i.quote_request_id
+    left join public.profiles p on p.id = q.customer_id
+   where i.quote_request_id = new.quote_request_id and i.status = 'active';
   if item_key is null then return new; end if;
 
   insert into public.telegram_ops_outbox (dedupe_key, event_type, target, payload)
@@ -274,7 +301,9 @@ begin
     'vendor_bid', 'quote_room',
     jsonb_build_object('quoteId', new.quote_request_id, 'inputKey', item_key,
       'bidId', new.id, 'company', coalesce(company, '업체'), 'phone', coalesce(phone, ''),
-      'amount', new.amount)
+      'amount', new.amount, 'previousHighest', previous_highest,
+      'customerName', customer_name, 'brand', quote_brand, 'model', quote_model,
+      'quoteDetail', quote_detail)
   ) on conflict (dedupe_key) do nothing;
   return new;
 end;
