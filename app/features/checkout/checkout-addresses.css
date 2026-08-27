@@ -8,6 +8,7 @@
 .shipping-address-popup { position:fixed; inset:0; z-index:10200; }
 .shipping-address-popup__backdrop { position:absolute; inset:0; width:100%; border:0; background:rgba(11,17,15,.5); backdrop-filter:blur(2px); }
 .shipping-address-popup__sheet { position:absolute; left:50%; bottom:0; width:min(100%, var(--app-panel-w, 660px)); max-height:min(88dvh, 820px); padding:24px 22px calc(26px + env(safe-area-inset-bottom)); border-radius:24px 24px 0 0; background:#fff; box-shadow:0 -18px 52px rgba(13,24,20,.22); overflow-y:auto; transform:translateX(-50%); }
+.shipping-address-popup.is-searching .shipping-address-popup__sheet { overflow:hidden; }
 .shipping-address-popup__header { display:grid; grid-template-columns:40px 1fr 40px; align-items:start; gap:10px; margin-bottom:24px; }
 .shipping-address-popup__header > div { grid-column:2; }
 .shipping-address-popup__header p { margin:0 0 5px; color:#a58649; font-size:10px; font-weight:800; letter-spacing:.16em; }
@@ -31,6 +32,10 @@
 .shipping-address-popup__actions .is-primary { border-color:#172a25; background:#172a25; color:#fff; }
 .shipping-address-popup__editor { display:grid; gap:14px; }
 .shipping-address-popup__editor[hidden] { display:none; }
+.shipping-address-popup__search[hidden] { display:none; }
+.shipping-address-popup__search > p { margin:0 0 14px; color:#68736e; font-size:13px; line-height:1.5; }
+.shipping-address-popup__postcode-search { width:100%; height:min(560px, calc(88dvh - 180px)); min-height:300px; overflow:hidden; border:1px solid #dce3df; border-radius:18px; background:#f7f9f8; box-sizing:border-box; }
+.shipping-address-popup__postcode-search iframe { border-radius:18px; }
 .shipping-address-popup__field { display:grid; gap:7px; color:#4d4b47; font-size:12px; font-weight:750; }
 .shipping-address-popup__field input { width:100%; min-height:48px; padding:0 14px; border:1px solid #dedbd4; border-radius:11px; background:#fff; color:#1f2321; font:500 14px/1 Pretendard,sans-serif; box-sizing:border-box; }
 .shipping-address-popup__postcode { display:grid; grid-template-columns:1fr auto; gap:8px; }
@@ -41,4 +46,8 @@
 .shipping-address-popup__message.is-error { color:#b43a31; }
 .shipping-address-popup__save { min-height:50px; border:0; border-radius:12px; background:#172a25; color:#fff; font-size:14px; font-weight:800; }
 body.shipping-address-popup-open { overflow:hidden; }
-@media (max-width:480px) { .shipping-address-popup__sheet { padding-left:18px; padding-right:18px; } .shipping-address-popup__header h2 { font-size:22px; } }
+@media (max-width:480px) {
+  .shipping-address-popup__sheet { padding-left:18px; padding-right:18px; }
+  .shipping-address-popup__header h2 { font-size:22px; }
+  .shipping-address-popup__postcode-search { border-radius:14px; }
+}
