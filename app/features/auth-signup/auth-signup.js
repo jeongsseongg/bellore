@@ -9,6 +9,12 @@ const step2 = document.getElementById('signupStep2');
 const progress = document.getElementById('signupProgress');
 const heading = document.getElementById('signupTitle');
 let checkedUsername = '';
+const SIGNUP_DRAFT_KEY = 'bellore.signup.draft.v1';
+const DRAFT_FIELDS = [
+  'suName', 'suUsername', 'suEmail', 'signupPostcode', 'signupAddr1', 'signupAddr2',
+  'suPhone', 'suCompany', 'suBizNo', 'suCeo', 'suBizOpen',
+];
+let currentStep = 1;
 
 function setStatus(message) { if (status) status.textContent = message || ''; }
 function fieldValue(id) { return String(document.getElementById(id)?.value || '').trim(); }
@@ -19,6 +25,37 @@ function verificationLive(kind) { return !!window.BELLORE_VERIFY?.[kind === 'biz
 const active = new URLSearchParams(location.search).get('view') === 'signup';
 document.getElementById('signupShell').hidden = !active;
 if (active) document.getElementById('authShell').hidden = true;
+
+function readDraft() {
+  try { return JSON.parse(sessionStorage.getItem(SIGNUP_DRAFT_KEY) || '{}'); }
+  catch (_) { return {}; }
+}
+
+function saveDraft() {
+  const fields = Object.fromEntries(DRAFT_FIELDS.map((id) => [id, document.getElementById(id)?.value || '']));
+  try {
+    sessionStorage.setItem(SIGNUP_DRAFT_KEY, JSON.stringify({
+      fields,
+      role: role(),
+      agree: document.getElementById('signupAgree').checked,
+      adConsent: document.getElementById('signupAdConsent').checked,
+    }));
+  } catch (_) { /* 저장소 차단 환경에서도 회원가입은 계속 진행한다. */ }
+}
+
+function restoreDraft() {
+  const draft = readDraft();
+  for (const id of DRAFT_FIELDS) {
+    const input = document.getElementById(id);
+    if (input && typeof draft.fields?.[id] === 'string') input.value = draft.fields[id];
+  }
+  const roleInput = form.querySelector(`[name="role"][value="${draft.role === 'vendor' ? 'vendor' : 'customer'}"]`);
+  if (roleInput) roleInput.checked = true;
+  document.getElementById('signupAgree').checked = draft.agree === true;
+  document.getElementById('signupAdConsent').checked = draft.adConsent === true;
+}
+
+if (active) restoreDraft();
 
 const verification = createSignupVerification({
   document,
@@ -41,12 +78,22 @@ function applyRole() {
 form.querySelectorAll('[name="role"]').forEach((input) => input.addEventListener('change', applyRole));
 applyRole();
 
-function showStep(number) {
+function showStep(number, { historyMode = 'none' } = {}) {
+  currentStep = number;
   step1.hidden = number !== 1;
   step2.hidden = number !== 2;
   progress.textContent = `${number} / 2`;
   heading.innerHTML = number === 1 ? '회원 정보를<br>입력해 주세요.' : '본인인증을<br>진행해 주세요.';
+  if (historyMode === 'push') history.pushState({ belloreSignupStep: number }, '', location.href);
+  if (historyMode === 'replace') history.replaceState({ ...history.state, belloreSignupStep: number }, '', location.href);
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+if (active) {
+  showStep(Number(history.state?.belloreSignupStep) === 2 ? 2 : 1, { historyMode: 'replace' });
+  window.addEventListener('popstate', (event) => showStep(Number(event.state?.belloreSignupStep) === 2 ? 2 : 1));
+  form.addEventListener('input', saveDraft);
+  form.addEventListener('change', saveDraft);
 }
 
 function setHelp(id, message, type = '') {
@@ -106,9 +153,13 @@ document.getElementById('signupNext').addEventListener('click', () => {
   if (!fieldValue('signupPostcode') || !fieldValue('signupAddr1')) { setStatus('주소를 입력해 주세요.'); return; }
   if (!document.getElementById('signupAgree').checked) { setStatus('필수 약관에 동의해 주세요.'); return; }
   setStatus('');
-  showStep(2);
+  saveDraft();
+  showStep(2, { historyMode: 'push' });
 });
-document.getElementById('signupPrev').addEventListener('click', () => showStep(1));
+document.getElementById('signupPrev').addEventListener('click', () => {
+  if (currentStep === 2 && Number(history.state?.belloreSignupStep) === 2) history.back();
+  else showStep(1, { historyMode: 'replace' });
+});
 
 function verified(kind) {
   const item = verification.state[kind];
@@ -135,6 +186,7 @@ form.addEventListener('submit', async (event) => {
       businessNo: fieldValue('suBizNo'), ceoName: fieldValue('suCeo'), bizOpenDate: fieldValue('suBizOpen'),
       bank: fieldValue('suBank'), account: fieldValue('suAccount'), holder: fieldValue('suHolder'),
     });
+    try { sessionStorage.removeItem(SIGNUP_DRAFT_KEY); } catch (_) { /* noop */ }
     setStatus(isBusiness() ? '가입 신청이 완료되었습니다. 관리자 승인 후 이용할 수 있습니다.' : '회원가입이 완료되었습니다.');
     window.setTimeout(() => location.replace('/'), 900);
   } catch (error) {
