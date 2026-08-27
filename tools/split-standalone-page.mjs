@@ -57,7 +57,7 @@ ${styles}
 </head>
 <body data-bellore-standalone-page="${pageKind}">
 ${modal.markup}
-<script type="module" src="/app/pages/standalone-page.js"></script>
+<script type="module" src="/app/pages/standalone-page.js?v=20260827-standalone-pages-v3"></script>
 </body>
 </html>
 `;

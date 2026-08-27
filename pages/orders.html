@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<base href="/">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="robots" content="noindex, follow">
+<title>주문 내역 | BELLORE</title>
+<link rel="canonical" href="https://bellore.co.kr/pages/orders.html">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=20260826-auth-shell-v1">
+<link rel="stylesheet" href="wanted-theme.css?v=20260818-pretendard-v1">
+<link rel="stylesheet" href="reference-layout.css?v=20260821-tabbar-safe-area-v1">
+<link rel="stylesheet" href="vendor-reference.css?v=20260731-photo-viewer">
+<link rel="stylesheet" href="mypick.css?v=20260826-member-verification-live-v2">
+<link rel="stylesheet" href="bellore-redesign.css?v=20260826-purchasebar-harmony-v1">
+<link rel="stylesheet" href="app/features/home-banners/home-banners.css?v=20260826-hero-layout-v9">
+<link rel="stylesheet" href="app/features/home-rows/home-rows.css?v=20260826-price-bottom-v1">
+<link rel="stylesheet" href="app/features/home-quicklinks/home-quicklinks.css?v=20260826-rounded-corners-v2">
+<link rel="stylesheet" href="app/features/analytics-consent/analytics-consent.css?v=20260826-ai-consent-v1">
+<link rel="stylesheet" href="app/features/checkout/checkout-addresses.css?v=20260826-shipping-address-popup-v2">
+<link rel="stylesheet" href="app/features/checkout/checkout-coupon.css?v=20260826-member-verification-live-v2">
+<link rel="stylesheet" href="app/features/sell-method/sell-method.css?v=20260826-sell-motion-v2">
+<link rel="stylesheet" href="app/features/sell-method/sell-quotes.css?v=20260826-sell-guest-access-v1">
+<link rel="stylesheet" href="app/features/sell-method/sell-service-navigation.css?v=20260826-sell-guest-access-v1">
+<link rel="stylesheet" href="app/features/sell-method/sell-guest-access.css?v=20260826-sell-guest-access-v1">
+<link rel="stylesheet" href="app/features/sell-method/sell-service-pages.css?v=20260826-sell-guest-access-v1">
+<link rel="stylesheet" href="app/features/sell-method/sell-service-action.css?v=20260826-sell-guest-access-v1">
+<link rel="stylesheet" href="app/features/condition-guide/condition-guide.css?v=20260826-member-verification-live-v2">
+</head>
+<body data-bellore-standalone-page="orders">
+<div class="login-modal" id="ordersModal" hidden>
+        <div class="login-backdrop" data-ordclose></div>
+        <div class="login-content orders-content">
+            <div class="mp-sub-bar">
+                <button type="button" class="mp-sub-back fp-back" data-ordclose aria-label="뒤로"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
+                <span class="mp-sub-title">구매 내역</span>
+            </div>
+            <div class="orders-tabs" id="ordersTabs">
+                <button type="button" class="orders-tab active" data-ofilter="">전체</button>
+                <button type="button" class="orders-tab" data-ofilter="pending">결제대기</button>
+                <button type="button" class="orders-tab" data-ofilter="paid">결제완료</button>
+                <button type="button" class="orders-tab" data-ofilter="preparing">준비중</button>
+                <button type="button" class="orders-tab" data-ofilter="shipping">배송중</button>
+                <button type="button" class="orders-tab" data-ofilter="delivered">배송완료</button>
+            </div>
+            <div class="orders-list" id="ordersList"></div>
+        </div>
+    </div>
+<script type="module" src="/app/pages/standalone-page.js?v=20260827-standalone-pages-v3"></script>
+</body>
+</html>
