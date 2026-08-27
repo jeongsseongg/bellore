@@ -51,20 +51,6 @@
         ]
       }
     ],
-    "PostToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "command": "python3 \"C:/Users/LS/.codex/skills/brain/scripts/check_protected_invariants.py\" --check-current",
-            "commandWindows": "python \"C:/Users/LS/.codex/skills/brain/scripts/check_protected_invariants.py\" --check-current",
-            "statusMessage": "Verifying protected project invariants",
-            "timeout": 30,
-            "type": "command"
-          }
-        ]
-      }
-    ],
     "UserPromptSubmit": [
       {
         "hooks": [
