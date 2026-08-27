@@ -1,0 +1,68 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { discoverPageHtmlFiles } from '../tools/pages-html.mjs';
+import {
+  enforceStandaloneAuth,
+  standaloneAuthPolicyFor,
+  standaloneLoginUrl,
+} from '../app/pages/standalone-auth-gate.mjs';
+
+const root = resolve(import.meta.dirname, '..');
+const AUTH_POLICY = new Map([
+  ['pages/mypage.html', 'required'],
+  ['pages/orders.html', 'required'],
+  ['pages/inquiry.html', 'public'],
+]);
+
+for (const file of await discoverPageHtmlFiles(root)) {
+  const policy = AUTH_POLICY.get(file);
+  assert.ok(policy, `${file}: AUTH_POLICY에 required 또는 public 예외를 명시해야 합니다.`);
+  const html = await readFile(resolve(root, file), 'utf8');
+  assert.match(html, new RegExp(`data-standalone-auth=["']${policy}["']`, 'i'), `${file}: 인증 정책 표시가 필요합니다.`);
+  assert.match(html, /app\/pages\/standalone-page\.css/i, `${file}: 인증 확인 전 보호 콘텐츠를 숨겨야 합니다.`);
+  assert.match(html, /app\/pages\/standalone-page\.js/i, `${file}: 공통 진입 게이트가 필요합니다.`);
+}
+
+assert.equal(standaloneAuthPolicyFor('mypage'), 'required');
+assert.equal(standaloneAuthPolicyFor('orders'), 'required');
+assert.equal(standaloneAuthPolicyFor('inquiry'), 'public');
+assert.match(standaloneLoginUrl({ pathname: '/pages/orders.html', search: '?status=paid', hash: '' }),
+  /^\/login\.html\?returnTo=%2Fpages%2Forders\.html%3Fstatus%3Dpaid$/);
+
+const signedInLocation = { pathname: '/pages/mypage.html', search: '', hash: '', replace() { throw new Error('unexpected redirect'); } };
+let getUserCalls = 0;
+const signedIn = await enforceStandaloneAuth({
+  page: 'mypage',
+  backend: { configured: true, ready: Promise.resolve() },
+  client: { auth: { getUser: async () => { getUserCalls += 1; return { data: { user: { id: 'user-1' } }, error: null }; } } },
+  locationObject: signedInLocation,
+});
+assert.equal(signedIn.allowed, true);
+assert.equal(getUserCalls, 1, '보호 페이지는 Auth 서버로 사용자를 검증해야 합니다.');
+
+let redirectedTo = '';
+const signedOut = await enforceStandaloneAuth({
+  page: 'orders',
+  backend: { configured: true, ready: Promise.resolve() },
+  client: { auth: { getUser: async () => ({ data: { user: null }, error: null }) } },
+  locationObject: { pathname: '/pages/orders.html', search: '?status=paid', hash: '', replace(url) { redirectedTo = url; } },
+});
+assert.equal(signedOut.allowed, false);
+assert.equal(redirectedTo, '/login.html?returnTo=%2Fpages%2Forders.html%3Fstatus%3Dpaid');
+
+let publicAuthCalls = 0;
+const publicInquiry = await enforceStandaloneAuth({
+  page: 'inquiry',
+  backend: null,
+  client: { auth: { getUser: async () => { publicAuthCalls += 1; } } },
+  locationObject: { pathname: '/pages/inquiry.html', search: '', hash: '', replace() {} },
+});
+assert.equal(publicInquiry.allowed, true);
+assert.equal(publicAuthCalls, 0, '비회원 문의 예외는 로그인 검사를 요구하지 않아야 합니다.');
+
+const login = await readFile(resolve(root, 'app/features/auth-login/auth-login.js'), 'utf8');
+assert.match(login, /params\.get\(['"]returnTo['"]\)[\s\S]*params\.get\(['"]return['"]\)/,
+  '로그인은 returnTo를 우선하고 기존 return 링크도 호환해야 합니다.');
+
+console.log('standalone auth gate: protected=2 public-exceptions=1 returnTo=1 runtime=3 passed');

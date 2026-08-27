@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v357-tabbar-active-state";
+const VERSION = "bellore-v358-standalone-auth-gate";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -35,11 +35,13 @@ const SHELL_ASSETS = [
   './ai-advisor.js?v=20260826-member-verification-live-v2',
   './ai-advisor-admin.js?v=20260826-member-verification-live-v2',
   './app/bootstrap.js?v=20260827-sell-request-persistence-v1',
-  './app/pages/standalone-page.js',
-  './app/ui/app-tabbar.css?v=20260827-latest-tabbar-v2',
-  './app/ui/app-tabbar.js?v=20260827-latest-tabbar-v2',
+  './app/pages/standalone-auth-gate.mjs?v=20260828-standalone-auth-v1',
+  './app/pages/standalone-page.css?v=20260828-standalone-auth-v1',
+  './app/pages/standalone-page.js?v=20260828-standalone-auth-v1',
+  './app/ui/app-tabbar.css?v=20260827-latest-tabbar-v3',
+  './app/ui/app-tabbar.js?v=20260827-latest-tabbar-v3',
   './app/features/auth-login/auth-login.css?v=20260827-auth-page-v3',
-  './app/features/auth-login/auth-login.js?v=20260827-auth-page-v3',
+  './app/features/auth-login/auth-login.js?v=20260828-return-to-v1',
   './app/services/auth/auth-login-backend.js',
   './app/features/auth-signup/auth-signup.css?v=20260827-signup-role-v1',
   './app/features/auth-signup/auth-signup.js?v=20260827-signup-flow-v2',

@@ -4,7 +4,8 @@ const backend = getAuthBackend();
 const status = document.getElementById('authStatus');
 const view = new URLSearchParams(location.search).get('view') || 'login';
 const returnUrl = (() => {
-  const requested = new URLSearchParams(location.search).get('return') || '/';
+  const params = new URLSearchParams(location.search);
+  const requested = params.get('returnTo') || params.get('return') || '/';
   try {
     const target = new URL(requested, location.origin);
     return target.origin === location.origin ? target.pathname + target.search + target.hash : '/';

@@ -43,6 +43,12 @@ if (!head) throw new Error('index head not found');
 const styles = [...head.matchAll(/<link\b[^>]*\brel=["']stylesheet["'][^>]*>/gi)]
   .map((match) => match[0]).join('\n');
 const activeTab = pageKind === 'mypage' || pageKind === 'orders' ? 'my' : '';
+const authPolicy = new Map([
+  ['mypage', 'required'],
+  ['orders', 'required'],
+  ['inquiry', 'public'],
+]).get(pageKind);
+if (!authPolicy) throw new Error(`standalone auth policy missing: ${pageKind}`);
 
 const page = `<!DOCTYPE html>
 <html lang="ko">
@@ -56,12 +62,13 @@ const page = `<!DOCTYPE html>
 <link rel="canonical" href="https://bellore.co.kr/pages/${outputName}">
 ${styles}
 <link rel="stylesheet" href="/app/ui/app-tabbar.css?v=20260827-latest-tabbar-v3">
+<link rel="stylesheet" href="/app/pages/standalone-page.css?v=20260828-standalone-auth-v1">
 </head>
-<body data-bellore-standalone-page="${pageKind}">
+<body data-bellore-standalone-page="${pageKind}" data-standalone-auth="${authPolicy}">
 ${modal.markup}
 <bellore-tabbar data-active="${activeTab}"></bellore-tabbar>
 <script type="module" src="/app/ui/app-tabbar.js?v=20260827-latest-tabbar-v3"></script>
-<script type="module" src="/app/pages/standalone-page.js?v=20260827-standalone-tabbar-v1"></script>
+<script type="module" src="/app/pages/standalone-page.js?v=20260828-standalone-auth-v1"></script>
 </body>
 </html>
 `;

@@ -1,11 +1,19 @@
-const dependencies = [
+import {
+  enforceStandaloneAuth,
+  standaloneAuthPolicyFor,
+} from './standalone-auth-gate.mjs?v=20260828-standalone-auth-v1';
+
+const authDependencies = [
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
-  '/ui-dialog.js?v=20260826-member-verification-live-v2',
   '/supabase-config.js?v=20260826-naverpay-live-v2',
+  '/supabase.js?v=20260827-signup-identity-v1',
+];
+
+const pageDependencies = [
+  '/ui-dialog.js?v=20260826-member-verification-live-v2',
   '/analytics-core.js?v=20260810-analytics-v3',
   '/analytics-client.js?v=20260826-ai-consent-v1',
   '/brands.js',
-  '/supabase.js?v=20260827-signup-identity-v1',
   '/bellore-features.js?v=20260827-signup-identity-v1',
   '/cq-demo.js?v=20260826-member-verification-live-v2',
   '/script.js?v=20260827-standalone-pages-v4',
@@ -31,11 +39,30 @@ function loadClassicScript(src) {
   });
 }
 
-for (const dependency of dependencies) await loadClassicScript(dependency);
+const page = document.body?.dataset.belloreStandalonePage || '';
+const declaredPolicy = document.body?.dataset.standaloneAuth || '';
+const expectedPolicy = standaloneAuthPolicyFor(page);
+if (!expectedPolicy || declaredPolicy !== expectedPolicy) {
+  throw new Error(`standalone_auth_policy_mismatch:${page}`);
+}
+
+for (const dependency of authDependencies) await loadClassicScript(dependency);
+
+const authResult = await enforceStandaloneAuth({
+  page,
+  backend: window.NWBackend,
+  client: window.sbClient,
+  locationObject: window.location,
+});
+
+if (authResult.allowed) {
+  document.body.dataset.standaloneAuthReady = 'true';
+  for (const dependency of pageDependencies) await loadClassicScript(dependency);
+}
 
 function openStandalonePage() {
-  const page = document.body?.dataset.belloreStandalonePage;
-  const openMyPage = globalThis['BELLORE_openMyPage'];
+  if (!authResult.allowed) return;
+  const openMyPage = window.BELLORE_openMyPage;
   if (page === 'mypage' && typeof openMyPage === 'function') {
     openMyPage();
   }

@@ -6,6 +6,7 @@ const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const loginHtml = fs.readFileSync(path.join(root, 'login.html'), 'utf8');
 const runtime = fs.readFileSync(path.join(root, 'app', 'legacy', 'page-runtime.js'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
 const bootstrap = fs.readFileSync(path.join(root, 'app', 'bootstrap.js'), 'utf8');
@@ -13,11 +14,12 @@ const releaseKey = '20260826-member-verification-live-v2';
 const sellReleaseKey = '20260826-naverpay-live-v1';
 const bootstrapReleaseKey = '20260827-sell-request-persistence-v1';
 const authPageReleaseKey = '20260826-auth-page-v1';
-const authPageAssetKey = '20260827-auth-page-v3';
 const signupStyleKey = '20260827-signup-role-v1';
 const signupScriptKey = '20260827-signup-flow-v2';
 const signupIdentityKey = '20260827-signup-identity-v1';
 const shellStyleKey = '20260826-auth-shell-v1';
+const loginStyleUrl = loginHtml.match(/href="(app\/features\/auth-login\/auth-login\.css\?v=[^"]+)"/)?.[1];
+const loginScriptUrl = loginHtml.match(/src="(app\/features\/auth-login\/auth-login\.js\?v=[^"]+)"/)?.[1];
 
 const urls = {
   styles: html.match(/<link rel="stylesheet" href="(styles\.css\?v=[^"]+)"/)?.[1],
@@ -56,8 +58,8 @@ for (const name of ['styles', 'script', 'payments', 'wishlist', 'search', 'dialo
 assert.match(serviceWorker, /const VERSION = "bellore-v\d+-[a-z0-9-]+";/, 'service-worker cache namespace must remain a versioned Bellore release');
 assert(serviceWorker.includes(`'./app/bootstrap.js?v=${bootstrapReleaseKey}'`), 'service worker must preserve the restored sell request path');
 assert(serviceWorker.includes("'./login.html'"), 'service worker must precache the independent login page');
-assert(serviceWorker.includes(`'./app/features/auth-login/auth-login.css?v=${authPageAssetKey}'`), 'service worker must precache login page styles');
-assert(serviceWorker.includes(`'./app/features/auth-login/auth-login.js?v=${authPageAssetKey}'`), 'service worker must precache login page behavior');
+assert(loginStyleUrl && serviceWorker.includes(`'./${loginStyleUrl}'`), 'service worker must precache the exact login page styles');
+assert(loginScriptUrl && serviceWorker.includes(`'./${loginScriptUrl}'`), 'service worker must precache the exact login page behavior');
 assert(serviceWorker.includes(`'./app/features/auth-signup/auth-signup.css?v=${signupStyleKey}'`), 'service worker must precache signup page styles');
 assert(serviceWorker.includes(`'./app/features/auth-signup/auth-signup.js?v=${signupScriptKey}'`), 'service worker must precache signup page behavior');
 assert(serviceWorker.includes(`'./supabase.js?v=${signupIdentityKey}'`), 'service worker must precache the signup verification backend with the release key');
