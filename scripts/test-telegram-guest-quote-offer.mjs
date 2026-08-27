@@ -7,6 +7,11 @@ const migration = await readFile(
   'utf8'
 );
 const currentNotification = await readFile(new URL('bid_notify.sql', root), 'utf8');
+const offerRpc = await readFile(
+  new URL('supabase/migrations/20260827165500_guest_quote_offer_rpc.sql', root),
+  'utf8'
+);
+const bootstrap = await readFile(new URL('telegram_operations.sql', root), 'utf8');
 
 assert.match(migration, /drop trigger if exists trg_notify_bid on public\.bids/i,
   'the legacy trigger that writes a NULL notification recipient must be removed');
@@ -18,5 +23,11 @@ assert.match(currentNotification, /if not found or customer_id is null then\s+re
   'the retained customer notification trigger must explicitly allow guest quotes');
 assert.match(currentNotification, /exception\s+when others then[\s\S]*raise warning/i,
   'notification persistence must remain non-fatal to bid persistence');
+for (const source of [offerRpc, bootstrap]) {
+  assert.match(source, /if quote_row\.customer_id is not null then[\s\S]*insert into public\.notifications/i,
+    'member-only notification rows must not block guest quote offers');
+  assert.match(source, /from public\.sell_service_requests[\s\S]*where quote_request_id = quote_row\.id/i,
+    'guest quote customer delivery must use the sell request contact fallback');
+}
 
 console.log('telegram guest quote offer migration checks passed');

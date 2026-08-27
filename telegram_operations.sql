@@ -349,11 +349,22 @@ begin
     into customer_phone, customer_name
     from public.profiles where id = quote_row.customer_id;
 
+  if customer_phone is null then
+    select coalesce(customer_phone, ''), coalesce(nullif(customer_name, ''), '고객')
+      into customer_phone, customer_name
+      from public.sell_service_requests
+     where quote_request_id = quote_row.id
+     order by created_at desc
+     limit 1;
+  end if;
+
   if was_pending then
-    insert into public.notifications (user_id, type, title, body, is_read)
-    values (quote_row.customer_id, 'quote_approved', '비교견적이 시작되었습니다',
-      trim(coalesce(quote_row.item_brand, '') || ' ' || coalesce(quote_row.item_name, '')) ||
-      ' 비교견적이 승인되었습니다.', false);
+    if quote_row.customer_id is not null then
+      insert into public.notifications (user_id, type, title, body, is_read)
+      values (quote_row.customer_id, 'quote_approved', '비교견적이 시작되었습니다',
+        trim(coalesce(quote_row.item_brand, '') || ' ' || coalesce(quote_row.item_name, '')) ||
+        ' 비교견적이 승인되었습니다.', false);
+    end if;
 
     insert into public.telegram_ops_outbox (dedupe_key, event_type, target, payload)
     values (
