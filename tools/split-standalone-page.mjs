@@ -42,6 +42,7 @@ const head = index.match(/<head>([\s\S]*?)<\/head>/i)?.[1];
 if (!head) throw new Error('index head not found');
 const styles = [...head.matchAll(/<link\b[^>]*\brel=["']stylesheet["'][^>]*>/gi)]
   .map((match) => match[0]).join('\n');
+const activeTab = pageKind === 'mypage' || pageKind === 'orders' ? 'my' : '';
 
 const page = `<!DOCTYPE html>
 <html lang="ko">
@@ -54,10 +55,13 @@ const page = `<!DOCTYPE html>
 <title>${pageTitle} | BELLORE</title>
 <link rel="canonical" href="https://bellore.co.kr/pages/${outputName}">
 ${styles}
+<link rel="stylesheet" href="/app/ui/app-tabbar.css?v=20260827-standalone-tabbar-v1">
 </head>
 <body data-bellore-standalone-page="${pageKind}">
 ${modal.markup}
-<script type="module" src="/app/pages/standalone-page.js?v=20260827-standalone-pages-v4"></script>
+<bellore-tabbar data-active="${activeTab}"></bellore-tabbar>
+<script type="module" src="/app/ui/app-tabbar.js?v=20260827-standalone-tabbar-v1"></script>
+<script type="module" src="/app/pages/standalone-page.js?v=20260827-standalone-tabbar-v1"></script>
 </body>
 </html>
 `;

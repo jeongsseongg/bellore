@@ -51,6 +51,8 @@ export const ROOT_RUNTIME_FILES = Object.freeze([
 export const APP_RUNTIME_FILES = Object.freeze([
   'app/bootstrap.js',
   'app/pages/standalone-page.js',
+  'app/ui/app-tabbar.css',
+  'app/ui/app-tabbar.js',
   'app/features/auth-login/auth-login.css',
   'app/features/auth-login/auth-login.js',
   'app/services/auth/auth-login-backend.js',

@@ -1,0 +1,35 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { discoverPageHtmlFiles } from '../tools/pages-html.mjs';
+
+const root = resolve(import.meta.dirname, '..');
+const TABBAR_EXCEPTIONS = new Set([]);
+const ACTIVE_TAB = new Map([
+  ['pages/mypage.html', 'my'],
+  ['pages/orders.html', 'my'],
+  ['pages/inquiry.html', ''],
+]);
+
+const pages = await discoverPageHtmlFiles(root);
+for (const file of pages) {
+  if (TABBAR_EXCEPTIONS.has(file)) continue;
+  const html = await readFile(resolve(root, file), 'utf8');
+  assert.match(html, /<bellore-tabbar\b[^>]*><\/bellore-tabbar>/i, `${file}: 공통 탭바가 필요합니다.`);
+  assert.match(html, /app\/ui\/app-tabbar\.css/i, `${file}: 공통 탭바 CSS가 필요합니다.`);
+  assert.match(html, /app\/ui\/app-tabbar\.js/i, `${file}: 공통 탭바 모듈이 필요합니다.`);
+  const expected = ACTIVE_TAB.get(file);
+  assert.notEqual(expected, undefined, `${file}: ACTIVE_TAB 또는 TABBAR_EXCEPTIONS에 명시해야 합니다.`);
+  assert.match(html, new RegExp(`<bellore-tabbar\\b[^>]*data-active=["']${expected}["']`, 'i'), `${file}: 활성 탭이 ${expected || '없음'}이어야 합니다.`);
+}
+
+const login = await readFile(resolve(root, 'login.html'), 'utf8');
+assert.match(login, /<bellore-tabbar\b[^>]*data-active=["']my["']/i, 'login.html: MY 탭이 활성인 공통 탭바가 필요합니다.');
+
+const component = await readFile(resolve(root, 'app/ui/app-tabbar.js'), 'utf8');
+assert.match(component, /aria-current=[^\n]*page/, '활성 탭은 aria-current=page를 제공해야 합니다.');
+const css = await readFile(resolve(root, 'app/ui/app-tabbar.css'), 'utf8');
+assert.match(css, /height:\s*calc\(66px \+ env\(safe-area-inset-bottom\)\)/, '탭바 높이는 모바일 safe-area를 포함해야 합니다.');
+assert.match(css, /padding-bottom:\s*calc\([^;]*env\(safe-area-inset-bottom\)\)/, '페이지 본문은 safe-area 포함 탭바 높이를 확보해야 합니다.');
+
+console.log(`standalone tabbar: pages=${pages.length} exceptions=${TABBAR_EXCEPTIONS.size} active=4 safe-area=1 passed`);

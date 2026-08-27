@@ -1,0 +1,66 @@
+bellore-tabbar {
+  display: block;
+  height: calc(66px + env(safe-area-inset-bottom));
+}
+
+.app-tabbar {
+  position: fixed;
+  z-index: 2550;
+  right: auto;
+  bottom: 0;
+  left: 50%;
+  display: flex;
+  width: 100%;
+  max-width: 660px;
+  height: calc(66px + env(safe-area-inset-bottom));
+  padding: 6px 8px calc(5px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  border-top: 1px solid #e8e8ea;
+  background: rgba(255, 255, 255, .98);
+  box-shadow: 0 -4px 18px rgba(23, 23, 25, .04);
+}
+
+.app-tabbar .tab-item {
+  position: relative;
+  display: flex;
+  flex: 1 1 20%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #8b8d91;
+  text-decoration: none;
+}
+
+.app-tabbar .tab-item svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.app-tabbar .tab-item span {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.app-tabbar .tab-item.active {
+  color: #111;
+}
+
+body[data-bellore-standalone-page] .login-content {
+  padding-bottom: calc(78px + env(safe-area-inset-bottom));
+}
+
+body.has-app-tabbar .auth-shell {
+  padding-bottom: calc(138px + env(safe-area-inset-bottom));
+}

@@ -29,7 +29,8 @@ assert.match(css, /\.pp-bottom \.pp-npay-action/, 'bottom purchase bar must size
 assert.match(client, /classList\.toggle\('has-npay', visible\)/, 'purchase bar must reserve space only when Naver Pay is visible');
 assert.match(client, /sessionStorage\.setItem\(testSessionKey, '1'\)/, 'Naver Pay test mode must survive canonical product routing in the same tab');
 assert.match(client, /sessionStorage\.removeItem\(testSessionKey\)/, 'Naver Pay test mode must support an explicit opt-out');
-assert.match(sw, /const VERSION = "bellore-v\d+-sell-request-persistence";/, 'service worker cache namespace must preserve the sell persistence repair without pinning its release number');
+assert.match(sw, /const VERSION = "bellore-v\d+-[a-z0-9-]+";/, 'service worker cache namespace must remain a versioned Bellore release');
+assert.match(sw, /app\/services\/sell\/sell-request-access\.js/, 'service worker must preserve the sell persistence runtime');
 
 assert.match(edge, /function parseProviderFailure\(/, 'provider failures must be parsed into safe structured diagnostics');
 assert.match(edge, /providerCode:\s*failure\.providerCode/, 'provider error code must be returned to the browser');

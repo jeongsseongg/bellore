@@ -61,7 +61,8 @@ function navigationRequest(pathname) {
   const swPath = path.resolve(__dirname, '..', 'sw.js');
   const source = fs.readFileSync(swPath, 'utf8');
   const version = source.match(/const VERSION = "([^"]+)";/)?.[1];
-  assert.equal(version, 'bellore-v352-sell-request-persistence', 'sell persistence repair advances the cache version without dropping Naver Pay or signup');
+  assert.match(version || '', /^bellore-v\d+-[a-z0-9-]+$/, 'cache namespace must remain a versioned Bellore release');
+  assert.match(source, /app\/services\/sell\/sell-request-access\.js/, 'sell persistence runtime must remain in the cached shell');
   assert.doesNotMatch(source, /req\.mode === 'navigate' \? '\.\/index\.html'/, 'navigation never overwrites the home cache key');
 
   const listeners = new Map();

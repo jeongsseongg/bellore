@@ -49,7 +49,8 @@ for (const [name, url] of Object.entries(urls)) {
 for (const name of ['styles', 'script', 'payments', 'wishlist', 'search', 'dialog', 'features', 'quotes', 'auction', 'bootstrap', 'conditionGuide', 'pageRuntime']) {
   assert(serviceWorker.includes(`'./${urls[name]}'`), `service worker must precache the exact ${name} URL`);
 }
-assert.match(serviceWorker, /const VERSION = "bellore-v352-sell-request-persistence";/, 'service-worker cache namespace must include the restored sell request path');
+assert.match(serviceWorker, /const VERSION = "bellore-v\d+-[a-z0-9-]+";/, 'service-worker cache namespace must remain a versioned Bellore release');
+assert(serviceWorker.includes(`'./app/bootstrap.js?v=${bootstrapReleaseKey}'`), 'service worker must preserve the restored sell request path');
 assert(serviceWorker.includes("'./login.html'"), 'service worker must precache the independent login page');
 assert(serviceWorker.includes(`'./app/features/auth-login/auth-login.css?v=${authPageAssetKey}'`), 'service worker must precache login page styles');
 assert(serviceWorker.includes(`'./app/features/auth-login/auth-login.js?v=${authPageAssetKey}'`), 'service worker must precache login page behavior');

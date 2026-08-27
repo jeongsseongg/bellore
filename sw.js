@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v352-sell-request-persistence";
+const VERSION = "bellore-v353-standalone-tabbar";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -36,6 +36,8 @@ const SHELL_ASSETS = [
   './ai-advisor-admin.js?v=20260826-member-verification-live-v2',
   './app/bootstrap.js?v=20260827-sell-request-persistence-v1',
   './app/pages/standalone-page.js',
+  './app/ui/app-tabbar.css?v=20260827-standalone-tabbar-v1',
+  './app/ui/app-tabbar.js?v=20260827-standalone-tabbar-v1',
   './app/features/auth-login/auth-login.css?v=20260826-auth-page-v2',
   './app/features/auth-login/auth-login.js?v=20260826-auth-page-v2',
   './app/services/auth/auth-login-backend.js',
