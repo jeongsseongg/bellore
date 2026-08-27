@@ -11,6 +11,22 @@ export function createSignupVerification({ document, form, backend, config }) {
   };
   const softMessage = '준비 중 — 입력만으로 가입 진행됩니다.';
 
+  function customerMessage(error, context, fallback) {
+    const message = document.defaultView?.belloreCustomerMessage?.(error, context);
+    return message || fallback;
+  }
+
+  function displayPhone(value) {
+    const digits = String(value || '').replace(/\D/g, '');
+    return digits.length === 11 ? digits.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3') : digits;
+  }
+
+  function syncEmailValue() {
+    const email = String(document.getElementById('suEmail')?.value || '').trim();
+    const value = form.querySelector('#suEmailVerifyValue');
+    if (value) value.textContent = email || '이메일을 확인해 주세요.';
+  }
+
   function isLive(kind) {
     const item = config[kind === 'biz' ? 'business' : kind];
     return !!(item && item.enabled);
@@ -38,8 +54,10 @@ export function createSignupVerification({ document, form, backend, config }) {
   Object.entries(fieldKind).forEach(([id, kind]) => {
     document.getElementById(id)?.addEventListener('input', () => {
       if (state[kind] && (state[kind].ok || state[kind].real)) reset(kind);
+      if (kind === 'email') syncEmailValue();
     });
   });
+  syncEmailValue();
 
   function requireEmailSession(kind, done) {
     if (backend.currentUser && backend.currentUser()) return true;
@@ -62,8 +80,14 @@ export function createSignupVerification({ document, form, backend, config }) {
       if (!requireEmailSession(kind, done)) return;
       setState(kind, '', '본인인증 진행 중…');
       backend.verifyIdentityPortone({ phone })
-        .then(() => { state.phone = { ok: true, real: true, nc: false }; setState(kind, 'ok', '✓ 본인인증 완료'); })
-        .catch(() => setState(kind, 'err', '본인인증에 실패했습니다. 다시 시도해주세요.'))
+        .then((result) => {
+          const verifiedPhone = displayPhone(result?.phone);
+          const input = document.getElementById('suPhone');
+          if (verifiedPhone && input) input.value = verifiedPhone;
+          state.phone = { ok: true, real: true, nc: false };
+          setState(kind, 'ok', '✓ 휴대폰 명의 확인 완료');
+        })
+        .catch((error) => setState(kind, 'err', customerMessage(error, 'identity', '본인인증을 완료하지 못했습니다. 다시 시도해 주세요.')))
         .then(done);
       return;
     }
@@ -77,7 +101,7 @@ export function createSignupVerification({ document, form, backend, config }) {
       setState(kind, '', '인증번호 발송 중…');
       backend.sendEmailOtp(email, { shouldCreateUser: true })
         .then(() => { state.email.sent = true; showCode(kind, true); setState(kind, '', '메일로 받은 인증번호를 입력하세요.'); })
-        .catch(() => setState(kind, 'err', '발송에 실패했습니다. 잠시 후 다시 시도해주세요.'))
+        .catch((error) => setState(kind, 'err', customerMessage(error, 'auth', '인증번호를 보내지 못했습니다. 잠시 후 다시 시도해 주세요.')))
         .then(done);
       return;
     }
@@ -128,7 +152,7 @@ export function createSignupVerification({ document, form, backend, config }) {
     setState(kind, '', '인증번호 확인 중…');
     backend.verifyEmailOtp(email, code)
       .then(() => { state.email = { ok: true, real: true, nc: false, sent: true }; showCode(kind, false); setState(kind, 'ok', '✓ 이메일 인증 완료'); })
-      .catch(() => setState(kind, 'err', '인증번호가 올바르지 않습니다.'))
+      .catch((error) => setState(kind, 'err', customerMessage(error, 'auth', '인증번호가 올바르지 않거나 만료되었습니다.')))
       .then(() => { button.disabled = false; });
   }
 

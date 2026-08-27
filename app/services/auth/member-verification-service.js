@@ -7,7 +7,16 @@ export function createMemberVerificationService({ getClient, getPortOne, getVeri
 
   async function invoke(name, body) {
     const response = await client().functions.invoke(name, { body });
-    if (response.error) throw response.error;
+    if (response.error) {
+      let payload = response.data;
+      if (!payload && response.error.context?.clone) {
+        try { payload = await response.error.context.clone().json(); } catch { /* use SDK error */ }
+      }
+      const code = payload?.code || response.error.code || response.error.message || 'VERIFICATION_FAILED';
+      const error = new Error(code);
+      error.code = code;
+      throw error;
+    }
     if (!response.data?.ok) throw new Error(response.data?.code || 'VERIFICATION_FAILED');
     return response.data;
   }
@@ -67,7 +76,11 @@ export function createMemberVerificationService({ getClient, getPortOne, getVeri
       identityVerificationId,
       channelKey: verify.channelKey,
     });
-    if (response?.code != null) throw new Error(response.message || 'IDENTITY_FAILED');
+    if (response?.code != null) {
+      const error = new Error(response.message || 'IDENTITY_FAILED');
+      error.code = response.code || 'IDENTITY_FAILED';
+      throw error;
+    }
     return invoke('verify-identity', { identityVerificationId });
   }
 

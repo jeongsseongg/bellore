@@ -7001,7 +7001,13 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 .cms-save:disabled { opacity: .6; }
 
 /* ===== 인증 모달 (휴대폰 / 계좌) ===== */
-.vf-desc { font-size: 14px; color: var(--text-2); line-height: 1.6; margin-bottom: 18px; }
+.vf-desc { font-size: 14px; color: var(--text-2); line-height: 1.6; margin: 0 0 18px; }
+.vf-method { padding: 18px; border: 1px solid var(--border); border-radius: 14px; background: #fff; }
+.vf-method-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.vf-method-head strong { font-size: 16px; color: var(--text); }
+.vf-provider, .vrow-provider { padding: 4px 8px; border-radius: 999px; background: var(--bg-soft); color: var(--text-2); font-size: 11px; font-weight: 700; white-space: nowrap; }
+.vf-method .vf-confirm { width: 100%; height: 54px; margin-top: 2px; font-size: 15px; }
+.vf-note { margin: 12px 0 0; font-size: 12px; line-height: 1.55; color: var(--text-3); }
 .vf-field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
 .vf-field > span { font-size: 13px; font-weight: 700; color: var(--text-2); }
 .vf-row { display: flex; gap: 8px; }
@@ -7081,8 +7087,10 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 
 /* 인증 행(vrow) */
 /* 인증(휴대폰·사업자·계좌) 행 — 기본정보(su-fld) 와 동일한 UI 로 통일 */
-.vrow { display: block; padding: 0 0 18px; border-bottom: 0; }
-.vrow-label { display: block; font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 9px; }
+.vrow { display: block; margin-bottom: 12px; padding: 18px; border: 1px solid var(--border); border-radius: 14px; background: var(--white); }
+.vrow-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 7px; }
+.vrow-label { display: block; font-size: 15px; font-weight: 700; color: var(--text); }
+.vrow-desc { margin: 0 0 13px; color: var(--text-2); font-size: 12.5px; line-height: 1.5; }
 .vrow-input, .vrow-code { display: flex; gap: 8px; align-items: flex-start; }
 .vrow-code { margin-top: 8px; }
 .vrow-code[hidden], .vrow[hidden], .vrow-input[hidden] { display: none; }
@@ -7094,6 +7102,7 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 .vrow-input input:focus, .vrow-code input:focus, .vrow-line:focus { outline: none; border-color: var(--text); }
 .vrow-input input::placeholder, .vrow-code input::placeholder, .vrow-line::placeholder { color: var(--text-3); }
 .vrow-line { display: block; margin-bottom: 8px; }
+.vrow-value { display: flex; align-items: center; flex: 1; min-width: 0; height: 52px; padding: 0 16px; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; color: var(--text); background: #fafafa; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
 .vrow-btn {
     flex: none; padding: 0 16px; height: 52px; border-radius: 12px; border: 1px solid var(--text);
     background: #fff; color: var(--text); font-size: 14px; font-weight: 700; white-space: nowrap; cursor: pointer;
@@ -7102,8 +7111,14 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 .vrow-btn.full { width: 100%; height: 52px; margin-top: 8px; }
 .vrow-btn:disabled { opacity: .55; cursor: default; }
 .vrow-state { display: block; margin-top: 7px; font-size: 12.5px; line-height: 1.5; color: var(--text-3); }
-.vrow-state.ok { color: #1f1f1f; font-weight: 700; }
-.vrow-state.err { color: #1f1f1f; font-weight: 600; }
+.vrow-state.ok { color: var(--dark-green); font-weight: 700; }
+.vrow-state.err { color: #c0392b; font-weight: 600; }
+@media (max-width: 430px) {
+    .vrow { padding: 16px; }
+    .vrow-head { align-items: flex-start; }
+    .vrow-input { flex-direction: column; }
+    .vrow-input .vrow-btn, .vrow-input .vrow-value { width: 100%; }
+}
 
 /* ===== 정산내역 ===== */
 .stl-row { padding: 12px 0; border-bottom: 1px solid var(--border); }

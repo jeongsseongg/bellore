@@ -2,6 +2,7 @@ import { getAuthBackend } from '../../services/auth/auth-login-backend.js';
 
 const backend = getAuthBackend();
 const status = document.getElementById('authStatus');
+const view = new URLSearchParams(location.search).get('view') || 'login';
 const returnUrl = (() => {
   const requested = new URLSearchParams(location.search).get('return') || '/';
   try {
@@ -21,6 +22,20 @@ const loginId = document.getElementById('authLoginId');
 const loginPassword = document.getElementById('authLoginPassword');
 const rememberButton = document.getElementById('authRemember');
 const passwordToggle = document.getElementById('authPasswordToggle');
+const passwordField = loginPassword?.closest('.auth-field');
+const submitButton = emailForm?.querySelector('.auth-submit');
+
+if (view === 'find-password') {
+  if (loginId) loginId.placeholder = '가입 이메일';
+  if (passwordField) passwordField.hidden = true;
+  if (submitButton) submitButton.textContent = '비밀번호 재설정 메일 받기';
+  message('가입한 이메일로 비밀번호 재설정 안내를 보내드립니다.');
+} else if (view === 'find-id') {
+  if (loginId) loginId.placeholder = '가입 이메일';
+  if (passwordField) passwordField.hidden = true;
+  if (submitButton) submitButton.textContent = '아이디 안내 확인';
+  message('가입 이메일은 로그인 아이디로 바로 사용할 수 있습니다.');
+}
 
 try {
   const remembered = localStorage.getItem('bellore_saved_id') || '';
@@ -49,6 +64,24 @@ emailForm?.addEventListener('submit', async (event) => {
   }
   const idOrEmail = loginId?.value.trim() || '';
   const password = loginPassword?.value || '';
+  if (view === 'find-id') {
+    message(idOrEmail.includes('@') ? '입력한 이메일로 로그인할 수 있습니다. 별도 아이디 확인은 고객센터에 문의해 주세요.' : '가입 이메일을 입력해 주세요.');
+    return;
+  }
+  if (view === 'find-password') {
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(idOrEmail)) { message('가입 이메일을 정확히 입력해 주세요.'); return; }
+    submitButton.disabled = true;
+    message('재설정 메일을 보내고 있습니다.');
+    try {
+      await backend.ready;
+      await backend.resetPassword(idOrEmail);
+      message('비밀번호 재설정 메일을 보냈습니다. 메일함을 확인해 주세요.');
+    } catch (_) {
+      submitButton.disabled = false;
+      message('재설정 메일을 보내지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    }
+    return;
+  }
   if (!idOrEmail || !password) {
     message('아이디 또는 이메일과 비밀번호를 입력해 주세요.');
     return;
@@ -71,6 +104,10 @@ emailForm?.addEventListener('submit', async (event) => {
 });
 
 async function signIn(provider, button) {
+  if (provider === 'naver') {
+    message('네이버 로그인은 연동 준비 중입니다.');
+    return;
+  }
   const method = {
     google: 'signInWithGoogle',
     kakao: 'signInWithKakao',

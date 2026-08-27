@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v350-purchasebar-harmony";
+const VERSION = "bellore-v351-auth-signup-integration";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -36,6 +36,9 @@ const SHELL_ASSETS = [
   './app/features/auth-login/auth-login.css?v=20260826-auth-page-v2',
   './app/features/auth-login/auth-login.js?v=20260826-auth-page-v2',
   './app/services/auth/auth-login-backend.js',
+  './app/features/auth-signup/auth-signup.css?v=20260827-auth-signup-v1',
+  './app/features/auth-signup/auth-signup.js?v=20260827-auth-signup-v1',
+  './app/services/auth/auth-signup-backend.js',
   './app/features/analytics-consent/analytics-consent.css?v=20260826-ai-consent-v1',
   './app/features/checkout/checkout-addresses.css?v=20260826-shipping-address-popup-v2',
   './app/features/checkout/checkout-addresses.mjs?v=20260826-shipping-address-popup-v2',

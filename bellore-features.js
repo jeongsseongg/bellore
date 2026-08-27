@@ -983,7 +983,7 @@
     function notConfiguredMsg(err) {
       var m = (err && err.message) || String(err || '');
       if (/NOT_CONFIGURED|provider|disabled|not enabled|SMS|phone_provider/i.test(m)) {
-        return '현재 문자 인증을 이용할 수 없습니다. 잠시 후 다시 시도해 주세요.';
+        return '현재 통합 본인인증 연결을 점검 중입니다. 잠시 후 다시 시도해 주세요.';
       }
       var feedback = window.BELLORE_CUSTOMER_FEEDBACK;
       return feedback && feedback.message
@@ -992,11 +992,13 @@
     }
     window.belloreVerifyPhone = function (opts) {
       opts = opts || {};
-      if (!phoneModal) phoneModal = makeModal('phoneVerifyModal', 'VERIFY', '휴대폰 인증');
+      if (!phoneModal) phoneModal = makeModal('phoneVerifyModal', 'IDENTITY', '본인인증');
       var box = phoneModal.querySelector('.modal-body');
       box.innerHTML =
-        '<p class="vf-desc">본인 명의 휴대폰으로 안전하게 인증해 주세요.</p>' +
-        '<button type="button" class="vf-confirm" id="vfIdentity">휴대폰 본인인증</button>' +
+        '<div class="vf-method"><div class="vf-method-head"><strong>간편 본인인증</strong><span class="vf-provider">KG이니시스 통합인증</span></div>' +
+        '<p class="vf-desc">본인 명의 휴대폰으로 인증하면 명의와 휴대폰 번호를 함께 확인합니다.</p>' +
+        '<button type="button" class="vf-confirm" id="vfIdentity">본인인증 시작</button>' +
+        '<p class="vf-note">문자로 인증번호만 받는 휴대폰 번호 확인과는 다른 본인확인 절차입니다.</p></div>' +
         '<p class="vf-msg" id="vfMsg"></p>';
       var msg = box.querySelector('#vfMsg');
       function setMsg(t, ok) { msg.textContent = t || ''; msg.className = 'vf-msg' + (ok ? ' ok' : t ? ' err' : ''); }
@@ -1007,7 +1009,7 @@
             setMsg('인증이 완료되었습니다.', true);
             setTimeout(function () { closeModal(phoneModal); if (opts.onDone) opts.onDone(); }, 700);
           })
-          .catch(function (err) { btn.disabled = false; btn.textContent = '휴대폰 본인인증'; setMsg(notConfiguredMsg(err)); });
+          .catch(function (err) { btn.disabled = false; btn.textContent = '본인인증 시작'; setMsg(notConfiguredMsg(err)); });
       });
       openModal(phoneModal);
     };

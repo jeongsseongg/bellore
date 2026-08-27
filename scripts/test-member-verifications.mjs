@@ -22,6 +22,9 @@ const verificationService = read('app', 'services', 'auth', 'member-verification
 const verificationUi = read('app', 'features', 'member-verification', 'signup-verification.js');
 const verificationAdapter = read('app', 'legacy', 'member-verification-service.js');
 const bootstrap = read('app', 'bootstrap.js');
+const signupHtml = read('login.html');
+const signupPage = read('app', 'features', 'auth-signup', 'auth-signup.js');
+const loginPage = read('app', 'features', 'auth-login', 'auth-login.js');
 
 assert.match(migration, /create table if not exists public\.member_verification_events/);
 assert.match(migration, /enable row level security/);
@@ -99,12 +102,22 @@ assert.match(verificationService, /invoke\('verify-identity'/);
 assert.match(verificationService, /invoke\('sync-email-verification'/);
 assert.match(verificationService, /invoke\('verify-business'/);
 assert.match(verificationService, /invoke\('verify-account'/);
+assert.match(verificationService, /response\.error\.context\?\.clone/);
 assert.match(client, /BelloreMemberVerificationService/);
 assert.match(ui, /BelloreMemberVerificationUi\.create/);
 assert.match(verificationAdapter, /createMemberVerificationService/);
 assert.match(bootstrap, /installLegacyMemberVerificationService/);
 assert.doesNotMatch(verificationUi, /키 미설정\(soft\) → 즉시 통과/);
 assert.match(verificationUi, /이메일 인증을 먼저 완료해 주세요/);
+assert.match(verificationUi, /verifiedPhone/);
+assert.match(ui, /이메일 인증 후 휴대폰/);
+assert.match(signupHtml, /data-v="email"[\s\S]*id="suEmailCode"/);
+assert.match(signupHtml, /data-v="phone"[\s\S]*data-v="biz"[\s\S]*data-v="account"/);
+assert.match(signupPage, /createSignupVerification/);
+assert.match(signupPage, /getAuthSignupBackend/);
+assert.match(signupPage, /backend\.signUp/);
+assert.match(loginPage, /provider === 'naver'/);
+assert.match(loginPage, /backend\.resetPassword/);
 
 const sharedUrl = pathToFileURL(path.join(root, 'supabase', 'functions', '_shared', 'verification-core.mjs')).href;
 const shared = await import(sharedUrl);
