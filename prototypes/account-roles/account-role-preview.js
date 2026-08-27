@@ -1,9 +1,6 @@
-import {
-  cloneRoleContent,
-  EDITABLE_ROLE_ORDER,
-  MYPAGE_ROLE_DEFAULTS,
-  normalizeEditableRole
-} from './account-role-model.js?v=20260826-editor-v5';
+import { cloneRoleContent, EDITABLE_ROLE_ORDER, MYPAGE_ROLE_DEFAULTS, normalizeEditableRole } from './account-role-model.js?v=20260827-block-editor-v1';
+import { EDITOR_BLOCKS, renderBlockInspector, renderBlockNavigator } from './account-role-block-editor.js?v=20260827-block-editor-v1';
+import { bindRoleBlockInteractions } from './account-role-direct-edit.js?v=20260827-home-block-editor-v1';
 
 const STORAGE_PREFIX = 'bellore-mypage-editor-v1:';
 
@@ -13,9 +10,7 @@ function escapeHTML(value) {
   });
 }
 
-function storageKey(role) {
-  return STORAGE_PREFIX + role;
-}
+function storageKey(role) { return STORAGE_PREFIX + role; }
 
 function mergeSaved(defaultValue, savedValue) {
   if (Array.isArray(defaultValue)) return Array.isArray(savedValue) ? savedValue : defaultValue;
@@ -44,26 +39,9 @@ function loadContent(previewWindow, role, initialContent) {
 function setValue(target, path, value) {
   const parts = path.split('.');
   let cursor = target;
-  parts.slice(0, -1).forEach(function (part) {
-    cursor = cursor[Number.isNaN(Number(part)) ? part : Number(part)];
-  });
+  parts.slice(0, -1).forEach(function (part) { cursor = cursor[Number.isNaN(Number(part)) ? part : Number(part)]; });
   const last = parts[parts.length - 1];
   cursor[Number.isNaN(Number(last)) ? last : Number(last)] = value;
-}
-
-function inputField(label, path, value, options) {
-  const settings = options || {};
-  const type = settings.type || 'text';
-  const help = settings.help ? '<small>' + escapeHTML(settings.help) + '</small>' : '';
-  return '<label class="editor-field"><span>' + escapeHTML(label) + '</span>' +
-    '<input type="' + type + '" data-edit-field="' + escapeHTML(path) + '" value="' +
-    escapeHTML(value) + '"' + (settings.placeholder ? ' placeholder="' + escapeHTML(settings.placeholder) + '"' : '') + '>' + help + '</label>';
-}
-
-function toggleField(label, path, checked, help) {
-  return '<label class="editor-toggle"><input type="checkbox" data-edit-field="' + escapeHTML(path) + '"' +
-    (checked ? ' checked' : '') + '><span aria-hidden="true"></span><b>' + escapeHTML(label) + '</b>' +
-    (help ? '<small>' + escapeHTML(help) + '</small>' : '') + '</label>';
 }
 
 function renderRoleButtons(activeRole) {
@@ -73,51 +51,14 @@ function renderRoleButtons(activeRole) {
   }).join('');
 }
 
-function renderEditor(content, role) {
-  return '<div class="editor-panel__head"><div><small>현재 편집 역할</small><strong>' +
-    escapeHTML(content.label) + ' 마이페이지</strong></div><button type="button" data-editor-collapse>편집 숨기기</button></div>' +
-    '<div class="editor-panel__scroll">' +
-    '<section class="editor-section"><h2>회원 헤더 <small class="editor-example-badge">예시 회원 데이터</small></h2>' +
-    inputField('회원 이름', 'profile.name', content.profile.name) +
-    inputField('안내 문구', 'headerMessage', content.headerMessage) +
-    inputField('알림 개수', 'profile.notificationCount', content.profile.notificationCount, { type: 'number' }) +
-    '<div class="editor-grid editor-grid--stats">' + content.stats.map(function (stat, index) {
-      return '<div>' + inputField('수치 ' + (index + 1), 'stats.' + index + '.value', stat.value) +
-        inputField('이름 ' + (index + 1), 'stats.' + index + '.label', stat.label) + '</div>';
-    }).join('') + '</div></section>' +
-    '<section class="editor-section"><h2>최근 주문 <small class="editor-example-badge">예시 주문 데이터</small></h2>' +
-    toggleField('최근 주문 표시', 'order.visible', content.order.visible, '끄면 주문 카드가 화면에서 사라집니다.') +
-    inputField('상태', 'order.status', content.order.status) +
-    inputField('상품명', 'order.name', content.order.name) +
-    inputField('주문번호', 'order.orderNumber', content.order.orderNumber) +
-    inputField('배송 정보', 'order.courier', content.order.courier) +
-    inputField('상품 이미지 경로', 'order.image', content.order.image) + '</section>' +
-    '<section class="editor-section"><h2>마이페이지 배너</h2>' +
-    toggleField('미리보기용 배너 표시', 'banner.visible', content.banner.visible, '실제 배너 저장은 기존 관리자 배너 관리에서 처리합니다.') +
-    inputField('제목', 'banner.title', content.banner.title) +
-    inputField('설명', 'banner.description', content.banner.description) +
-    inputField('배경 이미지 경로', 'banner.image', content.banner.image, { placeholder: '../../assets/…' }) + '</section>' +
-    '<section class="editor-section"><h2>메뉴 순서와 이름</h2><label class="editor-field"><span>거래 메뉴 · 한 줄에 하나</span>' +
-    '<textarea rows="5" data-menu-group="trade">' + escapeHTML(content.menuGroups.trade.join('\n')) + '</textarea></label>' +
-    '<label class="editor-field"><span>내 활동 메뉴 · 한 줄에 하나</span>' +
-    '<textarea rows="5" data-menu-group="activity">' + escapeHTML(content.menuGroups.activity.join('\n')) + '</textarea>' +
-    '<small>각 영역 안에서 줄 순서가 실제 화면 순서입니다.</small></label></section>' +
-    '<section class="editor-section"><h2>고객센터 푸터</h2>' +
-    inputField('전화번호', 'footer.phone', content.footer.phone) +
-    inputField('운영시간', 'footer.hours', content.footer.hours) + '</section>' +
-    '<p class="editor-role-note">' + (role === 'admin'
-      ? '관리자 화면은 업체 마이페이지와 같은 구조를 사용하며 역할과 안내 문구만 구분합니다.'
-      : (role === 'vendor'
-        ? '업체 화면은 고객 화면과 같은 구조이며 비교견적·입찰 메뉴만 추가됩니다.'
-        : '고객 화면은 현재 운영 마이페이지의 기본 구조를 기준으로 합니다.')) + '</p></div>';
-}
-
 function renderNotificationPanel() {
   return '<div class="mp-notification-panel" data-notification-panel hidden><div><strong>알림</strong>' +
     '<button type="button" data-notification-close>닫기</button></div>' +
     '<button type="button" data-demo-action="새 견적 확인"><b>새 견적이 도착했습니다</b><span>방금 전</span></button>' +
     '<button type="button" data-demo-action="배송 상태 확인"><b>상품이 배송 중입니다</b><span>20분 전</span></button></div>';
 }
+
+function inlineField(path) { return ' data-inline-field="' + escapeHTML(path) + '" title="더블클릭하여 문구 수정"'; }
 
 function headerIcon(name) {
   if (name === 'notification') {
@@ -128,33 +69,33 @@ function headerIcon(name) {
 
 function renderHeader(content, role) {
   const count = Math.max(0, Number(content.profile.notificationCount) || 0);
-  const initial = String(content.profile.name || '벨').trim().slice(0, 1) || '벨';
   const membershipLabel = role === 'admin' ? '벨로르 운영 관리자' : (role === 'vendor' ? '벨로르 업체 회원' : '벨로르 회원');
-  return '<header class="mp-head"><div class="mp-head-bar"><strong>마이페이지</strong><span class="mp-head-actions">' +
+  return '<header class="mp-head preview-editable-block" data-preview-block="header" data-block-lane="fixed"><div class="mp-head-bar"><strong' + inlineField('profile.pageTitle') + '>' +
+    escapeHTML(content.profile.pageTitle) + '</strong><span class="mp-head-actions">' +
     '<button type="button" class="mp-head-icon" data-notification-toggle aria-expanded="false" aria-label="알림">' +
     headerIcon('notification') + (count ? '<i>' + count + '</i>' : '') + '</button>' +
     '<button type="button" class="mp-head-icon" data-demo-action="설정" aria-label="설정">' + headerIcon('settings') + '</button></span></div>' +
-    '<div class="mp-profile"><span class="mp-profile-avatar" aria-hidden="true">' + escapeHTML(initial) + '</span>' +
-    '<div class="mp-profile-copy"><p class="mp-member-kicker">' + membershipLabel + '</p>' +
+    '<p class="mp-member-kicker">' + membershipLabel + '</p><div class="mp-profile"><div class="mp-profile-copy">' +
     '<button type="button" class="mp-name-row" data-demo-action="회원정보 수정"><span class="mpa-name">' +
     escapeHTML(content.profile.name) + '님</span><span class="mp-role-chip">' + escapeHTML(content.label) + '</span>' +
-    '<span class="mp-name-edit">수정</span></button><p class="mp-next-grade">' + escapeHTML(content.headerMessage) +
+    '<span class="mp-name-edit">수정</span></button><p class="mp-next-grade"' + inlineField('headerMessage') + '>' + escapeHTML(content.headerMessage) +
     '</p></div></div><div class="mp-member-stats">' +
-    content.stats.map(function (stat) {
+    content.stats.map(function (stat, index) {
       return '<button type="button" data-demo-action="' + escapeHTML(stat.label) + '"><span class="mp-stat-copy"><strong>' +
-        escapeHTML(stat.value) + '</strong><small>' + escapeHTML(stat.label) + '</small></span></button>';
+        escapeHTML(stat.value) + '</strong><small' + inlineField('stats.' + index + '.label') + '>' + escapeHTML(stat.label) + '</small></span></button>';
     }).join('') + '</div>' + renderNotificationPanel() + '</header>';
 }
 
 function renderOrder(content) {
   if (!content.order.visible) return '';
-  return '<section class="mp-order-preview" aria-label="최근 주문"><div class="mp-section-head"><h2>최근 주문</h2>' +
-    '<span class="mp-order-status"><i></i><b>' + escapeHTML(content.order.status) + '</b></span></div>' +
+  return '<section class="mp-order-preview preview-editable-block" data-preview-block="order" data-block-lane="content" draggable="true" aria-label="최근 주문">' +
+    '<div class="mp-order-status"><i></i><b>' + escapeHTML(content.order.status) + '</b></div>' +
     '<div class="mp-order-surface"><div class="mp-order-main"><span class="mp-order-thumb"><img src="' +
     escapeHTML(content.order.image) + '" alt="' + escapeHTML(content.order.name) + '"></span><span class="mp-order-copy"><strong>' +
     escapeHTML(content.order.name) + '</strong><small>' + escapeHTML(content.order.orderNumber) + ' · ' +
     escapeHTML(content.order.courier) + '</small></span></div><div class="mp-order-actions">' +
-    '<button type="button" data-demo-action="배송 조회">배송 조회</button><button type="button" data-demo-action="주문 상세">주문 상세</button></div></div></section>';
+    '<button type="button" data-demo-action="배송 조회"' + inlineField('order.primaryAction') + '>' + escapeHTML(content.order.primaryAction) + '</button><button type="button" data-demo-action="주문 상세"' + inlineField('order.secondaryAction') + '>' +
+    escapeHTML(content.order.secondaryAction) + '</button></div></div></section>';
 }
 
 function renderBanner(content) {
@@ -162,27 +103,35 @@ function renderBanner(content) {
   const imageStyle = content.banner.image
     ? ' style="background-image:linear-gradient(90deg,rgba(16,25,22,.88),rgba(16,25,22,.24)),url(&quot;' + escapeHTML(content.banner.image) + '&quot;)"'
     : '';
-  return '<section class="mp-banner" aria-label="마이페이지 배너"><button type="button" data-demo-action="배너 상세"' + imageStyle +
-    '><span><strong>' + escapeHTML(content.banner.title) + '</strong><small>' + escapeHTML(content.banner.description) +
+  return '<section class="mp-banner preview-editable-block" data-preview-block="banner" data-block-lane="content" draggable="true" aria-label="마이페이지 배너"><button type="button" data-demo-action="배너 상세"' + imageStyle +
+    '><span><strong' + inlineField('banner.title') + '>' + escapeHTML(content.banner.title) + '</strong><small' + inlineField('banner.description') + '>' + escapeHTML(content.banner.description) +
     '</small></span><b>보기</b></button></section>';
 }
 
-function renderMenu(content) {
+function renderMenuGroup(content, group, heading) {
   function rows(labels) {
     return labels.map(function (label) {
-      return '<button type="button" class="mp-menu-row" data-demo-action="' + escapeHTML(label) + '"><span class="mp-menu-label">' +
-        escapeHTML(label) + '</span>' + (label === '주문 내역' ? '<b>1건</b>' : '') + '</button>';
+      return '<button type="button" class="mp-menu-row" data-demo-action="' + escapeHTML(label) + '"><span class="mp-menu-label"' +
+        inlineField('menuGroups.' + group + '.' + content.menuGroups[group].indexOf(label)) + '>' + escapeHTML(label) + '</span>' + (label === '주문 내역' ? '<b>1건</b>' : '') + '</button>';
     }).join('');
   }
+  return '<section class="mp-menu-group preview-editable-block" data-preview-block="' + group + '" data-block-lane="menu" draggable="true"><h2 class="mp-menu-cap"' + inlineField('labels.' + group + 'Heading') + '>' +
+    escapeHTML(heading) + '</h2>' + rows(content.menuGroups[group]) + '</section>';
+}
+
+function renderMenu(content) {
+  const menuOrder = (content.blockOrder || []).filter(function (id) { return id === 'trade' || id === 'activity'; });
+  if (!menuOrder.includes('trade')) menuOrder.push('trade');
+  if (!menuOrder.includes('activity')) menuOrder.push('activity');
   return '<nav class="mp-menu" aria-label="' + escapeHTML(content.label) + ' 마이페이지 메뉴">' +
-    '<section class="mp-menu-group"><h2 class="mp-menu-cap">거래</h2>' + rows(content.menuGroups.trade) + '</section>' +
-    '<section class="mp-menu-group"><h2 class="mp-menu-cap">내 활동</h2>' + rows(content.menuGroups.activity) + '</section></nav>';
+    menuOrder.map(function (group) { return renderMenuGroup(content, group, content.labels[group + 'Heading']); }).join('') + '</nav>';
 }
 
 function renderFooter(content) {
-  return '<footer class="mp-reference-footer"><img src="../../assets/logo-bellore.png" alt="BELLORE KOREA"><p>명품시계 거래 · 통신판매</p>' +
-    '<a href="tel:' + escapeHTML(content.footer.phone.replace(/[^0-9+]/g, '')) + '">' + escapeHTML(content.footer.phone) + '</a>' +
-    '<small>' + escapeHTML(content.footer.hours) + '</small><nav><button type="button" data-demo-action="이용약관">이용약관</button>' +
+  return '<footer class="mp-reference-footer preview-editable-block" data-preview-block="footer" data-block-lane="fixed"><img src="../../assets/logo-bellore.png" alt="BELLORE KOREA"><p' + inlineField('footer.description') + '>' +
+    escapeHTML(content.footer.description) + '</p>' +
+    '<a href="tel:' + escapeHTML(content.footer.phone.replace(/[^0-9+]/g, '')) + '"' + inlineField('footer.phone') + '>' + escapeHTML(content.footer.phone) + '</a>' +
+    '<small' + inlineField('footer.hours') + '>' + escapeHTML(content.footer.hours) + '</small><nav><button type="button" data-demo-action="이용약관">이용약관</button>' +
     '<button type="button" data-demo-action="개인정보처리방침">개인정보처리방침</button>' +
     '<button type="button" data-demo-action="반품 교환 환불">반품·교환·환불</button><button type="button" data-demo-action="사업자정보">사업자정보</button></nav></footer>';
 }
@@ -195,14 +144,20 @@ function renderTabbar() {
   }).join('') + '</nav>';
 }
 
-function renderPreview(content, role) {
-  return '<div class="mypage-app" data-preview-role="' + role + '">' + renderHeader(content, role) +
-    '<main class="mp-content">' + renderOrder(content) + renderBanner(content) + renderMenu(content) + '</main>' +
+function renderPreview(content, role, activeBlock) {
+  const contentOrder = (content.blockOrder || []).filter(function (id) { return id === 'order' || id === 'banner'; });
+  if (!contentOrder.includes('order')) contentOrder.push('order');
+  if (!contentOrder.includes('banner')) contentOrder.push('banner');
+  const contentBlocks = { order: function () { return renderOrder(content); }, banner: function () { return renderBanner(content); } };
+  const markup = '<div class="mypage-app" data-preview-role="' + role + '">' + renderHeader(content, role) +
+    '<main class="mp-content">' + contentOrder.map(function (id) { return contentBlocks[id](); }).join('') + renderMenu(content) + '</main>' +
     renderFooter(content) + renderTabbar() + '</div>';
+  return markup.replace('data-preview-block="' + activeBlock + '"', 'data-preview-block="' + activeBlock + '" data-block-active="true"');
 }
 
-function renderShell(root, role, content, operational) {
+function renderShell(root, role, content, operational, activeBlock) {
   root.dataset.role = role;
+  root.dataset.activeBlock = activeBlock;
   root.dataset.previewWidth = root.dataset.previewWidth || '660';
   root.classList.remove('has-unsaved-changes');
   root.innerHTML = '<header class="preview-toolbar"><div class="preview-toolbar__title"><small>화면 편집 시안</small>' +
@@ -211,19 +166,22 @@ function renderShell(root, role, content, operational) {
     '<button type="button" data-reset-config>운영 기준 복원</button><button type="button" class="is-primary" data-save-config>' +
     (operational ? '운영 화면 설정 저장' : '이 브라우저에 시안 저장') + '</button>' +
     '<a href="../admin-console-v2/">기존 관리자 페이지 열기</a></div></header>' +
-    '<div class="preview-notice"><strong>세 역할은 구조를 공유합니다.</strong><span>고객·업체·관리자를 전환해 같은 마이페이지 구조와 역할별 문구를 비교할 수 있습니다.</span></div>' +
-    '<div class="preview-workspace"><aside class="editor-panel" data-editor-panel>' + renderEditor(content, role) + '</aside>' +
+    '<div class="preview-notice"><strong>운영 화면과 같은 구성입니다.</strong><span>블록을 선택하면 해당 문구만 편집하고, 회원·주문 수치는 실제 데이터를 유지합니다.</span></div>' +
+    '<div class="preview-workspace">' + renderBlockNavigator(content, activeBlock) +
     '<section class="preview-stage"><div class="preview-stage__head"><span><i></i>실제 화면 미리보기</span>' +
     '<div class="preview-stage__tools" role="group" aria-label="미리보기 너비"><button type="button" data-preview-size="660" aria-pressed="' +
     String(root.dataset.previewWidth === '660') + '">기본 660</button><button type="button" data-preview-size="390" aria-pressed="' +
     String(root.dataset.previewWidth === '390') + '">모바일 390</button><button type="button" data-editor-open hidden>편집 열기</button></div></div>' +
     '<div class="preview-frame" data-preview-frame data-preview-width="' + root.dataset.previewWidth + '">' +
-    renderPreview(content, role) + '</div></section></div><div class="preview-toast" data-preview-toast hidden></div>';
+    renderPreview(content, role, activeBlock) + '</div></section><aside class="editor-panel" data-editor-panel>' +
+    renderBlockInspector(content, role, activeBlock) + '</aside></div><div class="preview-toast" data-preview-toast hidden></div>';
 }
 
-function updatePreview(root, role, content) {
+function updatePreview(root, role, content, activeBlock) {
   const frame = root.querySelector('[data-preview-frame]');
-  if (frame) frame.innerHTML = renderPreview(content, role);
+  if (frame) frame.innerHTML = renderPreview(content, role, activeBlock);
+  const blockPanel = root.querySelector('.block-panel');
+  if (blockPanel) blockPanel.outerHTML = renderBlockNavigator(content, activeBlock);
 }
 
 function showToast(root, text, previewWindow) {
@@ -246,7 +204,7 @@ async function copyConfig(root, role, content, previewWindow) {
   }
 }
 
-export function initAccountRolePreview(options) {
+function createPreviewSession(options) {
   const root = options && options.root;
   const previewWindow = options && options.window;
   const syncUrl = !options || options.syncUrl !== false;
@@ -254,133 +212,182 @@ export function initAccountRolePreview(options) {
   const initialContent = options && options.initialContent;
   const operational = !!(persistence && typeof persistence.save === 'function');
   if (!root || !previewWindow) throw new Error('마이페이지 편집 시안 초기화 대상이 없습니다.');
-
   const params = new URLSearchParams(previewWindow.location.search);
-  let activeRole = normalizeEditableRole(params.get('role'));
+  const activeRole = normalizeEditableRole(params.get('role'));
   if (syncUrl && params.get('role') !== activeRole) {
     const normalizedUrl = new URL(previewWindow.location.href);
     normalizedUrl.searchParams.set('role', activeRole);
     previewWindow.history.replaceState({}, '', normalizedUrl);
   }
-  const drafts = {};
-  const dirtyRoles = new Set();
-  function getDraft(role) {
-    if (!drafts[role]) drafts[role] = loadContent(previewWindow, role, initialContent);
-    return drafts[role];
-  }
-  let content = getDraft(activeRole);
-  renderShell(root, activeRole, content, operational);
+  const session = { root, previewWindow, syncUrl, persistence, initialContent, operational,
+    activeRole, activeBlock: 'header', drafts: {}, dirtyRoles: new Set(), content: null };
+  session.content = getDraft(session, activeRole);
+  return session;
+}
 
-  root.addEventListener('input', function (event) {
-    const field = event.target.closest('[data-edit-field]');
-    if (field) {
-      setValue(content, field.dataset.editField, field.type === 'checkbox' ? field.checked : field.value);
-      updatePreview(root, activeRole, content);
-      dirtyRoles.add(activeRole);
-      root.classList.add('has-unsaved-changes');
-      return;
-    }
-    if (event.target.matches('[data-menu-group]')) {
-      content.menuGroups[event.target.dataset.menuGroup] = event.target.value.split('\n').map(function (line) { return line.trim(); }).filter(Boolean);
-      updatePreview(root, activeRole, content);
-      dirtyRoles.add(activeRole);
-      root.classList.add('has-unsaved-changes');
-    }
+function getDraft(session, role) {
+  if (!session.drafts[role]) session.drafts[role] = loadContent(session.previewWindow, role, session.initialContent);
+  return session.drafts[role];
+}
+
+function selectBlock(session, blockId) {
+  if (!EDITOR_BLOCKS.some(function (block) { return block.id === blockId; })) return;
+  session.activeBlock = blockId;
+  session.root.dataset.activeBlock = blockId;
+  session.root.querySelectorAll('[data-block-select]').forEach(function (button) {
+      const selected = button.dataset.blockSelect === blockId;
+      button.classList.toggle('is-active', selected);
+      button.setAttribute('aria-pressed', String(selected));
   });
+  session.root.querySelectorAll('[data-preview-block]').forEach(function (block) {
+      if (block.dataset.previewBlock === blockId) block.setAttribute('data-block-active', 'true');
+      else block.removeAttribute('data-block-active');
+  });
+  const editor = session.root.querySelector('[data-editor-panel]');
+  if (editor) editor.innerHTML = renderBlockInspector(session.content, session.activeRole, blockId);
+}
 
-  root.addEventListener('click', async function (event) {
-    const roleButton = event.target.closest('[data-role-switch]');
-    if (roleButton) {
-      activeRole = normalizeEditableRole(roleButton.dataset.roleSwitch);
-      content = getDraft(activeRole);
-      if (syncUrl) {
-        const next = new URL(previewWindow.location.href);
-        next.searchParams.set('role', activeRole);
-        previewWindow.history.replaceState({}, '', next);
-      }
-      renderShell(root, activeRole, content, operational);
-      root.classList.toggle('has-unsaved-changes', dirtyRoles.has(activeRole));
-      return;
-    }
+function markDirty(session) {
+  session.dirtyRoles.add(session.activeRole);
+  session.root.classList.add('has-unsaved-changes');
+}
 
-    if (event.target.closest('[data-save-config]')) {
-      try {
-        if (operational) await persistence.save(activeRole, content);
-        else previewWindow.localStorage.setItem(storageKey(activeRole), JSON.stringify(content));
-        dirtyRoles.delete(activeRole);
-        root.classList.remove('has-unsaved-changes');
-        showToast(root, operational
-          ? content.label + ' 마이페이지 설정을 운영 데이터에 저장했습니다.'
-          : content.label + ' 시안을 이 브라우저에 저장했습니다.', previewWindow);
-      } catch (error) {
-        console.error('마이페이지 편집값을 저장하지 못했습니다.', error);
-        showToast(root, error?.message || '마이페이지 설정을 저장하지 못했습니다.', previewWindow);
-      }
-      return;
-    }
+function reorderBlock(session, sourceId, targetId) {
+  const source = EDITOR_BLOCKS.find(function (block) { return block.id === sourceId; });
+  const target = EDITOR_BLOCKS.find(function (block) { return block.id === targetId; });
+  if (!source || !target || source.lane === 'fixed' || source.lane !== target.lane) return false;
+  const order = [...session.content.blockOrder];
+  const from = order.indexOf(sourceId);
+  const to = order.indexOf(targetId);
+  if (from < 0 || to < 0 || from === to) return false;
+  order.splice(from, 1);
+  order.splice(to, 0, sourceId);
+  session.content.blockOrder = order;
+  session.activeBlock = sourceId;
+  markDirty(session);
+  renderShell(session.root, session.activeRole, session.content, session.operational, session.activeBlock);
+  session.root.classList.add('has-unsaved-changes');
+  return true;
+}
 
-    if (event.target.closest('[data-reset-config]')) {
-      const defaultContent = cloneRoleContent(activeRole);
-      if (operational && typeof persistence.reset === 'function') await persistence.reset(activeRole, defaultContent);
-      else previewWindow.localStorage.removeItem(storageKey(activeRole));
-      content = defaultContent;
-      drafts[activeRole] = content;
-      dirtyRoles.delete(activeRole);
-      renderShell(root, activeRole, content, operational);
-      showToast(root, operational
-        ? content.label + ' 마이페이지 설정을 기본값으로 저장했습니다.'
-        : content.label + ' 시안을 현재 운영 화면 기준으로 되돌렸습니다.', previewWindow);
-      return;
-    }
+function handleInput(session, event) {
+  const field = event.target.closest('[data-edit-field]');
+  if (field) setValue(session.content, field.dataset.editField, field.type === 'checkbox' ? field.checked : field.value);
+  else if (event.target.matches('[data-menu-group]')) {
+    session.content.menuGroups[event.target.dataset.menuGroup] = event.target.value.split('\n').map(function (line) { return line.trim(); }).filter(Boolean);
+  } else return;
+  updatePreview(session.root, session.activeRole, session.content, session.activeBlock);
+  markDirty(session);
+}
 
-    if (event.target.closest('[data-copy-config]')) {
-      await copyConfig(root, activeRole, content, previewWindow);
-      return;
-    }
+function bindDirectEdit(session) {
+  bindRoleBlockInteractions({
+    root: session.root, previewWindow: session.previewWindow, setValue,
+    getContent: function () { return session.content; },
+    markDirty: function () { markDirty(session); },
+    reorderBlock: function (source, target) { return reorderBlock(session, source, target); },
+    refreshPreview: function () { updatePreview(session.root, session.activeRole, session.content, session.activeBlock); },
+    selectBlock: function () { selectBlock(session, session.activeBlock); }
+  });
+}
 
-    if (event.target.closest('[data-editor-collapse]')) {
-      root.classList.add('editor-is-collapsed');
-      const opener = root.querySelector('[data-editor-open]');
-      if (opener) opener.hidden = false;
-      return;
-    }
+function switchRole(session, role) {
+  session.activeRole = normalizeEditableRole(role);
+  session.content = getDraft(session, session.activeRole);
+  if (session.syncUrl) {
+    const next = new URL(session.previewWindow.location.href);
+    next.searchParams.set('role', session.activeRole);
+    session.previewWindow.history.replaceState({}, '', next);
+  }
+  renderShell(session.root, session.activeRole, session.content, session.operational, session.activeBlock);
+  session.root.classList.toggle('has-unsaved-changes', session.dirtyRoles.has(session.activeRole));
+}
 
-    if (event.target.closest('[data-editor-open]')) {
-      root.classList.remove('editor-is-collapsed');
-      const opener = root.querySelector('[data-editor-open]');
-      if (opener) opener.hidden = true;
-      return;
-    }
+async function saveConfig(session) {
+  try {
+    if (session.operational) await session.persistence.save(session.activeRole, session.content);
+    else session.previewWindow.localStorage.setItem(storageKey(session.activeRole), JSON.stringify(session.content));
+    session.dirtyRoles.delete(session.activeRole);
+    session.root.classList.remove('has-unsaved-changes');
+    showToast(session.root, session.operational
+      ? session.content.label + ' 마이페이지 설정을 운영 데이터에 저장했습니다.'
+      : session.content.label + ' 시안을 이 브라우저에 저장했습니다.', session.previewWindow);
+  } catch (error) {
+    console.error('마이페이지 편집값을 저장하지 못했습니다.', error);
+    showToast(session.root, error?.message || '마이페이지 설정을 저장하지 못했습니다.', session.previewWindow);
+  }
+}
 
+function resetConfig(session) {
+  const approved = session.previewWindow.confirm('현재 역할의 편집값을 운영 기준으로 되돌릴까요? 저장 전까지 운영 데이터에는 반영되지 않습니다.');
+  if (!approved) return;
+  session.content = cloneRoleContent(session.activeRole);
+  session.drafts[session.activeRole] = session.content;
+  renderShell(session.root, session.activeRole, session.content, session.operational, session.activeBlock);
+  markDirty(session);
+  showToast(session.root, session.content.label + ' 기본값을 미리보기에 적용했습니다. 저장 버튼을 눌러야 반영됩니다.', session.previewWindow);
+}
+
+function handlePanelControls(session, event) {
+  const blockButton = event.target.closest('[data-block-select]');
+  if (blockButton) { selectBlock(session, blockButton.dataset.blockSelect); return true; }
+  const previewBlock = event.target.closest('[data-preview-block]');
+  if (previewBlock && !event.target.closest('[data-demo-action], [data-notification-toggle], [data-notification-close]')) {
+    selectBlock(session, previewBlock.dataset.previewBlock); return true;
+  }
+  const collapse = event.target.closest('[data-editor-collapse]');
+  const open = event.target.closest('[data-editor-open]');
+  if (!collapse && !open) return false;
+  session.root.classList.toggle('editor-is-collapsed', !!collapse);
+  const opener = session.root.querySelector('[data-editor-open]');
+  if (opener) opener.hidden = !!open;
+  return true;
+}
+
+function handlePreviewControls(session, event) {
     const sizeButton = event.target.closest('[data-preview-size]');
     if (sizeButton) {
-      root.dataset.previewWidth = sizeButton.dataset.previewSize === '390' ? '390' : '660';
-      const frame = root.querySelector('[data-preview-frame]');
-      if (frame) frame.dataset.previewWidth = root.dataset.previewWidth;
-      root.querySelectorAll('[data-preview-size]').forEach(function (button) {
-        button.setAttribute('aria-pressed', String(button.dataset.previewSize === root.dataset.previewWidth));
+      session.root.dataset.previewWidth = sizeButton.dataset.previewSize === '390' ? '390' : '660';
+      const frame = session.root.querySelector('[data-preview-frame]');
+      if (frame) frame.dataset.previewWidth = session.root.dataset.previewWidth;
+      session.root.querySelectorAll('[data-preview-size]').forEach(function (button) {
+        button.setAttribute('aria-pressed', String(button.dataset.previewSize === session.root.dataset.previewWidth));
       });
-      return;
+      return true;
     }
-
     const notificationToggle = event.target.closest('[data-notification-toggle]');
     if (notificationToggle) {
-      const panel = root.querySelector('[data-notification-panel]');
+      const panel = session.root.querySelector('[data-notification-panel]');
       const open = panel ? panel.hidden : false;
       if (panel) panel.hidden = !open;
       notificationToggle.setAttribute('aria-expanded', String(open));
-      return;
+      return true;
     }
-
     if (event.target.closest('[data-notification-close]')) {
-      const panel = root.querySelector('[data-notification-panel]');
-      const toggle = root.querySelector('[data-notification-toggle]');
+      const panel = session.root.querySelector('[data-notification-panel]');
+      const toggle = session.root.querySelector('[data-notification-toggle]');
       if (panel) panel.hidden = true;
       if (toggle) toggle.setAttribute('aria-expanded', 'false');
-      return;
+      return true;
     }
+    return false;
+}
 
-    const action = event.target.closest('[data-demo-action]');
-    if (action) showToast(root, (action.dataset.demoAction || '선택한 항목') + ' 연결 전 화면입니다.', previewWindow);
-  });
+async function handleClick(session, event) {
+  const roleButton = event.target.closest('[data-role-switch]');
+  if (roleButton) return switchRole(session, roleButton.dataset.roleSwitch);
+  if (event.target.closest('[data-save-config]')) return saveConfig(session);
+  if (event.target.closest('[data-reset-config]')) return resetConfig(session);
+  if (event.target.closest('[data-copy-config]')) return copyConfig(session.root, session.activeRole, session.content, session.previewWindow);
+  if (handlePanelControls(session, event) || handlePreviewControls(session, event)) return;
+  const action = event.target.closest('[data-demo-action]');
+  if (action) showToast(session.root, (action.dataset.demoAction || '선택한 항목') + ' 연결 전 화면입니다.', session.previewWindow);
+}
+
+export function initAccountRolePreview(options) {
+  const session = createPreviewSession(options);
+  renderShell(session.root, session.activeRole, session.content, session.operational, session.activeBlock);
+  session.root.addEventListener('input', function (event) { handleInput(session, event); });
+  bindDirectEdit(session);
+  session.root.addEventListener('click', function (event) { handleClick(session, event); });
 }

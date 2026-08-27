@@ -1,7 +1,8 @@
 import { getAdminAccessToken, requireAdminSession, signOutAdmin } from './admin-auth.js?v=20260826-admin-release-v5';
 import { roleContracts, navGroups, overview, moduleViews, caseDetail } from './data/admin-console-data.js?v=20260826-admin-crud-v1';
 import { createAdminNavigation } from './features/navigation/admin-navigation.js?v=20260826-admin-crud-v1';
-import { createAdminMypageEditor } from './features/mypage-editor/admin-mypage-editor.js?v=20260826-admin-simple-v1';
+import { createAdminMypageEditor } from './features/mypage-editor/admin-mypage-editor.js?v=20260827-block-editor-v1';
+import { createAdminHomeLayoutEditor } from './features/home-editor/admin-home-editor.js?v=20260827-home-block-editor-v1';
 import { createAdminOperationController } from './features/operations/admin-operation-controller.js?v=20260826-catalog-ledger-v3';
 import { createAdminWorkspace } from './features/workspace/admin-workspace.js';
 import { createAdminOperationsService } from './services/admin/admin-operations-service.js?v=20260826-catalog-ledger-v3';
@@ -45,6 +46,10 @@ const mypageEditor = createAdminMypageEditor({
   settingsService: operationsService.catalog,
   onToast: toast
 });
+const homeLayoutEditor = createAdminHomeLayoutEditor({
+  settingsService: operationsService.catalog,
+  onToast: toast
+});
 
 const operations = createAdminOperationController({
   root,
@@ -64,7 +69,7 @@ const workspace = createAdminWorkspace({
   overview,
   roles: roleContracts,
   views: { ...moduleViews, caseDetail },
-  specialViews: { mypageSettings: mypageEditor },
+  specialViews: { mypageSettings: mypageEditor, homeSettings: homeLayoutEditor },
   operations,
   onNavigate: navigate,
   onToast: toast

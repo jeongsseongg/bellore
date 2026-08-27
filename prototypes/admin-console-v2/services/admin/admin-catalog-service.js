@@ -3,6 +3,7 @@ const MYPAGE_KEYS = Object.freeze({
   vendor: 'mypage_vendor_config',
   admin: 'mypage_admin_config'
 });
+const HOME_LAYOUT_KEY = 'home_page_layout_config';
 
 const CATALOG_ERROR_MESSAGES = Object.freeze({
   ADMIN_FORBIDDEN: '활성 상태의 승인된 관리자만 처리할 수 있습니다.',
@@ -60,6 +61,17 @@ function parseMypageContent(row) {
     return value && typeof value === 'object' ? value : null;
   } catch (error) {
     console.warn(`마이페이지 설정 JSON을 읽지 못했습니다: ${row.key}`, error);
+    return null;
+  }
+}
+
+function parseJsonContent(row, label) {
+  if (!row?.body) return null;
+  try {
+    const value = JSON.parse(row.body);
+    return value && typeof value === 'object' ? value : null;
+  } catch (error) {
+    console.warn(`${label} 설정 JSON을 읽지 못했습니다.`, error);
     return null;
   }
 }
@@ -323,10 +335,26 @@ export function createAdminCatalogService(client, operatorId) {
     });
   }
 
+  async function loadHomePageConfig() {
+    const rows = await client.list('site_content', {
+      select: '*', key: `eq.${HOME_LAYOUT_KEY}`, limit: 1
+    });
+    return parseJsonContent((rows || [])[0], '홈 화면');
+  }
+
+  function saveHomePageConfig(content) {
+    return saveSiteContent(HOME_LAYOUT_KEY, {
+      title: '홈 화면 블록 설정',
+      subtitle: '관리자 콘솔에서 저장한 운영 홈 화면 설정',
+      body: JSON.stringify(content),
+      images: []
+    });
+  }
+
   return {
     listListings, saveListing, manageListing, loadListingDetail, listBanners, saveBanner, deleteBanner,
     setBannerActive, listCoupons, saveCoupon, deleteCoupon, setCouponActive,
     listCommunity, saveCommunity, deleteCommunity, listSiteContent, saveSiteContent,
-    deleteSiteContent, loadMypageConfigs, saveMypageConfig
+    deleteSiteContent, loadMypageConfigs, saveMypageConfig, loadHomePageConfig, saveHomePageConfig
   };
 }
