@@ -970,10 +970,10 @@
         }
         window.BELLORE_openNotiPage = openNotiPage;
         if (btnNoti) btnNoti.addEventListener('click', function () { openNotiPage(); });
-        // 상단 헤더 알림 벨 → 알림 페이지 (로그인 안 했으면 로그인 모달)
+        // 상단 헤더 알림 벨 → 알림 페이지 (로그인 안 했으면 독립 로그인 페이지)
         if (btnNotiTop) btnNotiTop.addEventListener('click', function () {
             if (backendOn() && NWBackend.currentUser && !NWBackend.currentUser()) {
-                var lm = $('#loginModal'); if (lm) { lm.hidden = false; document.body.style.overflow = 'hidden'; }
+                openLoginModal();
                 return;
             }
             openNotiPage();
@@ -3398,7 +3398,7 @@
         if (!user) {
             notice.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> 금액 · 업체명은 <a href="#" id="liveBoardLoginLink" style="color:var(--green-bright);text-decoration:underline">로그인</a> 후 확인할 수 있습니다';
             var lnk = $('#liveBoardLoginLink');
-            if (lnk) lnk.addEventListener('click', function (e) { e.preventDefault(); var lm = $('#loginModal'); if (lm) { lm.hidden = false; document.body.style.overflow = 'hidden'; } });
+            if (lnk) lnk.addEventListener('click', function (e) { e.preventDefault(); openLoginModal(); });
         } else if (!_liveBoardLoggedIn) {
             notice.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> 금액 · 업체명은 <strong>제휴처(업체) 회원</strong>에게만 공개됩니다';
         }
@@ -3721,16 +3721,12 @@
     window.disableAdminMode = disableAdminMode;
 
     function closeLoginModal() {
-        var lm = $('#loginModal');
-        if (lm) { lm.hidden = true; document.body.style.overflow = ''; }
         document.body.classList.remove('login-open');
     }
 
     function openLoginModal() {
-        var lm = $('#loginModal');
-        if (lm) { lm.hidden = false; document.body.classList.add('login-open'); document.body.style.overflow = ''; try { window.scrollTo(0, 0); } catch (e) {} }
-        // 항상 로그인 화면부터
-        if (window.BELLORE_showLoginPanel) window.BELLORE_showLoginPanel('login');
+        var here = location.pathname + location.search + location.hash;
+        location.assign('/login.html?return=' + encodeURIComponent(here));
     }
 
     /* ============ 백엔드(Firebase) 데이터 동기화 ============
@@ -5917,43 +5913,18 @@
         }
     }
 
-    /* ============ 로그인 모달 ============ */
+    /* ============ 독립 로그인 페이지 진입 ============ */
     function initLoginModal() {
-        var modal = $('#loginModal');
         var btnMy = $('#btnMy');
-        if (!modal) return;
 
         function openMyOrLogin() {
-            // 로그인 상태면 마이페이지, 아니면 로그인 모달
+            // 로그인 상태면 마이페이지, 아니면 독립 로그인 페이지
             if (backendOn() && NWBackend.currentUser()) { openMyPage(); return; }
-            modal.hidden = false;
-            document.body.classList.add('login-open');
-            document.body.style.overflow = '';
-            try { window.scrollTo(0, 0); } catch (e) {}
+            openLoginModal();
         }
         if (btnMy) btnMy.addEventListener('click', openMyOrLogin);
         var tabMy = $('#tabMy');
         if (tabMy) tabMy.addEventListener('click', openMyOrLogin);
-
-        modal.addEventListener('click', function (e) {
-            if (e.target.closest('[data-mclose]')) {
-                modal.hidden = true;
-                document.body.style.overflow = '';
-                document.body.classList.remove('login-open');
-            }
-        });
-
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' && !modal.hidden) {
-                modal.hidden = true;
-                document.body.style.overflow = '';
-                document.body.classList.remove('login-open');
-            }
-        });
-
-        // (카카오 버튼은 initAccountUI 에서 실제 카카오 로그인으로 연결됨 — 상담 오픈채팅 핸들러 제거)
-
-        // 헤더 검색 → search.js가 전용 검색 페이지를 엽니다(여기서는 처리하지 않음).
     }
 
     // 브랜드 한글↔영문 별칭 (카드는 영문 표기라 한글 검색도 매칭)

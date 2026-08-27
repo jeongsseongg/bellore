@@ -1,6 +1,6 @@
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () {
-        navigator.serviceWorker.register('sw.js?v=20260826-sell-guest-access-v1').catch(function (err) {
+        navigator.serviceWorker.register('sw.js?v=20260826-auth-shell-v1').catch(function (err) {
             console.warn('서비스워커 등록 실패:', err);
         });
     });

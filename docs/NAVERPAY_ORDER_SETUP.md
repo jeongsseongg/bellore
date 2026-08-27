@@ -2,9 +2,8 @@
 
 ## 현재 단계
 
-- 가입 1차 승인 완료
-- 샌드박스 연동 및 네이버 기술검수 준비
-- 최종 승인 전에는 `?naverPayTest=1` 주소에서만 버튼 노출
+- 운영 노출 전환
+- 상품 상세와 장바구니에서 운영 버튼 노출
 - 서버 함수와 필수 인증값 등록 완료
 - 샌드박스 주문 등록은 네이버 기술지원에서 가맹점 정보를 등록한 뒤 활성화됨
 
@@ -31,7 +30,6 @@ NAVERPAY_RETURN_ADDRESS1=반품지 기본주소
 NAVERPAY_RETURN_ADDRESS2=반품지 상세주소
 NAVERPAY_SELLER_NAME=벨로르
 NAVERPAY_SELLER_CONTACT=01062936668
-NAVERPAY_ORDER_API=https://test-api.pay.naver.com/o/customer/api/order/v20/register
 NAVERPAY_SITE_URL=https://bellore.co.kr
 ```
 

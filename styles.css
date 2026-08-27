@@ -7194,7 +7194,8 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
    앱 시작 스플래시 (대한민국 No.1 · 슬로건)
    ============================================================ */
 .app-splash {
-    position: fixed; inset: 0; z-index: 4000;
+    position: fixed; inset: 0 auto 0 50%; z-index: 4000;
+    width: min(100%, 660px); transform: translateX(-50%);
     background: #111; color: #fff;
     display: flex; align-items: center; justify-content: center;
     opacity: 1; transition: opacity .55s ease;

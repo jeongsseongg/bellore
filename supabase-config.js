@@ -84,13 +84,13 @@ window.BELLORE_PAYMENTS = {
 /* ============================================================
    네이버페이 주문형 V2.1
    ------------------------------------------------------------
-   - 가입 최종 승인 전에는 ?naverPayTest=1 주소에서만 샌드박스 버튼을 노출합니다.
+   - 네이버페이 주문형 운영 버튼을 상품 상세와 장바구니에 노출합니다.
    - 가맹점/버튼/공통 인증키는 이 파일에 넣지 않고 Edge Function Secrets로 관리합니다.
    ============================================================ */
 window.BELLORE_NAVERPAY = {
   enabled: true,
-  testOnly: true,
-  endpoint: "/naverpay-order"
+  testOnly: false,
+  endpoint: "https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/naverpay-order"
 };
 
 /* ============================================================

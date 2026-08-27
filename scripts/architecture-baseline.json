@@ -9,7 +9,7 @@
     "supabase.js": 2638,
     "cq-demo.js": 2423,
     "ai-advisor.js": 2378,
-    "bellore-redesign.css": 1565,
+    "bellore-redesign.css": 1646,
     "bellore-features.js": 1261,
     "auction.js": 924,
     "ai-advisor-admin.js": 763,
@@ -30,7 +30,7 @@
     "importantTokens": 379,
     "windowAssignments": 93,
     "scriptStyleAttributeTokens": 86,
-    "localClassicScripts": 22
+    "localClassicScripts": 23
   },
   "newCodeBudgets": {
     ".js": {
@@ -96,6 +96,7 @@
     "brands.js",
     "cq-demo.js",
     "index.html",
+    "login.html",
     "mypick.css",
     "naverpay.js",
     "payments.js",

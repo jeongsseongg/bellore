@@ -11,7 +11,7 @@ import { initConditionGuide } from './features/condition-guide/condition-guide.j
 import { initHomeBanners } from './features/home-banners/home-banners.js?v=20260826-hero-layout-v7';
 import { initHomeQuicklinks } from './features/home-quicklinks/home-quicklinks.js?v=20260826-hero-layout-v8';
 import { createHomeMerchandising } from './features/home-merchandising/home-merchandising.js?v=20260826-member-verification-live-v2';
-import { initHomeRows } from './features/home-rows/home-rows.js?v=20260826-member-verification-live-v2';
+import { initHomeRows } from './features/home-rows/home-rows.js?v=20260826-home-row-hotfix-v1';
 import { createListingAvailabilityUi } from './features/listing-availability/listing-availability-ui.js?v=20260826-member-verification-live-v2';
 import { initProductDetailRoute, initProductSharing } from './features/product-sharing/product-sharing.mjs';
 import { createListingCatalog } from './services/listings/listing-catalog-service.js?v=20260826-member-verification-live-v2';

@@ -31,17 +31,20 @@ function splitRows(listings, weeklySpecial) {
     .filter((item) => item.saleActive && discountRate(item) > 0)
     .sort((a, b) => discountRate(b) - discountRate(a));
   const split = Math.min(FEATURE_MAX, Math.ceil(lowered.length / 2));
-  const sale = (weeklySpecial && weeklySpecial.length ? weeklySpecial : lowered.slice(0, split));
-  const drop = lowered.slice(split);
   const latest = listings.slice(0, ROW_MAX);
-  const used = new Set(sale.map((item) => item.id));
-  const unusedLatest = latest.filter((item) => !used.has(item.id));
+  const preferredSale = weeklySpecial && weeklySpecial.length ? weeklySpecial : lowered.slice(0, split);
+  const sale = preferredSale.length ? preferredSale : latest.slice(0, FEATURE_MAX);
+  const saleIds = new Set(sale.map((item) => String(item.id)));
+  const preferredDrop = lowered.slice(split).filter((item) => !saleIds.has(String(item.id)));
+  const drop = preferredDrop.length
+    ? preferredDrop
+    : listings.filter((item) => !saleIds.has(String(item.id))).slice(0, FEATURE_MAX);
+  const usedIds = new Set([...sale, ...drop].map((item) => String(item.id)));
+  const recent = listings.filter((item) => !usedIds.has(String(item.id))).slice(0, ROW_MAX);
   return {
-    // 할인 데이터가 비어도 홈의 핵심 가로 상품 구간은 사라지지 않는다.
-    // 이때 실제 판매가만 표시하고 할인 뱃지나 취소선 가격은 만들지 않는다.
-    rowSaleBlock: sale.length ? sale : latest.slice(0, FEATURE_MAX),
-    rowDropBlock: drop.length ? drop : unusedLatest.slice(0, FEATURE_MAX),
-    rowNewBlock: latest,
+    rowSaleBlock: sale,
+    rowDropBlock: drop,
+    rowNewBlock: recent.length ? recent : latest,
   };
 }
 
