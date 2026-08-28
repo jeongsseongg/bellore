@@ -20,7 +20,12 @@ for (const file of await discoverPageHtmlFiles(root)) {
   assert.ok(policy, `${file}: AUTH_POLICY에 required 또는 public 예외를 명시해야 합니다.`);
   const html = await readFile(resolve(root, file), 'utf8');
   assert.match(html, new RegExp(`data-standalone-auth=["']${policy}["']`, 'i'), `${file}: 인증 정책 표시가 필요합니다.`);
-  assert.match(html, /app\/pages\/standalone-page\.css/i, `${file}: 인증 확인 전 보호 콘텐츠를 숨겨야 합니다.`);
+  if (file === 'pages/mypage.html') {
+    assert.match(html, /<main[^>]*hidden/i, `${file}: 인증 전 호환 진입점은 표시할 UI가 없어야 합니다.`);
+    assert.doesNotMatch(html, /id=["']myPageModal["']/i, `${file}: 보호 UI를 중복하면 안 됩니다.`);
+  } else {
+    assert.match(html, /app\/pages\/standalone-page\.css/i, `${file}: 인증 확인 전 보호 콘텐츠를 숨겨야 합니다.`);
+  }
   assert.match(html, /app\/pages\/standalone-page\.js/i, `${file}: 공통 진입 게이트가 필요합니다.`);
 }
 
@@ -67,8 +72,9 @@ assert.match(login, /params\.get\(['"]returnTo['"]\)[\s\S]*params\.get\(['"]retu
 
 const runtime = await readFile(resolve(root, 'app/pages/standalone-page.js'), 'utf8');
 const authIndex = runtime.indexOf('await enforceStandaloneAuth');
-const supportIndex = runtime.indexOf('await hydrateMypageSupport');
-assert(authIndex >= 0 && supportIndex > authIndex,
-  '인증 검사는 마이페이지 지원 UI 주입보다 먼저 실행돼야 합니다.');
+const redirectIndex = runtime.indexOf("window.location.replace('/?view=mypage')");
+const dependenciesIndex = runtime.indexOf('for (const dependency of pageDependencies)');
+assert(authIndex >= 0 && redirectIndex > authIndex && dependenciesIndex > redirectIndex,
+  '인증 검사는 마이페이지 리다이렉트와 레거시 UI 주입보다 먼저 실행돼야 합니다.');
 
 console.log('standalone auth gate: protected=2 public-exceptions=1 returnTo=1 runtime=3 passed');

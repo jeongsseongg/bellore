@@ -4,9 +4,8 @@ import { resolve } from 'node:path';
 import { discoverPageHtmlFiles } from '../tools/pages-html.mjs';
 
 const root = resolve(import.meta.dirname, '..');
-const TABBAR_EXCEPTIONS = new Set([]);
+const TABBAR_EXCEPTIONS = new Set(['pages/mypage.html']);
 const ACTIVE_TAB = new Map([
-  ['pages/mypage.html', 'my'],
   ['pages/orders.html', 'my'],
   ['pages/inquiry.html', ''],
 ]);
@@ -28,8 +27,19 @@ assert.match(login, /<bellore-tabbar\b[^>]*data-active=["']my["']/i, 'login.html
 assert.match(login, /assets\/icons\/favicon-32\.png/, 'login.html: 실제 존재하는 파비콘을 사용해야 합니다.');
 
 const component = await readFile(resolve(root, 'app/ui/app-tabbar.js'), 'utf8');
-assert.match(component, /\['my', '\/pages\/mypage', '마이'/,
-  '공통 마이 탭은 확장자 없는 정식 마이페이지 URL을 사용해야 합니다.');
+assert.match(component, /\['my', '\/\?view=mypage', '마이'/,
+  '공통 마이 탭은 루트 마이페이지 계약을 사용해야 합니다.');
+const tabbarScriptUrls = await Promise.all([
+  'login.html', 'pages/orders.html', 'pages/inquiry.html',
+].map(async (file) => {
+  const html = await readFile(resolve(root, file), 'utf8');
+  return html.match(/src=["'](\/app\/ui\/app-tabbar\.js\?v=[^"']+)["']/i)?.[1] || '';
+}));
+assert(tabbarScriptUrls.every(Boolean), '공통 탭바를 쓰는 페이지는 캐시키가 있는 모듈 URL을 가져야 합니다.');
+assert.equal(new Set(tabbarScriptUrls).size, 1, '공통 탭바 모듈의 캐시키는 모든 페이지에서 같아야 합니다.');
+const serviceWorker = await readFile(resolve(root, 'sw.js'), 'utf8');
+assert(serviceWorker.includes(`'.${tabbarScriptUrls[0]}'`),
+  '공통 탭바 모듈 URL과 서비스워커의 precache URL이 정확히 같아야 합니다.');
 assert.match(component, /aria-current=[^\n]*page/, '활성 탭은 aria-current=page를 제공해야 합니다.');
 assert.match(component, /tab-wish-badge/, '공통 탭바는 최신 홈 탭바의 보관함 배지를 포함해야 합니다.');
 for (const iconPath of ['M3 12L12 3l9 9', 'm20 20-3.6-3.6', 'M20.8 4.6', 'M7.5 7.3', 'M4 21c0-4.4']) {
