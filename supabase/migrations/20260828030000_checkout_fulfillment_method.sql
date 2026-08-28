@@ -296,18 +296,24 @@ begin
        and v_existing.coupon_user_id is not distinct from p_coupon_user_id
        and v_existing.buyer_name is not distinct from left(p_buyer_name,120)
        and v_existing.buyer_phone is not distinct from left(p_buyer_phone,40)
-       and v_existing.ship_recipient is not distinct from
+       and v_existing.ship_recipient is not distinct from (
          case when p_fulfillment_method='pickup' then null else left(p_ship_recipient,120) end
-       and v_existing.ship_phone is not distinct from
+       )
+       and v_existing.ship_phone is not distinct from (
          case when p_fulfillment_method='pickup' then null else left(p_ship_phone,40) end
-       and v_existing.ship_postcode is not distinct from
+       )
+       and v_existing.ship_postcode is not distinct from (
          case when p_fulfillment_method='pickup' then null else left(p_ship_postcode,20) end
-       and v_existing.ship_addr1 is not distinct from
+       )
+       and v_existing.ship_addr1 is not distinct from (
          case when p_fulfillment_method='pickup' then null else left(p_ship_addr1,300) end
-       and v_existing.ship_addr2 is not distinct from
+       )
+       and v_existing.ship_addr2 is not distinct from (
          case when p_fulfillment_method='pickup' then null else left(p_ship_addr2,300) end
-       and v_existing.ship_request is not distinct from
+       )
+       and v_existing.ship_request is not distinct from (
          case when p_fulfillment_method='pickup' then null else left(p_ship_request,300) end
+       )
        and exists (
          select 1 from public.listings as available
           where available.id = v_existing.listing_id
