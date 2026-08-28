@@ -42,13 +42,13 @@
       "why": "최신 통합본보다 오래된 화면 트리에서 미리보기나 배포를 시작하지 않는다."
     },
     {
-      "id": "latest-home-hero-layout-v7",
+      "id": "latest-home-layout-loaders",
       "files": ["app/bootstrap.js"],
       "must_contain": [
         "home-banners.js?v=20260826-hero-layout-v7",
-        "home-quicklinks.js?v=20260826-hero-layout-v7"
+        "home-quicklinks.js?v=20260826-hero-layout-v8"
       ],
-      "why": "3897462에서 확정한 홈 히어로와 바로가기 레이아웃을 판매 기능 이식이 과거 버전으로 되돌리지 않게 한다."
+      "why": "확정된 홈 히어로 v7과 후속 바로가기 보정 v8을 다른 기능 이식이 과거 버전으로 되돌리지 않게 한다."
     },
     {
       "id": "sell-draft-resume-only-in-notification",
@@ -89,6 +89,35 @@
         "python scripts/check-preview-deploy-base.py --check-current"
       ],
       "why": "로컬 훅이 비활성화되어도 GitHub Pages 빌드가 구버전 기준에서 진행되지 않게 한다."
+    },
+    {
+      "id": "approved-product-purchasebar-css",
+      "files": ["bellore-redesign.css"],
+      "must_contain": [
+        "grid-template-columns: 52px minmax(178px, 1fr) minmax(176px, 1fr);",
+        "grid-template-columns: 52px minmax(178px, 1fr) minmax(176px, 1fr) minmax(176px, 1fr);",
+        "border-radius: 18px 18px 0 0;",
+        "flex-direction: row;"
+      ],
+      "why": "사용자가 승인한 구매바 시안의 단일 카드, 찜·판매가·일반구매·N Pay 순서와 금액+원 한 줄 표시가 부분 CSS 이식으로 다시 깨지지 않게 한다."
+    },
+    {
+      "id": "approved-product-purchasebar-test",
+      "files": ["scripts/test-purchasebar-approved-layout.mjs"],
+      "must_contain": [
+        "approved purchase bar keeps the one-card desktop grid",
+        "approved purchase bar keeps amount and won on one line"
+      ],
+      "why": "승인 구매바의 실제 CSS·DOM 회귀검사가 삭제되거나 의미가 약화되지 않게 한다."
+    },
+    {
+      "id": "brain-invariant-hooks-use-utf8",
+      "files": [".codex/hooks.json"],
+      "must_contain": [
+        "PYTHONUTF8=1 PYTHONIOENCODING=utf-8 python3",
+        "$env:PYTHONUTF8='1'; $env:PYTHONIOENCODING='utf-8'; python"
+      ],
+      "why": "한글 작업 경로에서도 Brain 훅이 입력을 읽지 못한 채 fail-open하지 않고 구매바 등 승인 불변식을 실제 검사하게 한다."
     }
   ]
 }

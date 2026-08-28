@@ -1263,10 +1263,14 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
 
 /* 2026-08-26 — unified product purchase bar */
 .pp-bottom {
-  align-items: center;
-  gap: 12px;
+  display: grid; grid-template-columns: 52px minmax(178px, 1fr) minmax(176px, 1fr);
+  align-items: center; gap: 12px; min-height: 96px;
   padding: 24px 18px calc(14px + env(safe-area-inset-bottom));
+  border: 1px solid #e5e3df; border-radius: 18px 18px 0 0; background: #fff;
+  box-shadow: 0 -12px 34px rgba(20, 27, 25, .08);
+  overflow: visible;
 }
+.pp-bottom.has-npay { grid-template-columns: 52px minmax(178px, 1fr) minmax(176px, 1fr) minmax(176px, 1fr); }
 .pp-bottom .pp-wish {
   width: 52px;
   height: 52px;
@@ -1278,21 +1282,14 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
   color: #656565;
 }
 .pp-bottom .pp-buyprice {
-  min-width: 178px;
-  min-height: 58px;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 5px;
-  padding: 0 8px;
-  font-size: 20px;
-  line-height: 1;
+  min-width: 178px; min-height: 58px; position: relative;
+  flex-direction: row; align-items: flex-start; justify-content: center; gap: 0;
+  padding: 25px 8px 0;
+  font-size: 20px; line-height: 1;
 }
 .pp-bottom .pp-buyprice::before {
-  content: '판매가';
-  color: #929292;
-  font-size: 11px;
-  font-weight: 700;
+  content: '판매가'; position: absolute; top: 8px; left: 8px;
+  color: #929292; font-size: 11px; font-weight: 700;
   letter-spacing: .01em;
 }
 .pp-bottom .pp-buyprice .won {
@@ -1302,19 +1299,14 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
   font-weight: 750;
 }
 .pp-bottom .pp-buy {
-  height: 58px;
-  min-height: 58px;
-  border-radius: 14px;
+  width: 100%; height: 58px; min-height: 58px; border-radius: 14px;
   font-size: 18px;
 }
 .pp-bottom .pp-npay-action {
-  position: relative;
-  align-self: center;
-  height: 58px;
-  min-height: 58px;
-  max-height: 58px;
-  border-radius: 14px;
-  overflow: visible;
+  position: relative; align-self: center;
+  width: 100%; max-width: none;
+  height: 58px; min-height: 58px; max-height: 58px;
+  border-radius: 14px; overflow: visible;
 }
 .pp-bottom .pp-npay-action > * {
   position: absolute;
@@ -1333,17 +1325,17 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
   overflow: visible;
 }
 .pp-bottom.has-npay .pp-buyprice { display: none; }
-.pp-bottom.has-npay .pp-buy,
-.pp-bottom.has-npay .pp-npay-action { flex-basis: 0; }
 @media (min-width: 680px) {
   .pp-bottom.has-npay .pp-buyprice { display: flex; }
-  .pp-bottom .pp-npay-action { max-width: 260px; }
 }
 @media (max-width: 679px) {
   .pp-bottom {
+    grid-template-columns: 48px minmax(0, 1fr);
     gap: 8px;
     padding: 22px 12px calc(11px + env(safe-area-inset-bottom));
+    border-radius: 16px 16px 0 0;
   }
+  .pp-bottom.has-npay { grid-template-columns: 48px minmax(0, 1fr) minmax(0, 1fr); }
   .pp-bottom .pp-wish {
     width: 48px;
     height: 48px;

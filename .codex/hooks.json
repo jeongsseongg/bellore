@@ -18,8 +18,8 @@
         "matcher": "apply_patch|Edit|Write",
         "hooks": [
           {
-            "command": "python3 \"C:/Users/LS/.codex/skills/brain/scripts/check_protected_invariants.py\"",
-            "commandWindows": "python \"C:/Users/LS/.codex/skills/brain/scripts/check_protected_invariants.py\"",
+            "command": "PYTHONUTF8=1 PYTHONIOENCODING=utf-8 python3 \"C:/Users/LS/.codex/skills/brain/scripts/check_protected_invariants.py\"",
+            "commandWindows": "$env:PYTHONUTF8='1'; $env:PYTHONIOENCODING='utf-8'; python \"C:/Users/LS/.codex/skills/brain/scripts/check_protected_invariants.py\"",
             "statusMessage": "Checking protected project invariants",
             "timeout": 30,
             "type": "command"
@@ -42,8 +42,8 @@
       {
         "hooks": [
           {
-            "command": "python3 \"C:/Users/LS/.codex/skills/brain/scripts/check_protected_invariants.py\" --check-current",
-            "commandWindows": "python \"C:/Users/LS/.codex/skills/brain/scripts/check_protected_invariants.py\" --check-current",
+            "command": "PYTHONUTF8=1 PYTHONIOENCODING=utf-8 python3 \"C:/Users/LS/.codex/skills/brain/scripts/check_protected_invariants.py\" --check-current",
+            "commandWindows": "$env:PYTHONUTF8='1'; $env:PYTHONIOENCODING='utf-8'; python \"C:/Users/LS/.codex/skills/brain/scripts/check_protected_invariants.py\" --check-current",
             "statusMessage": "Verifying protected project invariants",
             "timeout": 30,
             "type": "command"
