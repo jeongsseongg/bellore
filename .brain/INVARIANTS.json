@@ -151,9 +151,28 @@
       "files": ["scripts/test-mypage-standalone.mjs"],
       "must_contain": [
         "window.location.replace('/?view=mypage')",
-        "the visible MY controls use the same server-verified gate"
+        "the visible MY controls use the same server-verified gate",
+        "signed-out MY controls must return to the integrated mypage after login"
       ],
       "why": "마이페이지 직접 URL과 MY 버튼의 서버 인증 계약을 회귀 테스트가 유지한다."
+    },
+    {
+      "id": "mypage-social-return-runtime",
+      "files": ["app/features/auth-login/auth-login.js"],
+      "must_contain": [
+        "function pendingSocialReturn()",
+        "function clearSocialReturn()"
+      ],
+      "why": "카카오·Google 로그인도 저장한 통합 마이페이지 복귀 주소를 사용하고 일회성 상태를 정리한다."
+    },
+    {
+      "id": "mypage-social-return-test",
+      "files": ["scripts/test-standalone-auth-gate.mjs"],
+      "must_contain": [
+        "소셜 로그인 복귀도 저장한 통합 화면 목적지를 읽어야 합니다.",
+        "로그인 완료나 실패 뒤 소셜 복귀 상태를 정리해야 합니다."
+      ],
+      "why": "소셜 로그인 복귀 계약을 테스트가 삭제하거나 약화하지 않게 한다."
     },
     {
       "id": "selected-runtime-build-allowlist",

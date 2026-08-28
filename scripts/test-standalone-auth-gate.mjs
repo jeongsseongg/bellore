@@ -69,6 +69,10 @@ assert.equal(publicAuthCalls, 0, '비회원 문의 예외는 로그인 검사를
 const login = await readFile(resolve(root, 'app/features/auth-login/auth-login.js'), 'utf8');
 assert.match(login, /params\.get\(['"]returnTo['"]\)[\s\S]*params\.get\(['"]return['"]\)/,
   '로그인은 returnTo를 우선하고 기존 return 링크도 호환해야 합니다.');
+assert.match(login, /pendingSocialReturn\(\)[\s\S]*bellore_social_pending[\s\S]*bellore_auth_return/,
+  '소셜 로그인 복귀도 저장한 통합 화면 목적지를 읽어야 합니다.');
+assert.match(login, /function clearSocialReturn\(\)[\s\S]*removeItem\(['"]bellore_social_pending['"]\)[\s\S]*removeItem\(['"]bellore_auth_return['"]\)/,
+  '로그인 완료나 실패 뒤 소셜 복귀 상태를 정리해야 합니다.');
 
 const runtime = await readFile(resolve(root, 'app/pages/standalone-page.js'), 'utf8');
 const authIndex = runtime.indexOf('await enforceStandaloneAuth');
@@ -77,4 +81,4 @@ const dependenciesIndex = runtime.indexOf('for (const dependency of pageDependen
 assert(authIndex >= 0 && redirectIndex > authIndex && dependenciesIndex > redirectIndex,
   '인증 검사는 마이페이지 리다이렉트와 레거시 UI 주입보다 먼저 실행돼야 합니다.');
 
-console.log('standalone auth gate: protected=2 public-exceptions=1 returnTo=1 runtime=3 passed');
+console.log('standalone auth gate: protected=2 public-exceptions=1 returnTo=2 runtime=3 passed');

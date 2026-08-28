@@ -49,6 +49,8 @@ assert.match(legacy, /function initMypageRoute\([\s\S]*?verifyMypageUser\(\)[\s\
   'the root deep link verifies the current user before opening mypage');
 assert.match(legacy, /function openMyOrLogin\([\s\S]*?verifyMypageUser\(\)[\s\S]*?if \(allowed\) openMyPage\(\)/,
   'the visible MY controls use the same server-verified gate');
+assert.match(legacy, /function openMyOrLogin\([\s\S]*?else openLoginModal\(['"]\/\?view=mypage['"]\)/,
+  'signed-out MY controls must return to the integrated mypage after login');
 assert.doesNotMatch(legacy, /window\.location\.assign\(['"]\/pages\/mypage/,
   'root handlers cannot fall back to the broken standalone composition');
 assert.match(legacy, /var wasOpen = !!\(m && !m\.hidden\)/,
