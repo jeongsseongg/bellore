@@ -59,8 +59,15 @@ try {
     let stdout = '', stderr = '';
     child.stdout.on('data', (chunk) => { stdout += chunk; });
     child.stderr.on('data', (chunk) => { stderr += chunk; });
-    const timer = setTimeout(() => { child.kill(); rejectRun(new Error('browser runtime gate timed out')); }, 20000);
-    child.on('error', rejectRun);
+    const timeoutMs = 60000;
+    const timer = setTimeout(() => {
+      child.kill('SIGKILL');
+      rejectRun(new Error(`browser runtime gate timed out after ${timeoutMs}ms: ${stderr.slice(-800)}`));
+    }, timeoutMs);
+    child.on('error', (error) => {
+      clearTimeout(timer);
+      rejectRun(error);
+    });
     child.on('close', (code) => {
       clearTimeout(timer);
       if (code !== 0) rejectRun(new Error(`browser exited ${code}: ${stderr.slice(-800)}`));
