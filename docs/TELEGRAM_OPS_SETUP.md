@@ -7,20 +7,26 @@
 
 - 주문관리방: 결제 완료(`paid`) 알림 → 4자리 키 입력 → 확인 버튼 → `inspecting`
 - 견적관리방: 견적 양식 알림 → `4821 500` 입력 → 확인 버튼 → 500만원 제안 누적
-- 업체 앱 제안: 업체명·전화번호·금액을 견적관리방에 알림
+- 견적·주문 알림: 공개 사진과 저장된 상세 항목을 함께 전송하고 사진 실패 시 텍스트로 폴백
+- 업체 앱 제안: 모든 제안은 이력에 남기고 직전 최고가를 넘긴 제안만 견적관리방에 알림
 - 72시간 종료: 고객 앱 알림, 고객 알림톡, 관리자 최종보고, 종료 스냅샷 저장
 - 텔레그램은 결제 완료 상태를 만들 수 없다. 결제 승인은 기존 PortOne 서버 검증만 담당한다.
 
 ## 적용 순서
 
 1. 운영 DB 백업과 복원 방법을 검증한다.
-2. staging에서 `telegram_operations.sql`을 실행한다.
-3. `telegram-ops` Edge Function을 JWT 검증 없이 배포한다. Telegram 웹훅 비밀 헤더와 아래 관리자 허용목록이 대신 요청을 검증한다.
-4. 아래 secret을 Supabase Edge Function에 등록한다.
-5. BotFather에서 만든 봇을 비공개 주문관리방·견적관리방에 초대한다.
-6. Telegram `setWebhook`에 Edge Function HTTPS URL, `secret_token`, `allowed_updates=["message","callback_query"]`를 등록한다.
-7. Supabase Cron에서 1분마다 같은 Edge Function을 POST 호출하고 `x-bellore-cron-secret` 헤더를 넣는다.
-8. staging 테스트표를 모두 통과한 뒤 운영에 같은 순서로 적용한다.
+2. 새 staging DB에만 `telegram_operations.sql`을 먼저 실행한다.
+3. 아래 운영 원장 버전 migration을 파일명 순서대로 적용한다.
+   - `20260826053138_telegram_ops_media_payload.sql`
+   - `20260826053958_telegram_ops_complete_payload.sql`
+   - `20260826055215_telegram_vendor_highest_only.sql`
+4. 기존 운영 DB의 `supabase_migrations.schema_migrations`에 위 세 버전이 모두 있으면 SQL을 다시 실행하거나 다른 버전으로 repair하지 않는다. 코드와 운영 원장의 내용 일치만 검증한다.
+5. `telegram-ops` Edge Function을 JWT 검증 없이 배포한다. Telegram 웹훅 비밀 헤더와 아래 관리자 허용목록이 대신 요청을 검증한다.
+6. 아래 secret을 Supabase Edge Function에 등록한다.
+7. BotFather에서 만든 봇을 비공개 주문관리방·견적관리방에 초대한다.
+8. Telegram `setWebhook`에 Edge Function HTTPS URL, `secret_token`, `allowed_updates=["message","callback_query"]`를 등록한다.
+9. Supabase Cron에서 1분마다 같은 Edge Function을 POST 호출하고 `x-bellore-cron-secret` 헤더를 넣는다.
+10. staging 테스트표를 모두 통과한 뒤 운영에 같은 순서로 적용한다.
 
 ## 필요한 Edge Function secret
 
@@ -86,6 +92,8 @@ Supabase 공식 권장 방식은 Cron과 `pg_net`으로 Edge Function을 호출�
 
 ```powershell
 node --test supabase/functions/_shared/telegram-ops-core.test.mjs
+node --test scripts/test-telegram-ops-v6.mjs
+node scripts/check-edge.mjs
 ```
 
 Supabase CLI가 설치·연결된 환경에서는 staging DB 적용 전후로 migration dry-run, function serve, function logs를 추가 확인한다.

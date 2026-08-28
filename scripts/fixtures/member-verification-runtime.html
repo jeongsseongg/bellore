@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Member verification runtime fixture</title>
+</head>
+<body data-status="running">
+<form id="verificationFixture">
+  <input id="suName" name="name" value="홍길동">
+  <input id="suPhone" name="phone" value="010-1234-5678">
+  <input id="suBirthDate" name="birthDate" value="19900102">
+  <input id="suEmail" name="email" value="runtime@example.com">
+  <span id="suEmailVerifyValue"></span>
+  <section data-v="phone">
+    <div data-phone-sms>
+      <button type="button" data-vsend="phoneOtp">문자 인증번호 받기</button>
+      <div class="vrow-code" hidden>
+        <input id="suPhoneCode" value="654321">
+        <button type="button" data-vconfirm="phoneOtp">6자리 확인</button>
+      </div>
+    </div>
+    <button type="button" data-vsend="phone">간편인증으로 인증하기</button>
+    <p data-vstate="phone"></p>
+  </section>
+</form>
+<pre id="result"></pre>
+<script type="module" src="./member-verification-runtime.js"></script>
+</body>
+</html>

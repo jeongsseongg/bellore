@@ -16,7 +16,7 @@ const pageDependencies = [
   '/brands.js',
   '/bellore-features.js?v=20260828-phone-auth-paths-v1',
   '/cq-demo.js?v=20260826-member-verification-live-v2',
-  '/script.js?v=20260828-mypage-root-v1',
+  '/script.js?v=20260828-final-integrated-v1',
   '/app/legacy/recommendation-engine.js?v=20260826-member-verification-live-v2',
   '/wishlist.js?v=20260826-member-verification-live-v2',
   '/alerts.js?v=20260820-tabs-alerts-v1',
@@ -24,7 +24,7 @@ const pageDependencies = [
   '/search.js?v=20260826-member-verification-live-v2',
   '/ai-advisor.js?v=20260826-member-verification-live-v2',
   '/ai-advisor-admin.js?v=20260826-member-verification-live-v2',
-  '/payments.js?v=20260826-member-verification-live-v2',
+  '/payments.js?v=20260828-complete-site-v1',
   '/naverpay.js?v=20260826-naverpay-live-v1',
   '/app/legacy/page-runtime.js?v=20260826-naverpay-live-v1'
 ];
@@ -60,5 +60,5 @@ if (authResult.allowed && page === 'mypage') {
 } else if (authResult.allowed) {
   document.body.dataset.standaloneAuthReady = 'true';
   for (const dependency of pageDependencies) await loadClassicScript(dependency);
-  await import('/app/bootstrap.js?v=20260828-phone-auth-paths-v1');
+  await import('/app/bootstrap.js?v=20260828-complete-site-v1');
 }

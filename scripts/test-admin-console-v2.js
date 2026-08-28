@@ -1,6 +1,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 
 const root = path.resolve(__dirname, '..');
 const base = path.join(root, 'prototypes', 'admin-console-v2');
@@ -22,6 +23,7 @@ const homeEditor = read('features/home-editor/admin-home-editor.js');
 const mypageEditor = read('features/mypage-editor/admin-mypage-editor.js');
 const wantedCss = read('features/workspace/admin-wanted.css');
 const homeCss = read('features/home-editor/admin-home-editor.css');
+const homeLayoutCss = read('features/home-editor/admin-home-layout-editor.css');
 const mypageCss = read('features/mypage-editor/admin-mypage-editor.css');
 const mypageShadowCss = read('features/mypage-editor/admin-mypage-editor-shadow.css');
 const operationController = read('features/operations/admin-operation-controller.js');
@@ -48,6 +50,7 @@ const requiredFiles = [
   'data/admin-home-editor-data.js',
   'features/home-editor/admin-home-editor.js',
   'features/home-editor/admin-home-editor.css',
+  'features/home-editor/admin-home-layout-editor.css',
   'features/mypage-editor/admin-mypage-editor.js',
   'features/mypage-editor/admin-mypage-editor.css',
   'features/mypage-editor/admin-mypage-editor-shadow.css',
@@ -75,7 +78,7 @@ requiredFiles.forEach((file) => assert.ok(fs.existsSync(path.join(base, file)), 
 assert.match(html, /id="adminNav"/, 'shell owns navigation mount');
 assert.match(html, /id="adminWorkspace"/, 'shell owns workspace mount');
 assert.match(html, /id="caseDrawer"/, 'shell owns case drawer');
-assert.match(html, /type="module" src="\.\/bootstrap\.js\?v=20260826-catalog-ledger-v3"/, 'versioned native module bootstrap is used');
+assert.match(html, /type="module" src="\.\/bootstrap\.js\?v=20260827-home-block-editor-v1"/, 'versioned native module bootstrap is used');
 assert.doesNotMatch(html, /<script(?![^>]*src=)[^>]*>/, 'no executable inline scripts');
 assert.doesNotMatch(html, /style="/, 'no inline style attributes in shell');
 assert.doesNotMatch(html, /surface-menu|partner-slot/, 'duplicate top and footer navigation are removed');
@@ -131,10 +134,11 @@ assert.doesNotMatch(auth, /service[_-]?role|qpffhfm|password\s*[:=]\s*['"]/i, 'a
 assert.match(bootstrap, /createAdminWorkspace/, 'bootstrap composes workspace feature');
 assert.doesNotMatch(bootstrap, /createAdminHomeEditor|homeEditorData/, 'prototype home editor must not compete with the operational site-content workspace');
 assert.match(bootstrap, /createAdminMypageEditor/, 'bootstrap composes My Page editor feature');
+assert.match(bootstrap, /createAdminHomeLayoutEditor/, 'bootstrap composes the operating Home editor feature');
 assert.match(bootstrap, /createAdminOperationsService/, 'bootstrap composes the existing operations service boundary');
 assert.match(bootstrap, /settingsService: operationsService\.catalog/, 'My Page editor uses the shared catalog service');
-assert.match(bootstrap, /specialViews: \{ mypageSettings: mypageEditor \}/,
-  'only the reusable My Page editor is mounted as a special workspace');
+assert.match(bootstrap, /specialViews: \{ mypageSettings: mypageEditor, homeSettings: homeLayoutEditor \}/,
+  'the reusable My Page and operating Home editors are mounted as special workspaces');
 assert.match(navigation, /onNavigate/, 'navigation communicates through callback');
 assert.match(navigation, /data-nav-group-toggle[\s\S]*aria-expanded/, 'navigation groups expose an accessible collapse control');
 assert.match(navigation, /openGroup\(next\.closest\('\[data-nav-group\]'\)\)/,
@@ -166,10 +170,20 @@ assert.match(homeData, /할인율 내림차순/, 'special-price split rule is ex
 assert.match(homeData, /판매 가능한 벨로르 상품 최신 12개/, 'recommendation auto rule is explicit');
 assert.match(homeData, /모바일 이미지[\s\S]*1220\s*×\s*1480/, 'database banner mobile image contract is explicit');
 assert.match(homeData, /새 저장 계약 필요/, 'code-only home settings are not misrepresented as connected');
-assert.match(homeEditor + homeData, /상품 편집으로 간접 제어|판매시계 관리에서 상품 편집/, 'derived home rows route operators to product editing');
-assert.match(homeEditor, /운영에 연결하지 않음|운영 데이터를 저장하지|운영 저장 0건/, 'home editor does not pretend to save');
-assert.match(homeCss, /height:\s*52px/, 'home editor inputs use 52px height');
-assert.match(homeCss, /min-height:\s*54px/, 'home editor CTA uses 54px height');
+assert.match(homeEditor, /iframe[\s\S]*index\.html\?home-editor-preview=1/, 'Home editor embeds the actual operating storefront instead of a fake card preview');
+assert.match(homeEditor, /draggable="true"[\s\S]*dragstart[\s\S]*drop/, 'Home blocks support direct drag reordering');
+assert.match(homeEditor, /dblclick[\s\S]*contentEditable[\s\S]*focusout/, 'Home copy supports direct double-click editing');
+assert.match(homeEditor, /loadHomePageConfig/, 'Home editor loads the operating layout contract');
+assert.match(homeEditor, /saveHomePageConfig/, 'Home editor saves the operating layout contract');
+assert.match(homeEditor, /action === 'reset'[\s\S]*?confirm\([\s\S]*?dirty = true;[\s\S]*?return;[\s\S]*?saveHomePageConfig/,
+  'Home reset requires confirmation and stays a dirty preview until the normal Save action');
+assert.match(html, /admin-home-layout-editor\.css\?v=20260828-home-layout-editor-v1/,
+  'Focused Home layout editor styles are loaded separately');
+assert.equal(homeCss.split(/\r?\n/).length <= 1000, true, 'Legacy Home editor stylesheet stays at its existing ceiling');
+assert.equal(homeLayoutCss.split(/\r?\n/).length < 500, true, 'Focused Home layout stylesheet stays below 500 lines');
+assert.match(catalogService, /home_page_layout_config[\s\S]*loadHomePageConfig[\s\S]*saveHomePageConfig/, 'Home layout uses a stable site_content key');
+assert.match(homeLayoutCss, /grid-template-columns:\s*220px\s+minmax\(440px,\s*1fr\)\s+260px/,
+  'Home editor provides block, actual screen, and inspector columns');
 assert.match(mypageEditor, /attachShadow/, 'My Page editor styles are isolated from the admin console');
 assert.match(mypageEditor, /initAccountRolePreview\(\{[\s\S]*root: editorRoot,[\s\S]*syncUrl: false,[\s\S]*persistence:/,
   'embedded My Page editor keeps the admin URL state');
@@ -219,8 +233,8 @@ assert.match(mypageEditor, /account-role-preview\.css[\s\S]*admin-mypage-editor-
 assert.match(mypageCss, /width:\s*min\(100%, 1200px\)/, 'integrated My Page page uses the Wanted canvas');
 assert.match(mypageCss, /\.admin-mypage-editor-shell\s*\{[\s\S]*?border:\s*0;[\s\S]*?background:\s*transparent;/,
   'integrated My Page editor does not add another enclosing card');
-assert.match(mypageShadowCss, /grid-template-columns:\s*minmax\(330px, 400px\) minmax\(0, 679px\)/,
-  'embedded editor reserves the scrollbar space needed for a 660px app preview');
+assert.match(mypageShadowCss, /grid-template-columns:\s*178px minmax\(0, 660px\) minmax\(300px, 330px\)/,
+  'embedded editor reserves separate block, live preview, and inspector columns');
 assert.match(mypageShadowCss, /@media \(max-width: 1430px\)[\s\S]*grid-template-columns:\s*minmax\(0, 679px\)/,
   'narrow admin workspaces stack the editor so the 660px app preview is not compressed');
 assert.match(mypageShadowCss, /--mp-width:\s*660px[\s\S]*--mp-black:\s*#141517/,
@@ -231,10 +245,24 @@ assert.match(mypageShadowCss, /\.admin-embedded-role-preview \.preview-frame\s*\
   'embedded My Page preview uses page scrolling instead of an inner scroll box');
 assert.match(mypageShadowCss, /\[data-copy-config\][\s\S]*\[data-reset-config\][\s\S]*display:\s*none;/,
   'embedded editor hides duplicate copy and reset actions');
-assert.match(mypageEditor, /역할 선택[\s\S]*내용 수정[\s\S]*미리보기 확인 후 저장/,
+assert.match(mypageEditor, /역할 선택[\s\S]*화면 블록 선택[\s\S]*문구 확인 후 저장/,
   'embedded editor presents one concise three-step workflow');
 assert.match(wantedCss, /width: min\(100%, 1200px\)/, 'Wanted content canvas is 1200px');
 assert.match(wantedCss, /min-height: 54px/, 'Wanted primary action height is 54px');
 assert.doesNotMatch(workspace + html, /OPERATIONS HOME|WORK QUEUE|CONTROL SIGNAL|PIPELINE|RECENT ACTIVITY|PORTAL ARCHITECTURE|ROLE CONTRACT|WATCH CASE FILE|FUTURE PORTAL|GLOBAL SEARCH/, 'decorative English is removed');
 
-console.log('admin console v2: invariants passed');
+(async function verifyHomeEditorRuntimeImport() {
+  const modulePath = path.join(base, 'features/home-editor/admin-home-editor.js');
+  const module = await import(pathToFileURL(modulePath).href + '?runtime-contract-test=1');
+  assert.equal(typeof module.createAdminHomeLayoutEditor, 'function', 'Home editor must load as a real ESM module from the source tree');
+  const sourceUrl = 'https://example.test/prototypes/admin-console-v2/features/home-editor/admin-home-editor.js';
+  const deployedUrl = 'https://example.test/admin/features/home-editor/admin-home-editor.js';
+  assert.equal(module.resolveHomeLayoutModuleUrl('features/home-layout/home-layout.js', sourceUrl),
+    'https://example.test/app/features/home-layout/home-layout.js', 'Source-tree Home editor resolves the root app module');
+  assert.equal(module.resolveHomeLayoutModuleUrl('features/home-layout/home-layout.js', deployedUrl),
+    'https://example.test/app/features/home-layout/home-layout.js', 'Deployed /admin Home editor resolves the root app module');
+  console.log('admin console v2: invariants passed');
+})().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

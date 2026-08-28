@@ -20,4 +20,20 @@ assert.ok(configUrl, 'HTML must request the payment config with a release key');
 assert.ok(serviceWorker.includes(`'./${configUrl}'`), 'service worker must precache the exact payment config URL requested by HTML');
 assert.match(config, /testOnly:\s*false/, 'later cache releases must preserve the live Naver Pay channel');
 
-console.log('PortOne live payment channel contract: 5/5 passed');
+for (const [id, payMethod] of [
+  ['virtual', 'VIRTUAL_ACCOUNT'],
+  ['kakaopay', 'EASY_PAY'],
+  ['tosspay', 'EASY_PAY'],
+]) {
+  assert.match(config, new RegExp(`id:\\s*"${id}"[^\\n]*payMethod:\\s*"${payMethod}"[^\\n]*channelKey:\\s*"${expectedLiveChannel}"`));
+}
+assert.match(config, /easyPayProvider:\s*"KAKAOPAY"/);
+assert.match(config, /easyPayProvider:\s*"TOSSPAY"/);
+assert.doesNotMatch(config, /EASY_PAY_PROVIDER_(?:KAKAOPAY|TOSSPAY)/,
+  'PortOne V2 direct-call providers must use KAKAOPAY/TOSSPAY');
+assert.match(config, /hint:\s*"카카오페이 바로 결제"/);
+assert.match(config, /hint:\s*"토스페이 바로 결제"/);
+assert.match(config, /pointEarnBps:\s*0/,
+  'client must not advertise points until an explicit operating policy enables them');
+
+console.log('PortOne live payment channel contract: 14/14 passed');

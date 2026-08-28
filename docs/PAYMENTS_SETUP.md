@@ -130,3 +130,40 @@ supabase functions deploy create-checkout
 - 포트원 SDK, 운영 채널, 주문 DB, 서버 검증 함수 중 하나라도 준비되지 않으면 결제 버튼을 차단합니다.
 - 데모 주문이나 서버 검증 없는 성공 처리는 운영에서 사용하지 않습니다.
 - PG 콘솔에서 직접 상태를 바꾸지 말고 포트원 대시보드 또는 포트원 API로 취소합니다.
+
+## 8. Checkout v2 수령방법 마이그레이션
+
+`supabase/migrations/20260828030000_checkout_fulfillment_method.sql`은 주문 정본에
+`fulfillment_method=delivery|pickup`을 추가하고 `create_checkout_order_edge_v2`를 설치합니다.
+Edge를 먼저 배포하면 운영 DB에 RPC가 없어 모든 일반 결제가 실패하므로 아래 순서를 고정합니다.
+
+1. 결제·재대조와 Pages 배포를 잠그고 같은 main SHA의 전체 게이트를 통과시킵니다.
+2. `validate-checkout-v2`를 실행합니다. 운영 행 데이터가 없는 격리 DB에서 마이그레이션을
+   컴파일하고 배송·직접거래 주문을 실제 RPC로 만든 뒤 전체 트랜잭션을 rollback합니다.
+3. 24시간 이내 DB 백업 run ID, 정확한 main SHA,
+   `production_apply_ack=APPLY_CHECKOUT_V2_TO_PRODUCTION`,
+   `payment_locks_ack=PAYMENT_CHECKOUT_AND_RECONCILE_LOCKED`로 `apply-checkout-v2`를 실행합니다.
+4. apply는 대상 이력·열·제약·v2 RPC가 일부만 존재하면
+   `checkout_v2_partial_schema_detected`로 중단합니다. 기존 열의 타입·NULL·기본값이 다르면
+   `checkout_fulfillment_column_contract_mismatch`로 중단하며 자동 추정·강제 수렴하지 않습니다.
+5. 같은 workflow의 `verify-checkout-v2-live`가 migration ledger 1건, 열·CHECK·RPC·ACL,
+   pickup 배송필드 NULL 정규화와 기존 v2 주문 분포를 읽기 전용으로 확인합니다.
+6. 그 다음 같은 SHA의 `create-checkout` Edge와 Pages를 배포하고, 마지막에 결제 잠금을 엽니다.
+
+스키마 rollback은 표준 복구 경로가 아닙니다. pickup 주문이 생긴 뒤 열을 drop하면 인도 의도가
+손실됩니다. 장애 시 `PAYMENT_CHECKOUT_ENABLED=false`와 DB `create_checkout=false`를 먼저 잠그고,
+이전 `create-checkout` Edge·이전 Pages를 재배포합니다. DB 열·v2 RPC는 보존하고 별도 검증된
+순방향 마이그레이션으로 고칩니다. 즉 apply 전 복구는 백업 복원, apply 후 복구는 기능 잠금과
+코드 rollback이며, 운영 주문이 존재하는 DB 객체 삭제는 이 절차에 포함하지 않습니다.
+
+## 9. 가상계좌와 포인트 기능 게이트
+
+가상계좌 결제 코드는 보존하지만 `BELLORE_PAYMENTS.virtualAccountRefundReady === true`가 아니면
+버튼을 노출하지 않습니다. 현재 공통 PortOne 취소 요청은 가상계좌 환불에 필요한 환불은행·
+계좌번호·예금주를 받거나 검증하지 않습니다. 따라서 발급만 열면 늦은 입금이나 재고 경합의
+자동 전액취소가 `refund_pending`에 고착될 수 있습니다. 환불계좌 수집·서버 검증·PortOne 전달·
+실제 취소 종단을 별도 승인된 변경으로 완성한 뒤에만 이 플래그를 `true`로 켭니다.
+
+`POINT_EARN_BPS`와 프런트 `pointEarnBps`는 모두 0을 유지합니다. 1% 적립은 지급 후 사용된
+포인트를 환불 때 전액 회수하지 못하는 정책을 확정하고, 결제 잠금 아래 세 finalizer를 같은
+비율로 원자 배포하기 전에는 활성화하지 않습니다.

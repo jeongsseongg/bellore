@@ -39,6 +39,7 @@ const qualityWorkflow = read('.github/workflows/quality-gate.yml');
 const pagesWorkflow = read('.github/workflows/pages-deploy.yml');
 const firebaseWorkflow = read('.github/workflows/firebase-deploy.yml');
 const reconciliationWorkflow = read('.github/workflows/payment-reconcile.yml');
+const fulfillmentMigration = read('supabase/migrations/20260828030000_checkout_fulfillment_method.sql');
 
 // Table authority and immutable payment fields.
 assert.match(migration, /revoke all on public\.orders from anon/i);
@@ -207,7 +208,7 @@ assert.match(checkout, /RATE_KEY_SECRET\.length < 32/);
 assert.match(checkout, /PAYMENT_CHECKOUT_ENABLED/);
 assert.match(checkout, /checkout_temporarily_unavailable/);
 assert.ok(
-  checkout.indexOf('if (!CHECKOUT_ENABLED)') < checkout.indexOf('admin.rpc("create_checkout_order_edge_v1"'),
+  checkout.indexOf('if (!CHECKOUT_ENABLED)') < checkout.indexOf('admin.rpc("create_checkout_order_edge_v2"'),
   'the rollout gate must stop checkout before any order or reservation is created'
 );
 assert.match(checkout, /sha256Hex\(`checkout-ip-v1\\0\$\{RATE_KEY_SECRET\}\\0\$\{clientIp\}`\)/);
@@ -221,8 +222,11 @@ assert.doesNotMatch(checkout, /bearer\s*&&\s*bearer\s*!==\s*ANON_KEY/);
 assert.match(checkoutAuth, /role === 'anon' && !rawSubject/);
 assert.match(checkoutAuth, /role === 'authenticated' && UUID_RE\.test\(rawSubject\)/);
 assert.match(checkoutAuth, /role === 'service_role'/);
-assert.match(checkout, /admin\.rpc\("create_checkout_order_edge_v1"/);
+assert.match(checkout, /admin\.rpc\("create_checkout_order_edge_v2"/);
 assert.match(checkoutClient, /expectedAmount: data\.amount/);
+assert.match(checkoutClient, /fulfillmentMethod: pickup \? 'pickup' : 'delivery'/);
+assert.match(checkout, /checkout_fulfillment_invalid/);
+assert.match(checkout, /p_fulfillment_method: fulfillmentMethod/);
 assert.match(checkout, /const expectedAmount = Number\(body\.expectedAmount\)/);
 assert.match(checkout, /Number\.isSafeInteger\(expectedAmount\)[\s\S]{0,80}expectedAmount <= 0/);
 assert.match(checkout, /p_rate_key: rateKey/);
@@ -238,6 +242,14 @@ assert.match(claimMigration, /p_expected_amount bigint[\s\S]*v_result := public\
 assert.match(checkout, /paymentContractVersion !== 2/);
 assert.match(payments, /checkoutToken: order\.checkoutToken/);
 assert.match(payments, /serverAmount !== amount/);
+assert.match(fulfillmentMigration, /add column if not exists fulfillment_method text not null default 'delivery'/);
+assert.match(fulfillmentMigration, /create or replace function public\.create_checkout_order_edge_v2/);
+assert.match(fulfillmentMigration, /security definer[\s\S]{0,80}set search_path = ''/);
+assert.match(fulfillmentMigration, /revoke all on function public\.create_checkout_order_edge_v2[\s\S]*grant execute[\s\S]*to service_role/);
+for (const edge of [confirm, webhook, reconciliation]) {
+  assert.match(edge, /Deno\.env\.get\("POINT_EARN_BPS"\) \?\? "0"/,
+    'point rewards must remain opt-in through an explicit operating secret');
+}
 
 // Reproducible configuration and deploy-time dry-run/apply paths.
 assert.match(config, /\[functions\.create-checkout\]\s*verify_jwt = true/);

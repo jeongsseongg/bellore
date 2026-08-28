@@ -1,4 +1,4 @@
-import { initAccountRolePreview } from './account-role-preview.js?v=20260826-mypage-icons-v1';
+import { initAccountRolePreview } from './account-role-preview.js?v=20260827-block-editor-v1';
 
 const root = document.querySelector('#accountRolePreview');
 

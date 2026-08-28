@@ -89,10 +89,14 @@ function renderMenu(doc, modal, role, content) {
   const contract = MENU_GROUPS[role];
   if (!menu || !contract || !content?.menuGroups) return;
   const existing = new Map([...menu.querySelectorAll('.mp-menu-row')].map((button) => [actionId(button), button]));
-  const groups = [
-    ['거래', resolvedItems(contract.trade, content.menuGroups.trade)],
-    ['내 활동', resolvedItems(contract.activity, content.menuGroups.activity)]
-  ];
+  const definitions = {
+    trade: [text(content.labels?.tradeHeading) || '거래', resolvedItems(contract.trade, content.menuGroups.trade)],
+    activity: [text(content.labels?.activityHeading) || '내 활동', resolvedItems(contract.activity, content.menuGroups.activity)]
+  };
+  const groupOrder = (content.blockOrder || []).filter((id) => id === 'trade' || id === 'activity');
+  if (!groupOrder.includes('trade')) groupOrder.push('trade');
+  if (!groupOrder.includes('activity')) groupOrder.push('activity');
+  const groups = groupOrder.map((id) => definitions[id]);
   const signature = groups.flatMap(([cap, items]) => [cap, ...items.map((item) => `${item.id}:${item.label}`)]).join('|');
   const currentSignature = [...menu.children].map((node) => {
     if (node.classList.contains('mp-menu-cap')) return node.textContent;
@@ -120,16 +124,22 @@ function applySafeSettings(doc, modal, configs) {
   const header = modal.querySelector('#mpNextGrade');
   if (header && text(content.headerMessage)) header.textContent = text(content.headerMessage);
 
+  const pageTitle = modal.querySelector('.mp-head-bar > strong');
+  if (pageTitle && text(content.profile?.pageTitle)) pageTitle.textContent = text(content.profile.pageTitle);
+
   const statLabels = modal.querySelectorAll('.mp-member-stats button span');
   (content.stats || []).slice(0, statLabels.length).forEach((stat, index) => {
     if (text(stat?.label)) statLabels[index].textContent = text(stat.label);
   });
 
   const footer = modal.querySelector('.mp-reference-footer');
+  const footerDescription = text(content.footer?.description);
   const phone = text(content.footer?.phone);
   const hours = text(content.footer?.hours);
+  const descriptionNode = footer?.querySelector('p');
   const phoneLink = footer?.querySelector('a');
   const hoursNode = footer?.querySelector('small');
+  if (descriptionNode && footerDescription) descriptionNode.textContent = footerDescription;
   if (phoneLink && phone) {
     phoneLink.textContent = phone;
     phoneLink.href = `tel:${phone.replace(/[^0-9+]/g, '')}`;
@@ -137,8 +147,24 @@ function applySafeSettings(doc, modal, configs) {
   if (hoursNode && hours) hoursNode.textContent = hours;
 
   renderMenu(doc, modal, role, content);
+  const layoutOrder = (content.blockOrder || []).filter((id) => ['order', 'banner', 'trade', 'activity'].includes(id));
+  const topLevelOrder = [...new Set(layoutOrder.map((id) => ['trade', 'activity'].includes(id) ? 'menu' : id))];
+  const topLevelNodes = {
+    order: modal.querySelector('#mpOrderPreview'), banner: modal.querySelector('#mpBanner'), menu: modal.querySelector('#mpMenuList')
+  };
+  const marker = modal.querySelector('#myInterestSection');
+  topLevelOrder.forEach((id) => {
+    const node = topLevelNodes[id];
+    if (node && marker) marker.parentNode.insertBefore(node, marker);
+  });
+  const orderActions = modal.querySelectorAll('#mpOrderPreview .mp-order-actions button');
+  const orderLabels = [text(content.order?.primaryAction), text(content.order?.secondaryAction)];
+  orderActions.forEach((button, index) => {
+    if (orderLabels[index]) button.textContent = orderLabels[index];
+  });
+  const order = modal.querySelector('#mpOrderPreview');
+  if (order && role !== 'admin') order.hidden = content.order?.visible === false;
   if (role === 'admin') {
-    const order = modal.querySelector('#mpOrderPreview');
     if (order) order.hidden = false;
   }
 }

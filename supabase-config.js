@@ -57,18 +57,16 @@ window.BELLORE_PAYMENTS = {
   provider: "portone",
   // 포트원 상점 ID (예: store-00000000-0000-0000-0000-000000000000)
   storeId: "store-c0c1bc9e-60c2-4ac6-9bb1-80c0ee7337ef",
-  // 결제수단 목록 — 각 항목의 channelKey 를 포트원 콘솔에서 복사해 채우세요.
+  // 결제수단 목록 — 운영 승인된 KG이니시스 채널 하나로 카드·가상계좌·직접 간편결제를 요청합니다.
   //   payMethod: 'CARD'(카드) | 'EASY_PAY'(간편결제) | 'TRANSFER'(계좌이체) | 'VIRTUAL_ACCOUNT'(가상계좌)
-  //   easyPayProvider: 간편결제일 때 지정(아래 값 참고). 비우면 PG 기본 선택창.
+  //   easyPayProvider: PortOne V2 정규 값(KAKAOPAY/TOSSPAY). 비우면 PG 기본 선택창.
   //   test: true 인 채널은 localhost 또는 ?paymentTest=1 주소에서만 노출됩니다.
   //   운영 심사용 신용카드 채널은 결제창에 항상 노출합니다.
   channels: [
-    { id: "card",     label: "신용·체크카드", payMethod: "CARD", channelKey: "channel-key-f9693f47-56c9-4732-822d-bace693db3cb" },
-    { id: "kakaopay", label: "카카오페이",   payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_KAKAOPAY" },
-    { id: "naverpay", label: "네이버페이",   payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_NAVERPAY" },
-    { id: "tosspay",  label: "토스페이",     payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_TOSSPAY" },
-    { id: "payco",    label: "페이코",       payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_PAYCO" },
-    { id: "smilepay", label: "스마일페이",   payMethod: "EASY_PAY", channelKey: "", easyPayProvider: "EASY_PAY_PROVIDER_SMILEPAY" }
+    { id: "card", label: "신용·체크카드", hint: "KG이니시스 안전결제", payMethod: "CARD", channelKey: "channel-key-f9693f47-56c9-4732-822d-bace693db3cb" },
+    { id: "virtual", label: "가상계좌", hint: "발급 계좌로 입금", payMethod: "VIRTUAL_ACCOUNT", channelKey: "channel-key-f9693f47-56c9-4732-822d-bace693db3cb" },
+    { id: "kakaopay", label: "카카오페이", hint: "카카오페이 바로 결제", payMethod: "EASY_PAY", channelKey: "channel-key-f9693f47-56c9-4732-822d-bace693db3cb", easyPayProvider: "KAKAOPAY" },
+    { id: "tosspay", label: "토스페이", hint: "토스페이 바로 결제", payMethod: "EASY_PAY", channelKey: "channel-key-f9693f47-56c9-4732-822d-bace693db3cb", easyPayProvider: "TOSSPAY" }
   ],
   // 주문 예약·서버 capability 발급 Edge Function. 브라우저에서 DB RPC를 직접 호출하지 않습니다.
   checkoutUrl: "https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/create-checkout",
@@ -78,7 +76,8 @@ window.BELLORE_PAYMENTS = {
   cancelUrl: "https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/cancel-payment",
   // 배송비: 기본 전국 무료. 프리미엄배송 기준액 이상 고가 상품만 아래 금액 가산(필수).
   shippingFee: 35000,          // 프리미엄배송비(고가 상품)
-  premiumShipThreshold: 5000000 // 이 금액 이상 = 프리미엄배송 필수, 미만 = 무료배송
+  premiumShipThreshold: 5000000, // 이 금액 이상 = 프리미엄배송 필수, 미만 = 무료배송
+  pointEarnBps: 0              // 운영 POINT_EARN_BPS secret/DB 정본이 켜기 전에는 적립 안내도 끕니다.
 };
 
 /* ============================================================

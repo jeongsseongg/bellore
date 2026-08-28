@@ -1,282 +1,178 @@
-import { icon } from '../../ui/icons.js';
+export function resolveHomeLayoutModuleUrl(relativePath, moduleUrl = import.meta.url) {
+  const sourceTree = new URL(moduleUrl).pathname.includes('/prototypes/admin-console-v2/');
+  const appPrefix = sourceTree ? '../../../../app/' : '../../../app/';
+  return new URL(appPrefix + relativePath, moduleUrl).href;
+}
 
-const placementLabels = {
-  header: '공통 헤더',
-  home: '홈',
-  collection: '판매시계 컬렉션'
-};
+const [layoutConfigModule, layoutRuntimeModule] = await Promise.all([
+  import(resolveHomeLayoutModuleUrl('features/home-layout/home-layout-config.js?v=20260827-home-block-editor-v1')),
+  import(resolveHomeLayoutModuleUrl('features/home-layout/home-layout.js?v=20260827-home-block-editor-v1'))
+]);
+const { HOME_BLOCKS, cloneHomeLayoutDefaults, normalizeHomeLayout } = layoutConfigModule;
+const { applyHomeLayoutConfig } = layoutRuntimeModule;
 
 function escapeHtml(value) {
   return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
+    .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;').replaceAll("'", '&#039;');
 }
 
-function stateBadge(section) {
-  return `<em class="editor-state is-${escapeHtml(section.tone)}">${escapeHtml(section.state)}</em>`;
-}
-
-function previewSection(section, index) {
+function pageMarkup() {
   return `
-    <button class="home-preview-section" type="button" data-home-section="${escapeHtml(section.id)}">
-      <span class="home-preview-order">${String(index + 1).padStart(2, '0')}</span>
-      <span class="home-preview-copy">
-        <small>${escapeHtml(placementLabels[section.placement] || section.placement)}</small>
-        <b>${escapeHtml(section.label)}</b>
-        <span>${escapeHtml(section.summary)}</span>
-      </span>
-      ${stateBadge(section)}
-      ${icon('chevron')}
-    </button>`;
-}
-
-function fieldMarkup(field) {
-  if (field.type === 'toggle') {
-    return `
-      <label class="editor-toggle-row">
-        <span><b>${escapeHtml(field.label)}</b><small>운영 저장 항목 예시 · 이 시안에서는 변경되지 않습니다.</small></span>
-        <input type="checkbox" ${field.value ? 'checked' : ''} disabled><i aria-hidden="true"></i>
-      </label>`;
-  }
-  if (field.type === 'select') {
-    return `
-      <label class="editor-field"><span>${escapeHtml(field.label)}</span>
-        <select disabled aria-label="${escapeHtml(field.label)}">
-          ${field.options.map((option) => `<option${option === field.value ? ' selected' : ''}>${escapeHtml(option)}</option>`).join('')}
-        </select>
-      </label>`;
-  }
-  return `
-    <label class="editor-field"><span>${escapeHtml(field.label)}</span>
-      <input type="${field.type === 'number' ? 'text' : 'text'}" value="${escapeHtml(field.value)}" readonly aria-readonly="true">
-    </label>`;
-}
-
-function factsMarkup(section) {
-  if (!section.facts?.length) return '';
-  return `
-    <section class="editor-detail-block">
-      <div class="editor-detail-title"><span>현재 운영 규칙</span><small>${escapeHtml(section.source)}</small></div>
-      <dl class="editor-facts">
-        ${section.facts.map((fact) => `<div><dt>${escapeHtml(fact.label)}</dt><dd>${escapeHtml(fact.value)}</dd></div>`).join('')}
-      </dl>
-    </section>`;
-}
-
-function fieldsMarkup(section) {
-  if (!section.fields?.length) return '';
-  return `
-    <section class="editor-detail-block">
-      <div class="editor-detail-title"><span>운영 배너 항목</span><small>읽기 전용 저장 구조 미리보기</small></div>
-      <div class="editor-fields">${section.fields.map(fieldMarkup).join('')}</div>
-    </section>`;
-}
-
-function imagesMarkup(section) {
-  if (!section.images?.length) return '';
-  return `
-    <section class="editor-detail-block">
-      <div class="editor-detail-title"><span>이미지 항목</span><small>업로드는 운영에 연결하지 않음</small></div>
-      <div class="editor-image-grid">
-        ${section.images.map((image) => `
-          <article class="editor-image-card">
-            <span class="editor-image-icon">${icon('banner')}</span>
-            <div><b>${escapeHtml(image.label)}</b><p>${escapeHtml(image.spec)}</p><code>${escapeHtml(image.column)}</code></div>
-            <div class="editor-image-actions">
-              <em class="${image.required ? 'is-required' : ''}">${image.required ? '필수' : '선택'}</em>
-              <button type="button" disabled>이미지 업로드 미연결</button>
-            </div>
-          </article>`).join('')}
-      </div>
-    </section>`;
-}
-
-function itemsMarkup(section) {
-  if (!section.items?.length) return '';
-  return `
-    <section class="editor-detail-block">
-      <div class="editor-detail-title"><span>전체 항목</span><small>${escapeHtml(section.itemCount)}</small></div>
-      <div class="editor-item-list">
-        ${section.items.map((item, index) => `<span><i>${index + 1}</i>${escapeHtml(item)}</span>`).join('')}
-      </div>
-    </section>`;
-}
-
-function driversMarkup(section) {
-  if (!section.drivers?.length) return '';
-  return `
-    <section class="editor-detail-block">
-      <div class="editor-detail-title"><span>상품 편집으로 간접 제어</span><small>홈 영역 자체에는 저장하지 않음</small></div>
-      <div class="editor-driver-list">
-        ${section.drivers.map((driver) => `<span>${icon('watch')}<b>${escapeHtml(driver)}</b></span>`).join('')}
-      </div>
-    </section>`;
-}
-
-function inclusionMarkup(section) {
-  if (!section.inclusion?.length) return '';
-  return `
-    <section class="editor-detail-block inclusion-preview">
-      <div class="editor-detail-title"><span>왜 이 영역에 포함되는지</span><small>운영 상품이 아닌 규칙 판정 미리보기</small></div>
-      <div class="inclusion-list">
-        ${section.inclusion.map((rule) => `
-          <div><i aria-hidden="true">${rule.pass ? '✓' : '–'}</i><b>${escapeHtml(rule.label)}</b><span>${escapeHtml(rule.value)}</span></div>`).join('')}
-      </div>
-    </section>`;
-}
-
-function notesMarkup(section) {
-  if (!section.notes?.length) return '';
-  return `
-    <div class="editor-notes">
-      ${section.notes.map((note) => `<p>${icon('audit')}<span>${escapeHtml(note)}</span></p>`).join('')}
-    </div>`;
-}
-
-function actionMarkup(section) {
-  const isCodeOnly = section.mode === 'code';
-  const helper = isCodeOnly
-    ? '현재는 코드 자산입니다. 데이터 저장과 화면 연결 규칙을 먼저 설계해야 합니다.'
-    : '이 버튼은 관련 시안 화면으로만 이동하며 운영 데이터를 저장하지 않습니다.';
-  const button = section.action
-    ? `<button class="editor-cta" type="button" data-editor-action="navigate" data-editor-target="${escapeHtml(section.action.target)}">${escapeHtml(section.action.label)} ${icon('arrow')}</button>`
-    : '<button class="editor-cta is-disabled" type="button" disabled>새 저장 계약 필요</button>';
-  return `
-    <div class="editor-actionbar">
-      <div><b>운영 저장 없음</b><span>${escapeHtml(helper)}</span></div>
-      ${button}
-    </div>`;
-}
-
-function settingsMarkup(section) {
-  return `
-    <div class="editor-form-heading">
-      <div>
-        <span>${escapeHtml(placementLabels[section.placement] || section.placement)} · ${escapeHtml(section.itemCount)}</span>
-        <h2>${escapeHtml(section.label)}</h2>
-        <p>${escapeHtml(section.summary)}</p>
-      </div>
-      ${stateBadge(section)}
-    </div>
-    <div class="editor-source"><span>운영 원본</span><code>${escapeHtml(section.source)}</code></div>
-    ${fieldsMarkup(section)}
-    ${factsMarkup(section)}
-    ${inclusionMarkup(section)}
-    ${driversMarkup(section)}
-    ${imagesMarkup(section)}
-    ${itemsMarkup(section)}
-    ${notesMarkup(section)}
-    ${actionMarkup(section)}`;
-}
-
-function inventoryCard(section) {
-  return `
-    <article class="home-inventory-card">
-      <div class="home-inventory-meta"><span>${escapeHtml(placementLabels[section.placement] || section.placement)}</span><em>${escapeHtml(section.itemCount)}</em></div>
-      ${stateBadge(section)}
-      <h3>${escapeHtml(section.label)}</h3>
-      <p>${escapeHtml(section.summary)}</p>
-      <ul>${section.controls.map((control) => `<li>${escapeHtml(control)}</li>`).join('')}</ul>
-      <button type="button" data-home-section="${escapeHtml(section.id)}">운영 구조 보기 ${icon('arrow')}</button>
-    </article>`;
-}
-
-function summaryMarkup(data) {
-  const derived = data.sections.filter((section) => section.mode === 'derived').length;
-  const persisted = data.sections.filter((section) => section.mode === 'persisted').length;
-  const newContract = data.sections.filter((section) => section.mode === 'code' || section.mode === 'hybrid').length;
-  return `
-    <div class="editor-summary-strip">
-      <span>${icon('home')}<b>${data.sections.length}개 관리 항목</b><small>헤더·홈·컬렉션 포함</small></span>
-      <span>${icon('watch')}<b>${derived}개 자동 상품 영역</b><small>상품 편집 · 왜 포함되는지 미리보기</small></span>
-      <span>${icon('banner')}<b>${persisted}개 기존 저장 구조</b><small>홈·마이페이지 배너</small></span>
-      <span>${icon('audit')}<b>${newContract}개 계약 필요</b><small>코드고정·혼합 설정</small></span>
-    </div>`;
-}
-
-function pageMarkup(data) {
-  const current = data.sections.find((section) => section.id === 'dbBanners') || data.sections[0];
-  const visibleOrder = data.sections.filter((section) => section.placement !== 'collection');
-  const collectionSections = data.sections.filter((section) => section.placement === 'collection');
-  return `
-    <div class="workspace-page home-editor-page" data-page="homeSettings">
+    <div class="workspace-page home-layout-editor-page" data-page="homeSettings">
       <div class="page-heading">
         <div>
-          <div class="heading-meta"><span class="eyebrow">홈 구성 전체 목록</span><span class="coverage-chip is-current">운영 코드 전수감사 기준</span></div>
+          <div class="heading-meta"><span class="eyebrow">화면 관리</span><span class="coverage-chip is-current">운영 홈 연결</span></div>
           <h1>홈 화면 관리</h1>
-          <p>자동 파생 영역, 이미 존재하는 운영 배너 저장 구조, 새 저장 계약이 필요한 코드고정 항목을 섞지 않고 구분합니다.</p>
+          <p>왼쪽이나 실제 홈에서 블록을 끌어 순서를 바꾸고, 문구는 실제 화면에서 두 번 눌러 바로 수정합니다.</p>
         </div>
-        <div class="page-actions">
-          <button class="secondary-button" type="button" data-editor-action="preview">고객 화면 구조 확인</button>
-          <button class="primary-button" type="button" disabled>운영 저장 미연결</button>
-        </div>
+        <div class="page-actions"><button class="secondary-button" type="button" data-home-action="reset">기본값 복원</button><button class="primary-button" type="button" data-home-action="save">변경사항 저장</button></div>
       </div>
-
-      <div class="home-editor-warning">${icon('audit')}<div><b>화면 시안 · 운영 저장 0건</b><p>${escapeHtml(data.prototypeNotice)}</p></div></div>
-      ${summaryMarkup(data)}
-
-      <div class="home-editor-layout">
-        <section class="home-preview-panel">
-          <div class="panel-heading"><div><span class="eyebrow">노출 순서</span><h2>노출 위치별 구조</h2><p>카드를 누르면 오른쪽에서 실제 규칙과 저장 계약을 확인합니다.</p></div><span class="data-note">순서 저장 없음</span></div>
-          <div class="home-preview-canvas">
-            <div class="home-preview-brand"><span>bellore.co.kr</span><b>운영 화면 전체 목록</b></div>
-            ${visibleOrder.map(previewSection).join('')}
-          </div>
-          ${collectionSections.length ? `
-            <div class="home-related-heading"><span>연관 화면</span><b>판매시계 컬렉션</b></div>
-            <div class="home-preview-related">${collectionSections.map((section, index) => previewSection(section, index)).join('')}</div>` : ''}
-        </section>
-        <section class="home-control-panel" id="homeEditorSettings">${settingsMarkup(current)}</section>
-      </div>
-
-      <section class="section-block home-inventory">
-        <div class="section-heading">
-          <div><span class="eyebrow">전체 관리 항목</span><h2>운영 원본별 전체 항목</h2><p>‘편집 가능’과 ‘코드에 존재’를 같은 상태로 표시하지 않습니다.</p></div>
-          <span class="review-chip">기존 홈 삭제 없음</span>
-        </div>
-        <div class="home-inventory-grid">${data.sections.map(inventoryCard).join('')}</div>
+      <div class="home-layout-editor-guide"><span><b>1</b> 블록 선택</span><span><b>2</b> 끌어서 순서 변경</span><span><b>3</b> 문구 두 번 눌러 수정</span><small>배너 이미지와 연결 상품은 기존 배너·상품 관리에서 수정합니다.</small></div>
+      <section class="home-layout-editor-shell">
+        <aside class="home-layout-blocks" aria-label="홈 화면 블록"><div class="home-layout-panel-head"><b>화면 블록</b><small>끌어서 이동</small></div><div data-home-block-list></div></aside>
+        <div class="home-layout-preview"><div class="home-layout-panel-head"><b>실제 고객 홈</b><small>문구를 두 번 눌러 수정</small></div><div class="home-layout-frame-wrap"><iframe data-home-frame src="../../index.html?home-editor-preview=1#home" title="실제 벨로르 홈 화면"></iframe></div></div>
+        <aside class="home-layout-inspector" aria-label="선택 블록 설정"><div data-home-inspector></div></aside>
       </section>
+      <p class="home-layout-save-state" data-home-state aria-live="polite">저장된 운영 설정을 불러오는 중입니다.</p>
     </div>`;
 }
 
-export function createAdminHomeEditor({ data, onToast, onNavigate }) {
-  function select(root, sectionId) {
-    const section = data.sections.find((item) => item.id === sectionId);
-    if (!section) return;
-    root.querySelectorAll('[data-home-section]').forEach((button) => {
-      button.classList.toggle('is-active', button.dataset.homeSection === sectionId);
-    });
-    const settings = root.querySelector('#homeEditorSettings');
-    if (settings) settings.innerHTML = settingsMarkup(section);
-    if (window.matchMedia('(max-width: 960px)').matches) settings?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
+function definition(id) { return HOME_BLOCKS.find((item) => item.id === id); }
+
+function listMarkup(config, selectedId) {
+  return config.order.map((id, index) => {
+    const block = definition(id);
+    const visible = config.blocks[id]?.visible !== false;
+    return `<button class="home-layout-block${selectedId === id ? ' is-selected' : ''}${visible ? '' : ' is-hidden'}" type="button" draggable="true" data-home-block="${id}"><span class="home-layout-drag" aria-hidden="true">⋮⋮</span><i>${index + 1}</i><span><b>${escapeHtml(block.label)}</b><small>${visible ? '화면에 표시' : '숨김'}</small></span></button>`;
+  }).join('');
+}
+
+function inspectorMarkup(config, selectedId) {
+  const block = definition(selectedId);
+  const values = config.blocks[selectedId] || {};
+  if (!block) return '';
+  const fields = [block.titleSelector && ['title', '제목'], block.subtitleSelector && ['subtitle', '설명'], block.moreSelector && ['moreText', '더보기 문구']].filter(Boolean);
+  return `<div class="home-layout-inspector-head"><span>선택한 블록</span><h2>${escapeHtml(block.label)}</h2><p>${fields.length ? '입력창이나 실제 홈의 문구를 수정할 수 있습니다.' : '이 블록의 내용은 연결된 관리 화면에서 수정합니다.'}</p></div>
+    <label class="home-layout-visible"><span><b>화면 표시</b><small>고객 홈에서 이 블록을 표시합니다.</small></span><input type="checkbox" data-home-visible ${values.visible !== false ? 'checked' : ''}></label>
+    <div class="home-layout-fields">${fields.map(([key, label]) => `<label><span>${label}</span><input data-home-field="${key}" value="${escapeHtml(values[key] || '')}"></label>`).join('')}</div>
+    <p class="home-layout-tip">${fields.length ? '실제 홈의 강조된 문구를 두 번 눌러도 같은 값이 수정됩니다.' : '이미지·링크·상품 구성은 배너 관리 또는 상품 관리에서 수정하세요.'}</p>`;
+}
+
+function selectAll(doc, node) {
+  const range = doc.createRange();
+  range.selectNodeContents(node);
+  const selection = doc.getSelection();
+  selection.removeAllRanges(); selection.addRange(range);
+}
+
+function fieldEntries(block) {
+  return [block.titleSelector && ['title', block.titleSelector], block.subtitleSelector && ['subtitle', block.subtitleSelector], block.moreSelector && ['moreText', block.moreSelector]].filter(Boolean);
+}
+
+export function createAdminHomeLayoutEditor({ settingsService, onToast } = {}) {
+  let config = cloneHomeLayoutDefaults();
+  let selectedId = config.order[0];
+  let dirty = false;
+  let draggedId = '';
 
   function mount(root) {
-    const page = root.querySelector('.home-editor-page');
-    if (!page) return;
-    select(root, 'dbBanners');
-    page.addEventListener('click', (event) => {
-      const sectionButton = event.target.closest('[data-home-section]');
-      if (sectionButton) {
-        select(root, sectionButton.dataset.homeSection);
-        return;
+    const page = root.querySelector('.home-layout-editor-page');
+    if (!page || page.dataset.mounted) return;
+    page.dataset.mounted = 'true';
+    const list = page.querySelector('[data-home-block-list]');
+    const inspector = page.querySelector('[data-home-inspector]');
+    const frame = page.querySelector('[data-home-frame]');
+    const state = page.querySelector('[data-home-state]');
+    const editorWindow = page.ownerDocument.defaultView || window;
+    const setState = (message) => { state.textContent = message; };
+    const markDirty = () => { dirty = true; setState('저장하지 않은 변경사항이 있습니다.'); };
+    const renderControls = () => { list.innerHTML = listMarkup(config, selectedId); inspector.innerHTML = inspectorMarkup(config, selectedId); };
+    const previewDoc = () => { try { return frame.contentDocument; } catch { return null; } };
+
+    function applyPreview() {
+      const doc = previewDoc();
+      if (!doc?.querySelector('#home')) return;
+      applyHomeLayoutConfig(doc, config); decoratePreview(doc);
+    }
+    function select(id) {
+      if (!definition(id)) return;
+      selectedId = id; renderControls();
+      previewDoc()?.querySelectorAll('[data-home-layout-block]').forEach((node) => node.classList.toggle('home-editor-selected', node.dataset.homeLayoutBlock === id));
+    }
+    function reorder(sourceId, targetId) {
+      if (!sourceId || !targetId || sourceId === targetId) return;
+      const order = [...config.order];
+      const from = order.indexOf(sourceId); const to = order.indexOf(targetId);
+      if (from < 0 || to < 0) return;
+      order.splice(to, 0, order.splice(from, 1)[0]);
+      config.order = order; selectedId = sourceId; markDirty(); renderControls(); applyPreview();
+    }
+    function decoratePreview(doc) {
+      if (!doc.getElementById('homeLayoutEditorStyle')) {
+        const editorStyle = doc.createElement('style'); editorStyle.id = 'homeLayoutEditorStyle';
+        editorStyle.textContent = '[data-home-layout-block]{position:relative;cursor:grab;outline:1px dashed transparent;outline-offset:-2px}[data-home-layout-block]:hover{outline-color:#43836a}[data-home-layout-block].home-editor-selected{outline:3px solid #126b4f;outline-offset:-3px}[data-home-inline-field]{cursor:text}[data-home-inline-field]:hover{background:#e5f2ec}[data-home-inline-field][contenteditable=true]{outline:2px solid #126b4f;background:#fff}';
+        doc.head.append(editorStyle);
       }
-      const action = event.target.closest('[data-editor-action]');
-      if (!action) return;
-      if (action.dataset.editorAction === 'navigate') {
-        const target = action.dataset.editorTarget;
-        if (typeof onNavigate === 'function') onNavigate(target);
-        else onToast('관련 관리 화면으로 이동하는 화면 시안입니다. 운영 저장은 실행하지 않습니다.');
-        return;
-      }
-      if (action.dataset.editorAction === 'preview') {
-        onToast('운영 코드의 노출 구조를 읽기 전용으로 정리한 시안입니다. 실제 고객 홈이나 운영 데이터는 변경하지 않습니다.');
+      HOME_BLOCKS.forEach((block) => {
+        const node = doc.querySelector(block.selector); if (!node) return;
+        node.draggable = true; node.classList.toggle('home-editor-selected', block.id === selectedId);
+        fieldEntries(block).forEach(([key, selector]) => {
+          const field = node.querySelector(selector);
+          if (field) { field.dataset.homeInlineField = key; field.dataset.homeInlineBlock = block.id; field.title = '두 번 눌러 문구 수정'; }
+        });
+      });
+    }
+
+    list.addEventListener('click', (event) => select(event.target.closest('[data-home-block]')?.dataset.homeBlock));
+    list.addEventListener('dragstart', (event) => { draggedId = event.target.closest('[data-home-block]')?.dataset.homeBlock || ''; });
+    list.addEventListener('dragover', (event) => { if (event.target.closest('[data-home-block]')) event.preventDefault(); });
+    list.addEventListener('drop', (event) => { event.preventDefault(); reorder(draggedId, event.target.closest('[data-home-block]')?.dataset.homeBlock); draggedId = ''; });
+    inspector.addEventListener('input', (event) => {
+      if (event.target.matches('[data-home-visible]')) {
+        config.blocks[selectedId].visible = event.target.checked;
+        markDirty(); renderControls(); applyPreview();
+      } else if (event.target.matches('[data-home-field]')) {
+        config.blocks[selectedId][event.target.dataset.homeField] = event.target.value;
+        markDirty(); applyPreview();
       }
     });
+    frame.addEventListener('load', () => {
+      const doc = previewDoc(); if (!doc) return; applyPreview();
+      doc.addEventListener('click', (event) => { const node = event.target.closest('[data-home-layout-block]'); if (node) { event.preventDefault(); select(node.dataset.homeLayoutBlock); } }, true);
+      doc.addEventListener('dblclick', (event) => {
+        const field = event.target.closest('[data-home-inline-field]'); if (!field) return;
+        event.preventDefault(); event.stopPropagation(); select(field.dataset.homeInlineBlock); field.contentEditable = 'true'; field.focus(); selectAll(doc, field);
+      }, true);
+      doc.addEventListener('focusout', (event) => {
+        const field = event.target.closest('[data-home-inline-field][contenteditable="true"]'); if (!field) return;
+        const value = field.textContent.trim(); if (value) config.blocks[field.dataset.homeInlineBlock][field.dataset.homeInlineField] = value;
+        field.contentEditable = 'false'; markDirty(); renderControls(); applyPreview();
+      }, true);
+      doc.addEventListener('keydown', (event) => { if (event.target.matches('[data-home-inline-field][contenteditable="true"]') && event.key === 'Enter') { event.preventDefault(); event.target.blur(); } });
+      doc.addEventListener('dragstart', (event) => { draggedId = event.target.closest('[data-home-layout-block]')?.dataset.homeLayoutBlock || ''; });
+      doc.addEventListener('dragover', (event) => { if (event.target.closest('[data-home-layout-block]')) event.preventDefault(); });
+      doc.addEventListener('drop', (event) => { event.preventDefault(); reorder(draggedId, event.target.closest('[data-home-layout-block]')?.dataset.homeLayoutBlock); draggedId = ''; });
+    });
+    page.addEventListener('click', async (event) => {
+      const action = event.target.closest('[data-home-action]')?.dataset.homeAction; if (!action) return;
+      try {
+        if (action === 'reset') {
+          if (!editorWindow.confirm('홈 화면을 기본값으로 되돌릴까요? 저장 버튼을 누르기 전까지 운영 화면에는 반영되지 않습니다.')) return;
+          config = cloneHomeLayoutDefaults(); selectedId = config.order[0]; dirty = true;
+          renderControls(); applyPreview(); setState('기본값을 미리보기에 적용했습니다. 운영 반영은 변경사항 저장을 눌러 주세요.'); onToast?.(state.textContent);
+          return;
+        }
+        await settingsService.saveHomePageConfig(config);
+        dirty = false; renderControls(); applyPreview(); setState('운영 홈 화면 설정을 저장했습니다.'); onToast?.(state.textContent);
+      } catch (error) { console.error(error); setState('저장하지 못했습니다. 잠시 후 다시 시도해 주세요.'); onToast?.(state.textContent); }
+    });
+
+    renderControls();
+    settingsService.loadHomePageConfig().then((saved) => { config = normalizeHomeLayout(saved); selectedId = config.order[0]; dirty = false; renderControls(); applyPreview(); setState('운영 설정을 불러왔습니다.'); })
+      .catch((error) => { console.error(error); setState('운영 설정을 불러오지 못해 기본값을 표시합니다.'); });
+    window.addEventListener('beforeunload', (event) => { if (dirty) event.preventDefault(); });
   }
 
-  return { render: () => pageMarkup(data), mount };
+  return { render: pageMarkup, mount };
 }

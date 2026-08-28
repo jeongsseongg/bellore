@@ -2,7 +2,27 @@ function normalize(value) {
   return String(value || '').toLowerCase().replace(/[^0-9a-z가-힣]/g, '');
 }
 
-export function createSellReferenceController({ backend, elements, selected, makePreview, syncDetail }) {
+function matchesBrand(item, brand) {
+  const itemBrand = normalize(item?.brand);
+  const terms = [brand?.name, brand?.eng].map(normalize).filter(Boolean);
+  return Boolean(itemBrand && terms.some((term) => itemBrand.includes(term) || term.includes(itemBrand)));
+}
+
+export function mergeSellModelSuggestions(brand, listings) {
+  const unique = new Map();
+  const add = (value) => {
+    const model = String(value || '').trim();
+    const key = normalize(model);
+    if (key && !unique.has(key)) unique.set(key, model);
+  };
+  (Array.isArray(brand?.models) ? brand.models : []).forEach(add);
+  (Array.isArray(listings) ? listings : []).forEach((item) => {
+    if (matchesBrand(item, brand)) add(item?.model || item?.modelName);
+  });
+  return [...unique.values()];
+}
+
+export function createSellReferenceController({ backend, elements, selected, makePreview, syncDetail, onModelsChanged }) {
   let brandListings = [];
   let approvedListings = [];
   let catalog = [];
@@ -16,7 +36,12 @@ export function createSellReferenceController({ backend, elements, selected, mak
       if (!unique.has(key)) unique.set(key, { ref, brand: String(item.brand || ''), model: String(item.model || '') });
     });
     catalog = [...unique.values()];
+    onModelsChanged?.();
     if (!elements.details.hidden) render(elements.input.value);
+  }
+
+  function modelsFor(brand) {
+    return mergeSellModelSuggestions(brand, [...brandListings, ...approvedListings]);
   }
 
   function choose(value) {
@@ -72,5 +97,5 @@ export function createSellReferenceController({ backend, elements, selected, mak
     });
   }
 
-  return { connect, render };
+  return { connect, modelsFor, render };
 }
