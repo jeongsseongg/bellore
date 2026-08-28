@@ -10,12 +10,15 @@ const loginHtml = fs.readFileSync(path.join(root, 'login.html'), 'utf8');
 const runtime = fs.readFileSync(path.join(root, 'app', 'legacy', 'page-runtime.js'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
 const bootstrap = fs.readFileSync(path.join(root, 'app', 'bootstrap.js'), 'utf8');
+const standalonePage = fs.readFileSync(path.join(root, 'app', 'pages', 'standalone-page.js'), 'utf8');
 const releaseKey = '20260826-member-verification-live-v2';
 const signupStyleKey = '20260828-phone-auth-paths-v1';
 const signupScriptKey = '20260828-phone-auth-paths-v1';
 const signupIdentityKey = '20260828-phone-auth-paths-v1';
 const loginStyleUrl = loginHtml.match(/href="(app\/features\/auth-login\/auth-login\.css\?v=[^"]+)"/)?.[1];
 const loginScriptUrl = loginHtml.match(/src="(app\/features\/auth-login\/auth-login\.js\?v=[^"]+)"/)?.[1];
+const paymentConfigUrl = html.match(/src="(supabase-config\.js\?v=[^"]+)"/)?.[1];
+const loginPaymentConfigUrl = loginHtml.match(/src="(supabase-config\.js\?v=[^"]+)"/)?.[1];
 
 const urls = {
   styles: html.match(/<link rel="stylesheet" href="(styles\.css\?v=[^"]+)"/)?.[1],
@@ -45,6 +48,10 @@ assert.match(serviceWorker, /const VERSION = "bellore-v\d+-[a-z0-9-]+";/, 'servi
 assert(serviceWorker.includes("'./login.html'"), 'service worker must precache the independent login page');
 assert(loginStyleUrl && serviceWorker.includes(`'./${loginStyleUrl}'`), 'service worker must precache the exact login page styles');
 assert(loginScriptUrl && serviceWorker.includes(`'./${loginScriptUrl}'`), 'service worker must precache the exact login page behavior');
+assert(paymentConfigUrl, 'payment configuration release URL is missing');
+assert.equal(loginPaymentConfigUrl, paymentConfigUrl, 'login and storefront must load the same payment configuration release');
+assert(serviceWorker.includes(`'./${paymentConfigUrl}'`), 'service worker must precache the exact payment configuration URL');
+assert(standalonePage.includes(`'/${paymentConfigUrl}'`), 'standalone pages must load the exact payment configuration URL');
 assert(serviceWorker.includes(`'./app/features/auth-signup/auth-signup.css?v=${signupStyleKey}'`), 'service worker must precache signup page styles');
 assert(serviceWorker.includes(`'./app/features/auth-signup/auth-signup.js?v=${signupScriptKey}'`), 'service worker must precache signup page behavior');
 assert(serviceWorker.includes(`'./supabase.js?v=${signupIdentityKey}'`), 'service worker must precache the current signup verification backend');
