@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v361-phone-auth-two-paths";
+const VERSION = "bellore-v362-mypage-root-integration";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -22,7 +22,7 @@ const SHELL_ASSETS = [
   './reference-layout.css?v=20260821-tabbar-safe-area-v1',
   './mypick.css?v=20260826-member-verification-live-v2',
   './bellore-redesign.css?v=20260826-purchasebar-harmony-v1',
-  './script.js?v=20260827-mypage-contracts-v1',
+  './script.js?v=20260828-mypage-root-v1',
   './payments.js?v=20260826-member-verification-live-v2',
   './naverpay.js?v=20260826-naverpay-live-v1',
   './ui-dialog.js?v=20260826-member-verification-live-v2',
@@ -42,11 +42,11 @@ const SHELL_ASSETS = [
   './app/bootstrap.js?v=20260828-phone-auth-paths-v1',
   './app/pages/standalone-auth-gate.mjs?v=20260828-standalone-auth-v1',
   './app/pages/standalone-page.css?v=20260828-clean-routes-v2',
-  './app/pages/standalone-page.js?v=20260828-mypage-contracts-auth-v1',
+  './app/pages/standalone-page.js?v=20260828-mypage-root-v1',
   './app/pages/standalone-route.js?v=20260828-clean-routes-v1',
   './app/ui/app-tabbar.css?v=20260828-clean-routes-v4',
-  './app/ui/app-tabbar.js?v=20260828-clean-routes-v4',
-  './app/features/mypage-personal-shop/mypage-personal-shop.css?v=20260828-personal-shop-v1',
+  './app/ui/app-tabbar.js?v=20260828-mypage-root-v1',
+  './app/features/mypage-personal-shop/mypage-personal-shop.css?v=20260828-mypage-root-v1',
   './app/features/auth-login/auth-login.css?v=20260827-auth-page-v3',
   './app/features/auth-login/auth-login.js?v=20260828-return-to-v1',
   './app/services/auth/auth-login-backend.js',
