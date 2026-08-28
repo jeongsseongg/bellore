@@ -23,6 +23,8 @@ import { createPaymentNetwork } from './services/payments/payment-network.js?v=2
 import { createPendingPaymentRecovery } from './services/payments/pending-payment-recovery.js?v=20260826-member-verification-live-v2';
 import { createLegacyCollection } from './legacy/legacy-collection.js?v=20260826-member-verification-live-v2';
 import { initLegacyHomeMerchandisingGrid } from './legacy/home-merchandising-grid.js';
+import { initHomeLayout } from './features/home-layout/home-layout.js?v=20260827-home-block-editor-v1';
+import { createLegacyHomeLayoutAdapter } from './legacy/home-layout-adapter.js?v=20260827-home-block-editor-v1';
 import { installLegacyPaymentAuth } from './legacy/payment-auth.js';
 import { installLegacyReveal } from './legacy/legacy-reveal.js';
 import { initCheckoutAddresses } from './features/checkout/checkout-addresses.mjs?v=20260826-shipping-address-popup-v2';
@@ -95,6 +97,11 @@ function bootstrap() {
   initHomeQuicklinks({ document, window, collection });
   const featured = initHomeBanners({ document, window, collection });
   const rows = initHomeRows({ document, window, collection });
+  initHomeLayout({
+    document,
+    window,
+    service: createLegacyHomeLayoutAdapter({ window })
+  });
   const merchandising = createHomeMerchandising({ window });
   const homeGrid = initLegacyHomeMerchandisingGrid({ document, window });
   let latestListings = [];

@@ -49,6 +49,7 @@ function fingerprintInput(payload) {
     listingId: payload.listingId ?? null,
     couponUserId: payload.couponUserId ?? null,
     expectedAmount: payload.expectedAmount ?? null,
+    fulfillmentMethod: payload.fulfillmentMethod ?? 'delivery',
     buyerName: payload.buyerName ?? null,
     buyerPhone: payload.buyerPhone ?? null,
     shipRecipient: payload.shipRecipient ?? null,

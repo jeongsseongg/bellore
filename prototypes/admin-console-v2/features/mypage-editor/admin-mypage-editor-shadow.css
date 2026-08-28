@@ -55,11 +55,12 @@
   max-width: none;
   margin: 0;
   padding: 14px;
-  grid-template-columns: minmax(330px, 400px) minmax(0, 679px);
+  grid-template-columns: 178px minmax(0, 660px) minmax(300px, 330px);
   justify-content: center;
   gap: 14px;
 }
 
+.admin-embedded-role-preview .block-panel,
 .admin-embedded-role-preview .editor-panel {
   border-color: #dfe3e1;
   box-shadow: none;
@@ -73,6 +74,7 @@
   box-shadow: none;
 }
 
+.admin-embedded-role-preview .block-panel,
 .admin-embedded-role-preview .editor-panel {
   top: 14px;
 }
@@ -89,7 +91,7 @@
 }
 
 .admin-embedded-role-preview.editor-is-collapsed .preview-workspace {
-  grid-template-columns: minmax(0, 760px);
+  grid-template-columns: 178px minmax(0, 760px);
 }
 
 .embedded-editor-error {

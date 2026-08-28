@@ -6,11 +6,14 @@ const prototypeRoot = path.join(root, 'prototypes/account-roles');
 const adminRoot = path.join(root, 'prototypes/admin-console-v2');
 const model = fs.readFileSync(path.join(prototypeRoot, 'account-role-model.js'), 'utf8');
 const view = fs.readFileSync(path.join(prototypeRoot, 'account-role-preview.js'), 'utf8');
+const blockEditor = fs.readFileSync(path.join(prototypeRoot, 'account-role-block-editor.js'), 'utf8');
+const directEdit = fs.readFileSync(path.join(prototypeRoot, 'account-role-direct-edit.js'), 'utf8');
 const css = fs.readFileSync(path.join(prototypeRoot, 'account-role-preview.css'), 'utf8');
 const html = fs.readFileSync(path.join(prototypeRoot, 'index.html'), 'utf8');
 const bootstrap = fs.readFileSync(path.join(prototypeRoot, 'bootstrap.js'), 'utf8');
 const adminHtml = fs.readFileSync(path.join(adminRoot, 'index.html'), 'utf8');
 const adminData = fs.readFileSync(path.join(adminRoot, 'data/admin-console-data.js'), 'utf8');
+const runtimeSettings = fs.readFileSync(path.join(root, 'app/features/mypage-settings/mypage-settings.js'), 'utf8');
 
 let checks = 0;
 function assert(condition, message) {
@@ -40,29 +43,49 @@ assert(view.includes('class="preview-toolbar"'), '고객·업체 편집 도구�
 assert(view.includes('고객·업체·관리자 마이페이지'), '관리자 마이페이지 역할 전환이 없습니다.');
 assert(view.includes('class="preview-workspace"'), '편집기와 미리보기의 분리 구조가 없습니다.');
 assert(view.includes('data-edit-field'), '실시간 편집 입력이 없습니다.');
-assert(view.includes('data-menu-group="trade"') && view.includes('data-menu-group="activity"'),
+assert(blockEditor.includes("menuField('trade'") && blockEditor.includes("menuField('activity'"),
   '두 메뉴 영역을 독립적으로 편집할 수 없습니다.');
+assert(view.includes('EDITOR_BLOCKS') && blockEditor.includes('data-block-select') && view.includes('data-preview-block'),
+  '블록 목록·실제 화면 선택·블록 편집 연결이 없습니다.');
+assert(model.includes("blockOrder: ['header', 'order', 'banner', 'trade', 'activity', 'footer']"),
+  '역할별 마이페이지 블록 순서 기본값이 없습니다.');
+assert(blockEditor.includes("movable ? ' draggable=\"true\"'") && directEdit.includes("addEventListener('dragstart'") && directEdit.includes("addEventListener('drop'"),
+  '마이페이지 블록 끌어서 순서 변경이 없습니다.');
+assert(directEdit.includes("addEventListener('dblclick'") && directEdit.includes("contentEditable = 'true'") && directEdit.includes("addEventListener('focusout'"),
+  '실제 마이페이지 문구 두 번 눌러 수정 기능이 없습니다.');
+assert(runtimeSettings.includes('content.blockOrder') && runtimeSettings.includes('insertBefore'),
+  '저장된 블록 순서가 실제 마이페이지에 적용되지 않습니다.');
+assert(blockEditor.includes('실제 회원 데이터') && blockEditor.includes('실제 주문 데이터'),
+  '운영 데이터와 편집 문구의 경계가 표시되지 않습니다.');
+assert(runtimeSettings.includes("content.profile?.pageTitle") && runtimeSettings.includes("content.footer?.description"),
+  '블록 편집기의 화면 제목과 푸터 소개가 실제 마이페이지에 적용되지 않습니다.');
+assert(runtimeSettings.includes("content.labels?.tradeHeading") && runtimeSettings.includes("content.labels?.activityHeading"),
+  '블록 편집기의 메뉴 영역 제목이 실제 마이페이지에 적용되지 않습니다.');
+assert(runtimeSettings.includes("content.order?.primaryAction") && runtimeSettings.includes("content.order?.secondaryAction"),
+  '블록 편집기의 주문 버튼 문구가 실제 마이페이지에 적용되지 않습니다.');
 assert(view.includes('data-save-config') && view.includes('data-reset-config'),
   '브라우저 저장·운영 기준 복원 기능이 없습니다.');
 assert(view.includes('data-preview-size="660"') && view.includes('data-preview-size="390"'),
   '660px·390px 화면 비교 기능이 없습니다.');
-assert(view.includes('previewWindow.localStorage.setItem') && view.includes('previewWindow.localStorage.removeItem'),
-  '독립 시안 페이지의 역할별 로컬 저장·복원 구현이 없습니다.');
-assert(view.includes("typeof persistence.save === 'function'") && view.includes('await persistence.save(activeRole, content)'),
+assert(view.includes('previewWindow.localStorage.setItem') && view.includes('previewWindow.confirm'),
+  '독립 시안 페이지의 역할별 로컬 저장과 확인 후 미리보기 복원이 없습니다.');
+assert(view.includes("typeof persistence.save === 'function'") && view.includes('await session.persistence.save(session.activeRole, session.content)'),
   '관리자 화면에서 운영 저장소로 교체할 수 있는 저장 경계가 없습니다.');
-assert(view.includes('const drafts = {}') && view.includes('dirtyRoles'),
+assert(view.includes('resetConfig(session)') && !view.includes('persistence.reset(') && !view.includes('localStorage.removeItem'),
+  '운영 기준 복원은 즉시 저장하지 않고 미리보기의 미저장 변경으로 남아야 합니다.');
+assert(view.includes('drafts: {}') && view.includes('dirtyRoles'),
   '역할 전환 전 수정 초안을 보존하지 않습니다.');
-assert(view.includes('updatePreview(root, activeRole, content)'),
+assert(view.includes('updatePreview(session.root, session.activeRole, session.content, session.activeBlock)'),
   '입력값이 오른쪽 미리보기에 즉시 반영되지 않습니다.');
-assert(view.includes('세 역할은 구조를 공유합니다.'),
-  '고객·업체·관리자가 같은 구조를 사용한다는 안내가 없습니다.');
+assert(view.includes('운영 화면과 같은 구성입니다.'),
+  '실제 운영 화면 구조를 사용한다는 안내가 없습니다.');
 assert(view.includes('href="../admin-console-v2/"'), '기존 관리자 페이지 연결이 없습니다.');
 assert(!view.includes('renderPartner'), '공급 파트너 마이페이지 렌더러가 남았습니다.');
-assert(view.includes('class="mypage-app"') && view.includes('class="mp-head"'),
+assert(view.includes('class="mypage-app"') && view.includes('class="mp-head preview-editable-block"'),
   '현재 앱형 마이페이지 셸과 상단 계정 영역이 없습니다.');
-assert(view.includes('class="mp-profile-avatar"') && view.includes('class="mp-stat-copy"'),
-  '개방형 프로필과 텍스트 지표 영역이 없습니다.');
-assert(view.includes('class="mp-order-preview"') && view.includes('class="mp-order-surface"'),
+assert(!view.includes('class="mp-profile-avatar"') && view.includes('class="mp-stat-copy"'),
+  '실제 운영 화면에 없는 프로필 아바타가 남았거나 텍스트 지표 영역이 없습니다.');
+assert(view.includes('class="mp-order-preview preview-editable-block"') && view.includes('class="mp-order-surface"'),
   '최근 주문을 하나의 의미 있는 거래 카드로 구분하지 못했습니다.');
 assert(view.includes('class="mp-menu"') && view.includes('class="mp-menu-label"'),
   '평면 텍스트 메뉴 구조가 없습니다.');
@@ -75,8 +98,10 @@ assert(view.includes('src="../../assets/logo-bellore.png"') && !view.includes('<
 assert(view.includes("['홈', '검색', '보관함', '시계판매', '마이']"), '공통 텍스트 하단 탭이 없습니다.');
 
 assert(css.includes('--mp-width: 660px'), '현재 마이페이지 최대폭 660px 기준이 없습니다.');
-assert(css.includes('grid-template-columns: 400px minmax(0, 660px)'),
-  '편집 패널과 실제 화면 미리보기의 데스크톱 배치가 없습니다.');
+assert(css.includes('grid-template-columns: 190px minmax(420px, 660px) 340px'),
+  '블록 목록·실제 화면·편집 패널의 데스크톱 3단 배치가 없습니다.');
+assert(css.includes('.preview-editable-block[data-block-active="true"]'),
+  '실제 화면에서 선택한 블록을 구분할 수 없습니다.');
 assert(css.includes('.preview-frame') && css.includes('overflow-y: auto'),
   '미리보기 전용 스크롤 프레임이 없습니다.');
 assert(css.includes('[data-preview-width="390"] .mypage-app'),
@@ -96,7 +121,7 @@ assert(css.includes('@media (max-width: 420px)'), '390px급 모바일 반응형 
 
 assert(html.includes('고객·업체 마이페이지 편집'), '문서 제목이 편집 목적을 설명하지 않습니다.');
 assert(html.includes('noindex, nofollow'), '시안 페이지 검색 차단 메타가 없습니다.');
-assert(html.includes('mypage-icons-v1') && bootstrap.includes('mypage-icons-v1'), '편집 시안 캐시 버전이 일치하지 않습니다.');
+assert(html.includes('block-editor-v1') && bootstrap.includes('block-editor-v1'), '편집 시안 캐시 버전이 일치하지 않습니다.');
 assert(view.includes('class="mp-head-icon"') && view.includes('aria-label="알림"') && view.includes('aria-label="설정"'),
   '마이페이지 상단 알림과 설정이 접근 가능한 선 아이콘으로 표시되지 않습니다.');
 assert(!view.includes('class="mp-head-text"'), '마이페이지 상단에 알림·설정 글자 버튼이 남았습니다.');
@@ -108,7 +133,7 @@ assert(adminHtml.includes('class="admin-app"') && adminHtml.includes('id="adminS
   '기존 관리자 Wanted 구조가 보존되지 않았습니다.');
 assert(adminData.includes("id: 'mypageSettings'") && adminData.includes("label: '마이페이지 관리'"),
   '관리자 콘솔 안에서 역할별 마이페이지 관리 화면으로 이동할 수 없습니다.');
-assert(adminHtml.includes('id="adminLoginForm"') && adminHtml.includes('catalog-ledger-v3'),
+assert(adminHtml.includes('id="adminLoginForm"') && adminHtml.includes('block-editor-v1'),
   '운영 관리자 로그인 게이트가 없습니다.');
 assert(fs.existsSync(path.join(root, 'assets/products/watch-batch-20260821-3/158-pdj96zas81tz/front.webp')),
   '최근 주문 예시 이미지 자산이 없습니다.');

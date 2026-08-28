@@ -77,8 +77,10 @@
     <link rel="stylesheet" href="app/features/analytics-consent/analytics-consent.css?v=20260826-ai-consent-v1">
     <link rel="stylesheet" href="app/features/checkout/checkout-addresses.css?v=20260826-shipping-address-popup-v2">
     <link rel="stylesheet" href="app/features/checkout/checkout-coupon.css?v=20260826-member-verification-live-v2">
-    <link rel="stylesheet" href="app/features/mypage-personal-shop/mypage-personal-shop.css?v=20260828-mypage-root-v1">
+    <link rel="stylesheet" href="app/features/checkout/checkout-order.css?v=20260828-checkout-methods-v1" data-bellore-checkout-order>
+    <link rel="stylesheet" href="app/features/mypage-personal-shop/mypage-personal-shop.css?v=20260828-final-integrated-v1">
     <link rel="stylesheet" href="app/features/sell-method/sell-method.css?v=20260826-sell-motion-v2">
+    <link rel="stylesheet" href="app/features/sell-method/sell-service.css?v=20260828-complete-site-v1">
     <link rel="stylesheet" href="app/features/sell-method/sell-quotes.css?v=20260826-sell-guest-access-v1">
     <link rel="stylesheet" href="app/features/sell-method/sell-service-navigation.css?v=20260826-sell-guest-access-v1">
     <link rel="stylesheet" href="app/features/sell-method/sell-guest-access.css?v=20260826-sell-guest-access-v1">
@@ -502,8 +504,8 @@
                             <p id="sellFormDescription">시계 정보를 한 번만 등록하면 벨로르 제휴사들의 견적을 비교하고 원하는 금액을 선택할 수 있습니다.</p>
                         </div>
                     </div>
-
                     <form class="compare-form" id="compareForm">
+                        <ol class="sell-method-process" id="sellMethodProcess" aria-label="판매 신청 진행 단계"></ol>
                         <input type="hidden" name="sale_method" id="saleMethodInput" value="compare">
                         <input type="hidden" name="guide_parts_warranty" value="">
                         <input type="hidden" name="guide_parts_box" value="">
@@ -607,6 +609,7 @@
                             </div>
                         </div>
 
+                        <button type="button" class="sell-details-back" id="sellDetailsBack">← 이전 질문</button>
                         <button type="submit" class="btn btn-primary btn-full" id="sellFormSubmit" data-analytics-id="quote_submit">비교견적 신청하기</button>
                         <p class="form-note" id="sellFormNote">* 등록 후 정가품 구별 및 감정 승인 절차가 진행됩니다.</p>
                     </form>
@@ -1836,8 +1839,8 @@
       </div>
     </div>
 
-    <script type="module" src="app/bootstrap.js?v=20260828-phone-auth-paths-v1"></script>
-    <script type="module" src="app/features/sell-method/sell-method.js?v=20260826-sell-guest-access-v1"></script>
+    <script type="module" src="app/bootstrap.js?v=20260828-complete-site-v1"></script>
+    <script type="module" src="app/features/sell-method/sell-method.js?v=20260828-complete-site-v1"></script>
 
     <!-- PWA 설치 모달 -->
     <div id="pwaInstallModal" hidden aria-modal="true" role="dialog">
@@ -2087,7 +2090,6 @@
             </div>
         </div>
 
-
     <!-- 주문 전체보기 모달 -->
 
 
@@ -2270,6 +2272,26 @@
                     <p class="co-brand" id="coBrand"></p>
                     <p class="co-model" id="coModel"></p>
                     <p class="co-listprice" id="coListPrice"></p>
+                </div>
+            </section>
+
+            <!-- 상품 상세: 상품상세 화면의 정본 값을 주문서에도 그대로 표시 -->
+            <section class="co-sec" id="coProductDetailSec">
+                <h3 class="co-sec-title">상품 상세정보</h3>
+                <div class="co-detail-list">
+                    <div class="co-detail-row"><span>브랜드</span><strong id="coDetailBrand">확인 필요</strong></div>
+                    <div class="co-detail-row"><span>모델</span><strong id="coDetailModel">확인 필요</strong></div>
+                    <div class="co-detail-row"><span>레퍼런스 번호</span><strong id="coDetailRef">확인 필요</strong></div>
+                    <div class="co-detail-row"><span>상품번호</span><strong id="coDetailNo">확인 필요</strong></div>
+                    <div class="co-detail-row"><span>사이즈</span><strong id="coDetailSize">확인 필요</strong></div>
+                    <div class="co-detail-row"><span>스탬핑 · 연식</span><strong id="coDetailYear">확인 필요</strong></div>
+                    <div class="co-detail-row"><span>구성품</span><strong id="coDetailComponents">확인 필요</strong></div>
+                    <div class="co-detail-row"><span>무브먼트</span><strong id="coDetailMovement">확인 필요</strong></div>
+                    <div class="co-detail-row"><span>상품 상태</span><strong id="coDetailCondition">확인 필요</strong></div>
+                </div>
+                <div class="co-detail-description" id="coDetailDescriptionWrap" hidden>
+                    <h4>상품 설명</h4>
+                    <p id="coDetailDescription"></p>
                 </div>
             </section>
 
@@ -3022,7 +3044,7 @@
     <script src="supabase.js?v=20260828-phone-auth-paths-v1"></script>
     <script src="bellore-features.js?v=20260828-phone-auth-paths-v1"></script>
     <script src="cq-demo.js?v=20260826-member-verification-live-v2"></script>
-    <script src="script.js?v=20260828-mypage-root-v1"></script>
+    <script src="script.js?v=20260828-final-integrated-v1"></script>
     <script src="app/legacy/recommendation-engine.js?v=20260826-member-verification-live-v2"></script>
     <script src="wishlist.js?v=20260826-member-verification-live-v2"></script>
     <script src="alerts.js?v=20260820-tabs-alerts-v1"></script>
@@ -3030,7 +3052,7 @@
     <script src="search.js?v=20260826-member-verification-live-v2"></script>
     <script src="ai-advisor.js?v=20260826-member-verification-live-v2"></script>
     <script src="ai-advisor-admin.js?v=20260826-member-verification-live-v2"></script>
-    <script src="payments.js?v=20260826-member-verification-live-v2"></script>
+    <script src="payments.js?v=20260828-complete-site-v1"></script>
     <script src="naverpay.js?v=20260826-naverpay-live-v1"></script>
     <script src="app/legacy/page-runtime.js?v=20260826-naverpay-live-v1"></script>
 </body>

@@ -16,6 +16,7 @@ const payload = {
   listingId: '123e4567-e89b-42d3-a456-426614174000',
   couponUserId: null,
   expectedAmount: 1300,
+  fulfillmentMethod: 'delivery',
   buyerName: '테스트 구매자',
   buyerPhone: '01012345678',
   shipRecipient: '테스트 수령인',
@@ -53,6 +54,11 @@ await assert.rejects(
   afterReload.prepare({ ...payload, expectedAmount: 1400 }),
   { code: 'checkout_request_changed' },
   'changed input must not overwrite a possibly committed unresolved order capability',
+);
+await assert.rejects(
+  afterReload.prepare({ ...payload, fulfillmentMethod: 'pickup' }),
+  { code: 'checkout_request_changed' },
+  'changed fulfillment must not reuse a delivery checkout identity',
 );
 assert.equal(JSON.parse(storage.getItem(checkoutRecoveryStorageKey)).requestKey, first.requestKey);
 assert.equal(afterReload.discardIfSafe(first.requestKey, 'checkout_request_conflict', 409), false,

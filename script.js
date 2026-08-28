@@ -6586,6 +6586,27 @@
             }).join('');
         }
 
+        // 주문서는 상품상세와 같은 매물 정본을 사용한다. 표시 전용 별도 문구를 만들지 않는다.
+        function checkoutProductFromListing(it) {
+            var accessory = listingAccessoryInfo(it);
+            return {
+                listingId: it.id,
+                productNo: it.product_no || '',
+                brand: it.brand,
+                model: displayModelName(it),
+                referenceNo: it.reference_no || it.ref_id || it.ref || '',
+                sizeMm: it.size_mm || '',
+                stampingYear: it.stamping || it.purchase_year || '',
+                components: accessory.detailText || it.components || it.accessories || it.set_grade || '',
+                movement: listingMovement(it.movement),
+                condition: it.condition || '',
+                detailDescription: it.detail_desc || it.source_description || it.special_note || '',
+                status: it.status || 'on_sale',
+                price: effectivePrice(it),
+                image: (it.photos && it.photos[0]) || ''
+            };
+        }
+
         function openProduct(card) {
             // 정적/동적 카드 공통: DOM 값으로 우선 렌더
             var img = card.querySelector('.hcard-img img');
@@ -6677,13 +6698,8 @@
                         no: it.product_no || String(it.id).slice(0, 8).toUpperCase()
                     });
                     window.BELLORE_currentProduct = {
-                        listingId: it.id, productNo: it.product_no || '',
-                        brand: it.brand,
-                        model: displayModelName(it),
-                        condition: it.condition || '',
-                        status: it.status || 'on_sale',
-                        price: effectivePrice(it),
-                        image: (it.photos && it.photos[0]) || ''
+                        ...checkoutProductFromListing(it),
+                        productNo: it.product_no || ''
                     };
                     dispatchProductRoute('bellore:product-open');
                     listingStatusUi().renderNaver(window.BELLORE_currentProduct);
@@ -6723,10 +6739,8 @@
                     no: it.product_no || String(it.id).slice(0, 8).toUpperCase()
                 });
                 window.BELLORE_currentProduct = {
-                    listingId: it.id, productNo: it.product_no || '', brand: it.brand, model: displayModelName(it),
-                    condition: it.condition || '',
-                    status: it.status || 'on_sale',
-                    price: effectivePrice(it), image: (it.photos && it.photos[0]) || ''
+                    ...checkoutProductFromListing(it),
+                    productNo: it.product_no || ''
                 };
                 listingStatusUi().renderNaver(window.BELLORE_currentProduct);
                 modal.hidden = false;

@@ -28,6 +28,9 @@ on:
           - validate-authority-payment
           - apply-authority-payment
           - verify-authority-payment-live
+          - validate-checkout-v2
+          - apply-checkout-v2
+          - verify-checkout-v2-live
           - validate-catalog-product
           - apply-catalog-product
           - verify-catalog-product-live
@@ -41,7 +44,7 @@ on:
         type: string
         required: false
       production_apply_ack:
-        description: "DB apply 때만: APPLY_AUTHORITY_PAYMENT_TO_PRODUCTION 정확히 입력"
+        description: "DB apply: APPLY_AUTHORITY_PAYMENT_TO_PRODUCTION 또는 APPLY_CHECKOUT_V2_TO_PRODUCTION"
         type: string
         required: false
       payment_locks_ack:
@@ -70,7 +73,7 @@ jobs:
     uses: ./.github/workflows/truth-guard.yml
 
   run:
-    if: github.ref == 'refs/heads/main' || inputs.task == 'validate-authority-payment'
+    if: github.ref == 'refs/heads/main' || inputs.task == 'validate-authority-payment' || inputs.task == 'validate-checkout-v2'
     needs: truth_guard
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -80,7 +83,7 @@ jobs:
           persist-credentials: false
 
       - name: Guard — 운영 DB 시크릿 없으면 중단
-        if: inputs.task != 'validate-authority-payment'
+        if: inputs.task != 'validate-authority-payment' && inputs.task != 'validate-checkout-v2'
         env:
           DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
@@ -89,7 +92,7 @@ jobs:
           fi
 
       - name: Guard — Bellore Supabase 프로젝트만 허용
-        if: github.ref == 'refs/heads/main' || inputs.task == 'validate-authority-payment'
+        if: github.ref == 'refs/heads/main' || inputs.task == 'validate-authority-payment' || inputs.task == 'validate-checkout-v2'
         env:
           PRODUCTION_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
@@ -115,7 +118,7 @@ jobs:
           fi
 
       - name: Prepare — 데이터 없는 일회성 Supabase 검증 DB
-        if: inputs.task == 'validate-authority-payment'
+        if: inputs.task == 'validate-authority-payment' || inputs.task == 'validate-checkout-v2'
         env:
           PRODUCTION_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
@@ -229,7 +232,7 @@ jobs:
           echo "운영 행 데이터 0건인 일회성 Supabase 검증 DB 준비 완료"
 
       - name: Guard — 검증 DB 물리 클러스터가 운영과 달라야 함
-        if: inputs.task == 'validate-authority-payment'
+        if: inputs.task == 'validate-authority-payment' || inputs.task == 'validate-checkout-v2'
         env:
           PRODUCTION_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
@@ -324,8 +327,57 @@ jobs:
           echo "Exact release SHA verified; backup artifact decrypts, decompresses, and contains SQL dump markers"
           echo "This check does not prove that the dump can be restored"
 
+      - name: Guard checkout v2 apply — exact SHA and inspectable backup
+        if: inputs.task == 'apply-checkout-v2'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.confirm_sha }}
+          BACKUP_RUN_ID: ${{ inputs.backup_run_id }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          PRODUCTION_APPLY_ACK: ${{ inputs.production_apply_ack }}
+          PAYMENT_LOCKS_ACK: ${{ inputs.payment_locks_ack }}
+          PRODUCTION_DEPLOY_FLAG: ${{ vars.PRODUCTION_DEPLOY_ENABLED }}
+        run: |
+          set -euo pipefail
+          test "$PRODUCTION_APPLY_ACK" = "APPLY_CHECKOUT_V2_TO_PRODUCTION"
+          test "$PAYMENT_LOCKS_ACK" = "PAYMENT_CHECKOUT_AND_RECONCILE_LOCKED"
+          test "$PRODUCTION_DEPLOY_FLAG" = "false"
+          test -n "$EXPECTED_SHA"
+          test "$EXPECTED_SHA" = "$GITHUB_SHA"
+          [[ "$BACKUP_RUN_ID" =~ ^[0-9]+$ ]]
+          test -n "$BACKUP_PASSPHRASE"
+
+          run_json="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$BACKUP_RUN_ID")"
+          echo "$run_json" | jq -e \
+            '(.conclusion == "success") and (.head_branch == "main") and
+             ((.path == ".github/workflows/db-backup.yml") or
+              (.path | startswith(".github/workflows/db-backup.yml@"))) and
+             ((now - (.created_at | fromdateiso8601)) < 86400)' >/dev/null
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$BACKUP_RUN_ID/artifacts" \
+            --jq '[.artifacts[] | select(.name == "db-backup" and .expired == false and .size_in_bytes > 1024)] | length' \
+            | grep -qx '1'
+
+          umask 077
+          backup_dir="$(mktemp -d)"
+          trap 'rm -rf "$backup_dir"' EXIT
+          gh run download "$BACKUP_RUN_ID" --repo "$GITHUB_REPOSITORY" \
+            --name db-backup --dir "$backup_dir"
+          mapfile -d '' backup_files < <(
+            find "$backup_dir" -type f -name 'bellore-*.sql.gz.gpg' -print0
+          )
+          test "${#backup_files[@]}" -eq 1
+          printf '%s' "$BACKUP_PASSPHRASE" | gpg --batch --yes --quiet \
+            --pinentry-mode loopback --passphrase-fd 0 \
+            --output "$backup_dir/backup.sql.gz" --decrypt "${backup_files[0]}"
+          gzip -t "$backup_dir/backup.sql.gz"
+          gzip -cd "$backup_dir/backup.sql.gz" > "$backup_dir/backup.sql"
+          grep -Eq '^-- PostgreSQL database dump|^CREATE (SCHEMA|TABLE)|^COPY ' \
+            "$backup_dir/backup.sql"
+          echo "Checkout v2 release SHA and inspectable backup verified"
+          echo "This check does not prove that the dump can be restored"
+
       - name: Verify all deployed payment Edge locks before production apply
-        if: inputs.task == 'apply-authority-payment'
+        if: inputs.task == 'apply-authority-payment' || inputs.task == 'apply-checkout-v2'
         env:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
@@ -364,7 +416,7 @@ jobs:
           echo "All five deployed payment endpoints are fail-closed before DB/provider access"
 
       - name: Drain in-flight payment operations before production apply
-        if: inputs.task == 'apply-authority-payment'
+        if: inputs.task == 'apply-authority-payment' || inputs.task == 'apply-checkout-v2'
         run: |
           echo "Waiting 180 seconds for pre-lock payment requests to finish"
           sleep 180
@@ -1548,8 +1600,114 @@ jobs:
           SQL
           echo "분리된 검증 DB에서 스키마 컴파일·ACL·결제/환불 멱등 테스트 완료(전체 rollback)"
 
+      - name: Validate checkout v2 migration and fulfillment contract (always rollback)
+        if: inputs.task == 'validate-checkout-v2'
+        run: |
+          set -euo pipefail
+          docker exec --env PGPASSWORD="$PAYMENT_VALIDATION_PASSWORD" \
+            -i "$PAYMENT_VALIDATION_CONTAINER" \
+            psql -h localhost -U supabase_admin -d postgres -X -v ON_ERROR_STOP=1 <<'SQL'
+          begin;
+          set local lock_timeout='5s';
+          set local statement_timeout='2min';
+          \i /repo/supabase/migrations/20260828030000_checkout_fulfillment_method.sql
+
+          do $$
+          begin
+            if not exists (
+              select 1 from information_schema.columns
+               where table_schema='public' and table_name='orders'
+                 and column_name='fulfillment_method' and data_type='text'
+                 and is_nullable='NO' and column_default='''delivery''::text'
+            ) or not exists (
+              select 1 from pg_constraint
+               where conrelid='public.orders'::regclass
+                 and conname='orders_fulfillment_method_check' and convalidated
+            ) or to_regprocedure(
+              'public.create_checkout_order_edge_v2(text,uuid,uuid,text,text,bigint,text,uuid,text,text,text,text,text,text,text,text,jsonb)'
+            ) is null or has_function_privilege(
+              'authenticated',
+              'public.create_checkout_order_edge_v2(text,uuid,uuid,text,text,bigint,text,uuid,text,text,text,text,text,text,text,text,jsonb)',
+              'execute'
+            ) then
+              raise exception 'checkout_v2_contract_verification_failed';
+            end if;
+          end $$;
+
+          set local session_replication_role=replica;
+          insert into auth.users (id)
+          values ('00000000-0000-4000-8000-000000000011'::uuid);
+          insert into public.profiles (id,display_name)
+          values ('00000000-0000-4000-8000-000000000011'::uuid,'checkout v2 검증 판매자');
+          insert into public.listings (
+            id,owner_id,title,description,price,category,status,image_url,image_urls
+          ) values
+            ('00000000-0000-4000-8000-000000000012'::uuid,
+             '00000000-0000-4000-8000-000000000011'::uuid,
+             'checkout v2 직접거래 검증','rollback fixture',5100000,'검증','on_sale','pickup',array['pickup']),
+            ('00000000-0000-4000-8000-000000000013'::uuid,
+             '00000000-0000-4000-8000-000000000011'::uuid,
+             'checkout v2 배송 검증','rollback fixture',5100000,'검증','on_sale','delivery',array['delivery']);
+          set local session_replication_role=origin;
+          set local role service_role;
+          set local request.jwt.claims='{"role":"service_role"}';
+          set local request.jwt.claim.role='service_role';
+
+          select public.create_checkout_order_edge_v2(
+            p_rate_key=>repeat('1',64), p_customer_id=>null,
+            p_listing_id=>'00000000-0000-4000-8000-000000000012'::uuid,
+            p_checkout_request_key_hash=>repeat('2',64), p_checkout_token_hash=>repeat('3',64),
+            p_expected_amount=>5100000, p_fulfillment_method=>'pickup',
+            p_buyer_name=>'검증 구매자', p_buyer_phone=>'01000000000',
+            p_ship_recipient=>'저장되면 안 됨', p_ship_phone=>'01099999999',
+            p_ship_postcode=>'99999', p_ship_addr1=>'저장되면 안 됨',
+            p_ship_addr2=>'저장되면 안 됨', p_ship_request=>'저장되면 안 됨'
+          ) as pickup_contract \gset
+          select (
+            :'pickup_contract'::jsonb->>'fulfillmentMethod'='pickup'
+            and (select fulfillment_method='pickup'
+                  and ship_recipient is null and ship_phone is null
+                  and ship_postcode is null and ship_addr1 is null
+                  and ship_addr2 is null and ship_request is null
+                   from public.orders
+                  where order_no = (:'pickup_contract'::jsonb->>'orderNo'))
+          ) as pickup_contract_ok \gset
+          \if :pickup_contract_ok
+            \echo 'pickup fulfillment and null shipping normalization verified'
+          \else
+            \quit 1
+          \endif
+
+          select public.create_checkout_order_edge_v2(
+            p_rate_key=>repeat('4',64), p_customer_id=>null,
+            p_listing_id=>'00000000-0000-4000-8000-000000000013'::uuid,
+            p_checkout_request_key_hash=>repeat('5',64), p_checkout_token_hash=>repeat('6',64),
+            p_expected_amount=>5135000, p_fulfillment_method=>'delivery',
+            p_buyer_name=>'검증 구매자', p_buyer_phone=>'01000000000',
+            p_ship_recipient=>'검증 수령인', p_ship_phone=>'01000000000',
+            p_ship_postcode=>'00000', p_ship_addr1=>'검증 주소'
+          ) as delivery_contract \gset
+          select (
+            :'delivery_contract'::jsonb->>'fulfillmentMethod'='delivery'
+            and (:'delivery_contract'::jsonb->>'amount')::bigint=5135000
+            and (select fulfillment_method='delivery' and ship_addr1='검증 주소'
+                   from public.orders
+                  where order_no = (:'delivery_contract'::jsonb->>'orderNo'))
+          ) as delivery_contract_ok \gset
+          \if :delivery_contract_ok
+            \echo 'delivery fulfillment and premium shipping amount verified'
+          \else
+            \quit 1
+          \endif
+
+          reset role;
+          set constraints all immediate;
+          rollback;
+          SQL
+          echo "Checkout v2 schema and delivery/pickup contracts verified (entire transaction rolled back)"
+
       - name: Cleanup — 일회성 Supabase 검증 DB
-        if: always() && inputs.task == 'validate-authority-payment'
+        if: always() && (inputs.task == 'validate-authority-payment' || inputs.task == 'validate-checkout-v2')
         run: |
           set -euo pipefail
           docker rm --force bellore-payment-validation-db >/dev/null 2>&1 || true
@@ -2296,6 +2454,174 @@ jobs:
             -c "select attempt_count from public.checkout_rate_limits where key_hash='$RATE_KEY'")"
           test "$stored_count" = 5
           echo "Concurrent checkout rate limit verified: allowed=5 limited=5 stored=5"
+
+      - name: Apply checkout v2 fulfillment migration
+        if: inputs.task == 'apply-checkout-v2'
+        env:
+          PGCONN: ${{ secrets.SUPABASE_DB_URL }}
+          PGCONNECT_TIMEOUT: "10"
+          PGOPTIONS: "-c lock_timeout=5000 -c statement_timeout=120000 -c idle_in_transaction_session_timeout=180000"
+        run: |
+          set -euo pipefail
+          docker run --rm -i -e PGCONN -e PGCONNECT_TIMEOUT -e PGOPTIONS \
+            -v "$PWD:/repo:ro" postgres:17 \
+            psql "$PGCONN" -X -v ON_ERROR_STOP=1 <<'SQL'
+          begin;
+          do $$
+          declare
+            v_recorded boolean;
+            v_target_object_count integer;
+          begin
+            if to_regclass('supabase_migrations.schema_migrations') is null then
+              raise exception 'migration_ledger_missing';
+            end if;
+            if exists (
+              select 1 from supabase_migrations.schema_migrations
+               where version='20260828030000'
+                 and name<>'checkout_fulfillment_method'
+            ) then
+              raise exception 'checkout_v2_migration_version_name_collision';
+            end if;
+            select exists (
+              select 1 from supabase_migrations.schema_migrations
+               where version='20260828030000'
+                 and name='checkout_fulfillment_method'
+            ) into v_recorded;
+            select
+              (case when exists (
+                select 1 from information_schema.columns
+                 where table_schema='public' and table_name='orders'
+                   and column_name='fulfillment_method'
+              ) then 1 else 0 end)
+              + (case when exists (
+                select 1 from pg_constraint
+                 where conrelid='public.orders'::regclass
+                   and conname='orders_fulfillment_method_check'
+              ) then 1 else 0 end)
+              + (case when to_regprocedure(
+                'public.create_checkout_order_paid_only_v2(uuid,text,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)'
+              ) is not null then 1 else 0 end)
+              + (case when to_regprocedure(
+                'public.create_checkout_order_edge_v2(text,uuid,uuid,text,text,bigint,text,uuid,text,text,text,text,text,text,text,text,jsonb)'
+              ) is not null then 1 else 0 end)
+              into v_target_object_count;
+            if v_recorded then
+              raise exception 'checkout_v2_migration_already_recorded_use_verify';
+            end if;
+            if v_target_object_count <> 0 then
+              raise exception 'checkout_v2_partial_schema_detected';
+            end if;
+            if to_regprocedure(
+              'public.create_checkout_order_edge_v1(text,uuid,uuid,text,text,bigint,uuid,text,text,text,text,text,text,text,text,jsonb)'
+            ) is null then
+              raise exception 'checkout_v2_baseline_missing';
+            end if;
+          end $$;
+
+          \i /repo/supabase/migrations/20260828030000_checkout_fulfillment_method.sql
+          insert into supabase_migrations.schema_migrations(version,name,statements)
+          values ('20260828030000','checkout_fulfillment_method',array[]::text[]);
+
+          do $$
+          begin
+            if not exists (
+              select 1 from information_schema.columns
+               where table_schema='public' and table_name='orders'
+                 and column_name='fulfillment_method' and data_type='text'
+                 and is_nullable='NO' and column_default='''delivery''::text'
+            ) or not exists (
+              select 1 from pg_constraint
+               where conrelid='public.orders'::regclass
+                 and conname='orders_fulfillment_method_check' and convalidated
+            ) or to_regprocedure(
+              'public.create_checkout_order_paid_only_v2(uuid,text,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)'
+            ) is null or to_regprocedure(
+              'public.create_checkout_order_edge_v2(text,uuid,uuid,text,text,bigint,text,uuid,text,text,text,text,text,text,text,text,jsonb)'
+            ) is null or has_function_privilege(
+              'anon',
+              'public.create_checkout_order_edge_v2(text,uuid,uuid,text,text,bigint,text,uuid,text,text,text,text,text,text,text,text,jsonb)',
+              'execute'
+            ) or has_function_privilege(
+              'authenticated',
+              'public.create_checkout_order_edge_v2(text,uuid,uuid,text,text,bigint,text,uuid,text,text,text,text,text,text,text,text,jsonb)',
+              'execute'
+            ) or not has_function_privilege(
+              'service_role',
+              'public.create_checkout_order_edge_v2(text,uuid,uuid,text,text,bigint,text,uuid,text,text,text,text,text,text,text,text,jsonb)',
+              'execute'
+            ) then
+              raise exception 'checkout_v2_post_apply_verification_failed';
+            end if;
+          end $$;
+          commit;
+          SQL
+          echo "Checkout v2 migration applied and recorded atomically"
+
+      - name: Verify live checkout v2 fulfillment contract
+        if: inputs.task == 'apply-checkout-v2' || inputs.task == 'verify-checkout-v2-live'
+        env:
+          PGCONN: ${{ secrets.SUPABASE_DB_URL }}
+          PGCONNECT_TIMEOUT: "10"
+          PGOPTIONS: "-c statement_timeout=30000"
+        run: |
+          set -euo pipefail
+          docker run --rm -i -e PGCONN -e PGCONNECT_TIMEOUT -e PGOPTIONS \
+            postgres:17 psql "$PGCONN" -X -v ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          begin
+            if (select count(*) from supabase_migrations.schema_migrations
+                 where version='20260828030000'
+                   and name='checkout_fulfillment_method') <> 1
+               or not exists (
+                 select 1 from information_schema.columns
+                  where table_schema='public' and table_name='orders'
+                    and column_name='fulfillment_method' and data_type='text'
+                    and is_nullable='NO' and column_default='''delivery''::text'
+               ) or exists (
+                 select 1 from public.orders
+                  where fulfillment_method is null
+                     or fulfillment_method not in ('delivery','pickup')
+                     or (fulfillment_method='pickup' and (
+                       ship_recipient is not null or ship_phone is not null
+                       or ship_postcode is not null or ship_addr1 is not null
+                       or ship_addr2 is not null or ship_request is not null
+                     ))
+               ) or not exists (
+                 select 1 from pg_constraint
+                  where conrelid='public.orders'::regclass
+                    and conname='orders_fulfillment_method_check' and convalidated
+               ) or to_regprocedure(
+                 'public.create_checkout_order_paid_only_v2(uuid,text,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)'
+               ) is null or to_regprocedure(
+                 'public.create_checkout_order_edge_v2(text,uuid,uuid,text,text,bigint,text,uuid,text,text,text,text,text,text,text,text,jsonb)'
+               ) is null or has_function_privilege(
+                 'anon',
+                 'public.create_checkout_order_edge_v2(text,uuid,uuid,text,text,bigint,text,uuid,text,text,text,text,text,text,text,text,jsonb)',
+                 'execute'
+               ) or has_function_privilege(
+                 'authenticated',
+                 'public.create_checkout_order_edge_v2(text,uuid,uuid,text,text,bigint,text,uuid,text,text,text,text,text,text,text,text,jsonb)',
+                 'execute'
+               ) or not has_function_privilege(
+                 'service_role',
+                 'public.create_checkout_order_edge_v2(text,uuid,uuid,text,text,bigint,text,uuid,text,text,text,text,text,text,text,text,jsonb)',
+                 'execute'
+               ) or position('p_fulfillment_method' in pg_get_functiondef(
+                 'public.create_checkout_order_paid_only_v2(uuid,text,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)'::regprocedure
+               )) = 0 or position('p_ship_recipient' in pg_get_functiondef(
+                 'public.create_checkout_order_paid_only_v2(uuid,text,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)'::regprocedure
+               )) = 0 or position('pickup' in pg_get_functiondef(
+                 'public.create_checkout_order_paid_only_v2(uuid,text,text,uuid,text,text,text,text,text,text,text,text,jsonb,uuid)'::regprocedure
+               )) = 0 then
+              raise exception 'checkout_v2_live_contract_verification_failed';
+            end if;
+          end $$;
+          select count(*) as checkout_v2_orders,
+                 count(*) filter (where fulfillment_method='pickup') as pickup_orders,
+                 count(*) filter (where fulfillment_method='delivery') as delivery_orders
+            from public.orders where payment_contract_version=2;
+          SQL
+          echo "Live checkout v2 ledger, schema, ACL, mapper contract, and row normalization verified"
 
       - name: Guard catalog apply — exact SHA and verified backup
         if: inputs.task == 'apply-catalog-product'

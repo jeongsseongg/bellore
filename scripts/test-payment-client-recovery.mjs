@@ -128,6 +128,7 @@ const recreated = await checkoutClient.create({
     }
     return new Response(JSON.stringify({
       orderNo: 'BLR-NEW-1', amount: 1300,
+      fulfillmentMethod: 'delivery',
       checkoutRequestKey: newAttempt.requestKey, checkoutToken: newAttempt.checkoutToken,
     }), { status: 200 });
   },

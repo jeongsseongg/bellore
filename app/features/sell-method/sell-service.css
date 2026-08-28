@@ -1,0 +1,48 @@
+.sell-details-back {
+  display: none;
+  width: max-content;
+  margin: 0 0 14px;
+  padding: 9px 13px;
+  border: 1px solid #d9dedb;
+  border-radius: 999px;
+  background: #fff;
+  color: #22352e;
+  font: inherit;
+  font-weight: 700;
+}
+
+.sell-method__form-mount.is-guided-details .sell-details-back {
+  display: block;
+}
+
+.sell-method-process {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 14px;
+  border: 1px solid #dfe4e1;
+  border-radius: 16px;
+  background: #f3f7f5;
+  list-style: none;
+}
+
+.sell-method-process li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #405049;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.sell-method-process span {
+  flex: 0 0 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #19352c;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 22px;
+  text-align: center;
+}

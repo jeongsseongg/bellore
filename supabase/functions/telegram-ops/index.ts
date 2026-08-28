@@ -7,6 +7,12 @@ import {
   parseOrderCommand,
   parseQuoteCommand,
 } from '../_shared/telegram-ops-core.mjs';
+import {
+  formatChatAmount,
+  formatOutboxMessage,
+  friendlyActionError,
+  outboxMediaUrls,
+} from './telegram-ops-v6-core.mjs';
 
 const env = (name: string) => Deno.env.get(name) ?? '';
 const SUPABASE_URL = env('SUPABASE_URL').replace(/\/$/, '');
@@ -77,6 +83,34 @@ async function sendText(chatId: string, text: string, replyMarkup?: Json) {
   });
 }
 
+async function sendTelegramOutbox(chatId: string, row: Outbox) {
+  const message = formatOutboxMessage(row);
+  const photos = outboxMediaUrls(row);
+  if (!photos.length) return await sendText(chatId, message);
+
+  try {
+    if (photos.length === 1) {
+      return await telegram('sendPhoto', {
+        chat_id: chatId,
+        photo: photos[0],
+        caption: message.slice(0, 1024),
+      });
+    }
+    return await telegram('sendMediaGroup', {
+      chat_id: chatId,
+      media: photos.map((photo: string, index: number) => ({
+        type: 'photo',
+        media: photo,
+        ...(index === 0 ? { caption: message.slice(0, 1024) } : {}),
+      })),
+    });
+  } catch (error) {
+    const safeError = String(error instanceof Error ? error.message : error).slice(0, 240);
+    console.error('telegram_media_delivery_failed', row.id, row.event_type, safeError);
+    return await sendText(chatId, `${message}\n\n⚠️ 사진을 불러오지 못해 내용만 전송했습니다.`);
+  }
+}
+
 async function solapiAuth() {
   const date = new Date().toISOString();
   const salt = crypto.randomUUID().replaceAll('-', '');
@@ -144,65 +178,6 @@ async function sendKakao(eventType: string, payload: Json) {
   return output;
 }
 
-function formatOutboxMessage(row: Outbox) {
-  const p = row.payload;
-  if (row.event_type === 'quote_received') {
-    return [
-      '⌚ 새 비교견적 양식',
-      `입력키: ${p.inputKey}`,
-      `시계: ${String(p.brand || '')} ${String(p.model || '')}`.trim(),
-      `종료: ${new Date(String(p.expiresAt)).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`,
-      '',
-      `입력 예: ${p.inputKey} 500  (500만원)`,
-    ].join('\n');
-  }
-  if (row.event_type === 'order_paid') {
-    return [
-      '🧾 결제 완료 주문',
-      `입력키: ${p.inputKey}`,
-      `주문번호: ${p.orderNo}`,
-      `상품: ${p.productName}`,
-      `결제금액: ${formatWon(p.amount)}`,
-      `구매자: ${p.buyerName || '-'} / ${p.buyerPhone || '-'}`,
-      '',
-      `승인 입력: ${p.inputKey}`,
-    ].join('\n');
-  }
-  if (row.event_type === 'vendor_bid') {
-    return [
-      '💰 업체 가격 제안',
-      `입력키: ${p.inputKey}`,
-      `업체: ${p.company || '업체'}`,
-      `전화: ${p.phone || '-'}`,
-      `금액: ${formatWon(p.amount)}`,
-    ].join('\n');
-  }
-  if (row.event_type === 'quote_final_report') {
-    const vendorLines = Array.isArray(p.externalVendors)
-      ? p.externalVendors.flatMap((vendor: Json, i: number) => {
-        const offers = Array.isArray(vendor.offers)
-          ? vendor.offers.map((offer: Json) => formatWon(offer.amount)).join(', ') : '-';
-        return [`${i + 1}. ${vendor.company || '업체'} / ${vendor.phone || '-'}`, `   ${offers}`];
-      }) : [];
-    const bellore = Array.isArray(p.belloreOffers)
-      ? p.belloreOffers.map((offer: Json) => `${offer.round || '-'}차 ${formatWon(offer.amount)}`).join(', ')
-      : '-';
-    return [
-      '🏁 비교견적 72시간 최종보고',
-      `입력키: ${p.inputKey}`,
-      `전체 제안: ${p.totalOfferCount || 0}건`,
-      `외부 업체 제안: ${p.externalOfferCount || 0}건 / ${p.externalVendorCount || 0}개 업체`,
-      `최고 제안금액: ${formatWon(p.highestAmount)}`,
-      '',
-      '참여 업체',
-      ...(vendorLines.length ? vendorLines : ['- 참여 업체 없음']),
-      '',
-      `벨로르 텔레그램 제안: ${bellore || '-'}`,
-    ].join('\n');
-  }
-  throw new Error(`UNKNOWN_OUTBOX_EVENT:${row.event_type}`);
-}
-
 async function finishOutbox(id: string, success: boolean, providerId = '', error = '') {
   await rpc('telegram_ops_finish_outbox', {
     p_id: id, p_success: success, p_provider_message_id: providerId, p_error: error,
@@ -221,8 +196,10 @@ async function drainOutbox() {
         providerId = String(result.groupId || result.messageId || 'solapi');
       } else {
         const chatId = row.target === 'order_room' ? ORDER_CHAT_ID : QUOTE_CHAT_ID;
-        const result = await sendText(chatId, formatOutboxMessage(row)) as Json;
-        providerId = String(result.message_id || 'telegram');
+        const result = await sendTelegramOutbox(chatId, row) as Json | Json[];
+        providerId = Array.isArray(result)
+          ? result.map((message) => message.message_id).filter(Boolean).join(',') || 'telegram_album'
+          : String(result.message_id || 'telegram');
       }
       await finishOutbox(row.id, true, providerId);
       sent++;
@@ -258,27 +235,39 @@ async function handleMessage(update: Json) {
   if (chatId === QUOTE_CHAT_ID) {
     const command = parseQuoteCommand(text);
     if (!command) {
-      await sendText(chatId, '형식: 입력키 금액\n예: 4821 500 (500만원)');
+      await sendText(chatId, [
+        '입력을 이해하지 못했어요.',
+        '견적을 제안하려면 「4자리 입력키 + 금액」을 보내주세요.',
+        '예) 3751 500 → 500만원 견적',
+      ].join('\n'));
       return;
     }
+    const amountText = formatChatAmount(command.amount);
     await sendText(chatId, [
-      '견적을 등록할까요?',
-      `입력키: ${command.inputKey}`,
-      `금액: ${formatWon(command.amount)}`,
+      `💬 ${amountText}의 견적을 제안할까요?`,
+      `시계 입력키: ${command.inputKey}`,
+      '아래 확인 버튼을 누르면 고객 견적에 반영됩니다.',
     ].join('\n'), { inline_keyboard: [[
-      { text: '견적 등록', callback_data: buildQuoteCallback(command.inputKey, command.amount) },
-      { text: '취소', callback_data: 'cancel' },
+      { text: `네, ${amountText} 제안`, callback_data: buildQuoteCallback(command.inputKey, command.amount) },
+      { text: '아니요, 취소', callback_data: 'cancel' },
     ]] });
   } else if (chatId === ORDER_CHAT_ID) {
     const command = parseOrderCommand(text);
     if (!command) {
-      await sendText(chatId, '형식: 4자리 입력키\n예: 4821');
+      await sendText(chatId, [
+        '입력을 이해하지 못했어요.',
+        '주문을 승인하려면 4자리 입력키만 보내주세요.',
+        '예) 7471',
+      ].join('\n'));
       return;
     }
-    await sendText(chatId, `주문 ${command.inputKey}를 검수 단계로 승인할까요?`, {
+    await sendText(chatId, [
+      `📦 입력키 ${command.inputKey} 주문을 승인할까요?`,
+      '승인하면 결제 완료 주문이 상품 검수 단계로 이동합니다.',
+    ].join('\n'), {
       inline_keyboard: [[
-        { text: '주문 승인', callback_data: buildOrderCallback(command.inputKey) },
-        { text: '취소', callback_data: 'cancel' },
+        { text: '네, 주문 승인', callback_data: buildOrderCallback(command.inputKey) },
+        { text: '아니요, 취소', callback_data: 'cancel' },
       ]],
     });
   }
@@ -302,6 +291,7 @@ async function handleCallback(update: Json) {
   }
   if (parsed.kind === 'cancel') {
     await telegram('answerCallbackQuery', { callback_query_id: callback.id, text: '취소했습니다.' });
+    if (chatId) await sendText(chatId, '취소했습니다. 변경된 내용은 없습니다.');
     return;
   }
 
@@ -314,22 +304,33 @@ async function handleCallback(update: Json) {
         p_admin_profile_id: BELLORE_PROFILE_ID, p_actor_telegram_id: String(actor.id),
         p_chat_id: chatId, p_dedupe_key: `telegram:${String(update.update_id)}`,
       }) as Json;
-      await sendText(chatId, `등록 완료 · ${result.round}차 · ${formatWon(result.amount)}`);
+      await sendText(chatId, [
+        `✅ ${formatChatAmount(result.amount)}의 견적을 제안했습니다.`,
+        `이번 제안: ${result.round}차 견적`,
+        `시계 입력키: ${parsed.inputKey}`,
+        '고객 마이페이지 견적에 반영되었습니다.',
+      ].join('\n'));
     } else {
       if (chatId !== ORDER_CHAT_ID) throw new Error('WRONG_CHAT');
       result = await rpc('telegram_ops_approve_order', {
         p_input_key: parsed.inputKey, p_actor_telegram_id: String(actor.id),
         p_chat_id: chatId, p_dedupe_key: `telegram:${String(update.update_id)}`,
       }) as Json;
-      await sendText(chatId, `주문 승인 완료 · ${result.orderNo} · 검수 단계`);
+      await sendText(chatId, [
+        '✅ 주문이 승인되었습니다.',
+        `주문번호: ${result.orderNo}`,
+        '현재 단계: 상품 검수',
+      ].join('\n'));
     }
     await telegram('answerCallbackQuery', { callback_query_id: callback.id, text: '처리 완료' });
   } catch (error) {
     const messageText = String(error instanceof Error ? error.message : error).slice(0, 180);
+    const friendlyMessage = friendlyActionError(error);
     console.error('telegram_action_failed', update.update_id, messageText);
     await telegram('answerCallbackQuery', {
-      callback_query_id: callback.id, text: `처리 실패: ${messageText}`, show_alert: true,
+      callback_query_id: callback.id, text: friendlyMessage, show_alert: true,
     });
+    if (chatId) await sendText(chatId, `⚠️ ${friendlyMessage}`);
   }
 }
 

@@ -135,6 +135,7 @@ function publicCheckoutError(error: RpcError): { code: string; status: number } 
     ["coupon_invalid", 409],
     ["coupon_reserved", 409],
     ["guest_coupon_not_allowed", 403],
+    ["checkout_fulfillment_invalid", 400],
     ["checkout_shipping_required", 400],
     ["checkout_amount_changed", 409],
     ["checkout_amount_too_small", 409],
@@ -254,17 +255,24 @@ Deno.serve(async (req) => {
     }
     const buyerName = safeText(body.buyerName, 120);
     const buyerPhone = safeText(body.buyerPhone, 40);
-    const shipRecipient = safeText(body.shipRecipient, 120);
-    const shipPhone = safeText(body.shipPhone, 40);
-    const shipPostcode = safeText(body.shipPostcode, 20);
-    const shipAddr1 = safeText(body.shipAddr1, 300);
-    if (!buyerName || !buyerPhone || !shipRecipient || !shipPhone || !shipPostcode || !shipAddr1) {
+    const fulfillmentMethod = safeText(body.fulfillmentMethod, 20) ?? "delivery";
+    if (fulfillmentMethod !== "delivery" && fulfillmentMethod !== "pickup") {
+      return json(req, { error: "checkout_fulfillment_invalid" }, 400);
+    }
+    const shipRecipient = fulfillmentMethod === "pickup" ? null : safeText(body.shipRecipient, 120);
+    const shipPhone = fulfillmentMethod === "pickup" ? null : safeText(body.shipPhone, 40);
+    const shipPostcode = fulfillmentMethod === "pickup" ? null : safeText(body.shipPostcode, 20);
+    const shipAddr1 = fulfillmentMethod === "pickup" ? null : safeText(body.shipAddr1, 300);
+    const shipAddr2 = fulfillmentMethod === "pickup" ? null : safeText(body.shipAddr2, 300);
+    const shipRequest = fulfillmentMethod === "pickup" ? null : safeText(body.shipRequest, 300);
+    if (!buyerName || !buyerPhone || (fulfillmentMethod === "delivery" &&
+      (!shipRecipient || !shipPhone || !shipPostcode || !shipAddr1))) {
       return json(req, { error: "checkout_shipping_required" }, 400);
     }
 
     const rateKey = await sha256Hex(`checkout-ip-v1\0${RATE_KEY_SECRET}\0${clientIp}`);
 
-    const { data, error } = await admin.rpc("create_checkout_order_edge_v1", {
+    const { data, error } = await admin.rpc("create_checkout_order_edge_v2", {
       p_rate_key: rateKey,
       p_customer_id: caller.callerId,
       p_listing_id: listingId,
@@ -274,12 +282,13 @@ Deno.serve(async (req) => {
       p_coupon_user_id: couponUserId,
       p_buyer_name: buyerName,
       p_buyer_phone: buyerPhone,
+      p_fulfillment_method: fulfillmentMethod,
       p_ship_recipient: shipRecipient,
       p_ship_phone: shipPhone,
       p_ship_postcode: shipPostcode,
       p_ship_addr1: shipAddr1,
-      p_ship_addr2: safeText(body.shipAddr2, 300),
-      p_ship_request: safeText(body.shipRequest, 300),
+      p_ship_addr2: shipAddr2,
+      p_ship_request: shipRequest,
       p_attribution: sanitizeAttribution(body.attribution),
     });
     if (error) {
@@ -305,8 +314,10 @@ Deno.serve(async (req) => {
     const payType = safeText(order?.payType, 20);
     const reservationMode = safeText(order?.reservationMode, 40);
     const paymentContractVersion = Number(order?.paymentContractVersion);
+    const responseFulfillmentMethod = safeText(order?.fulfillmentMethod, 20);
     if (!orderNo || !Number.isSafeInteger(amount) || amount < 100 ||
       responseListingId !== listingId || payType !== "full" ||
+      responseFulfillmentMethod !== fulfillmentMethod ||
       reservationMode !== "paid_only" || paymentContractVersion !== 2) {
       console.error("create-checkout rpc returned an invalid public order");
       return json(req, { error: "checkout_response_invalid" }, 502);
@@ -317,6 +328,7 @@ Deno.serve(async (req) => {
       amount,
       payType,
       listingId: responseListingId,
+      fulfillmentMethod: responseFulfillmentMethod,
       reservationMode,
       paymentContractVersion,
       checkoutRequestKey,

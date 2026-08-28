@@ -11,7 +11,9 @@ const COMMON_MENUS = Object.freeze([
 ]);
 
 const COMMON_CONTENT = Object.freeze({
+  blockOrder: ['header', 'order', 'banner', 'trade', 'activity', 'footer'],
   profile: {
+    pageTitle: '마이페이지',
     name: '정성호',
     notificationCount: '3'
   },
@@ -22,11 +24,14 @@ const COMMON_CONTENT = Object.freeze({
   ],
   order: {
     visible: true,
+    sectionTitle: '최근 주문',
     status: '배송 중',
     name: '롤렉스 서브마리너 데이트',
     orderNumber: 'BE-260826-0184',
     courier: '우체국택배 · 6079-21**-****',
-    image: ORDER_IMAGE
+    image: ORDER_IMAGE,
+    primaryAction: '배송 조회',
+    secondaryAction: '주문 상세'
   },
   banner: {
     visible: false,
@@ -35,8 +40,13 @@ const COMMON_CONTENT = Object.freeze({
     image: ''
   },
   footer: {
+    description: '명품시계 거래 · 통신판매중개',
     phone: '010-6293-6668',
     hours: '평일 11:00 ~ 19:00 · 24시간 상담 접수'
+  },
+  labels: {
+    tradeHeading: '거래',
+    activityHeading: '내 활동'
   }
 });
 

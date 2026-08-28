@@ -118,6 +118,40 @@
         "$env:PYTHONUTF8='1'; $env:PYTHONIOENCODING='utf-8'; python"
       ],
       "why": "한글 작업 경로에서도 Brain 훅이 입력을 읽지 못한 채 fail-open하지 않고 구매바 등 승인 불변식을 실제 검사하게 한다."
+    },
+    {
+      "id": "mypage-root-is-single-composition",
+      "files": ["index.html", "pages/mypage.html", "scripts/test-mypage-standalone.mjs"],
+      "must_contain": [
+        "id=\"myPageModal\"",
+        "the compatibility route must not duplicate the mypage interface"
+      ],
+      "why": "마이페이지와 루트 지원 UI를 다른 문서에 복제하면 설정·주문·관리자 계약이 다시 끊긴다."
+    },
+    {
+      "id": "mypage-entry-server-auth-first",
+      "files": ["script.js", "app/pages/standalone-page.js", "scripts/test-mypage-standalone.mjs"],
+      "must_contain": [
+        "function verifyMypageUser()",
+        "window.location.replace('/?view=mypage')",
+        "the visible MY controls use the same server-verified gate"
+      ],
+      "why": "직접 URL과 MY 버튼 모두 서버 getUser 확인 뒤 같은 루트 정본을 열어야 한다."
+    },
+    {
+      "id": "selected-runtime-artifact-contract",
+      "files": [
+        "tools/build-pages.mjs",
+        "sw.js",
+        "scripts/test-checkout-v2-safety.mjs",
+        "scripts/test-home-layout-runtime.mjs"
+      ],
+      "must_contain": [
+        "app/features/checkout/checkout-presentation.js",
+        "app/features/home-layout/home-layout.js",
+        "must be copied to the Pages artifact"
+      ],
+      "why": "소스에만 있고 빌드·캐시에 없는 서버/프런트 계약 회귀를 막는다."
     }
   ]
 }

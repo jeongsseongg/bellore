@@ -1,16 +1,19 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
 
 const root = path.resolve(__dirname, '..');
 const css = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-method.css'), 'utf8');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const script = fs.readFileSync(path.join(root, 'script.js'), 'utf8');
 const moduleJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-method.js'), 'utf8');
+const contentJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-content.js'), 'utf8');
 const draftOwnerJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-draft-owner.js'), 'utf8');
 const referenceJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-reference-controller.js'), 'utf8');
 const quoteJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-quote-controller.js'), 'utf8');
 const quoteCss = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-quotes.css'), 'utf8');
+const sellServiceCss = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-service.css'), 'utf8');
 const serviceJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-service-pages.js'), 'utf8');
 const serviceCss = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-service-pages.css'), 'utf8');
 const serviceActionCss = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-service-action.css'), 'utf8');
@@ -21,6 +24,16 @@ const backendJs = fs.readFileSync(path.join(root, 'app/services/sell/sell-reques
 const bootstrapJs = fs.readFileSync(path.join(root, 'app/bootstrap.js'), 'utf8');
 const guestEdge = fs.readFileSync(path.join(root, 'supabase/functions/sell-request-access/index.ts'), 'utf8');
 const guestMigration = fs.readFileSync(path.join(root, 'supabase/migrations/20260826234000_sell_request_guest_access.sql'), 'utf8');
+const build = fs.readFileSync(path.join(root, 'tools/build-pages.mjs'), 'utf8');
+const sw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
+
+function evaluateExport(source, name) {
+  const runnable = `(function () {\n${source.replace(/^export /gm, '')}\nreturn ${name};\n})()`;
+  return vm.runInNewContext(runnable, {});
+}
+
+const sellContent = evaluateExport(contentJs, 'SELL_METHOD_CONTENT');
+const mergeSellModelSuggestions = evaluateExport(referenceJs, 'mergeSellModelSuggestions');
 
 const sheetRule = css.match(/\.sell-method__sheet\s*\{([\s\S]*?)\}/)?.[1] || '';
 
@@ -77,6 +90,16 @@ assert.match(css, /\.sell-method__form-mount\.is-guided-details[\s\S]*?#sellWatc
 assert.match(moduleJs, /stage:\s*entryMode,\s*guideComplete/, 'the completed guided stage is persisted with the draft');
 assert.match(referenceJs, /subscribeProducts/, 'reference previews use the live Bellore listing catalog');
 assert.match(referenceJs, /function render\(/, 'reference previews are filtered after brand and model selection');
+const brand = { name: '롤렉스', eng: 'ROLEX', models: ['데이트저스트'] };
+const brandBefore = JSON.stringify(brand);
+const mergedModels = mergeSellModelSuggestions(brand, [
+  { brand: 'ROLEX', model: '스카이드웰러' },
+  { brand: '롤렉스', modelName: '데이트저스트' },
+  { brand: 'OMEGA', model: '씨마스터' }
+]);
+assert.deepEqual(Array.from(mergedModels), ['데이트저스트', '스카이드웰러'], 'live listings extend only the matching brand model suggestions');
+assert.equal(JSON.stringify(brand), brandBefore, 'live listing models never mutate the canonical Bellore brand object');
+assert.doesNotMatch(referenceJs, /\.models\.push\(/, 'live model expansion cannot push into BELLORE_BRANDS arrays');
 assert.match(quoteCss, /\.sell-guide__preview--text/, 'reference and year rows do not render circular initials');
 assert.match(quoteCss, /\.sell-method__quote-status\s*\{\s*display:\s*none/, 'the old inline quote status card stays hidden');
 assert.match(quoteJs, /data-sell-view="quotes"/, 'quote details stay inside the fixed sell sheet');
@@ -106,6 +129,15 @@ assert.match(serviceActionCss, /max-width:\s*var\(--app-panel-w,\s*660px\)/, 'ne
 assert.match(serviceActionCss, /\.sell-service-action__methods img[\s\S]*?object-fit:\s*cover/, 'transaction artwork fills the compact method cards');
 assert.match(serviceCss, /\.sell-service__status--blue[\s\S]*?#eef6ff/, 'all service status cards use the common blue surface');
 assert.doesNotMatch(serviceCss, /#(?:fff7ed|fff5e9|a95f12|a85d10|efd7b9)/i, 'gold and orange accents cannot return to sell service pages');
+assert.equal(sellContent.consignment.note, '판매 성사 시 판매금액의 7% 수수료가 발생합니다.', 'the canonical consignment copy discloses the approved seven-percent fee');
+assert.deepEqual(Array.from(sellContent.consignment.steps), ['벨로르 판매금액 안내', '금액·7% 수수료 확인 후 수락', '택배·퀵·방문으로 시계 전달', '실물 검수 후 판매 개시'], 'consignment follows offer, acceptance, handoff, then inspection');
+assert.match(sellContent.instant.note, /감가 사유.*최종 매입금액/, 'instant purchase discloses the depreciation reason and final amount');
+assert.match(moduleJs, /SELL_METHOD_CONTENT/, 'the sell form reads the single canonical content module');
+assert.doesNotMatch(moduleJs, /const METHOD_CONTENT\s*=/, 'sell-method no longer keeps a second copy of the method content');
+assert.match(moduleJs, /detailsBack\?\.addEventListener[\s\S]*showAccessoryQuestion\(ACCESSORY_QUESTIONS\.length - 1\)/, 'the photo stage can return to the last guided question');
+assert.match(html, /id="sellDetailsBack"/, 'the guided form renders the last-question control');
+assert.match(html, /id="sellMethodProcess"/, 'the selected method renders its canonical process');
+assert.match(sellServiceCss, /\.sell-method__form-mount\.is-guided-details \.sell-details-back/, 'the last-question control is visible only on the photo/details stage');
 assert.doesNotMatch(script, /saleMethod === 'consignment' && !desiredPrice/, 'consignment no longer asks the customer to choose a price first');
 assert.match(script, /NWBackend\.createSellRequest/, 'all three sell methods use the server request path');
 assert.match(script, /NWBackend\.createSellRequest\([\s\S]*?\.then\(function \(result\) \{[\s\S]*?sendAdminLead\(\)/, 'the supplemental inquiry is sent only after the durable server request succeeds');
@@ -120,7 +152,17 @@ assert.match(
   /installSellRequestAccess\(\{[\s\S]*?backend:\s*window\.NWBackend,[\s\S]*?getClient:\s*\(\)\s*=>\s*window\.sbClient,[\s\S]*?window,[\s\S]*?\}\);/,
   'the sell request client receives the live backend and Supabase client instead of silently skipping installation'
 );
-assert.match(html, /app\/bootstrap\.js\?v=20260828-phone-auth-paths-v1/, 'the repaired bootstrap uses the current browser cache key');
+const bootstrapUrl = html.match(/src=["'](app\/bootstrap\.js\?v=[^"']+)["']/)?.[1];
+const sellContentUrl = moduleJs.match(/from ["'](\.\/sell-content\.js\?v=[^"']+)["']/)?.[1];
+const sellServiceStyleUrl = html.match(/href=["'](app\/features\/sell-method\/sell-service\.css\?v=[^"']+)["']/)?.[1];
+assert(bootstrapUrl, 'the repaired bootstrap uses a browser cache key');
+assert(sellContentUrl, 'the sell controller imports the canonical content with a cache key');
+assert(sellServiceStyleUrl, 'the sell service stylesheet has a cache key');
+for (const file of ['app/features/sell-method/sell-content.js', 'app/features/sell-method/sell-service.css']) {
+  assert(build.includes(`'${file}'`), `${file} must be copied to the Pages artifact`);
+}
+assert(sw.includes(`./app/features/sell-method/${sellContentUrl.replace('./', '')}`));
+assert(sw.includes(`./${sellServiceStyleUrl}`));
 assert.match(guestEdge, /validatePortOneIdentity/, 'the Edge Function validates the provider response server-side');
 assert.match(guestEdge, /token_kind", "link"/, 'security links are exchanged through a one-time link token');
 assert.match(guestMigration, /revoke all on table public\.sell_service_requests from anon, authenticated/i, 'guest records have no direct Data API access');

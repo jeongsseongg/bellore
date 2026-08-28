@@ -36,6 +36,7 @@ const confirmCalls = [];
 const diagnostics = [];
 const completedCheckoutRequests = [];
 let listingStatus = 'on_sale';
+let couponsAvailable = true;
 let pendingWriteFails = false;
 let confirmResponses = [{ ok: false, error: 'payment_canceled', httpStatus: 409 }];
 let listingRefreshes = 0;
@@ -68,7 +69,7 @@ const windowObject = {
   NWBackend: {
     enabled: true,
     currentUser() { return null; },
-    myCoupons() { return Promise.resolve([couponUser]); },
+    myCoupons() { return Promise.resolve(couponsAvailable ? [couponUser] : []); },
     couponDiscount(coupon, base) {
       if (coupon.discount_type === 'amount') return Math.min(Number(coupon.discount_value) || 0, base);
       if (coupon.discount_type === 'percent') return Math.floor(base * (Number(coupon.discount_value) || 0) / 100);
@@ -159,8 +160,7 @@ elements.coAgreePrivacy.checked = true;
 elements.coAgreeOrder.checked = true;
 
 assert.match(elements.coCouponSelect.innerHTML, /value="coupon-user-1"/, '사용 가능한 쿠폰 option이 실제로 렌더링되어야 합니다.');
-elements.coCouponSelect.value = couponUser.id;
-elements.coCouponSelect.dispatch('change');
+assert.equal(elements.coCouponSelect.value, couponUser.id, '가장 큰 할인 쿠폰이 자동 선택되어야 합니다.');
 assert.equal(elements.coTotal.textContent, '0원');
 assert.equal(elements.coDiscountRow.hidden, false);
 assert.equal(elements.coCouponClear.hidden, false);
@@ -225,6 +225,7 @@ assert.equal(listingRefreshes, refreshesBeforeRetry + 1, '결제 완료 뒤 카�
 assert(diagnostics.filter((entry) => entry[1]?.code === 'payment_confirmation_pending').length >= 2);
 assert(diagnostics.every((entry) => entry.length === 2 && !('message' in entry[1])), '로그에 오류 원문을 넣으면 안 됩니다.');
 
+couponsAvailable = false;
 listingStatus = 'reserved';
 const createsBeforeReserved = createOrderCalls.length;
 const paymentsBeforeReserved = paymentRequests.length;
