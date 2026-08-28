@@ -8,7 +8,6 @@
   color:var(--checkout-ink);
   font-family:Wanted Sans,Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 }
-
 #checkoutModal .co-topbar {
   height:54px;
   padding:env(safe-area-inset-top) 12px 0;
@@ -310,4 +309,3 @@
   #checkoutModal .co-product img { width:68px; height:68px; }
   #checkoutModal .co-addr-row { grid-template-columns:1fr 94px; }
 }
-

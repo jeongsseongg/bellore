@@ -33,3 +33,5 @@
 - `scripts/test-release-cache-key.js`
 - `scripts/test-checkout-v2-safety.mjs`
 - `scripts/test-home-layout-runtime.mjs`
+- `scripts/test-member-verification-browser.mjs`
+- `scripts/test-regression-signals.mjs`
