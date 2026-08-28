@@ -14,6 +14,11 @@ const PORTONE_IDENTITY_CHANNEL_KEY = Deno.env.get("PORTONE_IDENTITY_CHANNEL_KEY"
 const ALLOW_TEST_IDENTITY = Deno.env.get("ALLOW_TEST_IDENTITY") === "true";
 type JsonRecord = Record<string, unknown>;
 
+function observedFailure(req: Request, traceId: string, code: string, status: number, details: JsonRecord = {}) {
+  console.error(JSON.stringify({ event: "identity_verification_failed", traceId, code, ...details }));
+  return jsonResponse(req, { ok: false, code, traceId }, status);
+}
+
 Deno.serve(async (req) => {
   const traceId = crypto.randomUUID();
   if (req.method === "OPTIONS") {
@@ -23,25 +28,26 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return jsonResponse(req, { ok: false, code: "METHOD" }, 405);
   if (rejectDisallowedOrigin(req)) return jsonResponse(req, { ok: false, code: "ORIGIN_FORBIDDEN" }, 403);
   if (!SUPABASE_URL || !SERVICE_ROLE || !PORTONE_API_SECRET || !PORTONE_STORE_ID || !PORTONE_IDENTITY_CHANNEL_KEY) {
-    return jsonResponse(req, { ok: false, code: "NOT_CONFIGURED" }, 503);
+    return observedFailure(req, traceId, "NOT_CONFIGURED", 503);
   }
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false, autoRefreshToken: false } });
-  const user = await requireUser(admin, req);
+  let user: { id: string } | null = null;
   let referenceHash: string | null = null;
 
   try {
+    user = await requireUser(admin, req);
     const body = await req.json() as JsonRecord;
     const identityVerificationId = safeText(body.identityVerificationId, 80);
     if (!identityVerificationId || !/^[A-Za-z0-9_-]{8,80}$/.test(identityVerificationId)) {
-      return jsonResponse(req, { ok: false, code: "BAD_IDENTITY_ID" }, 400);
+      return observedFailure(req, traceId, "BAD_IDENTITY_ID", 400);
     }
     referenceHash = await sha256Hex(`portone-identity-v1\0${identityVerificationId}`);
     const { data: prior } = user ? await admin.from("member_verification_events")
       .select("user_id").eq("method", "phone").eq("provider", "portone_inicis_unified")
       .eq("provider_reference_hash", referenceHash).eq("status", "verified").maybeSingle() : { data: null };
     if (prior && user) {
-      if (prior.user_id !== user.id) return jsonResponse(req, { ok: false, code: "IDENTITY_ALREADY_USED" }, 409);
+      if (prior.user_id !== user.id) return observedFailure(req, traceId, "IDENTITY_ALREADY_USED", 409);
       const { data: profile } = await admin.from("profiles").select("phone").eq("id", user.id).single();
       return jsonResponse(req, { ok: true, alreadyVerified: true, phone: profile?.phone ?? null });
     }
@@ -52,9 +58,9 @@ Deno.serve(async (req) => {
     const verification = await providerResponse.json().catch(() => null) as JsonRecord | null;
     if (!providerResponse.ok || !verification) {
       const providerCode = safeText(verification?.code, 80) ?? safeText(verification?.type, 80) ?? "PROVIDER_LOOKUP_FAILED";
-      console.error(JSON.stringify({ event: "identity_verification_failed", traceId, code: "PROVIDER_LOOKUP_FAILED",
-        providerStatus: providerResponse.status, providerCode }));
-      return jsonResponse(req, { ok: false, code: "PROVIDER_LOOKUP_FAILED", traceId }, 502);
+      return observedFailure(req, traceId, "PROVIDER_LOOKUP_FAILED", 502, {
+        providerStatus: providerResponse.status, providerCode,
+      });
     }
     const actualChannel = verification.channel && typeof verification.channel === "object" && !Array.isArray(verification.channel)
       ? verification.channel as JsonRecord
@@ -76,19 +82,17 @@ Deno.serve(async (req) => {
       });
     } catch (validationError) {
       const code = safeText((validationError as Error)?.message, 80) ?? "PROVIDER_VALIDATION_FAILED";
-      console.error(JSON.stringify({ event: "identity_verification_failed", traceId, code, ...diagnostics }));
       if (user) {
         await recordVerificationEvent(admin, { userId: user.id, method: "phone", status: "error",
           provider: "portone_inicis_unified", providerReferenceHash: referenceHash, reasonCode: code });
       }
-      return jsonResponse(req, { ok: false, code, traceId }, 502);
+      return observedFailure(req, traceId, code, 502, diagnostics);
     }
     if (!checked.verified) {
       if (user) await recordVerificationEvent(admin, { userId: user.id, method: "phone", status: "rejected",
           provider: "portone_inicis_unified", providerReferenceHash: referenceHash,
           reasonCode: `STATUS_${checked.status}` });
-      console.error(JSON.stringify({ event: "identity_verification_failed", traceId, code: "NOT_VERIFIED", ...diagnostics }));
-      return jsonResponse(req, { ok: false, code: "NOT_VERIFIED", traceId }, 409);
+      return observedFailure(req, traceId, "NOT_VERIFIED", 409, diagnostics);
     }
     if (!("phone" in checked)) throw new Error("VERIFIED_PHONE_MISSING");
     const phone = checked.phone;
@@ -104,7 +108,9 @@ Deno.serve(async (req) => {
       });
       if (ticketError) {
         const code = ticketError.code === "23505" ? "IDENTITY_ALREADY_USED" : "TICKET_CREATE_FAILED";
-        return jsonResponse(req, { ok: false, code }, code === "IDENTITY_ALREADY_USED" ? 409 : 502);
+        return observedFailure(req, traceId, code, code === "IDENTITY_ALREADY_USED" ? 409 : 502, {
+          databaseCode: safeText(ticketError.code, 40),
+        });
       }
       return jsonResponse(req, { ok: true, phone, name, verifiedAt, signupTicket: ticket, expiresAt });
     }
@@ -116,11 +122,10 @@ Deno.serve(async (req) => {
     return jsonResponse(req, { ok: true, phone, name, verifiedAt });
   } catch (error) {
     const reason = safeText((error as Error)?.message, 80) ?? "ERROR";
-    console.error(JSON.stringify({ event: "identity_verification_failed", traceId, code: reason }));
     try {
       if (user) await recordVerificationEvent(admin, { userId: user.id, method: "phone", status: "error",
           provider: "portone_inicis_unified", providerReferenceHash: referenceHash, reasonCode: reason });
     } catch { /* preserve primary failure */ }
-    return jsonResponse(req, { ok: false, code: reason, traceId }, 502);
+    return observedFailure(req, traceId, reason, 502);
   }
 });

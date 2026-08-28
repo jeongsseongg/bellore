@@ -120,6 +120,48 @@ jobs:
     needs: [truth_guard, build]
     timeout-minutes: 10
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+          ref: ${{ inputs.static_release_sha || github.sha }}
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+
+      - name: Verify live service worker release
+        shell: bash
+        run: |
+          expected="$(sed -n 's/^const VERSION = "\([^"]*\)";.*/\1/p' sw.js | head -n 1)"
+          if [[ -z "$expected" ]]; then
+            echo 'Cannot read the expected service-worker release identifier.' >&2
+            exit 1
+          fi
+          for attempt in $(seq 1 30); do
+            live="$(curl --fail --silent --show-error "https://bellore.co.kr/sw.js?release_verify=${GITHUB_RUN_ID}-${attempt}" || true)"
+            actual="$(printf '%s' "$live" | sed -n 's/^const VERSION = "\([^"]*\)";.*/\1/p' | head -n 1)"
+            echo "service-worker release attempt=${attempt} expected=${expected} actual=${actual:-MISSING}"
+            if [[ "$actual" == "$expected" ]]; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Live service-worker release did not reach ${expected}." >&2
+          exit 1
+
+  publish_required:
+    if: always() && github.ref == 'refs/heads/main'
+    needs: [truth_guard, verify, build, deploy]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Fail when publishing was skipped
+        env:
+          DEPLOY_RESULT: ${{ needs.deploy.result }}
+        run: |
+          if [[ "$DEPLOY_RESULT" != 'success' ]]; then
+            echo "Pages publish did not complete: deploy=${DEPLOY_RESULT}" >&2
+            exit 1
+          fi
+          echo 'Pages publish and live release verification completed.'

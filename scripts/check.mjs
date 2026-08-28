@@ -224,7 +224,7 @@ function runTests(testFiles) {
       encoding: 'utf8',
       maxBuffer: 16 * 1024 * 1024
     });
-    const summary = (result.stdout || '').trim().split(/\r?\n/).filter(Boolean).slice(-1)[0] || '';
+    const outputLines = (result.stdout || '').trim().split(/\r?\n/).filter(Boolean); outputLines.filter((line) => line.startsWith('REGRESSION_WARN ')).forEach((line) => addWarning(line.slice(16))); const summary = outputLines.slice(-1)[0] || '';
     if (result.status === 0) {
       passed += 1;
       console.log(`  PASS ${toPosix(file)}${summary ? ` — ${summary}` : ''}`);
