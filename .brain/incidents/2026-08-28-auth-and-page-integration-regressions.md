@@ -15,6 +15,8 @@
 5. 당시 테스트는 루트 `myPageModal` 부재를 성공 조건으로 단언해 구조 단절을 오히려 보호했다.
 6. 산출물 검사는 허용목록에 적힌 파일만 확인하고 서비스워커는 개수 하한만 봤다. 허용목록 자체에서 빠진 런타임은 검사 대상이 되지 않는 거짓 음성이었다.
 7. 최근 Pages 성공 push 45건 중 45건은 deploy job이 skipped였다. 워크플로 conclusion만으로 운영 게시를 판정하면 안 된다.
+8. `20260828030000_checkout_fulfillment_method.sql`의 `IS NOT DISTINCT FROM CASE` 구문은 PostgreSQL에서 컴파일되지 않았다. 최초 운영 적용은 단일 트랜잭션 전체가 롤백돼 컬럼·함수·migration ledger가 모두 미적용으로 남았고, `CASE` 식을 괄호로 감싼 뒤 파서 회귀 검사를 별도 커밋으로 추가해 재적용했다.
+9. 통합본이 카카오페이·토스페이 채널을 포함했지만 `supabase-config.js`의 쿼리 키를 이전 릴리스와 동일하게 유지했다. 브라우저의 4시간 HTTP 캐시가 구버전 설정을 재사용해 운영 결제창에는 카드와 NPay만 보였다. 설정 키와 서비스워커 버전을 함께 전진시키고 동일 URL 계약 검사를 추가했다.
 
 ## 복구 원칙
 
@@ -35,3 +37,11 @@
 - `scripts/test-home-layout-runtime.mjs`
 - `scripts/test-member-verification-browser.mjs`
 - `scripts/test-regression-signals.mjs`
+
+## 최종 복구 실측
+
+- 운영 코드 기준: `51b8059e800905f22320c4b1898fad6579be100d`.
+- GitHub Pages 수동 실행 `33136014598`: verify·Truth Guard·build·deploy·publish_required 전부 성공.
+- 공개 서비스워커: `bellore-v365-final-integrated-cache-fix`; `Cache-Control: no-cache, max-age=600`; Cloudflare `DYNAMIC`.
+- 실제 구매창 DOM: 신용·체크카드 1개, 카카오페이 1개, 토스페이 1개, NPay 1개; 콘솔 오류 0건.
+- 로컬 게이트: 127 pass·8 warning·0 fail, 테스트 88/88, Edge 22/22(Deno 2.9.5).
