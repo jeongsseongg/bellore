@@ -6,13 +6,13 @@ const css = read('bellore-redesign.css');
 const html = read('index.html');
 const hooks = read('.codex/hooks.json');
 
-const desktopBar = /\.pp-bottom\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*52px minmax\(178px, 1fr\) minmax\(176px, 1fr\);[^}]*border:\s*1px solid #e5e3df;[^}]*border-radius:\s*18px 18px 0 0;[^}]*box-shadow:\s*0 -12px 34px rgba\(20, 27, 25, \.08\);[^}]*\}/s;
+const desktopBar = /\.pp-bottom\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*52px minmax\(178px, 1fr\) minmax\(176px, 1fr\);[^}]*width:\s*calc\(100% - 24px\);[^}]*margin:\s*0 12px 12px;[^}]*border:\s*1px solid #e5e3df;[^}]*border-radius:\s*18px;[^}]*box-shadow:\s*0 12px 34px rgba\(20, 27, 25, \.08\);[^}]*\}/s;
 const desktopNpayBar = /\.pp-bottom\.has-npay\s*\{[^}]*grid-template-columns:\s*52px minmax\(178px, 1fr\) minmax\(176px, 1fr\) minmax\(176px, 1fr\);[^}]*\}/s;
 const inlinePrice = /\.pp-bottom \.pp-buyprice\s*\{[^}]*position:\s*relative;[^}]*flex-direction:\s*row;[^}]*padding:\s*25px 8px 0;[^}]*\}/s;
 const priceLabel = /\.pp-bottom \.pp-buyprice::before\s*\{[^}]*position:\s*absolute;[^}]*top:\s*8px;[^}]*left:\s*8px;[^}]*\}/s;
 const mobileNpayBar = /@media \(max-width:\s*679px\)\s*\{[\s\S]*?\.pp-bottom\.has-npay\s*\{[^}]*grid-template-columns:\s*48px minmax\(0, 1fr\) minmax\(0, 1fr\);[^}]*\}/s;
 
-assert.match(css, desktopBar, 'approved purchase bar keeps the one-card desktop grid');
+assert.match(css, desktopBar, 'approved purchase bar stays an inset fully-rounded card');
 assert.match(css, desktopNpayBar, 'approved purchase bar keeps regular purchase left and N Pay right');
 assert.match(css, inlinePrice, 'approved purchase bar keeps amount and won on one line');
 assert.match(css, priceLabel, 'approved purchase bar keeps the sale-price label above the inline amount');
