@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v366-mypage-login-return";
+const VERSION = "bellore-v367-purchasebar-inset";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -21,7 +21,7 @@ const SHELL_ASSETS = [
   './vendor-reference.css?v=20260731-photo-viewer',
   './reference-layout.css?v=20260821-tabbar-safe-area-v1',
   './mypick.css?v=20260826-member-verification-live-v2',
-  './bellore-redesign.css?v=20260828-purchasebar-approved-v2',
+  './bellore-redesign.css?v=20260828-purchasebar-inset-v3',
   './script.js?v=20260828-mypage-return-v1',
   './payments.js?v=20260828-complete-site-v1',
   './naverpay.js?v=20260826-naverpay-live-v1',
