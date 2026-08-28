@@ -26,6 +26,8 @@ assert.equal((migration.match(/coalesce\(auth\.role\(\),''\) <> 'service_role'/g
 assert.match(migration, /new\.fulfillment_method is null or new\.fulfillment_method not in/);
 assert.equal((migration.match(/case when p_fulfillment_method='pickup' then null else left\(p_ship_/g) || []).length, 12,
   'pickup insert and replay comparison must normalize all six shipping fields');
+assert.equal((migration.match(/is not distinct from \(\s*case when p_fulfillment_method='pickup'/g) || []).length, 6,
+  'replay comparisons must parenthesize CASE expressions for PostgreSQL parsing');
 
 for (const field of ['shipRecipient', 'shipPhone', 'shipPostcode', 'shipAddr1', 'shipAddr2', 'shipRequest']) {
   assert.match(edge, new RegExp(`const ${field} = fulfillmentMethod === "pickup" \\? null`));
