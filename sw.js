@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v365-final-integrated-cache-fix";
+const VERSION = "bellore-v366-mypage-login-return";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -22,7 +22,7 @@ const SHELL_ASSETS = [
   './reference-layout.css?v=20260821-tabbar-safe-area-v1',
   './mypick.css?v=20260826-member-verification-live-v2',
   './bellore-redesign.css?v=20260828-purchasebar-approved-v2',
-  './script.js?v=20260828-final-integrated-v1',
+  './script.js?v=20260828-mypage-return-v1',
   './payments.js?v=20260828-complete-site-v1',
   './naverpay.js?v=20260826-naverpay-live-v1',
   './ui-dialog.js?v=20260826-member-verification-live-v2',
@@ -48,7 +48,7 @@ const SHELL_ASSETS = [
   './app/ui/app-tabbar.js?v=20260828-mypage-root-v1',
   './app/features/mypage-personal-shop/mypage-personal-shop.css?v=20260828-final-integrated-v1',
   './app/features/auth-login/auth-login.css?v=20260827-auth-page-v3',
-  './app/features/auth-login/auth-login.js?v=20260828-return-to-v1',
+  './app/features/auth-login/auth-login.js?v=20260828-mypage-return-v1',
   './app/services/auth/auth-login-backend.js',
   './app/features/auth-signup/auth-signup.css?v=20260828-phone-auth-paths-v1',
   './app/features/auth-signup/auth-signup.js?v=20260828-phone-auth-paths-v1',

@@ -3781,9 +3781,9 @@
         document.body.classList.remove('login-open');
     }
 
-    function openLoginModal() {
-        var here = location.pathname + location.search + location.hash;
-        location.assign('/login.html?return=' + encodeURIComponent(here));
+    function openLoginModal(returnTo) {
+        var here = returnTo || (location.pathname + location.search + location.hash);
+        location.assign('/login.html?returnTo=' + encodeURIComponent(here));
     }
 
     /* ============ 백엔드(Firebase) 데이터 동기화 ============
@@ -5982,7 +5982,7 @@
             if (event) event.preventDefault();
             verifyMypageUser().then(function (allowed) {
                 if (allowed) openMyPage();
-                else openLoginModal();
+                else openLoginModal('/?view=mypage');
             });
         }
         if (btnMy) btnMy.addEventListener('click', openMyOrLogin);

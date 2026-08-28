@@ -121,37 +121,75 @@
     },
     {
       "id": "mypage-root-is-single-composition",
-      "files": ["index.html", "pages/mypage.html", "scripts/test-mypage-standalone.mjs"],
-      "must_contain": [
-        "id=\"myPageModal\"",
-        "the compatibility route must not duplicate the mypage interface"
-      ],
+      "files": ["index.html"],
+      "must_contain": ["id=\"myPageModal\""],
       "why": "마이페이지와 루트 지원 UI를 다른 문서에 복제하면 설정·주문·관리자 계약이 다시 끊긴다."
     },
     {
+      "id": "mypage-root-composition-test",
+      "files": ["scripts/test-mypage-standalone.mjs"],
+      "must_contain": ["the compatibility route must not duplicate the mypage interface"],
+      "why": "호환 진입점이 루트 마이페이지 UI를 다시 복제하는 회귀를 테스트가 허용하지 않는다."
+    },
+    {
       "id": "mypage-entry-server-auth-first",
-      "files": ["script.js", "app/pages/standalone-page.js", "scripts/test-mypage-standalone.mjs"],
+      "files": ["script.js"],
       "must_contain": [
         "function verifyMypageUser()",
-        "window.location.replace('/?view=mypage')",
-        "the visible MY controls use the same server-verified gate"
+        "else openLoginModal('/?view=mypage');"
       ],
       "why": "직접 URL과 MY 버튼 모두 서버 getUser 확인 뒤 같은 루트 정본을 열어야 한다."
     },
     {
-      "id": "selected-runtime-artifact-contract",
-      "files": [
-        "tools/build-pages.mjs",
-        "sw.js",
-        "scripts/test-checkout-v2-safety.mjs",
-        "scripts/test-home-layout-runtime.mjs"
+      "id": "mypage-compat-route-server-auth-first",
+      "files": ["app/pages/standalone-page.js"],
+      "must_contain": ["window.location.replace('/?view=mypage')"],
+      "why": "마이페이지 호환 URL은 서버 인증 뒤 루트 정본으로만 이동한다."
+    },
+    {
+      "id": "mypage-entry-auth-test",
+      "files": ["scripts/test-mypage-standalone.mjs"],
+      "must_contain": [
+        "window.location.replace('/?view=mypage')",
+        "the visible MY controls use the same server-verified gate"
       ],
+      "why": "마이페이지 직접 URL과 MY 버튼의 서버 인증 계약을 회귀 테스트가 유지한다."
+    },
+    {
+      "id": "selected-runtime-build-allowlist",
+      "files": ["tools/build-pages.mjs"],
       "must_contain": [
         "app/features/checkout/checkout-presentation.js",
+        "app/features/home-layout/home-layout.js"
+      ],
+      "why": "선택 이식한 런타임이 Pages 빌드 허용목록에서 빠지지 않게 한다."
+    },
+    {
+      "id": "selected-runtime-service-worker-cache",
+      "files": ["sw.js"],
+      "must_contain": [
+        "app/features/checkout/checkout-presentation.js",
+        "app/features/home-layout/home-layout.js"
+      ],
+      "why": "선택 이식한 런타임이 서비스워커 캐시에서 빠지지 않게 한다."
+    },
+    {
+      "id": "selected-runtime-checkout-artifact-test",
+      "files": ["scripts/test-checkout-v2-safety.mjs"],
+      "must_contain": [
+        "app/features/checkout/checkout-presentation.js",
+        "must be copied to the Pages artifact"
+      ],
+      "why": "결제 프레젠테이션 런타임의 Pages 산출물 검사를 유지한다."
+    },
+    {
+      "id": "selected-runtime-home-artifact-test",
+      "files": ["scripts/test-home-layout-runtime.mjs"],
+      "must_contain": [
         "app/features/home-layout/home-layout.js",
         "must be copied to the Pages artifact"
       ],
-      "why": "소스에만 있고 빌드·캐시에 없는 서버/프런트 계약 회귀를 막는다."
+      "why": "홈 레이아웃 런타임의 Pages 산출물 검사를 유지한다."
     }
   ]
 }

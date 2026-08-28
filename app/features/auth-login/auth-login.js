@@ -2,10 +2,27 @@ import { getAuthBackend } from '../../services/auth/auth-login-backend.js';
 
 const backend = getAuthBackend();
 const status = document.getElementById('authStatus');
-const view = new URLSearchParams(location.search).get('view') || 'login';
+const params = new URLSearchParams(location.search);
+const view = params.get('view') || 'login';
+
+function pendingSocialReturn() {
+  try {
+    if (sessionStorage.getItem('bellore_social_pending') !== '1') return '';
+    return sessionStorage.getItem('bellore_auth_return') || '';
+  } catch (_) {
+    return '';
+  }
+}
+
+function clearSocialReturn() {
+  try {
+    sessionStorage.removeItem('bellore_social_pending');
+    sessionStorage.removeItem('bellore_auth_return');
+  } catch (_) {}
+}
+
 const returnUrl = (() => {
-  const params = new URLSearchParams(location.search);
-  const requested = params.get('returnTo') || params.get('return') || '/';
+  const requested = params.get('returnTo') || params.get('return') || pendingSocialReturn() || '/';
   try {
     const target = new URL(requested, location.origin);
     return target.origin === location.origin ? target.pathname + target.search + target.hash : '/';
@@ -97,6 +114,7 @@ emailForm?.addEventListener('submit', async (event) => {
       if (rememberButton?.getAttribute('aria-pressed') === 'true') localStorage.setItem('bellore_saved_id', idOrEmail);
       else localStorage.removeItem('bellore_saved_id');
     } catch (_) {}
+    clearSocialReturn();
     location.replace(returnUrl);
   } catch (error) {
     submit.disabled = false;
@@ -126,6 +144,7 @@ async function signIn(provider, button) {
     await backend.ready;
     await backend[method]();
   } catch (error) {
+    clearSocialReturn();
     button.disabled = false;
     message(error?.message || '로그인을 시작하지 못했습니다.');
   }
@@ -136,5 +155,8 @@ document.querySelectorAll('[data-provider]').forEach((button) => {
 });
 
 backend?.ready?.then(() => {
-  if (backend.currentUser?.()) location.replace(returnUrl);
+  if (backend.currentUser?.()) {
+    clearSocialReturn();
+    location.replace(returnUrl);
+  }
 });
