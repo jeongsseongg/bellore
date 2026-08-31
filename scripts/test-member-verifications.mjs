@@ -126,6 +126,7 @@ assert.match(sendPhoneOtp, /PHONE_OTP_ENABLED/);
 assert.match(sendPhoneOtp, /SOLAPI_API_KEY/);
 assert.match(sendPhoneOtp, /consume_checkout_rate_limit/);
 assert.match(sendPhoneOtp, /messages\/v4\/send-many\/detail/);
+assert.match(sendPhoneOtp, /showMessageList:\s*true/);
 assert.match(sendPhoneOtp, /failedMessageList/);
 assert.match(verifyPhoneOtp, /member_signup_phone_tickets/);
 assert.match(verifyPhoneOtp, /finalize_member_verification/);
