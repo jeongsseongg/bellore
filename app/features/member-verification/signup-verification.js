@@ -73,20 +73,28 @@ export function createSignupVerification({ document, form, backend, config }) {
     button.disabled = true;
     const done = () => { button.disabled = false; };
 
-    if (kind === 'phoneOtp') {
+    if (kind === 'phoneSms') {
       const phone = String(data.get('phone') || '').replace(/\D/g, '');
+      const name = String(data.get('name') || '').trim();
+      const birthDate = String(data.get('birthDate') || '').replace(/\D/g, '');
       if (!/^010\d{8}$/.test(phone)) { setState('phone', 'err', '휴대폰 번호 11자리를 확인해 주세요.'); done(); return; }
-      if (config.phone?.smsEnabled !== true || !backend.sendPhoneOtp) {
-        setState('phone', 'err', '문자 인증은 현재 준비 중입니다. 간편인증을 이용해 주세요.'); done(); return;
+      if (!name) { setState('phone', 'err', '이름을 입력해 주세요.'); done(); return; }
+      if (!/^\d{8}$/.test(birthDate)) { setState('phone', 'err', '생년월일 8자리를 입력해 주세요.'); done(); return; }
+      if (config.phone?.smsEnabled !== true || !backend.verifyIdentityPortone) {
+        setState('phone', 'err', '통신사 문자 본인확인은 현재 준비 중입니다. 간편인증을 이용해 주세요.'); done(); return;
       }
-      setState('phone', '', '문자로 인증번호를 보내고 있습니다…');
-      backend.sendPhoneOtp(phone)
+      setState('phone', '', '통신사 문자 본인확인 진행 중…');
+      backend.verifyIdentityPortone({ phone, name, birthDate, agency: 'SMS' })
         .then((result) => {
-          state.phone = { ok: false, real: false, nc: false, sent: true, challenge: result.challenge || '', ticket: '' };
-          showCode('phone', true);
-          setState('phone', '', '문자로 받은 6자리 인증번호를 입력해 주세요.');
+          const verifiedPhone = displayPhone(result?.phone);
+          const input = document.getElementById('suPhone');
+          if (verifiedPhone && input) input.value = verifiedPhone;
+          const nameInput = document.getElementById('suName');
+          if (result?.name && nameInput) nameInput.value = result.name;
+          state.phone = { ok: true, real: true, nc: false, ticket: result?.signupTicket || '' };
+          setState('phone', 'ok', '✓ 통신사 문자 본인확인 완료');
         })
-        .catch((error) => setState('phone', 'err', customerMessage(error, 'identity', '문자 인증번호를 보내지 못했습니다.')))
+        .catch((error) => setState('phone', 'err', customerMessage(error, 'identity', '통신사 문자 본인확인을 완료하지 못했습니다.')))
         .then(done);
       return;
     }
@@ -168,25 +176,6 @@ export function createSignupVerification({ document, form, backend, config }) {
 
   function confirm(kind, button) {
     const data = new FormData(form);
-    if (kind === 'phoneOtp') {
-      const phone = String(data.get('phone') || '').replace(/\D/g, '');
-      const code = String(document.getElementById('suPhoneCode')?.value || '').replace(/\D/g, '');
-      if (!/^\d{6}$/.test(code)) { setState('phone', 'err', '문자로 받은 6자리 인증번호를 입력해 주세요.'); return; }
-      if (!state.phone.challenge || !backend.verifyPhoneOtp) { setState('phone', 'err', '인증번호를 다시 받아 주세요.'); return; }
-      button.disabled = true;
-      setState('phone', '', '인증번호 확인 중…');
-      backend.verifyPhoneOtp({ phone, code, challenge: state.phone.challenge })
-        .then((result) => {
-          const input = document.getElementById('suPhone');
-          if (result?.phone && input) input.value = displayPhone(result.phone);
-          state.phone = { ok: true, real: true, nc: false, sent: true, challenge: '', ticket: result?.signupTicket || '' };
-          showCode('phone', false);
-          setState('phone', 'ok', '✓ 문자 휴대폰 인증 완료');
-        })
-        .catch((error) => setState('phone', 'err', customerMessage(error, 'identity', '인증번호가 올바르지 않거나 만료되었습니다.')))
-        .then(() => { button.disabled = false; });
-      return;
-    }
     if (kind !== 'email') return;
     const email = String(data.get('email') || '').trim();
     const code = String(document.getElementById('suEmailCode')?.value || '').trim();

@@ -75,11 +75,9 @@
         <section id="signupStep2" class="signup-step" hidden>
           <label class="field"><span>이름</span><input type="text" name="name" id="suName" autocomplete="name" required></label>
           <label class="field"><span>생년월일</span><input type="text" name="birthDate" id="suBirthDate" inputmode="numeric" autocomplete="bday" maxlength="8" placeholder="YYYYMMDD" required></label>
-          <div class="verification" data-v="phone"><div class="verification-title"><b>휴대폰 인증</b><span>필수</span></div><p>번호 소유를 확인하는 문자 인증 또는 명의를 확인하는 KG 간편인증 중 하나를 선택합니다.</p>
+          <div class="verification" data-v="phone"><div class="verification-title"><b>휴대폰 인증</b><span>필수</span></div><p>통신사 문자 본인확인 또는 KG 간편인증 중 하나를 완료해야 가입할 수 있습니다.</p>
             <div class="verification-action"><input type="tel" name="phone" id="suPhone" placeholder="010-0000-0000"></div>
-            <div data-phone-sms hidden><div class="verification-action"><button type="button" data-vsend="phoneOtp">문자 인증번호 받기</button></div>
-              <div class="verification-code vrow-code" hidden><input type="text" id="suPhoneCode" inputmode="numeric" autocomplete="one-time-code" minlength="6" maxlength="6" placeholder="문자로 받은 6자리"><button type="button" data-vconfirm="phoneOtp">확인</button></div>
-            </div>
+            <div data-phone-sms hidden><div class="verification-action"><button type="button" data-vsend="phoneSms">통신사 문자 본인확인</button></div></div>
             <div class="verification-action"><button type="button" data-vsend="phone">KG 간편인증</button></div>
             <small class="vrow-state" data-vstate="phone" aria-live="polite"></small>
           </div>
@@ -123,6 +121,6 @@
   <script src="supabase-config.js?v=20260831-phone-otp-ui-v1"></script>
   <script src="supabase.js?v=20260828-phone-auth-paths-v1"></script>
   <script type="module" src="app/features/auth-login/auth-login.js?v=20260828-mypage-return-v1"></script>
-  <script type="module" src="app/features/auth-signup/auth-signup.js?v=20260828-phone-auth-paths-v1"></script>
+  <script type="module" src="app/features/auth-signup/auth-signup.js?v=20260831-kg-sms-identity-v1"></script>
 </body>
 </html>

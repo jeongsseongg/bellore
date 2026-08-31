@@ -36,7 +36,7 @@ import { initMypageSettings } from './features/mypage-settings/mypage-settings.j
 import { initSellServicePages } from './features/sell-method/sell-service-pages.js?v=20260826-sell-guest-access-v1';
 import { installSellRequestAccess } from './services/sell/sell-request-access.js?v=20260826-sell-guest-access-v1';
 import { installLegacyMemberVerificationUi } from './legacy/member-verification-ui.js?v=20260826-member-verification-live-v2';
-import { installLegacyMemberVerificationService } from './legacy/member-verification-service.js?v=20260828-phone-auth-paths-v1';
+import { installLegacyMemberVerificationService } from './legacy/member-verification-service.js?v=20260831-kg-sms-identity-v1';
 
 installLegacyMemberVerificationUi({ window, document });
 installLegacyMemberVerificationService({ window });
