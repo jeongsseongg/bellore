@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v376-mypage-admin-contract";
+const VERSION = "bellore-v377-sell-parts-korean";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -23,7 +23,7 @@ const SHELL_ASSETS = [
   './reference-layout.css?v=20260821-tabbar-safe-area-v1',
   './mypick.css?v=20260826-member-verification-live-v2',
   './bellore-redesign.css?v=20260831-purchasebar-approved-visual-v2',
-  './script.js?v=20260828-mypage-return-v1',
+  './script.js?v=20260831-sell-parts-korean-v1',
   './payments.js?v=20260828-complete-site-v1',
   './naverpay.js?v=20260826-naverpay-live-v1',
   './ui-dialog.js?v=20260826-member-verification-live-v2',

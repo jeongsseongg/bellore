@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
+import { normalizeSellParts } from "./sell-parts-core.mjs";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -135,7 +136,7 @@ async function requestView(admin: AdminClient, requestId: string) {
   return {
     id: row.id, receiptNo: row.receipt_no, method: row.method, status: row.status,
     brand: row.brand, model: row.model, ref: row.item_ref ?? "", year: row.item_year ?? "",
-    parts: row.item_parts ?? "", memo: row.item_memo ?? "", photos: row.photo_urls ?? [],
+    parts: normalizeSellParts(row.item_parts).join(", "), memo: row.item_memo ?? "", photos: row.photo_urls ?? [],
     customerName: row.customer_name, customerPhone: maskPhone(row.customer_phone),
     quoteRequestId: row.quote_request_id, bids, createdAt: row.created_at, updatedAt: row.updated_at,
   };
@@ -155,7 +156,7 @@ async function createRequest(admin: AdminClient, req: Request, body: Json) {
   if (!photoUrls.length) return jsonResponse(req, { ok: false, code: "PHOTO_REQUIRED" }, 400);
   const itemRef = safeText(body.ref, 100) ?? "";
   const itemYear = safeText(body.year, 60) ?? "";
-  const itemParts = Array.isArray(body.parts) ? body.parts.map((x) => safeText(x, 40)).filter(Boolean).join(", ") : safeText(body.parts, 400) ?? "";
+  const itemParts = normalizeSellParts(body.parts).join(", ");
   const memo = safeText(body.memo, 2000) ?? "";
   let quoteRequestId: string | null = null;
   if (method === "compare") {

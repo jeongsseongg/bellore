@@ -5531,6 +5531,21 @@
     // 회원가입 후 이어서 신청할 견적 데이터(세션 메모리에 보관)
     var pendingCompare = null;
 
+    function localizeSellParts(values) {
+        var labels = {
+            warranty: '보증서', box: '정품 박스', manual: '설명서/책자',
+            'extra-link': '추가 링크', tag: '정품 택', receipt: '구매 영수증'
+        };
+        var selected = (values || []).map(function (value) { return String(value || '').trim(); }).filter(Boolean);
+        var allSelected = Object.keys(labels).every(function (code) {
+            return selected.indexOf(code) !== -1 || selected.indexOf(labels[code]) !== -1;
+        });
+        if (selected.indexOf('풀세트') !== -1 || allSelected) return ['풀세트'];
+        return selected.map(function (value) { return labels[value] || value; }).filter(function (value, index, list) {
+            return list.indexOf(value) === index;
+        });
+    }
+
     function initCompareForm() {
         var form = $('#compareForm');
         if (!form) return;
@@ -5558,7 +5573,7 @@
                 brand: brand, model: model, name: name, phone: phone, memo: memo,
                 saleMethod: saleMethod, desiredPrice: desiredPrice,
                 year: fd.get('year') || '', ref: fd.get('ref') || '',
-                parts: (fd.getAll ? fd.getAll('parts') : []),
+                parts: localizeSellParts(fd.getAll ? fd.getAll('parts') : []),
                 photos: uploadedPhotos.slice(0), photoCount: uploadedPhotos.length
             };
             // 회원은 현재 user_id로, 비회원은 서버 발급 접수번호로 분리 저장한다.
