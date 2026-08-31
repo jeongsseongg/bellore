@@ -130,6 +130,8 @@ assert.match(serviceActionCss, /\.sell-service-action__methods img[\s\S]*?object
 assert.match(serviceCss, /\.sell-service__status--blue[\s\S]*?#eef6ff/, 'all service status cards use the common blue surface');
 assert.doesNotMatch(serviceCss, /#(?:fff7ed|fff5e9|a95f12|a85d10|efd7b9)/i, 'gold and orange accents cannot return to sell service pages');
 assert.equal(sellContent.consignment.note, '판매 성사 시 판매금액의 7% 수수료가 발생합니다.', 'the canonical consignment copy discloses the approved seven-percent fee');
+assert.match(sellContent.compare.note, /새 견적 등록 및 접수 종료 안내가 카카오톡으로 발송/, 'the comparison form discloses its requested Kakao progress notices');
+assert.match(html, /id="sellFormNote">\* 등록 후[^<]*새 견적 등록 및 접수 종료 안내가 카카오톡으로 발송/, 'the static form fallback keeps the same Kakao notice');
 assert.deepEqual(Array.from(sellContent.consignment.steps), ['벨로르 판매금액 안내', '금액·7% 수수료 확인 후 수락', '택배·퀵·방문으로 시계 전달', '실물 검수 후 판매 개시'], 'consignment follows offer, acceptance, handoff, then inspection');
 assert.match(sellContent.instant.note, /감가 사유.*최종 매입금액/, 'instant purchase discloses the depreciation reason and final amount');
 assert.match(moduleJs, /SELL_METHOD_CONTENT/, 'the sell form reads the single canonical content module');

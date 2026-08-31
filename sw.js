@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v371-purchasebar-approved-visual";
+const VERSION = "bellore-v372-solapi-quote-notice";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -147,7 +147,7 @@ const SHELL_ASSETS = [
   './app/features/sell-method/sell-service-action.css?v=20260826-sell-guest-access-v1',
   './app/legacy/recommendation-engine.js?v=20260826-member-verification-live-v2',
   './app/features/sell-method/sell-method.js?v=20260828-complete-site-v1',
-  './app/features/sell-method/sell-content.js?v=20260828-sell-contracts-v1',
+  './app/features/sell-method/sell-content.js?v=20260831-kakao-notice-v1',
   './app/features/sell-method/sell-draft-owner.js?v=20260826-sell-guest-access-v1',
   './app/features/sell-method/sell-guide-preview.js?v=20260826-sell-quotes-v3',
   './app/features/sell-method/sell-reference-controller.js?v=20260826-sell-quotes-v3',

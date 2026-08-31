@@ -104,6 +104,24 @@ test('Edge가 사진 전송 실패를 텍스트로 폴백하고 친화 오류를
   assert.match(edge, /사진을 불러오지 못해 내용만 전송했습니다/);
   assert.match(edge, /const friendlyMessage = friendlyActionError\(error\)/);
   assert.match(edge, /취소했습니다\. 변경된 내용은 없습니다\./);
+  assert.match(edge, /!SOLAPI_SENDER/);
+  assert.match(edge, /disableSms: false/);
+  assert.match(edge, /'#\{견적건수\}': String\(Number\(payload\.offerCount \|\| 0\)\)/);
+  assert.match(edge, /'#\{최고견적금액\}': Number\(payload\.highestAmount \|\| 0\)\.toLocaleString\('ko-KR'\)/);
+  assert.match(edge, /'#\{종료일시\}': formatKst\(payload\.closedAt\)/);
+});
+
+test('만료 견적은 비회원 연락처를 사용하고 null 회원 알림을 만들지 않는다', async () => {
+  const source = await read('telegram_operations.sql');
+  const migration = await read('supabase/migrations/20260831044354_telegram_guest_kakao_notifications.sql');
+  for (const sql of [source, migration]) {
+    assert.match(sql, /if quote_row\.customer_id is not null then[\s\S]*insert into public\.notifications/);
+    assert.match(sql, /from public\.sell_service_requests s[\s\S]*s\.quote_request_id = quote_row\.id/);
+    assert.match(sql, /char_length\(regexp_replace\(coalesce\(customer_phone, ''\), '\\D', '', 'g'\)\) >= 10/);
+    assert.match(sql, /customer_quote_closed:[\s\S]*customer_kakao/);
+    assert.match(sql, /'offerCount', total_count/);
+    assert.match(sql, /'closedAt', now\(\)/);
+  }
 });
 
 test('운영 원장 버전 migration이 미디어·전체 상세·최고가 전용 계약을 보존한다', async () => {
