@@ -218,6 +218,15 @@ async function validateArtifact(site, { expectSeo }) {
   assert((await readFile(join(site, 'robots.txt'), 'utf8')).includes('https://bellore.co.kr/sitemap.xml'));
   assert((await readFile(join(site, '404.html'), 'utf8')).includes('noindex,nofollow'));
   assert((await readFile(join(site, 'offline.html'), 'utf8')).includes('인터넷 연결'));
+  const mypageShell = await readFile(join(site, 'pages', 'mypage', 'index.html'), 'utf8');
+  assert.match(mypageShell, /<html[^>]*data-mypage-route-pending/i,
+    '마이페이지 앱 셸은 인증 확인 전 화면 보호 상태여야 합니다.');
+  assert.match(mypageShell, /<meta name="robots" content="noindex, follow">/,
+    '보호된 마이페이지 앱 셸은 검색 색인 대상이면 안 됩니다.');
+  assert.match(mypageShell, /<link rel="canonical" href="https:\/\/bellore\.co\.kr\/pages\/mypage\/">/,
+    '마이페이지 앱 셸 canonical은 정식 슬래시 URL이어야 합니다.');
+  assert.match(mypageShell, /id="myPageModal"[^>]*hidden/,
+    '마이페이지 정식 주소도 루트 앱 셸의 마이페이지 계약을 사용해야 합니다.');
 
   const serviceWorker = await readFile(join(site, 'sw.js'), 'utf8');
   const shellBlock = serviceWorker.match(/const SHELL_ASSETS = \[([\s\S]*?)\];/)?.[1];

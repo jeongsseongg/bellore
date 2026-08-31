@@ -28,7 +28,7 @@ function execute(pathname, search = '', hash = '') {
 }
 
 for (const [legacy, clean] of [
-  ['/pages/mypage.html', '/pages/mypage'],
+  ['/pages/mypage.html', '/pages/mypage/'],
   ['/pages/orders.html', '/pages/orders'],
   ['/pages/inquiry.html', '/pages/inquiry'],
 ]) {
@@ -61,9 +61,15 @@ for (const page of ['mypage', 'orders', 'inquiry']) {
 const css = await readFile(new URL('app/pages/standalone-page.css', root), 'utf8');
 assert.match(css, /html\[data-standalone-route-pending\]\s+body[\s\S]*visibility:\s*hidden/,
   '레거시 URL 전환 전 화면을 숨기는 보호 CSS가 필요합니다.');
+assert.match(css, /html\[data-mypage-route-pending\]\s+body[\s\S]*visibility:\s*hidden/,
+  '정식 마이페이지 인증 전 앱 셸을 숨기는 보호 CSS가 필요합니다.');
 
 const sw = await readFile(new URL('sw.js', root), 'utf8');
-for (const page of ['mypage', 'orders', 'inquiry']) {
+assert.match(sw, /'\/pages\/mypage':\s*'\.\/pages\/mypage\/index\.html'/,
+  'mypage: 확장자 없는 오프라인 경로가 앱 셸 디렉터리로 연결돼야 합니다.');
+assert.match(sw, /'\/pages\/mypage\/':\s*'\.\/pages\/mypage\/index\.html'/,
+  'mypage: 슬래시 정식 URL도 오프라인 앱 셸로 연결돼야 합니다.');
+for (const page of ['orders', 'inquiry']) {
   assert.match(sw, new RegExp(`'/pages/${page}':\\s*'\\./pages/${page}\\.html'`),
     `${page}: 확장자 없는 오프라인 경로가 기존 HTML 캐시로 연결돼야 합니다.`);
 }
