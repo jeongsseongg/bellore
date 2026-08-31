@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v374-mypage-route-cache";
+const VERSION = "bellore-v375-tabbar-canonical-cache";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -46,7 +46,7 @@ const SHELL_ASSETS = [
   './app/pages/standalone-page.js?v=20260828-final-integrated-v1',
   './app/pages/standalone-route.js?v=20260831-mypage-canonical-v1',
   './app/ui/app-tabbar.css?v=20260828-clean-routes-v4',
-  './app/ui/app-tabbar.js?v=20260831-mypage-app-route-v1',
+  './app/ui/app-tabbar.js?v=20260831-mypage-canonical-v1',
   './app/features/mypage-personal-shop/mypage-personal-shop.css?v=20260828-final-integrated-v1',
   './app/features/auth-login/auth-login.css?v=20260827-auth-page-v3',
   './app/features/auth-login/auth-login.js?v=20260828-mypage-return-v1',
