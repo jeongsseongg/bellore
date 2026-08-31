@@ -96,19 +96,23 @@
       "must_contain": [
         "grid-template-columns: 52px minmax(178px, 1fr) minmax(176px, 1fr);",
         "grid-template-columns: 52px minmax(178px, 1fr) minmax(176px, 1fr) minmax(176px, 1fr);",
-        "width: calc(100% - 24px);",
-        "margin: 0 12px 12px;",
         "border-radius: 18px;",
         "box-shadow: 0 12px 34px rgba(20, 27, 25, .08);",
         "flex-direction: row;"
       ],
-      "why": "사용자가 승인한 구매바 시안의 좌우·하단 여백이 있는 완전한 둥근 카드, 찜·판매가·일반구매·N Pay 순서와 금액+원 한 줄 표시가 부분 CSS 이식으로 다시 깨지지 않게 한다."
+      "must_not_contain": [
+        "width: calc(100% - 24px);",
+        "margin: 0 12px 12px;"
+      ],
+      "why": "사용자가 승인한 660px 구매바 시안의 완전한 둥근 카드, 가로 넘침 0px, 찜·판매가·일반구매·N Pay 순서와 금액+원 한 줄 표시가 다시 깨지지 않게 한다."
     },
     {
       "id": "approved-product-purchasebar-test",
       "files": ["scripts/test-purchasebar-approved-layout.mjs"],
       "must_contain": [
-        "approved purchase bar stays an inset fully-rounded card",
+        "approved purchase bar keeps the full-width fully-rounded card",
+        "approved purchase bar must not shrink below the 660px sheet width",
+        "approved purchase bar must not reintroduce the overflowing inset margin",
         "approved purchase bar keeps amount and won on one line"
       ],
       "why": "승인 구매바의 실제 CSS·DOM 회귀검사가 삭제되거나 의미가 약화되지 않게 한다."
