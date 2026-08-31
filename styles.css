@@ -7001,7 +7001,7 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 .cms-save:disabled { opacity: .6; }
 
 /* ===== 인증 모달 (휴대폰 / 계좌) ===== */
-.vf-desc { font-size: 14px; color: var(--text-2); line-height: 1.6; margin: 0 0 18px; }
+.vf-desc { font-size: 15px; color: var(--text-2); line-height: 1.5; margin: 0 0 18px; }
 .vf-method { padding: 18px; border: 1px solid var(--border); border-radius: 14px; background: #fff; }
 .vf-method + .vf-method { margin-top: 12px; }
 .vf-method-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
@@ -7011,10 +7011,10 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 .vf-note { margin: 12px 0 0; font-size: 12px; line-height: 1.55; color: var(--text-3); }
 .vf-phone-flow { padding: 2px 0; } .vf-phone-flow .vf-field { margin-bottom: 10px; }
 .vf-phone-flow .vf-field > input { height: 52px; background: #fff; font-size: 16px; }
-.vf-phone-flow > .vf-confirm { width: 100%; height: 54px; margin-top: 2px; font-size: 15px; }
-.vf-alternative { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 18px; font-size: 12px; color: var(--text-3); }
-.vf-alternative button { border: 0; padding: 4px 0; background: transparent; color: var(--text); font: inherit; font-weight: 750; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
-.vf-phone-flow .vf-note { margin-top: 7px; text-align: center; }
+.vf-identity-actions { display: grid; gap: 12px; } .vf-identity-actions .vf-confirm { width: 100%; height: 60px; border-radius: 14px; font-size: 17px; font-weight: 800; }
+.vf-identity-actions .vf-confirm--sms { border: 1px solid var(--border); background: #fff; color: var(--text); }
+.vf-identity-actions .vf-confirm--sms:disabled { border-color: transparent; background: var(--bg-soft); color: var(--text-3); opacity: 1; cursor: not-allowed; }
+.vf-phone-flow .vf-note { margin-top: 12px; text-align: center; }
 .vf-field { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
 .vf-field > span { font-size: 13px; font-weight: 700; color: var(--text-2); }
 .vf-row { display: flex; gap: 8px; }

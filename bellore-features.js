@@ -995,20 +995,23 @@
       var smsEnabled = !!(window.BELLORE_VERIFY && window.BELLORE_VERIFY.phone && window.BELLORE_VERIFY.phone.smsEnabled);
       box.innerHTML =
         '<div class="vf-phone-flow">' +
-        '<p class="vf-desc">인증 팝업에서 입력한 이름과 휴대폰 번호를 KG이니시스에서 확인합니다.</p>' +
-        (smsEnabled ?
-        '<button type="button" class="vf-confirm" id="vfSmsIdentity">통신사 문자 본인확인</button>' : '') +
-        '<div class="vf-alternative"><span>' + (smsEnabled ? '다른 방법이 필요하신가요?' : '본인 명의 정보를 확인합니다.') + '</span><button type="button" id="vfIdentity">KG 간편인증</button></div>' +
-        '<p class="vf-note">간편인증에서는 PASS·카카오·네이버 등 제공되는 수단을 선택할 수 있습니다.</p></div><p class="vf-msg" id="vfMsg"></p>';
+        '<p class="vf-desc">원하는 방법으로 본인인증해 주세요.</p>' +
+        '<div class="vf-identity-actions">' +
+        '<button type="button" class="vf-confirm vf-confirm--sms" id="vfSmsIdentity" aria-label="통신사 문자 본인확인"' +
+        (smsEnabled ? '' : ' disabled aria-disabled="true"') + '>' +
+        (smsEnabled ? '휴대폰 문자 인증' : '휴대폰 문자 인증 · 준비 중') + '</button>' +
+        '<button type="button" class="vf-confirm" id="vfIdentity" aria-label="KG 간편인증 · 간편인증으로 인증하기">간편인증</button>' +
+        '</div>' +
+        '<p class="vf-note">간편인증에서 PASS·카카오·네이버 등을 선택할 수 있어요.</p></div><p class="vf-msg" id="vfMsg"></p>';
       var msg = box.querySelector('#vfMsg');
       function setMsg(t, ok) { msg.textContent = t || ''; msg.className = 'vf-msg' + (ok ? ' ok' : t ? ' err' : ''); }
-      var smsButton = box.querySelector('#vfSmsIdentity'); if (smsButton) smsButton.addEventListener('click', function () {
+      var smsButton = box.querySelector('#vfSmsIdentity'); if (smsButton && smsEnabled) smsButton.addEventListener('click', function () {
         var btn = this; btn.disabled = true; btn.textContent = '인증 중…';
         B.verifyIdentityPortone({ agency: 'SMS' })
           .then(function () {
             setMsg('통신사 문자 본인확인이 완료되었습니다.', true); setTimeout(function () { closeModal(phoneModal); if (opts.onDone) opts.onDone(); }, 700);
           })
-          .catch(function () { btn.disabled = false; btn.textContent = '통신사 문자 본인확인'; setMsg('통신사 문자 본인확인은 KG이니시스 부가계약이 필요합니다. 현재 이용할 수 없으면 KG 간편인증을 이용해 주세요.'); });
+          .catch(function () { btn.disabled = false; btn.textContent = '휴대폰 문자 인증'; setMsg('문자 인증을 시작하지 못했습니다. 간편인증을 이용해 주세요.'); });
       });
       box.querySelector('#vfIdentity').addEventListener('click', function () {
         var btn = this; btn.disabled = true; btn.textContent = '인증 중…';
@@ -1016,7 +1019,7 @@
           .then(function () {
             setMsg('인증이 완료되었습니다.', true); setTimeout(function () { closeModal(phoneModal); if (opts.onDone) opts.onDone(); }, 700);
           })
-          .catch(function (err) { btn.disabled = false; btn.textContent = '간편인증으로 인증하기'; setMsg(notConfiguredMsg(err)); });
+          .catch(function (err) { btn.disabled = false; btn.textContent = '간편인증'; setMsg(notConfiguredMsg(err)); });
       });
       openModal(phoneModal);
     };

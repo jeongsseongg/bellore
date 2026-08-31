@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v384-identity-entry-cache-forward";
+const VERSION = "bellore-v385-identity-modal-toss";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -17,7 +17,7 @@ const SHELL_ASSETS = [
   './index.html',
   './login.html',
   ...PAGE_ASSETS,
-  './styles.css?v=20260827-mypage-contracts-v1',
+  './styles.css?v=20260831-identity-modal-toss-v1',
   './wanted-theme.css?v=20260818-pretendard-v1',
   './vendor-reference.css?v=20260731-photo-viewer',
   './reference-layout.css?v=20260821-tabbar-safe-area-v1',
@@ -34,7 +34,7 @@ const SHELL_ASSETS = [
   './analytics-client.js?v=20260826-ai-consent-v1',
   './brands.js',
   './supabase.js?v=20260828-phone-auth-paths-v1',
-  './bellore-features.js?v=20260831-identity-provider-source-v2',
+  './bellore-features.js?v=20260831-identity-modal-toss-v1',
   './cq-demo.js?v=20260831-public-contact-v1',
   './wishlist.js?v=20260826-member-verification-live-v2',
   './alerts.js?v=20260820-tabs-alerts-v1',
