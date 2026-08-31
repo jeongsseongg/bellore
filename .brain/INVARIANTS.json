@@ -98,6 +98,7 @@
         "grid-template-columns: 52px minmax(178px, 1fr) minmax(176px, 1fr) minmax(176px, 1fr);",
         "border-radius: 18px;",
         "box-shadow: 0 12px 34px rgba(20, 27, 25, .08);",
+        "min-width: 0 !important;",
         "flex-direction: row;"
       ],
       "must_not_contain": [
@@ -113,6 +114,7 @@
         "approved purchase bar keeps the full-width fully-rounded card",
         "approved purchase bar must not shrink below the 660px sheet width",
         "approved purchase bar must not reintroduce the overflowing inset margin",
+        "official N Pay SDK must not force its 200px minimum beyond the approved column",
         "approved purchase bar keeps amount and won on one line"
       ],
       "why": "승인 구매바의 실제 CSS·DOM 회귀검사가 삭제되거나 의미가 약화되지 않게 한다."

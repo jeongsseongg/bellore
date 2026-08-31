@@ -1317,6 +1317,9 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
   margin: 0 !important;
   overflow: visible !important;
 }
+.pp-bottom .pp-npay-action > .npay_button_sdk_wrapper {
+  min-width: 0 !important;
+}
 .pp-bottom .pp-npay-action iframe {
   display: block;
   width: 100% !important;
