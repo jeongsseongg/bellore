@@ -16,7 +16,6 @@ const SHELL_ASSETS = [
   './',
   './index.html',
   './login.html',
-  './pages/mypage/index.html',
   ...PAGE_ASSETS,
   './styles.css?v=20260827-mypage-contracts-v1',
   './wanted-theme.css?v=20260818-pretendard-v1',

@@ -5,6 +5,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { discoverPageHtmlFiles, injectPageAssets } from './pages-html.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const GENERATED_PAGE_FILES = Object.freeze(['pages/mypage/index.html']);
 
 export const ROOT_RUNTIME_FILES = Object.freeze([
   'index.html',
@@ -295,7 +296,10 @@ export async function buildPages({ outputDir = '_site', skipSeo = false, quiet =
   for (const file of pageFiles) await copyFileFromRoot(file, output);
   await writeMypageAppRoute(output);
   const serviceWorkerPath = join(output, 'sw.js');
-  await writeFile(serviceWorkerPath, injectPageAssets(await readFile(serviceWorkerPath, 'utf8'), pageFiles));
+  await writeFile(serviceWorkerPath, injectPageAssets(
+    await readFile(serviceWorkerPath, 'utf8'),
+    [...pageFiles, ...GENERATED_PAGE_FILES],
+  ));
   await copyAssets(output);
   await copyRuntimeDirectory('prototypes/admin-console-v2', 'admin', output);
   await copyRuntimeDirectory('prototypes/account-roles', 'account-roles', output);
