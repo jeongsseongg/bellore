@@ -27,13 +27,13 @@ for (const id of [
 }
 assert.match(index, /id=["']btnSettings["']/, 'the working settings entry point must remain');
 assert.match(page, /<body[^>]*data-bellore-standalone-page=["']mypage["'][^>]*data-standalone-auth=["']required["']/i);
-assert.match(page, /rel=["']canonical["'][^>]*href=["']https:\/\/bellore\.co\.kr\/pages\/mypage\/["']/i);
+assert.match(page, /rel=["']canonical["'][^>]*href=["']https:\/\/bellore\.co\.kr\/pages\/mypage["']/i);
 assert.match(page, /assets\/icons\/favicon-32\.png/, 'the compatibility route must keep the favicon');
 const standaloneUrl = page.match(/src=["'](\/app\/pages\/standalone-page\.js\?v=[^"']+)["']/)?.[1];
 assert(standaloneUrl, 'the compatibility route must load the shared auth entry');
 
 const authIndex = runtime.indexOf('await enforceStandaloneAuth');
-const redirectIndex = runtime.indexOf("window.location.replace('/pages/mypage/')");
+const redirectIndex = runtime.indexOf("window.location.replace('/pages/mypage')");
 const dependencyIndex = runtime.indexOf('for (const dependency of pageDependencies)');
 assert(authIndex >= 0 && redirectIndex > authIndex && dependencyIndex > redirectIndex,
   'server auth must finish before mypage redirects or legacy UI dependencies load');
@@ -51,7 +51,7 @@ assert.match(legacy, /function initMypageRoute\([\s\S]*?verifyMypageUser\(\)[\s\
   'the root deep link verifies the current user before opening mypage');
 assert.match(legacy, /function openMyOrLogin\([\s\S]*?verifyMypageUser\(\)[\s\S]*?if \(allowed\)[\s\S]*?openMyPage\(\)/,
   'the visible MY controls use the same server-verified gate');
-assert.match(legacy, /function openMyOrLogin\([\s\S]*?else openLoginModal\(['"]\/pages\/mypage\/['"]\)/,
+assert.match(legacy, /function openMyOrLogin\([\s\S]*?else openLoginModal\(['"]\/pages\/mypage['"]\)/,
   'signed-out MY controls must return to the integrated mypage after login');
 assert.doesNotMatch(legacy, /window\.location\.assign\(['"]\/pages\/mypage/,
   'root handlers cannot fall back to the broken standalone composition');

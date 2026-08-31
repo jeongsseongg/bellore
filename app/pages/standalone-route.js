@@ -1,6 +1,6 @@
 (function installStandaloneRoute(globalObject) {
   const routes = Object.freeze({
-    '/pages/mypage.html': '/pages/mypage/',
+    '/pages/mypage.html': '/pages/mypage',
     '/pages/orders.html': '/pages/orders',
     '/pages/inquiry.html': '/pages/inquiry',
   });
