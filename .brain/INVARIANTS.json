@@ -102,7 +102,8 @@
         "flex-direction: row;",
         "justify-content: flex-start;",
         "height: 58px !important;",
-        "border-radius: 14px !important;"
+        "border-radius: 14px !important;",
+        ".pp-bottom .pp-npay-action .npay_link_order"
       ],
       "must_not_contain": [
         "width: calc(100% - 24px);",

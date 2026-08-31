@@ -13,7 +13,7 @@ const priceLabel = /\.pp-bottom \.pp-buyprice::before\s*\{[^}]*position:\s*absol
 const mobileNpayBar = /@media \(max-width:\s*679px\)\s*\{[\s\S]*?\.pp-bottom\.has-npay\s*\{[^}]*grid-template-columns:\s*48px minmax\(0, 1fr\) minmax\(0, 1fr\);[^}]*\}/s;
 const sdkWrapper = /\.pp-bottom \.pp-npay-action > \.npay_button_sdk_wrapper\s*\{[^}]*min-width:\s*0 !important;[^}]*\}/s;
 const sdkVisibleButton = /\.pp-bottom \.npay_button_area,\s*\.pp-bottom \.npay_main_cell,\s*\.pp-bottom \.npay_link_order\s*\{[^}]*height:\s*58px !important;[^}]*min-height:\s*58px !important;[^}]*\}/s;
-const sdkOrderLink = /\.pp-bottom \.npay_link_order\s*\{[^}]*display:\s*flex !important;[^}]*align-items:\s*center;[^}]*justify-content:\s*center;[^}]*padding:\s*0 4px !important;[^}]*border-radius:\s*14px !important;[^}]*\}/s;
+const sdkOrderLink = /\.pp-bottom \.pp-npay-action \.npay_link_order\s*\{[^}]*display:\s*flex !important;[^}]*align-items:\s*center;[^}]*justify-content:\s*center;[^}]*padding:\s*0 4px !important;[^}]*border-radius:\s*14px !important;[^}]*\}/s;
 
 assert.match(css, desktopBar, 'approved purchase bar keeps the full-width fully-rounded card');
 assert.doesNotMatch(css, /\.pp-bottom\s*\{[^}]*width:\s*calc\(100% - 24px\);/s, 'approved purchase bar must not shrink below the 660px sheet width');
