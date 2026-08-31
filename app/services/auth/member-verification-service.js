@@ -101,27 +101,14 @@ export function createMemberVerificationService({ getClient, getPortOne, getVeri
       : `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
     const identityVerificationId = `idv_${randomId}`;
     try { globalThis.sessionStorage?.setItem('belloreIdentityVerificationId', identityVerificationId); } catch { /* storage unavailable */ }
-    const phoneNumber = String(options?.phone || '').replace(/\D/g, '');
-    const name = String(options?.name || '').trim();
-    const birthDate = String(options?.birthDate || '').replace(/\D/g, '');
-    if (!/^01\d{8,9}$/.test(phoneNumber)) throw new Error('BAD_PHONE');
-    if (!name) throw new Error('NAME_REQUIRED');
-    if (!/^\d{8}$/.test(birthDate)) throw new Error('BIRTH_DATE_REQUIRED');
     const directAgency = options?.agency === 'SMS' ? 'SMS' : undefined;
-    const inicisUnified = { flgFixedUser: 'Y' };
+    const inicisUnified = { flgFixedUser: 'N' };
     if (directAgency) inicisUnified.directAgency = directAgency;
     const response = await portOne.requestIdentityVerification({
       storeId: payment.storeId,
       identityVerificationId,
       channelKey: verify.channelKey,
       redirectUrl: identityReturnUrl(),
-      customer: {
-        fullName: name,
-        phoneNumber,
-        birthYear: birthDate.slice(0, 4),
-        birthMonth: birthDate.slice(4, 6),
-        birthDay: birthDate.slice(6, 8),
-      },
       bypass: {
         inicisUnified,
       },

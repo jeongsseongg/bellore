@@ -78,16 +78,14 @@ try {
   const encoded = output.match(/<pre id="result">([\s\S]*?)<\/pre>/)?.[1] || '';
   const payload = JSON.parse(encoded.replaceAll('&amp;', '&').replaceAll('&lt;', '<').replaceAll('&gt;', '>'));
   assert.deepEqual(payload, {
-    solapiSend: 0, solapiVerify: 0, portOne: 2, identityVerify: 2,
-    customer: {
-      fullName: '홍길동', phoneNumber: '01012345678',
-      birthYear: '1990', birthMonth: '01', birthDay: '02',
-    },
-    fixedUser: 'Y',
-    carrierAgency: 'SMS',
+    solapiSend: 0, solapiVerify: 0, portOne: 1, identityVerify: 1,
+    fixedUser: 'N',
+    verifiedName: '홍길동',
+    verifiedPhone: '010-1234-5678',
+    smsHidden: true,
     easyAgency: null,
   });
-  console.log('member verification browser runtime: carrier-sms=1 easy-auth=1 solapi=0 passed');
+  console.log('member verification browser runtime: provider-popup=1 verified-autofill=2 sms-hidden=1 passed');
 } finally {
   await new Promise((resolveClose) => server.close(resolveClose));
   rmSync(profile, { recursive: true, force: true });

@@ -20,15 +20,19 @@ assert.match(worker, /Cache-Control', 'no-store'/, 'dynamic XML must not be cach
 assert.match(worker, /application\/xml; charset=utf-8/, 'same-domain product response must advertise XML');
 assert.match(wrangler, /bellore\.co\.kr\/naverpay-order\*/, 'Worker route must stay on the registered domain');
 assert.match(sw, /pathname === '\/naverpay-order'/, 'service worker must bypass dynamic product XML');
-assert.match(config, /testOnly:\s*false/, 'customer-facing Naver Pay must be enabled after production approval');
+assert.match(config, /testOnly:\s*true/, 'Naver Pay must stay restricted to the named review account until final approval');
 assert.match(edge, /https:\/\/api\.pay\.naver\.com\/o\/customer\/api\/order\/v20\/register/, 'Edge must default to the production order API');
-assert.match(edge, /sandbox:\s*false/, 'Edge public config must select the production order flow');
+assert.match(edge, /https:\/\/test-api\.pay\.naver\.com\/o\/customer\/api\/order\/v20\/register/, 'review mode must use the official test order API');
+assert.match(edge, /sandbox:\s*SANDBOX/, 'Edge public config must report the selected environment');
 assert.equal((html.match(/id="npay-button-container"/g) || []).length, 1, 'product page must have one Naver Pay button container');
 assert.match(html, /<div class="pp-bottom">[\s\S]*id="pmBuy"[\s\S]*id="npay-button-container"/, 'regular purchase must sit immediately before the Naver Pay action');
 assert.match(css, /\.pp-bottom \.pp-npay-action/, 'bottom purchase bar must size the Naver Pay action');
 assert.match(client, /classList\.toggle\('has-npay', visible\)/, 'purchase bar must reserve space only when Naver Pay is visible');
-assert.match(client, /sessionStorage\.setItem\(testSessionKey, '1'\)/, 'Naver Pay test mode must survive canonical product routing in the same tab');
-assert.match(client, /sessionStorage\.removeItem\(testSessionKey\)/, 'Naver Pay test mode must support an explicit opt-out');
+assert.match(client, /window\.sbClient\.auth\.getSession\(\)/, 'review mode must require a real Supabase login session');
+assert.match(client, /headers\.Authorization = 'Bearer ' \+ token/, 'review requests must carry the authenticated session');
+assert.doesNotMatch(client, /naverPayTest/, 'a public query parameter must never unlock Naver Pay review mode');
+assert.match(edge, /select\("username"\)/, 'the Edge must authorize the configured review username');
+assert.match(edge, /return json\(\{ error: "forbidden" \}, 403\)/, 'unauthorized review requests must be rejected server-side');
 assert.match(sw, /const VERSION = "bellore-v\d+-[a-z0-9-]+";/, 'service worker cache namespace must remain a versioned Bellore release');
 assert.match(sw, /app\/services\/sell\/sell-request-access\.js/, 'service worker must preserve the sell persistence runtime');
 

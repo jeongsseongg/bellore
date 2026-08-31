@@ -1,4 +1,4 @@
-import { createMemberVerificationService } from '../services/auth/member-verification-service.js?v=20260831-kg-sms-identity-v1';
+import { createMemberVerificationService } from '../services/auth/member-verification-service.js?v=20260831-identity-provider-source-v1';
 
 export function installLegacyMemberVerificationService({ window }) {
   Object.defineProperty(window, 'BelloreMemberVerificationService', {

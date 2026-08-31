@@ -177,10 +177,10 @@ if (wallet.charge?.card === false && read('auction.js').includes('W.charge.card'
 if (wallet.charge?.transfer === false && read('auction.js').includes('W.charge.transfer')) {
   disabled.push('BELLORE_WALLET.charge.transfer=false(transfer charge UI present)');
 }
-assert.equal(verify.phone?.smsEnabled, true, 'configured SMS provider must keep the public OTP path visible');
+assert.equal(verify.phone?.smsEnabled, false, 'uncontracted carrier SMS must not expose a broken public path');
 assert(disabled.length >= 1, 'disabled features with retained implementations must stay visible');
-assert(!disabled.some((item) => item.startsWith('BELLORE_VERIFY.phone.smsEnabled=false')),
-  'enabled SMS implementation must not be reported as disabled');
+assert(disabled.some((item) => item.startsWith('BELLORE_VERIFY.phone.smsEnabled=false')),
+  'the retained carrier-SMS implementation must be reported as disabled until its contract is active');
 assert(disabled.some((item) => item.startsWith('BELLORE_VERIFY.account.enabled=false')),
   'disabled account implementation must be printed');
 

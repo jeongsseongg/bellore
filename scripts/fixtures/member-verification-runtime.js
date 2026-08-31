@@ -26,7 +26,7 @@ const service = createMemberVerificationService({
       return { identityVerificationId: 'idv_provider_runtime' };
     },
   }),
-  getVerifyConfig: () => ({ phone: { enabled: true, smsEnabled: true, channelKey: 'channel-runtime' } }),
+  getVerifyConfig: () => ({ phone: { enabled: true, smsEnabled: false, channelKey: 'channel-runtime' } }),
   getPaymentConfig: () => ({ storeId: 'store-runtime' }),
 });
 
@@ -58,28 +58,23 @@ try {
     form: document.getElementById('verificationFixture'),
     backend,
     config: {
-      phone: { enabled: true, smsEnabled: true, channelKey: 'channel-runtime' },
+      phone: { enabled: true, smsEnabled: false, channelKey: 'channel-runtime' },
       email: { enabled: false }, business: { enabled: false }, account: { enabled: false },
     },
   });
 
-  document.querySelector('[data-vsend="phoneSms"]').click();
-  await waitFor(() => calls.portOne.length === 1 && countInvoke('verify-identity') === 1, 'carrier-sms-complete');
-
   document.querySelector('[data-vsend="phone"]').click();
-  await waitFor(() => calls.portOne.length === 2 && countInvoke('verify-identity') === 2, 'easy-auth-complete');
+  await waitFor(() => calls.portOne.length === 1 && countInvoke('verify-identity') === 1, 'easy-auth-complete');
   requireValue(countInvoke('send-phone-otp') === 0, 'solapi-send-must-not-run');
   requireValue(countInvoke('verify-phone-otp') === 0, 'solapi-verify-must-not-run');
 
   const payload = calls.portOne[0];
-  requireValue(payload.customer.fullName === '홍길동', 'kg-full-name');
-  requireValue(payload.customer.phoneNumber === '01012345678', 'kg-phone');
-  requireValue(payload.customer.birthYear === '1990', 'kg-birth-year');
-  requireValue(payload.customer.birthMonth === '01', 'kg-birth-month');
-  requireValue(payload.customer.birthDay === '02', 'kg-birth-day');
-  requireValue(payload.bypass.inicisUnified.flgFixedUser === 'Y', 'kg-fixed-user');
-  requireValue(payload.bypass.inicisUnified.directAgency === 'SMS', 'carrier-sms-agency');
-  requireValue(calls.portOne[1].bypass.inicisUnified.directAgency === undefined, 'easy-auth-no-direct-agency');
+  requireValue(payload.customer === undefined, 'provider-popup-is-identity-source');
+  requireValue(payload.bypass.inicisUnified.flgFixedUser === 'N', 'kg-popup-user');
+  requireValue(payload.bypass.inicisUnified.directAgency === undefined, 'easy-auth-no-direct-agency');
+  requireValue(document.getElementById('suName').value === '홍길동', 'verified-name-autofill');
+  requireValue(document.getElementById('suPhone').value === '010-1234-5678', 'verified-phone-autofill');
+  requireValue(document.querySelector('[data-phone-sms]').hidden === true, 'uncontracted-sms-hidden');
 
   resultNode.textContent = JSON.stringify({
     solapiSend: countInvoke('send-phone-otp'),
@@ -88,8 +83,10 @@ try {
     identityVerify: countInvoke('verify-identity'),
     customer: payload.customer,
     fixedUser: payload.bypass.inicisUnified.flgFixedUser,
-    carrierAgency: payload.bypass.inicisUnified.directAgency,
-    easyAgency: calls.portOne[1].bypass.inicisUnified.directAgency || null,
+    verifiedName: document.getElementById('suName').value,
+    verifiedPhone: document.getElementById('suPhone').value,
+    smsHidden: document.querySelector('[data-phone-sms]').hidden,
+    easyAgency: payload.bypass.inicisUnified.directAgency || null,
   });
   document.body.dataset.status = 'passed';
 } catch (error) {

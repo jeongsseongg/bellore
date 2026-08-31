@@ -24,7 +24,10 @@ for (const [name, html] of [['login', login], ...['mypage', 'orders', 'inquiry']
 }
 assert.doesNotMatch(login, /assets\/favicon\.png/);
 assert.match(login, /id="signupStep1"[\s\S]*일반 회원[\s\S]*파트너사[\s\S]*id="signupRoleNext"/);
-assert.match(login, /id="signupStep2"[\s\S]*id="suName"[\s\S]*data-v="phone"[\s\S]*id="signupInfoPrev"/);
+assert.match(login, /id="signupStep2"[\s\S]*data-v="phone"[\s\S]*id="suName"[\s\S]*id="signupInfoPrev"/);
+assert.match(login, /id="suName"[^>]+readonly[^>]+required/);
+assert.match(login, /id="suPhone"[^>]+readonly[^>]+required/);
+assert.doesNotMatch(login, /id="suBirthDate"/, '사이트가 생년월일을 사전 수집하면 인증 공급자 결과와 이중 정본이 됩니다.');
 assert.match(login, /id="signupStep3"[\s\S]*id="suUsername"[\s\S]*data-v="email"/);
 assert.match(login, /id="signupStep4"[\s\S]*id="signupPostcode"[\s\S]*id="signupSubmitBtn"/);
 assert.match(login, /id="suEmailCode"[^>]+minlength="6"[^>]+maxlength="10"/,

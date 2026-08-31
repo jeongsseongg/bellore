@@ -76,9 +76,9 @@ assert.doesNotMatch(client, /phone_verified:\s*true/);
 assert.doesNotMatch(client, /provider:\s*['"]naver['"]/, 'unsupported Supabase Naver provider must never be called');
 assert.match(client, /NAVER_LOGIN_NOT_CONFIGURED/);
 assert.match(legacyFeatures, /간편인증으로 인증하기/);
-assert.match(legacyFeatures, /B\.verifyIdentityPortone\(\{ phone: phone, name: name, birthDate: birthDate, agency: 'SMS' \}\)/);
-assert.match(legacyFeatures, /B\.verifyIdentityPortone\(\{ phone: phone, name: name, birthDate: birthDate \}\)/);
-assert.match(legacyFeatures, /id="vfPhoneNumber"/);
+assert.match(legacyFeatures, /B\.verifyIdentityPortone\(\{ agency: 'SMS' \}\)/);
+assert.match(legacyFeatures, /B\.verifyIdentityPortone\(\)/);
+assert.doesNotMatch(legacyFeatures, /id="vfPhoneNumber"/);
 assert.match(legacyFeatures, /통신사 문자 본인확인[\s\S]*KG 간편인증/);
 assert.doesNotMatch(legacyFeatures, /B\.sendPhoneOtp\(phone\)/);
 assert.doesNotMatch(legacyFeatures, /B\.verifyPhoneOtp\(/);
@@ -114,11 +114,12 @@ assert.match(admin, /actorProfile\.suspended === true/);
 assert.match(admin, /admin_set_member_verification/);
 assert.match(verificationService, /invoke\('verify-identity'/);
 assert.match(verificationService, /redirectUrl: identityReturnUrl\(\)/);
-assert.match(verificationService, /flgFixedUser: 'Y'/);
+assert.match(verificationService, /flgFixedUser: 'N'/);
 assert.match(verificationService, /invoke\('sync-email-verification'/);
 assert.match(verificationService, /redirectUrl: identityReturnUrl\(\)/);
 assert.match(verificationService, /response\?\.identityVerificationId \|\| identityVerificationId/);
-assert.match(verificationService, /birthYear: birthDate\.slice\(0, 4\)/);
+assert.doesNotMatch(verificationService, /birthYear:/);
+assert.doesNotMatch(verificationService, /customer:/);
 assert.match(verificationService, /options\?\.agency === 'SMS'/);
 assert.match(verificationService, /inicisUnified\.directAgency = directAgency/);
 assert.match(verificationService, /invoke\('send-phone-otp'/);
@@ -176,14 +177,12 @@ const service = createMemberVerificationService({
   getVerifyConfig: () => ({ phone: { channelKey: 'channel-live' } }),
   getPaymentConfig: () => ({ storeId: 'store-live' }),
 });
-await service.verifyIdentity({ phone: '010-1234-5678', name: '홍길동', birthDate: '19900102', agency: 'SMS' });
+await service.verifyIdentity({ agency: 'SMS' });
 assert.equal(identityCalls[0].request.bypass.inicisUnified.directAgency, 'SMS');
-assert.equal(identityCalls[0].request.bypass.inicisUnified.flgFixedUser, 'Y');
-assert.deepEqual(identityCalls[0].request.customer, {
-  fullName: '홍길동', phoneNumber: '01012345678', birthYear: '1990', birthMonth: '01', birthDay: '02',
-});
+assert.equal(identityCalls[0].request.bypass.inicisUnified.flgFixedUser, 'N');
+assert.equal(identityCalls[0].request.customer, undefined);
 assert.deepEqual(identityCalls[1], { name: 'verify-identity', body: { identityVerificationId: 'idv_provider_response' } });
-await service.verifyIdentity({ phone: '010-1234-5678', name: '홍길동', birthDate: '19900102' });
+await service.verifyIdentity();
 assert.equal(identityCalls[2].request.bypass.inicisUnified.directAgency, undefined);
 assert.deepEqual(identityCalls[3], { name: 'verify-identity', body: { identityVerificationId: 'idv_provider_response' } });
 const kftcUrl = pathToFileURL(path.join(root, 'supabase', 'functions', '_shared', 'kftc-account-provider.mjs')).href;
