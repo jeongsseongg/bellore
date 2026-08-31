@@ -18,7 +18,7 @@ assert.equal(cardChannel, expectedLiveChannel, 'production card payments must us
 assert.doesNotMatch(config, new RegExp(retiredTestChannel), 'retired PortOne TEST channel must not return to production config');
 assert.ok(configUrl, 'HTML must request the payment config with a release key');
 assert.ok(serviceWorker.includes(`'./${configUrl}'`), 'service worker must precache the exact payment config URL requested by HTML');
-assert.match(config, /testOnly:\s*false/, 'later cache releases must preserve the live Naver Pay channel');
+assert.match(config, /testOnly:\s*true/, 'Naver Pay must remain review-account-only until Naver grants final approval');
 
 for (const [id, payMethod] of [
   ['virtual', 'VIRTUAL_ACCOUNT'],
