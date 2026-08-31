@@ -43,8 +43,11 @@ Deno.serve(async (req) => {
     const response = await fetch("https://api.solapi.com/messages/v4/send-many/detail", {
       method: "POST",
       headers: { authorization: await solapiAuthorization(API_KEY, API_SECRET), "content-type": "application/json" },
-      body: JSON.stringify({ messages: [{ to: phone, from: SENDER, type: "SMS", autoTypeDetect: false,
-        text: `[벨로르] 휴대폰 인증번호는 ${otp}입니다. 5분 안에 입력해 주세요.` }] }),
+      body: JSON.stringify({
+        messages: [{ to: phone, from: SENDER, type: "SMS", autoTypeDetect: false,
+          text: `[벨로르] 휴대폰 인증번호는 ${otp}입니다. 5분 안에 입력해 주세요.` }],
+        showMessageList: true,
+      }),
     });
     const output = await response.json().catch(() => ({})) as Record<string, unknown>;
     const failures = Array.isArray(output.failedMessageList) ? output.failedMessageList as Record<string, unknown>[] : [];
