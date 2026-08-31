@@ -2,15 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildOrderCallback,
+  buildQuoteApprovalCallback,
   buildQuoteCallback,
   isAllowedActor,
   parseCallback,
   parseOrderCommand,
+  parseQuoteApprovalCommand,
   parseQuoteCommand,
 } from './telegram-ops-core.mjs';
 
 test('견적 금액은 기본적으로 만원 단위를 사용한다', () => {
   assert.deepEqual(parseQuoteCommand('4821 500'), { inputKey: '4821', amount: 5_000_000 });
+  assert.deepEqual(parseQuoteCommand('/4821 500'), { inputKey: '4821', amount: 5_000_000 });
   assert.deepEqual(parseQuoteCommand('4821 500만'), { inputKey: '4821', amount: 5_000_000 });
   assert.deepEqual(parseQuoteCommand('4821 500만원'), { inputKey: '4821', amount: 5_000_000 });
 });
@@ -27,8 +30,20 @@ test('잘못된 키와 금액을 거부한다', () => {
   assert.equal(parseOrderCommand('12345'), null);
 });
 
+test('비교견적 승인 명령은 4자리 키와 정확한 승인 문구만 허용한다', () => {
+  assert.deepEqual(parseQuoteApprovalCommand('1547 승인'), { inputKey: '1547' });
+  assert.deepEqual(parseQuoteApprovalCommand('/1547 승인'), { inputKey: '1547' });
+  assert.equal(parseQuoteApprovalCommand('1547'), null);
+  assert.equal(parseQuoteApprovalCommand('1547 승인해'), null);
+  assert.equal(parseQuoteApprovalCommand('547 승인'), null);
+  assert.deepEqual(parseCallback(buildQuoteApprovalCallback('1547')), {
+    kind: 'quote_approve', inputKey: '1547',
+  });
+});
+
 test('주문 키, 관리자 허용목록, 콜백을 파싱한다', () => {
   assert.deepEqual(parseOrderCommand(' 4821 '), { inputKey: '4821' });
+  assert.deepEqual(parseOrderCommand('/4821'), { inputKey: '4821' });
   assert.equal(isAllowedActor(22, '11, 22,33'), true);
   assert.equal(isAllowedActor(44, '11,22,33'), false);
   assert.deepEqual(parseCallback(buildQuoteCallback('4821', 5_000_000)), {
