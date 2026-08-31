@@ -12,15 +12,20 @@ const inlinePrice = /\.pp-bottom \.pp-buyprice\s*\{[^}]*position:\s*relative;[^}
 const priceLabel = /\.pp-bottom \.pp-buyprice::before\s*\{[^}]*position:\s*absolute;[^}]*top:\s*8px;[^}]*left:\s*8px;[^}]*\}/s;
 const mobileNpayBar = /@media \(max-width:\s*679px\)\s*\{[\s\S]*?\.pp-bottom\.has-npay\s*\{[^}]*grid-template-columns:\s*48px minmax\(0, 1fr\) minmax\(0, 1fr\);[^}]*\}/s;
 const sdkWrapper = /\.pp-bottom \.pp-npay-action > \.npay_button_sdk_wrapper\s*\{[^}]*min-width:\s*0 !important;[^}]*\}/s;
+const sdkVisibleButton = /\.pp-bottom \.npay_button_area,\s*\.pp-bottom \.npay_main_cell,\s*\.pp-bottom \.npay_link_order\s*\{[^}]*height:\s*58px !important;[^}]*min-height:\s*58px !important;[^}]*\}/s;
+const sdkOrderLink = /\.pp-bottom \.npay_link_order\s*\{[^}]*display:\s*flex !important;[^}]*align-items:\s*center;[^}]*justify-content:\s*center;[^}]*padding:\s*0 4px !important;[^}]*border-radius:\s*14px !important;[^}]*\}/s;
 
 assert.match(css, desktopBar, 'approved purchase bar keeps the full-width fully-rounded card');
 assert.doesNotMatch(css, /\.pp-bottom\s*\{[^}]*width:\s*calc\(100% - 24px\);/s, 'approved purchase bar must not shrink below the 660px sheet width');
 assert.doesNotMatch(css, /\.pp-bottom\s*\{[^}]*margin:\s*0 12px 12px;/s, 'approved purchase bar must not reintroduce the overflowing inset margin');
 assert.match(css, desktopNpayBar, 'approved purchase bar keeps regular purchase left and N Pay right');
 assert.match(css, inlinePrice, 'approved purchase bar keeps amount and won on one line');
+assert.match(css, /\.pp-bottom \.pp-buyprice\s*\{[^}]*justify-content:\s*flex-start;[^}]*\}/s, 'approved purchase bar left-aligns the sale label and amount');
 assert.match(css, priceLabel, 'approved purchase bar keeps the sale-price label above the inline amount');
 assert.match(css, mobileNpayBar, 'approved purchase bar keeps the compact three-column mobile grid');
 assert.match(css, sdkWrapper, 'official N Pay SDK must not force its 200px minimum beyond the approved column');
+assert.match(css, sdkVisibleButton, 'official N Pay button must match the 58px regular purchase button height');
+assert.match(css, sdkOrderLink, 'official N Pay button must match the regular purchase button alignment and radius');
 assert.doesNotMatch(css, /\.pp-bottom \.pp-buyprice\s*\{[^}]*flex-direction:\s*column;/s, 'price and won must not stack vertically');
 assert.match(
   html,
@@ -30,4 +35,4 @@ assert.match(
 assert.match(hooks, /PYTHONUTF8=1 PYTHONIOENCODING=utf-8 python3/, 'POSIX invariant hooks must read UTF-8 paths and payloads');
 assert.match(hooks, /\$env:PYTHONUTF8='1'; \$env:PYTHONIOENCODING='utf-8'; python/, 'Windows invariant hooks must read UTF-8 paths and payloads');
 
-console.log('Approved purchase bar layout contract: 12/12 passed');
+console.log('Approved purchase bar layout contract: 15/15 passed');
