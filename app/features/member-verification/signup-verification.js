@@ -6,7 +6,7 @@ export function createSignupVerification({ document, form, backend, config }) {
     account: { ok: false, real: false, nc: false },
   };
   const fieldKind = {
-    suName: 'phone', suPhone: 'phone', suBirthDate: 'phone', suEmail: 'email', suCompany: 'biz', suBizNo: 'biz',
+    suEmail: 'email', suCompany: 'biz', suBizNo: 'biz',
     suCeo: 'biz', suBizOpen: 'biz', suBank: 'account', suAccount: 'account', suHolder: 'account',
   };
   const softMessage = '준비 중 — 입력만으로 가입 진행됩니다.';
@@ -19,6 +19,20 @@ export function createSignupVerification({ document, form, backend, config }) {
   function displayPhone(value) {
     const digits = String(value || '').replace(/\D/g, '');
     return digits.length === 11 ? digits.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3') : digits;
+  }
+
+  function applyVerifiedIdentity(result, successMessage) {
+    const verifiedPhone = displayPhone(result?.phone);
+    const verifiedName = String(result?.name || '').trim();
+    if (!/^010-\d{4}-\d{4}$/.test(verifiedPhone) || !verifiedName) {
+      throw new Error('VERIFIED_IDENTITY_INCOMPLETE');
+    }
+    const phoneInput = document.getElementById('suPhone');
+    const nameInput = document.getElementById('suName');
+    if (phoneInput) phoneInput.value = verifiedPhone;
+    if (nameInput) nameInput.value = verifiedName;
+    state.phone = { ok: true, real: true, nc: false, ticket: result?.signupTicket || '' };
+    setState('phone', 'ok', successMessage);
   }
 
   function syncEmailValue() {
@@ -74,52 +88,24 @@ export function createSignupVerification({ document, form, backend, config }) {
     const done = () => { button.disabled = false; };
 
     if (kind === 'phoneSms') {
-      const phone = String(data.get('phone') || '').replace(/\D/g, '');
-      const name = String(data.get('name') || '').trim();
-      const birthDate = String(data.get('birthDate') || '').replace(/\D/g, '');
-      if (!/^010\d{8}$/.test(phone)) { setState('phone', 'err', '휴대폰 번호 11자리를 확인해 주세요.'); done(); return; }
-      if (!name) { setState('phone', 'err', '이름을 입력해 주세요.'); done(); return; }
-      if (!/^\d{8}$/.test(birthDate)) { setState('phone', 'err', '생년월일 8자리를 입력해 주세요.'); done(); return; }
       if (config.phone?.smsEnabled !== true || !backend.verifyIdentityPortone) {
         setState('phone', 'err', '통신사 문자 본인확인은 현재 준비 중입니다. 간편인증을 이용해 주세요.'); done(); return;
       }
       setState('phone', '', '통신사 문자 본인확인 진행 중…');
-      backend.verifyIdentityPortone({ phone, name, birthDate, agency: 'SMS' })
-        .then((result) => {
-          const verifiedPhone = displayPhone(result?.phone);
-          const input = document.getElementById('suPhone');
-          if (verifiedPhone && input) input.value = verifiedPhone;
-          const nameInput = document.getElementById('suName');
-          if (result?.name && nameInput) nameInput.value = result.name;
-          state.phone = { ok: true, real: true, nc: false, ticket: result?.signupTicket || '' };
-          setState('phone', 'ok', '✓ 통신사 문자 본인확인 완료');
-        })
-        .catch((error) => setState('phone', 'err', customerMessage(error, 'identity', '통신사 문자 본인확인을 완료하지 못했습니다.')))
+      backend.verifyIdentityPortone({ agency: 'SMS' })
+        .then((result) => applyVerifiedIdentity(result, '✓ 통신사 문자 본인확인 완료'))
+        .catch(() => setState('phone', 'err', '통신사 문자 본인확인은 KG이니시스 부가계약이 필요합니다. 현재 이용할 수 없으면 KG 간편인증을 이용해 주세요.'))
         .then(done);
       return;
     }
 
     if (kind === 'phone') {
-      const phone = String(data.get('phone') || '').replace(/\D/g, '');
-      const name = String(data.get('name') || '').trim();
-      const birthDate = String(data.get('birthDate') || '').replace(/\D/g, '');
-      if (!/^010\d{8}$/.test(phone)) { setState(kind, 'err', '휴대폰 번호 11자리를 확인해 주세요.'); done(); return; }
-      if (!name) { setState(kind, 'err', '이름을 입력해 주세요.'); done(); return; }
-      if (!/^\d{8}$/.test(birthDate)) { setState(kind, 'err', '생년월일 8자리를 입력해 주세요.'); done(); return; }
       if (!isLive(kind) || !backend.verifyIdentityPortone) {
         state.phone = { ok: true, real: false, nc: true }; setState(kind, 'ok', softMessage); done(); return;
       }
       setState(kind, '', '본인인증 진행 중…');
-      backend.verifyIdentityPortone({ phone, name, birthDate })
-        .then((result) => {
-          const verifiedPhone = displayPhone(result?.phone);
-          const input = document.getElementById('suPhone');
-          if (verifiedPhone && input) input.value = verifiedPhone;
-          const nameInput = document.getElementById('suName');
-          if (result?.name && nameInput) nameInput.value = result.name;
-          state.phone = { ok: true, real: true, nc: false, ticket: result?.signupTicket || '' };
-          setState(kind, 'ok', '✓ 휴대폰 명의 확인 완료');
-        })
+      backend.verifyIdentityPortone()
+        .then((result) => applyVerifiedIdentity(result, '✓ 휴대폰 명의 확인 완료'))
         .catch((error) => setState(kind, 'err', customerMessage(error, 'identity', '본인인증을 완료하지 못했습니다. 다시 시도해 주세요.')))
         .then(done);
       return;
@@ -214,12 +200,7 @@ export function createSignupVerification({ document, form, backend, config }) {
     }
     try {
       const result = await backend.completeIdentityVerification(identityId);
-      const input = document.getElementById('suPhone');
-      if (result?.phone && input) input.value = displayPhone(result.phone);
-      const nameInput = document.getElementById('suName');
-      if (result?.name && nameInput) nameInput.value = result.name;
-      state.phone = { ok: true, real: true, nc: false, ticket: result?.signupTicket || '' };
-      setState('phone', 'ok', '✓ 휴대폰 명의 확인 완료');
+      applyVerifiedIdentity(result, '✓ 휴대폰 명의 확인 완료');
       try { document.defaultView.sessionStorage.removeItem('belloreIdentityVerificationId'); } catch (_) {}
     } catch (error) {
       setState('phone', 'err', customerMessage(error, 'identity', '본인인증 결과를 확인하지 못했습니다.'));

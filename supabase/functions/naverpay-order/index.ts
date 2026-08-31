@@ -11,7 +11,11 @@ const RETURN_ADDRESS1 = Deno.env.get("NAVERPAY_RETURN_ADDRESS1") ?? "서울특�
 const RETURN_ADDRESS2 = Deno.env.get("NAVERPAY_RETURN_ADDRESS2") ?? "벨로르";
 const SELLER_NAME = Deno.env.get("NAVERPAY_SELLER_NAME") ?? "벨로르";
 const SELLER_CONTACT = Deno.env.get("NAVERPAY_SELLER_CONTACT") ?? "01062936668";
-const ORDER_API = "https://api.pay.naver.com/o/customer/api/order/v20/register";
+const SANDBOX = Deno.env.get("NAVERPAY_SANDBOX") === "true";
+const TEST_USERNAME = (Deno.env.get("NAVERPAY_TEST_USERNAME") ?? "").trim().toLowerCase();
+const ORDER_API = SANDBOX
+  ? "https://test-api.pay.naver.com/o/customer/api/order/v20/register"
+  : "https://api.pay.naver.com/o/customer/api/order/v20/register";
 const SITE_URL = Deno.env.get("NAVERPAY_SITE_URL") ?? "https://bellore.co.kr";
 const SHIPPING_FEE = Number(Deno.env.get("SHIPPING_FEE") ?? "35000");
 const PREMIUM_SHIP_THRESHOLD = Number(Deno.env.get("PREMIUM_SHIP_THRESHOLD") ?? "5000000");
@@ -136,21 +140,36 @@ function productXml(listing: any, includeStock: boolean) {
 }
 
 function configured() {
-  return !!(SUPABASE_URL && SERVICE_ROLE && MERCHANT_ID && CERTI_KEY && BUTTON_KEY && ACCOUNT_ID);
+  return !!(SUPABASE_URL && SERVICE_ROLE && MERCHANT_ID && CERTI_KEY && BUTTON_KEY && ACCOUNT_ID
+    && (!SANDBOX || TEST_USERNAME));
+}
+
+async function isAuthorizedTestAccount(admin: any, req: Request) {
+  if (!SANDBOX) return true;
+  const authorization = req.headers.get("authorization") ?? "";
+  const token = authorization.replace(/^Bearer\s+/i, "").trim();
+  if (!token) return false;
+  const { data: authData, error: authError } = await admin.auth.getUser(token);
+  if (authError || !authData.user) return false;
+  const { data: profile, error: profileError }: { data: any; error: any } = await admin.from("profiles")
+    .select("username").eq("id", authData.user.id).maybeSingle();
+  if (profileError || !profile) return false;
+  return String(profile.username || "").trim().toLowerCase() === TEST_USERNAME;
 }
 
 Deno.serve(async (req) => {
   const traceId = crypto.randomUUID();
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   const url = new URL(req.url);
+  const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
   if (req.method === "GET" && url.searchParams.get("action") === "config") {
     if (!configured()) return json({ error: "not_configured" }, 503);
-    return json({ buttonKey: BUTTON_KEY, accountId: ACCOUNT_ID, version: "2.1", sandbox: false });
+    if (!(await isAuthorizedTestAccount(admin, req))) return json({ error: "forbidden" }, 403);
+    return json({ buttonKey: BUTTON_KEY, accountId: ACCOUNT_ID, version: "2.1", sandbox: SANDBOX });
   }
 
   if (!configured()) return json({ error: "not_configured" }, 503);
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
   if (req.method === "GET") {
     const requestedIds: string[] = [];
@@ -174,6 +193,7 @@ Deno.serve(async (req) => {
   }
 
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+  if (!(await isAuthorizedTestAccount(admin, req))) return json({ error: "forbidden" }, 403);
   try {
     const body = await req.json();
     const listingIds = (Array.isArray(body.listingIds)

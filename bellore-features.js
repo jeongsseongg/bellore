@@ -995,30 +995,24 @@
       var smsEnabled = !!(window.BELLORE_VERIFY && window.BELLORE_VERIFY.phone && window.BELLORE_VERIFY.phone.smsEnabled);
       box.innerHTML =
         '<div class="vf-phone-flow">' +
-        '<label class="vf-field" for="vfIdentityName"><span>이름</span><input type="text" id="vfIdentityName" autocomplete="name" placeholder="본인 이름"></label>' +
-        '<label class="vf-field" for="vfIdentityBirth"><span>생년월일</span><input type="text" id="vfIdentityBirth" inputmode="numeric" autocomplete="bday" maxlength="8" placeholder="YYYYMMDD"></label>' +
-        '<label class="vf-field" for="vfPhoneNumber"><span>휴대폰 번호</span><input type="tel" id="vfPhoneNumber" inputmode="numeric" autocomplete="tel" maxlength="13" placeholder="01012345678"></label>' +
-        (smsEnabled ? '<p class="vf-desc">이름·생년월일·통신사와 휴대폰 번호를 KG이니시스에서 확인합니다.</p>' +
+        '<p class="vf-desc">인증 팝업에서 입력한 이름과 휴대폰 번호를 KG이니시스에서 확인합니다.</p>' +
+        (smsEnabled ?
         '<button type="button" class="vf-confirm" id="vfSmsIdentity">통신사 문자 본인확인</button>' : '') +
         '<div class="vf-alternative"><span>' + (smsEnabled ? '다른 방법이 필요하신가요?' : '본인 명의 정보를 확인합니다.') + '</span><button type="button" id="vfIdentity">KG 간편인증</button></div>' +
         '<p class="vf-note">간편인증에서는 PASS·카카오·네이버 등 제공되는 수단을 선택할 수 있습니다.</p></div><p class="vf-msg" id="vfMsg"></p>';
       var msg = box.querySelector('#vfMsg');
       function setMsg(t, ok) { msg.textContent = t || ''; msg.className = 'vf-msg' + (ok ? ' ok' : t ? ' err' : ''); }
       var smsButton = box.querySelector('#vfSmsIdentity'); if (smsButton) smsButton.addEventListener('click', function () {
-        var phone = String(box.querySelector('#vfPhoneNumber').value || '').replace(/\D/g, ''), name = String(box.querySelector('#vfIdentityName').value || '').trim(), birthDate = String(box.querySelector('#vfIdentityBirth').value || '').replace(/\D/g, '');
-        if (!name || !/^\d{8}$/.test(birthDate) || !/^010\d{8}$/.test(phone)) { setMsg('이름·생년월일 8자리·휴대폰 번호를 확인해 주세요.'); return; }
         var btn = this; btn.disabled = true; btn.textContent = '인증 중…';
-        B.verifyIdentityPortone({ phone: phone, name: name, birthDate: birthDate, agency: 'SMS' })
+        B.verifyIdentityPortone({ agency: 'SMS' })
           .then(function () {
             setMsg('통신사 문자 본인확인이 완료되었습니다.', true); setTimeout(function () { closeModal(phoneModal); if (opts.onDone) opts.onDone(); }, 700);
           })
-          .catch(function (err) { btn.disabled = false; btn.textContent = '통신사 문자 본인확인'; setMsg(notConfiguredMsg(err)); });
+          .catch(function () { btn.disabled = false; btn.textContent = '통신사 문자 본인확인'; setMsg('통신사 문자 본인확인은 KG이니시스 부가계약이 필요합니다. 현재 이용할 수 없으면 KG 간편인증을 이용해 주세요.'); });
       });
       box.querySelector('#vfIdentity').addEventListener('click', function () {
-        var phone = String(box.querySelector('#vfPhoneNumber').value || '').replace(/\D/g, ''), name = String(box.querySelector('#vfIdentityName').value || '').trim(), birthDate = String(box.querySelector('#vfIdentityBirth').value || '').replace(/\D/g, '');
-        if (!name || !/^\d{8}$/.test(birthDate) || !/^010\d{8}$/.test(phone)) { setMsg('이름·생년월일 8자리·휴대폰 번호를 확인해 주세요.'); return; }
         var btn = this; btn.disabled = true; btn.textContent = '인증 중…';
-        B.verifyIdentityPortone({ phone: phone, name: name, birthDate: birthDate })
+        B.verifyIdentityPortone()
           .then(function () {
             setMsg('인증이 완료되었습니다.', true); setTimeout(function () { closeModal(phoneModal); if (opts.onDone) opts.onDone(); }, 700);
           })

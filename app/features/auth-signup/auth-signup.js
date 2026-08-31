@@ -1,5 +1,5 @@
-import { createSignupVerification } from '../member-verification/signup-verification.js?v=20260831-kg-sms-identity-v1';
-import { getAuthSignupBackend } from '../../services/auth/auth-signup-backend.js?v=20260831-kg-sms-identity-v1';
+import { createSignupVerification } from '../member-verification/signup-verification.js?v=20260831-identity-provider-source-v1';
+import { getAuthSignupBackend } from '../../services/auth/auth-signup-backend.js?v=20260831-identity-provider-source-v1';
 
 const { backend } = getAuthSignupBackend(window);
 const form = document.getElementById('signupForm');
@@ -13,7 +13,7 @@ const heading = document.getElementById('signupTitle');
 let checkedUsername = '';
 const SIGNUP_DRAFT_KEY = 'bellore.signup.draft.v1';
 const DRAFT_FIELDS = [
-  'suName', 'suBirthDate', 'suUsername', 'suEmail', 'signupPostcode', 'signupAddr1', 'signupAddr2',
+  'suName', 'suUsername', 'suEmail', 'signupPostcode', 'signupAddr1', 'signupAddr2',
   'suPhone', 'suCompany', 'suBizNo', 'suCeo', 'suBizOpen',
 ];
 let currentStep = 1;
@@ -90,7 +90,7 @@ function showStep(number, { historyMode = 'none' } = {}) {
   heading.innerHTML = [
     '',
     '어떤 회원으로<br>가입할까요?',
-    '이름과 휴대폰을<br>확인해 주세요.',
+    '휴대폰 본인인증을<br>진행해 주세요.',
     '본인인증을<br>진행해 주세요.',
     '가입 정보를<br>마무리해 주세요.',
   ][number];

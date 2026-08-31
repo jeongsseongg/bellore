@@ -11,29 +11,24 @@
   var sdkPromise = null;
   var publicConfig = null;
   var renderSeq = 0;
-  var testSessionKey = 'bellore_naverpay_test';
-
-  function testEnabled() {
-    var host = (location.hostname || '').toLowerCase();
-    if (host === 'localhost' || host === '127.0.0.1' || host === '[::1]') return true;
-    try {
-      var requested = new URLSearchParams(location.search).get('naverPayTest');
-      if (requested === '1') {
-        sessionStorage.setItem(testSessionKey, '1');
-        return true;
-      }
-      if (requested === '0') {
-        sessionStorage.removeItem(testSessionKey);
-        return false;
-      }
-      return sessionStorage.getItem(testSessionKey) === '1';
-    } catch (_e) {
-      return false;
-    }
-  }
 
   function available() {
-    return !!(CFG.enabled && CFG.endpoint && (!CFG.testOnly || testEnabled()));
+    return !!(CFG.enabled && CFG.endpoint);
+  }
+
+  function requestHeaders(contentType) {
+    var headers = { 'Accept': 'application/json' };
+    if (contentType) headers['Content-Type'] = contentType;
+    if (!CFG.testOnly) return Promise.resolve(headers);
+    if (!window.sbClient || !window.sbClient.auth) {
+      return Promise.reject(new Error('naverpay_test_login_required'));
+    }
+    return window.sbClient.auth.getSession().then(function (result) {
+      var token = result && result.data && result.data.session && result.data.session.access_token;
+      if (!token) throw new Error('naverpay_test_login_required');
+      headers.Authorization = 'Bearer ' + token;
+      return headers;
+    });
   }
 
   function loadScript(src, marker) {
@@ -52,8 +47,8 @@
 
   function getPublicConfig() {
     if (publicConfig) return Promise.resolve(publicConfig);
-    return fetch(CFG.endpoint + '?action=config', {
-      headers: { 'Accept': 'application/json' }
+    return requestHeaders().then(function (headers) {
+      return fetch(CFG.endpoint + '?action=config', { headers: headers });
     }).then(function (r) {
       if (!r.ok) throw new Error('naverpay_config_failed');
       return r.json();
@@ -71,6 +66,9 @@
         ? 'https://test-pay.naver.com/assets/button/latest/npay.button.js'
         : 'https://npay-order.pstatic.net/assets/button/latest/npay.button.js';
       return loadScript(sdk, 'npay-sdk').then(function () { return config; });
+    }).catch(function (error) {
+      sdkPromise = null;
+      throw error;
     });
     return sdkPromise;
   }
@@ -82,15 +80,17 @@
       var bits = pair.trim().split('=');
       if (bits[0]) cookies[bits[0]] = decodeURIComponent(bits.slice(1).join('=') || '');
     });
-    return fetch(CFG.endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        listingIds: ids,
-        cpaInflowCode: cookies.CPAValidator || '',
-        naverInflowCode: cookies.NA_CO || '',
-        saClickId: cookies.NVADID || ''
-      })
+    return requestHeaders('application/json').then(function (headers) {
+      return fetch(CFG.endpoint, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({
+          listingIds: ids,
+          cpaInflowCode: cookies.CPAValidator || '',
+          naverInflowCode: cookies.NA_CO || '',
+          saClickId: cookies.NVADID || ''
+        })
+      });
     }).then(function (r) {
       return r.json().then(function (data) {
         if (!r.ok || !data.key || !data.merchantNo) {
