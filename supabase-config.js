@@ -103,7 +103,7 @@ window.BELLORE_VERIFY = {
   // 휴대폰: 포트원 V2의 KG이니시스 통합인증. 서버 verify-identity 배포·시크릿 검증 후 enabled:true
   phone:    {
     enabled: true,
-    smsEnabled: false,
+    smsEnabled: true,
     channelKey: "channel-key-652d61d8-77b0-4081-93bb-a3dac55ff8b9"
   },
   // 이메일: Supabase 이메일 OTP(인증번호). 이메일 템플릿에 {{ .Token }} 추가 후 enabled:true
