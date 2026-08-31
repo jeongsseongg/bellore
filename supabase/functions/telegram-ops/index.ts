@@ -155,9 +155,13 @@ async function sendKakao(eventType: string, payload: Json) {
     variables = hasOffer
       ? {
         '#{상품명}': String(payload.itemName || '시계'),
-        '#{최종금액}': formatWon(payload.highestAmount),
+        '#{견적건수}': String(Number(payload.offerCount || 0)),
+        '#{최고견적금액}': Number(payload.highestAmount || 0).toLocaleString('ko-KR'),
       }
-      : { '#{상품명}': String(payload.itemName || '시계') };
+      : {
+        '#{상품명}': String(payload.itemName || '시계'),
+        '#{종료일시}': formatKst(payload.closedAt),
+      };
   }
   if (!SOLAPI_API_KEY || !SOLAPI_API_SECRET || !SOLAPI_PFID || !SOLAPI_SENDER || !templateId) {
     throw new Error('SOLAPI_SECRET_OR_TEMPLATE_MISSING');

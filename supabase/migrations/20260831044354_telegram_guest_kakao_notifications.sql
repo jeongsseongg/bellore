@@ -99,7 +99,8 @@ begin
       values ('customer_quote_closed:' || item.quote_request_id::text,
         'customer_quote_closed', 'customer_kakao',
         jsonb_build_object('quoteId', item.quote_request_id, 'phone', customer_phone,
-          'highestAmount', highest, 'hasOffer', highest > 0,
+          'highestAmount', highest, 'offerCount', total_count, 'hasOffer', highest > 0,
+          'closedAt', now(),
           'itemName', trim(coalesce(quote_row.item_brand, '') || ' ' || coalesce(quote_row.item_name, ''))))
       on conflict (dedupe_key) do nothing;
     end if;
