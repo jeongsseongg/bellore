@@ -4,7 +4,7 @@ import vm from 'node:vm';
 
 const root = new URL('../', import.meta.url);
 const routeSource = await readFile(new URL('app/pages/standalone-route.js', root), 'utf8');
-const routeAsset = 'app/pages/standalone-route.js?v=20260831-mypage-canonical-v1';
+const routeAsset = 'app/pages/standalone-route.js?v=20260831-mypage-pages-loop-v1';
 
 function execute(pathname, search = '', hash = '') {
   let redirectedTo = '';
@@ -29,7 +29,8 @@ function execute(pathname, search = '', hash = '') {
 }
 
 for (const [legacy, clean] of [
-  ['/pages/mypage.html', '/pages/mypage'],
+  ['/pages/mypage', '/pages/mypage/'],
+  ['/pages/mypage.html', '/pages/mypage/'],
   ['/pages/orders.html', '/pages/orders'],
   ['/pages/inquiry.html', '/pages/inquiry'],
 ]) {
@@ -79,4 +80,4 @@ for (const page of ['orders', 'inquiry']) {
     `${page}: 확장자 없는 오프라인 경로가 기존 HTML 캐시로 연결돼야 합니다.`);
 }
 
-console.log('standalone clean routes: redirects=3 canonical=3 flicker-guard=1 offline=3 passed');
+console.log('standalone clean routes: redirects=4 canonical=4 flicker-guard=1 offline=3 passed');

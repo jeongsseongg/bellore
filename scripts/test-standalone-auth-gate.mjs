@@ -76,7 +76,7 @@ assert.match(login, /function clearSocialReturn\(\)[\s\S]*removeItem\(['"]bellor
 
 const runtime = await readFile(resolve(root, 'app/pages/standalone-page.js'), 'utf8');
 const authIndex = runtime.indexOf('await enforceStandaloneAuth');
-const redirectIndex = runtime.indexOf("window.location.replace('/pages/mypage')");
+const redirectIndex = runtime.indexOf("window.location.replace('/pages/mypage/')");
 const dependenciesIndex = runtime.indexOf('for (const dependency of pageDependencies)');
 assert(authIndex >= 0 && redirectIndex > authIndex && dependenciesIndex > redirectIndex,
   '인증 검사는 마이페이지 리다이렉트와 레거시 UI 주입보다 먼저 실행돼야 합니다.');
