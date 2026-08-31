@@ -33,13 +33,13 @@ for (const id of ['notiPage', 'profilePage', 'settingsPage', 'partnerModal', 'ad
 }
 assert.match(index, /id=["']btnSettings["']/, 'the working settings entry point must remain');
 assert.match(page, /<body[^>]*data-bellore-standalone-page=["']mypage["'][^>]*data-standalone-auth=["']required["']/i);
-assert.match(page, /rel=["']canonical["'][^>]*href=["']https:\/\/bellore\.co\.kr\/pages\/mypage["']/i);
+assert.match(page, /rel=["']canonical["'][^>]*href=["']https:\/\/bellore\.co\.kr\/pages\/mypage\/["']/i);
 assert.match(page, /assets\/icons\/favicon-32\.png/, 'the compatibility route must keep the favicon');
 const standaloneUrl = page.match(/src=["'](\/app\/pages\/standalone-page\.js\?v=[^"']+)["']/)?.[1];
 assert(standaloneUrl, 'the compatibility route must load the shared auth entry');
 
 const authIndex = runtime.indexOf('await enforceStandaloneAuth');
-const redirectIndex = runtime.indexOf("window.location.replace('/pages/mypage')");
+const redirectIndex = runtime.indexOf("window.location.replace('/pages/mypage/')");
 const dependencyIndex = runtime.indexOf('for (const dependency of pageDependencies)');
 assert(authIndex >= 0 && redirectIndex > authIndex && dependencyIndex > redirectIndex,
   'server auth must finish before mypage redirects or legacy UI dependencies load');

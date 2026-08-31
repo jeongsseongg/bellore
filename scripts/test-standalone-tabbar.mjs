@@ -27,8 +27,8 @@ assert.match(login, /<bellore-tabbar\b[^>]*data-active=["']my["']/i, 'login.html
 assert.match(login, /assets\/icons\/favicon-32\.png/, 'login.html: 실제 존재하는 파비콘을 사용해야 합니다.');
 
 const component = await readFile(resolve(root, 'app/ui/app-tabbar.js'), 'utf8');
-const tabbarAsset = '/app/ui/app-tabbar.js?v=20260831-mypage-canonical-v1';
-assert.match(component, /\['my', '\/pages\/mypage', '마이'/,
+const tabbarAsset = '/app/ui/app-tabbar.js?v=20260831-mypage-pages-loop-v1';
+assert.match(component, /\['my', '\/pages\/mypage\/', '마이'/,
   '공통 마이 탭은 앱 셸을 쓰는 정식 마이페이지 주소를 사용해야 합니다.');
 const tabbarScriptUrls = await Promise.all([
   'login.html', 'pages/orders.html', 'pages/inquiry.html',

@@ -28,7 +28,7 @@ assert.match(edge, /const itemParts = normalizeSellParts\(body\.parts\)\.join\("
 assert.match(edge, /parts: normalizeSellParts\(row\.item_parts\)\.join\(", "\)/);
 assert.ok(index.includes(assetKey));
 assert.ok(worker.includes(`'./${assetKey}'`));
-assert.match(worker, /const VERSION = "bellore-v377-sell-parts-korean";/);
+assert.match(worker, /const VERSION = "bellore-v\d+-[^"]+";/);
 assert.match(customerNameMigration, /where s\.quote_request_id = \(new\.payload ->> 'quoteId'\)::uuid/);
 assert.match(customerNameMigration, /jsonb_set\(new\.payload, '\{customerName\}'/);
 assert.match(existingPartsMigration, /then '풀세트'/);

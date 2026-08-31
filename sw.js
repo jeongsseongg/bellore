@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v377-sell-parts-korean";
+const VERSION = "bellore-v378-mypage-pages-loop";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -43,10 +43,10 @@ const SHELL_ASSETS = [
   './app/bootstrap.js?v=20260831-mypage-admin-contract-v1',
   './app/pages/standalone-auth-gate.mjs?v=20260828-standalone-auth-v1',
   './app/pages/standalone-page.css?v=20260831-mypage-app-route-v1',
-  './app/pages/standalone-page.js?v=20260828-final-integrated-v1',
-  './app/pages/standalone-route.js?v=20260831-mypage-canonical-v1',
+  './app/pages/standalone-page.js?v=20260831-mypage-pages-loop-v1',
+  './app/pages/standalone-route.js?v=20260831-mypage-pages-loop-v1',
   './app/ui/app-tabbar.css?v=20260828-clean-routes-v4',
-  './app/ui/app-tabbar.js?v=20260831-mypage-canonical-v1',
+  './app/ui/app-tabbar.js?v=20260831-mypage-pages-loop-v1',
   './app/features/mypage-personal-shop/mypage-personal-shop.css?v=20260828-final-integrated-v1',
   './app/features/auth-login/auth-login.css?v=20260827-auth-page-v3',
   './app/features/auth-login/auth-login.js?v=20260828-mypage-return-v1',
