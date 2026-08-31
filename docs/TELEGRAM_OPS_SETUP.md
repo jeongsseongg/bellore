@@ -65,6 +65,11 @@ Supabase가 자동 제공하는 `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`도 �
 
 현재 솔라피에 만든 템플릿의 변수명이 다르면 배포 전에 코드 또는 템플릿 계약을 맞춘다.
 
+회원 견적은 `profiles.phone`, 비회원 견적은 `sell_service_requests.customer_phone`을
+알림톡 수신번호로 사용한다. 전화번호가 없는 견적은 회원 알림이나 카카오 outbox를
+만들지 않으며, 관리자용 최종 보고는 계속 생성한다. `SOLAPI_SENDER`는 알림톡 실패 시
+문자 대체발송에도 쓰이는 승인 발신번호이므로 숫자만 저장한다.
+
 ## Cron 설정 원칙
 
 Supabase 공식 권장 방식은 Cron과 `pg_net`으로 Edge Function을 호출하고, URL·인증값은 Vault에 저장하는 것이다. 여기서는 Cron 요청에 별도 `x-bellore-cron-secret`을 붙인다. SQL 파일에는 실제 URL이나 secret을 넣지 않는다.

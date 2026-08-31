@@ -501,24 +501,38 @@ begin
       total_count, external_count, vendor_count, highest, vendors, bellore
     ) on conflict (quote_request_id) do nothing;
 
-    insert into public.notifications (user_id, type, title, body, is_read)
-    values (quote_row.customer_id, 'quote_closed', '비교견적이 종료되었습니다',
-      case when highest > 0 then '최고 제안금액 ' || to_char(highest, 'FM999,999,999,999') || '원을 확인해주세요.'
-           else '접수된 견적이 없어 비교견적이 종료되었습니다.' end, false);
+    if quote_row.customer_id is not null then
+      insert into public.notifications (user_id, type, title, body, is_read)
+      values (quote_row.customer_id, 'quote_closed', '비교견적이 종료되었습니다',
+        case when highest > 0 then '최고 제안금액 ' || to_char(highest, 'FM999,999,999,999') || '원을 확인해주세요.'
+             else '접수된 견적이 없어 비교견적이 종료되었습니다.' end, false);
 
-    select coalesce(phone, '') into customer_phone from public.profiles where id = quote_row.customer_id;
+      select coalesce(phone, '') into customer_phone
+        from public.profiles where id = quote_row.customer_id;
+    end if;
+    if nullif(btrim(coalesce(customer_phone, '')), '') is null then
+      select coalesce(s.customer_phone, '') into customer_phone
+        from public.sell_service_requests s
+       where s.quote_request_id = quote_row.id
+       order by s.created_at desc
+       limit 1;
+    end if;
     insert into public.telegram_ops_outbox (dedupe_key, event_type, target, payload)
-    values
-      ('quote_final_report:' || item.quote_request_id::text, 'quote_final_report', 'quote_room',
-       jsonb_build_object('quoteId', item.quote_request_id, 'inputKey', item.input_key,
+    values ('quote_final_report:' || item.quote_request_id::text, 'quote_final_report', 'quote_room',
+      jsonb_build_object('quoteId', item.quote_request_id, 'inputKey', item.input_key,
         'totalOfferCount', total_count, 'externalOfferCount', external_count,
         'externalVendorCount', vendor_count, 'highestAmount', highest,
-        'externalVendors', vendors, 'belloreOffers', bellore)),
-      ('customer_quote_closed:' || item.quote_request_id::text, 'customer_quote_closed', 'customer_kakao',
-       jsonb_build_object('quoteId', item.quote_request_id, 'phone', coalesce(customer_phone, ''),
-        'highestAmount', highest, 'hasOffer', highest > 0,
-        'itemName', trim(coalesce(quote_row.item_brand, '') || ' ' || coalesce(quote_row.item_name, ''))))
+        'externalVendors', vendors, 'belloreOffers', bellore))
     on conflict (dedupe_key) do nothing;
+    if char_length(regexp_replace(coalesce(customer_phone, ''), '\D', '', 'g')) >= 10 then
+      insert into public.telegram_ops_outbox (dedupe_key, event_type, target, payload)
+      values ('customer_quote_closed:' || item.quote_request_id::text,
+        'customer_quote_closed', 'customer_kakao',
+        jsonb_build_object('quoteId', item.quote_request_id, 'phone', customer_phone,
+          'highestAmount', highest, 'hasOffer', highest > 0,
+          'itemName', trim(coalesce(quote_row.item_brand, '') || ' ' || coalesce(quote_row.item_name, ''))))
+      on conflict (dedupe_key) do nothing;
+    end if;
     closed_count := closed_count + 1;
   end loop;
   return closed_count;

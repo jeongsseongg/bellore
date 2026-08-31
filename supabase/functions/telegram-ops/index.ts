@@ -159,7 +159,7 @@ async function sendKakao(eventType: string, payload: Json) {
       }
       : { '#{상품명}': String(payload.itemName || '시계') };
   }
-  if (!SOLAPI_API_KEY || !SOLAPI_API_SECRET || !SOLAPI_PFID || !templateId) {
+  if (!SOLAPI_API_KEY || !SOLAPI_API_SECRET || !SOLAPI_PFID || !SOLAPI_SENDER || !templateId) {
     throw new Error('SOLAPI_SECRET_OR_TEMPLATE_MISSING');
   }
 
@@ -170,7 +170,7 @@ async function sendKakao(eventType: string, payload: Json) {
       to: phone,
       from: SOLAPI_SENDER || undefined,
       type: 'ATA',
-      kakaoOptions: { pfId: SOLAPI_PFID, templateId, variables },
+        kakaoOptions: { pfId: SOLAPI_PFID, templateId, variables, disableSms: false },
     } }),
   });
   const output = await response.json().catch(() => ({}));
