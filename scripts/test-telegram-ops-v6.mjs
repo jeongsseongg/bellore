@@ -106,6 +106,9 @@ test('Edge가 사진 전송 실패를 텍스트로 폴백하고 친화 오류를
   assert.match(edge, /취소했습니다\. 변경된 내용은 없습니다\./);
   assert.match(edge, /!SOLAPI_SENDER/);
   assert.match(edge, /disableSms: false/);
+  assert.match(edge, /'#\{견적건수\}': String\(Number\(payload\.offerCount \|\| 0\)\)/);
+  assert.match(edge, /'#\{최고견적금액\}': Number\(payload\.highestAmount \|\| 0\)\.toLocaleString\('ko-KR'\)/);
+  assert.match(edge, /'#\{종료일시\}': formatKst\(payload\.closedAt\)/);
 });
 
 test('만료 견적은 비회원 연락처를 사용하고 null 회원 알림을 만들지 않는다', async () => {
@@ -116,6 +119,8 @@ test('만료 견적은 비회원 연락처를 사용하고 null 회원 알림을
     assert.match(sql, /from public\.sell_service_requests s[\s\S]*s\.quote_request_id = quote_row\.id/);
     assert.match(sql, /char_length\(regexp_replace\(coalesce\(customer_phone, ''\), '\\D', '', 'g'\)\) >= 10/);
     assert.match(sql, /customer_quote_closed:[\s\S]*customer_kakao/);
+    assert.match(sql, /'offerCount', total_count/);
+    assert.match(sql, /'closedAt', now\(\)/);
   }
 });
 
