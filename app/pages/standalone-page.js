@@ -56,7 +56,7 @@ const authResult = await enforceStandaloneAuth({
 });
 
 if (authResult.allowed && page === 'mypage') {
-  window.location.replace('/?view=mypage');
+  window.location.replace('/pages/mypage/');
 } else if (authResult.allowed) {
   document.body.dataset.standaloneAuthReady = 'true';
   for (const dependency of pageDependencies) await loadClassicScript(dependency);

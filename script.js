@@ -492,18 +492,32 @@
         document.body.classList.remove('mypage-open');
         closeMpSub();
         var url = new URL(window.location.href);
-        if (wasOpen && url.searchParams.get('view') === 'mypage') {
+        if (wasOpen && url.pathname.replace(/\/+$/, '') === '/pages/mypage') {
+            history.replaceState(history.state, '', '/');
+        } else if (wasOpen && url.searchParams.get('view') === 'mypage') {
             url.searchParams.delete('view');
             history.replaceState(history.state, '', url.pathname + url.search + url.hash);
         }
     }
 
+    function isMypageRoute() {
+        var path = location.pathname.replace(/\/+$/, '') || '/';
+        return path === '/pages/mypage' || new URLSearchParams(location.search).get('view') === 'mypage';
+    }
+
+    function revealMypageRoute() {
+        document.documentElement.removeAttribute('data-mypage-route-pending');
+    }
+
     function initMypageRoute() {
-        if (new URLSearchParams(location.search).get('view') !== 'mypage') return;
+        if (!isMypageRoute()) return;
         var returnTo = location.pathname + location.search + location.hash;
         var loginUrl = '/login.html?returnTo=' + encodeURIComponent(returnTo);
         verifyMypageUser().then(function (allowed) {
-            if (allowed) openMyPage();
+            if (allowed) {
+                openMyPage();
+                revealMypageRoute();
+            }
             else location.replace(loginUrl);
         });
     }
@@ -5981,8 +5995,11 @@
         function openMyOrLogin(event) {
             if (event) event.preventDefault();
             verifyMypageUser().then(function (allowed) {
-                if (allowed) openMyPage();
-                else openLoginModal('/?view=mypage');
+                if (allowed) {
+                    history.pushState({ page: 'mypage' }, '', '/pages/mypage/');
+                    openMyPage();
+                }
+                else openLoginModal('/pages/mypage/');
             });
         }
         if (btnMy) btnMy.addEventListener('click', openMyOrLogin);

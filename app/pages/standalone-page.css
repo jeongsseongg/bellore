@@ -1,4 +1,5 @@
 html[data-standalone-route-pending] body,
+html[data-mypage-route-pending] body,
 body[data-standalone-auth="required"]:not([data-standalone-auth-ready="true"]) {
   visibility: hidden;
 }

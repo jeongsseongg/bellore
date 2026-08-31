@@ -1,11 +1,12 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v371-purchasebar-approved-visual";
+const VERSION = "bellore-v372-mypage-app-route";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
 const PAGE_ASSETS = /*__BELLORE_PAGE_ASSETS__*/[];
 const STANDALONE_ROUTE_ASSETS = Object.freeze({
-  '/pages/mypage': './pages/mypage.html',
+  '/pages/mypage': './pages/mypage/index.html',
+  '/pages/mypage/': './pages/mypage/index.html',
   '/pages/orders': './pages/orders.html',
   '/pages/inquiry': './pages/inquiry.html',
 });
@@ -15,6 +16,7 @@ const SHELL_ASSETS = [
   './',
   './index.html',
   './login.html',
+  './pages/mypage/index.html',
   ...PAGE_ASSETS,
   './styles.css?v=20260827-mypage-contracts-v1',
   './wanted-theme.css?v=20260818-pretendard-v1',
@@ -41,11 +43,11 @@ const SHELL_ASSETS = [
   './ai-advisor-admin.js?v=20260826-member-verification-live-v2',
   './app/bootstrap.js?v=20260828-complete-site-v1',
   './app/pages/standalone-auth-gate.mjs?v=20260828-standalone-auth-v1',
-  './app/pages/standalone-page.css?v=20260828-clean-routes-v2',
+  './app/pages/standalone-page.css?v=20260831-mypage-app-route-v1',
   './app/pages/standalone-page.js?v=20260828-final-integrated-v1',
-  './app/pages/standalone-route.js?v=20260828-clean-routes-v1',
+  './app/pages/standalone-route.js?v=20260831-mypage-app-route-v1',
   './app/ui/app-tabbar.css?v=20260828-clean-routes-v4',
-  './app/ui/app-tabbar.js?v=20260828-mypage-root-v1',
+  './app/ui/app-tabbar.js?v=20260831-mypage-app-route-v1',
   './app/features/mypage-personal-shop/mypage-personal-shop.css?v=20260828-final-integrated-v1',
   './app/features/auth-login/auth-login.css?v=20260827-auth-page-v3',
   './app/features/auth-login/auth-login.js?v=20260828-mypage-return-v1',
