@@ -1,4 +1,5 @@
 import { createSellGuestAccess } from './sell-guest-access.js?v=20260826-sell-guest-access-v1';
+import { createSellServiceRequest, parseSellRequestDetails, renderSellRequestReceipt } from './sell-service-request.js?v=20260831-sell-request-v1';
 const STORAGE_KEY = 'bellore-sell-service-records-v1';
 const METHOD_LABEL = { compare: '비교견적', consignment: '위탁판매', instant: '즉시매입' };
 
@@ -124,7 +125,6 @@ export function initSellServicePages({ document, window, backend }) {
   header.insertAdjacentHTML('afterend', '<aside class="sell-service-notice" id="sellServiceNoticePanel" hidden><strong>판매 알림</strong><div class="sell-service-notice__list" id="sellServiceNoticeList"></div></aside>');
   const leaveView = root.querySelector('[data-sell-view="leave"]');
   leaveView.insertAdjacentHTML('beforebegin', '<div class="sell-service-view" data-sell-view="service" hidden><div class="sell-method__form-toolbar"><button type="button" data-sell-service-back aria-label="판매방식 선택으로 돌아가기">←</button><span><strong id="sellServiceTitle">판매 현황</strong><small id="sellServiceSubtitle">신청 내용과 현재 진행상태</small></span></div><div class="sell-service" id="sellServiceContent" aria-live="polite"></div></div>');
-  root.insertAdjacentHTML('beforeend', '<div class="sell-service-action" id="sellServiceAction" hidden><section class="sell-service-action__panel" role="dialog" aria-modal="true" aria-labelledby="sellServiceActionTitle"><h2 id="sellServiceActionTitle" data-sell-action-title>거래 방법을 선택해주세요</h2><p class="sell-service-action__amount" data-sell-action-amount></p><div class="sell-service-action__methods"><button type="button" data-sell-trade="visit"><img src="assets/sell/trade/방문거래.png" alt=""><span>방문거래</span></button><button type="button" data-sell-trade="delivery"><img src="assets/sell/trade/택배거래.png" alt=""><span>택배거래</span></button><button type="button" data-sell-trade="quick"><img src="assets/sell/trade/퀵거래.png" alt=""><span>퀵거래</span></button></div><div class="sell-service-action__buttons"><button type="button" data-sell-action-close>취소</button><button type="button" data-sell-action-confirm disabled>이 방법으로 진행</button></div></section></div>');
   function showView(name) {
     root.querySelectorAll('[data-sell-view]').forEach((node) => { node.hidden = node.dataset.sellView !== name; });
     sheet.scrollTop = 0;
@@ -137,14 +137,12 @@ export function initSellServicePages({ document, window, backend }) {
   const title = document.getElementById('sellServiceTitle');
   const subtitle = document.getElementById('sellServiceSubtitle');
   const content = document.getElementById('sellServiceContent');
-  const action = document.getElementById('sellServiceAction');
   const myPageSection = document.getElementById('myItemsSection');
   const preview = /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname) && new URLSearchParams(window.location.search).get('preview') === 'sell-services-v2';
   let records = [];
   let activeMethod = 'compare';
   let activeId = '';
   let selectedBidId = '';
-  let selectedTrade = '';
   let unsubscribe = null;
   let myPageLinks = document.getElementById('sellServiceMyPageLinks');
   let guestAccess;
@@ -175,7 +173,33 @@ export function initSellServicePages({ document, window, backend }) {
     return records.find((item) => String(item.id) === String(id)) || records.find((item) => item.method === method) || null;
   }
 
+  const requestFlow = createSellServiceRequest({
+    document, window, root, backend, preview,
+    getContext: () => {
+      const record = current();
+      const selectedBid = (record?.bids || []).find((bid) => String(bid.id) === String(selectedBidId));
+      return { record, selectedBid };
+    },
+    onComplete: (request) => {
+      const record = current();
+      if (!record) return;
+      record.tradeMethod = request.tradeMethod;
+      record.tradeRequest = request;
+      record.selectedBidId = request.selectedBidId;
+      record.selectedAmount = request.selectedAmount;
+      record.status = 'handoff';
+      writeLocal();
+      renderNotice();
+      renderPage();
+      sheet.scrollTop = 0;
+    },
+  });
+
   function statusCopy(record) {
+    if (record.status === 'handoff' || record.status === 'awarded') {
+      const request = { ...parseSellRequestDetails(record), ...(record.tradeRequest || {}) };
+      return { label: '판매 요청 접수', strong: '담당자 연락 대기 중', small: `${request.tradeLabel} · ${request.schedule || '일정 확인 중'}` };
+    }
     if (record.method === 'compare') {
       const bids = record.bids || [];
       const highest = bids.reduce((max, bid) => Math.max(max, Number(bid.amount || 0)), 0);
@@ -212,7 +236,8 @@ export function initSellServicePages({ document, window, backend }) {
       content.innerHTML = `<div class="sell-service__empty"><strong>진행 중인 ${METHOD_LABEL[activeMethod]}이 없습니다.</strong><span>판매방식 선택에서 새 신청을 시작할 수 있습니다.</span></div>`;
       return;
     }
-    if (activeMethod === 'compare') content.innerHTML = comparePage(record, selectedBidId);
+    if (record.status === 'handoff' || record.status === 'awarded') content.innerHTML = renderSellRequestReceipt(record);
+    else if (activeMethod === 'compare') content.innerHTML = comparePage(record, selectedBidId);
     else if (activeMethod === 'consignment') content.innerHTML = consignmentPage(record);
     else content.innerHTML = instantPage(record);
   }
@@ -232,21 +257,15 @@ export function initSellServicePages({ document, window, backend }) {
   function openAction() {
     const record = current();
     if (!record) return;
-    selectedTrade = '';
-    const selectedBid = (record.bids || []).find((bid) => String(bid.id) === String(selectedBidId));
-    const amount = record.method === 'compare' ? selectedBid?.amount : (record.method === 'consignment' ? record.offerAmount : record.finalAmount);
-    action.querySelector('[data-sell-action-title]').textContent = record.method === 'compare' ? '판매 요청 방법을 선택해주세요' : '시계를 전달할 방법을 선택해주세요';
-    action.querySelector('[data-sell-action-amount]').textContent = money(amount);
-    action.querySelectorAll('[data-sell-trade]').forEach((button) => button.classList.remove('is-selected'));
-    action.querySelector('[data-sell-action-confirm]').disabled = true;
-    action.hidden = false;
+    requestFlow.open();
   }
   function closeAction() {
-    action.hidden = true;
-    selectedTrade = '';
+    requestFlow.close();
   }
   function serverRecord(record, source) {
-    return { ...record, source: source || 'backend', photo: record.photos?.[0] || record.photo || '',
+    const request = parseSellRequestDetails(record);
+    return { ...record, source: source || 'backend', photo: record.photos?.[0] || record.photo || '', tradeRequest: request,
+      status: record.status === 'awarded' ? 'handoff' : record.status,
       expiresAt: record.method === 'compare' ? Date.parse(record.createdAt || Date.now()) + 72 * 3600 * 1000 : null };
   }
   function openGuestRecord(record, source) {
@@ -327,42 +346,7 @@ export function initSellServicePages({ document, window, backend }) {
       openAction();
       return true;
     }
-    if (event.target.closest('[data-sell-action-close]')) {
-      closeAction();
-      return true;
-    }
-    const trade = event.target.closest('[data-sell-trade]');
-    if (trade) {
-      selectedTrade = trade.dataset.sellTrade;
-      action.querySelectorAll('[data-sell-trade]').forEach((button) => button.classList.toggle('is-selected', button === trade));
-      action.querySelector('[data-sell-action-confirm]').disabled = false;
-      return true;
-    }
-    if (event.target.closest('[data-sell-action-confirm]')) {
-      const record = current();
-      if (!record || !selectedTrade) return true;
-      const confirm = action.querySelector('[data-sell-action-confirm]');
-      if (record.method === 'compare' && backend?.awardBid && selectedBidId) {
-        const selectedBid = (record.bids || []).find((bid) => String(bid.id) === String(selectedBidId));
-        confirm.disabled = true;
-        confirm.textContent = '판매 요청 중…';
-        try {
-          await backend.awardBid(record.id, selectedBidId, selectedBid?.vendor_id, selectedTrade);
-        } catch (error) {
-          console.error('[Bellore] 비교견적 판매 요청 실패', error);
-          confirm.disabled = false;
-          confirm.textContent = '다시 진행하기';
-          window.alert('판매 요청을 완료하지 못했습니다. 잠시 후 다시 시도해주세요.');
-          return true;
-        }
-      }
-      record.tradeMethod = selectedTrade;
-      record.status = 'handoff';
-      writeLocal();
-      closeAction();
-      renderPage();
-      return true;
-    }
+    if (requestFlow.handleClick(event)) return true;
     return false;
   }
 
@@ -370,16 +354,20 @@ export function initSellServicePages({ document, window, backend }) {
     if (draftResume && typeof MutationObserver === 'function') {
       new MutationObserver(renderNotice).observe(draftResume, { attributes: true, attributeFilter: ['hidden'] });
     }
+    const routeEvent = (event) => { event.preventDefault(); event.stopPropagation(); handleClick(event); };
+    const delegate = (selector) => (event) => { if (event.target.closest(selector)) routeEvent(event); };
+    bell.addEventListener('click', routeEvent);
+    list.addEventListener('click', delegate('[data-sell-service-open]'));
+    content.addEventListener('click', delegate('[data-sell-service-bid], [data-sell-service-accept]'));
+    requestFlow.action.addEventListener('click', delegate(requestFlow.selector));
+    root.querySelector('[data-sell-service-back]').addEventListener('click', routeEvent);
+    if (myPageLinks) myPageLinks.addEventListener('click', delegate('[data-sell-service-open]'));
+    root.addEventListener('click', (event) => {
+      if (event.target.closest(guestAccess.selector)) routeEvent(event);
+    });
     document.addEventListener('click', (event) => {
-      const control = event.target.closest('#sellServiceNoticeToggle, ' + guestAccess.selector + ', [data-sell-service-back], [data-sell-service-open], [data-sell-service-bid], [data-sell-service-accept], [data-sell-action-close], [data-sell-trade], [data-sell-action-confirm]');
-      if (control) {
-        event.preventDefault();
-        event.stopPropagation();
-        handleClick(event);
-        return;
-      }
-      if (!panel.hidden && !event.target.closest('#sellServiceNoticePanel')) panel.hidden = true;
-    }, true);
+      if (!panel.hidden && !event.target.closest('#sellServiceNoticePanel, #sellServiceNoticeToggle')) panel.hidden = true;
+    });
     window.addEventListener('bellore:sell-submitted', (event) => addSubmitted(event.detail || {}));
     connectBackend();
     window.setInterval(() => {
@@ -391,7 +379,7 @@ export function initSellServicePages({ document, window, backend }) {
     guestAccess.restoreLink();
     if (preview) {
       const method = new URLSearchParams(window.location.search).get('servicePage');
-      if (METHOD_LABEL[method]) window.setTimeout(() => open(null, method), 80);
+      if (METHOD_LABEL[method]) window.setTimeout(() => open(null, method), 800);
     }
   }
 

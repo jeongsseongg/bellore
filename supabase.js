@@ -1138,14 +1138,22 @@
       });
   };
 
-  Backend.awardBid = function (quoteId, bidId, vendorId, tradeMethod) {
+  Backend.awardBid = function (quoteId, bidId, vendorId, tradeMethod, requestDetails) {
     var method = ({ visit: '방문거래', delivery: '택배거래', quick: '퀵거래' })[tradeMethod] || '',
         detailRequest = method ? sb.from('quote_requests').select('item_detail').eq('id', quoteId).maybeSingle() : Promise.resolve({ data: null, error: null });
     return detailRequest.then(function (detailRes) {
       if (detailRes.error) throw detailRes.error;
       var patch = { status: 'awarded', awarded_bid: bidId };
-      if (method) { var detail = String(detailRes.data && detailRes.data.item_detail || ''), tag = '[거래방법] ' + method;
-        patch.item_detail = /\[거래방법\]\s*[^\n]*/.test(detail) ? detail.replace(/\[거래방법\]\s*[^\n]*/, tag) : (detail ? detail.replace(/\s+$/, '') + '\n' : '') + tag;
+      if (method) {
+        var detail = String(detailRes.data && detailRes.data.item_detail || ''), request = requestDetails || {};
+        var values = { '거래방법': method, '연락전화': request.contactPhone, '예약장소': request.location, '예약일시': request.schedule };
+        Object.keys(values).forEach(function (key) {
+          var value = String(values[key] || '').replace(/[\r\n]+/g, ' ').trim();
+          if (!value) return;
+          var line = '[' + key + '] ' + value, pattern = new RegExp('\\[' + key + '\\]\\s*[^\\n]*');
+          detail = pattern.test(detail) ? detail.replace(pattern, line) : (detail ? detail.replace(/\s+$/, '') + '\n' : '') + line;
+        });
+        patch.item_detail = detail;
       }
       return sb.from('quote_requests').update(patch).eq('id', quoteId);
     }).then(function (res) {

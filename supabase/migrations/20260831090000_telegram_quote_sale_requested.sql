@@ -13,6 +13,8 @@ declare
   v_contact text := '';
   v_vendor_name text := '';
   v_trade_method text := '';
+  v_request_location text := '';
+  v_request_schedule text := '';
 begin
   if new.status is distinct from 'awarded'
      or new.status is not distinct from old.status then
@@ -90,6 +92,14 @@ begin
     coalesce(new.item_detail, '')
     from E'\\[거래방법\\][[:space:]]*([^\\r\\n]+)'
   ), '');
+  v_request_location := coalesce(substring(
+    coalesce(new.item_detail, '')
+    from E'\\[예약장소\\][[:space:]]*([^\\r\\n]+)'
+  ), '');
+  v_request_schedule := coalesce(substring(
+    coalesce(new.item_detail, '')
+    from E'\\[예약일시\\][[:space:]]*([^\\r\\n]+)'
+  ), '');
 
   insert into public.telegram_ops_outbox (dedupe_key, event_type, target, payload)
   values (
@@ -108,6 +118,8 @@ begin
       'selectedAmount', case when selected_bid.id is null then null else selected_bid.amount end,
       'vendorName', coalesce(nullif(v_vendor_name, ''), '확인 필요'),
       'tradeMethod', coalesce(nullif(v_trade_method, ''), '확인 필요'),
+      'requestLocation', coalesce(nullif(v_request_location, ''), '담당자 협의'),
+      'requestSchedule', coalesce(nullif(v_request_schedule, ''), '담당자 협의'),
       'requestedAt', now()
     )
   ) on conflict (dedupe_key) do nothing;

@@ -135,6 +135,8 @@ export function formatOutboxMessage(row) {
       `선택금액: ${p.selectedAmount == null ? '확인 필요' : formatChatAmount(p.selectedAmount)}`,
       `선택견적: ${p.vendorName || '확인 필요'}`,
       `거래방법: ${p.tradeMethod || '확인 필요'}`,
+      `방문·수거 장소: ${p.requestLocation || '담당자 협의'}`,
+      `희망 일정: ${p.requestSchedule || '담당자 협의'}`,
       `요청일시: ${requestedAt}`,
       '',
       '관리자 화면에서 거래 진행 내용을 확인해주세요.',

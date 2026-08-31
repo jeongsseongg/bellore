@@ -153,6 +153,7 @@ test('고객의 견적 선택 후 판매 요청을 관리자 운영 정보와 �
       inputKey: '1547', customerName: '홍길동', customerPhone: '010-1234-5678',
       brand: '롬렉스', model: '서브마리너', ref: '126610LN',
       selectedAmount: 5_500_000, vendorName: '굿타임', tradeMethod: '방문거래',
+      requestLocation: '벨로르 청담 쇼룸', requestSchedule: '2026-09-01 오전 10:00 - 12:00',
       requestedAt: '2026-08-31T07:30:00Z',
     },
   });
@@ -161,6 +162,8 @@ test('고객의 견적 선택 후 판매 요청을 관리자 운영 정보와 �
   assert.match(message, /선택금액: 550만원/);
   assert.match(message, /선택견적: 굿타임/);
   assert.match(message, /거래방법: 방문거래/);
+  assert.match(message, /방문·수거 장소: 벨로르 청담 쇼룸/);
+  assert.match(message, /희망 일정: 2026-09-01 오전 10:00 - 12:00/);
 });
 
 test('판매 요청 트리거는 awarded 전환만 감지하고 견적별로 한 번만 적재한다', async () => {
@@ -171,6 +174,8 @@ test('판매 요청 트리거는 awarded 전환만 감지하고 견적별로 한
   assert.match(sql, /on conflict \(dedupe_key\) do nothing/);
   assert.match(sql, /'selectedAmount',[\s\S]*selected_bid\.amount/);
   assert.match(sql, /'tradeMethod',[\s\S]*v_trade_method/);
+  assert.match(sql, /'requestLocation',[\s\S]*v_request_location/);
+  assert.match(sql, /'requestSchedule',[\s\S]*v_request_schedule/);
 });
 
 test('Edge가 사진 전송 실패를 텍스트로 폴백하고 친화 오류를 사용한다', async () => {

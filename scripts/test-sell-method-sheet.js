@@ -12,6 +12,7 @@ const referenceJs = fs.readFileSync(path.join(root, 'app/features/sell-method/se
 const quoteJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-quote-controller.js'), 'utf8');
 const quoteCss = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-quotes.css'), 'utf8');
 const serviceJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-service-pages.js'), 'utf8');
+const serviceRequestJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-service-request.js'), 'utf8');
 const serviceCss = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-service-pages.css'), 'utf8');
 const serviceActionCss = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-service-action.css'), 'utf8');
 const serviceNavigationCss = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-service-navigation.css'), 'utf8');
@@ -97,10 +98,15 @@ assert.match(serviceJs, /data-service-page="consignment"/, 'consignment has a de
 assert.match(serviceJs, /data-service-page="instant"/, 'instant purchase has a dedicated appraisal and deduction page');
 assert.match(serviceJs, /0\.07[\s\S]*판매 수수료/, 'consignment page calculates and explains the seven-percent fee');
 assert.match(serviceJs, /감가 사유/, 'instant purchase exposes itemized depreciation reasons');
-assert.match(serviceJs, /awardBid\(record\.id, selectedBidId/, 'the unified comparison page keeps the server award path');
+assert.match(serviceRequestJs, /backend\.awardBid\(context\.record\.id, context\.selectedBid\.id/, 'the unified comparison page keeps the server award path');
 for (const image of ['방문거래.png', '택배거래.png', '퀵거래.png']) {
-  assert.match(serviceJs, new RegExp(`assets/sell/trade/${image}`), `${image} is connected to its transaction method`);
+  assert.match(serviceRequestJs, new RegExp(`assets/sell/trade/${image}`), `${image} is connected to its transaction method`);
 }
+assert.match(serviceRequestJs, /연락받을 전화번호/, 'a sale request confirms the callback number');
+assert.match(serviceRequestJs, /수거 주소/, 'delivery and quick requests collect the pickup address');
+assert.match(serviceRequestJs, /희망 날짜[\s\S]*희망 시간/, 'all handoff methods collect a preferred schedule');
+assert.match(serviceRequestJs, /담당자가 확인 후<br>연락드릴게요/, 'the customer sees a dedicated contact-wait receipt');
+assert.match(serviceJs, /record\.status === 'handoff'[\s\S]*renderSellRequestReceipt/, 'completed sale requests replace the quote picker with the receipt');
 assert.match(serviceActionCss, /max-width:\s*var\(--app-panel-w,\s*660px\)/, 'nested transaction popup inherits the 660px panel token');
 assert.match(serviceActionCss, /\.sell-service-action__methods img[\s\S]*?object-fit:\s*cover/, 'transaction artwork fills the compact method cards');
 assert.match(serviceCss, /\.sell-service__status--blue[\s\S]*?#eef6ff/, 'all service status cards use the common blue surface');

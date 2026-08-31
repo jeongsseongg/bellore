@@ -15,10 +15,40 @@
 .sell-service-action__panel {
   width: 100%;
   max-width: var(--app-panel-w, 660px);
+  max-height: min(92vh, 860px);
+  overflow-y: auto;
   padding: 22px 22px calc(24px + env(safe-area-inset-bottom));
   border-radius: 26px 26px 0 0;
   background: #fff;
   box-shadow: 0 -18px 48px rgba(15, 29, 23, 0.2);
+}
+
+.sell-service-action__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.sell-service-action__heading > span {
+  color: #176db8;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.sell-service-action__heading button {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: #f1f3f2;
+  color: #33403a;
+  font-size: 24px;
+  cursor: pointer;
 }
 
 .sell-service-action__panel h2 {
@@ -71,6 +101,15 @@
   line-height: 1;
 }
 
+.sell-service-action__methods small {
+  min-height: 30px;
+  color: #7a837f;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.45;
+  word-break: keep-all;
+}
+
 .sell-service-action__methods button.is-selected {
   border-color: #2d8fe5;
   background: #eef6ff;
@@ -108,4 +147,287 @@
   background: #e5e8e6;
   color: #9aa19d;
   cursor: default;
+}
+
+.sell-request-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #dce6e1;
+  border-radius: 16px;
+  background: #f7f9f8;
+}
+
+.sell-request-form[hidden] {
+  display: none;
+}
+
+.sell-request-form__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.sell-request-form__field {
+  display: grid;
+  gap: 7px;
+}
+
+.sell-request-form__field + .sell-request-form__field,
+.sell-request-form__row + .sell-request-form__field {
+  margin-top: 11px;
+}
+
+.sell-request-form__field label {
+  color: #4f5c56;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.sell-request-form__field input,
+.sell-request-form__field select {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid #d5ddd9;
+  border-radius: 11px;
+  background: #fff;
+  color: #26322c;
+  font: inherit;
+  font-size: 13px;
+}
+
+.sell-request-form__guide {
+  margin: 0 0 12px;
+  color: #176db8;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.sell-request-form__consent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #65716b;
+  font-size: 11px;
+}
+
+.sell-request-form__consent input {
+  width: 17px;
+  height: 17px;
+  accent-color: #176db8;
+}
+
+.sell-request-receipt {
+  padding-bottom: 16px;
+}
+
+.sell-request-receipt__hero {
+  display: grid;
+  justify-items: center;
+  padding: 30px 22px 26px;
+  border-radius: 20px;
+  background: linear-gradient(145deg, #eef8f4 0%, #f7fbff 100%);
+  color: #21312a;
+  text-align: center;
+}
+
+.sell-request-receipt__check {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  margin-bottom: 14px;
+  place-items: center;
+  border-radius: 50%;
+  background: #153c31;
+  color: #fff;
+  font-size: 25px;
+  font-weight: 900;
+  box-shadow: 0 10px 24px rgba(21, 60, 49, 0.2);
+}
+
+.sell-request-receipt__hero small {
+  color: #1f7a61;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.sell-request-receipt__hero h2 {
+  margin: 7px 0 8px;
+  font-size: 27px;
+  letter-spacing: -0.055em;
+  line-height: 1.25;
+}
+
+.sell-request-receipt__hero p {
+  margin: 0;
+  color: #6e7b75;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.sell-request-receipt__amount {
+  display: grid;
+  gap: 5px;
+  margin: 14px 0;
+  padding: 20px;
+  border: 1px solid #e0e5e2;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.sell-request-receipt__amount span,
+.sell-request-receipt__amount small {
+  color: #7a847f;
+  font-size: 11px;
+}
+
+.sell-request-receipt__amount strong {
+  color: #176db8;
+  font-size: 27px;
+  letter-spacing: -0.04em;
+}
+
+.sell-request-receipt__summary {
+  padding: 6px 18px;
+  border: 1px solid #e0e5e2;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.sell-request-receipt__summary > div {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid #edf0ee;
+  font-size: 12px;
+}
+
+.sell-request-receipt__summary > div:last-child {
+  border-bottom: 0;
+}
+
+.sell-request-receipt__summary span {
+  color: #808985;
+}
+
+.sell-request-receipt__summary strong {
+  color: #2e3934;
+  text-align: right;
+}
+
+.sell-request-receipt__next {
+  margin-top: 14px;
+  padding: 18px 10px;
+  border-radius: 16px;
+  background: #f6f8f7;
+}
+
+.sell-request-receipt__next > strong {
+  display: block;
+  margin: 0 8px 15px;
+  color: #2a3731;
+  font-size: 13px;
+}
+
+.sell-request-receipt__next ol {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sell-request-receipt__next li {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  color: #89918d;
+  font-size: 9px;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.sell-request-receipt__next li:not(:last-child)::after {
+  position: absolute;
+  top: 11px;
+  left: calc(50% + 13px);
+  width: calc(100% - 26px);
+  height: 2px;
+  background: #dce2df;
+  content: '';
+}
+
+.sell-request-receipt__next i {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e3e7e5;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.sell-request-receipt__next .is-active {
+  color: #176db8;
+  font-weight: 900;
+}
+
+.sell-request-receipt__next .is-active i {
+  background: #176db8;
+  color: #fff;
+}
+
+.sell-request-receipt__notice {
+  margin: 14px 0 0;
+  padding: 14px 16px;
+  border: 1px solid #cce7dc;
+  border-radius: 13px;
+  background: #eff9f5;
+  color: #557068;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.sell-request-receipt__notice b {
+  display: block;
+  margin-bottom: 2px;
+  color: #17684f;
+}
+
+@media (max-width: 520px) {
+  .sell-service-action__panel {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .sell-service-action__methods {
+    gap: 6px;
+  }
+
+  .sell-service-action__methods button {
+    min-height: 142px;
+    padding-right: 5px;
+    padding-left: 5px;
+  }
+
+  .sell-service-action__methods img {
+    width: 78px;
+    height: 66px;
+  }
+
+  .sell-request-form__row {
+    grid-template-columns: 1fr;
+  }
+
+  .sell-request-form__row .sell-request-form__field + .sell-request-form__field {
+    margin-top: 0;
+  }
 }
