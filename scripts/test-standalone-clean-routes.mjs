@@ -4,6 +4,7 @@ import vm from 'node:vm';
 
 const root = new URL('../', import.meta.url);
 const routeSource = await readFile(new URL('app/pages/standalone-route.js', root), 'utf8');
+const routeAsset = 'app/pages/standalone-route.js?v=20260831-mypage-canonical-v1';
 
 function execute(pathname, search = '', hash = '') {
   let redirectedTo = '';
@@ -49,6 +50,8 @@ for (const page of ['mypage', 'orders', 'inquiry']) {
   const authIndex = html.indexOf('app/pages/standalone-page.js');
   assert.match(html, /<html[^>]*data-standalone-route-pending/i);
   assert.match(html, /<script\s+type=["']module["'][^>]*standalone-route\.js/i);
+  assert.match(html, new RegExp(routeAsset.replace(/[.?]/g, '\\$&')),
+    `${page}: 최신 라우트 모듈 캐시 키를 사용해야 합니다.`);
   assert(routeIndex >= 0 && routeIndex < bodyIndex, `${page}: 레거시 리다이렉트가 인증·UI보다 먼저 실행돼야 합니다.`);
   assert(routeIndex < authIndex, `${page}: 라우트 모듈은 인증 진입 모듈보다 먼저 선언돼야 합니다.`);
   if (page === 'mypage') {
@@ -65,6 +68,8 @@ assert.match(css, /html\[data-mypage-route-pending\]\s+body[\s\S]*visibility:\s*
   '정식 마이페이지 인증 전 앱 셸을 숨기는 보호 CSS가 필요합니다.');
 
 const sw = await readFile(new URL('sw.js', root), 'utf8');
+assert.match(sw, new RegExp(routeAsset.replace(/[.?]/g, '\\$&')),
+  '서비스워커도 페이지와 같은 라우트 모듈 캐시 키를 사용해야 합니다.');
 assert.match(sw, /'\/pages\/mypage':\s*'\.\/pages\/mypage\/index\.html'/,
   'mypage: 확장자 없는 오프라인 경로가 앱 셸 디렉터리로 연결돼야 합니다.');
 assert.match(sw, /'\/pages\/mypage\/':\s*'\.\/pages\/mypage\/index\.html'/,
