@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v380-phone-otp-ui";
+const VERSION = "bellore-v381-phone-otp-cache";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -27,7 +27,7 @@ const SHELL_ASSETS = [
   './payments.js?v=20260828-complete-site-v1',
   './naverpay.js?v=20260826-naverpay-live-v1',
   './ui-dialog.js?v=20260826-member-verification-live-v2',
-  './supabase-config.js?v=20260828-final-integrated-v2',
+  './supabase-config.js?v=20260831-phone-otp-ui-v1',
   './analytics-core.js?v=20260810-analytics-v3',
   './analytics-client.js?v=20260826-ai-consent-v1',
   './brands.js',
