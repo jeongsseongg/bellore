@@ -1,5 +1,5 @@
 const TRADE = {
-  visit: { label: '방문거래', copy: '벨로르 청담 쇼룸에서 안전하게 거래해요.', image: 'assets/sell/trade/방문거래.png' },
+  visit: { label: '방문거래', copy: '벨로르 종로지점에서 안전하게 거래해요.', image: 'assets/sell/trade/방문거래.png' },
   delivery: { label: '택배거래', copy: '담당자가 포장과 안심수거를 안내해요.', image: 'assets/sell/trade/택배거래.png' },
   quick: { label: '퀵거래', copy: '서울·경기 지역에서 빠르게 전달해요.', image: 'assets/sell/trade/퀵거래.png' },
 };
@@ -77,7 +77,7 @@ function detailFields(method) {
   const date = tomorrow();
   const timeOptions = '<option value="">시간 선택</option><option>오전 10:00 - 12:00</option><option>오후 12:00 - 15:00</option><option>오후 15:00 - 18:00</option>';
   if (method === 'visit') {
-    return `<div class="sell-request-form__field"><label for="sellRequestLocation">방문 지점</label><select id="sellRequestLocation" required><option value="벨로르 청담 쇼룸">벨로르 청담 쇼룸</option></select></div>
+    return `<div class="sell-request-form__field"><label for="sellRequestLocation">방문 지점</label><select id="sellRequestLocation" required><option value="벨로르 종로지점">벨로르 종로지점</option></select></div>
       <div class="sell-request-form__row"><div class="sell-request-form__field"><label for="sellRequestDate">희망 날짜</label><input id="sellRequestDate" type="date" min="${date}" value="${date}" required></div><div class="sell-request-form__field"><label for="sellRequestTime">희망 시간</label><select id="sellRequestTime" required>${timeOptions}</select></div></div>`;
   }
   const guide = method === 'delivery' ? '담당자가 포장 방법과 안심수거 일정을 연락드려요.' : '정확한 배차 가능 여부와 비용을 담당자가 먼저 확인해요.';
