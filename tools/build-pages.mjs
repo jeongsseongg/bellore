@@ -5,6 +5,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { discoverPageHtmlFiles, injectPageAssets } from './pages-html.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const GENERATED_PAGE_FILES = Object.freeze(['pages/mypage/index.html']);
 
 export const ROOT_RUNTIME_FILES = Object.freeze([
   'index.html',
@@ -239,6 +240,26 @@ async function copyRuntimeDirectory(sourceRelative, targetRelative, output) {
   });
 }
 
+function mypageAppShell(source) {
+  const page = source
+    .replace('<html lang="ko">', '<html lang="ko" data-mypage-route-pending>')
+    .replace(/<title>[^<]*<\/title>/, '<title>마이페이지 | BELLORE</title>')
+    .replace('<meta name="robots" content="index, follow">', '<meta name="robots" content="noindex, follow">')
+    .replace('<link rel="canonical" href="https://bellore.co.kr/">', '<link rel="canonical" href="https://bellore.co.kr/pages/mypage/">')
+    .replace('<meta property="og:url" content="https://bellore.co.kr/">', '<meta property="og:url" content="https://bellore.co.kr/pages/mypage/">')
+    .replace('</head>', '    <link rel="stylesheet" href="/app/pages/standalone-page.css?v=20260831-mypage-app-route-v1">\n</head>');
+  if (!page.includes('data-mypage-route-pending') || !page.includes('https://bellore.co.kr/pages/mypage/')) {
+    throw new Error('마이페이지 앱 셸 메타데이터를 생성하지 못했습니다.');
+  }
+  return page;
+}
+
+async function writeMypageAppRoute(output) {
+  const target = join(output, 'pages', 'mypage', 'index.html');
+  await mkdir(dirname(target), { recursive: true });
+  await writeFile(target, mypageAppShell(await readFile(join(ROOT, 'index.html'), 'utf8')));
+}
+
 function runSeoGenerator(output) {
   const generator = join(ROOT, 'tools', 'seo', 'build-market.mjs');
   const result = spawnSync(process.execPath, [generator, '--out', output], {
@@ -273,8 +294,12 @@ export async function buildPages({ outputDir = '_site', skipSeo = false, quiet =
   for (const file of ROOT_RUNTIME_FILES) await copyFileFromRoot(file, output);
   for (const file of APP_RUNTIME_FILES) await copyFileFromRoot(file, output);
   for (const file of pageFiles) await copyFileFromRoot(file, output);
+  await writeMypageAppRoute(output);
   const serviceWorkerPath = join(output, 'sw.js');
-  await writeFile(serviceWorkerPath, injectPageAssets(await readFile(serviceWorkerPath, 'utf8'), pageFiles));
+  await writeFile(serviceWorkerPath, injectPageAssets(
+    await readFile(serviceWorkerPath, 'utf8'),
+    [...pageFiles, ...GENERATED_PAGE_FILES],
+  ));
   await copyAssets(output);
   await copyRuntimeDirectory('prototypes/admin-console-v2', 'admin', output);
   await copyRuntimeDirectory('prototypes/account-roles', 'account-roles', output);

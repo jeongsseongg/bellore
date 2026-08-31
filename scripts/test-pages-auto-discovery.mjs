@@ -23,7 +23,9 @@ try {
   const sw = await readFile(new URL('sw.js', root), 'utf8');
   assert.match(build, /discoverPageHtmlFiles\(ROOT\)/);
   assert.match(build, /for \(const file of pageFiles\) await copyFileFromRoot\(file, output\)/);
-  assert.match(build, /injectPageAssets\(await readFile\(serviceWorkerPath, 'utf8'\), pageFiles\)/);
+  assert.match(build, /GENERATED_PAGE_FILES = Object\.freeze\(\['pages\/mypage\/index\.html'\]\)/);
+  assert.match(build, /injectPageAssets\([\s\S]*?\[\.\.\.pageFiles, \.\.\.GENERATED_PAGE_FILES\]/,
+    '서비스워커에는 자동 수집 페이지와 생성된 정식 마이페이지를 함께 주입해야 합니다.');
   assert.match(sw, /const PAGE_ASSETS = \/\*__BELLORE_PAGE_ASSETS__\*\/\[\];/);
   assert.match(sw, /\.\.\.PAGE_ASSETS/);
 } finally {
