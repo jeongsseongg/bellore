@@ -33,7 +33,7 @@ const standaloneUrl = page.match(/src=["'](\/app\/pages\/standalone-page\.js\?v=
 assert(standaloneUrl, 'the compatibility route must load the shared auth entry');
 
 const authIndex = runtime.indexOf('await enforceStandaloneAuth');
-const redirectIndex = runtime.indexOf("window.location.replace('/pages/mypage/')");
+const redirectIndex = runtime.indexOf("window.location.replace('/pages/mypage')");
 const dependencyIndex = runtime.indexOf('for (const dependency of pageDependencies)');
 assert(authIndex >= 0 && redirectIndex > authIndex && dependencyIndex > redirectIndex,
   'server auth must finish before mypage redirects or legacy UI dependencies load');

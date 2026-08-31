@@ -28,7 +28,7 @@ function execute(pathname, search = '', hash = '') {
 }
 
 for (const [legacy, clean] of [
-  ['/pages/mypage.html', '/pages/mypage/'],
+  ['/pages/mypage.html', '/pages/mypage'],
   ['/pages/orders.html', '/pages/orders'],
   ['/pages/inquiry.html', '/pages/inquiry'],
 ]) {
