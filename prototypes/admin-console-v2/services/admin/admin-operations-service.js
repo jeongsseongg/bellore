@@ -2,12 +2,16 @@ import { createAdminRestClient } from '../platform/admin-rest-client.js?v=202608
 import { createAdminTradeService } from './admin-trade-service.js?v=20260826-admin-crud-v1';
 import { createAdminCatalogService } from './admin-catalog-service.js?v=20260831-mypage-admin-contract-v1';
 import { createAdminAccountService } from './admin-account-service.js?v=20260826-admin-crud-v1';
+import { createAdminSellService } from './admin-sell-service.js?v=20260831-admin-completion-v1';
+import { createAdminPermissionService } from './admin-permission-service.js?v=20260831-admin-completion-v1';
 
 export function createAdminOperationsService({ getAccessToken, operatorId, fetchImpl }) {
   const client = createAdminRestClient({ getAccessToken, ...(fetchImpl ? { fetchImpl } : {}) });
   const trade = createAdminTradeService(client);
   const catalog = createAdminCatalogService(client, operatorId);
   const accounts = createAdminAccountService(client, operatorId);
+  const sell = createAdminSellService(client);
+  const permissions = createAdminPermissionService(client);
 
   async function loadOverview() {
     const [tradeData, profiles, listings, support, notifications] = await Promise.all([
@@ -22,6 +26,8 @@ export function createAdminOperationsService({ getAccessToken, operatorId, fetch
     trade,
     catalog,
     accounts,
+    sell,
+    permissions,
     loadOverview
   };
 }

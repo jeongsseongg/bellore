@@ -1,4 +1,4 @@
-import { displayDetailValue, displayFieldLabel, displayText } from './admin-display-text.js?v=20260826-catalog-ledger-v3';
+import { displayDetailValue, displayFieldLabel, displayText } from './admin-display-text.js?v=20260831-admin-completion-v1';
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -63,7 +63,7 @@ function verificationHistory(item) {
   return `<section class="drawer-section"><div class="drawer-section-head"><h3>인증 처리 이력</h3><span>최근 ${events.length}건</span></div><div class="operation-audit-list">${content}</div></section>`;
 }
 
-function catalogHistory(item) {
+function operationHistory(item, title = '상품 운영 이력') {
   if (!item?.operationEventsLoaded) return '';
   const events = item.operationEvents || [];
   const prices = item.priceVersions || [];
@@ -71,10 +71,13 @@ function catalogHistory(item) {
   const assignments = item.displayAssignments || [];
   const actor = (value) => value ? `처리자 ${String(value).slice(0, 8)}` : '서버 자동 처리';
   const eventRows = events.length ? events.map((event) => `<div class="operation-audit-item"><div><b>${escapeHtml(event.action)}</b><span>${escapeHtml(displayDetailValue('created_at', event.created_at))}</span></div><p>${escapeHtml(event.reason || '자동 기록')} · ${escapeHtml(actor(event.actor_user_id))}</p></div>`).join('') : '<p class="operation-empty-detail">저장된 변경 이력이 없습니다.</p>';
+  if (title !== '상품 운영 이력') {
+    return `<section class="drawer-section"><div class="drawer-section-head"><h3>${escapeHtml(title)}</h3><span>최근 ${events.length}건</span></div><div class="operation-audit-list">${eventRows}</div></section>`;
+  }
   const priceRows = prices.map((version) => `<div class="operation-audit-item"><div><b>${Number(version.sale_price || version.price || 0).toLocaleString('ko-KR')}원</b><span>${escapeHtml(displayDetailValue('created_at', version.effective_from))}</span></div><p>정상가 ${Number(version.price || 0).toLocaleString('ko-KR')}원 · 수수료 ${(Number(version.commission_rate || 0) * 100).toLocaleString('ko-KR')}% · 예상정산 ${Number(version.expected_settlement || 0).toLocaleString('ko-KR')}원</p><small>${escapeHtml(version.reason || '가격 변경')} · ${escapeHtml(actor(version.actor_user_id))}${version.effective_until ? ` · 종료 ${escapeHtml(displayDetailValue('created_at', version.effective_until))}` : ''}</small></div>`).join('');
   const movementRows = movements.map((movement) => `<div class="operation-audit-item"><div><b>${escapeHtml(displayText(movement.from_status || 'expected'))} → ${escapeHtml(displayText(movement.to_status))}</b><span>${escapeHtml(displayDetailValue('created_at', movement.created_at))}</span></div><p>${escapeHtml(movement.from_location || '위치 미기록')} → ${escapeHtml(movement.to_location || '위치 미기록')}</p><small>${escapeHtml(movement.reason || '재고 이동')} · ${escapeHtml(actor(movement.actor_user_id))}</small></div>`).join('');
   const assignmentRows = assignments.map((assignment) => `<div class="operation-audit-item"><div><b>${escapeHtml(assignment.channel || '판매시계')}</b><span>순서 ${Number(assignment.sort_order || 0)}</span></div><p>${escapeHtml(assignment.section_key || '일반 목록')} · ${assignment.active === false ? '중지' : '사용중'}</p><small>${assignment.starts_at ? escapeHtml(displayDetailValue('created_at', assignment.starts_at)) : '즉시'} ~ ${assignment.ends_at ? escapeHtml(displayDetailValue('created_at', assignment.ends_at)) : '종료 없음'} · ${escapeHtml(actor(assignment.actor_user_id))}</small></div>`).join('');
-  return `<section class="drawer-section"><div class="drawer-section-head"><h3>상품 운영 이력</h3><span>변경 ${events.length}건 · 가격 ${prices.length}건 · 재고 ${movements.length}건 · 전시 ${assignments.length}건</span></div><div class="operation-history-columns"><div><h4>전체 변경</h4>${eventRows}</div><div><h4>가격 이력</h4>${priceRows || '<p class="operation-empty-detail">가격 이력이 없습니다.</p>'}</div><div><h4>재고 이동</h4>${movementRows || '<p class="operation-empty-detail">재고 이동 이력이 없습니다.</p>'}</div><div><h4>전시 배치</h4>${assignmentRows || '<p class="operation-empty-detail">전시 배치가 없습니다.</p>'}</div></div></section>`;
+  return `<section class="drawer-section"><div class="drawer-section-head"><h3>${escapeHtml(title)}</h3><span>변경 ${events.length}건 · 가격 ${prices.length}건 · 재고 ${movements.length}건 · 전시 ${assignments.length}건</span></div><div class="operation-history-columns"><div><h4>전체 변경</h4>${eventRows}</div><div><h4>가격 이력</h4>${priceRows || '<p class="operation-empty-detail">가격 이력이 없습니다.</p>'}</div><div><h4>재고 이동</h4>${movementRows || '<p class="operation-empty-detail">재고 이동 이력이 없습니다.</p>'}</div><div><h4>전시 배치</h4>${assignmentRows || '<p class="operation-empty-detail">전시 배치가 없습니다.</p>'}</div></div></section>`;
 }
 
 export function renderOperationPage(config, state) {
@@ -114,7 +117,7 @@ export function renderOperationDrawer(config, row, creating = false) {
         ${bids.length ? `<section class="drawer-section"><div class="drawer-section-head"><h3>등록 제안</h3><span>${bids.length}건</span></div><div class="operation-bids">${bids.map((bid) => `<div><b>${escapeHtml(bid.vendor_name || '등록 업체')}</b><strong>${Number(bid.amount || 0).toLocaleString('ko-KR')}원</strong><small>${escapeHtml(bid.vendor_phone || bid.message || '')}</small></div>`).join('')}</div></section>` : ''}
         ${item?.messages?.length ? `<section class="drawer-section"><div class="drawer-section-head"><h3>상담 대화</h3><span>${item.messages.length}건</span></div><div class="operation-messages">${item.messages.slice().reverse().map((message) => `<div class="is-${escapeHtml(message.sender_role || 'customer')}"><b>${escapeHtml(displayText(message.sender_role || 'customer'))}</b><p>${escapeHtml(message.body)}</p><small>${escapeHtml(message.created_at || '')}</small></div>`).join('')}</div></section>` : ''}
         ${verificationHistory(item)}
-        ${catalogHistory(item)}
+        ${operationHistory(item, config.historyTitle)}
         ${item && !config.readOnly ? `<section class="drawer-section"><div class="drawer-section-head"><h3>추가 정보</h3></div><div class="case-id-grid is-single">${rawDetails(item)}</div></section>` : ''}
       </div>
       <div class="drawer-actions operation-actions"><button class="secondary-button" type="button" data-operation-close>닫기</button>${actions.map((action) => `<button class="secondary-button${action.danger ? ' is-danger' : ''}" type="button" data-operation-action="${escapeHtml(action.id)}">${escapeHtml(action.label)}</button>`).join('')}${config.readOnly ? '' : `<button class="primary-button" type="submit">${creating ? '등록' : '변경 저장'}</button>`}</div>

@@ -36,6 +36,12 @@ assert.match(verificationDrawer, /인증 처리 이력/);
 assert.match(verificationDrawer, /휴대폰 인증/);
 assert.match(verificationDrawer, /관리자 인증/);
 assert.doesNotMatch(verificationDrawer, /manual_verified/);
+const permissionHistoryDrawer = renderOperationDrawer({ fields: () => [], actions: [], historyTitle: '관리자 권한 변경 이력' }, {
+  id: 'admin-target', title: '담당자', sub: '관리자', status: 'success', statusLabel: 'active',
+  raw: { operationEventsLoaded: true, operationEvents: [{ action: '관리자 권한 변경', reason: '담당 지정', created_at: '2026-08-31T08:00:00Z' }] }
+});
+assert.match(permissionHistoryDrawer, /관리자 권한 변경 이력/);
+assert.doesNotMatch(permissionHistoryDrawer, /상품 운영 이력|가격 이력/);
 
 function payloadFor(url, options) {
   if (url.includes('/rest/v1/site_content') && (!options.method || options.method === 'GET')) {
@@ -50,6 +56,25 @@ function payloadFor(url, options) {
   if (url.includes('/rest/v1/profiles') && options.method === 'PATCH') {
     return [{ id: 'vendor-1' }];
   }
+  if (url.includes('/rest/v1/profiles') && (!options.method || options.method === 'GET')) {
+    return [
+      { id: 'admin-user', role: 'admin', email: 'owner@bellore.co.kr', display_name: '운영자' },
+      { id: 'admin-target', role: 'admin', email: 'staff@bellore.co.kr', display_name: '담당자' }
+    ];
+  }
+  if (url.includes('/rest/v1/sell_service_requests')) {
+    return [{
+      id: 'sell-1', receipt_no: 'SELL-0001', method: 'instant', brand: '롤렉스', model: '서브마리너',
+      sell_service_operations: [{ workflow_status: 'reviewing', inspection_status: 'pending', operation_version: 2 }]
+    }];
+  }
+  if (url.includes('/rest/v1/sell_service_operation_events')) return [];
+  if (url.includes('/rest/v1/admin_operator_permissions')) {
+    return [{ profile_id: 'admin-target', preset: 'quote_inspection', scopes: ['sell.manage'], active: true, operation_version: 3 }];
+  }
+  if (url.includes('/rest/v1/admin_permission_events')) return [];
+  if (url.includes('/rest/v1/rpc/admin_manage_sell_service')) return { ok: true, version: 3 };
+  if (url.includes('/rest/v1/rpc/admin_manage_operator_permissions')) return { ok: true, version: 4 };
   if (url.includes('/rest/v1/settlements') && options.method === 'PATCH') {
     return [{ id: 'settlement-1', status: 'paid' }];
   }
@@ -160,6 +185,25 @@ assert.match(settlementNotice.body, /2,300,000원/);
 
 const operations = createAdminOperationsService({
   getAccessToken: async () => 'verified-admin-token', operatorId: 'admin-user', fetchImpl: fakeFetch
+});
+const sellRequests = await operations.sell.listRequests('instant');
+assert.equal(sellRequests[0].operation_version, 2);
+await operations.sell.saveOperation(sellRequests[0], { workflow_status: 'accepted', final_amount: 8100000, change_reason: '고객 확인 완료' });
+const sellWrite = requests.find((item) => item.url.includes('/rest/v1/rpc/admin_manage_sell_service'));
+assert.deepEqual(JSON.parse(sellWrite.options.body), {
+  p_request_id: 'sell-1', p_expected_version: 2,
+  p_patch: { workflow_status: 'accepted', final_amount: 8100000 }, p_reason: '고객 확인 완료'
+});
+
+const operators = await operations.permissions.listOperators();
+assert.equal(operators.find((item) => item.profile_id === 'admin-target').preset, 'quote_inspection');
+await operations.permissions.savePermissions(operators.find((item) => item.profile_id === 'admin-target'), {
+  preset: 'custom', scopes_text: 'sell.manage\nquotes.read', active: true, change_reason: '판매 운영 담당 지정'
+});
+const permissionWrite = requests.find((item) => item.url.includes('/rest/v1/rpc/admin_manage_operator_permissions'));
+assert.deepEqual(JSON.parse(permissionWrite.options.body), {
+  p_target_user_id: 'admin-target', p_expected_version: 3, p_preset: 'custom',
+  p_scopes: ['sell.manage', 'quotes.read'], p_active: true, p_reason: '판매 운영 담당 지정'
 });
 operations.client.list = async (table) => table === 'site_content' ? [] : [];
 const overview = await operations.loadOverview();

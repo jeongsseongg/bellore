@@ -1,9 +1,11 @@
 import { tradeConfigs } from './admin-trade-config.js?v=20260826-admin-crud-v1';
 import { catalogConfigs } from './admin-catalog-config.js?v=20260826-catalog-ledger-v3';
 import { accountConfigs } from './admin-account-config.js?v=20260826-admin-crud-v1';
-import { renderOperationDrawer, renderOperationPage } from './admin-operation-view.js?v=20260826-catalog-ledger-v3';
+import { sellConfigs } from './admin-sell-config.js?v=20260831-admin-completion-v1';
+import { permissionConfigs } from './admin-permission-config.js?v=20260831-admin-completion-v1';
+import { renderOperationDrawer, renderOperationPage } from './admin-operation-view.js?v=20260831-admin-completion-v1';
 import { renderLiveOverview } from './admin-live-overview.js?v=20260826-admin-crud-v1';
-import { displayText } from './admin-display-text.js?v=20260826-catalog-ledger-v3';
+import { displayText } from './admin-display-text.js?v=20260831-admin-completion-v1';
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -43,7 +45,13 @@ function formValues(form) {
 }
 
 export function createAdminOperationController({ root, drawer, drawerContent, drawerScrim, service, operatorId, onToast }) {
-  const configs = { ...tradeConfigs(service.trade, operatorId), ...catalogConfigs(service.catalog), ...accountConfigs(service.accounts) };
+  const configs = {
+    ...tradeConfigs(service.trade, operatorId),
+    ...catalogConfigs(service.catalog),
+    ...accountConfigs(service.accounts),
+    ...sellConfigs(service.sell),
+    ...permissionConfigs(service.permissions, operatorId)
+  };
   const states = new Map();
   const overviewState = { loading: true, error: '', data: null };
   let currentView = '';

@@ -1,11 +1,12 @@
 import { getAdminAccessToken, requireAdminSession, signOutAdmin } from './admin-auth.js?v=20260826-admin-release-v5';
-import { roleContracts, navGroups, overview, moduleViews, caseDetail } from './data/admin-console-data.js?v=20260826-admin-crud-v1';
+import { roleContracts } from './data/admin-role-contracts.js?v=20260831-admin-completion-v1';
+import { navGroups, overview, moduleViews, caseDetail } from './data/admin-console-data.js?v=20260831-admin-completion-v1';
 import { createAdminNavigation } from './features/navigation/admin-navigation.js?v=20260826-admin-crud-v1';
 import { createAdminMypageEditor } from './features/mypage-editor/admin-mypage-editor.js?v=20260831-mypage-admin-contract-v1';
 import { createAdminHomeLayoutEditor } from './features/home-editor/admin-home-editor.js?v=20260827-home-block-editor-v1';
-import { createAdminOperationController } from './features/operations/admin-operation-controller.js?v=20260826-catalog-ledger-v3';
+import { createAdminOperationController } from './features/operations/admin-operation-controller.js?v=20260831-admin-completion-v1';
 import { createAdminWorkspace } from './features/workspace/admin-workspace.js';
-import { createAdminOperationsService } from './services/admin/admin-operations-service.js?v=20260831-mypage-admin-contract-v1';
+import { createAdminOperationsService } from './services/admin/admin-operations-service.js?v=20260831-admin-completion-v1';
 
 const identity = await requireAdminSession();
 

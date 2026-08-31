@@ -15,6 +15,7 @@ const auth = read('admin-auth.js');
 const authCss = read('admin-auth.css');
 const css = read('admin-console.css');
 const data = read('data/admin-console-data.js');
+const roleData = read('data/admin-role-contracts.js');
 const bootstrap = read('bootstrap.js');
 const navigation = read('features/navigation/admin-navigation.js');
 const workspace = read('features/workspace/admin-workspace.js');
@@ -34,6 +35,8 @@ const operationsService = read('services/admin/admin-operations-service.js');
 const catalogService = read('services/admin/admin-catalog-service.js');
 const accountService = read('services/admin/admin-account-service.js');
 const accountConfig = read('features/operations/admin-account-config.js');
+const sellConfig = read('features/operations/admin-sell-config.js');
+const permissionConfig = read('features/operations/admin-permission-config.js');
 const restClient = read('services/platform/admin-rest-client.js');
 const publicConfig = fs.readFileSync(path.join(root, 'supabase-config.js'), 'utf8');
 const memberOpsEdge = fs.readFileSync(path.join(root, 'supabase', 'functions', 'admin-member-ops', 'index.ts'), 'utf8');
@@ -47,6 +50,7 @@ const requiredFiles = [
   'admin-console.css',
   'bootstrap.js',
   'data/admin-console-data.js',
+  'data/admin-role-contracts.js',
   'data/admin-home-editor-data.js',
   'features/home-editor/admin-home-editor.js',
   'features/home-editor/admin-home-editor.css',
@@ -62,12 +66,16 @@ const requiredFiles = [
   'features/operations/admin-trade-config.js',
   'features/operations/admin-catalog-config.js',
   'features/operations/admin-account-config.js',
+  'features/operations/admin-sell-config.js',
+  'features/operations/admin-permission-config.js',
   'features/operations/admin-operations.css',
   'services/platform/admin-rest-client.js',
   'services/admin/admin-operations-service.js',
   'services/admin/admin-trade-service.js',
   'services/admin/admin-catalog-service.js',
   'services/admin/admin-account-service.js',
+  'services/admin/admin-sell-service.js',
+  'services/admin/admin-permission-service.js',
   'features/navigation/admin-navigation.js',
   'features/workspace/admin-workspace.js',
   'features/workspace/admin-wanted.css',
@@ -78,7 +86,7 @@ requiredFiles.forEach((file) => assert.ok(fs.existsSync(path.join(base, file)), 
 assert.match(html, /id="adminNav"/, 'shell owns navigation mount');
 assert.match(html, /id="adminWorkspace"/, 'shell owns workspace mount');
 assert.match(html, /id="caseDrawer"/, 'shell owns case drawer');
-assert.match(html, /type="module" src="\.\/bootstrap\.js\?v=20260831-mypage-admin-contract-v1"/,
+assert.match(html, /type="module" src="\.\/bootstrap\.js\?v=20260831-admin-completion-v1"/,
   'versioned native module bootstrap is used');
 assert.doesNotMatch(html, /<script(?![^>]*src=)[^>]*>/, 'no executable inline scripts');
 assert.doesNotMatch(html, /style="/, 'no inline style attributes in shell');
@@ -86,31 +94,30 @@ assert.doesNotMatch(html, /surface-menu|partner-slot/, 'duplicate top and footer
 assert.match(html, /admin-surface-title">운영 관리자/, 'header keeps one plain workspace label');
 
 ['customer', 'vendor', 'partner', 'admin'].forEach((role) => {
-  assert.match(data, new RegExp(`key: '${role}'`), `role contract includes ${role}`);
+  assert.match(roleData, new RegExp(`key: '${role}'`), `role contract includes ${role}`);
 });
-assert.match(data, /label: '공급협력사'[\s\S]*state: '포털 준비'/, 'partner is preserved but portal stays planned');
-assert.match(data, /입찰 권한은 현 코드 충돌 확인 후 확정/, 'partner bid authority is not invented');
+assert.match(roleData, /label: '공급협력사'[\s\S]*state: '포털 준비'/, 'partner is preserved but portal stays planned');
+assert.match(roleData, /입찰 권한은 현 코드 충돌 확인 후 확정/, 'partner bid authority is not invented');
 
 const currentModules = [
   'orders', 'quotes', 'returns', 'listings', 'auctions', 'customers', 'vendors',
   'partners', 'mypageSettings', 'settlements', 'coupons', 'support', 'banners', 'advisor', 'analytics',
-  'homeSettings', 'community', 'content', 'coverage', 'notifications', 'audit'
+  'homeSettings', 'community', 'content', 'coverage', 'notifications', 'audit',
+  'consignments', 'purchases', 'inspections', 'permissions'
 ];
-const plannedModules = ['consignments', 'purchases', 'inspections', 'permissions'];
 currentModules.forEach((id) => {
   assert.match(data, new RegExp(`${id}: \\{[\\s\\S]*?current: true`), `current module ${id} is mapped`);
   assert.match(data, new RegExp(`id: '${id}'`), `navigation exposes ${id}`);
-});
-plannedModules.forEach((id) => {
-  assert.match(data, new RegExp(`${id}: \\{[\\s\\S]*?planned: true`), `planned module ${id} is explicit`);
-  assert.match(data, new RegExp(`id: '${id}'`), `navigation reserves ${id}`);
 });
 
 assert.match(html, /관리자 권한 확인됨[\s\S]*운영 계정 전용 화면/, 'production admin shell reports the authorization boundary');
 assert.match(workspace, /화면 시안|시안 데이터|운영 데이터 미연결|운영에 연결하지/, 'workspace does not present mock data as live');
 assert.match(workspace, /역할 전환 버튼은 관리자 시안 검증용/, 'role switch is not proposed for customer UI');
 assert.match(workspace, /서버 권한과 감사기록 연결 후 활성화/, 'privileged actions remain server-authorized');
-assert.match(data, /운영 데이터에 판매방식이 구분 저장되지 않아/, 'direct purchase stays planned until its data contract exists');
+assert.match(sellConfig, /listRequests\('consignment'\)[\s\S]*listRequests\('instant'\)/,
+  '위탁과 즉시매입은 신청 방식별 운영 원장에 연결됩니다.');
+assert.match(permissionConfig, /관리자 권한 변경 이력[\s\S]*is_self/,
+  '권한 화면은 감사기록을 표시하고 본인 권한 변경을 막습니다.');
 
 assert.match(bootstrap, /createAdminNavigation/, 'bootstrap composes navigation feature');
 assert.match(bootstrap, /await requireAdminSession\(\)/, 'admin workspace waits for the authorization gate');

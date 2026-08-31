@@ -27,7 +27,14 @@ const VALUE_LABELS = Object.freeze({
   dashboard: '운영 현황', consent: '분석 동의', products: '상품 조회', pages: '화면 조회',
   runtime: '실행 상태', profiles: '고객 분석', conversations: '상담 대화',
   alerts: '알림 후보', knowledge: '전문 지식', prices: '시세 자료',
-  team: '팀 메시지', guidelines: '답변 기준'
+  team: '팀 메시지', guidelines: '답변 기준',
+  reviewing: '검토중', accepted: '접수승인', estimated: '예상가 안내',
+  awaiting_intake: '입고대기', received: '입고완료', priced: '가격확정',
+  offered: '매입가 제안', listed: '판매중', settling: '정산중', settled: '정산완료',
+  declined: '고객거절', visit: '지점 방문', parcel: '택배 발송', valex: '발렉스 방문수거',
+  compare: '비교견적', consignment: '위탁판매', instant: '즉시매입',
+  super: '최고관리자', quote_inspection: '견적·검수', order_fulfillment: '주문·배송',
+  content_support: '콘텐츠·고객센터', custom: '사용자 지정'
 });
 
 const FIELD_LABELS = Object.freeze({
@@ -61,7 +68,14 @@ const FIELD_LABELS = Object.freeze({
   inventory_receiver: '수령인', inventory_received_at: '수령일시', expected_settlement: '예상 정산금액',
   display_channels: '노출 화면', home_section: '홈 노출 영역', display_sort_order: '노출 순서',
   display_start_at: '노출 시작일시', display_end_at: '노출 종료일시', operation_version: '변경 버전',
-  archived_at: '보관일시', archive_reason: '보관 사유', assigned_admin_id: '담당 관리자'
+  archived_at: '보관일시', archive_reason: '보관 사유', assigned_admin_id: '담당 관리자',
+  receipt_no: '접수번호', method: '신청방식', customer_name: '신청자', customer_phone: '연락처',
+  item_year: '연식', item_parts: '구성품', item_memo: '신청 메모', workflow_status: '운영 상태',
+  trade_method: '거래 방법', branch_name: '방문 지점', appointment_at: '방문 예약일시',
+  pickup_at: '수거 예약일시', received_at: '입고일시', inspected_at: '검수 완료일시',
+  payment_at: '정산일시', advised_amount: '안내 금액', estimated_amount: '예상 금액',
+  deduction_amount: '차감 금액', final_amount: '최종 금액', admin_memo: '관리자 메모',
+  profile_id: '관리자 회원번호', preset: '권한 프리셋', scopes: '업무 권한', updated_by: '변경 관리자'
 });
 
 export function displayText(value) {

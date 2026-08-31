@@ -1,46 +1,3 @@
-export const roleContracts = [
-  {
-    key: 'customer',
-    label: '일반고객',
-    code: 'customer',
-    state: '현재 운영',
-    tone: 'blue',
-    summary: '구매 · 비교견적 · 위탁 신청 · 관심상품',
-    entry: '공개 회원가입',
-    boundary: '본인 주문·신청·계정 데이터만'
-  },
-  {
-    key: 'vendor',
-    label: '견적업체',
-    code: 'vendor',
-    state: '현재 운영',
-    tone: 'green',
-    summary: '승인 후 비교견적 확인 · 금액 제안',
-    entry: '업체 회원가입 + 관리자 승인',
-    boundary: '업체용 공개 견적과 자기 제안만'
-  },
-  {
-    key: 'partner',
-    label: '공급협력사',
-    code: 'partner',
-    state: '포털 준비',
-    tone: 'amber',
-    summary: '공급상품 · 인증 · 공급대금 계약 보존',
-    entry: '현재 데이터 역할 · 별도 승인 경로',
-    boundary: '입찰 권한은 현 코드 충돌 확인 후 확정'
-  },
-  {
-    key: 'admin',
-    label: '관리자',
-    code: 'admin',
-    state: '현재 운영',
-    tone: 'dark',
-    summary: '전체 운영 · 승인 · 상태변경 · 정산 · 감사',
-    entry: '내부 지정 전용',
-    boundary: '화면 분리 + 서버 권한·행 단위 보안 필수'
-  }
-];
-
 export const navGroups = [
   {
     label: '운영 홈',
@@ -95,12 +52,12 @@ export const navGroups = [
   {
     label: '확장 · 설정',
     items: [
-      { id: 'consignments', label: '위탁판매 관리', icon: 'consign', badge: '확장', planned: true },
-      { id: 'purchases', label: '즉시매입 관리', icon: 'bank', badge: '확장', planned: true },
-      { id: 'inspections', label: '입고 · 검수', icon: 'inspect', badge: '통합', planned: true },
+      { id: 'consignments', label: '위탁판매 관리', icon: 'consign', current: true },
+      { id: 'purchases', label: '즉시매입 관리', icon: 'bank', current: true },
+      { id: 'inspections', label: '입고 · 검수', icon: 'inspect', current: true },
       { id: 'coverage', label: '전체 기능 점검', icon: 'inspect', current: true },
       { id: 'audit', label: '회원 · 인증 감사기록', icon: 'audit', current: true },
-      { id: 'permissions', label: '관리자 권한', icon: 'shield', badge: '설계', planned: true }
+      { id: 'permissions', label: '관리자 권한', icon: 'shield', current: true }
     ]
   }
 ];
@@ -163,7 +120,6 @@ export const overview = {
       target: 'consignments',
       icon: 'consign',
       total: 8,
-      planned: true,
       steps: [
         { label: '신청', value: 2 },
         { label: '입고·검수', value: 2 },
@@ -208,24 +164,12 @@ export const moduleViews = {
     ]
   },
   consignments: {
-    eyebrow: '시계 판매', title: '위탁판매 관리', description: '신청·수거·입고·검수·가격합의·판매·정산 상태를 위한 확장 화면입니다.',
-    planned: true, notice: '현재 운영 코드에 독립된 위탁 관리자 화면이 없어, 기존 신청 흐름을 삭제하지 않고 새 상태 모델만 시안에 반영했습니다.',
-    primaryAction: '위탁 신청 등록', filters: ['전체 8', '신청 2', '입고·검수 2', '판매중 3', '정산 1'],
-    columns: ['위탁', '시계 · 위탁자', '현재 단계', '판매 희망가', '담당', '최근 변경'],
-    rows: [
-      { id: 'CS-240826-008', image: watchImage, title: '롤렉스 데이저스트 36mm', sub: '최수진 · 일반고객', cells: ['입고 예약', '11,500,000원', '감정팀', '12:31'], status: 'attention', statusLabel: '일정 확인', caseType: 'consignment' },
-      { id: 'CS-240825-041', title: '오메가 씨마스터 다이버 300M', sub: '주식회사 타임랩 · 공급협력사', cells: ['판매중', '6,900,000원', '상품팀', '10:24'], status: 'success', statusLabel: '노출중', caseType: 'consignment' }
-    ]
+    eyebrow: '시계 판매', title: '위탁판매 관리', description: '신청부터 판매·정산까지 운영 데이터와 변경 이력을 관리합니다.',
+    current: true, filters: [], columns: [], rows: []
   },
   purchases: {
-    eyebrow: '시계 판매', title: '즉시매입 관리', description: '접수·상담·입고·실물검수·최종 매입금액·고객 정산을 한 건으로 관리하는 확장 화면입니다.',
-    planned: true, notice: '현재 고객 화면에는 즉시매입 선택이 있지만 운영 데이터에 판매방식이 구분 저장되지 않아 실제 건을 독립 조회할 수 없습니다. 기존 접수는 유지하고 저장 계약을 확정한 뒤 연결합니다.',
-    primaryAction: '즉시매입 접수 등록', filters: ['전체 6', '상담대기 2', '입고예약 1', '실물검수 2', '정산대기 1'],
-    columns: ['매입', '시계 · 신청자', '현재 단계', '예상 금액', '다음 작업', '최근 변경'],
-    rows: [
-      { id: 'DP-240826-006', image: watchImage, title: '롤렉스 익스플로러 I 36mm', sub: '김서준 · 일반고객', cells: ['상담대기', '8,300,000원', '사진·구성품 확인', '13:06'], status: 'attention', statusLabel: '확인 필요', caseType: 'purchase' },
-      { id: 'DP-240825-024', title: '브라이틀링 내비타이머 B01', sub: '와치밸류 강남 · 견적업체', cells: ['실물검수', '7,100,000원', '최종 매입금액 확정', '10:41'], status: 'progress', statusLabel: '검수중', caseType: 'purchase' }
-    ]
+    eyebrow: '시계 판매', title: '즉시매입 관리', description: '접수부터 최종 매입금액·고객 정산까지 운영 데이터로 관리합니다.',
+    current: true, filters: [], columns: [], rows: []
   },
   returns: {
     eyebrow: '고객 응대', title: '교환 · 반품', description: '신청 사유, 회수, 실물검수, 환불 상태를 단계별로 확인합니다.',
@@ -250,14 +194,8 @@ export const moduleViews = {
     ]
   },
   inspections: {
-    eyebrow: '상품 검수', title: '입고 · 검수', description: '고가 시계 한 건을 수거부터 정품·상태 진단, 촬영, 가격 확정까지 추적하는 확장 화면입니다.',
-    planned: true, notice: '현재는 견적·주문·상품 화면에 검수 정보가 흩어져 있습니다. 새 화면은 이를 케이스 파일로 묶기 위한 통합 슬롯입니다.',
-    filters: ['전체 7', '입고예정 2', '정품감정 2', '컨디션진단 2', '촬영대기 1'],
-    columns: ['케이스', '시계 · 소유자', '입고', '진단', '다음 작업', '담당'],
-    rows: [
-      { id: 'IN-240826-019', image: watchImage, title: '롤렉스 GMT-마스터 II', sub: 'BQ-240825-066 · 정은비', cells: ['오늘 16:00 방문', '대기', '접수·봉인 확인', '감정팀 A'], status: 'attention', statusLabel: '입고예정', caseType: 'inspection' },
-      { id: 'IN-240826-015', title: '오데마 피게 로열오크', sub: 'CS-240825-041 · 타임랩', cells: ['입고완료', '컨디션 진단중', '무브먼트 확인', '감정팀 B'], status: 'progress', statusLabel: '진단중', caseType: 'inspection' }
-    ]
+    eyebrow: '상품 검수', title: '입고 · 검수', description: '수거·입고·실물검수·가격 확정을 판매 신청 원장과 함께 추적합니다.',
+    current: true, filters: [], columns: [], rows: []
   },
   auctions: {
     eyebrow: '경매 운영', title: '경매 관제소', description: '경매 예약, 실시간 진행, 입찰 현황과 고객 예치금을 관리합니다.',
@@ -393,20 +331,20 @@ export const moduleViews = {
   },
   coverage: {
     eyebrow: '운영 기능 점검', title: '전체 기능 점검', description: '현재 코드에 흩어진 관리자 기능이 새 콘솔의 어느 화면으로 이동하는지 빠짐없이 대조합니다.',
-    current: true, filters: ['전체 11', '현재 코드 포함 9', '연결 전 2'],
+    current: true, filters: ['전체 11', '운영 연결 11'],
     columns: ['기능', '현재 위치 · 새 위치', '포함 항목', '데이터 경계', '점검 결과', '구분'],
     rows: [
       { id: 'CV-01', title: '관리자 홈', sub: '마이페이지 관리자 대시보드 → 운영 홈', cells: ['지표·미처리 배지·신규 결제 알림', '주문·회원·견적 집계', '대조 완료', '현재 코드'], status: 'success', statusLabel: '포함', caseType: 'coverage' },
       { id: 'CV-02', title: '비교견적 종합관리', sub: '구형 패널·견적 전용 화면 → 비교견적 관리', cells: ['승인·거부·정지·복수제안·연락·완료', '견적·제안·연락 기록', '대조 완료', '현재 코드'], status: 'success', statusLabel: '포함', caseType: 'coverage' },
       { id: 'CV-03', title: '주문·교환·반품', sub: '주문 전체화면 → 주문·교환반품', cells: ['9개 상태·배송·메모·환불·회수', '주문·반품·결제 서버', '대조 완료', '현재 코드'], status: 'success', statusLabel: '포함', caseType: 'coverage' },
       { id: 'CV-04', title: '판매시계·재고', sub: '상품 등록 모달 → 판매시계 관리', cells: ['사진 10장·가격·상태·구성품·노출·삭제', '상품·사진 저장소', '대조 완료', '현재 코드'], status: 'success', statusLabel: '포함', caseType: 'coverage' },
-      { id: 'CV-05', title: '홈 화면 구성', sub: '홈 모듈·고정 코드 → 홈 화면 관리', cells: ['상품 영역·배너·문구·순서·연결 조건', '상품·배너·사이트 내용', '편집 화면 보강', '일부 연결 전'], status: 'attention', statusLabel: '확인 필요', caseType: 'coverage' },
+      { id: 'CV-05', title: '홈 화면 구성', sub: '홈 모듈·고정 코드 → 홈 화면 관리', cells: ['상품 영역·배너·문구·순서·연결 조건', '상품·배너·사이트 내용', '저장 연결 확인', '현재 코드'], status: 'success', statusLabel: '포함', caseType: 'coverage' },
       { id: 'CV-06', title: '회원·업체·공급협력사', sub: '회원 패널·견적 화면 → 역할별 관리', cells: ['검색·승인·인증·우수회원·정지·프로필 삭제', '프로필·인증·계좌', '대조 완료', '현재 코드'], status: 'success', statusLabel: '포함', caseType: 'coverage' },
       { id: 'CV-07', title: '공급대금·쿠폰', sub: '정산·쿠폰 전체화면 → 정산·혜택', cells: ['수수료·지급·한도·유형·만료·공유', '정산·쿠폰 원장', '대조 완료', '현재 코드'], status: 'success', statusLabel: '포함', caseType: 'coverage' },
       { id: 'CV-08', title: '경매 관제', sub: '독립 경매 화면 → 경매 관제소', cells: ['예약·입찰·연장·종료·취소·예치금', '경매·입찰·지갑', '대조 완료', '현재 코드'], status: 'success', statusLabel: '포함', caseType: 'coverage' },
       { id: 'CV-09', title: '배너·인사이트·후기·사이트 내용', sub: '콘텐츠 모달 → 홈·콘텐츠', cells: ['화면별 이미지·순서·글·평점·본문', '배너·글·후기·사이트 내용', '분리 완료', '현재 코드'], status: 'success', statusLabel: '포함', caseType: 'coverage' },
       { id: '대조-10', title: '고객센터·분석·고객 상담 도우미', sub: '각 독립 화면 → 고객 경험·데이터', cells: ['대화·답변·동의 집계·8개 상담 관리 항목', '문의·분석·상담 자료', '대조 완료', '현재 코드'], status: 'success', statusLabel: '포함', caseType: 'coverage' },
-      { id: 'CV-11', title: '위탁·즉시매입·통합검수·감사', sub: '상태 계약 미완성 → 확장 화면', cells: ['독립 상태·최종금액·입고·변경 기록', '새 데이터 계약 필요', '운영 연결 전', '확장 설계'], status: 'attention', statusLabel: '연결 전', caseType: 'coverage' }
+      { id: 'CV-11', title: '위탁·즉시매입·통합검수·권한', sub: '판매 신청 원장 → 전용 운영 화면', cells: ['독립 상태·최종금액·입고·변경 기록', '판매 운영·권한 감사 원장', '저장 연결 완료', '현재 코드'], status: 'success', statusLabel: '포함', caseType: 'coverage' }
     ]
   },
   notifications: {
@@ -430,14 +368,8 @@ export const moduleViews = {
     ]
   },
   permissions: {
-    eyebrow: '접근 권한', title: '관리자 권한', description: '업무별 최소 권한을 역할 묶음으로 분리하는 확장 설계입니다.',
-    planned: true, notice: '현재 운영 코드의 단일 관리자 역할을 즉시 바꾸지 않습니다. 서버 함수와 행 단위 보안을 함께 검증한 뒤 권한을 단계적으로 분리합니다.',
-    filters: ['전체 7', '활성 7', '초대대기 0'],
-    columns: ['운영자', '역할 프리셋', '업무 범위', '민감 권한', '최근 접속', '상태'],
-    rows: [
-      { id: 'OP-0001', title: '정성호', sub: 'babsangl@*****', cells: ['최고관리자', '전체', '환불·정산·권한', '오늘 13:48', '활성'], status: 'success', statusLabel: '활성', caseType: 'permission' },
-      { id: 'OP-PRESET-02', title: '견적 · 검수 담당', sub: '권한 프리셋', cells: ['견적·입고·검수', '삭제·환불 제외', '없음', '설계안', '준비'], status: 'normal', statusLabel: '설계', caseType: 'permission' }
-    ]
+    eyebrow: '접근 권한', title: '관리자 권한', description: '관리자별 역할 프리셋과 업무 범위를 감사 이력과 함께 관리합니다.',
+    current: true, filters: [], columns: [], rows: []
   }
 };
 
