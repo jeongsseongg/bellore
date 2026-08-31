@@ -25,6 +25,12 @@ for (const id of [
 ]) {
   assert.match(index, new RegExp(`id=["']${id}["']`), `${id} must remain in the root composition`);
 }
+assert.match(legacy, /idMap\s*=\s*\{\s*terms:\s*'termsModal',\s*privacy:\s*'privacyModal',\s*refund:\s*'refundModal',\s*guide:\s*'guideModal',\s*biz:\s*'bizInfoModal'\s*\}/,
+  '법무·사업자 지원 화면 5개는 설정 화면의 실제 동작에 연결돼야 합니다.');
+for (const id of ['notiPage', 'profilePage', 'settingsPage', 'partnerModal', 'adminPanel', 'postModal']) {
+  assert.match(legacy, new RegExp(`\\$\\('#${id}'\\)|\\$\\('#${id.replace('Modal', '')}Modal'\\)`),
+    `${id} 지원 화면은 런타임 동작에서 참조돼야 합니다.`);
+}
 assert.match(index, /id=["']btnSettings["']/, 'the working settings entry point must remain');
 assert.match(page, /<body[^>]*data-bellore-standalone-page=["']mypage["'][^>]*data-standalone-auth=["']required["']/i);
 assert.match(page, /rel=["']canonical["'][^>]*href=["']https:\/\/bellore\.co\.kr\/pages\/mypage["']/i);

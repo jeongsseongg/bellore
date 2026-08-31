@@ -17,6 +17,7 @@ const MENU_GROUPS = Object.freeze({
   customer: {
     trade: [
       { id: 'orders', label: '주문 내역' },
+      { id: 'quotes', label: '내 비교견적' },
       { id: 'auction', label: '경매' },
       { id: 'cart', label: '장바구니' }
     ],
@@ -37,6 +38,7 @@ function text(value) {
 
 function actionId(button) {
   if (button.hasAttribute('data-auction-open')) return 'auction';
+  if (button.getAttribute('data-sell-service-open') === 'compare') return 'quotes';
   return button.dataset.mpmenu || '';
 }
 
@@ -46,9 +48,15 @@ function createMenuButton(doc, item, current) {
   button.className = 'mp-menu-row';
   if (item.id === 'auction') {
     button.removeAttribute('data-mpmenu');
+    button.removeAttribute('data-sell-service-open');
     button.setAttribute('data-auction-open', '');
+  } else if (item.id === 'quotes') {
+    button.removeAttribute('data-mpmenu');
+    button.removeAttribute('data-auction-open');
+    button.setAttribute('data-sell-service-open', 'compare');
   } else {
     button.removeAttribute('data-auction-open');
+    button.removeAttribute('data-sell-service-open');
     button.dataset.mpmenu = item.id;
   }
   const count = button.querySelector('.mr-count')?.textContent || '';
@@ -146,7 +154,12 @@ function applySafeSettings(doc, modal, configs) {
   }
   if (hoursNode && hours) hoursNode.textContent = hours;
 
-  renderMenu(doc, modal, role, content);
+  if (role !== 'admin') renderMenu(doc, modal, role, content);
+  if (role === 'admin') {
+    const order = modal.querySelector('#mpOrderPreview');
+    if (order) order.hidden = true;
+    return;
+  }
   const layoutOrder = (content.blockOrder || []).filter((id) => ['order', 'banner', 'trade', 'activity'].includes(id));
   const topLevelOrder = [...new Set(layoutOrder.map((id) => ['trade', 'activity'].includes(id) ? 'menu' : id))];
   const topLevelNodes = {
@@ -163,10 +176,7 @@ function applySafeSettings(doc, modal, configs) {
     if (orderLabels[index]) button.textContent = orderLabels[index];
   });
   const order = modal.querySelector('#mpOrderPreview');
-  if (order && role !== 'admin') order.hidden = content.order?.visible === false;
-  if (role === 'admin') {
-    if (order) order.hidden = false;
-  }
+  if (order) order.hidden = content.order?.visible === false;
 }
 
 export function initMypageSettings({ document: doc, service }) {

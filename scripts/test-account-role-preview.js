@@ -32,6 +32,8 @@ assert(model.includes("return EDITABLE_ROLE_ORDER.includes(role) ? role : 'custo
 assert(model.includes("headerMessage: '새 비교견적과 입찰 현황을 확인하세요.'"),
   '업체 헤더 문구가 현재 운영 화면과 다릅니다.');
 assert(model.includes("'비교견적 · 입찰 내역'"), '업체 전용 입찰 메뉴가 없습니다.');
+assert(model.includes("'내 비교견적'"), '고객 마이페이지의 비교견적 메뉴가 편집 모델에서 빠졌습니다.');
+assert(model.includes("'시계판매 (견적·업체·고객)'"), '관리자 편집 모델이 실제 관리 메뉴를 반영하지 않습니다.');
 assert((model.match(/value: '18,500P'/g) || []).length === 1,
   '고객·업체가 공유하는 실제 회원 지표 기본값이 중복 정의됐습니다.');
 assert(model.includes('menuGroups:') && model.includes('trade:') && model.includes('activity:'),
@@ -63,6 +65,10 @@ assert(runtimeSettings.includes("content.labels?.tradeHeading") && runtimeSettin
   '블록 편집기의 메뉴 영역 제목이 실제 마이페이지에 적용되지 않습니다.');
 assert(runtimeSettings.includes("content.order?.primaryAction") && runtimeSettings.includes("content.order?.secondaryAction"),
   '블록 편집기의 주문 버튼 문구가 실제 마이페이지에 적용되지 않습니다.');
+assert(runtimeSettings.includes("data-sell-service-open') === 'compare'") && runtimeSettings.includes("setAttribute('data-sell-service-open', 'compare')"),
+  '고객 비교견적 메뉴의 실제 동작 계약이 보존되지 않습니다.');
+assert(runtimeSettings.includes("if (role !== 'admin') renderMenu") && runtimeSettings.includes("if (role === 'admin')"),
+  '관리자 전용 메뉴를 일반 회원 메뉴 렌더러가 덮지 못하게 막아야 합니다.');
 assert(view.includes('data-save-config') && view.includes('data-reset-config'),
   '브라우저 저장·운영 기준 복원 기능이 없습니다.');
 assert(view.includes('data-preview-size="660"') && view.includes('data-preview-size="390"'),
@@ -121,7 +127,8 @@ assert(css.includes('@media (max-width: 420px)'), '390px급 모바일 반응형 
 
 assert(html.includes('고객·업체 마이페이지 편집'), '문서 제목이 편집 목적을 설명하지 않습니다.');
 assert(html.includes('noindex, nofollow'), '시안 페이지 검색 차단 메타가 없습니다.');
-assert(html.includes('block-editor-v1') && bootstrap.includes('block-editor-v1'), '편집 시안 캐시 버전이 일치하지 않습니다.');
+assert(html.includes('mypage-admin-contract-v1') && bootstrap.includes('mypage-admin-contract-v1'),
+  '마이페이지 관리자 계약 캐시 버전이 일치하지 않습니다.');
 assert(view.includes('class="mp-head-icon"') && view.includes('aria-label="알림"') && view.includes('aria-label="설정"'),
   '마이페이지 상단 알림과 설정이 접근 가능한 선 아이콘으로 표시되지 않습니다.');
 assert(!view.includes('class="mp-head-text"'), '마이페이지 상단에 알림·설정 글자 버튼이 남았습니다.');

@@ -327,10 +327,16 @@ export function createAdminCatalogService(client, operatorId) {
   function saveMypageConfig(role, content) {
     const key = MYPAGE_KEYS[role];
     if (!key) throw new Error('지원하지 않는 마이페이지 역할입니다.');
+    const safeContent = JSON.parse(JSON.stringify(content || {}));
+    if (role === 'admin') {
+      delete safeContent.menuGroups;
+      delete safeContent.blockOrder;
+      delete safeContent.order;
+    }
     return saveSiteContent(key, {
-      title: `${content?.label || role} 마이페이지 설정`,
+      title: `${safeContent.label || role} 마이페이지 설정`,
       subtitle: '관리자 콘솔에서 저장한 운영 화면 설정',
-      body: JSON.stringify(content),
+      body: JSON.stringify(safeContent),
       images: []
     });
   }

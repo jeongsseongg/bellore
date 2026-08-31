@@ -78,7 +78,8 @@ requiredFiles.forEach((file) => assert.ok(fs.existsSync(path.join(base, file)), 
 assert.match(html, /id="adminNav"/, 'shell owns navigation mount');
 assert.match(html, /id="adminWorkspace"/, 'shell owns workspace mount');
 assert.match(html, /id="caseDrawer"/, 'shell owns case drawer');
-assert.match(html, /type="module" src="\.\/bootstrap\.js\?v=20260827-home-block-editor-v1"/, 'versioned native module bootstrap is used');
+assert.match(html, /type="module" src="\.\/bootstrap\.js\?v=20260831-mypage-admin-contract-v1"/,
+  'versioned native module bootstrap is used');
 assert.doesNotMatch(html, /<script(?![^>]*src=)[^>]*>/, 'no executable inline scripts');
 assert.doesNotMatch(html, /style="/, 'no inline style attributes in shell');
 assert.doesNotMatch(html, /surface-menu|partner-slot/, 'duplicate top and footer navigation are removed');

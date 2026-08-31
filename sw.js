@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v375-tabbar-canonical-cache";
+const VERSION = "bellore-v376-mypage-admin-contract";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -40,7 +40,7 @@ const SHELL_ASSETS = [
   './search.js?v=20260826-member-verification-live-v2',
   './ai-advisor.js?v=20260826-member-verification-live-v2',
   './ai-advisor-admin.js?v=20260826-member-verification-live-v2',
-  './app/bootstrap.js?v=20260828-complete-site-v1',
+  './app/bootstrap.js?v=20260831-mypage-admin-contract-v1',
   './app/pages/standalone-auth-gate.mjs?v=20260828-standalone-auth-v1',
   './app/pages/standalone-page.css?v=20260831-mypage-app-route-v1',
   './app/pages/standalone-page.js?v=20260828-final-integrated-v1',
@@ -90,7 +90,7 @@ const SHELL_ASSETS = [
   './app/legacy/legacy-collection.js?v=20260826-member-verification-live-v2',
   './app/legacy/home-merchandising-grid.js',
   './app/legacy/home-layout-adapter.js?v=20260827-home-block-editor-v1',
-  './app/legacy/mypage-settings-adapter.js?v=20260826-mypage-live-v1',
+  './app/legacy/mypage-settings-adapter.js?v=20260831-mypage-admin-contract-v1',
   './app/legacy/member-verification-ui.js?v=20260826-member-verification-live-v2',
   './app/legacy/member-verification-service.js?v=20260828-phone-auth-paths-v1',
   './app/legacy/customer-feedback.js?v=20260826-member-verification-live-v2',
@@ -101,7 +101,7 @@ const SHELL_ASSETS = [
   './app/features/insights/insight-filter.js',
   './app/features/insights/insight-reader.js',
   './app/features/legal/legal-modals.js',
-  './app/features/mypage-settings/mypage-settings.js?v=20260826-mypage-live-v1',
+  './app/features/mypage-settings/mypage-settings.js?v=20260831-mypage-admin-contract-v1',
   './app/features/member-verification/signup-verification.js',
   './app/features/product-sharing/product-sharing.mjs',
   './app/services/auth/member-verification-service.js',

@@ -85,6 +85,13 @@ const loaded = await catalog.loadMypageConfigs();
 assert.equal(loaded.customer.headerMessage, '운영 안내');
 assert.equal(loaded.vendor, null);
 await catalog.saveMypageConfig('vendor', { ...config, label: '업체' });
+await catalog.saveMypageConfig('admin', {
+  ...config,
+  label: '관리자',
+  menuGroups: { trade: ['주문 관리'], activity: ['회원관리'] },
+  blockOrder: ['order', 'trade'],
+  order: { visible: true }
+});
 
 const siteRead = requests.find((item) => item.url.includes('/rest/v1/site_content') && (!item.options.method || item.options.method === 'GET'));
 assert(siteRead.url.includes('key=in.%28mypage_customer_config%2Cmypage_vendor_config%2Cmypage_admin_config%29'));
@@ -92,6 +99,20 @@ const siteWrite = requests.find((item) => item.url.includes('/rest/v1/site_conte
 assert.equal(siteWrite.options.headers.Authorization, 'Bearer verified-admin-token');
 assert.equal(JSON.parse(siteWrite.options.body).key, 'mypage_vendor_config');
 assert.equal(JSON.parse(JSON.parse(siteWrite.options.body).body).label, '업체');
+const siteWrites = requests.filter((item) => item.url.includes('/rest/v1/site_content') && item.options.method === 'POST');
+const adminConfig = JSON.parse(JSON.parse(siteWrites.at(-1).options.body).body);
+assert.equal(adminConfig.label, '관리자');
+assert.equal(adminConfig.menuGroups, undefined, '관리자 전용 메뉴를 일반 메뉴 설정으로 저장하면 안 됩니다.');
+assert.equal(adminConfig.blockOrder, undefined, '관리자 전용 화면 순서를 일반 블록 순서로 저장하면 안 됩니다.');
+assert.equal(adminConfig.order, undefined, '관리자 대시보드를 최근 주문 설정으로 저장하면 안 됩니다.');
+
+const siteContentPolicy = await readFile(new URL('../supabase/migrations/20260831073000_harden_site_content_admin_write.sql', import.meta.url), 'utf8');
+assert.match(siteContentPolicy, /app_metadata[^;]*role[^;]*admin/s,
+  'site_content 쓰기는 관리자 app_metadata를 확인해야 합니다.');
+assert.match(siteContentPolicy, /p\.approved is true/,
+  'site_content 쓰기는 승인된 관리자만 허용해야 합니다.');
+assert.match(siteContentPolicy, /coalesce\(p\.suspended, false\) is false/,
+  'site_content 쓰기는 정지된 관리자를 거부해야 합니다.');
 
 const trade = createAdminTradeService(client);
 await trade.approveQuote('quote-1');
