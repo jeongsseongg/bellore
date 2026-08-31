@@ -1,4 +1,4 @@
-import { initAccountRolePreview } from '../../../account-roles/account-role-preview.js?v=20260827-block-editor-v1';
+import { initAccountRolePreview } from '../../../account-roles/account-role-preview.js?v=20260831-mypage-admin-contract-v1';
 
 function pageMarkup() {
   return `

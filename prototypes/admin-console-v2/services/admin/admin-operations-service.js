@@ -1,6 +1,6 @@
 import { createAdminRestClient } from '../platform/admin-rest-client.js?v=20260826-admin-crud-v1';
 import { createAdminTradeService } from './admin-trade-service.js?v=20260826-admin-crud-v1';
-import { createAdminCatalogService } from './admin-catalog-service.js?v=20260826-catalog-ledger-v3';
+import { createAdminCatalogService } from './admin-catalog-service.js?v=20260831-mypage-admin-contract-v1';
 import { createAdminAccountService } from './admin-account-service.js?v=20260826-admin-crud-v1';
 
 export function createAdminOperationsService({ getAccessToken, operatorId, fetchImpl }) {

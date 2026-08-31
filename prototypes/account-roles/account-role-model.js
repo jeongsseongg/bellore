@@ -2,6 +2,7 @@ const ORDER_IMAGE = '../../assets/products/watch-batch-20260821-3/158-pdj96zas81
 
 const COMMON_MENUS = Object.freeze([
   '주문 내역',
+  '내 비교견적',
   '경매',
   '장바구니',
   '내 관심',
@@ -57,8 +58,8 @@ export const MYPAGE_ROLE_DEFAULTS = Object.freeze({
     label: '고객',
     headerMessage: '다음 등급까지 구매 1회 남았어요.',
     menuGroups: {
-      trade: COMMON_MENUS.slice(0, 3),
-      activity: COMMON_MENUS.slice(3)
+      trade: COMMON_MENUS.slice(0, 4),
+      activity: COMMON_MENUS.slice(4)
     },
     ...COMMON_CONTENT
   },
@@ -73,10 +74,10 @@ export const MYPAGE_ROLE_DEFAULTS = Object.freeze({
   },
   admin: {
     label: '관리자',
-    headerMessage: '업체와 같은 흐름에서 운영 현황을 확인하세요.',
+    headerMessage: '오늘의 운영 현황과 처리할 업무를 확인하세요.',
     menuGroups: {
-      trade: ['주문 내역', '경매', '비교견적 · 입찰 내역', '장바구니'],
-      activity: COMMON_MENUS.slice(3)
+      trade: ['시계판매 (견적·업체·고객)', '비교견적 승인', '회원관리'],
+      activity: ['주문 관리', '교환 · 반품', '쿠폰 관리', '판매시계 관리', '경매 관제소', '배너 관리', '공급대금 관리', '활동 로그']
     },
     ...COMMON_CONTENT
   }

@@ -1,4 +1,4 @@
-import { cloneRoleContent, EDITABLE_ROLE_ORDER, MYPAGE_ROLE_DEFAULTS, normalizeEditableRole } from './account-role-model.js?v=20260827-block-editor-v1';
+import { cloneRoleContent, EDITABLE_ROLE_ORDER, MYPAGE_ROLE_DEFAULTS, normalizeEditableRole } from './account-role-model.js?v=20260831-mypage-admin-contract-v1';
 import { EDITOR_BLOCKS, renderBlockInspector, renderBlockNavigator } from './account-role-block-editor.js?v=20260827-block-editor-v1';
 import { bindRoleBlockInteractions } from './account-role-direct-edit.js?v=20260827-home-block-editor-v1';
 
