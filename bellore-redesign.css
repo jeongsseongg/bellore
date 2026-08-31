@@ -1283,7 +1283,7 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
 }
 .pp-bottom .pp-buyprice {
   min-width: 178px; min-height: 58px; position: relative;
-  flex-direction: row; align-items: flex-start; justify-content: center; gap: 0;
+  flex-direction: row; align-items: flex-start; justify-content: flex-start; gap: 0;
   padding: 25px 8px 0;
   font-size: 20px; line-height: 1;
 }
@@ -1320,6 +1320,10 @@ body.admin-mode .page-collection .col-grid-inner .hcard-actions {
 .pp-bottom .pp-npay-action > .npay_button_sdk_wrapper {
   min-width: 0 !important;
 }
+.pp-bottom .npay_button_area, .pp-bottom .npay_main_cell, .pp-bottom .npay_link_order {
+  height: 58px !important; min-height: 58px !important;
+}
+.pp-bottom .npay_link_order { display: flex !important; align-items: center; justify-content: center; padding: 0 4px !important; border-radius: 14px !important; }
 .pp-bottom .pp-npay-action iframe {
   display: block;
   width: 100% !important;
