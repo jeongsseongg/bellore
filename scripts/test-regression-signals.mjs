@@ -31,6 +31,81 @@ function addedDoesNotMatch(diff) {
     .map((line) => line.slice(1).trim());
 }
 
+function changedTestLines(diff) {
+  const files = new Map();
+  let current = '';
+  for (const line of diff.split(/\r?\n/)) {
+    const header = line.match(/^diff --git a\/(.+) b\/(.+)$/);
+    if (header) {
+      current = /^scripts\/test-[^/]+\.(?:m?js)$/.test(header[2]) ? header[2] : '';
+      if (current && !files.has(current)) files.set(current, { removed: [], added: [] });
+      continue;
+    }
+    if (!current || line.startsWith('---') || line.startsWith('+++')) continue;
+    if (line.startsWith('-')) files.get(current).removed.push(line.slice(1));
+    if (line.startsWith('+')) files.get(current).added.push(line.slice(1));
+  }
+  return files;
+}
+
+function assertionUses(body, name) {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const identifier = new RegExp(`\\b${escaped}\\b`);
+  return [...body.matchAll(/\bassert\.[A-Za-z]+\(([\s\S]*?)\);/g)]
+    .some((match) => identifier.test(match[1]));
+}
+
+function assertionValuePortion(line) {
+  return line.replace(
+    /,\s*(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)\s*\)\s*;?\s*$/,
+    ')',
+  );
+}
+
+function assertionCandidate(line, body) {
+  const binding = line.match(/^\s*(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=/);
+  if (binding && assertionUses(body, binding[1])) return `binding:${binding[1]}`;
+  if (!/\bassert\.[A-Za-z]+\s*\(/.test(line)) return '';
+  return `assert:${assertionValuePortion(line)
+    .replace(/\/(?:\\.|[^/\\\r\n])+\/[dgimsuvy]*/g, '<regex>')
+    .replace(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`/g, '<string>')
+    .replace(/-?\d+(?:\.\d+)?(?:px|rem|em|%|vh|vw|ms|s)?/gi, '<number>')
+    .replace(/\b(?:true|false|null|undefined)\b/g, '<constant>')}`;
+}
+
+function literalSignature(line) {
+  const literals = [];
+  literals.push(...(line.match(/\/(?:\\.|[^/\\\r\n])+\/[dgimsuvy]*/g) || []));
+  literals.push(...(line.match(/"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`/g) || []));
+  literals.push(...(line.match(/-?\d+(?:\.\d+)?(?:px|rem|em|%|vh|vw|ms|s)?/gi) || []));
+  literals.push(...(line.match(/\b(?:true|false|null|undefined)\b/g) || []));
+  return literals;
+}
+
+function changedAssertionConstants(diff, readBefore, readAfter) {
+  const changes = [];
+  for (const [file, lines] of changedTestLines(diff)) {
+    const before = readBefore(file);
+    const after = readAfter(file);
+    const removed = new Map();
+    for (const line of lines.removed) {
+      const key = assertionCandidate(line, before);
+      if (key) removed.set(key, line);
+    }
+    for (const line of lines.added) {
+      const key = assertionCandidate(line, after);
+      const oldLine = key ? removed.get(key) : '';
+      if (!oldLine) continue;
+      const oldLiterals = literalSignature(key.startsWith('assert:') ? assertionValuePortion(oldLine) : oldLine);
+      const newLiterals = literalSignature(key.startsWith('assert:') ? assertionValuePortion(line) : line);
+      if (oldLiterals.length && JSON.stringify(oldLiterals) !== JSON.stringify(newLiterals)) {
+        changes.push(`${file}:${key.replace(/^(?:binding|assert):/, '')}`);
+      }
+    }
+  }
+  return [...new Set(changes)].sort();
+}
+
 const syntheticFiles = ['app/features/member-verification/signup-verification.js', 'scripts/test-member-verifications.mjs'];
 assert.deepEqual(
   sourceTestPairs(syntheticFiles, () => "read('app/features/member-verification/signup-verification.js')"),
@@ -39,6 +114,26 @@ assert.deepEqual(
 assert.deepEqual(addedDoesNotMatch('@@\n+assert.doesNotMatch(source, /broken/);\n context'), [
   'assert.doesNotMatch(source, /broken/);',
 ]);
+const syntheticAssertionDiff = [
+  'diff --git a/scripts/test-layout.mjs b/scripts/test-layout.mjs',
+  '--- a/scripts/test-layout.mjs',
+  '+++ b/scripts/test-layout.mjs',
+  '@@ -1,2 +1,2 @@',
+  '-const approvedWidth = /width:\\s*660px/;',
+  '+const approvedWidth = /width:\\s*636px/;',
+  ' assert.match(css, approvedWidth);',
+  '@@ -4 +4 @@',
+  '-assert.equal(columnWidth, 178);',
+  '+assert.equal(columnWidth, 176);',
+].join('\n');
+assert.deepEqual(changedAssertionConstants(
+  syntheticAssertionDiff,
+  () => 'const approvedWidth = /width:\\s*660px/;\nassert.match(css, approvedWidth);\nassert.equal(columnWidth, 178);',
+  () => 'const approvedWidth = /width:\\s*636px/;\nassert.match(css, approvedWidth);\nassert.equal(columnWidth, 176);',
+), [
+  'scripts/test-layout.mjs:approvedWidth',
+  'scripts/test-layout.mjs:assert.equal(columnWidth, <number>);',
+]);
 
 function git(args) {
   const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' });
@@ -46,11 +141,22 @@ function git(args) {
   return result.stdout.trim();
 }
 
-const parent = git(['rev-parse', 'HEAD^']);
-const changed = parent ? git(['diff', '--name-only', `${parent}..HEAD`]).split(/\r?\n/).filter(Boolean) : [];
-const diff = parent ? git(['diff', '--unified=0', `${parent}..HEAD`]) : '';
-const pairs = sourceTestPairs(changed, (file) => existsSync(resolve(root, file)) ? read(file) : '');
+function readAt(ref, file) {
+  return git(['show', `${ref}:${file}`]);
+}
+
+const [baseArg, headArg] = process.argv.slice(2);
+const head = headArg || 'HEAD';
+const parent = baseArg || git(['rev-parse', `${head}^`]);
+const changed = parent ? git(['diff', '--name-only', `${parent}..${head}`]).split(/\r?\n/).filter(Boolean) : [];
+const diff = parent ? git(['diff', '--unified=0', `${parent}..${head}`]) : '';
+const pairs = sourceTestPairs(changed, (file) => readAt(head, file));
 const negatives = addedDoesNotMatch(diff);
+const constants = changedAssertionConstants(
+  diff,
+  (file) => readAt(parent, file),
+  (file) => readAt(head, file),
+);
 
 const configSandbox = { window: {} };
 vm.runInNewContext(read('supabase-config.js'), configSandbox);
@@ -94,5 +200,6 @@ assert.match(pagesWorkflow, /DEPLOY_RESULT[\s\S]*!= 'success'/);
 const compact = (items) => items.length ? items.join(',') : 'none';
 if (pairs.length) console.log(`REGRESSION_WARN source and asserting tests changed together: ${compact(pairs)}`);
 if (negatives.length) console.log(`REGRESSION_WARN new assert.doesNotMatch assertions: ${compact(negatives)}`);
+if (constants.length) console.log(`REGRESSION_WARN existing assertion literals changed: ${compact(constants)}`);
 if (disabled.length) console.log(`REGRESSION_WARN disabled features with retained implementations: ${compact(disabled)}`);
-console.log(`regression signals: source-test=${pairs.length} new-doesNotMatch=${negatives.length} disabled=${disabled.length}`);
+console.log(`regression signals: source-test=${pairs.length} new-doesNotMatch=${negatives.length} assertion-literal=${constants.length} disabled=${disabled.length}`);
