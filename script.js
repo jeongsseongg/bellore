@@ -5996,10 +5996,10 @@
             if (event) event.preventDefault();
             verifyMypageUser().then(function (allowed) {
                 if (allowed) {
-                    history.pushState({ page: 'mypage' }, '', '/pages/mypage/');
+                    history.pushState({ page: 'mypage' }, '', '/pages/mypage');
                     openMyPage();
                 }
-                else openLoginModal('/pages/mypage/');
+                else openLoginModal('/pages/mypage');
             });
         }
         if (btnMy) btnMy.addEventListener('click', openMyOrLogin);
