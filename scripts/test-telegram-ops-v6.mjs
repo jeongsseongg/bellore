@@ -4,15 +4,18 @@ import test from 'node:test';
 
 import {
   formatChatAmount,
+  formatKakaoItemDescription,
   formatOutboxMessage,
   formatPaymentMethod,
   formatVendorBidNotice,
   friendlyActionError,
   normalizeTelegramMediaUrls,
+  outboxMediaUrls,
   parseQuoteDetail,
 } from '../supabase/functions/telegram-ops/telegram-ops-v6-core.mjs';
 import {
   parseOrderCommand,
+  parseQuoteApprovalCommand,
   parseQuoteCommand,
 } from '../supabase/functions/_shared/telegram-ops-core.mjs';
 
@@ -21,7 +24,10 @@ const read = (path) => readFile(new URL(path, root), 'utf8');
 
 test('일반 숫자 견적·주문 명령 계약을 유지한다', () => {
   assert.deepEqual(parseQuoteCommand('3751 500'), { inputKey: '3751', amount: 5_000_000 });
+  assert.deepEqual(parseQuoteCommand('/1547 380'), { inputKey: '1547', amount: 3_800_000 });
   assert.deepEqual(parseOrderCommand('7471'), { inputKey: '7471' });
+  assert.deepEqual(parseOrderCommand('/7471'), { inputKey: '7471' });
+  assert.deepEqual(parseQuoteApprovalCommand('/1547 승인'), { inputKey: '1547' });
 });
 
 test('금액과 결제수단을 운영자가 읽기 쉽게 표시한다', () => {
@@ -29,6 +35,15 @@ test('금액과 결제수단을 운영자가 읽기 쉽게 표시한다', () => 
   assert.equal(formatPaymentMethod('EASY_PAY:TOSSPAY', 'full'), '토스페이 간편결제 · 전액 결제');
   assert.equal(formatPaymentMethod('CARD', 'full'), '카드 결제 · 전액 결제');
   assert.equal(formatPaymentMethod('TRANSFER'), '계좌이체');
+});
+
+test('카카오 아이템 설명은 중복 브랜드를 제거하고 23자 이내로 제한한다', () => {
+  const compact = formatKakaoItemDescription('BREITLING (브라이틀링) 네비타이머 43 B01');
+  assert.equal(compact, 'BREITLING 네비타이머 43 B01');
+  assert.ok(Array.from(compact).length <= 23);
+  const truncated = formatKakaoItemDescription('아주 긴 시계 상품 이름이 계속 이어지는 경우에도 안전하게 제한');
+  assert.ok(Array.from(truncated).length <= 23);
+  assert.match(truncated, /…$/);
 });
 
 test('운영 오류를 내부 코드 대신 친화 문장으로 바꾼다', () => {
@@ -97,32 +112,111 @@ test('견적·주문 outbox를 사진 수와 전체 운영 상세가 있는 문�
   assert.match(order, /배송주소: \(04524\) 서울시 중구 1층/);
 });
 
-test('Edge가 사진 전송 실패를 텍스트로 폴백하고 친화 오류를 사용한다', async () => {
-  const edge = await read('supabase/functions/telegram-ops/index.ts');
-  assert.match(edge, /telegram\('sendPhoto'/);
-  assert.match(edge, /telegram\('sendMediaGroup'/);
-  assert.match(edge, /사진을 불러오지 못해 내용만 전송했습니다/);
-  assert.match(edge, /const friendlyMessage = friendlyActionError\(error\)/);
-  assert.match(edge, /취소했습니다\. 변경된 내용은 없습니다\./);
+test('즉시매입·위탁 신청과 결제 문제를 연락처·사진과 함께 안내한다', () => {
+  const sell = {
+    event_type: 'sell_service_received',
+    payload: {
+      method: 'instant', receiptNo: 'SELL-001', customerName: '박설민',
+      customerPhone: '010-4187-1107', brand: '브라이틀링', model: '네비타이머',
+      ref: 'AB0123', year: '2020', parts: '보증서, 박스', memo: '오버홀 이력 없음',
+      photos: ['https://cdn.example.com/sell-1.jpg'], createdAt: '2026-08-31T05:30:33Z',
+    },
+  };
+  const sellMessage = formatOutboxMessage(sell);
+  assert.match(sellMessage, /새로운 즉시매입 신청이 접수되었습니다/);
+  assert.match(sellMessage, /연락처: 010-4187-1107/);
+  assert.match(sellMessage, /첨부사진: 1장/);
+
+  const paymentMessage = formatOutboxMessage({
+    event_type: 'payment_issue',
+    payload: {
+      status: 'failed', orderNo: 'ORDER-FAILED', productName: '롤렉스 데이저스트',
+      amount: 5_000_000, method: 'CARD', payType: 'full', buyerName: '홍길동',
+      buyerPhone: '010-1111-2222', reason: '승인 거절', createdAt: '2026-08-31T06:00:00Z',
+      productImage: 'https://cdn.example.com/watch.jpg',
+    },
+  });
+  assert.match(paymentMessage, /결제에 실패한 주문이 발생했습니다/);
+  assert.match(paymentMessage, /연락처: 010-1111-2222/);
+  assert.match(paymentMessage, /사유: 승인 거절/);
+  assert.deepEqual(outboxMediaUrls(sell), ['https://cdn.example.com/sell-1.jpg']);
+  assert.deepEqual(outboxMediaUrls({
+    event_type: 'photo_download_ready',
+    payload: { photos: ['https://cdn.example.com/sell-1.jpg'] },
+  }), ['https://cdn.example.com/sell-1.jpg']);
 });
 
-test('운영 원장 버전 migration이 미디어·전체 상세·최고가 전용 계약을 보존한다', async () => {
-  const media = await read('supabase/migrations/20260826053138_telegram_ops_media_payload.sql');
-  const detail = await read('supabase/migrations/20260826053958_telegram_ops_complete_payload.sql');
-  const highest = await read('supabase/migrations/20260826055215_telegram_vendor_highest_only.sql');
+test('고객의 견적 선택 후 판매 요청을 관리자 운영 정보와 함께 안내한다', () => {
+  const message = formatOutboxMessage({
+    event_type: 'quote_sale_requested',
+    payload: {
+      inputKey: '1547', customerName: '홍길동', customerPhone: '010-1234-5678',
+      brand: '롬렉스', model: '서브마리너', ref: '126610LN',
+      selectedAmount: 5_500_000, vendorName: '굿타임', tradeMethod: '방문거래',
+      requestedAt: '2026-08-31T07:30:00Z',
+    },
+  });
+  assert.match(message, /고객이 견적을 선택하고 판매를 요청했습니다/);
+  assert.match(message, /견적 입력키: 1547/);
+  assert.match(message, /선택금액: 550만원/);
+  assert.match(message, /선택견적: 굿타임/);
+  assert.match(message, /거래방법: 방문거래/);
+});
 
-  assert.match(media, /'photos', coalesce\(to_jsonb\(new\.photo_urls\), '\[\]'::jsonb\)/);
-  for (const field of ['item_ref', 'item_year', 'item_grade', 'item_stamping', 'item_parts']) {
-    assert.match(detail, new RegExp(`new\\.${field}`));
-  }
-  for (const field of ['product_image', 'pay_type', 'method', 'ship_recipient', 'ship_postcode', 'ship_request']) {
-    assert.match(detail, new RegExp(`new\\.${field}`));
-  }
+test('판매 요청 트리거는 awarded 전환만 감지하고 견적별로 한 번만 적재한다', async () => {
+  const sql = await read('supabase/migrations/20260831090000_telegram_quote_sale_requested.sql');
+  assert.match(sql, /new\.status is distinct from 'awarded'/);
+  assert.match(sql, /new\.status is not distinct from old\.status/);
+  assert.match(sql, /'quote_sale_requested:' \|\| new\.id::text/);
+  assert.match(sql, /on conflict \(dedupe_key\) do nothing/);
+  assert.match(sql, /'selectedAmount',[\s\S]*selected_bid\.amount/);
+  assert.match(sql, /'tradeMethod',[\s\S]*v_trade_method/);
+});
 
-  const eventWrite = highest.indexOf('insert into public.quote_offer_events');
-  const highestGate = highest.indexOf('if new.amount <= previous_highest then return new; end if;');
-  const outboxWrite = highest.indexOf('insert into public.telegram_ops_outbox');
-  assert(eventWrite >= 0 && eventWrite < highestGate && highestGate < outboxWrite,
-    '모든 제안은 이력에 남기고 최고가 갱신만 Telegram outbox를 만들어야 한다');
-  assert.match(highest, /'previousHighest', previous_highest/);
+test('Edge가 사진 전송 실패를 텍스트로 폴백하고 친화 오류를 사용한다', async () => {
+  const edge = await read('supabase/functions/telegram-ops/index.ts');
+  const media = await read('supabase/functions/telegram-ops/telegram-media-delivery.mjs');
+  const kakao = await read('supabase/functions/telegram-ops/kakao-delivery.mjs');
+  assert.match(media, /telegram\('sendPhoto'/);
+  assert.match(media, /telegram\('sendMediaGroup'/);
+  assert.match(media, /사진을 불러오지 못해 내용만 전송했습니다/);
+  assert.match(edge, /const friendlyMessage = friendlyActionError\(error\)/);
+  assert.match(edge, /취소했습니다\. 변경된 내용은 없습니다\./);
+  assert.match(kakao, /!sender/);
+  assert.match(kakao, /disableSms: true/);
+  assert.match(kakao, /waitForSolapiDelivery/);
+  assert.match(kakao, /statusCode !== '4000'/);
+  assert.doesNotMatch(kakao, /sendSolapiText/);
+  assert.match(kakao, /'#\{견적건수\}': String\(Number\(payload\.offerCount \|\| 0\)\)/);
+  assert.match(kakao, /'#\{최고견적금액\}': Number\(payload\.highestAmount \|\| 0\)\.toLocaleString\('ko-KR'\)/);
+  assert.match(kakao, /'#\{종료일시\}': formatKst\(payload\.closedAt\)/);
+  assert.match(edge, /const deliveryBeforeClose = await drainOutbox\(\);[\s\S]*telegram_ops_close_expired_quotes/);
+  assert.match(media, /사진 전체 다운로드/);
+  assert.match(media, /expires = Math\.floor\(Date\.now\(\) \/ 1000\) \+ 24 \* 60 \* 60/);
+  assert.match(media, /totalBytes > 50 \* 1024 \* 1024/);
+  assert.match(edge, /if \(request\.method === 'GET'\) return await handlePhotoDownload\(request\)/);
+  assert.match(edge, /telegram_ops_approve_quote/);
+  assert.match(edge, /비교견적이 승인되었습니다/);
+});
+
+test('만료 견적은 비회원 연락처를 사용하고 null 회원 알림을 만들지 않는다', async () => {
+  const sql = await read('supabase/migrations/20260831070000_telegram_sell_payment_issue_delivery.sql');
+  assert.match(sql, /if quote_row\.customer_id is not null then[\s\S]*insert into public\.notifications/);
+  assert.match(sql, /from public\.sell_service_requests s[\s\S]*s\.quote_request_id = quote_row\.id/);
+  assert.match(sql, /char_length\(regexp_replace\(coalesce\(customer_phone, ''\), '\\D', '', 'g'\)\) >= 10/);
+  assert.match(sql, /customer_quote_closed:[\s\S]*customer_kakao/);
+  assert.match(sql, /'offerCount', total_count/);
+  assert.match(sql, /'closedAt', now\(\)/);
+});
+
+test('신청·결제 문제 트리거와 제한된 기존 건 재적재 계약을 보존한다', async () => {
+  const sql = await read('supabase/migrations/20260831070000_telegram_sell_payment_issue_delivery.sql');
+  assert.match(sql, /create trigger trg_telegram_ops_sell_service[\s\S]*after insert on public\.sell_service_requests/);
+  assert.match(sql, /new\.method in \('instant', 'consignment'\)/);
+  assert.match(sql, /'photos', coalesce\(to_jsonb\(new\.photo_urls\), '\[\]'::jsonb\)/);
+  assert.match(sql, /create trigger trg_telegram_ops_payment_issue[\s\S]*after insert or update of status on public\.orders/);
+  assert.match(sql, /new\.status in \('failed', 'payment_review'\)/);
+  assert.match(sql, /'buyerPhone', coalesce\(new\.buyer_phone, ''\)/);
+  assert.match(sql, /s\.created_at >= timestamptz '2026-08-31 00:00:00\+00'/);
+  assert.match(sql, /where o\.status in \('failed', 'payment_review'\)/);
 });

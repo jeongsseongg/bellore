@@ -1,18 +1,19 @@
 import {
   buildOrderCallback,
+  buildQuoteApprovalCallback,
   buildQuoteCallback,
-  formatWon,
   isAllowedActor,
   parseCallback,
   parseOrderCommand,
+  parseQuoteApprovalCommand,
   parseQuoteCommand,
 } from '../_shared/telegram-ops-core.mjs';
 import {
   formatChatAmount,
-  formatOutboxMessage,
   friendlyActionError,
-  outboxMediaUrls,
 } from './telegram-ops-v6-core.mjs';
+import { createKakaoDelivery } from './kakao-delivery.mjs';
+import { createTelegramMediaDelivery } from './telegram-media-delivery.mjs';
 
 const env = (name: string) => Deno.env.get(name) ?? '';
 const SUPABASE_URL = env('SUPABASE_URL').replace(/\/$/, '');
@@ -83,100 +84,17 @@ async function sendText(chatId: string, text: string, replyMarkup?: Json) {
   });
 }
 
-async function sendTelegramOutbox(chatId: string, row: Outbox) {
-  const message = formatOutboxMessage(row);
-  const photos = outboxMediaUrls(row);
-  if (!photos.length) return await sendText(chatId, message);
+const { handlePhotoDownload, sendTelegramOutbox } = createTelegramMediaDelivery({
+  supabaseUrl: SUPABASE_URL, serviceRole: SERVICE_ROLE, cronSecret: CRON_SECRET,
+  telegram, sendText,
+});
 
-  try {
-    if (photos.length === 1) {
-      return await telegram('sendPhoto', {
-        chat_id: chatId,
-        photo: photos[0],
-        caption: message.slice(0, 1024),
-      });
-    }
-    return await telegram('sendMediaGroup', {
-      chat_id: chatId,
-      media: photos.map((photo: string, index: number) => ({
-        type: 'photo',
-        media: photo,
-        ...(index === 0 ? { caption: message.slice(0, 1024) } : {}),
-      })),
-    });
-  } catch (error) {
-    const safeError = String(error instanceof Error ? error.message : error).slice(0, 240);
-    console.error('telegram_media_delivery_failed', row.id, row.event_type, safeError);
-    return await sendText(chatId, `${message}\n\n⚠️ 사진을 불러오지 못해 내용만 전송했습니다.`);
-  }
-}
-
-async function solapiAuth() {
-  const date = new Date().toISOString();
-  const salt = crypto.randomUUID().replaceAll('-', '');
-  const key = await crypto.subtle.importKey(
-    'raw', new TextEncoder().encode(SOLAPI_API_SECRET),
-    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'],
-  );
-  const signed = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(date + salt));
-  const signature = [...new Uint8Array(signed)].map((b) => b.toString(16).padStart(2, '0')).join('');
-  return `HMAC-SHA256 apiKey=${SOLAPI_API_KEY}, date=${date}, salt=${salt}, signature=${signature}`;
-}
-
-async function sendKakao(eventType: string, payload: Json) {
-  const phone = String(payload.phone || '').replace(/\D/g, '');
-  if (phone.length < 10) throw new Error('CUSTOMER_PHONE_MISSING');
-
-  let templateId = '';
-  let variables: Record<string, string> = {};
-  const formatKst = (value: unknown) => new Date(String(value || Date.now())).toLocaleString('ko-KR', {
-    timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', hour12: false,
-  });
-  if (eventType === 'customer_quote_approved') {
-    templateId = SOLAPI_APPROVED_TEMPLATE;
-    variables = {
-      '#{시계정보}': String(payload.itemName || '시계'),
-      '#{승인일시}': formatKst(payload.approvedAt),
-      '#{고객명}': String(payload.customerName || '고객'),
-    };
-  } else if (eventType === 'customer_quote_price') {
-    templateId = SOLAPI_PRICE_TEMPLATE;
-    variables = {
-      '#{제안금액}': Number(payload.amount || 0).toLocaleString('ko-KR'),
-      '#{견적일시}': formatKst(payload.offeredAt),
-      '#{시계정보}': String(payload.itemName || '시계'),
-      '#{현재최고금액}': formatWon(payload.currentHighestAmount),
-      '#{고객명}': String(payload.customerName || '고객'),
-    };
-  } else {
-    const hasOffer = Boolean(payload.hasOffer);
-    templateId = hasOffer ? SOLAPI_CLOSED_TEMPLATE : SOLAPI_EMPTY_TEMPLATE;
-    variables = hasOffer
-      ? {
-        '#{상품명}': String(payload.itemName || '시계'),
-        '#{최종금액}': formatWon(payload.highestAmount),
-      }
-      : { '#{상품명}': String(payload.itemName || '시계') };
-  }
-  if (!SOLAPI_API_KEY || !SOLAPI_API_SECRET || !SOLAPI_PFID || !templateId) {
-    throw new Error('SOLAPI_SECRET_OR_TEMPLATE_MISSING');
-  }
-
-  const response = await fetch('https://api.solapi.com/messages/v4/send', {
-    method: 'POST',
-    headers: { authorization: await solapiAuth(), 'content-type': 'application/json' },
-    body: JSON.stringify({ message: {
-      to: phone,
-      from: SOLAPI_SENDER || undefined,
-      type: 'ATA',
-      kakaoOptions: { pfId: SOLAPI_PFID, templateId, variables },
-    } }),
-  });
-  const output = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(`SOLAPI_${response.status}:${JSON.stringify(output).slice(0, 250)}`);
-  return output;
-}
+const sendKakao = createKakaoDelivery({
+  apiKey: SOLAPI_API_KEY, apiSecret: SOLAPI_API_SECRET,
+  pfId: SOLAPI_PFID, sender: SOLAPI_SENDER,
+  approvedTemplate: SOLAPI_APPROVED_TEMPLATE, priceTemplate: SOLAPI_PRICE_TEMPLATE,
+  closedTemplate: SOLAPI_CLOSED_TEMPLATE, emptyTemplate: SOLAPI_EMPTY_TEMPLATE,
+});
 
 async function finishOutbox(id: string, success: boolean, providerId = '', error = '') {
   await rpc('telegram_ops_finish_outbox', {
@@ -233,10 +151,24 @@ async function handleMessage(update: Json) {
   const chatId = String(chat.id);
   const text = String(message.text);
   if (chatId === QUOTE_CHAT_ID) {
+    const approval = parseQuoteApprovalCommand(text);
+    if (approval) {
+      await sendText(chatId, [
+        `📋 입력키 ${approval.inputKey} 비교견적을 승인할까요?`,
+        '승인하면 고객 마이페이지에 반영되고 지금부터 72시간 견적이 시작됩니다.',
+      ].join('\n'), { inline_keyboard: [[
+        { text: '네, 비교견적 승인', callback_data: buildQuoteApprovalCallback(approval.inputKey) },
+        { text: '아니요, 취소', callback_data: 'cancel' },
+      ]] });
+      return;
+    }
     const command = parseQuoteCommand(text);
     if (!command) {
       await sendText(chatId, [
         '입력을 이해하지 못했어요.',
+        '견적을 승인하려면 「4자리 입력키 + 승인」을 보내주세요.',
+        '예) /1547 승인',
+        '',
         '견적을 제안하려면 「4자리 입력키 + 금액」을 보내주세요.',
         '예) 3751 500 → 500만원 견적',
       ].join('\n'));
@@ -297,7 +229,29 @@ async function handleCallback(update: Json) {
 
   try {
     let result: Json;
-    if (parsed.kind === 'quote') {
+    if (parsed.kind === 'quote_approve') {
+      if (chatId !== QUOTE_CHAT_ID) throw new Error('WRONG_CHAT');
+      result = await rpc('telegram_ops_approve_quote', {
+        p_input_key: parsed.inputKey, p_actor_telegram_id: String(actor.id),
+        p_chat_id: chatId, p_dedupe_key: `telegram:${String(update.update_id)}`,
+      }) as Json;
+      const expiresAt = new Date(String(result.expiresAt)).toLocaleString('ko-KR', {
+        timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hour12: false,
+      });
+      await sendText(chatId, result.alreadyApproved ? [
+        'ℹ️ 이미 승인된 비교견적입니다.',
+        `입력키: ${parsed.inputKey}`,
+        `기존 종료: ${expiresAt}`,
+        '승인 시간을 다시 늘리지는 않았습니다.',
+      ].join('\n') : [
+        '✅ 비교견적이 승인되었습니다.',
+        `입력키: ${parsed.inputKey}`,
+        '진행시간: 지금부터 72시간',
+        `종료: ${expiresAt}`,
+        '고객 마이페이지에 반영되었습니다.',
+      ].join('\n'));
+    } else if (parsed.kind === 'quote') {
       if (chatId !== QUOTE_CHAT_ID) throw new Error('WRONG_CHAT');
       result = await rpc('telegram_ops_register_quote_offer', {
         p_input_key: parsed.inputKey, p_amount: parsed.amount,
@@ -335,9 +289,10 @@ async function handleCallback(update: Json) {
 }
 
 Deno.serve(async (request) => {
-  if (request.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
   try {
     requireConfigured();
+    if (request.method === 'GET') return await handlePhotoDownload(request);
+    if (request.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
     const telegramSecret = request.headers.get('x-telegram-bot-api-secret-token') || '';
     const cronSecret = request.headers.get('x-bellore-cron-secret') || '';
 
@@ -349,9 +304,10 @@ Deno.serve(async (request) => {
       return json({ ok: true, delivery });
     }
     if (cronSecret === CRON_SECRET) {
+      const deliveryBeforeClose = await drainOutbox();
       const closed = await rpc('telegram_ops_close_expired_quotes') as number;
-      const delivery = await drainOutbox();
-      return json({ ok: true, closed, delivery });
+      const deliveryAfterClose = await drainOutbox();
+      return json({ ok: true, closed, deliveryBeforeClose, deliveryAfterClose });
     }
     return json({ error: 'unauthorized' }, 401);
   } catch (error) {

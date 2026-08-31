@@ -2,7 +2,7 @@ const WON_PER_MANWON = 10_000;
 
 export function parseQuoteCommand(input) {
   const text = String(input || '').trim();
-  const match = text.match(/^(\d{4})\s+(.+)$/);
+  const match = text.match(/^\/?(\d{4})\s+(.+)$/);
   if (!match) return null;
 
   const inputKey = match[1];
@@ -25,8 +25,13 @@ export function parseQuoteCommand(input) {
   return { inputKey, amount };
 }
 
+export function parseQuoteApprovalCommand(input) {
+  const match = String(input || '').trim().match(/^\/?(\d{4})\s+승인$/);
+  return match ? { inputKey: match[1] } : null;
+}
+
 export function parseOrderCommand(input) {
-  const match = String(input || '').trim().match(/^(\d{4})$/);
+  const match = String(input || '').trim().match(/^\/?(\d{4})$/);
   return match ? { inputKey: match[1] } : null;
 }
 
@@ -43,6 +48,10 @@ export function buildQuoteCallback(inputKey, amount) {
   return `q:${inputKey}:${amount}`;
 }
 
+export function buildQuoteApprovalCallback(inputKey) {
+  return `a:${inputKey}`;
+}
+
 export function buildOrderCallback(inputKey) {
   return `o:${inputKey}`;
 }
@@ -51,6 +60,8 @@ export function parseCallback(data) {
   const value = String(data || '');
   let match = value.match(/^q:(\d{4}):(\d+)$/);
   if (match) return { kind: 'quote', inputKey: match[1], amount: Number(match[2]) };
+  match = value.match(/^a:(\d{4})$/);
+  if (match) return { kind: 'quote_approve', inputKey: match[1] };
   match = value.match(/^o:(\d{4})$/);
   if (match) return { kind: 'order', inputKey: match[1] };
   if (value === 'cancel') return { kind: 'cancel' };

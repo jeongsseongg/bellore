@@ -12,6 +12,16 @@ export function formatChatAmount(amount) {
   return formatWon(won);
 }
 
+export function formatKakaoItemDescription(value, maxLength = 23) {
+  const compact = String(value || '시계')
+    .replace(/\s*\([^)]{1,20}\)\s*/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim() || '시계';
+  const characters = Array.from(compact);
+  if (characters.length <= maxLength) return compact;
+  return `${characters.slice(0, Math.max(1, maxLength - 1)).join('')}…`;
+}
+
 export function friendlyActionError(error) {
   const value = String(error instanceof Error ? error.message : error || '');
   const known = [
@@ -42,8 +52,14 @@ export function outboxMediaUrls(row) {
   if (row.event_type === 'quote_received') {
     return normalizeTelegramMediaUrls(row.payload.photos);
   }
-  if (row.event_type === 'order_paid') {
+  if (row.event_type === 'order_paid' || row.event_type === 'payment_issue') {
     return normalizeTelegramMediaUrls(row.payload.productImage);
+  }
+  if (row.event_type === 'sell_service_received') {
+    return normalizeTelegramMediaUrls(row.payload.photos);
+  }
+  if (row.event_type === 'photo_download_ready') {
+    return normalizeTelegramMediaUrls(row.payload.photos);
   }
   return [];
 }
@@ -99,6 +115,49 @@ export function formatVendorBidNotice(payload) {
 
 export function formatOutboxMessage(row) {
   const p = row.payload;
+  if (row.event_type === 'photo_download_ready') {
+    return '사진 전체 다운로드';
+  }
+  if (row.event_type === 'quote_sale_requested') {
+    const watch = [p.brand, p.model]
+      .map((value) => String(value || '').trim()).filter(Boolean).join(' ') || '시계';
+    const requestedAt = p.requestedAt
+      ? new Date(String(p.requestedAt)).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })
+      : '-';
+    return [
+      '✅ 고객이 견적을 선택하고 판매를 요청했습니다.',
+      `견적 입력키: ${p.inputKey || '-'}`,
+      '',
+      `고객: ${p.customerName || '-'}`,
+      `연락처: ${p.customerPhone || '-'}`,
+      `시계: ${watch}`,
+      `레퍼런스: ${p.ref || '-'}`,
+      `선택금액: ${p.selectedAmount == null ? '확인 필요' : formatChatAmount(p.selectedAmount)}`,
+      `선택견적: ${p.vendorName || '확인 필요'}`,
+      `거래방법: ${p.tradeMethod || '확인 필요'}`,
+      `요청일시: ${requestedAt}`,
+      '',
+      '관리자 화면에서 거래 진행 내용을 확인해주세요.',
+    ].join('\n');
+  }
+  if (row.event_type === 'sell_service_received') {
+    const methodLabel = p.method === 'consignment' ? '위탁판매' : '즉시매입';
+    return [
+      `⌚ 새로운 ${methodLabel} 신청이 접수되었습니다.`,
+      `접수번호: ${p.receiptNo || p.requestId || '-'}`,
+      '',
+      `신청자: ${p.customerName || '-'}`,
+      `연락처: ${p.customerPhone || '-'}`,
+      `브랜드: ${p.brand || '-'}`,
+      `모델명: ${p.model || '-'}`,
+      `레퍼런스: ${p.ref || '-'}`,
+      `스탬핑/연식: ${p.year || '-'}`,
+      `구성품: ${p.parts || '-'}`,
+      `특이사항: ${p.memo || '-'}`,
+      `첨부사진: ${outboxMediaUrls(row).length}장`,
+      `접수일시: ${new Date(String(p.createdAt)).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`,
+    ].join('\n');
+  }
   if (row.event_type === 'quote_received') {
     const detail = parseQuoteDetail(p.detail);
     return [
@@ -144,6 +203,21 @@ export function formatOutboxMessage(row) {
       '',
       '주문 승인 방법',
       `${p.inputKey} 입력`,
+    ].join('\n');
+  }
+  if (row.event_type === 'payment_issue') {
+    const review = p.status === 'payment_review';
+    return [
+      review ? '⚠️ 결제 확인이 필요한 주문이 발생했습니다.' : '❌ 결제에 실패한 주문이 발생했습니다.',
+      `주문번호: ${p.orderNo || p.orderId || '-'}`,
+      `상품: ${p.productName || '-'}`,
+      `시도금액: ${formatWon(p.amount)}`,
+      `결제방법: ${formatPaymentMethod(String(p.method || ''), String(p.payType || ''))}`,
+      '',
+      `주문자: ${p.buyerName || '-'}`,
+      `연락처: ${p.buyerPhone || '-'}`,
+      `사유: ${p.reason || '-'}`,
+      `발생일시: ${new Date(String(p.createdAt)).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`,
     ].join('\n');
   }
   if (row.event_type === 'vendor_bid') return formatVendorBidNotice(p);

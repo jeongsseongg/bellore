@@ -1,4 +1,7 @@
 {
+  "imports": {
+    "jszip": "npm:jszip@3.10.1"
+  },
   "compilerOptions": {
     "allowJs": true,
     "checkJs": false,
