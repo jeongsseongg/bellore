@@ -107,6 +107,9 @@ export function createMemberVerificationService({ getClient, getPortOne, getVeri
     if (!/^01\d{8,9}$/.test(phoneNumber)) throw new Error('BAD_PHONE');
     if (!name) throw new Error('NAME_REQUIRED');
     if (!/^\d{8}$/.test(birthDate)) throw new Error('BIRTH_DATE_REQUIRED');
+    const directAgency = options?.agency === 'SMS' ? 'SMS' : undefined;
+    const inicisUnified = { flgFixedUser: 'Y' };
+    if (directAgency) inicisUnified.directAgency = directAgency;
     const response = await portOne.requestIdentityVerification({
       storeId: payment.storeId,
       identityVerificationId,
@@ -120,9 +123,7 @@ export function createMemberVerificationService({ getClient, getPortOne, getVeri
         birthDay: birthDate.slice(6, 8),
       },
       bypass: {
-        inicisUnified: {
-          flgFixedUser: 'Y',
-        },
+        inicisUnified,
       },
     });
     if (response?.code != null) {

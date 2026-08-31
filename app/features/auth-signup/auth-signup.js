@@ -1,5 +1,5 @@
-import { createSignupVerification } from '../member-verification/signup-verification.js';
-import { getAuthSignupBackend } from '../../services/auth/auth-signup-backend.js';
+import { createSignupVerification } from '../member-verification/signup-verification.js?v=20260831-kg-sms-identity-v1';
+import { getAuthSignupBackend } from '../../services/auth/auth-signup-backend.js?v=20260831-kg-sms-identity-v1';
 
 const { backend } = getAuthSignupBackend(window);
 const form = document.getElementById('signupForm');

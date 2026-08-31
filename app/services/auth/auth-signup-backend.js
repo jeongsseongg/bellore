@@ -1,4 +1,4 @@
-import { createMemberVerificationService } from './member-verification-service.js';
+import { createMemberVerificationService } from './member-verification-service.js?v=20260831-kg-sms-identity-v1';
 
 export function getAuthSignupBackend(windowObject) {
   const verification = createMemberVerificationService({

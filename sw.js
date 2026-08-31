@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v381-phone-otp-cache";
+const VERSION = "bellore-v382-kg-sms-identity";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -32,7 +32,7 @@ const SHELL_ASSETS = [
   './analytics-client.js?v=20260826-ai-consent-v1',
   './brands.js',
   './supabase.js?v=20260828-phone-auth-paths-v1',
-  './bellore-features.js?v=20260828-phone-auth-paths-v1',
+  './bellore-features.js?v=20260831-kg-sms-identity-v1',
   './cq-demo.js?v=20260831-public-contact-v1',
   './wishlist.js?v=20260826-member-verification-live-v2',
   './alerts.js?v=20260820-tabs-alerts-v1',
@@ -40,7 +40,7 @@ const SHELL_ASSETS = [
   './search.js?v=20260826-member-verification-live-v2',
   './ai-advisor.js?v=20260826-member-verification-live-v2',
   './ai-advisor-admin.js?v=20260826-member-verification-live-v2',
-  './app/bootstrap.js?v=20260831-mypage-admin-contract-v1',
+  './app/bootstrap.js?v=20260831-kg-sms-identity-v1',
   './app/pages/standalone-auth-gate.mjs?v=20260828-standalone-auth-v1',
   './app/pages/standalone-page.css?v=20260831-mypage-app-route-v1',
   './app/pages/standalone-page.js?v=20260831-mypage-pages-loop-v1',
@@ -52,8 +52,8 @@ const SHELL_ASSETS = [
   './app/features/auth-login/auth-login.js?v=20260828-mypage-return-v1',
   './app/services/auth/auth-login-backend.js',
   './app/features/auth-signup/auth-signup.css?v=20260828-phone-auth-paths-v1',
-  './app/features/auth-signup/auth-signup.js?v=20260828-phone-auth-paths-v1',
-  './app/services/auth/auth-signup-backend.js',
+  './app/features/auth-signup/auth-signup.js?v=20260831-kg-sms-identity-v1',
+  './app/services/auth/auth-signup-backend.js?v=20260831-kg-sms-identity-v1',
   './app/features/analytics-consent/analytics-consent.css?v=20260826-ai-consent-v1',
   './app/features/checkout/checkout-addresses.css?v=20260826-shipping-address-popup-v2',
   './app/features/checkout/checkout-addresses.mjs?v=20260826-shipping-address-popup-v2',
@@ -92,7 +92,7 @@ const SHELL_ASSETS = [
   './app/legacy/home-layout-adapter.js?v=20260827-home-block-editor-v1',
   './app/legacy/mypage-settings-adapter.js?v=20260831-mypage-admin-contract-v1',
   './app/legacy/member-verification-ui.js?v=20260826-member-verification-live-v2',
-  './app/legacy/member-verification-service.js?v=20260828-phone-auth-paths-v1',
+  './app/legacy/member-verification-service.js?v=20260831-kg-sms-identity-v1',
   './app/legacy/customer-feedback.js?v=20260826-member-verification-live-v2',
   './app/legacy/checkout-coupon.js',
   './app/legacy/payment-auth.js',
@@ -102,9 +102,9 @@ const SHELL_ASSETS = [
   './app/features/insights/insight-reader.js',
   './app/features/legal/legal-modals.js',
   './app/features/mypage-settings/mypage-settings.js?v=20260831-mypage-admin-contract-v1',
-  './app/features/member-verification/signup-verification.js',
+  './app/features/member-verification/signup-verification.js?v=20260831-kg-sms-identity-v1',
   './app/features/product-sharing/product-sharing.mjs',
-  './app/services/auth/member-verification-service.js',
+  './app/services/auth/member-verification-service.js?v=20260831-kg-sms-identity-v1',
   './app/ui/hero-parallax.js',
   './app/ui/reveal-effects.js',
   './app/ui/site-header.js',
