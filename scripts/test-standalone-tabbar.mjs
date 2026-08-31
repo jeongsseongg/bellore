@@ -27,6 +27,7 @@ assert.match(login, /<bellore-tabbar\b[^>]*data-active=["']my["']/i, 'login.html
 assert.match(login, /assets\/icons\/favicon-32\.png/, 'login.html: 실제 존재하는 파비콘을 사용해야 합니다.');
 
 const component = await readFile(resolve(root, 'app/ui/app-tabbar.js'), 'utf8');
+const tabbarAsset = '/app/ui/app-tabbar.js?v=20260831-mypage-canonical-v1';
 assert.match(component, /\['my', '\/pages\/mypage', '마이'/,
   '공통 마이 탭은 앱 셸을 쓰는 정식 마이페이지 주소를 사용해야 합니다.');
 const tabbarScriptUrls = await Promise.all([
@@ -37,6 +38,8 @@ const tabbarScriptUrls = await Promise.all([
 }));
 assert(tabbarScriptUrls.every(Boolean), '공통 탭바를 쓰는 페이지는 캐시키가 있는 모듈 URL을 가져야 합니다.');
 assert.equal(new Set(tabbarScriptUrls).size, 1, '공통 탭바 모듈의 캐시키는 모든 페이지에서 같아야 합니다.');
+assert(tabbarScriptUrls.every((url) => url === tabbarAsset),
+  '공통 탭바는 정식 마이페이지 주소가 포함된 최신 캐시 키를 사용해야 합니다.');
 const serviceWorker = await readFile(resolve(root, 'sw.js'), 'utf8');
 assert(serviceWorker.includes(`'.${tabbarScriptUrls[0]}'`),
   '공통 탭바 모듈 URL과 서비스워커의 precache URL이 정확히 같아야 합니다.');
