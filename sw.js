@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v378-mypage-pages-loop";
+const VERSION = "bellore-v379-public-contact";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -33,7 +33,7 @@ const SHELL_ASSETS = [
   './brands.js',
   './supabase.js?v=20260828-phone-auth-paths-v1',
   './bellore-features.js?v=20260828-phone-auth-paths-v1',
-  './cq-demo.js?v=20260826-member-verification-live-v2',
+  './cq-demo.js?v=20260831-public-contact-v1',
   './wishlist.js?v=20260826-member-verification-live-v2',
   './alerts.js?v=20260820-tabs-alerts-v1',
   './auction.js?v=20260826-member-verification-live-v2',
