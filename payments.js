@@ -433,13 +433,7 @@
         },
         redirectUrl: location.origin + '/?pay=portone'
       };
-      if (requestChannel.id === 'card') {
-        req.bypass = { inicis_v2: {
-          acceptmethod: ['noeasypay'],
-          P_RESERVED: ['noeasypay=Y']
-        } };
-      }
-      if (requestChannel.easyPayProvider) req.easyPay = { easyPayProvider: requestChannel.easyPayProvider };
+      if (requestChannel.id === 'card') req.bypass = { inicis_v2: { acceptmethod: ['noeasypay'], P_RESERVED: ['noeasypay=Y'] } };
       return window.PortOne.requestPayment(req).then(function (resp) {
         paymentFlow().resetButton(payBtn);
         if (resp && resp.code != null) {
