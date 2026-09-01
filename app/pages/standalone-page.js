@@ -24,7 +24,7 @@ const pageDependencies = [
   '/search.js?v=20260826-member-verification-live-v2',
   '/ai-advisor.js?v=20260826-member-verification-live-v2',
   '/ai-advisor-admin.js?v=20260826-member-verification-live-v2',
-  '/payments.js?v=20260828-complete-site-v1',
+  '/payments.js?v=20260902-approved-kg-only-v1',
   '/naverpay.js?v=20260826-naverpay-live-v1',
   '/app/legacy/page-runtime.js?v=20260826-naverpay-live-v1'
 ];
