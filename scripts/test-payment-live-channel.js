@@ -6,6 +6,8 @@ const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
 const config = fs.readFileSync(path.join(root, 'supabase-config.js'), 'utf8');
+const payments = fs.readFileSync(path.join(root, 'payments.js'), 'utf8');
+const presentation = fs.readFileSync(path.join(root, 'app/features/checkout/checkout-presentation.js'), 'utf8');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
 
@@ -20,20 +22,19 @@ assert.ok(configUrl, 'HTML must request the payment config with a release key');
 assert.ok(serviceWorker.includes(`'./${configUrl}'`), 'service worker must precache the exact payment config URL requested by HTML');
 assert.match(config, /testOnly:\s*true/, 'Naver Pay must remain review-account-only until Naver grants final approval');
 
-for (const [id, payMethod] of [
-  ['virtual', 'VIRTUAL_ACCOUNT'],
-  ['kakaopay', 'EASY_PAY'],
-  ['tosspay', 'EASY_PAY'],
-]) {
+for (const [id, payMethod] of [['virtual', 'VIRTUAL_ACCOUNT'], ['easy', 'EASY_PAY']]) {
   assert.match(config, new RegExp(`id:\\s*"${id}"[^\\n]*payMethod:\\s*"${payMethod}"[^\\n]*channelKey:\\s*"${expectedLiveChannel}"`));
 }
-assert.match(config, /easyPayProvider:\s*"KAKAOPAY"/);
-assert.match(config, /easyPayProvider:\s*"TOSSPAY"/);
-assert.doesNotMatch(config, /EASY_PAY_PROVIDER_(?:KAKAOPAY|TOSSPAY)/,
-  'PortOne V2 direct-call providers must use KAKAOPAY/TOSSPAY');
-assert.match(config, /hint:\s*"카카오페이 바로 결제"/);
-assert.match(config, /hint:\s*"토스페이 바로 결제"/);
+assert.doesNotMatch(config, /id:\s*"(?:kakaopay|tosspay)"|easyPayProvider:/,
+  'KG hub easy-pay must not be split into provider-direct channels');
+assert.match(config, /label:\s*"간편결제"[^\n]*hint:\s*"카카오페이·토스페이 등"/);
+assert.match(payments, /requestChannel\.id === 'card'[\s\S]*?acceptmethod:\s*\['noeasypay'\]/,
+  'card route must hide hub easy-pay choices on desktop');
+assert.match(payments, /requestChannel\.id === 'card'[\s\S]*?P_RESERVED:\s*\['noeasypay=Y'\]/,
+  'card route must hide hub easy-pay choices on mobile');
+assert.match(presentation, /easy:\s*\{\s*src:\s*'assets\/payment-methods\/easy-pay\.svg'/,
+  'KG hub easy-pay must have one neutral payment-method visual');
 assert.match(config, /pointEarnBps:\s*0/,
   'client must not advertise points until an explicit operating policy enables them');
 
-console.log('PortOne live payment channel contract: 14/14 passed');
+console.log('PortOne live payment channel contract: 13/13 passed');

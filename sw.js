@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v385-identity-modal-toss";
+const VERSION = "bellore-v386-kg-hub-easypay";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -28,8 +28,7 @@ const SHELL_ASSETS = [
   './naverpay.js?v=20260826-naverpay-live-v1',
   './naverpay.js?v=20260831-naverpay-account-test-v1',
   './ui-dialog.js?v=20260826-member-verification-live-v2',
-  './supabase-config.js?v=20260831-phone-otp-ui-v1',
-  './supabase-config.js?v=20260831-identity-provider-source-v1',
+  './supabase-config.js?v=20260901-kg-hub-easypay-v1',
   './analytics-core.js?v=20260810-analytics-v3',
   './analytics-client.js?v=20260826-ai-consent-v1',
   './brands.js',
@@ -72,7 +71,7 @@ const SHELL_ASSETS = [
   './app/features/checkout/checkout-coupon.css?v=20260826-member-verification-live-v2',
   './app/features/checkout/checkout-coupon.js',
   './app/features/checkout/checkout-order.css?v=20260828-checkout-methods-v1',
-  './app/features/checkout/checkout-presentation.js?v=20260828-checkout-methods-v1',
+  './app/features/checkout/checkout-presentation.js?v=20260901-kg-hub-easypay-v1',
   './app/features/home-rows/home-rows.js?v=20260826-home-row-hotfix-v1',
   './app/features/home-rows/home-rows.css?v=20260826-price-bottom-v1',
   './app/features/condition-guide/condition-guide.css?v=20260826-member-verification-live-v2',
@@ -162,6 +161,7 @@ const SHELL_ASSETS = [
   './assets/sell/trade/택배거래.png',
   './assets/sell/trade/퀵거래.png',
   './assets/payment-methods/card.svg',
+  './assets/payment-methods/easy-pay.svg',
   './assets/payment-methods/virtual-account.svg',
   './assets/payment-methods/naverpay-badge.svg',
   './assets/payment-methods/kakaopay.png',
