@@ -14,7 +14,7 @@ const standalonePage = fs.readFileSync(path.join(root, 'app', 'pages', 'standalo
 const releaseKey = '20260826-member-verification-live-v2';
 const signupStyleKey = '20260828-phone-auth-paths-v1';
 const signupScriptKey = '20260901-pass-identity-return-v1';
-const signupIdentityKey = '20260828-phone-auth-paths-v1';
+const signupIdentityUrl = html.match(/<script src="(supabase\.js\?v=[^"]+)"/)?.[1];
 const loginStyleUrl = loginHtml.match(/href="(app\/features\/auth-login\/auth-login\.css\?v=[^"]+)"/)?.[1];
 const loginScriptUrl = loginHtml.match(/src="(app\/features\/auth-login\/auth-login\.js\?v=[^"]+)"/)?.[1];
 const paymentConfigUrl = html.match(/src="(supabase-config\.js\?v=[^"]+)"/)?.[1];
@@ -65,7 +65,8 @@ assert(serviceWorker.includes(`'./${loginPaymentConfigUrl}'`), 'service worker m
 assert(standalonePage.includes(`'/${paymentConfigUrl}'`), 'standalone pages must load the exact payment configuration URL');
 assert(serviceWorker.includes(`'./app/features/auth-signup/auth-signup.css?v=${signupStyleKey}'`), 'service worker must precache signup page styles');
 assert(serviceWorker.includes(`'./app/features/auth-signup/auth-signup.js?v=${signupScriptKey}'`), 'service worker must precache signup page behavior');
-assert(serviceWorker.includes(`'./supabase.js?v=${signupIdentityKey}'`), 'service worker must precache the current signup verification backend');
+assert(signupIdentityUrl, 'signup verification backend release URL is missing');
+assert(serviceWorker.includes(`'./${signupIdentityUrl}'`), 'service worker must precache the current signup verification backend');
 assert(serviceWorker.includes("'./assets/icons/favicon-32.png'"), 'service worker must precache the favicon used by standalone pages');
 for (const heroAsset of ['home-banners.js', 'home-banner-data.js']) {
   assert(serviceWorker.includes(`./app/features/home-banners/${heroAsset}?v=20260826-hero-layout-v7`), `service worker must precache exact restored hero asset: ${heroAsset}`);
