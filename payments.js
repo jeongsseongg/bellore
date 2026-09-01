@@ -401,12 +401,13 @@
     createOrder.then(function (order) {
       var serverAmount = Number(order && order.amount);
       if (order && order.recoveryOnly === true) {
+        var recoveredDifferentCheckout = order.listingId !== requestProduct.listingId || serverAmount !== amount;
         var pendingRecovery = window.BELLORE_PENDING_PAYMENT_RECOVERY;
         var savedRecovery = pendingRecovery && pendingRecovery.capture ? pendingRecovery.capture(order, null) : null;
-        if (!savedRecovery) { paymentFlow().log('recovered_pending_storage', 'PENDING_ORDER_STORAGE_FAILED'); paymentFlow().resetButton(payBtn); verifyPayment(order.orderNo, null, order.listingId, order.checkoutToken, true, true); return; }
+        if (!savedRecovery) { paymentFlow().log('recovered_pending_storage', 'PENDING_ORDER_STORAGE_FAILED'); paymentFlow().resetButton(payBtn); verifyPayment(order.orderNo, null, order.listingId, order.checkoutToken, true, true, recoveredDifferentCheckout); return; }
         if (window.BELLORE_CHECKOUT_REQUEST_RECOVERY) window.BELLORE_CHECKOUT_REQUEST_RECOVERY.complete(order.checkoutRequestKey);
         paymentFlow().resetButton(payBtn); // 응답 유실 주문은 상태만 재확인하며 결제창을 다시 열지 않는다.
-        verifyPayment(order.orderNo, null, order.listingId, order.checkoutToken, true, true); return;
+        verifyPayment(order.orderNo, null, order.listingId, order.checkoutToken, true, true, recoveredDifferentCheckout); return;
       }
       if (!Number.isSafeInteger(serverAmount) || serverAmount !== amount) throw new Error('CHECKOUT_AMOUNT_CHANGED');
       try {
@@ -437,6 +438,7 @@
       return window.PortOne.requestPayment(req).then(function (resp) {
         paymentFlow().resetButton(payBtn);
         if (resp && resp.code != null) {
+          paymentFlow().log('provider_response', resp);
           // 결제창 응답이 아니라 같은 주문의 서버 조회 결과로만 예약 상태를 바꾼다.
           verifyPayment(order.orderNo, attribution, requestProduct.listingId || null, order.checkoutToken || null, true);
           return;
@@ -449,7 +451,7 @@
       });
     }).catch(function (e) { if (requestGeneration === checkoutGeneration && requestProduct === product) paymentFlow().startFailure(e, payBtn); else paymentFlow().log('stale_checkout_attempt', e); });
   }
-  function verifyPayment(paymentId, attribution, listingId, checkoutToken, checkoutAbandoned, recoveryOnly) {
+  function verifyPayment(paymentId, attribution, listingId, checkoutToken, checkoutAbandoned, recoveryOnly, recoveredDifferentCheckout) {
     showResult(true, recoveryOnly ? '이전 결제 상태 확인 중...' : (checkoutAbandoned ? '결제 취소 확인 중...' : '결제 승인 처리 중...'), '잠시만 기다려 주세요.');
     if (!(backendOn() && window.NWBackend.confirmOrder && PAY.confirmUrl)) {
       showResult(false, '결제 확인 필요', '결제 결과를 확인할 수 없습니다. 다시 결제하지 말고 고객센터로 문의해 주세요.');
@@ -463,6 +465,10 @@
     }, 3).then(function (res) {
       var presentation = paymentFlow().confirmationPresentation(res, paymentId, checkoutAbandoned === true);
       if (recoveryOnly && presentation.kind === 'pending') { presentation.title = '이전 결제 상태 확인 중'; presentation.message = '주문번호 ' + paymentId + '\n이전 결제 상태를 확인하고 있습니다. 다시 결제하지 말고 잠시 후 확인해 주세요.'; }
+      if (recoveredDifferentCheckout && (presentation.kind === 'payment_canceled' || presentation.kind === 'payment_declined')) {
+        presentation.title = '이전 미완료 결제가 종료되었습니다';
+        presentation.message = '현재 상품은 결제되지 않았습니다. 결제하기를 다시 눌러 진행해 주세요.';
+      }
       if (presentation.kind === 'paid') {
         if (window.BelloreAnalytics && window.BelloreAnalytics.purchaseComplete && res.order && res.order.id) window.BelloreAnalytics.purchaseComplete(res.order, res.order.amount, listingId || res.order.listing_id || null);
         if (window.belloreRefreshCoupons) window.belloreRefreshCoupons();

@@ -42,11 +42,11 @@ export function createPaymentFlow({ window: win, notify = (message) => win.alert
 
   function log(stage, value) {
     if (!win.console || typeof win.console.warn !== 'function') return;
-    win.console.warn('[BELLORE_PAYMENT]', {
+    win.console.warn('[BELLORE_PAYMENT] ' + JSON.stringify({
       stage: String(stage || 'unknown'),
       code: diagnosticCode(value),
       httpStatus: httpStatus(value),
-    });
+    }));
   }
 
   function state(value) {

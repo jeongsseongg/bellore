@@ -2,10 +2,12 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.112.
 import type { PaymentOperationControl } from "./payment-operation-guard.ts";
 import { finalizeKnownProviderCancellation } from "./portone-cancellation.ts";
 import { markPaymentReviewIfUnsettled } from "./payment-recovery.ts";
-import { providerCancelledAmount, providerPaidAmount } from "./payment-recovery-policy.mjs";
+import { pendingCheckoutAbandonmentAction, providerCancelledAmount, providerPaidAmount } from
+  "./payment-recovery-policy.mjs";
 
 type ProviderPayment = Record<string, unknown>;
 export type UnsettledCancellationOutcome = "canceled" | "refunded" | "review" | "pending";
+export type AbandonedReadyOutcome = "not_applicable" | "closed" | "pending";
 
 export async function cancelUnsettledCheckout(
   admin: SupabaseClient,
@@ -17,6 +19,22 @@ export async function cancelUnsettledCheckout(
     p_reason: reason,
   });
   return !result.error && result.data === true;
+}
+
+export async function closeAbandonedReadyCheckout(input: {
+  admin: SupabaseClient;
+  orderNo: string;
+  providerStatus: unknown;
+  checkoutAbandoned: boolean;
+}): Promise<AbandonedReadyOutcome> {
+  if (pendingCheckoutAbandonmentAction(
+    input.providerStatus, input.checkoutAbandoned,
+  ) !== "close_unsettled") return "not_applicable";
+  const result = await input.admin.rpc("fail_unsettled_order", {
+    p_order_no: input.orderNo,
+    p_reason: "provider_ready_after_checkout_abandonment",
+  });
+  return !result.error && result.data === true ? "closed" : "pending";
 }
 
 export async function reconcileProviderCancelledCheckout(input: {
