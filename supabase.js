@@ -183,13 +183,25 @@
   }
 
   /* ---------------- 인증/프로필 ---------------- */
+  function socialIdentityName() {
+    var providers = ['google', 'kakao', 'naver', 'custom:naver'];
+    var identities = rawUser && Array.isArray(rawUser.identities) ? rawUser.identities : [];
+    for (var i = 0; i < identities.length; i++) {
+      if (providers.indexOf(String(identities[i].provider || '').toLowerCase()) < 0) continue;
+      var data = identities[i].identity_data || {};
+      var name = data.full_name || data.name || data.display_name || data.nickname || data.preferred_username;
+      if (name) return String(name).trim();
+    }
+    return '';
+  }
+
   function mapUser() {
     if (!rawUser) { authUser = null; return; }
     var meta = rawUser.user_metadata || {};
     authUser = {
       uid: rawUser.id,
       email: rawUser.email || '',
-      displayName: (profile && profile.display_name) || meta.display_name || meta.full_name || meta.name || meta.preferred_username || (rawUser.email || '').split('@')[0],
+      displayName: socialIdentityName() || (profile && profile.display_name) || meta.display_name || meta.full_name || meta.name || meta.preferred_username || (rawUser.email || '').split('@')[0],
       verifiedName: (profile && profile.verified_name) || '',
       birthDate: (profile && profile.birth_date) || '',
       phone: (profile && profile.phone) || meta.phone || '',

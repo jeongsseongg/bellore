@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v404-mypage-followup";
+const VERSION = "bellore-v405-mypage-social-name";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -49,6 +49,7 @@ const SHELL_ASSETS = [
   './analytics-client.js?v=20260826-ai-consent-v1',
   './brands.js',
   './supabase.js?v=20260902-profile-address-v1',
+  './supabase.js?v=20260902-mypage-followup-v2',
   './supabase.js?v=20260901-social-login-v1',
   './bellore-features.js?v=20260831-identity-modal-toss-v1',
   './cq-demo.js?v=20260901-phone-full-v1',
