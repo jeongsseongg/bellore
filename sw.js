@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v386-kg-hub-easypay";
+const VERSION = "bellore-v387-checkout-stale-order";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -24,7 +24,7 @@ const SHELL_ASSETS = [
   './mypick.css?v=20260826-member-verification-live-v2',
   './bellore-redesign.css?v=20260831-purchasebar-approved-visual-v2',
   './script.js?v=20260831-sell-parts-korean-v1',
-  './payments.js?v=20260828-complete-site-v1',
+  './payments.js?v=20260901-checkout-stale-order-v1',
   './naverpay.js?v=20260826-naverpay-live-v1',
   './naverpay.js?v=20260831-naverpay-account-test-v1',
   './ui-dialog.js?v=20260826-member-verification-live-v2',
@@ -78,7 +78,7 @@ const SHELL_ASSETS = [
   './app/features/condition-guide/condition-guide.js?v=20260826-member-verification-live-v2',
   './app/features/listing-availability/listing-availability-ui.js?v=20260826-member-verification-live-v2',
   './app/features/listing-availability/market-static-status.js?v=20260826-member-verification-live-v2',
-  './app/features/checkout/payment-flow.js?v=20260826-member-verification-live-v2',
+  './app/features/checkout/payment-flow.js?v=20260901-checkout-stale-order-v1',
   './app/features/home-rows/home-row-admin.js',
   './app/features/home-layout/home-layout-config.js?v=20260827-home-block-editor-v1',
   './app/features/home-layout/home-layout.js?v=20260827-home-block-editor-v1',
