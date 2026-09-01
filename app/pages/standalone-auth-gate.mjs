@@ -1,3 +1,5 @@
+import { loadSocialProfileState } from '../features/auth-social-completion/social-profile-data.mjs?v=20260902-social-profile-v1';
+
 export const STANDALONE_AUTH_POLICY = Object.freeze({
   mypage: 'required',
   orders: 'required',
@@ -19,6 +21,10 @@ export function standaloneLoginUrl(locationObject) {
   return `/login.html?returnTo=${encodeURIComponent(standaloneReturnTo(locationObject))}`;
 }
 
+export function standaloneSocialCompletionUrl(locationObject) {
+  return `/login.html?view=social-complete&returnTo=${encodeURIComponent(standaloneReturnTo(locationObject))}`;
+}
+
 function rejectAccess(locationObject, reason) {
   locationObject.replace(standaloneLoginUrl(locationObject));
   return { allowed: false, reason };
@@ -37,6 +43,11 @@ export async function enforceStandaloneAuth({ page, backend, client, locationObj
     const result = await client.auth.getUser();
     if (result?.error || !result?.data?.user) {
       return rejectAccess(locationObject, 'signed_out');
+    }
+    const socialState = await loadSocialProfileState({ client, user: result.data.user });
+    if (socialState.required && !socialState.complete) {
+      locationObject.replace(standaloneSocialCompletionUrl(locationObject));
+      return { allowed: false, reason: 'social_profile_incomplete' };
     }
     return { allowed: true, policy, user: result.data.user };
   } catch (_) {

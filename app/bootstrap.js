@@ -34,6 +34,8 @@ import { installLegacyCheckoutCoupon } from './legacy/checkout-coupon.js';
 import { createLegacyMypageSettingsAdapter } from './legacy/mypage-settings-adapter.js?v=20260831-mypage-admin-contract-v1';
 import { initMypageSettings } from './features/mypage-settings/mypage-settings.js?v=20260901-mypage-final-v4';
 import { initMypageRequestedActions } from './features/mypage-personal-shop/mypage-requested-actions.js?v=20260902-profile-address-v1';
+import { initProfileLoginProvider } from './features/profile-login-provider/profile-login-provider.js?v=20260902-social-profile-v1';
+import { createSocialAuthService } from './services/auth/social-auth-service.js?v=20260902-social-profile-v1';
 import { initSellServicePages } from './features/sell-method/sell-service-pages.js?v=20260826-sell-guest-access-v1';
 import { installSellRequestAccess } from './services/sell/sell-request-access.js?v=20260826-sell-guest-access-v1';
 import { installLegacyMemberVerificationUi } from './legacy/member-verification-ui.js?v=20260826-member-verification-live-v2';
@@ -130,6 +132,7 @@ function bootstrap() {
     service: createLegacyMypageSettingsAdapter({ window })
   });
   initMypageRequestedActions({ document, window, backend: window.NWBackend });
+  initProfileLoginProvider({ document, socialAuth: createSocialAuthService(window) });
   try {
     const pendingWishlistTab = window.sessionStorage.getItem('bellore_pending_wishlist_tab');
     if (['wish', 'cart', 'recent'].includes(pendingWishlistTab)) {

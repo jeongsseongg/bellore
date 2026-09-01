@@ -1,7 +1,7 @@
 import {
   enforceStandaloneAuth,
   standaloneAuthPolicyFor,
-} from './standalone-auth-gate.mjs?v=20260828-standalone-auth-v1';
+} from './standalone-auth-gate.mjs?v=20260902-social-profile-v1';
 
 const authDependencies = [
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',

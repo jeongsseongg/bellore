@@ -38,13 +38,24 @@ Deno.serve(async (request) => {
       return json({ error: "invalid_provider_response" }, 502);
     }
 
+    const name = cleanText(profile?.name || profile?.nickname, 100);
     const nickname = cleanText(profile?.nickname || profile?.name, 100);
+    const email = cleanText(profile?.email, 320);
+    const mobile = cleanText(profile?.mobile, 32);
+    const birthyear = cleanText(profile?.birthyear, 4);
+    const birthday = cleanText(profile?.birthday, 10);
     const picture = cleanText(profile?.profile_image, 1000);
     return json({
       sub: subject,
-      name: nickname,
-      full_name: nickname,
+      name,
+      full_name: name,
       preferred_username: nickname,
+      nickname,
+      email,
+      phone_number: mobile,
+      mobile,
+      birthyear,
+      birthday,
       picture,
       avatar_url: picture,
     });

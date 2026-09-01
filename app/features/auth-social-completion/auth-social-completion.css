@@ -1,0 +1,12 @@
+.social-complete-shell { position: relative; width: min(100%, 660px); min-height: 100dvh; padding: 30px 42px 72px; background: #fff; }
+.social-complete-shell[hidden] { display: none; }
+.social-linked { display: grid; gap: 4px; padding: 16px; border: 1px solid #e0e2e0; border-radius: 14px; background: #fafbfa; }
+.social-linked strong { font-size: 16px; }
+.social-linked span { overflow: hidden; color: #6d7470; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.social-identity-state { min-height: 20px; margin: 0; color: #6d7470; font-size: 13px; line-height: 1.5; }
+.social-complete-shell .signup-status.ok { color: #187253; }
+.social-complete-shell .signup-status.err { color: #b3261e; }
+.social-signout { min-height: 48px; border: 0; background: transparent; color: #6d7470; text-decoration: underline; }
+@media (max-width: 699px) {
+  .social-complete-shell { padding: 28px 20px 48px; }
+}
