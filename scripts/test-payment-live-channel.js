@@ -33,6 +33,10 @@ for (const id of ['virtual', 'kakaopay', 'tosspay']) {
 assert.match(config, /label:\s*"간편결제"[^\n]*hint:\s*"KG 통합 간편결제"/);
 assert.match(config, /id:\s*"easy"[^\n]*payMethod:\s*"CARD"[^\n]*hub:\s*true/,
   'KG hub route must open CARD without the card-only noeasypay bypass');
+assert.match(config, /approvedChannelIds:\s*\["card",\s*"easy"\]/,
+  'production config must declare the exact approved payment exposure');
+assert.match(payments, /approvedIds\.indexOf\(c\.id\) === -1/,
+  'runtime must reject stale or cached unapproved channel entries');
 assert.match(payments, /if \(requestChannel\.easyPayProvider\) req\.easyPay = \{ easyPayProvider: requestChannel\.easyPayProvider \}/,
   'provider-direct routes must pass easyPayProvider to PortOne');
 assert.match(paymentFlow, /console\.warn\(`\[BELLORE_PAYMENT\] \$\{diagnostic\}`\)/,
@@ -48,4 +52,4 @@ assert.match(presentation, /easy:\s*\{\s*src:\s*'assets\/payment-methods\/easy-p
 assert.match(config, /pointEarnBps:\s*0/,
   'client must not advertise points until an explicit operating policy enables them');
 
-console.log('PortOne live payment channel contract: 18/18 passed');
+console.log('PortOne live payment channel contract: 20/20 passed');
