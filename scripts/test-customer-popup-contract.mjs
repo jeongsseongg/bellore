@@ -32,7 +32,7 @@ assert(
 
 assert.match(
   payments,
-  /if \(resp && resp\.code != null\)[\s\S]{0,500}verifyPayment\(order\.orderNo,[\s\S]{0,220}order\.checkoutToken \|\| null, true\)/,
+  /if \(resp && resp\.code != null\)[\s\S]{0,500}verifyPayment\(order\.orderNo,[\s\S]{0,220}order\.checkoutToken \|\| null, true,[\s\S]{0,120}providerFailureKind\(resp\)\)/,
   '결제창이 닫히거나 실패 응답을 줘도 같은 주문을 checkoutAbandoned 상태로 서버 재검증해야 합니다.',
 );
 assert.match(
@@ -53,12 +53,12 @@ assert.match(
 assert.match(paymentFlow, /notify\(customerMessage\(error, 'payment_start', false\)\)/, '결제 시작 오류 원문은 고객 문구 변환을 거쳐야 합니다.');
 assert.match(
   payments,
-  /paymentFlow\(\)\.confirmationPresentation\(res, paymentId, checkoutAbandoned === true\)/,
+  /paymentFlow\(\)\.confirmationPresentation\(res, paymentId, checkoutAbandoned === true, providerFailure \|\| ''\)/,
   '승인 확인 결과는 고객 표시 전용 계층에서 분류해야 합니다.',
 );
 assert.match(
   paymentFlow,
-  /function confirmationPresentation\(result, paymentId, checkoutAbandoned = false\)[\s\S]*message: customerMessage\([\s\S]{0,120}'confirmation', false\)/,
+  /function confirmationPresentation\(result, paymentId, checkoutAbandoned = false, providerFailure = ''\)[\s\S]*message: customerMessage\([\s\S]{0,120}'confirmation', false\)/,
   '승인 확인 실패 원문은 표시 전용 계층 안에서 고객 문구로 변환해야 합니다.',
 );
 assert.doesNotMatch(payments, /showResult\([^;]{0,300}\bresp\b/, '결제창 응답 원문을 결과창에 직접 표시하면 안 됩니다.');

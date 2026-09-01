@@ -57,15 +57,17 @@ window.BELLORE_PAYMENTS = {
   provider: "portone",
   // 포트원 상점 ID (예: store-00000000-0000-0000-0000-000000000000)
   storeId: "store-c0c1bc9e-60c2-4ac6-9bb1-80c0ee7337ef",
-  // 결제수단 목록 — 운영 승인된 KG이니시스 채널 하나로 카드·가상계좌·허브형 간편결제를 요청합니다.
+  // 결제수단 목록 — 운영 승인된 KG이니시스 채널 하나로 카드·허브형·다이렉트 간편결제를 요청합니다.
   //   payMethod: 'CARD'(카드) | 'EASY_PAY'(간편결제) | 'TRANSFER'(계좌이체) | 'VIRTUAL_ACCOUNT'(가상계좌)
-  //   EASY_PAY는 공급자를 지정하지 않아 KG이니시스 허브형 선택창을 엽니다.
+  //   EASY_PAY는 공급자 미지정 시 KG 허브형, 지정 시 해당 간편결제를 바로 엽니다.
   //   test: true 인 채널은 localhost 또는 ?paymentTest=1 주소에서만 노출됩니다.
   //   운영 심사용 신용카드 채널은 결제창에 항상 노출합니다.
   channels: [
     { id: "card", label: "신용·체크카드", hint: "KG이니시스 안전결제", payMethod: "CARD", channelKey: "channel-key-f9693f47-56c9-4732-822d-bace693db3cb" },
     { id: "virtual", label: "가상계좌", hint: "발급 계좌로 입금", payMethod: "VIRTUAL_ACCOUNT", channelKey: "channel-key-f9693f47-56c9-4732-822d-bace693db3cb" },
-    { id: "easy", label: "간편결제", hint: "카카오페이·토스페이 등", payMethod: "EASY_PAY", channelKey: "channel-key-f9693f47-56c9-4732-822d-bace693db3cb" }
+    { id: "easy", label: "간편결제", hint: "KG 통합 간편결제", payMethod: "EASY_PAY", channelKey: "channel-key-f9693f47-56c9-4732-822d-bace693db3cb" },
+    { id: "tosspay", label: "토스페이", hint: "토스페이 바로결제", payMethod: "EASY_PAY", channelKey: "channel-key-f9693f47-56c9-4732-822d-bace693db3cb", easyPayProvider: "TOSSPAY" },
+    { id: "kakaopay", label: "카카오페이", hint: "카카오페이 바로결제", payMethod: "EASY_PAY", channelKey: "channel-key-f9693f47-56c9-4732-822d-bace693db3cb", easyPayProvider: "KAKAOPAY" }
   ],
   // 주문 예약·서버 capability 발급 Edge Function. 브라우저에서 DB RPC를 직접 호출하지 않습니다.
   checkoutUrl: "https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/create-checkout",

@@ -253,6 +253,10 @@ assert.match(payments, /recoveredDifferentCheckout = order\.listingId !== reques
 assert.match(payments, /order\.recoveryOnly === true[\s\S]*?verifyPayment\(order\.orderNo, null, order\.listingId, order\.checkoutToken, true, true, recoveredDifferentCheckout\)/,
   '응답 유실 주문은 기존 주문 확인만 해야 합니다.');
 assert.match(paymentFlow, /differentCheckout && \['payment_canceled', 'payment_declined'\]\.includes\(presentation\.kind\)/);
+assert.doesNotMatch(paymentFlow, /이전 미완료 결제/,
+  '사이트 또는 PG 오류를 사용자 미완료 결제로 표현하면 안 됩니다.');
+assert.match(paymentFlow, /providerFailure === 'payment_not_started'[\s\S]*?결제된 금액은 없습니다/,
+  '결제 시작 전 설정 오류는 미완료가 아니라 미청구 안내로 분류해야 합니다.');
 assert.match(paymentFlow, /현재 상품은 결제되지 않았습니다\. 결제하기를 다시 눌러 진행해 주세요\./);
 assert.match(payments, /paymentFlow\(\)\.log\('provider_response', resp\)/,
   'PortOne SDK가 반환한 공개 오류 코드를 진단 로그에 남겨야 합니다.');

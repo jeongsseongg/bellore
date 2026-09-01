@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v388-pass-identity-return";
+const VERSION = "bellore-v389-payment-routes-paid-only";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -24,11 +24,11 @@ const SHELL_ASSETS = [
   './mypick.css?v=20260826-member-verification-live-v2',
   './bellore-redesign.css?v=20260831-purchasebar-approved-visual-v2',
   './script.js?v=20260831-sell-parts-korean-v1',
-  './payments.js?v=20260901-checkout-stale-order-v1',
+  './payments.js?v=20260901-payment-outcome-v2',
   './naverpay.js?v=20260826-naverpay-live-v1',
   './naverpay.js?v=20260831-naverpay-account-test-v1',
   './ui-dialog.js?v=20260826-member-verification-live-v2',
-  './supabase-config.js?v=20260901-kg-hub-easypay-v1',
+  './supabase-config.js?v=20260901-kg-payment-routes-v2',
   './analytics-core.js?v=20260810-analytics-v3',
   './analytics-client.js?v=20260826-ai-consent-v1',
   './brands.js',
@@ -71,14 +71,14 @@ const SHELL_ASSETS = [
   './app/features/checkout/checkout-coupon.css?v=20260826-member-verification-live-v2',
   './app/features/checkout/checkout-coupon.js',
   './app/features/checkout/checkout-order.css?v=20260828-checkout-methods-v1',
-  './app/features/checkout/checkout-presentation.js?v=20260901-kg-hub-easypay-v1',
+  './app/features/checkout/checkout-presentation.js?v=20260901-kg-payment-routes-v2',
   './app/features/home-rows/home-rows.js?v=20260826-home-row-hotfix-v1',
   './app/features/home-rows/home-rows.css?v=20260826-price-bottom-v1',
   './app/features/condition-guide/condition-guide.css?v=20260826-member-verification-live-v2',
   './app/features/condition-guide/condition-guide.js?v=20260826-member-verification-live-v2',
   './app/features/listing-availability/listing-availability-ui.js?v=20260826-member-verification-live-v2',
   './app/features/listing-availability/market-static-status.js?v=20260826-member-verification-live-v2',
-  './app/features/checkout/payment-flow.js?v=20260901-checkout-stale-order-v1',
+  './app/features/checkout/payment-flow.js?v=20260901-payment-outcome-v2',
   './app/features/home-rows/home-row-admin.js',
   './app/features/home-layout/home-layout-config.js?v=20260827-home-block-editor-v1',
   './app/features/home-layout/home-layout.js?v=20260827-home-block-editor-v1',

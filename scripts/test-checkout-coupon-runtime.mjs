@@ -198,6 +198,17 @@ assert.doesNotMatch(elements.prDesc.textContent, /payment_|provider_|permission|
   '취소 안내에 개발자 오류 코드를 노출하면 안 됩니다.');
 assert.equal(listingRefreshes, 1, '서버가 취소를 확인한 뒤 상품 상태를 다시 불러와야 합니다.');
 
+confirmResponses = [{ ok: false, error: 'payment_canceled', httpStatus: 409 }];
+windowObject.PortOne.requestPayment = () => Promise.resolve({ code: 'FAILURE_TYPE_PG' });
+elements.coAgreeTerms.checked = true;
+elements.coAgreePrivacy.checked = true;
+elements.coAgreeOrder.checked = true;
+elements.coPayBtn.dispatch('click');
+for (let index = 0; index < 12; index += 1) await Promise.resolve();
+assert.equal(elements.prTitle.textContent, '결제를 시작하지 못했습니다');
+assert.match(elements.prDesc.textContent, /결제된 금액은 없습니다/);
+assert.doesNotMatch(elements.prTitle.textContent + elements.prDesc.textContent, /미완료/);
+
 confirmResponses = [
   { ok: false, pending: true, error: 'payment_confirmation_pending', retryAfterMs: 2000, httpStatus: 202 },
   { ok: false, pending: true, error: 'payment_confirmation_pending', retryAfterMs: 2000, httpStatus: 202 },
@@ -205,6 +216,8 @@ confirmResponses = [
 ];
 const confirmsBeforeRetry = confirmCalls.length;
 const refreshesBeforeRetry = listingRefreshes;
+const createsBeforeRetry = createOrderCalls.length;
+const paymentsBeforeRetry = paymentRequests.length;
 windowObject.PortOne.requestPayment = (payload) => {
   paymentRequests.push(payload);
   return Promise.resolve({ paymentId: 'ORDER-1' });
@@ -215,8 +228,8 @@ elements.coAgreeOrder.checked = true;
 elements.coPayBtn.dispatch('click');
 for (let index = 0; index < 20; index += 1) await Promise.resolve();
 
-assert.equal(createOrderCalls.length, 2, 'HTTP 202 재확인은 새 주문을 만들면 안 됩니다.');
-assert.equal(paymentRequests.length, 2, 'HTTP 202 재확인은 결제창을 다시 열면 안 됩니다.');
+assert.equal(createOrderCalls.length, createsBeforeRetry + 1, 'HTTP 202 재확인은 새 주문을 만들면 안 됩니다.');
+assert.equal(paymentRequests.length, paymentsBeforeRetry + 1, 'HTTP 202 재확인은 결제창을 다시 열면 안 됩니다.');
 assert.equal(confirmCalls.length, confirmsBeforeRetry + 3, '같은 승인 요청만 제한적으로 재확인해야 합니다.');
 assert(confirmCalls.slice(confirmsBeforeRetry)
   .every((call) => call.paymentId === 'ORDER-1' && call.checkoutToken === 'TOKEN-1'));
