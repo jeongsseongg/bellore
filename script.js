@@ -299,7 +299,7 @@
         return d.getFullYear() + '.' + p(d.getMonth() + 1) + '.' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
     }
     function openOrdersList(status) {
-        ordersFilter = status || '';
+        ordersFilter = status === 'pending' ? '' : (status || '');
         var m = $('#ordersModal');
         if (!m) {
             var query = ordersFilter ? ('?status=' + encodeURIComponent(ordersFilter)) : '';
@@ -324,13 +324,6 @@
         if (e.target.closest('[data-ordclose]')) { closeOrdersList(); return; }
         var tab = e.target.closest('.orders-tab');
         if (tab) { openOrdersList(tab.dataset.ofilter || ''); return; }
-        var pay = e.target.closest('[data-opay]');
-        if (pay) {
-            e.stopPropagation();
-            alert('입금 안내\n\n주문번호 ' + pay.dataset.opay + '\n결제/입금은 카카오톡 상담으로 도와드립니다.');
-            window.open('https://open.kakao.com/o/sMuCaAFh', '_blank');
-            return;
-        }
         var del = e.target.closest('[data-odel]');
         if (del) {
             e.stopPropagation();
@@ -418,8 +411,6 @@
             var img = o.productImage || 'assets/images.jpg';
             var date = o.createdAt ? relTime(o.createdAt) : '';
             var st = o.status || 'pending';
-            var unpaid = st === 'pending'
-                ? '<button type="button" class="order-pay" data-opay="' + esc(o.orderNo) + '">입금 안내</button>' : '';
             var del = O_DELETABLE.indexOf(st) >= 0
                 ? '<button type="button" class="order-del" data-odel="' + esc(o.orderNo) + '">삭제</button>' : '';
             return '<div class="order-row" data-oview="' + esc(o.orderNo) + '">' +
@@ -432,7 +423,7 @@
                 '<div class="order-side">' +
                     '<span class="order-badge order-badge--' + st + '">' + (O_LABEL[st] || st) + '</span>' +
                     '<span class="order-amt">' + (o.amount ? fmt(o.amount) + '원' : '-') + '</span>' +
-                    unpaid + del +
+                    del +
                 '</div>' +
             '</div>';
         }).join('');
@@ -1841,7 +1832,7 @@
         var btns = [];
         if (o.status === 'delivered') btns.push('<button class="op-btn op-btn--main" data-oconfirm>구매확정</button>');
         if (['delivered', 'confirmed'].indexOf(o.status) >= 0) btns.push('<button class="op-btn" data-oreturn>교환 · 반품</button>');
-        if (['pending', 'paid', 'inspecting', 'preparing'].indexOf(o.status) >= 0) btns.push('<button class="op-btn op-btn--danger" data-ocancel>주문취소</button>');
+        if (['paid', 'inspecting', 'preparing'].indexOf(o.status) >= 0) btns.push('<button class="op-btn op-btn--danger" data-ocancel>주문취소</button>');
         return btns.join('');
     }
 
