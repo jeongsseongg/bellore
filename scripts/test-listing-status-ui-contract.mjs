@@ -32,7 +32,7 @@ assert.match(paymentFlow, /backend\.getListing\(product\.listingId\)/, '결제 �
 assert.match(payments, /paymentFlow\(\)\.confirm\([^;]+, 3\)\.then/, '202 응답은 같은 결제를 최대 3회 제한 재확인해야 합니다.');
 assert.match(paymentFlow, /confirm\(params, rechecksLeft - 1\)/, '재확인은 같은 승인 인자를 재사용해야 합니다.');
 assert.match(paymentFlow, /다시 결제하지 말고 고객센터에 주문번호로 문의해 주세요/, '확인 보류 고객 문구에 재결제 금지와 주문번호 안내가 있어야 합니다.');
-assert.match(paymentFlow, /win\.console\.warn\(`\[BELLORE_PAYMENT\] \$\{JSON\.stringify\(\{[\s\S]*?stage:[\s\S]*?code:[\s\S]*?httpStatus:/,
+assert.match(paymentFlow, /const diagnostic = JSON\.stringify\(\{[\s\S]*?stage:[\s\S]*?code:[\s\S]*?httpStatus:[\s\S]*?console\.warn\(`\[BELLORE_PAYMENT\] \$\{diagnostic\}`\)/,
   '결제 진단은 브라우저에서 읽을 수 있는 구조화된 문자열 필드만 기록해야 합니다.');
 assert.doesNotMatch(paymentFlow, /console\.warn\([^\n]*(?:error|value)\s*\)/, '오류 객체 원문을 콘솔에 직접 기록하면 안 됩니다.');
 assert.match(supabase, /BELLORE_PAYMENT_FLOW\.readResponse\(response\)/, '승인 응답 파싱은 HTTP 상태를 보존하는 결제 모듈을 거쳐야 합니다.');

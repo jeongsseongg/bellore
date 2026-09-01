@@ -65,7 +65,7 @@ window.BELLORE_PAYMENTS = {
   channels: [
     { id: "card", label: "신용·체크카드", hint: "KG이니시스 안전결제", payMethod: "CARD", channelKey: "channel-key-f9693f47-56c9-4732-822d-bace693db3cb" },
     { id: "virtual", label: "가상계좌", hint: "발급 계좌로 입금", payMethod: "VIRTUAL_ACCOUNT", channelKey: "channel-key-f9693f47-56c9-4732-822d-bace693db3cb" },
-    { id: "easy", label: "간편결제", hint: "KG 통합 간편결제", payMethod: "EASY_PAY", channelKey: "channel-key-f9693f47-56c9-4732-822d-bace693db3cb", hub: true },
+    { id: "easy", label: "간편결제", hint: "KG 통합 간편결제", payMethod: "CARD", channelKey: "channel-key-f9693f47-56c9-4732-822d-bace693db3cb", hub: true },
     { id: "tosspay", label: "토스페이", hint: "토스페이 바로결제", payMethod: "EASY_PAY", channelKey: "channel-key-f9693f47-56c9-4732-822d-bace693db3cb", easyPayProvider: "TOSSPAY" },
     { id: "kakaopay", label: "카카오페이", hint: "카카오페이 바로결제", payMethod: "EASY_PAY", channelKey: "channel-key-f9693f47-56c9-4732-822d-bace693db3cb", easyPayProvider: "KAKAOPAY" }
   ],
