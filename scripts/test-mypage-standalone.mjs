@@ -3,12 +3,16 @@ import { readFile } from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
 const read = (path) => readFile(new URL(path, root), 'utf8');
-const [index, page, runtime, legacy, css, sw, build] = await Promise.all([
+const [index, page, runtime, legacy, css, polish, requestedActions, backend, support, sw, build] = await Promise.all([
   read('index.html'),
   read('pages/mypage.html'),
   read('app/pages/standalone-page.js'),
   read('script.js'),
   read('app/features/mypage-personal-shop/mypage-personal-shop.css'),
+  read('app/features/mypage-personal-shop/mypage-requested-polish.css'),
+  read('app/features/mypage-personal-shop/mypage-requested-actions.js'),
+  read('supabase.js'),
+  read('app/pages/support-page.js'),
   read('sw.js'),
   read('tools/build-pages.mjs')
 ]);
@@ -69,6 +73,18 @@ assert.match(legacy, /if \(wasOpen && url\.searchParams\.get\(['"]view['"]\) ===
   'only closing a visible mypage clears its deep-link query');
 
 assert.match(css, /body\.mypage-open #myPageModal/);
+assert.match(index, /<strong>마이<\/strong>/, 'the mypage heading must render once');
+assert.match(polish, /\.mp-head-bar > strong::after\s*\{\s*content:\s*none;/s,
+  'legacy generated heading text must stay disabled');
+assert.match(index, /id="mpQuoteCancel">견적취소<\/button>/);
+assert.match(requestedActions, /cancelMyQuote\(quoteId\)/,
+  'the quote cancel action must stop an active comparison quote');
+assert.match(legacy, /\['pending', 'open'\]\.indexOf\(activeListing\.status/,
+  'quote cancel must only be visible while future bids can still arrive');
+assert.match(backend, /expiresMs <= Date\.now\(\) && !q\.trade_completed\) \? 'closed'/,
+  'quotes older than 72 hours must be mapped to the closed status');
+assert.match(support, /window\.location\.replace\('\/\?view=mypage'\)/,
+  'support back navigation must replace history instead of creating a loop');
 assert.doesNotMatch(css, /data-bellore-standalone-page=["']mypage["']/,
   'the personal-shop design must target the integrated root state');
 assert.doesNotMatch(css, /#myPageModal\s*\{[^}]*position:\s*static/s,

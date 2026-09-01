@@ -39,13 +39,19 @@ assert.deepEqual(extractSocialPrefill(user, null), {
 });
 
 const completedProfile = {
-  display_name: '본인인증 이름', birth_date: '1990-01-02',
+  display_name: '본인인증 이름', verified_name: '본인인증 이름', birth_date: '1990-01-02',
   phone: '01012345678', phone_verified: true,
   postcode: '04567', addr1: '서울특별시 중구', addr2: '101호',
 };
 assert.deepEqual(missingSocialProfileFields(completedProfile), []);
-assert.deepEqual(missingSocialProfileFields({ display_name: '이름' }), ['birthDate', 'phone', 'address']);
-assert.equal(extractSocialPrefill(user, completedProfile).name, '본인인증 이름');
+assert.deepEqual(missingSocialProfileFields({ display_name: '이름' }), ['name', 'birthDate', 'phone', 'address']);
+assert.equal(extractSocialPrefill(user, completedProfile).name, '구글 이름');
+assert.equal(extractSocialPrefill(user, {
+  ...completedProfile,
+  display_name: '롤렉스',
+  verified_name: '',
+  phone_verified: false,
+}).name, '구글 이름');
 
 assert.equal(socialProgressiveStep({}), 0);
 assert.equal(socialProgressiveStep({ name: '홍길동' }), 1);
@@ -61,6 +67,8 @@ assert.equal(socialProgressiveStep({
 const login = await readFile(new URL('login.html', root), 'utf8');
 const loginRuntime = await readFile(new URL('app/features/auth-login/auth-login.js', root), 'utf8');
 const completionRuntime = await readFile(new URL('app/features/auth-social-completion/auth-social-completion.js', root), 'utf8');
+const socialAuthService = await readFile(new URL('app/services/auth/social-auth-service.js', root), 'utf8');
+const verificationService = await readFile(new URL('app/services/auth/member-verification-service.js', root), 'utf8');
 const providerRuntime = await readFile(new URL('app/features/profile-login-provider/profile-login-provider.js', root), 'utf8');
 const authGate = await readFile(new URL('app/pages/standalone-auth-gate.mjs', root), 'utf8');
 const serviceWorker = await readFile(new URL('sw.js', root), 'utf8');
@@ -85,17 +93,24 @@ assert.match(completionRuntime, /completeIdentityVerification/);
 assert.match(completionRuntime, /saveSocialProfile/);
 assert.match(completionRuntime, /socialProgressiveStep/);
 assert.match(completionRuntime, /addEventListener\('input', updateFlow\)/);
+assert.match(socialAuthService, /verifyIdentity\(\{ forceRedirect: true \}\)/);
+assert.match(verificationService, /forceRedirect: options\?\.forceRedirect === true/);
 assert.match(providerRuntime, /로그인 방법/);
 assert.match(providerRuntime, /socialProviderLabels/);
 assert.match(authGate, /social-complete/);
 assert.match(authGate, /loadSocialProfileState/);
 
 for (const asset of [
+  './app/features/auth-social-completion/auth-social-completion.css?v=20260902-social-completion-v2',
+  './app/features/auth-social-completion/auth-social-completion.js?v=20260902-social-completion-v2',
   './app/features/auth-social-completion/auth-social-completion.css?v=20260902-progressive-social-v1',
   './app/features/auth-social-completion/auth-social-completion.js?v=20260902-progressive-social-v1',
   './app/features/auth-social-completion/social-progressive-flow.mjs?v=20260902-progressive-social-v1',
   './app/features/auth-social-completion/social-profile-data.mjs?v=20260902-social-profile-v1',
+  './app/features/auth-social-completion/social-profile-data.mjs?v=20260902-social-completion-v2',
   './app/features/profile-login-provider/profile-login-provider.js?v=20260902-social-profile-v1',
+  './app/services/auth/social-auth-service.js?v=20260902-social-completion-v2',
+  './app/services/auth/member-verification-service.js?v=20260902-social-completion-v2',
 ]) {
   assert(serviceWorker.includes(`'${asset}'`), `service worker must precache ${asset}`);
 }
