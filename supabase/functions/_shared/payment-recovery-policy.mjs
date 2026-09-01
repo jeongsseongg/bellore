@@ -27,6 +27,13 @@ export function providerStatusKind(value) {
   return 'unknown';
 }
 
+export function pendingCheckoutAbandonmentAction(providerStatus, checkoutAbandoned) {
+  if (checkoutAbandoned !== true) return 'wait';
+  return String(providerStatus || '').trim().toUpperCase() === 'READY'
+    ? 'close_unsettled'
+    : 'wait';
+}
+
 function providerAmountField(payment, field) {
   if (!payment || typeof payment !== 'object' || Array.isArray(payment)) return null;
   const amountRecord = payment.amount;

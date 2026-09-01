@@ -1,15 +1,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.112.2";
 import { hasConfirmedPaymentStatus } from "../_shared/order-payment-states.ts";
 import { guardPaymentOperation } from "../_shared/payment-operation-guard.ts";
-import { confirmationAuthorized, publicOrder, safeEqual,
-  sanitizePaymentAttribution, sha256Hex } from "../_shared/payment-edge-utils.ts";
+import { confirmationAuthorized, publicOrder, safeEqual, sanitizePaymentAttribution, sha256Hex } from "../_shared/payment-edge-utils.ts";
 import { cancelAndReconcile } from "../_shared/portone-cancellation.ts";
-import { finalizePaidOrderFromProvider, lookupPortOnePayment, markPaymentReviewIfUnsettled,
-  paymentRef, readMatchingConfirmedOrder, safeText, type JsonRecord } from "../_shared/payment-recovery.ts";
-import { CONFIRMATION_RETRY_DELAYS_MS, paidFinalizationRecoveryAction, paidRecoveryAction,
-  providerPaidAmount, providerStatusKind } from "../_shared/payment-recovery-policy.mjs";
-import { cancelUnsettledCheckout, reconcileProviderCancelledCheckout } from
-  "../_shared/unsettled-checkout-cancellation.ts";
+import { finalizePaidOrderFromProvider, lookupPortOnePayment, markPaymentReviewIfUnsettled, paymentRef, readMatchingConfirmedOrder, safeText, type JsonRecord } from "../_shared/payment-recovery.ts";
+import { CONFIRMATION_RETRY_DELAYS_MS, paidFinalizationRecoveryAction, paidRecoveryAction, providerPaidAmount, providerStatusKind } from "../_shared/payment-recovery-policy.mjs";
+import { cancelUnsettledCheckout, closeAbandonedReadyCheckout, reconcileProviderCancelledCheckout } from "../_shared/unsettled-checkout-cancellation.ts";
 const PORTONE_API_SECRET = Deno.env.get("PORTONE_API_SECRET") ?? "";
 const PORTONE_API_BASE = Deno.env.get("PORTONE_API_BASE") ?? "https://api.portone.io";
 const PORTONE_STORE_ID = Deno.env.get("PORTONE_STORE_ID") ?? "";
@@ -172,8 +168,12 @@ Deno.serve(async (req) => {
     const payment = lookup.payment;
     const paidAmount = providerPaidAmount(payment);
 
-    const statusKind = providerStatusKind(payment.status);
-    if (statusKind === "pending") {
+    const statusKind = providerStatusKind(payment.status); if (statusKind === "pending") {
+      const abandoned = await closeAbandonedReadyCheckout({ admin, orderNo: paymentId,
+        providerStatus: payment.status, checkoutAbandoned });
+      if (abandoned !== "not_applicable") return abandoned === "closed"
+        ? json(req, { error: "payment_canceled" }, 409)
+        : json(req, { ok: false, pending: true, error: "payment_terminal_state_pending", retryAfterMs: 2000 }, 202);
       console.info("confirm-payment deferred", JSON.stringify({
         paymentRef: paymentRef(paymentId),
         providerStatus: safeText(payment.status, 40),

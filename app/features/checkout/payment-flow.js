@@ -49,6 +49,19 @@ export function createPaymentFlow({ window: win, notify = (message) => win.alert
     });
   }
 
+  function recoveredCheckoutPresentation(value, paymentId, recoveryOnly, differentCheckout) {
+    const presentation = { ...value };
+    if (recoveryOnly && presentation.kind === 'pending') {
+      presentation.title = '이전 결제 상태 확인 중';
+      presentation.message = `주문번호 ${paymentId}\n이전 결제 상태를 확인하고 있습니다. 다시 결제하지 말고 잠시 후 확인해 주세요.`;
+    }
+    if (differentCheckout && ['payment_canceled', 'payment_declined'].includes(presentation.kind)) {
+      presentation.title = '이전 미완료 결제가 종료되었습니다';
+      presentation.message = '현재 상품은 결제되지 않았습니다. 결제하기를 다시 눌러 진행해 주세요.';
+    }
+    return presentation;
+  }
+
   function state(value) {
     return listingAvailability(typeof value === 'object' ? effectiveListingStatus(value) : value);
   }
@@ -186,5 +199,6 @@ export function createPaymentFlow({ window: win, notify = (message) => win.alert
     };
   }
 
-  return Object.freeze({ canOpen, confirm, confirmationPresentation, customerMessage, guard, log, preflight, readResponse, resetButton, startFailure, state });
+  return Object.freeze({ canOpen, confirm, confirmationPresentation, customerMessage, guard, log,
+    preflight, readResponse, recoveredCheckoutPresentation, resetButton, startFailure, state });
 }
