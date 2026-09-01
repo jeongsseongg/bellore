@@ -28,6 +28,8 @@ assert.match(index, /href="\/pages\/support\.html"/);
 
 assert.match(hubCss, /\.mp-account-summary\s*\{[\s\S]*?gap:\s*5px/);
 assert.match(hubCss, /\.mp-order-actions,[\s\S]*?overflow:\s*hidden[\s\S]*?border-radius:\s*11px/);
+assert.match(hubCss, /\.mp-support-list > a\s*\{[\s\S]*?padding:\s*0 18px/);
+assert.doesNotMatch(hubCss, /\.mp-head(?:-ic)?\s*\{/);
 assert.match(hubCss, /#notiPage \.noti-item\s*\{[\s\S]*?border-radius:\s*18px/);
 assert(hubCss.split('\n').length < 400, '계정 허브 CSS는 400줄 미만이어야 합니다.');
 assert(pageCss.split('\n').length < 400, '독립 계정 페이지 CSS는 400줄 미만이어야 합니다.');
