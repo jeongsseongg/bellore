@@ -13,6 +13,7 @@ const draftOwnerJs = fs.readFileSync(path.join(root, 'app/features/sell-method/s
 const referenceJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-reference-controller.js'), 'utf8');
 const quoteJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-quote-controller.js'), 'utf8');
 const quoteCss = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-quotes.css'), 'utf8');
+const requestedPolishCss = fs.readFileSync(path.join(root, 'app/features/mypage-personal-shop/mypage-requested-polish.css'), 'utf8');
 const sellServiceCss = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-service.css'), 'utf8');
 const serviceJs = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-service-pages.js'), 'utf8');
 const serviceCss = fs.readFileSync(path.join(root, 'app/features/sell-method/sell-service-pages.css'), 'utf8');
@@ -106,6 +107,8 @@ assert.match(quoteJs, /data-sell-view="quotes"/, 'quote details stay inside the 
 assert.match(quoteJs, /방문거래[\s\S]*택배거래[\s\S]*퀵거래/, 'a customer can select all three requested transaction methods');
 assert.doesNotMatch(script, /act:\s*'quotes',\s*label:\s*'내 비교견적'/, 'customer My Page has no role-specific comparison menu');
 assert.match(html, /id="mpSaleEmpty"[^>]*data-sell-method-open/, 'the empty customer sale card opens the sell method sheet');
+assert.match(html, /mp-sale-banner__image[^>]+assets\/home-quicklinks\/sell-watch\.png/, 'the empty sale state uses the watch-photo banner');
+assert.match(quoteCss + requestedPolishCss, /\.mp-sale-banner\s*\{[\s\S]*?grid-template-columns:[\s\S]*?border-radius:\s*18px/, 'the empty sale state keeps the popup-style banner layout');
 assert.match(quoteJs, /awardBid\(quoteId, bidId,[\s\S]*tradeMethod\)/, 'sale requests persist the selected quote and transaction method');
 assert.match(quoteJs, /seconds[\s\S]*초/, 'active quote countdown includes seconds');
 assert.doesNotMatch(quoteJs, /vendor_name/, 'customer bid cards do not expose vendor names');

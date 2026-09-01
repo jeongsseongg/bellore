@@ -82,7 +82,7 @@
     <link rel="stylesheet" href="app/features/checkout/checkout-coupon.css?v=20260826-member-verification-live-v2">
     <link rel="stylesheet" href="app/features/checkout/checkout-order.css?v=20260828-checkout-methods-v1" data-bellore-checkout-order>
     <link rel="stylesheet" href="app/features/mypage-personal-shop/mypage-personal-shop.css?v=20260828-final-integrated-v1">
-    <link rel="stylesheet" href="app/features/mypage-personal-shop/mypage-requested-polish.css?v=20260902-mypage-followup-v1">
+    <link rel="stylesheet" href="app/features/mypage-personal-shop/mypage-requested-polish.css?v=20260902-mypage-empty-banner-v1">
     <link rel="stylesheet" href="app/features/sell-method/sell-method.css?v=20260826-sell-motion-v2">
     <link rel="stylesheet" href="app/features/sell-method/sell-service.css?v=20260828-complete-site-v1">
     <link rel="stylesheet" href="app/features/sell-method/sell-quotes.css?v=20260826-sell-guest-access-v1">
@@ -1945,8 +1945,14 @@
                         <button type="button" data-sell-service-open="compare">견적 상세</button>
                     </div>
                 </div>
-                <button type="button" class="mp-empty-action" id="mpSaleEmpty" data-sell-method-open>
-                    <span><strong>내 시계, 지금 판매하면 얼마일까?</strong><small>비교견적 · 위탁판매 · 즉시매입</small></span>
+                <button type="button" class="mp-empty-action mp-sale-banner" id="mpSaleEmpty" data-sell-method-open>
+                    <img class="mp-sale-banner__image" src="assets/home-quicklinks/sell-watch.png" alt="" loading="lazy">
+                    <span class="mp-sale-banner__copy">
+                        <small class="mp-sale-banner__eyebrow">판매할 시계가 있으신가요?</small>
+                        <strong>내 시계, 지금 판매하면 얼마일까?</strong>
+                        <small>비교견적 · 위탁판매 · 즉시매입</small>
+                        <span class="mp-sale-banner__cta">견적 받아보기</span>
+                    </span>
                 </button>
                 <button type="button" class="mp-add-quote" id="mpAddQuote" data-sell-method-open hidden>시계 추가로 견적받기</button>
             </section>
