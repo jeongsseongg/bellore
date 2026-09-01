@@ -117,19 +117,6 @@ body.mypage-open #myPageModal .mp-order-actions button,
   line-height: 1.35;
 }
 
-#myPageModal .mp-sale-banner .mp-sale-banner__cta {
-  display: inline-flex;
-  min-height: 32px;
-  margin-top: 6px;
-  padding: 0 13px;
-  align-items: center;
-  border-radius: 999px;
-  background: #173e34;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 800;
-}
-
 #myPageModal .mp-add-quote[hidden] {
   display: none;
 }

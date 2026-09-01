@@ -109,6 +109,7 @@ assert.doesNotMatch(script, /act:\s*'quotes',\s*label:\s*'내 비교견적'/, 'c
 assert.match(html, /id="mpSaleEmpty"[^>]*data-sell-method-open/, 'the empty customer sale card opens the sell method sheet');
 assert.match(html, /mp-sale-banner__image[^>]+assets\/home-quicklinks\/sell-watch\.png/, 'the empty sale state uses the watch-photo banner');
 assert.match(quoteCss + requestedPolishCss, /\.mp-sale-banner\s*\{[\s\S]*?grid-template-columns:[\s\S]*?border-radius:\s*18px/, 'the empty sale state keeps the popup-style banner layout');
+assert.doesNotMatch(html, /mp-sale-banner__cta|견적 받아보기/, 'the empty sale banner has no nested CTA box');
 assert.match(quoteJs, /awardBid\(quoteId, bidId,[\s\S]*tradeMethod\)/, 'sale requests persist the selected quote and transaction method');
 assert.match(quoteJs, /seconds[\s\S]*초/, 'active quote countdown includes seconds');
 assert.doesNotMatch(quoteJs, /vendor_name/, 'customer bid cards do not expose vendor names');
