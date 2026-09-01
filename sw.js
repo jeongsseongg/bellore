@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v387-checkout-stale-order";
+const VERSION = "bellore-v388-pass-identity-return";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -53,7 +53,7 @@ const SHELL_ASSETS = [
   './app/features/auth-login/auth-login.js?v=20260828-mypage-return-v1',
   './app/services/auth/auth-login-backend.js',
   './app/features/auth-signup/auth-signup.css?v=20260828-phone-auth-paths-v1',
-  './app/features/auth-signup/auth-signup.js?v=20260831-identity-provider-source-v1',
+  './app/features/auth-signup/auth-signup.js?v=20260901-pass-identity-return-v1',
   './app/services/auth/auth-signup-backend.js?v=20260831-identity-provider-source-v1',
   './app/features/analytics-consent/analytics-consent.css?v=20260826-ai-consent-v1',
   './app/features/checkout/checkout-addresses.css?v=20260826-shipping-address-popup-v2',

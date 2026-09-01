@@ -176,7 +176,10 @@ function validateAccountFields() {
   return true;
 }
 if (active) verification.completeReturnedIdentity()
-  .then((handled) => { if (handled) showStep(2, { historyMode: 'replace' }); });
+  .then((handled) => {
+    const nextStep = handled && verification.state.phone.real ? 3 : 2;
+    if (handled) showStep(nextStep, { historyMode: 'replace' });
+  });
 document.getElementById('signupRoleNext').addEventListener('click', () => {
   saveDraft();
   showStep(2, { historyMode: 'push' });

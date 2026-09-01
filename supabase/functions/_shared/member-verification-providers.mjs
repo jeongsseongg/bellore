@@ -9,7 +9,9 @@ export function validatePortOneIdentity(verification, expected) {
     : null;
   const channelKey = safeText(channel?.key, 120);
   const channelType = safeText(channel?.type, 20);
-  if (verification.storeId !== expected.storeId) throw new Error("STORE_MISMATCH");
+  if (verification.storeId != null && verification.storeId !== expected.storeId) {
+    throw new Error("STORE_MISMATCH");
+  }
   if (channelKey !== expected.channelKey) throw new Error("CHANNEL_MISMATCH");
   if (!expected.allowTest && channelType !== "LIVE") throw new Error("CHANNEL_NOT_LIVE");
   if (verification.status !== "VERIFIED") {
