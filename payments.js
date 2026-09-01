@@ -242,7 +242,6 @@
       }
     }
   }
-
   function openCheckout(p) {
     // 비회원도 구매 가능(네이버페이 주문형 요건). 주문 생성은 게스트 분기로 처리한다.
     var candidate = p || window.BELLORE_currentProduct;
@@ -281,13 +280,11 @@
     updateAmount();
   }
   window.BELLORE_openCheckout = openCheckout;
-
   function closeCheckout() {
     checkoutGeneration += 1;
     if (modal) modal.hidden = true;
     document.body.style.overflow = '';
   }
-
   function requestPay(listingChecked, requestGeneration, requestProduct, requestSnapshot) {
     requestGeneration = Number.isInteger(requestGeneration) ? requestGeneration : checkoutGeneration;
     requestProduct = requestProduct || product;
@@ -306,7 +303,6 @@
     var email = ($('#coEmail').value || '').trim();
     if (!name || !phone || !email) { alert('이름, 연락처, 이메일을 입력해 주세요.'); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert('이메일 주소를 정확히 입력해 주세요.'); return; }
-
     var ship = {};
     if (requestFulfillment === 'delivery') {
       ship.recipient = ($('#coShipName').value || '').trim() || name;
@@ -332,18 +328,15 @@
       alert('판매 승인된 상품만 결제할 수 있습니다. 상품 정보를 다시 불러와 주세요.');
       return;
     }
-
     var uc = getSelectedCoupon();
     var base = (Number(requestProduct.price) || 0) + shipFee(requestProduct.price, requestFulfillment);
     var discount = uc ? currentDiscount(base) : 0;
     var amount = Math.max(0, base - discount);
     if (amount < 100) { alert(uc ? '선택한 쿠폰을 적용하면 결제금액이 100원 미만입니다. 쿠폰을 해제하거나 다른 쿠폰을 선택해 주세요.' : '결제금액은 100원 이상이어야 합니다. 상품 가격을 확인해 주세요.'); return; }
-
     if (!listingChecked) {
       paymentFlow().guard(requestProduct, $('#coPayBtn')).then(function (ok) { if (ok) requestPay(true, requestGeneration, requestProduct, requestSnapshot); });
       return;
     }
-
     if (requestChannel.kind === 'naver-order') {
       if (!window.BELLORE_NPAY_START) {
         alert('네이버페이 연결을 준비 중입니다. 잠시 후 다시 시도해 주세요.');
@@ -361,7 +354,6 @@
       });
       return;
     }
-
     if (!portoneReady()) {
       alert('현재 결제를 준비하지 못했습니다. 새로고침 후에도 같으면 고객센터로 문의해 주세요.');
       renderMethods();
@@ -451,7 +443,8 @@
     }).catch(function (e) { if (requestGeneration === checkoutGeneration && requestProduct === product) paymentFlow().startFailure(e, payBtn); else paymentFlow().log('stale_checkout_attempt', e); });
   }
   function verifyPayment(paymentId, attribution, listingId, checkoutToken, checkoutAbandoned, recoveryOnly, recoveredDifferentCheckout, providerFailure) {
-    showResult(true, recoveryOnly ? '이전 결제 상태 확인 중...' : (checkoutAbandoned ? '결제 취소 확인 중...' : '결제 승인 처리 중...'), '잠시만 기다려 주세요.');
+    showResult(true, recoveryOnly ? '이전 결제 상태 확인 중...' : (checkoutAbandoned ? '결제창 종료 확인 중...' : '결제 승인 처리 중...'),
+      '잠시만 기다려 주세요.', checkoutAbandoned && !recoveryOnly);
     if (!(backendOn() && window.NWBackend.confirmOrder && PAY.confirmUrl)) {
       showResult(false, '결제 확인 필요', '결제 결과를 확인할 수 없습니다. 다시 결제하지 말고 고객센터로 문의해 주세요.');
       return;
@@ -469,19 +462,20 @@
       }
       if (presentation.refreshListings && window.NWBackend && window.NWBackend.refreshListings) window.NWBackend.refreshListings();
       if (presentation.clearPending) try { sessionStorage.removeItem('bellore_pending_order_v2'); } catch (_e2) {}
-      showResult(presentation.ok, presentation.title, presentation.message);
+      showResult(presentation.ok, presentation.title, presentation.message, presentation.returnToCheckout === true);
     }).catch(function (error) {
       paymentFlow().log('confirmation_network', error);
       showResult(false, '결제 확인이 지연되고 있습니다', '인터넷 연결을 확인해 주세요. 다시 결제하지 말고 잠시 후 결제 내역을 확인해 주세요.');
     });
   }
-  function showResult(ok, title, desc) {
+  function showResult(ok, title, desc, returnToCheckout) {
     var box = $('#payResult');
     if (!box) { alert(title + '\n' + (desc || '')); return; }
     $('#prIcon').textContent = ok ? '✓' : '!';
     $('#prIcon').className = 'pay-result-icon' + (ok ? '' : ' fail');
     $('#prTitle').textContent = title;
     $('#prDesc').textContent = desc || '';
+    box.dataset.returnToCheckout = returnToCheckout ? 'true' : 'false';
     box.hidden = false;
     document.body.style.overflow = 'hidden';
   }
@@ -520,7 +514,13 @@
     var prHome = $('#prHome');
     if (prHome) prHome.addEventListener('click', function () {
       var box = $('#payResult');
+      var returnToCheckout = box && box.dataset.returnToCheckout === 'true';
       if (box) box.hidden = true;
+      if (returnToCheckout) {
+        if (modal) modal.hidden = false;
+        paymentFlow().resetButton($('#coPayBtn'));
+        document.body.style.overflow = 'hidden';
+        return; }
       document.body.style.overflow = '';
       closeCheckout();
       if (window.location.hash !== '#mypage') {

@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v394-social-login";
+const VERSION = "bellore-v395-payment-window-recovery";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -27,11 +27,11 @@ const SHELL_ASSETS = [
   './app/features/mypage-personal-shop/mypage-current-cards.css?v=20260901-mypage-final-v5',
   './app/features/mypage-personal-shop/mypage-navigation.css?v=20260901-mypage-final-v5',
   './script.js?v=20260901-paid-orders-only-v1',
-  './payments.js?v=20260901-coupon-opt-in-v1',
+  './payments.js?v=20260901-payment-window-v1',
   './naverpay.js?v=20260826-naverpay-live-v1',
   './naverpay.js?v=20260831-naverpay-account-test-v1',
   './ui-dialog.js?v=20260826-member-verification-live-v2',
-  './supabase-config.js?v=20260901-kg-payment-routes-v2',
+  './supabase-config.js?v=20260901-payment-window-v1',
   './analytics-core.js?v=20260810-analytics-v3',
   './analytics-client.js?v=20260826-ai-consent-v1',
   './brands.js',

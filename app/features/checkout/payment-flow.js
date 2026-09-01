@@ -175,11 +175,28 @@ export function createPaymentFlow({ window: win, notify = (message) => win.alert
       };
     }
     if (result?.pending === true || Number(result?.httpStatus) === 202) {
+      if (providerFailure === 'user_canceled') {
+        return {
+          kind: 'payment_canceled', ok: false, clearPending: true, refreshListings: true,
+          returnToCheckout: true,
+          title: '결제가 취소되었습니다',
+          message: '결제된 금액은 없습니다. 입력한 내용은 그대로 유지했습니다.',
+        };
+      }
+      if (providerFailure === 'payment_declined') {
+        return {
+          kind: 'payment_declined', ok: false, clearPending: true, refreshListings: true,
+          returnToCheckout: true,
+          title: '결제가 승인되지 않았습니다',
+          message: '결제된 금액은 없습니다. 입력한 내용은 그대로 유지했습니다.',
+        };
+      }
       if (providerFailure === 'payment_not_started') {
         return {
-          kind: 'payment_not_started', ok: false, refreshListings: true,
+          kind: 'payment_not_started', ok: false, clearPending: true, refreshListings: true,
+          returnToCheckout: true,
           title: '결제를 시작하지 못했습니다',
-          message: `주문번호 ${orderNo}\n결제 설정 또는 결제사 연결을 확인하고 있습니다. 결제된 금액은 없습니다. 다른 결제 수단으로 다시 시도해 주세요.`,
+          message: `주문번호 ${orderNo}\n결제 설정 또는 결제사 연결 문제입니다. 결제된 금액은 없습니다. 입력한 내용은 유지했습니다.`,
         };
       }
       return {
@@ -195,8 +212,9 @@ export function createPaymentFlow({ window: win, notify = (message) => win.alert
     if (providerFailure === 'payment_not_started') {
       return {
         kind: 'payment_not_started', ok: false, clearPending: true, refreshListings: true,
+        returnToCheckout: true,
         title: '결제를 시작하지 못했습니다',
-        message: `주문번호 ${orderNo}\n결제 설정 또는 결제사 연결 문제로 결제가 시작되지 않았습니다. 결제된 금액은 없습니다. 다른 결제 수단으로 다시 시도해 주세요.`,
+        message: `주문번호 ${orderNo}\n결제 설정 또는 결제사 연결 문제입니다. 결제된 금액은 없습니다. 입력한 내용은 유지했습니다.`,
       };
     }
     if (['payment_automatically_refunded', 'payment_refund_in_progress', 'payment_refund_pending', 'payment_refunded'].includes(code)) {
@@ -210,8 +228,9 @@ export function createPaymentFlow({ window: win, notify = (message) => win.alert
     if (code === 'payment_canceled' || code === 'payment_declined') {
       return {
         kind: code, ok: false, clearPending: true, refreshListings: true,
+        returnToCheckout: true,
         title: code === 'payment_canceled' ? '결제가 취소되었습니다' : '결제가 승인되지 않았습니다',
-        message: customerMessage(code, 'confirmation', false),
+        message: `${customerMessage(code, 'confirmation', false)} 입력한 내용은 그대로 유지했습니다.`,
       };
     }
     return {

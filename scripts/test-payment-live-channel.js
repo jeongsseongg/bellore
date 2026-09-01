@@ -22,7 +22,7 @@ assert.ok(configUrl, 'HTML must request the payment config with a release key');
 assert.ok(serviceWorker.includes(`'./${configUrl}'`), 'service worker must precache the exact payment config URL requested by HTML');
 assert.match(config, /testOnly:\s*true/, 'Naver Pay must remain review-account-only until Naver grants final approval');
 
-for (const [id, payMethod] of [['virtual', 'VIRTUAL_ACCOUNT'], ['easy', 'EASY_PAY'], ['kakaopay', 'EASY_PAY'], ['tosspay', 'EASY_PAY']]) {
+for (const [id, payMethod] of [['virtual', 'VIRTUAL_ACCOUNT'], ['easy', 'CARD'], ['kakaopay', 'EASY_PAY'], ['tosspay', 'EASY_PAY']]) {
   assert.match(config, new RegExp(`id:\\s*"${id}"[^\\n]*payMethod:\\s*"${payMethod}"[^\\n]*channelKey:\\s*"${expectedLiveChannel}"`));
 }
 assert.match(config, /id:\s*"kakaopay"[^\n]*easyPayProvider:\s*"KAKAOPAY"/,
@@ -30,6 +30,8 @@ assert.match(config, /id:\s*"kakaopay"[^\n]*easyPayProvider:\s*"KAKAOPAY"/,
 assert.match(config, /id:\s*"tosspay"[^\n]*easyPayProvider:\s*"TOSSPAY"/,
   'TossPay direct route must use the approved KG channel');
 assert.match(config, /label:\s*"간편결제"[^\n]*hint:\s*"KG 통합 간편결제"/);
+assert.match(config, /id:\s*"easy"[^\n]*payMethod:\s*"CARD"[^\n]*hub:\s*true/,
+  'KG hub route must open the CARD window without noeasypay so all approved wallets remain visible');
 assert.match(payments, /if \(requestChannel\.easyPayProvider\) req\.easyPay = \{ easyPayProvider: requestChannel\.easyPayProvider \}/,
   'provider-direct routes must pass easyPayProvider to PortOne');
 assert.match(payments, /requestChannel\.id === 'card'[\s\S]*?acceptmethod:\s*\['noeasypay'\]/,
@@ -41,4 +43,4 @@ assert.match(presentation, /easy:\s*\{\s*src:\s*'assets\/payment-methods\/easy-p
 assert.match(config, /pointEarnBps:\s*0/,
   'client must not advertise points until an explicit operating policy enables them');
 
-console.log('PortOne live payment channel contract: 17/17 passed');
+console.log('PortOne live payment channel contract: 18/18 passed');
