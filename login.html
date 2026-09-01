@@ -10,7 +10,7 @@
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="app/features/auth-signup/auth-signup.css?v=20260828-phone-auth-paths-v1">
-  <link rel="stylesheet" href="app/features/auth-social-completion/auth-social-completion.css?v=20260902-social-profile-v1">
+  <link rel="stylesheet" href="app/features/auth-social-completion/auth-social-completion.css?v=20260902-progressive-social-v1">
   <link rel="stylesheet" href="/app/ui/app-tabbar.css?v=20260828-clean-routes-v4">
 </head>
 <body>
@@ -115,22 +115,30 @@
     <section class="social-complete-shell" id="socialCompleteShell" aria-labelledby="socialCompleteTitle" hidden>
       <button class="signup-back social-signout" id="socialSignOut" type="button" aria-label="로그아웃하고 로그인 화면으로 돌아가기">‹</button>
       <a class="signup-logo" href="/" aria-label="벨로르 홈"><img src="assets/logo-bellore.png" alt="BELLORE"></a>
-      <header class="signup-heading"><p>마지막 단계</p><h1 id="socialCompleteTitle">회원 정보를<br>확인해 주세요.</h1></header>
+      <header class="signup-heading"><p id="socialCompleteProgress">1 / 5</p><h1 id="socialCompleteTitle">이름을<br>알려주세요.</h1></header>
       <form id="socialCompleteForm" class="signup-form" novalidate>
         <div class="social-linked"><strong id="socialProviderLabel">소셜 로그인</strong><span id="socialLinkedEmail">연결된 계정을 확인하고 있습니다.</span></div>
-        <p class="step-guide">연결된 계정에서 받은 정보는 먼저 채워두었습니다. 없는 정보만 확인해 주세요.</p>
-        <div class="verification">
-          <div class="verification-title"><b>본인 정보</b><span>필수</span></div>
-          <p>가져온 정보가 있어도 안전한 가입을 위해 휴대폰 본인인증 결과로 확정합니다.</p>
-          <label class="field"><span>이름</span><input type="text" id="socialName" autocomplete="name" placeholder="본인인증 후 자동 입력" readonly required></label>
-          <label class="field"><span>생년월일</span><input type="date" id="socialBirthDate" autocomplete="bday" readonly required></label>
-          <label class="field"><span>휴대폰 번호</span><input type="tel" id="socialPhone" autocomplete="tel" placeholder="본인인증 후 자동 입력" readonly required></label>
+        <p class="step-guide">연결된 계정에서 받은 정보는 먼저 채워두었습니다. 입력할 때마다 다음 질문이 아래에 이어집니다.</p>
+        <section class="social-question" id="socialNameStep" data-social-step="name">
+          <label class="field"><span>이름</span><input type="text" id="socialName" autocomplete="name" placeholder="이름을 입력해 주세요" required></label>
+        </section>
+        <section class="social-question" id="socialBirthStep" data-social-step="birth" hidden>
+          <label class="field"><span>생년월일</span><input type="date" id="socialBirthDate" autocomplete="bday" required></label>
+        </section>
+        <section class="social-question" id="socialAddressStep" data-social-step="address" hidden>
+          <div class="field"><span>주소</span><div class="field-action"><input type="text" id="socialPostcode" placeholder="우편번호" readonly required><button type="button" id="socialFindAddr">주소 찾기</button></div><input type="text" id="socialAddr1" placeholder="기본 주소" readonly required><input type="text" id="socialAddr2" placeholder="상세 주소" autocomplete="address-line2"></div>
+        </section>
+        <section class="social-question" id="socialIdentityStep" data-social-step="identity" hidden>
+          <div class="verification-title"><b>휴대폰 본인인증</b><span>필수</span></div>
+          <p>입력한 정보는 본인인증 결과로 안전하게 확정됩니다.</p>
           <button type="button" id="socialIdentityVerify">휴대폰 본인인증</button>
+          <label class="field social-phone-result"><span>인증된 휴대폰 번호</span><input type="tel" id="socialPhone" autocomplete="tel" placeholder="본인인증 후 자동 입력" readonly required></label>
           <p class="social-identity-state" id="socialIdentityState" aria-live="polite"></p>
-        </div>
-        <div class="field"><span>주소</span><div class="field-action"><input type="text" id="socialPostcode" placeholder="우편번호" readonly required><button type="button" id="socialFindAddr">주소 찾기</button></div><input type="text" id="socialAddr1" placeholder="기본 주소" readonly required><input type="text" id="socialAddr2" placeholder="상세 주소" autocomplete="address-line2"></div>
-        <label class="check"><input type="checkbox" id="socialAgree"><span>이용약관과 개인정보처리방침에 동의합니다. (필수)</span></label>
-        <button type="submit" class="primary" id="socialCompleteSubmit">회원가입 완료</button>
+        </section>
+        <section class="social-question social-finish-step" id="socialFinishStep" data-social-step="finish" hidden>
+          <label class="check"><input type="checkbox" id="socialAgree"><span>이용약관과 개인정보처리방침에 동의합니다. (필수)</span></label>
+          <button type="submit" class="primary" id="socialCompleteSubmit">회원가입 완료</button>
+        </section>
         <p class="signup-status" id="socialCompleteStatus" role="status" aria-live="polite"></p>
       </form>
     </section>
@@ -144,6 +152,6 @@
   <script src="supabase.js?v=20260901-social-login-v1"></script>
   <script type="module" src="app/features/auth-login/auth-login.js?v=20260901-social-login-v1"></script>
   <script type="module" src="app/features/auth-signup/auth-signup.js?v=20260901-pass-identity-return-v1"></script>
-  <script type="module" src="app/features/auth-social-completion/auth-social-completion.js?v=20260902-social-profile-v1"></script>
+  <script type="module" src="app/features/auth-social-completion/auth-social-completion.js?v=20260902-progressive-social-v1"></script>
 </body>
 </html>

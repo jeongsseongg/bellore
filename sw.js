@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v402-approved-kg-social-profile";
+const VERSION = "bellore-v403-progressive-social-profile";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -72,8 +72,9 @@ const SHELL_ASSETS = [
   './app/features/auth-signup/auth-signup.css?v=20260828-phone-auth-paths-v1',
   './app/features/auth-signup/auth-signup.js?v=20260901-pass-identity-return-v1',
   './app/services/auth/auth-signup-backend.js?v=20260831-identity-provider-source-v1',
-  './app/features/auth-social-completion/auth-social-completion.css?v=20260902-social-profile-v1',
-  './app/features/auth-social-completion/auth-social-completion.js?v=20260902-social-profile-v1',
+  './app/features/auth-social-completion/auth-social-completion.css?v=20260902-progressive-social-v1',
+  './app/features/auth-social-completion/auth-social-completion.js?v=20260902-progressive-social-v1',
+  './app/features/auth-social-completion/social-progressive-flow.mjs?v=20260902-progressive-social-v1',
   './app/features/auth-social-completion/social-profile-data.mjs?v=20260902-social-profile-v1',
   './app/features/profile-login-provider/profile-login-provider.js?v=20260902-social-profile-v1',
   './app/services/auth/social-auth-service.js?v=20260902-social-profile-v1',

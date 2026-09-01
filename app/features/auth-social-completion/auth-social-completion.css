@@ -3,10 +3,25 @@
 .social-linked { display: grid; gap: 4px; padding: 16px; border: 1px solid #e0e2e0; border-radius: 14px; background: #fafbfa; }
 .social-linked strong { font-size: 16px; }
 .social-linked span { overflow: hidden; color: #6d7470; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.social-question { display: grid; gap: 12px; animation: social-question-in .28s ease both; }
+.social-question[hidden] { display: none; }
+.social-question + .social-question { padding-top: 18px; border-top: 1px solid #eceeec; }
+.social-question[data-social-step="identity"] { padding: 18px; border: 1px solid #e0e2e0; border-radius: 14px; background: #fafbfa; }
+.social-question[data-social-step="identity"] p { margin: 0; color: #6d7470; font-size: 13px; line-height: 1.5; }
+#socialIdentityVerify { min-height: 54px; padding: 0 16px; border: 1px solid #183029; border-radius: 10px; background: #fff; color: #183029; font-weight: 750; }
+.social-phone-result { margin-top: 2px; }
+.social-finish-step { padding-bottom: 4px; }
 .social-identity-state { min-height: 20px; margin: 0; color: #6d7470; font-size: 13px; line-height: 1.5; }
 .social-complete-shell .signup-status.ok { color: #187253; }
 .social-complete-shell .signup-status.err { color: #b3261e; }
 .social-signout { min-height: 48px; border: 0; background: transparent; color: #6d7470; text-decoration: underline; }
+@keyframes social-question-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .social-question { animation: none; }
+}
 @media (max-width: 699px) {
   .social-complete-shell { padding: 28px 20px 48px; }
 }

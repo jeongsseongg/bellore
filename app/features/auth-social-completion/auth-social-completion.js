@@ -1,5 +1,6 @@
 import { createSocialAuthService } from '../../services/auth/social-auth-service.js?v=20260902-social-profile-v1';
 import { safeReturnPath } from './social-profile-data.mjs?v=20260902-social-profile-v1';
+import { socialProgressiveStep } from './social-progressive-flow.mjs?v=20260902-progressive-social-v1';
 
 const params = new URLSearchParams(location.search);
 const active = params.get('view') === 'social-complete';
@@ -15,8 +16,18 @@ if (active && shell) {
   const status = document.getElementById('socialCompleteStatus');
   const verifyButton = document.getElementById('socialIdentityVerify');
   const submitButton = document.getElementById('socialCompleteSubmit');
+  const progress = document.getElementById('socialCompleteProgress');
+  const title = document.getElementById('socialCompleteTitle');
   let currentUser = null;
   let currentState = null;
+
+  const flow = [
+    { id: 'socialNameStep', title: '이름을<br>알려주세요.' },
+    { id: 'socialBirthStep', title: '생년월일을<br>알려주세요.' },
+    { id: 'socialAddressStep', title: '주소를<br>알려주세요.' },
+    { id: 'socialIdentityStep', title: '휴대폰 본인인증을<br>진행해 주세요.' },
+    { id: 'socialFinishStep', title: '마지막 내용을<br>확인해 주세요.' },
+  ];
 
   function setStatus(message, type = '') {
     status.textContent = message || '';
@@ -25,6 +36,20 @@ if (active && shell) {
 
   function input(id) { return document.getElementById(id); }
   function fill(id, value) { const field = input(id); if (field) field.value = value || ''; }
+
+  function updateFlow() {
+    const activeIndex = socialProgressiveStep({
+      name: input('socialName').value,
+      birthDate: input('socialBirthDate').value,
+      postcode: input('socialPostcode').value,
+      addr1: input('socialAddr1').value,
+      identityVerified: currentState?.profile?.phone_verified === true
+        && Boolean(currentState.profile.birth_date),
+    });
+    flow.forEach((step, index) => { document.getElementById(step.id).hidden = index > activeIndex; });
+    progress.textContent = `${activeIndex + 1} / ${flow.length}`;
+    title.innerHTML = flow[activeIndex].title;
+  }
 
   function returnPath() {
     let stored = '';
@@ -51,11 +76,14 @@ if (active && shell) {
     fill('socialAddr1', data.addr1);
     fill('socialAddr2', data.addr2);
     const verified = data.phoneVerified && Boolean(state.profile?.birth_date);
+    input('socialName').readOnly = verified;
+    input('socialBirthDate').readOnly = verified;
     verifyButton.textContent = verified ? '본인인증 완료' : '휴대폰 본인인증';
     verifyButton.disabled = verified;
     document.getElementById('socialIdentityState').textContent = verified
       ? '✓ 이름·생년월일·휴대폰이 확인되었습니다.'
       : '가져온 정보가 있어도 본인인증 결과로 최종 확정합니다.';
+    updateFlow();
   }
 
   async function reloadState() {
@@ -100,11 +128,16 @@ if (active && shell) {
     }
   });
 
+  input('socialName').addEventListener('input', updateFlow);
+  input('socialBirthDate').addEventListener('input', updateFlow);
+  input('socialAddr2').addEventListener('input', updateFlow);
+
   document.getElementById('socialFindAddr').addEventListener('click', () => {
     if (!window.daum?.Postcode) { setStatus('주소 검색을 불러오지 못했습니다.', 'err'); return; }
     new window.daum.Postcode({ oncomplete(data) {
       fill('socialPostcode', data.zonecode || '');
       fill('socialAddr1', data.roadAddress || data.jibunAddress || '');
+      updateFlow();
       input('socialAddr2').focus();
     } }).open();
   });

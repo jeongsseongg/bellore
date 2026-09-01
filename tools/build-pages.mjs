@@ -74,6 +74,7 @@ export const APP_RUNTIME_FILES = Object.freeze([
   'app/features/auth-social-completion/auth-social-completion.css',
   'app/features/auth-social-completion/auth-social-completion.js',
   'app/features/auth-social-completion/social-profile-data.mjs',
+  'app/features/auth-social-completion/social-progressive-flow.mjs',
   'app/features/profile-login-provider/profile-login-provider.js',
   'app/services/auth/social-auth-service.js',
   'app/features/auth-signup/auth-signup.css',
