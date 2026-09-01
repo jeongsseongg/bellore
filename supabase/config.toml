@@ -61,3 +61,8 @@ verify_jwt = false
 # Guests reach this function without a user JWT. Sensitive reads require a hashed token or verified identity.
 [functions.sell-request-access]
 verify_jwt = false
+
+# Supabase Auth calls this userinfo adapter with the Naver provider token,
+# which is not a Supabase JWT. The function validates it against Naver directly.
+[functions.naver-login-userinfo]
+verify_jwt = false

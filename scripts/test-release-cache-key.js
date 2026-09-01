@@ -15,6 +15,7 @@ const releaseKey = '20260826-member-verification-live-v2';
 const signupStyleKey = '20260828-phone-auth-paths-v1';
 const signupScriptKey = '20260901-pass-identity-return-v1';
 const signupIdentityUrl = html.match(/<script src="(supabase\.js\?v=[^"]+)"/)?.[1];
+const loginIdentityUrl = loginHtml.match(/src="(supabase\.js\?v=[^"]+)"/)?.[1];
 const loginStyleUrl = loginHtml.match(/href="(app\/features\/auth-login\/auth-login\.css\?v=[^"]+)"/)?.[1];
 const loginScriptUrl = loginHtml.match(/src="(app\/features\/auth-login\/auth-login\.js\?v=[^"]+)"/)?.[1];
 const paymentConfigUrl = html.match(/src="(supabase-config\.js\?v=[^"]+)"/)?.[1];
@@ -24,6 +25,7 @@ const paymentFlowReleaseKey = paymentFlowImportUrl
   ? new URL(paymentFlowImportUrl, 'https://bellore.co.kr/app/bootstrap.js').searchParams.get('v')
   : null;
 assert(paymentFlowReleaseKey, 'payment flow release URL is missing');
+assert(loginIdentityUrl, 'login Supabase backend release URL is missing');
 
 const urls = {
   styles: html.match(/<link rel="stylesheet" href="(styles\.css\?v=[^"]+)"/)?.[1],
@@ -58,6 +60,7 @@ assert.match(serviceWorker, /const VERSION = "bellore-v\d+-[a-z0-9-]+";/, 'servi
 assert(serviceWorker.includes("'./login.html'"), 'service worker must precache the independent login page');
 assert(loginStyleUrl && serviceWorker.includes(`'./${loginStyleUrl}'`), 'service worker must precache the exact login page styles');
 assert(loginScriptUrl && serviceWorker.includes(`'./${loginScriptUrl}'`), 'service worker must precache the exact login page behavior');
+assert(serviceWorker.includes(`'./${loginIdentityUrl}'`), 'service worker must precache the exact login Supabase backend');
 assert(paymentConfigUrl, 'payment configuration release URL is missing');
 assert(loginPaymentConfigUrl, 'login payment configuration release URL is missing');
 assert(serviceWorker.includes(`'./${paymentConfigUrl}'`), 'service worker must precache the exact payment configuration URL');

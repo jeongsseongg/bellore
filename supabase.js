@@ -189,7 +189,7 @@
     authUser = {
       uid: rawUser.id,
       email: rawUser.email || '',
-      displayName: (profile && profile.display_name) || meta.display_name || (rawUser.email || '').split('@')[0],
+      displayName: (profile && profile.display_name) || meta.display_name || meta.full_name || meta.name || meta.preferred_username || (rawUser.email || '').split('@')[0],
       phone: (profile && profile.phone) || meta.phone || '',
       postcode: (profile && profile.postcode) || '',
       addr1: (profile && profile.addr1) || '',
@@ -427,9 +427,13 @@
   };
 
   Backend.signInWithNaver = function () {
-    var error = new Error('NAVER_LOGIN_NOT_CONFIGURED');
-    error.code = 'NAVER_LOGIN_NOT_CONFIGURED';
-    return Promise.reject(error);
+    return sb.auth.signInWithOAuth({
+      provider: 'custom:naver',
+      options: { redirectTo: location.origin + location.pathname }
+    }).then(function (res) {
+      if (res.error) throw res.error;
+      return { displayName: '' };
+    });
   };
 
   // 아이디(username) 사용 가능 여부 — email_for_username RPC 가 이메일을 돌려주면 이미 사용 중.

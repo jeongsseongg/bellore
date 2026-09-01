@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v393-paid-orders-only-ui";
+const VERSION = "bellore-v394-social-login";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -36,6 +36,7 @@ const SHELL_ASSETS = [
   './analytics-client.js?v=20260826-ai-consent-v1',
   './brands.js',
   './supabase.js?v=20260901-paid-orders-only-v1',
+  './supabase.js?v=20260901-social-login-v1',
   './bellore-features.js?v=20260831-identity-modal-toss-v1',
   './cq-demo.js?v=20260901-phone-full-v1',
   './wishlist.js?v=20260826-member-verification-live-v2',
@@ -53,7 +54,7 @@ const SHELL_ASSETS = [
   './app/ui/app-tabbar.js?v=20260831-mypage-pages-loop-v1',
   './app/features/mypage-personal-shop/mypage-personal-shop.css?v=20260828-final-integrated-v1',
   './app/features/auth-login/auth-login.css?v=20260827-auth-page-v3',
-  './app/features/auth-login/auth-login.js?v=20260828-mypage-return-v1',
+  './app/features/auth-login/auth-login.js?v=20260901-social-login-v1',
   './app/services/auth/auth-login-backend.js',
   './app/features/auth-signup/auth-signup.css?v=20260828-phone-auth-paths-v1',
   './app/features/auth-signup/auth-signup.js?v=20260901-pass-identity-return-v1',
