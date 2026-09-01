@@ -170,7 +170,8 @@ const callbacks = {
   customerMessage: () => '안전한 안내',
 };
 assert.equal(recovery.handle(callbacks).reason, 'pending_rechecked');
-assert.deepEqual(verifies[0], ['BLR-RECOVERY-1', null, null, token, false]);
+assert.deepEqual(verifies[0], ['BLR-RECOVERY-1', null, null, token, true],
+  '새로고침으로 복구한 미승인 주문은 종료된 checkout으로 서버에 전달해야 합니다.');
 assert.equal(JSON.parse(store.value('bellore_pending_order_v2')).retryCount, 1);
 clock = 6000;
 assert.equal(recovery.handle(callbacks).reason, 'retry_throttled');

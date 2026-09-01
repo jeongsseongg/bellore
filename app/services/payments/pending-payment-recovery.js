@@ -122,7 +122,7 @@ export function createPendingPaymentRecovery({ location, history, getStorage, no
       pending?.attribution || null,
       pending?.listingId || null,
       pending?.checkoutToken || null,
-      Boolean(code),
+      Boolean(code) || (!callback && Boolean(pending)),
     );
     return { handled: true, reason: callback ? 'callback_verified' : 'pending_rechecked' };
   }

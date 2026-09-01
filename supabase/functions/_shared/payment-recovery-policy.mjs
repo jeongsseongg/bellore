@@ -29,7 +29,9 @@ export function providerStatusKind(value) {
 
 export function pendingCheckoutAbandonmentAction(providerStatus, checkoutAbandoned) {
   if (checkoutAbandoned !== true) return 'wait';
-  return String(providerStatus || '').trim().toUpperCase() === 'READY'
+  return ['READY', 'PENDING', 'PAY_PENDING'].includes(
+    String(providerStatus || '').trim().toUpperCase(),
+  )
     ? 'close_unsettled'
     : 'wait';
 }

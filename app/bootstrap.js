@@ -20,7 +20,7 @@ import { createPaymentAccessToken } from './services/payments/payment-auth.js?v=
 import { createCheckoutRequestRecovery } from './services/payments/checkout-request-recovery.js?v=20260826-member-verification-live-v2';
 import { createCheckoutClient } from './services/payments/checkout-client.js?v=20260826-member-verification-live-v2';
 import { createPaymentNetwork } from './services/payments/payment-network.js?v=20260826-member-verification-live-v2';
-import { createPendingPaymentRecovery } from './services/payments/pending-payment-recovery.js?v=20260826-member-verification-live-v2';
+import { createPendingPaymentRecovery } from './services/payments/pending-payment-recovery.js?v=20260901-unpaid-release-v1';
 import { createLegacyCollection } from './legacy/legacy-collection.js?v=20260826-member-verification-live-v2';
 import { initLegacyHomeMerchandisingGrid } from './legacy/home-merchandising-grid.js';
 import { initHomeLayout } from './features/home-layout/home-layout.js?v=20260827-home-block-editor-v1';
