@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v390-mypage-final";
+const VERSION = "bellore-v391-coupon-opt-in-order-cancel";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -27,7 +27,7 @@ const SHELL_ASSETS = [
   './app/features/mypage-personal-shop/mypage-current-cards.css?v=20260901-mypage-final-v5',
   './app/features/mypage-personal-shop/mypage-navigation.css?v=20260901-mypage-final-v5',
   './script.js?v=20260901-mypage-final-v4',
-  './payments.js?v=20260901-payment-outcome-v2',
+  './payments.js?v=20260901-coupon-opt-in-v1',
   './naverpay.js?v=20260826-naverpay-live-v1',
   './naverpay.js?v=20260831-naverpay-account-test-v1',
   './ui-dialog.js?v=20260826-member-verification-live-v2',
