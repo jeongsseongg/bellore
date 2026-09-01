@@ -9,6 +9,7 @@ export class FakeElement {
     this.checked = false;
     this.src = '';
     this.style = {};
+    this.dataset = {};
     this.listeners = new Map();
     this._innerHTML = '';
   }

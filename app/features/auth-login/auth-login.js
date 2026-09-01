@@ -18,7 +18,16 @@ function clearSocialReturn() {
   try {
     sessionStorage.removeItem('bellore_social_pending');
     sessionStorage.removeItem('bellore_auth_return');
+    sessionStorage.removeItem('bellore_social_provider');
   } catch (_) {}
+}
+
+function pendingSocialProvider() {
+  try {
+    return sessionStorage.getItem('bellore_social_provider') || '';
+  } catch (_) {
+    return '';
+  }
 }
 
 const returnUrl = (() => {
@@ -33,6 +42,15 @@ const returnUrl = (() => {
 
 function message(text) {
   if (status) status.textContent = text || '';
+}
+
+function socialErrorMessage() {
+  const error = params.get('error') || params.get('error_code');
+  if (!error) return '';
+  const provider = pendingSocialProvider();
+  const providerName = provider === 'naver' ? '네이버' : provider === 'kakao' ? '카카오' : '소셜';
+  if (error === 'access_denied') return `${providerName} 로그인이 취소되었습니다.`;
+  return `${providerName} 로그인에 실패했습니다. 잠시 후 다시 시도해 주세요.`;
 }
 
 const emailForm = document.getElementById('authEmailForm');
@@ -53,6 +71,15 @@ if (view === 'find-password') {
   if (passwordField) passwordField.hidden = true;
   if (submitButton) submitButton.textContent = '아이디 안내 확인';
   message('가입 이메일은 로그인 아이디로 바로 사용할 수 있습니다.');
+}
+
+const socialError = socialErrorMessage();
+if (socialError) {
+  message(socialError);
+  clearSocialReturn();
+  for (const key of ['error', 'error_code', 'error_description', 'error_id']) params.delete(key);
+  const cleanSearch = params.toString();
+  history.replaceState(null, '', `${location.pathname}${cleanSearch ? `?${cleanSearch}` : ''}${location.hash}`);
 }
 
 try {
@@ -123,10 +150,6 @@ emailForm?.addEventListener('submit', async (event) => {
 });
 
 async function signIn(provider, button) {
-  if (provider === 'naver') {
-    message('네이버 로그인은 연동 준비 중입니다.');
-    return;
-  }
   const method = {
     google: 'signInWithGoogle',
     kakao: 'signInWithKakao',
@@ -141,6 +164,7 @@ async function signIn(provider, button) {
   try {
     sessionStorage.setItem('bellore_social_pending', '1');
     sessionStorage.setItem('bellore_auth_return', returnUrl);
+    sessionStorage.setItem('bellore_social_provider', provider);
     await backend.ready;
     await backend[method]();
   } catch (error) {

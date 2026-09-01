@@ -5,7 +5,7 @@ import { confirmationAuthorized, publicOrder, safeEqual, sanitizePaymentAttribut
 import { cancelAndReconcile } from "../_shared/portone-cancellation.ts";
 import { finalizePaidOrderFromProvider, lookupPortOnePayment, markPaymentReviewIfUnsettled, paymentRef, readMatchingConfirmedOrder, safeText, type JsonRecord } from "../_shared/payment-recovery.ts";
 import { CONFIRMATION_RETRY_DELAYS_MS, paidFinalizationRecoveryAction, paidRecoveryAction, providerPaidAmount, providerStatusKind } from "../_shared/payment-recovery-policy.mjs";
-import { cancelUnsettledCheckout, closeAbandonedReadyCheckout, reconcileProviderCancelledCheckout } from "../_shared/unsettled-checkout-cancellation.ts";
+import { cancelUnsettledCheckout, closeAbandonedPendingCheckout, reconcileProviderCancelledCheckout } from "../_shared/unsettled-checkout-cancellation.ts";
 const PORTONE_API_SECRET = Deno.env.get("PORTONE_API_SECRET") ?? "";
 const PORTONE_API_BASE = Deno.env.get("PORTONE_API_BASE") ?? "https://api.portone.io";
 const PORTONE_STORE_ID = Deno.env.get("PORTONE_STORE_ID") ?? "";
@@ -169,7 +169,7 @@ Deno.serve(async (req) => {
     const paidAmount = providerPaidAmount(payment);
 
     const statusKind = providerStatusKind(payment.status); if (statusKind === "pending") {
-      const abandoned = await closeAbandonedReadyCheckout({ admin, orderNo: paymentId,
+      const abandoned = await closeAbandonedPendingCheckout({ admin, orderNo: paymentId,
         providerStatus: payment.status, checkoutAbandoned });
       if (abandoned !== "not_applicable") return abandoned === "closed"
         ? json(req, { error: "payment_canceled" }, 409)

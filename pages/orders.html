@@ -46,7 +46,6 @@
             </div>
             <div class="orders-tabs" id="ordersTabs">
                 <button type="button" class="orders-tab active" data-ofilter="">전체</button>
-                <button type="button" class="orders-tab" data-ofilter="pending">결제대기</button>
                 <button type="button" class="orders-tab" data-ofilter="paid">결제완료</button>
                 <button type="button" class="orders-tab" data-ofilter="preparing">준비중</button>
                 <button type="button" class="orders-tab" data-ofilter="shipping">배송중</button>
@@ -55,6 +54,54 @@
             <div class="orders-list" id="ordersList"></div>
         </div>
     </div>
+<div class="cp-page op-page" id="orderPage" hidden>
+    <header class="pp-topbar">
+        <button class="pp-back" type="button" data-opclose aria-label="닫기">‹</button>
+        <span class="pp-topbar-title">주문 상세</span>
+        <span class="pp-topbar-spacer"></span>
+    </header>
+    <div class="pp-scroll" id="orderPageBody"></div>
+    <div class="pp-bottom op-actions" id="orderPageActions"></div>
+</div>
+<div class="cp-page rp-page" id="returnPage" hidden>
+    <header class="pp-topbar">
+        <button class="pp-back" type="button" data-rpclose aria-label="닫기">‹</button>
+        <span class="pp-topbar-title" id="returnPageTitle">교환 · 반품 신청</span>
+        <span class="pp-topbar-spacer"></span>
+    </header>
+    <div class="pp-scroll">
+        <div class="rp-order" id="rpOrderInfo"></div>
+        <div class="cp-kindpick rp-typepick" id="rpTypePick">
+            <label class="cp-kindopt"><input type="radio" name="rp_type" value="return" checked>
+                <span class="cp-kindbox"><b>반품 (환불)</b><em>상품을 반품하고 환불받습니다</em></span></label>
+            <label class="cp-kindopt"><input type="radio" name="rp_type" value="exchange">
+                <span class="cp-kindbox"><b>교환</b><em>동일/다른 상품으로 교환합니다</em></span></label>
+        </div>
+        <div class="cp-field">
+            <label for="rpReason">사유</label>
+            <select id="rpReason">
+                <option value="단순변심">단순 변심</option>
+                <option value="상품불량">상품 불량 / 하자</option>
+                <option value="오배송">오배송 / 다른 상품</option>
+                <option value="상품설명상이">상품 설명과 다름</option>
+                <option value="기타">기타</option>
+            </select>
+        </div>
+        <div class="cp-field">
+            <label for="rpDetail">상세 내용</label>
+            <textarea id="rpDetail" rows="4" placeholder="상태/사유를 자세히 적어주세요. (회수·검수에 참고됩니다)"></textarea>
+        </div>
+        <div class="cp-field">
+            <label for="rpPhotos">사진 첨부 (선택, 최대 5장)</label>
+            <input type="file" id="rpPhotos" accept="image/*" multiple>
+            <div class="rp-thumbs" id="rpThumbs"></div>
+        </div>
+        <p class="rp-note">접수 후 관리자 확인 → 회수 안내가 진행됩니다. 단순변심 반품 배송비는 고객 부담일 수 있습니다.</p>
+    </div>
+    <div class="pp-bottom">
+        <button class="co-pay-btn" id="rpSubmit">신청하기</button>
+    </div>
+</div>
 <bellore-tabbar data-active="my"></bellore-tabbar>
 <script type="module" src="/app/ui/app-tabbar.js?v=20260831-mypage-pages-loop-v1"></script>
 <script type="module" src="/app/pages/standalone-page.js?v=20260831-mypage-pages-loop-v1"></script>

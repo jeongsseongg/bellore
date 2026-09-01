@@ -82,8 +82,9 @@ for (const [name, source] of Object.entries({ confirm, cancel, webhook, reconcil
   );
 }
 
-// Browser confirmation: only a bounded true NOT_FOUND after an explicit checkout
-// abandonment may release immediately. Provider pending/errors always hold.
+// Browser confirmation: an explicitly abandoned card/easy-pay checkout releases
+// every unpaid provider state except virtual-account issuance. Late PAID events
+// remain protected by webhook/reconciliation auto-cancellation.
 assert.match(confirm, /retryDelaysMs: CONFIRMATION_RETRY_DELAYS_MS/);
 assert.match(confirm, /const checkoutAbandoned = body\.checkoutAbandoned === true/);
 assert.match(confirm, /notFoundResult: "not_found"/);
@@ -102,9 +103,9 @@ const lookupErrorBlock = confirm.match(
 assert.doesNotMatch(lookupErrorBlock, /fail_unsettled_order/);
 const pendingBlock = confirm.match(/if \(statusKind === "pending"\)([\s\S]*?)if \(statusKind !== "paid"\)/)?.[1] || '';
 assert.doesNotMatch(pendingBlock, /fail_unsettled_order/);
-assert.match(pendingBlock, /closeAbandonedReadyCheckout/);
-assert.match(unsettledCancellation, /closeAbandonedReadyCheckout[\s\S]*pendingCheckoutAbandonmentAction/);
-assert.match(unsettledCancellation, /provider_ready_after_checkout_abandonment/);
+assert.match(pendingBlock, /closeAbandonedPendingCheckout/);
+assert.match(unsettledCancellation, /closeAbandonedPendingCheckout[\s\S]*pendingCheckoutAbandonmentAction/);
+assert.match(unsettledCancellation, /provider_unpaid_pending_after_checkout_abandonment/);
 assert.match(unsettledCancellation, /\.rpc\("fail_unsettled_order"/);
 const terminalBlock = confirm.match(/if \(statusKind !== "paid"\)([\s\S]*?)if \(paidAmount === null\)/)?.[1] || '';
 assert.match(terminalBlock, /statusKind === "failed"/);

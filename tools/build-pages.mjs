@@ -50,6 +50,9 @@ export const ROOT_RUNTIME_FILES = Object.freeze([
 ]);
 
 export const APP_RUNTIME_FILES = Object.freeze([
+  'pages/storage/index.html',
+  'pages/recent/index.html',
+  'pages/support/index.html',
   'app/bootstrap.js',
   'app/pages/standalone-auth-gate.mjs',
   'app/pages/standalone-page.css',
@@ -61,6 +64,10 @@ export const APP_RUNTIME_FILES = Object.freeze([
   'app/features/mypage-personal-shop/mypage-current-cards.css',
   'app/features/mypage-personal-shop/mypage-navigation.css',
   'app/features/mypage-personal-shop/mypage-personal-shop.css',
+  'app/features/mypage-personal-shop/mypage-requested-polish.css',
+  'app/features/mypage-personal-shop/mypage-requested-actions.js',
+  'app/pages/mypage-subpages.css',
+  'app/pages/support-page.js',
   'app/features/auth-login/auth-login.css',
   'app/features/auth-login/auth-login.js',
   'app/services/auth/auth-login-backend.js',

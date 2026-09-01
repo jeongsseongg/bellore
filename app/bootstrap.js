@@ -20,7 +20,7 @@ import { createPaymentAccessToken } from './services/payments/payment-auth.js?v=
 import { createCheckoutRequestRecovery } from './services/payments/checkout-request-recovery.js?v=20260826-member-verification-live-v2';
 import { createCheckoutClient } from './services/payments/checkout-client.js?v=20260826-member-verification-live-v2';
 import { createPaymentNetwork } from './services/payments/payment-network.js?v=20260826-member-verification-live-v2';
-import { createPendingPaymentRecovery } from './services/payments/pending-payment-recovery.js?v=20260826-member-verification-live-v2';
+import { createPendingPaymentRecovery } from './services/payments/pending-payment-recovery.js?v=20260901-unpaid-release-v1';
 import { createLegacyCollection } from './legacy/legacy-collection.js?v=20260826-member-verification-live-v2';
 import { initLegacyHomeMerchandisingGrid } from './legacy/home-merchandising-grid.js';
 import { initHomeLayout } from './features/home-layout/home-layout.js?v=20260827-home-block-editor-v1';
@@ -28,11 +28,12 @@ import { createLegacyHomeLayoutAdapter } from './legacy/home-layout-adapter.js?v
 import { installLegacyPaymentAuth } from './legacy/payment-auth.js';
 import { installLegacyReveal } from './legacy/legacy-reveal.js';
 import { initCheckoutAddresses } from './features/checkout/checkout-addresses.mjs?v=20260826-shipping-address-popup-v2';
-import { createPaymentFlow } from './features/checkout/payment-flow.js?v=20260901-payment-outcome-v2';
+import { createPaymentFlow } from './features/checkout/payment-flow.js?v=20260901-payment-window-diagnostics-v2';
 import { installCustomerFeedback } from './legacy/customer-feedback.js?v=20260826-member-verification-live-v2';
 import { installLegacyCheckoutCoupon } from './legacy/checkout-coupon.js';
 import { createLegacyMypageSettingsAdapter } from './legacy/mypage-settings-adapter.js?v=20260831-mypage-admin-contract-v1';
 import { initMypageSettings } from './features/mypage-settings/mypage-settings.js?v=20260901-mypage-final-v4';
+import { initMypageRequestedActions } from './features/mypage-personal-shop/mypage-requested-actions.js?v=20260902-profile-address-v1';
 import { initSellServicePages } from './features/sell-method/sell-service-pages.js?v=20260826-sell-guest-access-v1';
 import { installSellRequestAccess } from './services/sell/sell-request-access.js?v=20260826-sell-guest-access-v1';
 import { installLegacyMemberVerificationUi } from './legacy/member-verification-ui.js?v=20260826-member-verification-live-v2';
@@ -128,6 +129,7 @@ function bootstrap() {
     document,
     service: createLegacyMypageSettingsAdapter({ window })
   });
+  initMypageRequestedActions({ document, window, backend: window.NWBackend });
   try {
     const pendingWishlistTab = window.sessionStorage.getItem('bellore_pending_wishlist_tab');
     if (['wish', 'cart', 'recent'].includes(pendingWishlistTab)) {

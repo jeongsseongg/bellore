@@ -189,7 +189,7 @@
     authUser = {
       uid: rawUser.id,
       email: rawUser.email || '',
-      displayName: (profile && profile.display_name) || meta.display_name || (rawUser.email || '').split('@')[0],
+      displayName: (profile && profile.display_name) || meta.display_name || meta.full_name || meta.name || meta.preferred_username || (rawUser.email || '').split('@')[0],
       verifiedName: (profile && profile.verified_name) || '',
       birthDate: (profile && profile.birth_date) || '',
       phone: (profile && profile.phone) || meta.phone || '',
@@ -429,9 +429,13 @@
   };
 
   Backend.signInWithNaver = function () {
-    var error = new Error('NAVER_LOGIN_NOT_CONFIGURED');
-    error.code = 'NAVER_LOGIN_NOT_CONFIGURED';
-    return Promise.reject(error);
+    return sb.auth.signInWithOAuth({
+      provider: 'custom:naver',
+      options: { redirectTo: location.origin + location.pathname }
+    }).then(function (res) {
+      if (res.error) throw res.error;
+      return { displayName: '' };
+    });
   };
 
   // 아이디(username) 사용 가능 여부 — email_for_username RPC 가 이메일을 돌려주면 이미 사용 중.
@@ -2081,6 +2085,7 @@
     var uid = rawUser.id;
     function load() {
       sb.from('orders').select('*').eq('customer_id', uid)
+        .not('paid_at', 'is', null)
         .order('created_at', { ascending: false })
         .then(function (res) { cb((res.data || []).map(mapOrder)); });
     }
@@ -2093,13 +2098,15 @@
   Backend.listMyOrders = function () {
     if (!rawUser) return Promise.resolve([]);
     return sb.from('orders').select('*').eq('customer_id', rawUser.id)
+      .not('paid_at', 'is', null)
       .order('created_at', { ascending: false })
       .then(function (res) { return (res.data || []).map(mapOrder); });
   };
 
   // 주문 1건 조회(주문번호) — 상세 페이지/타임라인용
   Backend.getOrder = function (orderNo) {
-    return sb.from('orders').select('*').eq('order_no', orderNo).single()
+    return sb.from('orders').select('*').eq('order_no', orderNo)
+      .not('paid_at', 'is', null).single()
       .then(function (res) { if (res.error) throw res.error; return mapOrder(res.data); });
   };
 
