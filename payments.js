@@ -31,7 +31,7 @@
   function ensureCheckoutPresentation() {
     if (!checkoutPresentationPromise) checkoutPresentationPromise = presentation()
       ? Promise.resolve(presentation())
-      : import('./app/features/checkout/checkout-presentation.js?v=20260828-checkout-methods-v1')
+      : import('./app/features/checkout/checkout-presentation.js?v=20260901-kg-hub-easypay-v1')
         .then(function (module) { checkoutPresentation = module.createCheckoutPresentation(); return checkoutPresentation; })
         .catch(function (error) { console.warn('[Bellore Checkout] presentation unavailable', error?.name || 'unknown'); return null; });
     return checkoutPresentationPromise.then(function (ui) {
@@ -433,6 +433,12 @@
         },
         redirectUrl: location.origin + '/?pay=portone'
       };
+      if (requestChannel.id === 'card') {
+        req.bypass = { inicis_v2: {
+          acceptmethod: ['noeasypay'],
+          P_RESERVED: ['noeasypay=Y']
+        } };
+      }
       if (requestChannel.easyPayProvider) req.easyPay = { easyPayProvider: requestChannel.easyPayProvider };
       return window.PortOne.requestPayment(req).then(function (resp) {
         paymentFlow().resetButton(payBtn);
