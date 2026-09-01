@@ -248,8 +248,13 @@ const worker = read('sw.js');
 assert.match(payments, /checkoutGeneration \+= 1/);
 assert.match(payments, /requestProduct !== product \|\| requestGeneration !== checkoutGeneration/);
 assert.match(payments, /BELLORE_PENDING_PAYMENT_RECOVERY/);
-assert.match(payments, /order\.recoveryOnly === true[\s\S]*?verifyPayment\(order\.orderNo, null, order\.listingId, order\.checkoutToken, true, true\)/,
+assert.match(payments, /recoveredDifferentCheckout = order\.listingId !== requestProduct\.listingId \|\| serverAmount !== amount/);
+assert.match(payments, /order\.recoveryOnly === true[\s\S]*?verifyPayment\(order\.orderNo, null, order\.listingId, order\.checkoutToken, true, true, recoveredDifferentCheckout\)/,
   '응답 유실 주문은 기존 주문 확인만 해야 합니다.');
+assert.match(payments, /recoveredDifferentCheckout && \(presentation\.kind === 'payment_canceled' \|\| presentation\.kind === 'payment_declined'\)/);
+assert.match(payments, /현재 상품은 결제되지 않았습니다\. 결제하기를 다시 눌러 진행해 주세요\./);
+assert.match(payments, /paymentFlow\(\)\.log\('provider_response', resp\)/,
+  'PortOne SDK가 반환한 공개 오류 코드를 진단 로그에 남겨야 합니다.');
 const recoveryOnlyBranch = payments.slice(payments.indexOf('order && order.recoveryOnly === true'), payments.indexOf("if (!Number.isSafeInteger(serverAmount) || serverAmount !== amount)"));
 assert.doesNotMatch(recoveryOnlyBranch, /PortOne\.requestPayment/, '복구 전용 분기는 결제사 창을 절대 다시 열면 안 됩니다.');
 assert.match(backend, /client\.create\(\{[\s\S]*?request: paymentFetch/);

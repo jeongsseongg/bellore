@@ -102,6 +102,10 @@ const lookupErrorBlock = confirm.match(
 assert.doesNotMatch(lookupErrorBlock, /fail_unsettled_order/);
 const pendingBlock = confirm.match(/if \(statusKind === "pending"\)([\s\S]*?)if \(statusKind !== "paid"\)/)?.[1] || '';
 assert.doesNotMatch(pendingBlock, /fail_unsettled_order/);
+assert.match(pendingBlock, /closeAbandonedReadyCheckout/);
+assert.match(unsettledCancellation, /closeAbandonedReadyCheckout[\s\S]*pendingCheckoutAbandonmentAction/);
+assert.match(unsettledCancellation, /provider_ready_after_checkout_abandonment/);
+assert.match(unsettledCancellation, /\.rpc\("fail_unsettled_order"/);
 const terminalBlock = confirm.match(/if \(statusKind !== "paid"\)([\s\S]*?)if \(paidAmount === null\)/)?.[1] || '';
 assert.match(terminalBlock, /statusKind === "failed"/);
 assert.match(terminalBlock, /fail_unsettled_order/);
