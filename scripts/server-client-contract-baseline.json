@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "zeroReferenceCeiling": 6,
+  "zeroReferenceCeiling": 7,
   "intentionalZeroReferences": [
     {
       "key": "edge:discord-ingest",
@@ -9,6 +9,10 @@
     {
       "key": "edge:payment-webhook",
       "reason": "결제사 서버가 호출하는 외부 webhook이라 브라우저 호출부가 없어야 한다."
+    },
+    {
+      "key": "edge:naver-login-userinfo",
+      "reason": "Supabase Auth 서버가 네이버 access token으로 호출하는 userinfo 변환 경로라 브라우저 호출부가 없어야 한다."
     },
     {
       "key": "edge:reconcile-payments",

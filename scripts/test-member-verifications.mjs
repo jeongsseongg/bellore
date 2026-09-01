@@ -85,8 +85,9 @@ assert.match(client, /accountVersionById/);
 assert.match(client, /VERSION_REQUIRED_REFRESH/);
 assert.match(client, /body\.expectedVersion = expectedVersion/);
 assert.doesNotMatch(client, /phone_verified:\s*true/);
-assert.doesNotMatch(client, /provider:\s*['"]naver['"]/, 'unsupported Supabase Naver provider must never be called');
-assert.match(client, /NAVER_LOGIN_NOT_CONFIGURED/);
+assert.doesNotMatch(client, /provider:\s*['"]naver['"]/, 'Naver must use the configured custom provider identifier');
+assert.match(client, /provider:\s*['"]custom:naver['"]/, 'Naver must use the enabled custom OAuth provider');
+assert.doesNotMatch(client, /NAVER_LOGIN_NOT_CONFIGURED/);
 assert.match(legacyFeatures, /간편인증으로 인증하기/);
 assert.match(legacyFeatures, /B\.verifyIdentityPortone\(\{ agency: 'SMS' \}\)/);
 assert.match(legacyFeatures, /B\.verifyIdentityPortone\(\)/);
@@ -97,6 +98,7 @@ assert.doesNotMatch(legacyFeatures, /B\.verifyPhoneOtp\(/);
 assert.match(legacyFeatures, /completeReturnedIdentity/);
 
 assert.match(config, /\[functions\.verify-identity\]\s+verify_jwt = false/);
+assert.match(config, /\[functions\.naver-login-userinfo\]\s+verify_jwt = false/);
 for (const fn of ['send-phone-otp', 'verify-phone-otp']) {
   assert.match(config, new RegExp(`\\[functions\\.${fn}\\]\\s+verify_jwt = false`));
 }
