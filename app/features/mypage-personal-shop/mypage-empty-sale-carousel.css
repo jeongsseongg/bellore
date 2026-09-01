@@ -13,6 +13,7 @@
 
 #myPageModal .mp-sale-banner__track {
   display: flex;
+  flex-direction: row;
   width: 100%;
   height: 172px;
   transition: transform .45s cubic-bezier(.22, .61, .36, 1);
