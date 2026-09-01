@@ -19,6 +19,7 @@
 9. 통합본이 카카오페이·토스페이 채널을 포함했지만 `supabase-config.js`의 쿼리 키를 이전 릴리스와 동일하게 유지했다. 브라우저의 4시간 HTTP 캐시가 구버전 설정을 재사용해 운영 결제창에는 카드와 NPay만 보였다. 설정 키와 서비스워커 버전을 함께 전진시키고 동일 URL 계약 검사를 추가했다.
 10. 마이페이지 재통합 커밋 `27a25db35a6ad11b427880d548195ee7443b19a6`는 MY 버튼의 서버 인증 검사를 복구했지만, 비로그인 분기에서 현재 주소를 저장하는 기존 `openLoginModal()`을 그대로 호출했다. 루트 `/`에서 MY를 누르면 `return=/`가 되어 로그인 뒤 홈으로 돌아갔다. 카카오·Google 복귀 주소도 저장만 하고 읽지 않아 같은 영향을 받았다.
 11. `.brain/INVARIANTS.json`의 일부 항목은 파일별로 검사되는 문자열을 여러 파일에 한 번에 묶었다. 정상 저장소도 차단하는 잘못된 가드였으며, 마이페이지·선택 런타임 항목을 파일별 선언으로 분리했다.
+12. KG이니시스 한 채널 안에서 제공하는 허브형 간편결제를 카카오페이·토스페이 직접 지정 채널처럼 각각 노출했다. 카드 경로는 `noeasypay`로 간편결제를 숨기고, 간편결제 경로는 공급자 직접 지정 없이 `EASY_PAY` 하나만 요청해야 사용자가 KG 창 안에서 승인된 수단을 선택한다.
 
 ## 복구 원칙
 
@@ -43,11 +44,12 @@
 
 ## 최종 복구 실측
 
-- 운영 웹 코드 기준: `9d209ea1298f568674f56f252eaeeba9a6843fa2`.
-- GitHub Pages 수동 실행 `33138479594`: verify·Truth Guard·build·deploy·publish_required 전부 성공.
-- 공개 서비스워커: `bellore-v366-mypage-login-return`; `Cache-Control: max-age=600, no-cache`; Cloudflare `DYNAMIC`.
+- 운영 웹 코드 기준: `589aa89d05cde9d02de117e4623b909ce5f73049`.
+- GitHub Pages 수동 실행 `33476065890`: verify·Truth Guard·build·deploy·publish_required 전부 성공.
+- 공개 서비스워커: `bellore-v386-kg-hub-easypay`.
 - 운영 루트 MY 클릭: 수정 전 `login.html?return=%2F`, 수정 후 `login.html?returnTo=%2F%3Fview%3Dmypage`; 루트 스크립트 `script.js?v=20260828-mypage-return-v1`.
 - Brain 가드 실측: 승인 불변식 제거 `exit 2`, 무관 편집 `exit 0`, 현재 저장소 검사 `exit 0`.
-- 실제 구매창 DOM: 신용·체크카드 1개, 카카오페이 1개, 토스페이 1개, NPay 1개; 콘솔 오류 0건.
-- 로컬 게이트: 127 pass·8 warning·0 fail, 테스트 88/88, Edge 22/22(Deno 2.9.5).
+- 실제 구매창 DOM: `신용·체크카드` 1개와 `간편결제(카카오페이·토스페이 등)` 1개가 서로 배타적으로 선택된다. 공개 설정의 `easy` 행 1개, 공급자 직접 지정 0개이며 카드 요청에는 PC·모바일 `noeasypay`가 모두 있다.
+- 로컬 게이트: 127 pass·10 warning·0 fail, 테스트 89/89, Edge 22/22(Deno 2.9.5).
+- 실제 승인·청구·취소는 실행하지 않았으며 운영 실결제 종단 검증은 별도 미해결 경계다.
 - 실제 비밀번호 또는 소셜 로그인 완료 뒤 통합 마이페이지 표시 확인은 로그인 자격이 있는 사람 브라우저에서 1회 남았다.
