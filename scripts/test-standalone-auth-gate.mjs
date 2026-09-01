@@ -12,6 +12,9 @@ const root = resolve(import.meta.dirname, '..');
 const AUTH_POLICY = new Map([
   ['pages/mypage.html', 'required'],
   ['pages/orders.html', 'required'],
+  ['pages/saved.html', 'required'],
+  ['pages/recent.html', 'required'],
+  ['pages/support.html', 'required'],
   ['pages/inquiry.html', 'public'],
 ]);
 
@@ -31,6 +34,9 @@ for (const file of await discoverPageHtmlFiles(root)) {
 
 assert.equal(standaloneAuthPolicyFor('mypage'), 'required');
 assert.equal(standaloneAuthPolicyFor('orders'), 'required');
+assert.equal(standaloneAuthPolicyFor('saved'), 'required');
+assert.equal(standaloneAuthPolicyFor('recent'), 'required');
+assert.equal(standaloneAuthPolicyFor('support'), 'required');
 assert.equal(standaloneAuthPolicyFor('inquiry'), 'public');
 assert.match(standaloneLoginUrl({ pathname: '/pages/orders', search: '?status=paid', hash: '' }),
   /^\/login\.html\?returnTo=%2Fpages%2Forders%3Fstatus%3Dpaid$/);
@@ -81,4 +87,4 @@ const dependenciesIndex = runtime.indexOf('for (const dependency of pageDependen
 assert(authIndex >= 0 && redirectIndex > authIndex && dependenciesIndex > redirectIndex,
   '인증 검사는 마이페이지 리다이렉트와 레거시 UI 주입보다 먼저 실행돼야 합니다.');
 
-console.log('standalone auth gate: protected=2 public-exceptions=1 returnTo=2 runtime=3 passed');
+console.log('standalone auth gate: protected=5 public-exceptions=1 returnTo=2 runtime=3 passed');

@@ -7,6 +7,9 @@ const root = resolve(import.meta.dirname, '..');
 const TABBAR_EXCEPTIONS = new Set(['pages/mypage.html']);
 const ACTIVE_TAB = new Map([
   ['pages/orders.html', 'my'],
+  ['pages/saved.html', 'wishlist'],
+  ['pages/recent.html', 'wishlist'],
+  ['pages/support.html', 'my'],
   ['pages/inquiry.html', ''],
 ]);
 
@@ -27,11 +30,11 @@ assert.match(login, /<bellore-tabbar\b[^>]*data-active=["']my["']/i, 'login.html
 assert.match(login, /assets\/icons\/favicon-32\.png/, 'login.html: 실제 존재하는 파비콘을 사용해야 합니다.');
 
 const component = await readFile(resolve(root, 'app/ui/app-tabbar.js'), 'utf8');
-const tabbarAsset = '/app/ui/app-tabbar.js?v=20260831-mypage-pages-loop-v1';
+const tabbarAsset = '/app/ui/app-tabbar.js?v=20260901-account-hub-v1';
 assert.match(component, /\['my', '\/pages\/mypage\/', '마이'/,
   '공통 마이 탭은 앱 셸을 쓰는 정식 마이페이지 주소를 사용해야 합니다.');
 const tabbarScriptUrls = await Promise.all([
-  'login.html', 'pages/orders.html', 'pages/inquiry.html',
+  'login.html', 'pages/orders.html', 'pages/inquiry.html', 'pages/saved.html', 'pages/recent.html', 'pages/support.html',
 ].map(async (file) => {
   const html = await readFile(resolve(root, file), 'utf8');
   return html.match(/src=["'](\/app\/ui\/app-tabbar\.js\?v=[^"']+)["']/i)?.[1] || '';
@@ -58,4 +61,4 @@ assert.match(css, /tab-item\[aria-current=["']page["']\]/, '레거시 페이지 
 const authCss = await readFile(resolve(root, 'app/features/auth-login/auth-login.css'), 'utf8');
 assert.match(authCss, /\.auth-logo img\s*\{[^}]*max-width:\s*100%/s, '320px 로그인 화면에서 로고가 가로 넘침을 만들면 안 됩니다.');
 
-console.log(`standalone tabbar: pages=${pages.length} exceptions=${TABBAR_EXCEPTIONS.size} active=4 safe-area=1 passed`);
+console.log(`standalone tabbar: pages=${pages.length} exceptions=${TABBAR_EXCEPTIONS.size} active=6 safe-area=1 passed`);
