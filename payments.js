@@ -52,8 +52,11 @@
   // 설정에 채워진 채널만 사용하며 테스트 채널은 명시적인 테스트 주소로 제한한다.
   function activeChannels() {
     var allowTest = testPaymentsEnabled();
+    var approvedIds = Array.isArray(PAY.approvedChannelIds) && PAY.approvedChannelIds.length
+      ? PAY.approvedChannelIds : ['card', 'easy'];
     var list = (PAY.channels || []).filter(function (c) {
       if (!(c && c.channelKey && (!c.test || allowTest))) return false;
+      if (approvedIds.indexOf(c.id) === -1) return false;
       // 환불계좌 전달·검증 계약이 준비됐다고 명시하기 전에는 가상계좌를 숨긴다.
       if (c.payMethod === 'VIRTUAL_ACCOUNT' && PAY.virtualAccountRefundReady !== true) return false;
       return true;

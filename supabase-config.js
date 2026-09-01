@@ -66,6 +66,7 @@ window.BELLORE_PAYMENTS = {
     { id: "card", label: "신용·체크카드", hint: "KG이니시스 안전결제", payMethod: "CARD", channelKey: "channel-key-f9693f47-56c9-4732-822d-bace693db3cb" },
     { id: "easy", label: "간편결제", hint: "KG 통합 간편결제", payMethod: "CARD", channelKey: "channel-key-f9693f47-56c9-4732-822d-bace693db3cb", hub: true }
   ],
+  approvedChannelIds: ["card", "easy"],
   // 주문 예약·서버 capability 발급 Edge Function. 브라우저에서 DB RPC를 직접 호출하지 않습니다.
   checkoutUrl: "https://iumsnacuxgssnnbckurq.supabase.co/functions/v1/create-checkout",
   // 결제 검증 Edge Function. 비어 있거나 호출 불가하면 결제를 차단합니다.

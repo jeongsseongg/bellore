@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v400-approved-kg-only";
+const VERSION = "bellore-v401-approved-kg-runtime-guard";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -40,7 +40,7 @@ const SHELL_ASSETS = [
   './pages/recent/index.html',
   './pages/support/index.html',
   './script.js?v=20260902-profile-address-v1',
-  './payments.js?v=20260901-payment-window-routing-v3',
+  './payments.js?v=20260902-approved-kg-only-v1',
   './naverpay.js?v=20260826-naverpay-live-v1',
   './naverpay.js?v=20260831-naverpay-account-test-v1',
   './ui-dialog.js?v=20260826-member-verification-live-v2',
