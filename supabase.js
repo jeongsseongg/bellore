@@ -190,6 +190,8 @@
       uid: rawUser.id,
       email: rawUser.email || '',
       displayName: (profile && profile.display_name) || meta.display_name || (rawUser.email || '').split('@')[0],
+      verifiedName: (profile && profile.verified_name) || '',
+      birthDate: (profile && profile.birth_date) || '',
       phone: (profile && profile.phone) || meta.phone || '',
       postcode: (profile && profile.postcode) || '',
       addr1: (profile && profile.addr1) || '',
@@ -911,6 +913,17 @@
           });
       }
       return upd().then(function () { refreshQuoteFeeds(); });
+    });
+  };
+
+  // 고객: 진행 중인 비교견적 취소. DB 함수가 소유권과 상태를 확인하고
+  // quote_requests를 closed로 전환하면 Telegram 운영 항목도 기존 트리거로 닫힌다.
+  Backend.cancelMyQuote = function (id) {
+    if (!rawUser) return Promise.reject(new Error('NOT_SIGNED_IN'));
+    if (id == null) return Promise.reject(new Error('NO_ID'));
+    return sb.rpc('cancel_my_quote', { p_quote_id: id }).then(rpcOut).then(function (status) {
+      refreshQuoteFeeds();
+      return status;
     });
   };
 

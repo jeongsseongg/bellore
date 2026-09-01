@@ -61,4 +61,10 @@ if (authResult.allowed && page === 'mypage') {
   document.body.dataset.standaloneAuthReady = 'true';
   for (const dependency of pageDependencies) await loadClassicScript(dependency);
   await import('/app/bootstrap.js?v=20260828-complete-site-v1');
+  if (page === 'storage') {
+    const requestedTab = new URLSearchParams(window.location.search).get('tab');
+    const tabName = requestedTab === 'cart' ? 'cart' : 'wish';
+    document.querySelector(`.wish-tab[data-wishtab="${tabName}"]`)?.click();
+  }
+  window.dispatchEvent(new CustomEvent('bellore:standalone-ready', { detail: { page } }));
 }

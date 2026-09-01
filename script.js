@@ -362,12 +362,14 @@
         var ordersPage = $('#orders');
         if (ordersPage && ordersPage.classList.contains('active')) renderOrdersList();
     }
+    var myOrderPreviewOrder = null;
     function renderMyOrderPreview() {
         var inactive = ['delivered', 'confirmed', 'canceled', 'cancelled', 'refunded', 'failed'];
         var activeOrders = (myOrdersCache || []).filter(function (item) {
             return inactive.indexOf(item.status || 'pending') === -1;
         });
         var order = activeOrders.length ? activeOrders[0] : null;
+        myOrderPreviewOrder = order;
         var box = $('#mpOrderPreview');
         var activeBox = $('#mpOrderActive'), emptyBox = $('#mpOrderEmpty');
         var status = $('#mpOrderStatus'), img = $('#mpOrderImage');
@@ -377,6 +379,8 @@
         if (!order) {
             activeBox.hidden = true;
             emptyBox.hidden = false;
+            var emptyCancelButton = $('#mpOrderCancel');
+            if (emptyCancelButton) emptyCancelButton.hidden = true;
             return;
         }
         activeBox.hidden = false;
@@ -386,6 +390,11 @@
         img.src = order.productImage || 'assets/images.jpg';
         name.textContent = order.productName || '주문 상품';
         meta.textContent = [order.orderNo || '', order.courier || '', order.trackingNo || '', order.amount ? fmt(order.amount) + '원' : ''].filter(Boolean).join(' · ');
+        var cancelButton = $('#mpOrderCancel');
+        if (cancelButton) {
+            cancelButton.hidden = ['pending', 'paid', 'inspecting', 'preparing'].indexOf(st) < 0;
+            cancelButton.dataset.orderNo = order.orderNo || '';
+        }
     }
     // realtime 미활성 환경 대비: 취소/확정/반품 후 즉시 목록 재조회(클라 폴백)
     function refreshMyOrders() {
@@ -545,17 +554,7 @@
 
     function openWishlistFromMyPage(view) {
         var target = view === 'cart' || view === 'recent' ? view : 'wish';
-        if (document.body && document.body.dataset.belloreStandalonePage === 'mypage') {
-            try { sessionStorage.setItem('bellore_pending_wishlist_tab', target); } catch (e) {}
-            window.location.assign('/#wishlist');
-            return;
-        }
-        closeMyPage();
-        location.hash = '#wishlist';
-        setTimeout(function () {
-            var tab = document.querySelector('.wish-tab[data-wishtab="' + target + '"]');
-            if (tab) tab.click();
-        }, 80);
+        window.location.assign(target === 'recent' ? '/pages/recent/' : '/pages/storage/?tab=' + encodeURIComponent(target));
     }
     window.BELLORE_openMyPage = openMyPage;
 
@@ -690,12 +689,41 @@
                         if (window.BELLORE_openProfile) window.BELLORE_openProfile('home', 'mypage');
                         return;
                     }
-                    if (act === 'cs') { if (window.CQDemo && window.CQDemo.open) window.CQDemo.open({ screen: 'c-chat' }); return; }
+                    if (act === 'cs') { window.location.assign('/pages/support/'); return; }
                     return;
                 }
                 // 장바구니 전체보기 → 찜/장바구니 페이지 장바구니 탭
                 if (e.target.closest('[data-myact="cart"]')) {
                     openWishlistFromMyPage('cart');
+                    return;
+                }
+                var orderCancel = e.target.closest('#mpOrderCancel');
+                if (orderCancel) {
+                    if (!myOrderPreviewOrder || !NWBackend.requestCancel) return;
+                    bellPrompt('주문을 취소합니다. 사유를 입력해 주세요.', '단순 변심').then(function (reason) {
+                        if (reason === null) return;
+                        orderCancel.disabled = true;
+                        NWBackend.requestCancel(myOrderPreviewOrder.orderNo, reason).then(function (newStatus) {
+                            alert(newStatus === 'canceled' ? '주문이 취소되었습니다.' : '주문취소 요청이 접수되었습니다.');
+                            return refreshMyOrders();
+                        }).catch(function (err) {
+                            alert('주문취소 실패: ' + (err && err.message || err));
+                        }).then(function () { orderCancel.disabled = false; });
+                    });
+                    return;
+                }
+                var quoteCancel = e.target.closest('#mpQuoteCancel');
+                if (quoteCancel) {
+                    if (!myActiveListing || !NWBackend.cancelMyQuote) return;
+                    bellConfirm('진행 중인 비교견적을 취소할까요? 취소하면 업체의 추가 견적을 더 이상 받을 수 없습니다.').then(function (ok) {
+                        if (!ok) return;
+                        quoteCancel.disabled = true;
+                        NWBackend.cancelMyQuote(myActiveListing.id).then(function () {
+                            alert('비교견적이 취소되었습니다. 이후 추가 견적은 접수되지 않습니다.');
+                        }).catch(function (err) {
+                            alert('견적취소 실패: ' + (err && err.message || err));
+                        }).then(function () { quoteCancel.disabled = false; });
+                    });
                     return;
                 }
                 // 장바구니/최근 본 상품 미니카드 → 상세 열기
@@ -722,13 +750,18 @@
                 var u = pUser();
                 pSet('pvName', u.displayName);
                 pSet('pvEmail', u.email);
-                pSet('pvPhone', u.phone ? (u.phone + (u.phoneVerified ? ' ✓' : '')) : '미등록');
+                pSet('pvPhone', u.phone || '미등록');
+                var phoneState = $('#pvPhoneStatus');
+                if (phoneState) {
+                    phoneState.textContent = u.phoneVerified ? '인증' : '미인증';
+                    phoneState.classList.toggle('is-verified', !!u.phoneVerified);
+                }
                 pSet('pvAccount', u.bankAccount ? ((u.bankName || '') + ' ' + u.bankAccount) : '미등록');
                 pSet('pwvPhoneNo', u.phone || '등록된 번호 없음');
                 pSet('pwvEmailAddr', u.email || '');
             }
             var P_TITLE = { home: '회원정보 수정', name: '프로필 수정', email: '이메일 변경', phone: '휴대폰 변경', account: '계좌 변경', pw1: '비밀번호 변경', pw2: '본인인증', pw3: '새 비밀번호' };
-            var P_BTN = { home: '', name: '저장', email: '변경 메일 보내기', phone: '저장', account: '저장', pw1: '다음', pw2: '', pw3: '변경 완료' };
+            var P_BTN = { home: '', name: '저장', email: '변경 메일 보내기', phone: '', account: '저장', pw1: '다음', pw2: '', pw3: '변경 완료' };
             function gotoP(step) {
                 _pStep = step;
                 $$('.prof-step', profPage).forEach(function (s) { s.hidden = s.dataset.pstep !== step; });
@@ -740,7 +773,17 @@
                 var u = pUser();
                 if (step === 'name') { var e1 = $('#pfName'); if (e1) e1.value = u.displayName || ''; if (typeof applyAvatar === 'function') applyAvatar(u.avatarUrl || ''); }
                 else if (step === 'email') { var e2 = $('#pfEmail'); if (e2) e2.value = u.email || ''; }
-                else if (step === 'phone') { var e3 = $('#pfPhone'); if (e3) e3.value = u.phone || ''; var cr = $('#pfPhoneCodeRow'); if (cr) cr.hidden = true; pSet('pfPhoneState', ''); }
+                else if (step === 'phone') {
+                    var e3 = $('#pfPhone'); if (e3) e3.value = u.phone || '';
+                    var cr = $('#pfPhoneCodeRow'); if (cr) cr.hidden = true;
+                    pSet('pfCurrentPhone', u.phone || '미등록');
+                    pSet('pfVerifiedName', u.verifiedName || u.displayName || '미등록');
+                    pSet('pfBirthDate', u.birthDate || '미등록');
+                    pSet('pfPhoneActionTitle', u.phoneVerified ? '휴대폰번호 변경' : '본인인증');
+                    var phoneAction = $('#pfPhoneSend');
+                    if (phoneAction) phoneAction.textContent = u.phoneVerified ? '휴대폰번호 변경' : '본인인증';
+                    pSet('pfPhoneState', '');
+                }
                 else if (step === 'account') { var b = $('#pfBank'), a = $('#pfAccount'), h = $('#pfHolder'); if (b) b.value = u.bankName || ''; if (a) a.value = u.bankAccount || ''; if (h) h.value = u.bankHolder || ''; }
                 else if (step === 'pw1') { var cp = $('#pfCurPw'); if (cp) cp.value = ''; }
                 else if (step === 'pw2') { setPV(); var cr2 = $('#pwvCodeRow'); if (cr2) cr2.hidden = true; pSet('pwvState', ''); _pwOk = false; _pwMethod = null; $$('.prof-pick-opt', profPage).forEach(function (x) { x.classList.remove('on'); }); }
@@ -836,7 +879,10 @@
                 var phone = ($('#pfPhone').value || '').trim(), st = $('#pfPhoneState');
                 if (phone.replace(/[^0-9]/g, '').length < 9) { alert('휴대폰 번호를 정확히 입력하세요.'); return; }
                 if (VP.phone && VP.phone.enabled && NWBackend.verifyIdentityPortone) {
-                    NWBackend.verifyIdentityPortone({ phone: phone }).then(function () { if (st) { st.textContent = '✓ 본인인증 완료'; st.className = 'vrow-state ok'; } }).catch(function (err) { if (st) { st.textContent = window.belloreCustomerMessage(err, 'identity'); st.className = 'vrow-state err'; } });
+                    NWBackend.verifyIdentityPortone({ phone: phone }).then(function () {
+                        setPV(); gotoP('phone');
+                        if (st) { st.textContent = '본인인증과 휴대폰번호 변경이 완료되었습니다.'; st.className = 'vrow-state ok'; }
+                    }).catch(function (err) { if (st) { st.textContent = window.belloreCustomerMessage(err, 'identity'); st.className = 'vrow-state err'; } });
                 } else if (st) { st.textContent = '준비 중 — 번호만 저장됩니다.'; st.className = 'vrow-state'; }
             });
             $('#pfPhoneConfirm').addEventListener('click', function () { var st = $('#pfPhoneState'); if (st) { st.textContent = '서버 본인인증을 먼저 진행해 주세요.'; st.className = 'vrow-state err'; } });
@@ -858,8 +904,6 @@
                     }).catch(fail);
                 } else if (_pStep === 'email') {
                     btn.disabled = true; NWBackend.updateEmail(($('#pfEmail').value || '').trim()).then(function () { btn.disabled = false; alert('확인 메일을 보냈어요. 새 이메일의 링크를 누르면 변경이 완료됩니다.'); gotoP('home'); }).catch(fail);
-                } else if (_pStep === 'phone') {
-                    btn.disabled = true; NWBackend.updatePhoneNumber(($('#pfPhone').value || '').trim()).then(function () { setPV(); alert('휴대폰 번호가 저장되었습니다.'); gotoP('home'); }).catch(fail);
                 } else if (_pStep === 'account') {
                     btn.disabled = true; NWBackend.updateBankAccount({ bank: $('#pfBank').value, account: $('#pfAccount').value, holder: $('#pfHolder').value }).then(function () { setPV(); alert('계좌가 저장되었습니다.'); gotoP('home'); }).catch(fail);
                 } else if (_pStep === 'pw1') {
@@ -948,7 +992,8 @@
         if (settingsPage) {
             function setStep(step) {
                 $$('.set-step', settingsPage).forEach(function (s) { s.hidden = s.dataset.sstep !== step; });
-                var t = $('#setTitle'); if (t) t.textContent = step === 'noti' ? '알림 설정' : '설정';
+                var titles = { home: '설정', noti: '알림 설정', terms: '이용약관', privacy: '개인정보 처리방침' };
+                var t = $('#setTitle'); if (t) t.textContent = titles[step] || '설정';
                 var sc = settingsPage.querySelector('.pp-scroll'); if (sc) sc.scrollTop = 0;
                 settingsPage.dataset.cur = step;
             }
@@ -967,10 +1012,21 @@
             if (btnSettings) btnSettings.addEventListener('click', openSettings);
             var setBack = $('#setBack');
             if (setBack) setBack.addEventListener('click', function () {
-                if (settingsPage.dataset.cur === 'noti') setStep('home');
+                if (settingsPage.dataset.cur !== 'home') setStep('home');
                 else closeSettings();
             });
             settingsPage.addEventListener('click', function (e) {
+                var legal = e.target.closest('[data-legal-open]');
+                if (legal) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    var kind = legal.getAttribute('data-legal-open');
+                    var source = $('#' + (kind === 'terms' ? 'termsModal' : 'privacyModal') + ' .legal-body');
+                    var target = $('#' + (kind === 'terms' ? 'settingsTermsBody' : 'settingsPrivacyBody'));
+                    if (source && target) target.innerHTML = source.outerHTML;
+                    setStep(kind);
+                    return;
+                }
                 var row = e.target.closest('[data-sgo]');
                 if (!row) return;
                 var go = row.getAttribute('data-sgo');
@@ -978,6 +1034,16 @@
                 // 회원정보 수정 / 정산계좌 변경 → 회원정보 페이지 (뒤로 시 설정 복귀)
                 closeSettings();
                 if (window.BELLORE_openProfile) window.BELLORE_openProfile(go === 'account' ? 'account' : 'home', 'settings');
+            });
+            $$('.mp-local-notify', settingsPage).forEach(function (button) {
+                var row = button.closest('[data-notify-key]');
+                var key = row ? row.getAttribute('data-notify-key') : '';
+                try { button.setAttribute('aria-checked', localStorage.getItem('bellore_notify_' + key) === 'false' ? 'false' : 'true'); } catch (e) {}
+                button.addEventListener('click', function () {
+                    var on = button.getAttribute('aria-checked') !== 'true';
+                    button.setAttribute('aria-checked', on ? 'true' : 'false');
+                    try { localStorage.setItem('bellore_notify_' + key, on ? 'true' : 'false'); } catch (e) {}
+                });
             });
         }
 
@@ -1261,19 +1327,23 @@
     var NOTI_LABEL = {
         quote_open: '비교견적', quote_new: '비교견적 등록', bid_new: '입찰 도착', awarded: '입찰 채택', approved: '승인 완료',
         account: '계좌 인증', business: '사업자 인증', listing: '공급 상품', settlement: '공급대금',
-        support_new: '고객센터 문의', support_reply: '고객센터 답변', info: '알림'
+        support_new: '고객센터 문의', support_reply: '고객센터 답변',
+        order_paid: '주문 결제', order_preparing: '주문 처리', order_shipping: '배송 시작', order_delivered: '배송 완료',
+        order_canceled: '주문취소', order_refunded: '환불 완료', info: '알림'
     };
     // 알림 종류별 색상 카테고리(비교견적/판매/고객센터)
     function notiCat(type) {
         if (type === 'quote_open' || type === 'quote_new' || type === 'bid_new' || type === 'awarded' || type === 'approved') return 'quote';
         if (type === 'listing' || type === 'settlement') return 'sale';
         if (type === 'support_new' || type === 'support_reply') return 'support';
+        if (String(type || '').indexOf('order_') === 0) return 'order';
         return 'info';
     }
     // 알림 종류별로 눌렀을 때 이동할 화면
     function notiTarget(type) {
-        if (type === 'quote_open' || type === 'quote_new' || type === 'bid_new' || type === 'awarded' || type === 'approved' ||
-            type === 'support_new' || type === 'support_reply') return 'cq';
+        if (type === 'support_new' || type === 'support_reply') return 'support';
+        if (type === 'quote_open' || type === 'quote_new' || type === 'bid_new' || type === 'awarded' || type === 'approved') return 'cq';
+        if (String(type || '').indexOf('order_') === 0) return 'orders';
         if (type === 'listing') return 'collection';
         if (type === 'settlement') return 'settlement';
         if (type === 'account' || type === 'business') return 'mypage';
@@ -1377,7 +1447,11 @@
         var tgt = notiTarget(type);
         var nm = $('#notiModal'); if (nm) { nm.hidden = true; document.body.style.overflow = ''; }
         var np = $('#notiPage'); if (np && tgt) { np.hidden = true; document.body.style.overflow = ''; }
-        if (tgt === 'cq') {
+        if (tgt === 'support') {
+            window.location.assign('/pages/support/');
+        } else if (tgt === 'orders') {
+            window.location.assign('/pages/orders');
+        } else if (tgt === 'cq') {
             if (window.CQDemo) {
                 // 알림 종류별로 해당 화면으로 바로 이동(딥링크)
                 var opts = null;
@@ -1399,8 +1473,10 @@
             // 정산 알림 → 마이페이지의 내 정산내역으로 스크롤
             var stl = $('#myStlList') || $('#partnerBox');
             if (stl && typeof stl.scrollIntoView === 'function') setTimeout(function () { stl.scrollIntoView({ behavior: 'smooth' }); }, 120);
+        } else if (tgt === 'mypage') {
+            if (type === 'account' && window.BELLORE_openProfile) window.BELLORE_openProfile('account', 'mypage');
+            else if (window.BELLORE_openSettings) window.BELLORE_openSettings();
         }
-        // tgt === 'mypage' 는 알림 모달만 닫으면 마이페이지가 그대로 보임(별도 이동 불필요)
     });
 
     function renderVendorList(vendors) {
@@ -1527,9 +1603,9 @@
         var role = info.isAdmin ? 'admin' : ((info.role === 'vendor' || info.role === 'partner') ? 'vendor' : 'customer');
         if (role === 'customer') { box.innerHTML = ''; box.hidden = true; return; }
         var quoteRow = '<button type="button" class="mp-menu-row mp-role-entry" data-cqd-open data-cqd-screen="v-watches">' +
-            '<span class="mr-label">비교견적 매물 보기</span><span class="mr-sub">고객이 신청한 비교견적 확인</span><span class="mr-arrow">›</span></button>';
+            '<span class="mr-label">비교견적 매물 보기</span><span class="mr-sub">고객이 신청한 비교견적 확인</span></button>';
         var adminRow = '<button type="button" class="mp-menu-row mp-role-entry" data-admin-page-open>' +
-            '<span class="mr-label">관리자 페이지</span><span class="mr-sub">상품·주문·회원·견적 통합 관리</span><span class="mr-arrow">›</span></button>';
+            '<span class="mr-label">관리자 페이지</span><span class="mr-sub">상품·주문·회원·견적 통합 관리</span></button>';
         box.innerHTML = role === 'admin' ? quoteRow + adminRow : quoteRow;
         box.hidden = false;
     }
@@ -4275,14 +4351,19 @@
     };
     function cqShopName(rank) { return '비교견적 업체 ' + String.fromCharCode(65 + (rank % 26)); }
 
+    var myActiveListing = null;
     function renderMyItemsBackend(rows) {
         myListingsCache = rows || [];
         rows = myListingsCache;
 
         var activeStatuses = ['pending', 'open', 'awarded', 'approved'];
+        var now = Date.now();
         var activeListing = rows.filter(function (item) {
-            return activeStatuses.indexOf(item.status || 'pending') !== -1;
+            var status = item.status || 'pending';
+            if (status === 'open' && Number(item.expiresMs || 0) <= now) return false;
+            return activeStatuses.indexOf(status) !== -1;
         })[0];
+        myActiveListing = activeListing || null;
         var saleBox = $('#mpSalePreview');
         if (saleBox) {
             var saleActive = $('#mpSaleActive'), saleEmpty = $('#mpSaleEmpty');
@@ -4298,6 +4379,8 @@
                 if (saleName) saleName.textContent = [activeListing.brand || '시계', activeListing.model || ''].filter(Boolean).join(' ');
                 if (saleMeta) saleMeta.textContent = [activeListing.reference || activeListing.ref || '', '견적 ' + bidCount + '건'].filter(Boolean).join(' · ');
                 if (saleAmount) saleAmount.textContent = activeListing.bidAmount ? fmt(activeListing.bidAmount) + '원' : '견적 확인 중';
+                var quoteCancelButton = $('#mpQuoteCancel');
+                if (quoteCancelButton) quoteCancelButton.hidden = ['pending', 'open'].indexOf(activeListing.status || 'pending') < 0;
                 var progressIndex = activeListing.status === 'pending' ? 0 : (activeListing.status === 'open' ? 1 : 2);
                 $$('#mpSaleProgress li').forEach(function (step, index) { step.classList.toggle('is-active', index <= progressIndex); });
             }

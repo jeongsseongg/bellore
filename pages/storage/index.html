@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko" data-standalone-route-pending>
+<head>
+<meta charset="UTF-8">
+<base href="/">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, follow">
+<title>보관함 | BELLORE</title>
+<link rel="stylesheet" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="stylesheet" href="/styles.css?v=20260901-mypage-final-v4">
+<link rel="stylesheet" href="/wanted-theme.css?v=20260818-pretendard-v1">
+<link rel="stylesheet" href="/app/pages/mypage-subpages.css?v=20260901-mypage-requested-v1">
+<script type="module" src="/app/pages/standalone-route.js?v=20260901-mypage-requested-v1"></script>
+</head>
+<body data-bellore-standalone-page="storage" data-standalone-auth="required">
+<main class="mypage-subpage">
+  <header class="mypage-subpage-header">
+    <a class="mypage-subpage-back" href="/pages/mypage/" aria-label="마이페이지로 돌아가기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></a>
+    <h1>보관함</h1>
+  </header>
+  <section class="mypage-subpage-content page active" id="wishlist" data-page="wishlist">
+    <div class="wish-tabs">
+      <button type="button" class="wish-tab active" data-wishtab="wish">관심상품 <b id="wishCount">0</b></button>
+      <button type="button" class="wish-tab" data-wishtab="cart">장바구니 <b id="cartCount">0</b></button>
+    </div>
+    <div class="wish-panel" id="wishPanelWish">
+      <div class="wish-tool" id="wishTools" hidden><span>보관한 시계</span><span class="wish-tool-actions"><button type="button" class="active" id="wishSortLatest">최신순</button><button type="button" id="wishEdit">편집</button></span></div>
+      <div class="hcard-grid" id="wishGrid"></div>
+      <div class="wish-empty" id="wishEmpty" hidden><strong>보관한 시계가 없습니다</strong><p>관심 있는 시계의 하트를 누르면<br>홈 보관함과 함께 연동됩니다.</p><button type="button" data-nav="collection">시계 둘러보기</button></div>
+    </div>
+    <div class="wish-panel" id="wishPanelCart" hidden>
+      <div class="wish-cart-tools" id="cartTools" hidden><button type="button" id="cartSelectAll"><span class="wish-check"></span><span><b id="cartAllCount">0</b>점 · 전체 선택</span></button><button type="button" id="cartRemoveSelected">선택 삭제</button></div>
+      <div class="wish-cart-list" id="cartGrid"></div>
+      <div class="wish-empty" id="cartEmpty" hidden><strong>장바구니가 비어 있습니다</strong><p>홈에서 담은 상품이 여기에 함께 표시됩니다.</p><button type="button" data-nav="collection">상품 보러가기</button></div>
+      <div class="wish-cart-summary" id="cartSummary" hidden><div><span>상품 금액</span><b id="cartProductTotal">0원</b></div><div class="free"><span>배송비</span><b>무료</b></div><div><span>보유 쿠폰</span><b id="cartCouponCount">0장</b></div><div class="total"><span>결제 예정 금액</span><b id="cartSelectedTotal">0원</b></div><button type="button" id="cartOrderSelected">선택 상품 주문하기</button></div>
+    </div>
+  </section>
+</main>
+<script type="module" src="/app/pages/standalone-page.js?v=20260901-mypage-requested-v1"></script>
+</body>
+</html>

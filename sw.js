@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v390-mypage-final";
+const VERSION = "bellore-v391-mypage-requested";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -9,6 +9,12 @@ const STANDALONE_ROUTE_ASSETS = Object.freeze({
   '/pages/mypage/': './pages/mypage/index.html',
   '/pages/orders': './pages/orders.html',
   '/pages/inquiry': './pages/inquiry.html',
+  '/pages/storage': './pages/storage/index.html',
+  '/pages/storage/': './pages/storage/index.html',
+  '/pages/recent': './pages/recent/index.html',
+  '/pages/recent/': './pages/recent/index.html',
+  '/pages/support': './pages/support/index.html',
+  '/pages/support/': './pages/support/index.html',
 });
 
 /* 오프라인에서도 첫 화면이 뜨도록 미리 캐시할 앱 셸 */
@@ -26,6 +32,12 @@ const SHELL_ASSETS = [
   './app/features/mypage-personal-shop/mypage-shell.css?v=20260901-mypage-final-v5',
   './app/features/mypage-personal-shop/mypage-current-cards.css?v=20260901-mypage-final-v5',
   './app/features/mypage-personal-shop/mypage-navigation.css?v=20260901-mypage-final-v5',
+  './app/features/mypage-personal-shop/mypage-requested-polish.css?v=20260901-mypage-requested-v1',
+  './app/pages/mypage-subpages.css?v=20260901-mypage-requested-v1',
+  './app/pages/support-page.js?v=20260901-mypage-requested-v1',
+  './pages/storage/index.html',
+  './pages/recent/index.html',
+  './pages/support/index.html',
   './script.js?v=20260901-mypage-final-v4',
   './payments.js?v=20260901-payment-outcome-v2',
   './naverpay.js?v=20260826-naverpay-live-v1',

@@ -1,0 +1,203 @@
+/* User-approved 6fa2f88 mypage: scoped corrections only. */
+#myPageModal .mp-account-summary > button {
+  gap: 5px;
+}
+
+#myPageModal .mp-current-heading {
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+#myPageModal .mp-current-heading > strong {
+  color: #151615;
+  font-size: 22px;
+  font-weight: 850;
+  letter-spacing: -.035em;
+}
+
+#myPageModal .mp-order-preview {
+  order: 1;
+}
+
+#myPageModal .mp-sale-preview {
+  order: 2;
+}
+
+body.mypage-open #myPageModal .mp-order-actions,
+#myPageModal .mp-order-actions,
+#myPageModal .mp-sale-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 20px 0 0;
+  border: 0;
+}
+
+body.mypage-open #myPageModal .mp-order-actions button,
+#myPageModal .mp-order-actions button,
+#myPageModal .mp-sale-actions button {
+  min-height: 44px;
+  height: auto;
+  border: 1px solid #dedfdb;
+  border-radius: 10px;
+  background: #fff;
+  color: #333633;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+#myPageModal .mp-order-actions button + button {
+  border-left: 1px solid #dedfdb;
+}
+
+#myPageModal .mp-order-actions button:nth-child(3) {
+  grid-column: 1 / -1;
+}
+
+#myPageModal .mp-action-danger {
+  color: #b53a2d;
+}
+
+#myPageModal .mp-add-quote {
+  width: 100%;
+  min-height: 54px;
+  margin-top: 18px;
+  border: 0;
+  border-top: 1px solid #e5e5e1;
+  background: #fff;
+  color: #173e34;
+  font-size: 14px;
+  font-weight: 850;
+  text-align: left;
+}
+
+#myPageModal .mp-empty-action + .mp-add-quote {
+  margin-top: 0;
+}
+
+#myPageModal .mp-shortcuts,
+#myPageModal .mp-support-list {
+  gap: 12px;
+}
+
+#myPageModal .mp-shortcuts > button,
+#myPageModal .mp-support-list > button {
+  padding-right: 22px;
+  padding-left: 22px;
+}
+
+.noti-page .pp-topbar,
+#settingsPage .pp-topbar,
+#profilePage .pp-topbar {
+  padding-right: 18px;
+  padding-left: 18px;
+}
+
+.noti-page .pp-back,
+#settingsPage .pp-back,
+#profilePage .pp-back {
+  width: 46px;
+  height: 46px;
+  margin-left: -8px;
+}
+
+.noti-page .pp-scroll,
+#settingsPage .pp-scroll,
+#profilePage .pp-scroll {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 18px 22px 42px;
+}
+
+.noti-page .noti-list {
+  gap: 12px;
+}
+
+.noti-page .noti-item {
+  padding: 18px;
+  border-radius: 16px;
+}
+
+.prof-verified {
+  display: inline-flex;
+  margin-left: 5px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #f0f0ee;
+  color: #7b7e7b;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 750;
+  vertical-align: 2px;
+}
+
+.prof-verified.is-verified {
+  background: #e6f1ed;
+  color: #1d5f4e;
+}
+
+.prof-identity-summary {
+  margin: 0 0 24px;
+  overflow: hidden;
+  border: 1px solid #e5e5e1;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.prof-identity-summary div {
+  display: flex;
+  min-height: 52px;
+  padding: 14px 16px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid #ecece8;
+}
+
+.prof-identity-summary div:last-child {
+  border-bottom: 0;
+}
+
+.prof-identity-summary dt {
+  color: #6e726f;
+  font-size: 13px;
+}
+
+.prof-identity-summary dd {
+  margin: 0;
+  color: #161716;
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.prof-phone-action-title {
+  margin: 0 0 12px;
+  color: #171817;
+  font-size: 16px;
+  font-weight: 850;
+}
+
+#settingsPage .set-toggle-row {
+  min-height: 72px;
+  padding: 16px 2px;
+}
+
+#settingsPage .set-legal-page .legal-body {
+  max-height: none;
+  padding: 0;
+  overflow: visible;
+}
+
+#settingsPage .set-legal-page .legal-body h4 {
+  margin-top: 24px;
+}
+
+@media (max-width: 699px) {
+  .noti-page .pp-scroll,
+  #settingsPage .pp-scroll,
+  #profilePage .pp-scroll {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+}

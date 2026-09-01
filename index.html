@@ -82,6 +82,7 @@
     <link rel="stylesheet" href="app/features/checkout/checkout-coupon.css?v=20260826-member-verification-live-v2">
     <link rel="stylesheet" href="app/features/checkout/checkout-order.css?v=20260828-checkout-methods-v1" data-bellore-checkout-order>
     <link rel="stylesheet" href="app/features/mypage-personal-shop/mypage-personal-shop.css?v=20260828-final-integrated-v1">
+    <link rel="stylesheet" href="app/features/mypage-personal-shop/mypage-requested-polish.css?v=20260901-mypage-requested-v1">
     <link rel="stylesheet" href="app/features/sell-method/sell-method.css?v=20260826-sell-motion-v2">
     <link rel="stylesheet" href="app/features/sell-method/sell-service.css?v=20260828-complete-site-v1">
     <link rel="stylesheet" href="app/features/sell-method/sell-quotes.css?v=20260826-sell-guest-access-v1">
@@ -1913,49 +1914,54 @@
                 <button type="button" data-mpmenu="interest"><strong id="mpStatInterest">0</strong><span>내 관심</span></button>
             </section>
 
-            <section class="mp-current-card mp-sale-preview" id="mpSalePreview">
-                <div id="mpSaleActive" hidden>
-                    <div class="mp-current-heading"><span><small>판매 진행중</small><strong>내 시계</strong></span><button type="button" data-sell-service-open="compare">전체보기</button></div>
-                    <button type="button" class="mp-current-main" data-sell-service-open="compare">
-                        <span class="mp-current-thumb"><img id="mpSaleImage" src="assets/images.jpg" alt=""></span>
-                        <span class="mp-current-copy"><span class="mp-current-status" id="mpSaleStatus">진행중</span><strong id="mpSaleName">판매 시계</strong><small id="mpSaleMeta"></small></span>
-                        <span class="mp-current-amount" id="mpSaleAmount">견적 확인 중</span>
-                        <span class="mp-current-arrow" aria-hidden="true">›</span>
-                    </button>
-                    <ol class="mp-sale-progress" id="mpSaleProgress" aria-label="판매 진행 단계">
-                        <li class="is-active">접수 완료</li><li>견적 확인</li><li>판매 방법</li><li>거래 완료</li>
-                    </ol>
-                </div>
-                <button type="button" class="mp-empty-action" id="mpSaleEmpty" data-sell-method-open>
-                    <span><strong>내 시계, 지금 판매하면 얼마일까?</strong><small>비교견적 · 위탁판매 · 즉시매입</small></span><span aria-hidden="true">›</span>
-                </button>
-            </section>
-
             <section class="mp-current-card mp-order-preview" id="mpOrderPreview">
                 <div id="mpOrderActive" hidden>
-                    <div class="mp-current-heading"><span><small>주문 진행중</small><strong>최근 주문</strong></span><button type="button" data-nav="orders">전체보기</button></div>
+                    <div class="mp-current-heading"><strong>최근 주문</strong></div>
                     <div class="mp-order-main" id="mpOrderMain">
                         <span class="mp-order-thumb"><img id="mpOrderImage" src="assets/images.jpg" alt=""></span>
                         <span class="mp-order-copy"><span class="mp-current-status" id="mpOrderStatus">진행중</span><strong id="mpOrderName">주문 상품</strong><small id="mpOrderMeta"></small></span>
                     </div>
                     <div class="mp-order-actions">
                         <button type="button" data-nav="orders">배송 조회</button>
-                        <button type="button" data-nav="orders">주문 내역</button>
+                        <button type="button" data-nav="orders">주문 상세</button>
+                        <button type="button" class="mp-action-danger" id="mpOrderCancel" hidden>주문취소</button>
                     </div>
                 </div>
                 <div class="mp-empty-state" id="mpOrderEmpty"><strong>진행 중인 주문이 없습니다.</strong><small>주문내역에서 이전 거래를 확인할 수 있습니다.</small></div>
+            </section>
+
+            <section class="mp-current-card mp-sale-preview" id="mpSalePreview">
+                <div id="mpSaleActive" hidden>
+                    <div class="mp-current-heading"><strong>판매 진행중</strong></div>
+                    <button type="button" class="mp-current-main" data-sell-service-open="compare">
+                        <span class="mp-current-thumb"><img id="mpSaleImage" src="assets/images.jpg" alt=""></span>
+                        <span class="mp-current-copy"><span class="mp-current-status" id="mpSaleStatus">진행중</span><strong id="mpSaleName">판매 시계</strong><small id="mpSaleMeta"></small></span>
+                        <span class="mp-current-amount" id="mpSaleAmount">견적 확인 중</span>
+                    </button>
+                    <ol class="mp-sale-progress" id="mpSaleProgress" aria-label="판매 진행 단계">
+                        <li class="is-active">접수 완료</li><li>견적 확인</li><li>판매 방법</li><li>거래 완료</li>
+                    </ol>
+                    <div class="mp-sale-actions">
+                        <button type="button" class="mp-action-danger" id="mpQuoteCancel">견적취소</button>
+                        <button type="button" data-sell-service-open="compare">견적 상세</button>
+                    </div>
+                </div>
+                <button type="button" class="mp-empty-action" id="mpSaleEmpty" data-sell-method-open>
+                    <span><strong>내 시계, 지금 판매하면 얼마일까?</strong><small>비교견적 · 위탁판매 · 즉시매입</small></span>
+                </button>
+                <button type="button" class="mp-add-quote" id="mpAddQuote" data-sell-method-open>시계 추가로 견적받기</button>
             </section>
 
             <!-- ===== 역할별 추가 진입점: 업체=비교견적, 관리자=비교견적·관리자 페이지 ===== -->
             <nav class="mp-menu" id="mpMenuList" hidden></nav>
 
             <nav class="mp-shortcuts" aria-label="쇼핑 바로가기">
-                <button type="button" data-mpmenu="cart"><strong>장바구니</strong><span aria-hidden="true">›</span></button>
-                <button type="button" data-mpmenu="recent"><strong>최근 본 상품</strong><span aria-hidden="true">›</span></button>
+                <button type="button" data-mpmenu="cart"><strong>장바구니</strong></button>
+                <button type="button" data-mpmenu="recent"><strong>최근 본 상품</strong></button>
             </nav>
 
             <nav class="mp-support-list" aria-label="마이페이지 도움말">
-                <a href="tel:010-8004-6665"><strong>고객센터</strong><span aria-hidden="true">›</span></a>
+                <button type="button" data-mpmenu="cs"><strong>고객센터</strong></button>
             </nav>
 
             <!-- ===== 서브페이지(원형 진입 시 전체화면 전환) — 평소 숨김 ===== -->
@@ -2544,7 +2550,7 @@
     <!-- 나의 알림 (전체 페이지 · 구구스 스타일) -->
     <div class="cp-page noti-page" id="notiPage" hidden>
         <header class="pp-topbar">
-            <button class="pp-back" type="button" data-noticlose aria-label="뒤로">‹</button>
+            <button class="pp-back fp-back" type="button" data-noticlose aria-label="뒤로"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
             <span class="pp-topbar-title">나의 알림</span>
             <span class="pp-topbar-spacer"></span>
         </header>
@@ -2654,7 +2660,7 @@
                     <span class="prof-row-l">이메일(아이디)</span><span class="prof-row-v" id="pvEmail">-</span><span class="prof-row-a">›</span>
                 </button>
                 <button type="button" class="prof-row" data-pgo="phone">
-                    <span class="prof-row-l">휴대폰</span><span class="prof-row-v" id="pvPhone">-</span><span class="prof-row-a">›</span>
+                    <span class="prof-row-l">휴대폰 <em class="prof-verified" id="pvPhoneStatus">미인증</em></span><span class="prof-row-v" id="pvPhone">-</span><span class="prof-row-a">›</span>
                 </button>
                 <button type="button" class="prof-row" data-pgo="account">
                     <span class="prof-row-l">판매대금·환불 계좌</span><span class="prof-row-v" id="pvAccount">-</span><span class="prof-row-a">›</span>
@@ -2689,11 +2695,17 @@
 
             <!-- 휴대폰 -->
             <section class="prof-step" data-pstep="phone" hidden>
-                <h3 class="prof-q">휴대폰 번호를<br>입력해 주세요.</h3>
+                <h3 class="prof-q">휴대폰 정보를<br>확인해 주세요.</h3>
+                <dl class="prof-identity-summary">
+                    <div><dt>휴대폰</dt><dd id="pfCurrentPhone">-</dd></div>
+                    <div><dt>이름</dt><dd id="pfVerifiedName">-</dd></div>
+                    <div><dt>생년월일</dt><dd id="pfBirthDate">-</dd></div>
+                </dl>
+                <h4 class="prof-phone-action-title" id="pfPhoneActionTitle">휴대폰번호 변경</h4>
                 <div class="vrow">
                     <div class="vrow-input">
                         <input type="tel" id="pfPhone" placeholder="010-0000-0000" autocomplete="tel">
-                        <button type="button" class="vrow-btn" id="pfPhoneSend">본인인증</button>
+                        <button type="button" class="vrow-btn" id="pfPhoneSend">휴대폰번호 변경</button>
                     </div>
                     <div class="vrow-code" id="pfPhoneCodeRow" hidden>
                         <input type="text" id="pfPhoneCode" placeholder="인증번호" inputmode="numeric">
@@ -2783,14 +2795,21 @@
 
             <!-- 알림 설정 -->
             <section class="set-step" data-sstep="noti" hidden>
-                <h3 class="prof-q">알림 설정</h3>
-                <div class="set-toggle-row vendor-only" id="setVendorNotify" hidden>
-                    <div class="set-toggle-meta"><b>새 비교견적 알림</b><em id="vendorVipNote">새 견적이 등록되면 알림을 받습니다.</em></div>
+                <div class="set-toggle-row" data-notify-key="quotes">
+                    <div class="set-toggle-meta"><b>비교견적</b><em>새 견적·입찰·채택·판매 방법 안내</em></div>
                     <button type="button" class="switch" id="btnNotifyQuotes" role="switch" aria-checked="true" aria-label="비교견적 알림"><span class="switch-knob"></span></button>
                     <span id="notifyQuotesState" hidden>켜짐</span>
                 </div>
+                <div class="set-toggle-row" data-notify-key="orders"><div class="set-toggle-meta"><b>주문·배송</b><em>결제·배송·구매확정·취소·환불 안내</em></div><button type="button" class="switch mp-local-notify" role="switch" aria-checked="true" aria-label="주문 배송 알림"><span class="switch-knob"></span></button></div>
+                <div class="set-toggle-row" data-notify-key="sales"><div class="set-toggle-meta"><b>시계 판매·정산</b><em>입고·검수·최종금액·정산 안내</em></div><button type="button" class="switch mp-local-notify" role="switch" aria-checked="true" aria-label="시계 판매 정산 알림"><span class="switch-knob"></span></button></div>
+                <div class="set-toggle-row" data-notify-key="auction"><div class="set-toggle-meta"><b>경매</b><em>입찰·낙찰·마감 안내</em></div><button type="button" class="switch mp-local-notify" role="switch" aria-checked="true" aria-label="경매 알림"><span class="switch-knob"></span></button></div>
+                <div class="set-toggle-row" data-notify-key="collection"><div class="set-toggle-meta"><b>보관함</b><em>재입고·가격 변동·관심 상품 안내</em></div><button type="button" class="switch mp-local-notify" role="switch" aria-checked="true" aria-label="보관함 알림"><span class="switch-knob"></span></button></div>
+                <div class="set-toggle-row" data-notify-key="support"><div class="set-toggle-meta"><b>고객센터</b><em>상담 답변 안내</em></div><button type="button" class="switch mp-local-notify" role="switch" aria-checked="true" aria-label="고객센터 알림"><span class="switch-knob"></span></button></div>
+                <div class="set-toggle-row" data-notify-key="benefits"><div class="set-toggle-meta"><b>혜택·이벤트</b><em>쿠폰·포인트·이벤트 안내</em></div><button type="button" class="switch mp-local-notify" role="switch" aria-checked="true" aria-label="혜택 이벤트 알림"><span class="switch-knob"></span></button></div>
                 <p class="prof-hint">기기 푸시 알림은 브라우저/휴대폰 설정에서 켤 수 있어요.</p>
             </section>
+            <section class="set-step set-legal-page" data-sstep="terms" hidden><div id="settingsTermsBody"></div></section>
+            <section class="set-step set-legal-page" data-sstep="privacy" hidden><div id="settingsPrivacyBody"></div></section>
         </div>
     </div>
 
