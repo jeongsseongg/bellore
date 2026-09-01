@@ -1,5 +1,3 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-
 const NAVER_PROFILE_URL = "https://openapi.naver.com/v1/nid/me";
 const JSON_HEADERS = {
   "Cache-Control": "no-store",
