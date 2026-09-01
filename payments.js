@@ -400,8 +400,7 @@
         });
     createOrder.then(function (order) {
       var serverAmount = Number(order && order.amount);
-      if (order && order.recoveryOnly === true) {
-        var recoveredDifferentCheckout = order.listingId !== requestProduct.listingId || serverAmount !== amount;
+      if (order && order.recoveryOnly === true) { var recoveredDifferentCheckout = order.listingId !== requestProduct.listingId || serverAmount !== amount;
         var pendingRecovery = window.BELLORE_PENDING_PAYMENT_RECOVERY;
         var savedRecovery = pendingRecovery && pendingRecovery.capture ? pendingRecovery.capture(order, null) : null;
         if (!savedRecovery) { paymentFlow().log('recovered_pending_storage', 'PENDING_ORDER_STORAGE_FAILED'); paymentFlow().resetButton(payBtn); verifyPayment(order.orderNo, null, order.listingId, order.checkoutToken, true, true, recoveredDifferentCheckout); return; }
@@ -437,8 +436,7 @@
       if (requestChannel.id === 'card') req.bypass = { inicis_v2: { acceptmethod: ['noeasypay'], P_RESERVED: ['noeasypay=Y'] } };
       return window.PortOne.requestPayment(req).then(function (resp) {
         paymentFlow().resetButton(payBtn);
-        if (resp && resp.code != null) {
-          paymentFlow().log('provider_response', resp);
+        if (resp && resp.code != null) { paymentFlow().log('provider_response', resp);
           // 결제창 응답이 아니라 같은 주문의 서버 조회 결과로만 예약 상태를 바꾼다.
           verifyPayment(order.orderNo, attribution, requestProduct.listingId || null, order.checkoutToken || null, true);
           return;
@@ -463,12 +461,7 @@
       attribution: attribution || null,
       checkoutAbandoned: checkoutAbandoned === true
     }, 3).then(function (res) {
-      var presentation = paymentFlow().confirmationPresentation(res, paymentId, checkoutAbandoned === true);
-      if (recoveryOnly && presentation.kind === 'pending') { presentation.title = '이전 결제 상태 확인 중'; presentation.message = '주문번호 ' + paymentId + '\n이전 결제 상태를 확인하고 있습니다. 다시 결제하지 말고 잠시 후 확인해 주세요.'; }
-      if (recoveredDifferentCheckout && (presentation.kind === 'payment_canceled' || presentation.kind === 'payment_declined')) {
-        presentation.title = '이전 미완료 결제가 종료되었습니다';
-        presentation.message = '현재 상품은 결제되지 않았습니다. 결제하기를 다시 눌러 진행해 주세요.';
-      }
+      var presentation = paymentFlow().recoveredCheckoutPresentation(paymentFlow().confirmationPresentation(res, paymentId, checkoutAbandoned === true), paymentId, recoveryOnly, recoveredDifferentCheckout);
       if (presentation.kind === 'paid') {
         if (window.BelloreAnalytics && window.BelloreAnalytics.purchaseComplete && res.order && res.order.id) window.BelloreAnalytics.purchaseComplete(res.order, res.order.amount, listingId || res.order.listing_id || null);
         if (window.belloreRefreshCoupons) window.belloreRefreshCoupons();
