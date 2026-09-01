@@ -9,6 +9,7 @@ const config = fs.readFileSync(path.join(root, 'supabase-config.js'), 'utf8');
 const payments = fs.readFileSync(path.join(root, 'payments.js'), 'utf8');
 const paymentFlow = fs.readFileSync(path.join(root, 'app/features/checkout/payment-flow.js'), 'utf8');
 const presentation = fs.readFileSync(path.join(root, 'app/features/checkout/checkout-presentation.js'), 'utf8');
+const standalonePage = fs.readFileSync(path.join(root, 'app/pages/standalone-page.js'), 'utf8');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const serviceWorker = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
 
@@ -21,6 +22,8 @@ assert.equal(cardChannel, expectedLiveChannel, 'production card payments must us
 assert.doesNotMatch(config, new RegExp(retiredTestChannel), 'retired PortOne TEST channel must not return to production config');
 assert.ok(configUrl, 'HTML must request the payment config with a release key');
 assert.ok(serviceWorker.includes(`'./${configUrl}'`), 'service worker must precache the exact payment config URL requested by HTML');
+assert.match(standalonePage, /'\/payments\.js\?v=20260902-approved-kg-only-v1'/,
+  'standalone pages must load the guarded payment runtime');
 assert.match(config, /testOnly:\s*true/, 'Naver Pay must remain review-account-only until Naver grants final approval');
 
 for (const [id, payMethod] of [['easy', 'CARD']]) {
@@ -52,4 +55,4 @@ assert.match(presentation, /easy:\s*\{\s*src:\s*'assets\/payment-methods\/easy-p
 assert.match(config, /pointEarnBps:\s*0/,
   'client must not advertise points until an explicit operating policy enables them');
 
-console.log('PortOne live payment channel contract: 20/20 passed');
+console.log('PortOne live payment channel contract: 21/21 passed');
