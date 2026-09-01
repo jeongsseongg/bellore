@@ -751,6 +751,7 @@
                 pSet('pvName', u.displayName);
                 pSet('pvEmail', u.email);
                 pSet('pvPhone', u.phone || '미등록');
+                pSet('pvAddress', [u.addr1 || '', u.addr2 || ''].filter(Boolean).join(' ') || '미등록');
                 var phoneState = $('#pvPhoneStatus');
                 if (phoneState) {
                     phoneState.textContent = u.phoneVerified ? '인증' : '미인증';
@@ -760,8 +761,8 @@
                 pSet('pwvPhoneNo', u.phone || '등록된 번호 없음');
                 pSet('pwvEmailAddr', u.email || '');
             }
-            var P_TITLE = { home: '회원정보 수정', name: '프로필 수정', email: '이메일 변경', phone: '휴대폰 변경', account: '계좌 변경', pw1: '비밀번호 변경', pw2: '본인인증', pw3: '새 비밀번호' };
-            var P_BTN = { home: '', name: '저장', email: '변경 메일 보내기', phone: '', account: '저장', pw1: '다음', pw2: '', pw3: '변경 완료' };
+            var P_TITLE = { home: '회원정보 수정', name: '프로필 수정', email: '이메일 변경', phone: '휴대폰 변경', address: '주소 변경', account: '계좌 변경', pw1: '비밀번호 변경', pw2: '본인인증', pw3: '새 비밀번호' };
+            var P_BTN = { home: '', name: '저장', email: '변경 메일 보내기', phone: '', address: '저장', account: '저장', pw1: '다음', pw2: '', pw3: '변경 완료' };
             function gotoP(step) {
                 _pStep = step;
                 $$('.prof-step', profPage).forEach(function (s) { s.hidden = s.dataset.pstep !== step; });
@@ -783,6 +784,12 @@
                     var phoneAction = $('#pfPhoneSend');
                     if (phoneAction) phoneAction.textContent = u.phoneVerified ? '휴대폰번호 변경' : '본인인증';
                     pSet('pfPhoneState', '');
+                }
+                else if (step === 'address') {
+                    var pc = $('#pfPostcode'), ad1 = $('#pfAddr1'), ad2 = $('#pfAddr2');
+                    if (pc) pc.value = u.postcode || '';
+                    if (ad1) ad1.value = u.addr1 || '';
+                    if (ad2) ad2.value = u.addr2 || '';
                 }
                 else if (step === 'account') { var b = $('#pfBank'), a = $('#pfAccount'), h = $('#pfHolder'); if (b) b.value = u.bankName || ''; if (a) a.value = u.bankAccount || ''; if (h) h.value = u.bankHolder || ''; }
                 else if (step === 'pw1') { var cp = $('#pfCurPw'); if (cp) cp.value = ''; }
@@ -886,6 +893,15 @@
                 } else if (st) { st.textContent = '준비 중 — 번호만 저장됩니다.'; st.className = 'vrow-state'; }
             });
             $('#pfPhoneConfirm').addEventListener('click', function () { var st = $('#pfPhoneState'); if (st) { st.textContent = '서버 본인인증을 먼저 진행해 주세요.'; st.className = 'vrow-state err'; } });
+            $('#pfFindAddress').addEventListener('click', function () {
+                if (!(window.daum && window.daum.Postcode)) { alert('주소 검색을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'); return; }
+                new window.daum.Postcode({ oncomplete: function (data) {
+                    var pc = $('#pfPostcode'), ad1 = $('#pfAddr1'), ad2 = $('#pfAddr2');
+                    if (pc) pc.value = data.zonecode || '';
+                    if (ad1) ad1.value = data.roadAddress || data.jibunAddress || '';
+                    if (ad2) ad2.focus();
+                } }).open();
+            });
             $('#pwvConfirm').addEventListener('click', function () {
                 var code = ($('#pwvCode').value || '').trim(), st = $('#pwvState'), u = pUser();
                 if (_pwMethod === 'email' && NWBackend.verifyEmailOtp) {
@@ -904,6 +920,8 @@
                     }).catch(fail);
                 } else if (_pStep === 'email') {
                     btn.disabled = true; NWBackend.updateEmail(($('#pfEmail').value || '').trim()).then(function () { btn.disabled = false; alert('확인 메일을 보냈어요. 새 이메일의 링크를 누르면 변경이 완료됩니다.'); gotoP('home'); }).catch(fail);
+                } else if (_pStep === 'address') {
+                    btn.disabled = true; NWBackend.updateAddress({ postcode: $('#pfPostcode').value, addr1: $('#pfAddr1').value, addr2: $('#pfAddr2').value }).then(function () { setPV(); alert('주소가 저장되었습니다.'); gotoP('home'); }).catch(fail);
                 } else if (_pStep === 'account') {
                     btn.disabled = true; NWBackend.updateBankAccount({ bank: $('#pfBank').value, account: $('#pfAccount').value, holder: $('#pfHolder').value }).then(function () { setPV(); alert('계좌가 저장되었습니다.'); gotoP('home'); }).catch(fail);
                 } else if (_pStep === 'pw1') {

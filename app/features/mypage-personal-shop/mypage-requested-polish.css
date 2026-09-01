@@ -178,6 +178,24 @@ body.mypage-open #myPageModal .mp-order-actions button,
   font-weight: 850;
 }
 
+.prof-address-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.prof-address-search > button {
+  min-width: 92px;
+  height: 50px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  background: #173e34;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 #settingsPage .set-toggle-row {
   min-height: 72px;
   padding: 16px 2px;

@@ -495,6 +495,21 @@
     });
   };
 
+  Backend.updateAddress = function (data) {
+    if (!rawUser) return Promise.reject(new Error('NOT_LOGGED_IN'));
+    var patch = {
+      postcode: String((data && data.postcode) || '').trim(),
+      addr1: String((data && data.addr1) || '').trim(),
+      addr2: String((data && data.addr2) || '').trim()
+    };
+    if (!patch.postcode || !patch.addr1) return Promise.reject(new Error('주소 찾기로 주소를 입력하세요.'));
+    return sb.from('profiles').update(patch).eq('id', rawUser.id).then(function (r) {
+      if (r.error) throw r.error;
+      if (profile) { profile.postcode = patch.postcode; profile.addr1 = patch.addr1; profile.addr2 = patch.addr2; }
+      return loadProfile().then(notifyAuth, notifyAuth);
+    });
+  };
+
   // 프로필 사진(아바타) 업로드 — photos 버킷 저장 후 profiles.avatar_url + auth 메타 갱신
   Backend.uploadAvatar = function (file) {
     if (!rawUser) return Promise.reject(new Error('NOT_LOGGED_IN'));
