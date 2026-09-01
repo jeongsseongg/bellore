@@ -690,7 +690,7 @@
     }
   }
   // 외부(마이페이지 등)에서 장바구니/찜 데이터 읽기
-  window.BELLOREWishlist = { getCart: getCart, getWish: getWish, refresh: refreshAll };
+  window.BELLOREWishlist = { getCart: getCart, getWish: getWish, getRecent: viewedItems, refresh: refreshAll };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();

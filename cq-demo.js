@@ -1301,7 +1301,7 @@
     var attach = refQ ? '<div class="cq-chat-attach"><span>문의 시계</span>' + chatWatchBox(refQ, true) + '</div>' : '';
     return '<div class="cq-chat">' +
       '<div class="cq-chat-scroll" id="cqChatScroll">' +
-        '<div class="cq-chat-intro">벨로르 고객센터입니다. 비교견적·판매·계정 등 무엇이든 문의해 주세요.<br>평일 11:00~19:00 순차 답변드립니다.</div>' +
+        '<div class="cq-chat-contact"><strong>영업시간 평일 11:00~19:00</strong><br><a href="tel:010-8004-6665">010-8004-6665</a></div><div class="cq-chat-intro">벨로르 고객센터입니다. 비교견적·판매·계정 등 무엇이든 문의해 주세요.</div>' +
         attach +
         chatBubbles(false) +
       '</div>' +

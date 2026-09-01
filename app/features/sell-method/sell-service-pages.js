@@ -1,11 +1,10 @@
 import { createSellGuestAccess } from './sell-guest-access.js?v=20260826-sell-guest-access-v1';
+import { isActiveSellRecord, isExpiredCompare } from './sell-record-status.js?v=20260901-account-hub-v1';
 const STORAGE_KEY = 'bellore-sell-service-records-v1';
 const METHOD_LABEL = { compare: '비교견적', consignment: '위탁판매', instant: '즉시매입' };
-
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
 }
-
 function money(value) {
   const amount = Number(value || 0);
   return amount > 0 ? amount.toLocaleString('ko-KR') + '원' : '금액 검토 중';
@@ -177,6 +176,7 @@ export function initSellServicePages({ document, window, backend }) {
 
   function statusCopy(record) {
     if (record.method === 'compare') {
+      if (isExpiredCompare(record) || record.status === 'closed') return { label: '비교견적 종료', strong: '견적이 종료되었습니다', small: '새 견적은 시계판매에서 다시 신청할 수 있습니다.' };
       const bids = record.bids || [];
       const highest = bids.reduce((max, bid) => Math.max(max, Number(bid.amount || 0)), 0);
       return { label: '비교견적 진행 중', strong: highest ? `최고 ${money(highest)} · ${bids.length}개 견적` : '견적을 기다리고 있어요', small: remaining(record) };
@@ -186,7 +186,7 @@ export function initSellServicePages({ document, window, backend }) {
   }
 
   function renderNotice() {
-    const visible = records.filter((item) => ['compare', 'consignment', 'instant'].includes(item.method));
+    const visible = records.filter(isActiveSellRecord);
     const draftCount = draftResume && !draftResume.hidden ? 1 : 0;
     const noticeCount = visible.length + draftCount;
     badge.hidden = !noticeCount;
@@ -247,7 +247,7 @@ export function initSellServicePages({ document, window, backend }) {
   }
   function serverRecord(record, source) {
     return { ...record, source: source || 'backend', photo: record.photos?.[0] || record.photo || '',
-      expiresAt: record.method === 'compare' ? Date.parse(record.createdAt || Date.now()) + 72 * 3600 * 1000 : null };
+      expiresAt: record.method === 'compare' ? (record.expiresMs || record.expiresAt || Date.parse(record.createdAt || Date.now()) + 72 * 3600 * 1000) : null };
   }
   function openGuestRecord(record, source) {
     const mapped = serverRecord(record, source || 'guest-backend');

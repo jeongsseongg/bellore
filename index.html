@@ -74,6 +74,7 @@
     <link rel="stylesheet" href="app/features/mypage-personal-shop/mypage-shell.css?v=20260901-mypage-final-v5">
     <link rel="stylesheet" href="app/features/mypage-personal-shop/mypage-current-cards.css?v=20260901-mypage-final-v5">
     <link rel="stylesheet" href="app/features/mypage-personal-shop/mypage-navigation.css?v=20260901-mypage-final-v5">
+    <link rel="stylesheet" href="app/features/mypage-account-hub/account-hub.css?v=20260901-account-hub-v1">
     <link rel="stylesheet" href="app/features/home-banners/home-banners.css?v=20260826-hero-layout-v9">
     <link rel="stylesheet" href="app/features/home-rows/home-rows.css?v=20260826-price-bottom-v1">
     <link rel="stylesheet" href="app/features/home-quicklinks/home-quicklinks.css?v=20260826-rounded-corners-v2">
@@ -1841,7 +1842,7 @@
       </div>
     </div>
 
-    <script type="module" src="app/bootstrap.js?v=20260901-mypage-final-v4"></script>
+    <script type="module" src="app/bootstrap.js?v=20260901-account-hub-v1"></script>
     <script type="module" src="app/features/sell-method/sell-method.js?v=20260828-complete-site-v1"></script>
 
     <!-- PWA 설치 모달 -->
@@ -1913,9 +1914,25 @@
                 <button type="button" data-mpmenu="interest"><strong id="mpStatInterest">0</strong><span>내 관심</span></button>
             </section>
 
+            <section class="mp-current-card mp-order-preview" id="mpOrderPreview">
+                <div id="mpOrderActive" hidden>
+                    <div class="mp-current-heading"><strong>최근 주문</strong></div>
+                    <div class="mp-order-main" id="mpOrderMain">
+                        <span class="mp-order-thumb"><img id="mpOrderImage" src="assets/images.jpg" alt=""></span>
+                        <span class="mp-order-copy"><span class="mp-current-status" id="mpOrderStatus">진행중</span><strong id="mpOrderName">주문 상품</strong><small id="mpOrderMeta"></small></span>
+                    </div>
+                    <div class="mp-order-actions">
+                        <button type="button" data-nav="orders">배송 조회</button>
+                        <button type="button" data-nav="orders">주문 내역</button>
+                        <button type="button" class="mp-danger-action" id="mpOrderDelete" hidden>주문 삭제</button>
+                    </div>
+                </div>
+                <div class="mp-empty-state" id="mpOrderEmpty"><strong>진행 중인 주문이 없습니다.</strong><small>주문내역에서 이전 거래를 확인할 수 있습니다.</small></div>
+            </section>
+
             <section class="mp-current-card mp-sale-preview" id="mpSalePreview">
                 <div id="mpSaleActive" hidden>
-                    <div class="mp-current-heading"><span><small>판매 진행중</small><strong>내 시계</strong></span><button type="button" data-sell-service-open="compare">전체보기</button></div>
+                    <div class="mp-current-heading"><strong>판매 진행중</strong></div>
                     <button type="button" class="mp-current-main" data-sell-service-open="compare">
                         <span class="mp-current-thumb"><img id="mpSaleImage" src="assets/images.jpg" alt=""></span>
                         <span class="mp-current-copy"><span class="mp-current-status" id="mpSaleStatus">진행중</span><strong id="mpSaleName">판매 시계</strong><small id="mpSaleMeta"></small></span>
@@ -1925,25 +1942,14 @@
                     <ol class="mp-sale-progress" id="mpSaleProgress" aria-label="판매 진행 단계">
                         <li class="is-active">접수 완료</li><li>견적 확인</li><li>판매 방법</li><li>거래 완료</li>
                     </ol>
+                    <div class="mp-sale-actions">
+                        <button type="button" class="mp-danger-action" id="mpSaleCancel">견적 취소</button>
+                        <button type="button" data-sell-method-open>시계 추가로 견적받기</button>
+                    </div>
                 </div>
                 <button type="button" class="mp-empty-action" id="mpSaleEmpty" data-sell-method-open>
                     <span><strong>내 시계, 지금 판매하면 얼마일까?</strong><small>비교견적 · 위탁판매 · 즉시매입</small></span><span aria-hidden="true">›</span>
                 </button>
-            </section>
-
-            <section class="mp-current-card mp-order-preview" id="mpOrderPreview">
-                <div id="mpOrderActive" hidden>
-                    <div class="mp-current-heading"><span><small>주문 진행중</small><strong>최근 주문</strong></span><button type="button" data-nav="orders">전체보기</button></div>
-                    <div class="mp-order-main" id="mpOrderMain">
-                        <span class="mp-order-thumb"><img id="mpOrderImage" src="assets/images.jpg" alt=""></span>
-                        <span class="mp-order-copy"><span class="mp-current-status" id="mpOrderStatus">진행중</span><strong id="mpOrderName">주문 상품</strong><small id="mpOrderMeta"></small></span>
-                    </div>
-                    <div class="mp-order-actions">
-                        <button type="button" data-nav="orders">배송 조회</button>
-                        <button type="button" data-nav="orders">주문 내역</button>
-                    </div>
-                </div>
-                <div class="mp-empty-state" id="mpOrderEmpty"><strong>진행 중인 주문이 없습니다.</strong><small>주문내역에서 이전 거래를 확인할 수 있습니다.</small></div>
             </section>
 
             <!-- ===== 역할별 추가 진입점: 업체=비교견적, 관리자=비교견적·관리자 페이지 ===== -->
@@ -1955,7 +1961,7 @@
             </nav>
 
             <nav class="mp-support-list" aria-label="마이페이지 도움말">
-                <a href="tel:010-8004-6665"><strong>고객센터</strong><span aria-hidden="true">›</span></a>
+                <a href="/pages/support.html"><strong>고객센터</strong><span aria-hidden="true">›</span></a>
             </nav>
 
             <!-- ===== 서브페이지(원형 진입 시 전체화면 전환) — 평소 숨김 ===== -->
@@ -2544,7 +2550,7 @@
     <!-- 나의 알림 (전체 페이지 · 구구스 스타일) -->
     <div class="cp-page noti-page" id="notiPage" hidden>
         <header class="pp-topbar">
-            <button class="pp-back" type="button" data-noticlose aria-label="뒤로">‹</button>
+            <button class="pp-back fp-back" type="button" data-noticlose aria-label="뒤로"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></button>
             <span class="pp-topbar-title">나의 알림</span>
             <span class="pp-topbar-spacer"></span>
         </header>
@@ -2654,7 +2660,7 @@
                     <span class="prof-row-l">이메일(아이디)</span><span class="prof-row-v" id="pvEmail">-</span><span class="prof-row-a">›</span>
                 </button>
                 <button type="button" class="prof-row" data-pgo="phone">
-                    <span class="prof-row-l">휴대폰</span><span class="prof-row-v" id="pvPhone">-</span><span class="prof-row-a">›</span>
+                    <span class="prof-row-l">휴대폰 <em class="prof-verified" id="pvPhoneVerified" hidden>인증</em></span><span class="prof-row-v" id="pvPhone">-</span><span class="prof-row-a">›</span>
                 </button>
                 <button type="button" class="prof-row" data-pgo="account">
                     <span class="prof-row-l">판매대금·환불 계좌</span><span class="prof-row-v" id="pvAccount">-</span><span class="prof-row-a">›</span>
@@ -2689,18 +2695,14 @@
 
             <!-- 휴대폰 -->
             <section class="prof-step" data-pstep="phone" hidden>
-                <h3 class="prof-q">휴대폰 번호를<br>입력해 주세요.</h3>
-                <div class="vrow">
-                    <div class="vrow-input">
-                        <input type="tel" id="pfPhone" placeholder="010-0000-0000" autocomplete="tel">
-                        <button type="button" class="vrow-btn" id="pfPhoneSend">본인인증</button>
-                    </div>
-                    <div class="vrow-code" id="pfPhoneCodeRow" hidden>
-                        <input type="text" id="pfPhoneCode" placeholder="인증번호" inputmode="numeric">
-                        <button type="button" class="vrow-btn" id="pfPhoneConfirm">확인</button>
-                    </div>
-                    <span class="vrow-state" id="pfPhoneState"></span>
-                </div>
+                <h3 class="prof-q">본인 정보를<br>확인해 주세요.</h3>
+                <dl class="prof-identity-list">
+                    <div><dt>휴대폰</dt><dd id="pfPhoneValue">-</dd></div>
+                    <div><dt>이름</dt><dd id="pfVerifiedName">-</dd></div>
+                    <div><dt>생년월일</dt><dd id="pfBirthDate">-</dd></div>
+                </dl>
+                <button type="button" class="prof-identity-action" id="pfPhoneSend">본인인증</button>
+                <span class="vrow-state" id="pfPhoneState"></span>
             </section>
 
             <!-- 계좌 -->
@@ -2769,10 +2771,10 @@
                     <span class="prof-row-l">알림 설정</span><span class="prof-row-a">›</span>
                 </button>
                 <div class="set-gap"></div>
-                <button type="button" class="prof-row" data-legal-open="terms">
+                <button type="button" class="prof-row" data-sgo="terms">
                     <span class="prof-row-l">이용약관</span><span class="prof-row-a">›</span>
                 </button>
-                <button type="button" class="prof-row" data-legal-open="privacy">
+                <button type="button" class="prof-row" data-sgo="privacy">
                     <span class="prof-row-l">개인정보 처리방침</span><span class="prof-row-a">›</span>
                 </button>
                 <div class="set-gap"></div>
@@ -2784,12 +2786,24 @@
             <!-- 알림 설정 -->
             <section class="set-step" data-sstep="noti" hidden>
                 <h3 class="prof-q">알림 설정</h3>
+                <div class="set-notification-list" id="setNotificationList">
+                    <div class="set-toggle-row" data-notification-category="order"><div class="set-toggle-meta"><b>주문·결제</b><em>승인, 취소, 환불과 결제 상태</em></div><button type="button" class="switch" role="switch" aria-checked="true"><span class="switch-knob"></span></button></div>
+                    <div class="set-toggle-row" data-notification-category="delivery"><div class="set-toggle-meta"><b>배송</b><em>출고, 운송장과 배송 완료</em></div><button type="button" class="switch" role="switch" aria-checked="true"><span class="switch-knob"></span></button></div>
+                    <div class="set-toggle-row" data-notification-category="quote"><div class="set-toggle-meta"><b>비교견적·판매</b><em>승인, 새 견적, 선택과 정산 상태</em></div><button type="button" class="switch" role="switch" aria-checked="true"><span class="switch-knob"></span></button></div>
+                    <div class="set-toggle-row" data-notification-category="support"><div class="set-toggle-meta"><b>고객센터</b><em>문의 답변과 처리 상태</em></div><button type="button" class="switch" role="switch" aria-checked="true"><span class="switch-knob"></span></button></div>
+                    <div class="set-toggle-row" data-notification-category="watch"><div class="set-toggle-meta"><b>관심 시계</b><em>재입고와 가격 변동</em></div><button type="button" class="switch" role="switch" aria-checked="true"><span class="switch-knob"></span></button></div>
+                    <div class="set-toggle-row" data-notification-category="benefit"><div class="set-toggle-meta"><b>혜택·쿠폰</b><em>쿠폰과 회원 혜택 안내</em></div><button type="button" class="switch" role="switch" aria-checked="true"><span class="switch-knob"></span></button></div>
+                </div>
                 <div class="set-toggle-row vendor-only" id="setVendorNotify" hidden>
                     <div class="set-toggle-meta"><b>새 비교견적 알림</b><em id="vendorVipNote">새 견적이 등록되면 알림을 받습니다.</em></div>
                     <button type="button" class="switch" id="btnNotifyQuotes" role="switch" aria-checked="true" aria-label="비교견적 알림"><span class="switch-knob"></span></button>
                     <span id="notifyQuotesState" hidden>켜짐</span>
                 </div>
                 <p class="prof-hint">기기 푸시 알림은 브라우저/휴대폰 설정에서 켤 수 있어요.</p>
+            </section>
+
+            <section class="set-step set-legal-page" data-sstep="legal" hidden>
+                <article id="setLegalContent"></article>
             </section>
         </div>
     </div>
@@ -2969,12 +2983,12 @@
     <script src="analytics-core.js?v=20260810-analytics-v3"></script>
     <script src="analytics-client.js?v=20260826-ai-consent-v1"></script>
     <script src="brands.js"></script>
-    <script src="supabase.js?v=20260828-phone-auth-paths-v1"></script>
+    <script src="supabase.js?v=20260901-account-hub-v1"></script>
     <script src="bellore-features.js?v=20260831-identity-modal-toss-v1"></script>
-    <script src="cq-demo.js?v=20260901-phone-full-v1"></script>
-    <script src="script.js?v=20260901-mypage-final-v4"></script>
+    <script src="cq-demo.js?v=20260901-account-hub-v1"></script>
+    <script src="script.js?v=20260901-account-hub-v1"></script>
     <script src="app/legacy/recommendation-engine.js?v=20260826-member-verification-live-v2"></script>
-    <script src="wishlist.js?v=20260826-member-verification-live-v2"></script>
+    <script src="wishlist.js?v=20260901-account-hub-v1"></script>
     <script src="alerts.js?v=20260820-tabs-alerts-v1"></script>
     <script src="auction.js?v=20260826-member-verification-live-v2"></script>
     <script src="search.js?v=20260826-member-verification-live-v2"></script>

@@ -1,0 +1,123 @@
+.account-page {
+  min-height: 100vh;
+  background: #f6f6f4;
+}
+
+.account-page-shell {
+  width: min(100%, 760px);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding-bottom: 92px;
+  background: #f6f6f4;
+}
+
+.account-page-header {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 52px;
+  min-height: 76px;
+  padding: 10px 20px;
+  align-items: center;
+  border-bottom: 1px solid #e4e5e1;
+  background: #fff;
+}
+
+.account-page-header a {
+  display: grid;
+  width: 50px;
+  height: 50px;
+  place-items: center;
+  border-radius: 15px;
+  color: #171817;
+  font-size: 26px;
+  text-decoration: none;
+}
+
+.account-page-header h1 {
+  margin: 0;
+  font-size: 21px;
+  text-align: center;
+}
+
+.account-page-content {
+  padding: 20px;
+}
+
+.account-product-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.account-product-card {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr) 24px;
+  gap: 14px;
+  padding: 14px;
+  align-items: center;
+  border: 1px solid #e2e3df;
+  border-radius: 16px;
+  background: #fff;
+  color: #171817;
+  text-decoration: none;
+}
+
+.account-product-card img {
+  width: 82px;
+  height: 82px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: #efefed;
+}
+
+.account-product-card strong,
+.account-product-card small {
+  display: block;
+}
+
+.account-product-card small {
+  margin-top: 7px;
+  color: #777b77;
+}
+
+.account-empty {
+  padding: 72px 24px;
+  border: 1px solid #e2e3df;
+  border-radius: 18px;
+  background: #fff;
+  color: #777b77;
+  text-align: center;
+}
+
+.support-page #supportPageMount {
+  min-height: calc(100vh - 92px);
+}
+
+.cqd-overlay.cqd-standalone {
+  position: static;
+  width: 100%;
+  max-width: 760px;
+  height: calc(100vh - 76px);
+  transform: none;
+  box-shadow: none;
+  animation: none;
+}
+
+.cqd-standalone .cqd-bar {
+  display: none;
+}
+
+.cq-chat-contact {
+  padding: 14px 16px;
+  border: 1px solid #dfe5e1;
+  border-radius: 14px;
+  background: #fff;
+  color: #173d33;
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.cq-chat-contact a {
+  color: inherit;
+  font-weight: 850;
+}

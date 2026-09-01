@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v391-coupon-opt-in-order-cancel";
+const VERSION = "bellore-v392-mypage-account-hub";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -8,6 +8,9 @@ const STANDALONE_ROUTE_ASSETS = Object.freeze({
   '/pages/mypage': './pages/mypage/index.html',
   '/pages/mypage/': './pages/mypage/index.html',
   '/pages/orders': './pages/orders.html',
+  '/pages/saved': './pages/saved.html',
+  '/pages/recent': './pages/recent.html',
+  '/pages/support': './pages/support.html',
   '/pages/inquiry': './pages/inquiry.html',
 });
 
@@ -26,7 +29,11 @@ const SHELL_ASSETS = [
   './app/features/mypage-personal-shop/mypage-shell.css?v=20260901-mypage-final-v5',
   './app/features/mypage-personal-shop/mypage-current-cards.css?v=20260901-mypage-final-v5',
   './app/features/mypage-personal-shop/mypage-navigation.css?v=20260901-mypage-final-v5',
-  './script.js?v=20260901-mypage-final-v4',
+  './app/features/mypage-account-hub/account-hub.css?v=20260901-account-hub-v1',
+  './app/features/mypage-account-hub/account-pages.css?v=20260901-account-hub-v1',
+  './app/features/mypage-account-hub/account-pages.js?v=20260901-account-hub-v1',
+  './app/features/mypage-account-hub/account-hub-runtime.js?v=20260901-account-hub-v1',
+  './script.js?v=20260901-account-hub-v1',
   './payments.js?v=20260901-coupon-opt-in-v1',
   './naverpay.js?v=20260826-naverpay-live-v1',
   './naverpay.js?v=20260831-naverpay-account-test-v1',
@@ -35,22 +42,24 @@ const SHELL_ASSETS = [
   './analytics-core.js?v=20260810-analytics-v3',
   './analytics-client.js?v=20260826-ai-consent-v1',
   './brands.js',
+  './supabase.js?v=20260901-account-hub-v1',
   './supabase.js?v=20260828-phone-auth-paths-v1',
   './bellore-features.js?v=20260831-identity-modal-toss-v1',
-  './cq-demo.js?v=20260901-phone-full-v1',
-  './wishlist.js?v=20260826-member-verification-live-v2',
+  './cq-demo.js?v=20260901-account-hub-v1',
+  './wishlist.js?v=20260901-account-hub-v1',
   './alerts.js?v=20260820-tabs-alerts-v1',
   './auction.js?v=20260826-member-verification-live-v2',
   './search.js?v=20260826-member-verification-live-v2',
   './ai-advisor.js?v=20260826-member-verification-live-v2',
   './ai-advisor-admin.js?v=20260826-member-verification-live-v2',
-  './app/bootstrap.js?v=20260901-mypage-final-v4',
-  './app/pages/standalone-auth-gate.mjs?v=20260828-standalone-auth-v1',
+  './app/bootstrap.js?v=20260901-account-hub-v1',
+  './app/pages/standalone-auth-gate.mjs?v=20260901-account-hub-v1',
   './app/pages/standalone-page.css?v=20260831-mypage-app-route-v1',
+  './app/pages/standalone-page.js?v=20260901-account-hub-v1',
   './app/pages/standalone-page.js?v=20260831-mypage-pages-loop-v1',
   './app/pages/standalone-route.js?v=20260831-mypage-pages-loop-v1',
   './app/ui/app-tabbar.css?v=20260828-clean-routes-v4',
-  './app/ui/app-tabbar.js?v=20260831-mypage-pages-loop-v1',
+  './app/ui/app-tabbar.js?v=20260901-account-hub-v1',
   './app/features/mypage-personal-shop/mypage-personal-shop.css?v=20260828-final-integrated-v1',
   './app/features/auth-login/auth-login.css?v=20260827-auth-page-v3',
   './app/features/auth-login/auth-login.js?v=20260828-mypage-return-v1',
@@ -156,6 +165,7 @@ const SHELL_ASSETS = [
   './app/features/sell-method/sell-draft-owner.js?v=20260826-sell-guest-access-v1',
   './app/features/sell-method/sell-guide-preview.js?v=20260826-sell-quotes-v3',
   './app/features/sell-method/sell-reference-controller.js?v=20260826-sell-quotes-v3',
+  './app/features/sell-method/sell-record-status.js?v=20260901-account-hub-v1',
   './app/features/sell-method/sell-quote-controller.js?v=20260826-sell-quotes-v3',
   './app/features/sell-method/sell-service-pages.js?v=20260826-sell-guest-access-v1',
   './app/features/sell-method/sell-guest-access.js?v=20260826-sell-guest-access-v1',

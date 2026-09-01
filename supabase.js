@@ -191,6 +191,8 @@
       email: rawUser.email || '',
       displayName: (profile && profile.display_name) || meta.display_name || (rawUser.email || '').split('@')[0],
       phone: (profile && profile.phone) || meta.phone || '',
+      verifiedName: (profile && profile.verified_name) || '',
+      birthDate: (profile && profile.birth_date) || '',
       postcode: (profile && profile.postcode) || '',
       addr1: (profile && profile.addr1) || '',
       addr2: (profile && profile.addr2) || '',
@@ -772,6 +774,8 @@
     var detail = q.item_detail || '';
     var createdMs = q.created_at ? Date.parse(q.created_at) : Date.now();
     if (isNaN(createdMs)) createdMs = Date.now();
+    var expiresMs = q.quote_expires_at ? Date.parse(q.quote_expires_at) : createdMs + 72 * 3600 * 1000;
+    if (isNaN(expiresMs)) expiresMs = createdMs + 72 * 3600 * 1000;
     return {
       id: q.id, uid: q.customer_id,
       brand: q.item_brand || '', model: q.item_name || '',
@@ -784,7 +788,9 @@
       name: '고객',
       photos: (q.photo_urls && q.photo_urls.length) ? q.photo_urls : (q.photo_url ? [q.photo_url] : []),
       photoCount: (q.photo_urls && q.photo_urls.length) || (q.photo_url ? 1 : 0),
-      status: q.status, awarded_bid: q.awarded_bid,
+      status: ((q.status === 'pending' || q.status === 'open') && expiresMs <= Date.now()) ? 'closed' : q.status,
+      storedStatus: q.status,
+      awarded_bid: q.awarded_bid,
       customerContacted: !!q.customer_contacted,
       vendorContacted: !!q.vendor_contacted,
       tradeCompleted: !!q.trade_completed,
@@ -794,11 +800,11 @@
       viewCount: Number(q.view_count || 0),
       createdAt: tsObj(q.created_at),
       createdAtMs: createdMs,
-      expiresMs: createdMs + 72 * 3600 * 1000
+      expiresMs: expiresMs
     };
   }
 
-  var QUOTE_SELECT = 'id,customer_id,item_name,item_brand,item_ref,item_year,item_grade,item_stamping,item_parts,item_detail,photo_urls,photo_url,status,awarded_bid,customer_contacted,vendor_contacted,trade_completed,followup_updated_at,view_count,created_at';
+  var QUOTE_SELECT = 'id,customer_id,item_name,item_brand,item_ref,item_year,item_grade,item_stamping,item_parts,item_detail,photo_urls,photo_url,status,awarded_bid,customer_contacted,vendor_contacted,trade_completed,followup_updated_at,view_count,created_at,quote_expires_at';
   var BID_SELECT = 'id,quote_request_id,vendor_id,vendor_name,created_by_admin,amount,message,created_at';
 
   function fetchBidsFor(ids, includeAdminContacts) {
@@ -1174,6 +1180,21 @@
     if (!Backend.isAdmin()) return Promise.reject(new Error('NOT_ADMIN'));
     return sb.from('quote_requests').delete().eq('id', id)
       .then(function (res) { if (res.error) throw res.error; refreshQuoteFeeds(); });
+  };
+
+  // 고객 견적 취소: 서버 기록은 삭제하지 않고 진행 가능한 본인 견적만 종료한다.
+  Backend.cancelMyQuote = function (id) {
+    if (!rawUser) return Promise.reject(new Error('NOT_SIGNED_IN'));
+    if (id == null) return Promise.reject(new Error('NO_ID'));
+    return sb.from('quote_requests').update({ status: 'closed' })
+      .eq('id', id).eq('customer_id', rawUser.id).in('status', ['pending', 'open'])
+      .select(QUOTE_SELECT).maybeSingle()
+      .then(function (res) {
+        if (res.error) throw res.error;
+        if (!res.data) throw new Error('CANCEL_NOT_ALLOWED');
+        refreshQuoteFeeds();
+        return mapQuote(res.data, {});
+      });
   };
 
   // 확정 업체 공개용 — 연락처/주소는 제외하고 상호/로고만 (RLS가 막으면 graceful)

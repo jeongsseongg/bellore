@@ -1,12 +1,12 @@
 import {
   enforceStandaloneAuth,
   standaloneAuthPolicyFor,
-} from './standalone-auth-gate.mjs?v=20260828-standalone-auth-v1';
+} from './standalone-auth-gate.mjs?v=20260901-account-hub-v1';
 
 const authDependencies = [
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
   '/supabase-config.js?v=20260901-kg-payment-routes-v2',
-  '/supabase.js?v=20260828-phone-auth-paths-v1',
+  '/supabase.js?v=20260901-account-hub-v1',
 ];
 
 const pageDependencies = [
@@ -15,10 +15,10 @@ const pageDependencies = [
   '/analytics-client.js?v=20260826-ai-consent-v1',
   '/brands.js',
   '/bellore-features.js?v=20260828-phone-auth-paths-v1',
-  '/cq-demo.js?v=20260901-phone-full-v1',
-  '/script.js?v=20260828-final-integrated-v1',
+  '/cq-demo.js?v=20260901-account-hub-v1',
+  '/script.js?v=20260901-account-hub-v1',
   '/app/legacy/recommendation-engine.js?v=20260826-member-verification-live-v2',
-  '/wishlist.js?v=20260826-member-verification-live-v2',
+  '/wishlist.js?v=20260901-account-hub-v1',
   '/alerts.js?v=20260820-tabs-alerts-v1',
   '/auction.js?v=20260826-member-verification-live-v2',
   '/search.js?v=20260826-member-verification-live-v2',
@@ -60,5 +60,10 @@ if (authResult.allowed && page === 'mypage') {
 } else if (authResult.allowed) {
   document.body.dataset.standaloneAuthReady = 'true';
   for (const dependency of pageDependencies) await loadClassicScript(dependency);
-  await import('/app/bootstrap.js?v=20260828-complete-site-v1');
+  await import('/app/bootstrap.js?v=20260901-account-hub-v1');
+  await import('/app/features/mypage-account-hub/account-pages.js?v=20260901-account-hub-v1');
+  if (page === 'orders') {
+    const orderNo = new URLSearchParams(window.location.search).get('order');
+    if (orderNo) window.setTimeout(() => window.BELLORE_openOrderDetail?.(orderNo), 250);
+  }
 }

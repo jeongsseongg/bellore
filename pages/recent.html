@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,follow">
+  <title>최근 본 상품 | BELLORE</title>
+  <link rel="canonical" href="https://bellore.co.kr/pages/recent">
+  <link rel="icon" href="/assets/icons/favicon-32.png">
+  <link rel="stylesheet" href="/styles.css?v=20260901-mypage-final-v4">
+  <link rel="stylesheet" href="/app/features/mypage-account-hub/account-hub.css?v=20260901-account-hub-v1">
+  <link rel="stylesheet" href="/app/features/mypage-account-hub/account-pages.css?v=20260901-account-hub-v1">
+  <link rel="stylesheet" href="/app/ui/app-tabbar.css?v=20260828-clean-routes-v4">
+  <link rel="stylesheet" href="/app/pages/standalone-page.css?v=20260831-mypage-app-route-v1">
+</head>
+<body class="account-page" data-bellore-standalone-page="recent" data-standalone-auth="required">
+  <main class="account-page-shell">
+    <header class="account-page-header"><a href="/pages/mypage/" aria-label="마이페이지로 돌아가기">←</a><h1>최근 본 상품</h1><span></span></header>
+    <section class="account-page-content"><div class="account-product-list" id="accountProductList" aria-live="polite"></div></section>
+  </main>
+  <bellore-tabbar data-active="wishlist"></bellore-tabbar>
+  <script type="module" src="/app/ui/app-tabbar.js?v=20260901-account-hub-v1"></script>
+  <script type="module" src="/app/pages/standalone-page.js?v=20260901-account-hub-v1"></script>
+</body>
+</html>

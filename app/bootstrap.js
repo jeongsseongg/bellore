@@ -37,6 +37,7 @@ import { initSellServicePages } from './features/sell-method/sell-service-pages.
 import { installSellRequestAccess } from './services/sell/sell-request-access.js?v=20260826-sell-guest-access-v1';
 import { installLegacyMemberVerificationUi } from './legacy/member-verification-ui.js?v=20260826-member-verification-live-v2';
 import { installLegacyMemberVerificationService } from './legacy/member-verification-service.js?v=20260831-kg-sms-identity-v1';
+import { createAccountHubRuntime } from './features/mypage-account-hub/account-hub-runtime.js?v=20260901-account-hub-v1';
 
 installLegacyMemberVerificationUi({ window, document });
 installLegacyMemberVerificationService({ window });
@@ -51,6 +52,7 @@ Object.defineProperty(window, 'BELLORE_LISTING_AVAILABILITY', { configurable: tr
   effective: effectiveListingStatus, get: listingAvailability, isPurchasable: listingIsPurchasable, normalize: normalizeListingStatus,
 }) });
 Object.defineProperty(window, 'BELLORE_LISTING_UI', { configurable: true, value: createListingAvailabilityUi({ document, window }) });
+Object.defineProperty(window, 'BELLORE_ACCOUNT_HUB', { configurable: true, value: createAccountHubRuntime({ windowObject: window, documentObject: document }) });
 Object.defineProperty(window, 'BELLORE_PAYMENT_FLOW', { configurable: true, value: createPaymentFlow({ window }) });
 Object.defineProperty(window, 'BELLORE_CHECKOUT_REQUEST_RECOVERY', { configurable: true, value: createCheckoutRequestRecovery({
   cryptoApi: window.crypto,

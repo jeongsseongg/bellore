@@ -1,6 +1,9 @@
 export const STANDALONE_AUTH_POLICY = Object.freeze({
   mypage: 'required',
   orders: 'required',
+  saved: 'required',
+  recent: 'required',
+  support: 'required',
   inquiry: 'public',
 });
 
