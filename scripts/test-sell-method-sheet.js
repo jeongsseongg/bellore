@@ -110,7 +110,8 @@ assert.match(quoteJs, /방문거래[\s\S]*택배거래[\s\S]*퀵거래/, 'a cust
 assert.doesNotMatch(script, /act:\s*'quotes',\s*label:\s*'내 비교견적'/, 'customer My Page has no role-specific comparison menu');
 assert.match(html, /id="mpSaleEmpty"[^>]*data-sell-method-open/, 'the empty customer sale card opens the sell method sheet');
 assert.equal((html.match(/mp-sale-banner__slide mp-sale-banner__slide--/g) || []).length, 5, 'the empty sale state has five photo banners');
-assert.match(emptySaleCarouselCss, /\.mp-sale-banner__track[\s\S]*?flex-direction:\s*row[\s\S]*?transition:\s*transform/, 'the empty sale banner uses a swipeable horizontal full-width track');
+assert.match(emptySaleCarouselCss, /:is\(#myPageModal, body\.mypage-open\) \.mp-sale-banner/, 'carousel styles cover modal and standalone My Page shells');
+assert.match(emptySaleCarouselCss, /\.mp-empty-action\s*>\s*span\.mp-sale-banner__track:first-child[\s\S]*?flex-direction:\s*row[\s\S]*?justify-content:\s*flex-start[\s\S]*?gap:\s*0[\s\S]*?transition:\s*transform/, 'the empty sale banner overrides the existing centered first-child stack with a horizontal track');
 assert.doesNotMatch(html, /mp-sale-banner__cta|견적 받아보기/, 'the empty sale banner has no nested CTA box');
 assert.match(requestedActionsJs, /setInterval\([\s\S]*?5000/, 'the empty sale banner rotates every five seconds');
 assert.match(requestedActionsJs, /pointerdown[\s\S]*?pointerup[\s\S]*?Math\.abs\(distance\)\s*<\s*32/, 'the empty sale banner supports horizontal swipe');

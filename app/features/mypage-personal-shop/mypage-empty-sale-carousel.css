@@ -1,4 +1,4 @@
-#myPageModal .mp-sale-banner {
+:is(#myPageModal, body.mypage-open) .mp-sale-banner {
   position: relative;
   display: block;
   min-height: 172px;
@@ -11,15 +11,18 @@
   touch-action: pan-y;
 }
 
-#myPageModal .mp-sale-banner__track {
+:is(#myPageModal, body.mypage-open) .mp-empty-action > span.mp-sale-banner__track:first-child {
   display: flex;
   flex-direction: row;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
   width: 100%;
   height: 172px;
   transition: transform .45s cubic-bezier(.22, .61, .36, 1);
 }
 
-#myPageModal .mp-sale-banner__slide {
+:is(#myPageModal, body.mypage-open) .mp-sale-banner__slide {
   position: relative;
   display: grid;
   width: 100%;
@@ -31,13 +34,13 @@
   text-align: left;
 }
 
-#myPageModal .mp-sale-banner__slide--mint { background: linear-gradient(125deg, #dcebe5, #edf4f1); color: #173e34; }
-#myPageModal .mp-sale-banner__slide--blue { background: linear-gradient(125deg, #dfe9f7, #eef3fa); color: #193a63; }
-#myPageModal .mp-sale-banner__slide--sand { background: linear-gradient(125deg, #eee3d1, #f8f2e8); color: #5b3d20; }
-#myPageModal .mp-sale-banner__slide--charcoal { background: linear-gradient(125deg, #25302d, #45514d); color: #fff; }
-#myPageModal .mp-sale-banner__slide--rose { background: linear-gradient(125deg, #efdddd, #f8eded); color: #613737; }
+:is(#myPageModal, body.mypage-open) .mp-sale-banner__slide--mint { background: linear-gradient(125deg, #dcebe5, #edf4f1); color: #173e34; }
+:is(#myPageModal, body.mypage-open) .mp-sale-banner__slide--blue { background: linear-gradient(125deg, #dfe9f7, #eef3fa); color: #193a63; }
+:is(#myPageModal, body.mypage-open) .mp-sale-banner__slide--sand { background: linear-gradient(125deg, #eee3d1, #f8f2e8); color: #5b3d20; }
+:is(#myPageModal, body.mypage-open) .mp-sale-banner__slide--charcoal { background: linear-gradient(125deg, #25302d, #45514d); color: #fff; }
+:is(#myPageModal, body.mypage-open) .mp-sale-banner__slide--rose { background: linear-gradient(125deg, #efdddd, #f8eded); color: #613737; }
 
-#myPageModal .mp-sale-banner__copy {
+:is(#myPageModal, body.mypage-open) .mp-sale-banner__copy {
   position: relative;
   z-index: 2;
   display: flex;
@@ -48,20 +51,20 @@
   gap: 7px;
 }
 
-#myPageModal .mp-sale-banner__copy small {
+:is(#myPageModal, body.mypage-open) .mp-sale-banner__copy small {
   color: currentColor;
   font-size: 11px;
   font-weight: 800;
   opacity: .72;
 }
 
-#myPageModal .mp-sale-banner__copy strong {
+:is(#myPageModal, body.mypage-open) .mp-sale-banner__copy strong {
   color: currentColor;
   font-size: 19px;
   line-height: 1.35;
 }
 
-#myPageModal .mp-sale-banner__copy > span {
+:is(#myPageModal, body.mypage-open) .mp-sale-banner__copy > span {
   max-width: 210px;
   color: currentColor;
   font-size: 11px;
@@ -69,7 +72,7 @@
   opacity: .72;
 }
 
-#myPageModal .mp-sale-banner__slide > img {
+:is(#myPageModal, body.mypage-open) .mp-sale-banner__slide > img {
   position: absolute;
   top: 8px;
   right: 2px;
@@ -79,7 +82,7 @@
   filter: drop-shadow(0 8px 9px rgba(20, 27, 25, .16));
 }
 
-#myPageModal .mp-sale-banner__dots {
+:is(#myPageModal, body.mypage-open) .mp-sale-banner__dots {
   position: absolute;
   z-index: 3;
   bottom: 13px;
@@ -88,7 +91,7 @@
   gap: 5px;
 }
 
-#myPageModal .mp-sale-banner__dots i {
+:is(#myPageModal, body.mypage-open) .mp-sale-banner__dots i {
   width: 5px;
   height: 5px;
   border-radius: 999px;
@@ -97,20 +100,20 @@
   transition: width .25s ease, opacity .25s ease;
 }
 
-#myPageModal .mp-sale-banner__dots i.is-active {
+:is(#myPageModal, body.mypage-open) .mp-sale-banner__dots i.is-active {
   width: 15px;
   opacity: .8;
 }
 
 @media (max-width: 699px) {
-  #myPageModal .mp-sale-banner,
-  #myPageModal .mp-sale-banner__track {
+  :is(#myPageModal, body.mypage-open) .mp-sale-banner,
+  :is(#myPageModal, body.mypage-open) .mp-sale-banner__track {
     min-height: 158px;
     height: 158px;
   }
 
-  #myPageModal .mp-sale-banner__slide { padding: 20px 14px 27px 18px; }
-  #myPageModal .mp-sale-banner__copy strong { font-size: 16px; }
-  #myPageModal .mp-sale-banner__slide > img { top: 7px; right: -2px; width: 42%; height: 146px; }
-  #myPageModal .mp-sale-banner__dots { bottom: 11px; left: 18px; }
+  :is(#myPageModal, body.mypage-open) .mp-sale-banner__slide { padding: 20px 14px 27px 18px; }
+  :is(#myPageModal, body.mypage-open) .mp-sale-banner__copy strong { font-size: 16px; }
+  :is(#myPageModal, body.mypage-open) .mp-sale-banner__slide > img { top: 7px; right: -2px; width: 42%; height: 146px; }
+  :is(#myPageModal, body.mypage-open) .mp-sale-banner__dots { bottom: 11px; left: 18px; }
 }
