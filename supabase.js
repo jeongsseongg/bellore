@@ -184,17 +184,14 @@
 
   /* ---------------- 인증/프로필 ---------------- */
   function socialIdentityName() {
-    var providers = ['google', 'kakao', 'naver', 'custom:naver'];
     var identities = rawUser && Array.isArray(rawUser.identities) ? rawUser.identities : [];
     for (var i = 0; i < identities.length; i++) {
-      if (providers.indexOf(String(identities[i].provider || '').toLowerCase()) < 0) continue;
       var data = identities[i].identity_data || {};
-      var name = data.full_name || data.name || data.display_name || data.nickname || data.preferred_username;
-      if (name) return String(name).trim();
+      if (['google', 'kakao', 'naver', 'custom:naver'].indexOf(String(identities[i].provider || '').toLowerCase()) >= 0)
+        return String(data.full_name || data.name || data.display_name || data.nickname || data.preferred_username || '').trim();
     }
     return '';
   }
-
   function mapUser() {
     if (!rawUser) { authUser = null; return; }
     var meta = rawUser.user_metadata || {};
