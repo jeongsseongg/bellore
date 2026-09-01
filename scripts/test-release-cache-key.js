@@ -19,6 +19,11 @@ const loginStyleUrl = loginHtml.match(/href="(app\/features\/auth-login\/auth-lo
 const loginScriptUrl = loginHtml.match(/src="(app\/features\/auth-login\/auth-login\.js\?v=[^"]+)"/)?.[1];
 const paymentConfigUrl = html.match(/src="(supabase-config\.js\?v=[^"]+)"/)?.[1];
 const loginPaymentConfigUrl = loginHtml.match(/src="(supabase-config\.js\?v=[^"]+)"/)?.[1];
+const paymentFlowImportUrl = bootstrap.match(/from '(\.\/features\/checkout\/payment-flow\.js\?v=[^']+)'/)?.[1];
+const paymentFlowReleaseKey = paymentFlowImportUrl
+  ? new URL(paymentFlowImportUrl, 'https://bellore.co.kr/app/bootstrap.js').searchParams.get('v')
+  : null;
+assert(paymentFlowReleaseKey, 'payment flow release URL is missing');
 
 const urls = {
   styles: html.match(/<link rel="stylesheet" href="(styles\.css\?v=[^"]+)"/)?.[1],
@@ -87,7 +92,7 @@ for (const asset of [
 ]) {
   const assetKey = asset === 'app/features/home-rows/home-rows.js'
     ? '20260826-home-row-hotfix-v1'
-    : releaseKey;
+    : asset === 'app/features/checkout/payment-flow.js' ? paymentFlowReleaseKey : releaseKey;
   assert(serviceWorker.includes(`'./${asset}?v=${assetKey}'`), `service worker must precache exact ESM release URL: ${asset}`);
 }
 for (const specifier of [
@@ -104,7 +109,7 @@ for (const specifier of [
 ]) {
   const specifierKey = specifier === './features/home-rows/home-rows.js'
     ? '20260826-home-row-hotfix-v1'
-    : releaseKey;
+    : specifier === './features/checkout/payment-flow.js' ? paymentFlowReleaseKey : releaseKey;
   assert(bootstrap.includes(`${specifier}?v=${specifierKey}`), `bootstrap must import exact ESM release URL: ${specifier}`);
 }
 
