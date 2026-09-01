@@ -104,7 +104,8 @@ assert.match(quoteCss, /\.sell-guide__preview--text/, 'reference and year rows d
 assert.match(quoteCss, /\.sell-method__quote-status\s*\{\s*display:\s*none/, 'the old inline quote status card stays hidden');
 assert.match(quoteJs, /data-sell-view="quotes"/, 'quote details stay inside the fixed sell sheet');
 assert.match(quoteJs, /방문거래[\s\S]*택배거래[\s\S]*퀵거래/, 'a customer can select all three requested transaction methods');
-assert.match(script, /act:\s*'quotes',\s*label:\s*'내 비교견적'/, 'customer My Page links back to the sell quote sheet');
+assert.doesNotMatch(script, /act:\s*'quotes',\s*label:\s*'내 비교견적'/, 'customer My Page has no role-specific comparison menu');
+assert.match(html, /id="mpSaleEmpty"[^>]*data-sell-method-open/, 'the empty customer sale card opens the sell method sheet');
 assert.match(quoteJs, /awardBid\(quoteId, bidId,[\s\S]*tradeMethod\)/, 'sale requests persist the selected quote and transaction method');
 assert.match(quoteJs, /seconds[\s\S]*초/, 'active quote countdown includes seconds');
 assert.doesNotMatch(quoteJs, /vendor_name/, 'customer bid cards do not expose vendor names');
