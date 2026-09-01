@@ -253,9 +253,9 @@ assert(confirmCalls.slice(confirmsBeforeRetry)
 assert.equal(elements.prTitle.textContent, '결제가 완료되었습니다');
 assert.equal(listingRefreshes, refreshesBeforeRetry + 1, '결제 완료 뒤 카드 상태를 다시 불러와야 합니다.');
 const parsedDiagnostics = diagnostics.map((entry) => {
-  assert.equal(entry.length, 2);
-  assert.equal(typeof entry[1], 'object');
-  return entry[1];
+  assert.equal(entry.length, 1);
+  assert.match(entry[0], /^\[BELLORE_PAYMENT\] \{/);
+  return JSON.parse(entry[0].slice('[BELLORE_PAYMENT] '.length));
 });
 assert(parsedDiagnostics.filter((entry) => entry.code === 'payment_confirmation_pending').length >= 2);
 assert(parsedDiagnostics.every((entry) => !('message' in entry)), '로그에 오류 원문을 넣으면 안 됩니다.');

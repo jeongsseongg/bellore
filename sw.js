@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v396-unpaid-order-release";
+const VERSION = "bellore-v397-payment-window-routing";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -27,11 +27,11 @@ const SHELL_ASSETS = [
   './app/features/mypage-personal-shop/mypage-current-cards.css?v=20260901-mypage-final-v5',
   './app/features/mypage-personal-shop/mypage-navigation.css?v=20260901-mypage-final-v5',
   './script.js?v=20260901-paid-orders-only-v1',
-  './payments.js?v=20260901-payment-window-v1',
+  './payments.js?v=20260901-payment-window-routing-v2',
   './naverpay.js?v=20260826-naverpay-live-v1',
   './naverpay.js?v=20260831-naverpay-account-test-v1',
   './ui-dialog.js?v=20260826-member-verification-live-v2',
-  './supabase-config.js?v=20260901-payment-window-v1',
+  './supabase-config.js?v=20260901-payment-window-routing-v2',
   './analytics-core.js?v=20260810-analytics-v3',
   './analytics-client.js?v=20260826-ai-consent-v1',
   './brands.js',
@@ -45,7 +45,7 @@ const SHELL_ASSETS = [
   './search.js?v=20260826-member-verification-live-v2',
   './ai-advisor.js?v=20260826-member-verification-live-v2',
   './ai-advisor-admin.js?v=20260826-member-verification-live-v2',
-  './app/bootstrap.js?v=20260901-unpaid-release-v1',
+  './app/bootstrap.js?v=20260901-payment-window-diagnostics-v1',
   './app/pages/standalone-auth-gate.mjs?v=20260828-standalone-auth-v1',
   './app/pages/standalone-page.css?v=20260831-mypage-app-route-v1',
   './app/pages/standalone-page.js?v=20260831-mypage-pages-loop-v1',
@@ -82,7 +82,7 @@ const SHELL_ASSETS = [
   './app/features/condition-guide/condition-guide.js?v=20260826-member-verification-live-v2',
   './app/features/listing-availability/listing-availability-ui.js?v=20260826-member-verification-live-v2',
   './app/features/listing-availability/market-static-status.js?v=20260826-member-verification-live-v2',
-  './app/features/checkout/payment-flow.js?v=20260901-payment-outcome-v2',
+  './app/features/checkout/payment-flow.js?v=20260901-payment-window-diagnostics-v1',
   './app/features/home-rows/home-row-admin.js',
   './app/features/home-layout/home-layout-config.js?v=20260827-home-block-editor-v1',
   './app/features/home-layout/home-layout.js?v=20260827-home-block-editor-v1',
