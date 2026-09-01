@@ -5,7 +5,7 @@ import {
 
 const authDependencies = [
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
-  '/supabase-config.js?v=20260901-kg-payment-routes-v2',
+  '/supabase-config.js?v=20260901-payment-window-v1',
   '/supabase.js?v=20260828-phone-auth-paths-v1',
 ];
 

@@ -202,6 +202,18 @@ assert.equal(elements.prTitle.textContent, '결제가 취소되었습니다');
 assert.doesNotMatch(elements.prDesc.textContent, /payment_|provider_|permission|unauthorized|409/i,
   '취소 안내에 개발자 오류 코드를 노출하면 안 됩니다.');
 assert.equal(listingRefreshes, 1, '서버가 취소를 확인한 뒤 상품 상태를 다시 불러와야 합니다.');
+assert.equal(elements.payResult.dataset.returnToCheckout, 'true');
+elements.prHome.dispatch('click');
+assert.equal(elements.payResult.hidden, true);
+assert.equal(elements.checkoutModal.hidden, false, '결제창 종료 뒤 같은 결제 화면으로 돌아와야 합니다.');
+assert.equal(elements.coName.value, '테스트 구매자');
+assert.equal(elements.coPhone.value, '01012345678');
+assert.equal(elements.coEmail.value, 'buyer@example.com');
+assert.equal(elements.coAgreeTerms.checked, true);
+assert.equal(elements.coAgreePrivacy.checked, true);
+assert.equal(elements.coAgreeOrder.checked, true);
+assert.equal(elements.coPayBtn.disabled, false);
+assert.equal(elements.coPayBtn.textContent, '결제하기');
 
 confirmResponses = [{ ok: false, error: 'payment_canceled', httpStatus: 409 }];
 windowObject.PortOne.requestPayment = () => Promise.resolve({ code: 'FAILURE_TYPE_PG' });
@@ -240,8 +252,13 @@ assert(confirmCalls.slice(confirmsBeforeRetry)
   .every((call) => call.paymentId === 'ORDER-1' && call.checkoutToken === 'TOKEN-1'));
 assert.equal(elements.prTitle.textContent, '결제가 완료되었습니다');
 assert.equal(listingRefreshes, refreshesBeforeRetry + 1, '결제 완료 뒤 카드 상태를 다시 불러와야 합니다.');
-assert(diagnostics.filter((entry) => entry[1]?.code === 'payment_confirmation_pending').length >= 2);
-assert(diagnostics.every((entry) => entry.length === 2 && !('message' in entry[1])), '로그에 오류 원문을 넣으면 안 됩니다.');
+const parsedDiagnostics = diagnostics.map((entry) => {
+  assert.equal(entry.length, 2);
+  assert.equal(typeof entry[1], 'object');
+  return entry[1];
+});
+assert(parsedDiagnostics.filter((entry) => entry.code === 'payment_confirmation_pending').length >= 2);
+assert(parsedDiagnostics.every((entry) => !('message' in entry)), '로그에 오류 원문을 넣으면 안 됩니다.');
 
 couponsAvailable = false;
 listingStatus = 'reserved';
