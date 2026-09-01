@@ -47,7 +47,8 @@ export function initMypageRequestedActions({ document, window, backend }) {
   });
 
   const settings = document.querySelector('#settingsPage');
-  window.BELLORE_openSettingsLegal = (kind) => {
+  document.addEventListener('bellore:settings-legal', (event) => {
+    const kind = event.detail?.kind;
     if (!['terms', 'privacy'].includes(kind)) return;
     const source = document.querySelector(`#${kind === 'terms' ? 'termsModal' : 'privacyModal'} .legal-body`);
     const target = document.querySelector(`#${kind === 'terms' ? 'settingsTermsBody' : 'settingsPrivacyBody'}`);
@@ -57,7 +58,7 @@ export function initMypageRequestedActions({ document, window, backend }) {
     const title = settings.querySelector('#setTitle');
     if (title) title.textContent = kind === 'terms' ? '이용약관' : '개인정보 처리방침';
     settings.querySelector('.pp-scroll')?.scrollTo(0, 0);
-  };
+  });
 
   settings?.querySelectorAll('.mp-local-notify').forEach((button) => {
     const key = button.closest('[data-notify-key]')?.dataset.notifyKey || '';

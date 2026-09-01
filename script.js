@@ -993,7 +993,7 @@
                 var go = row.getAttribute('data-sgo');
                 if (go === 'noti') { setStep('noti'); return; }
                 if (go === 'terms' || go === 'privacy') {
-                    if (window.BELLORE_openSettingsLegal) window.BELLORE_openSettingsLegal(go);
+                    document.dispatchEvent(new CustomEvent('bellore:settings-legal', { detail: { kind: go } }));
                     return;
                 }
                 // 회원정보 수정 / 정산계좌 변경 → 회원정보 페이지 (뒤로 시 설정 복귀)
