@@ -177,11 +177,11 @@
         return;
       }
       sel.disabled = false;
-      sel.innerHTML = myCoupons.map(function (u) {
+      sel.innerHTML = '<option value="">쿠폰을 선택해 주세요</option>' + myCoupons.map(function (u) {
         return '<option value="' + u.id + '">' + escLite(u.coupon.title) + ' (' + couponValTxt(u.coupon) + ')</option>';
-      }).join('') + '<option value="">쿠폰 사용 안 함</option>';
-      sel.value = myCoupons[0].id;
-      setCouponMsg('가장 큰 할인 쿠폰이 자동 적용되었습니다.', true);
+      }).join('');
+      sel.value = '';
+      setCouponMsg('', true);
       if (sec) sec.hidden = false;
       updateAmount();
     }).catch(function (error) {

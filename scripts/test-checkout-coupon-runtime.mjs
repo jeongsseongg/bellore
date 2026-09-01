@@ -160,12 +160,17 @@ elements.coAgreePrivacy.checked = true;
 elements.coAgreeOrder.checked = true;
 
 assert.match(elements.coCouponSelect.innerHTML, /value="coupon-user-1"/, '사용 가능한 쿠폰 option이 실제로 렌더링되어야 합니다.');
-assert.equal(elements.coCouponSelect.value, couponUser.id, '가장 큰 할인 쿠폰이 자동 선택되어야 합니다.');
+assert.equal(elements.coCouponSelect.value, '', '사용자가 고르지 않은 쿠폰을 자동 적용하면 안 됩니다.');
+assert.equal(elements.coTotal.textContent, '1,300원');
+assert.equal(elements.coDiscountRow.hidden, true);
+assert.equal(elements.coCouponClear.hidden, true);
+assert.equal(elements.coCouponClear.disabled, true);
+
+elements.coCouponSelect.value = couponUser.id;
+elements.coCouponSelect.dispatch('change');
 assert.equal(elements.coTotal.textContent, '0원');
 assert.equal(elements.coDiscountRow.hidden, false);
 assert.equal(elements.coCouponClear.hidden, false);
-assert.equal(elements.coCouponClear.disabled, false);
-
 elements.coPayBtn.dispatch('click');
 assert.equal(createOrderCalls.length, 0, '100원 미만 결제는 주문 생성 전에 차단되어야 합니다.');
 assert.match(alerts.at(-1), /선택한 쿠폰을 적용하면/);
