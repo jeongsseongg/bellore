@@ -2053,6 +2053,7 @@
     var uid = rawUser.id;
     function load() {
       sb.from('orders').select('*').eq('customer_id', uid)
+        .not('paid_at', 'is', null)
         .order('created_at', { ascending: false })
         .then(function (res) { cb((res.data || []).map(mapOrder)); });
     }
@@ -2065,13 +2066,15 @@
   Backend.listMyOrders = function () {
     if (!rawUser) return Promise.resolve([]);
     return sb.from('orders').select('*').eq('customer_id', rawUser.id)
+      .not('paid_at', 'is', null)
       .order('created_at', { ascending: false })
       .then(function (res) { return (res.data || []).map(mapOrder); });
   };
 
   // 주문 1건 조회(주문번호) — 상세 페이지/타임라인용
   Backend.getOrder = function (orderNo) {
-    return sb.from('orders').select('*').eq('order_no', orderNo).single()
+    return sb.from('orders').select('*').eq('order_no', orderNo)
+      .not('paid_at', 'is', null).single()
       .then(function (res) { if (res.error) throw res.error; return mapOrder(res.data); });
   };
 

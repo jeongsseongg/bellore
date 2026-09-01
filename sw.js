@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v391-coupon-opt-in-order-cancel";
+const VERSION = "bellore-v392-paid-orders-only";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -35,7 +35,7 @@ const SHELL_ASSETS = [
   './analytics-core.js?v=20260810-analytics-v3',
   './analytics-client.js?v=20260826-ai-consent-v1',
   './brands.js',
-  './supabase.js?v=20260828-phone-auth-paths-v1',
+  './supabase.js?v=20260901-paid-orders-only-v1',
   './bellore-features.js?v=20260831-identity-modal-toss-v1',
   './cq-demo.js?v=20260901-phone-full-v1',
   './wishlist.js?v=20260826-member-verification-live-v2',
