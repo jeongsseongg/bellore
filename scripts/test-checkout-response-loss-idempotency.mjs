@@ -38,7 +38,9 @@ const recoveryOnlyEnd = normalOrderBranch;
 assert(recoveryOnlyStart >= 0 && recoveryOnlyEnd > recoveryOnlyStart);
 assert.doesNotMatch(checkoutUi.slice(recoveryOnlyStart, recoveryOnlyEnd), /PortOne\.requestPayment/,
   'an already-created recovered order must never reopen the payment provider');
-assert.match(checkoutUi.slice(recoveryOnlyStart, recoveryOnlyEnd), /verifyPayment\(order\.orderNo, null, order\.listingId, order\.checkoutToken, true, true\)/,
+assert.match(checkoutUi.slice(recoveryOnlyStart, recoveryOnlyEnd), /recoveredDifferentCheckout = order\.listingId !== requestProduct\.listingId \|\| serverAmount !== amount/,
+  'recovered checkout must identify a different listing or amount before presenting its result');
+assert.match(checkoutUi.slice(recoveryOnlyStart, recoveryOnlyEnd), /verifyPayment\(order\.orderNo, null, order\.listingId, order\.checkoutToken, true, true, recoveredDifferentCheckout\)/,
   'an already-created recovered order must only be verified on the server');
 assert.match(checkoutUi, /catch \(e\) \{[\s\S]{0,240}verifyPayment\(order\.orderNo,[\s\S]{0,160}order\.checkoutToken \|\| null, true\); return;/,
   'pending storage failure must close the same order before the provider can open');

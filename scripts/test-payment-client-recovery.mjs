@@ -242,6 +242,7 @@ assert.equal(writeFailureVerifies.length, 0, '재확인 횟수를 저장하지 �
 assert.match(writeFailureResults[0][2], /다시 결제하지 말고/);
 
 const payments = read('payments.js');
+const paymentFlow = read('app/features/checkout/payment-flow.js');
 const backend = read('supabase.js');
 const checkoutClientSource = read('app/services/payments/checkout-client.js');
 const worker = read('sw.js');
@@ -251,8 +252,8 @@ assert.match(payments, /BELLORE_PENDING_PAYMENT_RECOVERY/);
 assert.match(payments, /recoveredDifferentCheckout = order\.listingId !== requestProduct\.listingId \|\| serverAmount !== amount/);
 assert.match(payments, /order\.recoveryOnly === true[\s\S]*?verifyPayment\(order\.orderNo, null, order\.listingId, order\.checkoutToken, true, true, recoveredDifferentCheckout\)/,
   '응답 유실 주문은 기존 주문 확인만 해야 합니다.');
-assert.match(payments, /recoveredDifferentCheckout && \(presentation\.kind === 'payment_canceled' \|\| presentation\.kind === 'payment_declined'\)/);
-assert.match(payments, /현재 상품은 결제되지 않았습니다\. 결제하기를 다시 눌러 진행해 주세요\./);
+assert.match(paymentFlow, /differentCheckout && \['payment_canceled', 'payment_declined'\]\.includes\(presentation\.kind\)/);
+assert.match(paymentFlow, /현재 상품은 결제되지 않았습니다\. 결제하기를 다시 눌러 진행해 주세요\./);
 assert.match(payments, /paymentFlow\(\)\.log\('provider_response', resp\)/,
   'PortOne SDK가 반환한 공개 오류 코드를 진단 로그에 남겨야 합니다.');
 const recoveryOnlyBranch = payments.slice(payments.indexOf('order && order.recoveryOnly === true'), payments.indexOf("if (!Number.isSafeInteger(serverAmount) || serverAmount !== amount)"));
