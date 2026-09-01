@@ -13,7 +13,7 @@ const bootstrap = fs.readFileSync(path.join(root, 'app', 'bootstrap.js'), 'utf8'
 const standalonePage = fs.readFileSync(path.join(root, 'app', 'pages', 'standalone-page.js'), 'utf8');
 const releaseKey = '20260826-member-verification-live-v2';
 const signupStyleKey = '20260828-phone-auth-paths-v1';
-const signupScriptKey = '20260831-identity-provider-source-v1';
+const signupScriptKey = '20260901-pass-identity-return-v1';
 const signupIdentityKey = '20260828-phone-auth-paths-v1';
 const loginStyleUrl = loginHtml.match(/href="(app\/features\/auth-login\/auth-login\.css\?v=[^"]+)"/)?.[1];
 const loginScriptUrl = loginHtml.match(/src="(app\/features\/auth-login\/auth-login\.js\?v=[^"]+)"/)?.[1];
