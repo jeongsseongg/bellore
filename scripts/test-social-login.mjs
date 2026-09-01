@@ -25,6 +25,9 @@ assert.match(loginRuntime, /bellore_social_provider/);
 assert.match(worker, /https:\/\/openapi\.naver\.com\/v1\/nid\/me/);
 assert.match(worker, /headers:\s*\{ Authorization: authorization \}/);
 assert.match(worker, /sub:\s*subject/);
+for (const providerField of ['email', 'phone_number', 'mobile', 'birthyear', 'birthday']) {
+  assert.match(worker, new RegExp(`\\n\\s*${providerField}(?:,|:)`), `Naver ${providerField} must be forwarded when consented`);
+}
 assert.doesNotMatch(worker, /email_verified:\s*true/);
 assert.doesNotMatch(worker, /client_secret|service_role/i);
 assert.match(supabaseConfig, /\[functions\.naver-login-userinfo\]\s*verify_jwt\s*=\s*false/);
@@ -34,4 +37,4 @@ const loginUrl = login.match(/src="(app\/features\/auth-login\/auth-login\.js\?v
 assert(backendUrl && serviceWorker.includes(`'./${backendUrl}'`));
 assert(loginUrl && serviceWorker.includes(`'./${loginUrl}'`));
 
-console.log('social login contracts: 17/17');
+console.log('social login contracts: 22/22');
