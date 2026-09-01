@@ -6,9 +6,11 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (...parts) => fs.readFileSync(path.join(root, ...parts), 'utf8');
 const migration = read('supabase', 'migrations', '20260826172707_harden_member_verifications.sql');
+const identityMigration = read('supabase', 'migrations', '20260901080724_enforce_verified_identity_one_account.sql');
 const lifecycleMigration = read('supabase', 'migrations', '20260826210000_harden_admin_member_lifecycle.sql');
 const config = read('supabase', 'config.toml');
 const identity = read('supabase', 'functions', 'verify-identity', 'index.ts');
+const completeSignup = read('supabase', 'functions', 'complete-otp-signup', 'index.ts');
 const business = read('supabase', 'functions', 'verify-business', 'index.ts');
 const account = read('supabase', 'functions', 'verify-account', 'index.ts');
 const accountMigration = read('supabase', 'migrations', '20260826121009_kftc_account_verification.sql');
@@ -38,6 +40,16 @@ assert.match(migration, /new\.phone is distinct from old\.phone/);
 assert.match(migration, /new\.business_no/);
 assert.match(migration, /new\.bank_account/);
 assert.match(migration, /grant execute on function public\.finalize_member_verification[\s\S]*to service_role/);
+assert.match(identityMigration, /create table if not exists public\.member_verified_identities/);
+assert.match(identityMigration, /identity_di_hash text not null unique/);
+assert.match(identityMigration, /revoke all on table public\.member_verified_identities from public, anon, authenticated/);
+assert.match(identityMigration, /create unique index if not exists profiles_verified_phone_uidx/);
+assert.match(identityMigration, /new\.verified_name := old\.verified_name/);
+assert.match(identityMigration, /new\.birth_date := old\.birth_date/);
+assert.match(identityMigration, /message = 'IDENTITY_ALREADY_REGISTERED'/);
+assert.match(identityMigration, /message = 'ACCOUNT_IDENTITY_MISMATCH'/);
+assert.doesNotMatch(identityMigration, /\bci\b\s+(?:text|varchar)|\bdi\b\s+(?:text|varchar)/i,
+  'raw CI or DI columns must never be created');
 assert.match(lifecycleMigration, /new\.suspended := old\.suspended/);
 assert.match(lifecycleMigration, /new\.approved := old\.approved/);
 assert.match(lifecycleMigration, /coalesce\(auth\.role\(\), ''\) = 'service_role'/);
@@ -97,8 +109,16 @@ assert.match(identity, /validatePortOneIdentity/);
 assert.match(identity, /finalize_member_verification/);
 assert.match(identity, /member_signup_phone_tickets/);
 assert.match(identity, /signupTicket/);
+assert.match(identity, /portone-identity-di-v1/);
+assert.match(identity, /identity_di_hash: identityDiHash/);
+assert.match(identity, /IDENTITY_ALREADY_REGISTERED/);
 assert.doesNotMatch(identity, /ci\s*:/i, 'CI must not be persisted');
 assert.doesNotMatch(identity, /di\s*:/i, 'DI must not be persisted');
+assert.match(completeSignup, /from\("member_verified_identities"\)/);
+assert.match(completeSignup, /display_name: verifiedName, verified_name: verifiedName/);
+assert.match(completeSignup, /birth_date: birthDate, phone: identityPhone/);
+assert.doesNotMatch(completeSignup, /display_name:\s*displayName/,
+  'signup must not persist the client-submitted name');
 
 assert.match(business, /ntsBusinessResult\(nts\)\.valid/);
 assert.doesNotMatch(business, /valid === true \|\|/);
@@ -204,15 +224,26 @@ assert.equal((await shared.sha256Hex('bellore')).length, 64);
 const verifiedIdentity = {
   status: 'VERIFIED', storeId: 'store-live',
   channel: { key: 'channel-live', type: 'LIVE' },
-  verifiedCustomer: { phoneNumber: '+82 10-1234-5678', ci: 'must-not-be-persisted' },
+  verifiedCustomer: {
+    phoneNumber: '+82 10-1234-5678', name: '홍길동', birthDate: '1990-02-03',
+    di: 'provider-di-value', ci: 'must-not-be-persisted',
+  },
 };
 assert.deepEqual(providers.validatePortOneIdentity(verifiedIdentity, {
   storeId: 'store-live', channelKey: 'channel-live', allowTest: false,
-}), { verified: true, phone: '01012345678', channelType: 'LIVE' });
+}), { verified: true, phone: '01012345678', name: '홍길동', birthDate: '1990-02-03',
+  di: 'provider-di-value', channelType: 'LIVE' });
 assert.deepEqual(providers.validatePortOneIdentity({ ...verifiedIdentity, storeId: undefined }, {
   storeId: 'store-live', channelKey: 'channel-live', allowTest: false,
-}), { verified: true, phone: '01012345678', channelType: 'LIVE' },
+}), { verified: true, phone: '01012345678', name: '홍길동', birthDate: '1990-02-03',
+  di: 'provider-di-value', channelType: 'LIVE' },
 'PortOne V2 identity lookup omits storeId; the verified live channel remains the tenant boundary');
+assert.throws(() => providers.validatePortOneIdentity({
+  ...verifiedIdentity, verifiedCustomer: { ...verifiedIdentity.verifiedCustomer, di: undefined },
+}, { storeId: 'store-live', channelKey: 'channel-live', allowTest: false }), /VERIFIED_IDENTITY_INCOMPLETE/);
+assert.throws(() => providers.validatePortOneIdentity({
+  ...verifiedIdentity, verifiedCustomer: { ...verifiedIdentity.verifiedCustomer, birthDate: '1990-02-31' },
+}, { storeId: 'store-live', channelKey: 'channel-live', allowTest: false }), /VERIFIED_BIRTH_DATE_INVALID/);
 assert.throws(() => providers.validatePortOneIdentity(verifiedIdentity, {
   storeId: 'other-store', channelKey: 'channel-live', allowTest: false,
 }), /STORE_MISMATCH/);
