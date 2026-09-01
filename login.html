@@ -10,7 +10,7 @@
   <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="app/features/auth-signup/auth-signup.css?v=20260828-phone-auth-paths-v1">
-  <link rel="stylesheet" href="app/features/auth-social-completion/auth-social-completion.css?v=20260902-progressive-social-v1">
+  <link rel="stylesheet" href="app/features/auth-social-completion/auth-social-completion.css?v=20260902-social-completion-v2">
   <link rel="stylesheet" href="/app/ui/app-tabbar.css?v=20260828-clean-routes-v4">
 </head>
 <body>
@@ -123,7 +123,7 @@
           <label class="field"><span>이름</span><input type="text" id="socialName" autocomplete="name" placeholder="이름을 입력해 주세요" required></label>
         </section>
         <section class="social-question" id="socialBirthStep" data-social-step="birth" hidden>
-          <label class="field"><span>생년월일</span><input type="date" id="socialBirthDate" autocomplete="bday" required></label>
+          <label class="field social-birth-field"><span>생년월일</span><input type="date" id="socialBirthDate" min="1900-01-01" autocomplete="bday" required></label>
         </section>
         <section class="social-question" id="socialAddressStep" data-social-step="address" hidden>
           <div class="field"><span>주소</span><div class="field-action"><input type="text" id="socialPostcode" placeholder="우편번호" readonly required><button type="button" id="socialFindAddr">주소 찾기</button></div><input type="text" id="socialAddr1" placeholder="기본 주소" readonly required><input type="text" id="socialAddr2" placeholder="상세 주소" autocomplete="address-line2"></div>
@@ -152,6 +152,6 @@
   <script src="supabase.js?v=20260901-social-login-v1"></script>
   <script type="module" src="app/features/auth-login/auth-login.js?v=20260901-social-login-v1"></script>
   <script type="module" src="app/features/auth-signup/auth-signup.js?v=20260901-pass-identity-return-v1"></script>
-  <script type="module" src="app/features/auth-social-completion/auth-social-completion.js?v=20260902-progressive-social-v1"></script>
+  <script type="module" src="app/features/auth-social-completion/auth-social-completion.js?v=20260902-social-completion-v2"></script>
 </body>
 </html>

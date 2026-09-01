@@ -3,6 +3,9 @@
 .social-linked { display: grid; gap: 4px; padding: 16px; border: 1px solid #e0e2e0; border-radius: 14px; background: #fafbfa; }
 .social-linked strong { font-size: 16px; }
 .social-linked span { overflow: hidden; color: #6d7470; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.social-birth-field input[type="date"] { min-height: 58px; padding: 0 18px; border: 1px solid #dfe3e0; border-radius: 14px; background: #fafbfa; color: #17221f; color-scheme: light; font-size: 16px; font-weight: 700; cursor: pointer; }
+.social-birth-field input[type="date"]:focus { border-color: #2f7a66; box-shadow: 0 0 0 4px rgba(47, 122, 102, .1); outline: 0; }
+.social-birth-field input[type="date"]::-webkit-calendar-picker-indicator { width: 24px; height: 24px; padding: 8px; border-radius: 50%; background-color: #e7f0ed; cursor: pointer; }
 .social-question { display: grid; gap: 12px; animation: social-question-in .28s ease both; }
 .social-question[hidden] { display: none; }
 .social-question + .social-question { padding-top: 18px; border-top: 1px solid #eceeec; }

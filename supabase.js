@@ -793,6 +793,8 @@
     var detail = q.item_detail || '';
     var createdMs = q.created_at ? Date.parse(q.created_at) : Date.now();
     if (isNaN(createdMs)) createdMs = Date.now();
+    var expiresMs = createdMs + 72 * 3600 * 1000;
+    var status = (expiresMs <= Date.now() && !q.trade_completed) ? 'closed' : q.status;
     return {
       id: q.id, uid: q.customer_id,
       brand: q.item_brand || '', model: q.item_name || '',
@@ -805,7 +807,7 @@
       name: '고객',
       photos: (q.photo_urls && q.photo_urls.length) ? q.photo_urls : (q.photo_url ? [q.photo_url] : []),
       photoCount: (q.photo_urls && q.photo_urls.length) || (q.photo_url ? 1 : 0),
-      status: q.status, awarded_bid: q.awarded_bid,
+      status: status, awarded_bid: q.awarded_bid,
       customerContacted: !!q.customer_contacted,
       vendorContacted: !!q.vendor_contacted,
       tradeCompleted: !!q.trade_completed,
@@ -815,7 +817,7 @@
       viewCount: Number(q.view_count || 0),
       createdAt: tsObj(q.created_at),
       createdAtMs: createdMs,
-      expiresMs: createdMs + 72 * 3600 * 1000
+      expiresMs: expiresMs
     };
   }
 

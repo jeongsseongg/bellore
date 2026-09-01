@@ -992,6 +992,10 @@
                 if (!row) return;
                 var go = row.getAttribute('data-sgo');
                 if (go === 'noti') { setStep('noti'); return; }
+                if (go === 'terms' || go === 'privacy') {
+                    if (window.BELLORE_openSettingsLegal) window.BELLORE_openSettingsLegal(go);
+                    return;
+                }
                 // 회원정보 수정 / 정산계좌 변경 → 회원정보 페이지 (뒤로 시 설정 복귀)
                 closeSettings();
                 if (window.BELLORE_openProfile) window.BELLORE_openProfile(go === 'account' ? 'account' : 'home', 'settings');
@@ -4317,10 +4321,11 @@
         myActiveListing = activeListing || null;
         var saleBox = $('#mpSalePreview');
         if (saleBox) {
-            var saleActive = $('#mpSaleActive'), saleEmpty = $('#mpSaleEmpty');
+            var saleActive = $('#mpSaleActive'), saleEmpty = $('#mpSaleEmpty'), addQuote = $('#mpAddQuote');
             saleBox.hidden = false;
             if (saleActive) saleActive.hidden = !activeListing;
             if (saleEmpty) saleEmpty.hidden = !!activeListing;
+            if (addQuote) addQuote.hidden = !activeListing;
             if (activeListing) {
                 var saleImage = $('#mpSaleImage'), saleStatus = $('#mpSaleStatus');
                 var saleName = $('#mpSaleName'), saleMeta = $('#mpSaleMeta'), saleAmount = $('#mpSaleAmount');

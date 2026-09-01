@@ -1,9 +1,9 @@
-import { createMemberVerificationService } from './member-verification-service.js?v=20260831-identity-provider-source-v1';
+import { createMemberVerificationService } from './member-verification-service.js?v=20260902-social-completion-v2';
 import {
   loadSocialProfileState,
   saveSocialProfile,
   socialProviderLabels,
-} from '../../features/auth-social-completion/social-profile-data.mjs?v=20260902-social-profile-v1';
+} from '../../features/auth-social-completion/social-profile-data.mjs?v=20260902-social-completion-v2';
 
 export function createSocialAuthService(windowObject = globalThis) {
   function client() {
@@ -35,7 +35,7 @@ export function createSocialAuthService(windowObject = globalThis) {
     saveSocialProfile: ({ user, state, values }) => saveSocialProfile({ client: client(), user, state, values }),
     socialProviderLabels: (user) => socialProviderLabels(user),
     getUser,
-    verifyIdentity: () => verification.verifyIdentity(),
+    verifyIdentity: () => verification.verifyIdentity({ forceRedirect: true }),
     completeIdentityVerification: (identityId) => verification.completeIdentityVerification(identityId),
     signOut: () => client().auth.signOut(),
   });

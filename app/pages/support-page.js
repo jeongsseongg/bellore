@@ -55,3 +55,7 @@ function startSupportPage() {
 
 if (document.body.dataset.standaloneAuthReady === 'true') startSupportPage();
 else window.addEventListener('bellore:standalone-ready', startSupportPage, { once: true });
+document.querySelector('[data-support-back]')?.addEventListener('click', (event) => {
+  event.preventDefault();
+  window.location.replace('/?view=mypage');
+});

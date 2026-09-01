@@ -82,7 +82,7 @@
     <link rel="stylesheet" href="app/features/checkout/checkout-coupon.css?v=20260826-member-verification-live-v2">
     <link rel="stylesheet" href="app/features/checkout/checkout-order.css?v=20260828-checkout-methods-v1" data-bellore-checkout-order>
     <link rel="stylesheet" href="app/features/mypage-personal-shop/mypage-personal-shop.css?v=20260828-final-integrated-v1">
-    <link rel="stylesheet" href="app/features/mypage-personal-shop/mypage-requested-polish.css?v=20260902-profile-address-v1">
+    <link rel="stylesheet" href="app/features/mypage-personal-shop/mypage-requested-polish.css?v=20260902-mypage-followup-v1">
     <link rel="stylesheet" href="app/features/sell-method/sell-method.css?v=20260826-sell-motion-v2">
     <link rel="stylesheet" href="app/features/sell-method/sell-service.css?v=20260828-complete-site-v1">
     <link rel="stylesheet" href="app/features/sell-method/sell-quotes.css?v=20260826-sell-guest-access-v1">
@@ -1842,7 +1842,7 @@
       </div>
     </div>
 
-    <script type="module" src="app/bootstrap.js?v=20260901-payment-window-diagnostics-v2"></script>
+    <script type="module" src="app/bootstrap.js?v=20260902-mypage-followup-v1"></script>
     <script type="module" src="app/features/sell-method/sell-method.js?v=20260828-complete-site-v1"></script>
 
     <!-- PWA 설치 모달 -->
@@ -1883,7 +1883,7 @@
             <!-- ===== 마이페이지 통합 헤더: 프로필(아바타·이름) · 알림 · 설정 ===== -->
             <div class="mp-head">
                 <div class="mp-head-bar">
-                    <strong>마이페이지</strong>
+                    <strong>마이</strong>
                     <span class="mp-head-actions">
                         <button type="button" class="mp-head-ic" id="btnNoti" aria-expanded="false" aria-label="알림">
                             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
@@ -1948,7 +1948,7 @@
                 <button type="button" class="mp-empty-action" id="mpSaleEmpty" data-sell-method-open>
                     <span><strong>내 시계, 지금 판매하면 얼마일까?</strong><small>비교견적 · 위탁판매 · 즉시매입</small></span>
                 </button>
-                <button type="button" class="mp-add-quote" id="mpAddQuote" data-sell-method-open>시계 추가로 견적받기</button>
+                <button type="button" class="mp-add-quote" id="mpAddQuote" data-sell-method-open hidden>시계 추가로 견적받기</button>
             </section>
 
             <!-- ===== 역할별 추가 진입점: 업체=비교견적, 관리자=비교견적·관리자 페이지 ===== -->
@@ -2791,10 +2791,10 @@
                     <span class="prof-row-l">알림 설정</span><span class="prof-row-a">›</span>
                 </button>
                 <div class="set-gap"></div>
-                <button type="button" class="prof-row" data-legal-open="terms">
+                <button type="button" class="prof-row" data-sgo="terms">
                     <span class="prof-row-l">이용약관</span><span class="prof-row-a">›</span>
                 </button>
-                <button type="button" class="prof-row" data-legal-open="privacy">
+                <button type="button" class="prof-row" data-sgo="privacy">
                     <span class="prof-row-l">개인정보 처리방침</span><span class="prof-row-a">›</span>
                 </button>
                 <div class="set-gap"></div>
@@ -3001,7 +3001,7 @@
     <script src="supabase.js?v=20260902-profile-address-v1"></script>
     <script src="bellore-features.js?v=20260831-identity-modal-toss-v1"></script>
     <script src="cq-demo.js?v=20260901-phone-full-v1"></script>
-    <script src="script.js?v=20260902-profile-address-v1"></script>
+    <script src="script.js?v=20260902-mypage-followup-v1"></script>
     <script src="app/legacy/recommendation-engine.js?v=20260826-member-verification-live-v2"></script>
     <script src="wishlist.js?v=20260826-member-verification-live-v2"></script>
     <script src="alerts.js?v=20260820-tabs-alerts-v1"></script>

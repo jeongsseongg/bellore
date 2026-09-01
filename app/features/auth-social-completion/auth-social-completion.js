@@ -1,5 +1,5 @@
-import { createSocialAuthService } from '../../services/auth/social-auth-service.js?v=20260902-social-profile-v1';
-import { safeReturnPath } from './social-profile-data.mjs?v=20260902-social-profile-v1';
+import { createSocialAuthService } from '../../services/auth/social-auth-service.js?v=20260902-social-completion-v2';
+import { safeReturnPath } from './social-profile-data.mjs?v=20260902-social-completion-v2';
 import { socialProgressiveStep } from './social-progressive-flow.mjs?v=20260902-progressive-social-v1';
 
 const params = new URLSearchParams(location.search);
@@ -20,6 +20,7 @@ if (active && shell) {
   const title = document.getElementById('socialCompleteTitle');
   let currentUser = null;
   let currentState = null;
+  input('socialBirthDate').max = new Date().toISOString().slice(0, 10);
 
   const flow = [
     { id: 'socialNameStep', title: '이름을<br>알려주세요.' },
@@ -124,7 +125,15 @@ if (active && shell) {
       setStatus('이름·생년월일·휴대폰 확인이 완료되었습니다.', 'ok');
     } catch (error) {
       verifyButton.disabled = false;
-      setStatus(window.belloreCustomerMessage?.(error, 'identity') || '본인인증을 완료하지 못했습니다. 다시 시도해 주세요.', 'err');
+      const code = error?.code || error?.message || 'IDENTITY_FAILED';
+      console.error('[Bellore identity verification]', { code, traceId: error?.traceId || null });
+      const known = {
+        IDENTITY_ALREADY_REGISTERED: '이미 다른 계정에서 인증한 휴대폰입니다. 기존 계정으로 로그인하거나 고객센터에 문의해 주세요.',
+        IDENTITY_ALREADY_USED: '이미 처리된 본인인증입니다. 다시 인증해 주세요.',
+        ACCOUNT_IDENTITY_MISMATCH: '이 계정에 등록된 본인정보와 일치하지 않습니다. 고객센터에 문의해 주세요.',
+        NOT_CONFIGURED: '본인인증 연결을 확인하지 못했습니다. 고객센터에 문의해 주세요.',
+      };
+      setStatus(known[code] || window.belloreCustomerMessage?.(error, 'identity') || '본인인증을 완료하지 못했습니다. 다시 시도해 주세요.', 'err');
     }
   });
 

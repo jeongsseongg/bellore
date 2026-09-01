@@ -75,6 +75,22 @@ body.mypage-open #myPageModal .mp-order-actions button,
   margin-top: 0;
 }
 
+#myPageModal .mp-add-quote[hidden] {
+  display: none;
+}
+
+#myPageModal .mp-head-bar > strong {
+  font-size: 20px;
+}
+
+#myPageModal .mp-head-bar > strong::after {
+  content: none;
+}
+
+#myPageModal .mp-sale-actions:has(#mpQuoteCancel[hidden]) > button:not([hidden]) {
+  grid-column: 1 / -1;
+}
+
 #myPageModal .mp-shortcuts,
 #myPageModal .mp-support-list {
   gap: 12px;
@@ -201,14 +217,86 @@ body.mypage-open #myPageModal .mp-order-actions button,
   padding: 16px 2px;
 }
 
+#settingsPage {
+  background: #f6f6f4;
+}
+
+#settingsPage .pp-topbar {
+  border-bottom: 1px solid #e5e5e1;
+  background: rgba(255, 255, 255, .96);
+}
+
+#settingsPage .pp-scroll {
+  max-width: 760px;
+  padding-top: 20px;
+}
+
+#settingsPage .set-step {
+  max-width: none;
+  padding: 0;
+}
+
+#settingsPage .set-step[data-sstep="home"] {
+  display: grid;
+  gap: 10px;
+}
+
+#settingsPage .set-step[data-sstep="home"] .prof-row {
+  min-height: 64px;
+  margin: 0;
+  padding: 16px 18px;
+  border: 1px solid #e5e5e1;
+  border-radius: 14px;
+  background: #fff;
+}
+
+#settingsPage .set-step[data-sstep="home"] .prof-row:active {
+  background: #f1f2ef;
+}
+
+#settingsPage .set-step[data-sstep="home"] .set-gap {
+  height: 4px;
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+
+#settingsPage .set-toggle-row,
+#settingsPage .set-legal-page {
+  border: 1px solid #e5e5e1;
+  border-radius: 14px;
+  background: #fff;
+}
+
+#settingsPage .set-toggle-row {
+  margin-bottom: 10px;
+  padding: 16px 18px;
+}
+
 #settingsPage .set-legal-page .legal-body {
   max-height: none;
-  padding: 0;
+  padding: 20px;
   overflow: visible;
 }
 
 #settingsPage .set-legal-page .legal-body h4 {
   margin-top: 24px;
+  color: #173e34;
+  font-size: 15px;
+}
+
+#settingsPage .set-legal-page .legal-body p {
+  margin: 0;
+  color: #4f5350;
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+#settingsPage .set-legal-page .legal-body .legal-meta {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e5e1;
+  color: #7b7e7b;
 }
 
 @media (max-width: 699px) {

@@ -109,6 +109,7 @@ export function createMemberVerificationService({ getClient, getPortOne, getVeri
       identityVerificationId,
       channelKey: verify.channelKey,
       redirectUrl: identityReturnUrl(),
+      forceRedirect: options?.forceRedirect === true,
       bypass: {
         inicisUnified,
       },

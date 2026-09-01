@@ -47,20 +47,17 @@ export function initMypageRequestedActions({ document, window, backend }) {
   });
 
   const settings = document.querySelector('#settingsPage');
-  settings?.addEventListener('click', (event) => {
-    const legal = event.target.closest('[data-legal-open]');
-    if (!legal) return;
-    event.preventDefault();
-    event.stopPropagation();
-    const kind = legal.dataset.legalOpen;
+  window.BELLORE_openSettingsLegal = (kind) => {
+    if (!['terms', 'privacy'].includes(kind)) return;
     const source = document.querySelector(`#${kind === 'terms' ? 'termsModal' : 'privacyModal'} .legal-body`);
     const target = document.querySelector(`#${kind === 'terms' ? 'settingsTermsBody' : 'settingsPrivacyBody'}`);
-    if (source && target) target.innerHTML = source.outerHTML;
+    if (source && target) target.replaceChildren(source.cloneNode(true));
     settings.querySelectorAll('.set-step').forEach((step) => { step.hidden = step.dataset.sstep !== kind; });
     settings.dataset.cur = kind;
     const title = settings.querySelector('#setTitle');
     if (title) title.textContent = kind === 'terms' ? '이용약관' : '개인정보 처리방침';
-  });
+    settings.querySelector('.pp-scroll')?.scrollTo(0, 0);
+  };
 
   settings?.querySelectorAll('.mp-local-notify').forEach((button) => {
     const key = button.closest('[data-notify-key]')?.dataset.notifyKey || '';

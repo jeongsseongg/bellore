@@ -71,16 +71,18 @@ function addressSources(sources) {
 export function extractSocialPrefill(user, profile) {
   const identitySources = Array.isArray(user?.identities)
     ? user.identities.map((identity) => identity?.identity_data || {}).filter(Boolean) : [];
-  const sources = [user?.user_metadata || {}, ...identitySources];
+  const authSources = [...identitySources, user?.user_metadata || {}];
+  const sources = [...authSources, profile || {}];
   const addresses = addressSources(sources);
   return {
     providerKeys: socialProviderKeys(user),
     providerLabels: socialProviderLabels(user),
     email: text(user?.email) || first(sources, ['email']),
-    name: text(profile?.verified_name) || text(profile?.display_name)
-      || first(sources, ['full_name', 'name', 'display_name', 'nickname', 'preferred_username']),
+    name: first(authSources, ['full_name', 'name', 'display_name', 'nickname', 'preferred_username'])
+      || text(profile?.verified_name) || text(profile?.display_name),
     birthDate: dateParts(profile?.birth_date) || providerBirthDate(sources),
-    phone: displayPhone(profile?.phone || first(sources, ['phone_number', 'mobile', 'phone'])),
+    phone: displayPhone(profile?.phone_verified === true
+      ? profile?.phone : first(authSources, ['phone_number', 'mobile', 'phone'])),
     postcode: text(profile?.postcode) || first(addresses, ['postal_code', 'postcode', 'zip_code']),
     addr1: text(profile?.addr1) || first(addresses, ['address', 'formatted', 'road_address', 'address1', 'addr1']),
     addr2: text(profile?.addr2) || first(addresses, ['address2', 'addr2']),
@@ -90,7 +92,7 @@ export function extractSocialPrefill(user, profile) {
 
 export function missingSocialProfileFields(profile) {
   const missing = [];
-  if (!text(profile?.verified_name) && !text(profile?.display_name)) missing.push('name');
+  if (!text(profile?.verified_name)) missing.push('name');
   if (!dateParts(profile?.birth_date)) missing.push('birthDate');
   if (profile?.phone_verified !== true || text(profile?.phone).replace(/\D/g, '').length < 10) missing.push('phone');
   if (!text(profile?.postcode) || !text(profile?.addr1)) missing.push('address');
