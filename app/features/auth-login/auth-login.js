@@ -1,6 +1,9 @@
 import { getAuthBackend } from '../../services/auth/auth-login-backend.js';
+import { createSocialAuthService } from '../../services/auth/social-auth-service.js?v=20260902-social-profile-v1';
+import { safeReturnPath } from '../auth-social-completion/social-profile-data.mjs?v=20260902-social-profile-v1';
 
 const backend = getAuthBackend();
+const socialAuth = createSocialAuthService();
 const status = document.getElementById('authStatus');
 const params = new URLSearchParams(location.search);
 const view = params.get('view') || 'login';
@@ -179,8 +182,23 @@ document.querySelectorAll('[data-provider]').forEach((button) => {
 });
 
 backend?.ready?.then(() => {
-  if (backend.currentUser?.()) {
+  const current = backend.currentUser?.();
+  if (!current) return;
+  return socialAuth.loadSocialProfileState().then(async (currentSocial) => {
+    if (!currentSocial) return;
+    const { state } = currentSocial;
+    if (state.required && !state.complete) {
+      if (view !== 'social-complete') {
+        const target = new URL('/login.html', location.origin);
+        target.searchParams.set('view', 'social-complete');
+        target.searchParams.set('returnTo', safeReturnPath(returnUrl, location.origin));
+        location.replace(`${target.pathname}${target.search}`);
+      }
+      return;
+    }
     clearSocialReturn();
     location.replace(returnUrl);
-  }
+  });
+}).catch(() => {
+  if (view === 'social-complete') message('회원 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
 });
