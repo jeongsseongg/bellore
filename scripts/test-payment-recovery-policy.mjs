@@ -38,8 +38,10 @@ assert.equal(providerStatusKind('FAILED'), 'failed');
 assert.equal(providerStatusKind('CANCELLED'), 'cancelled');
 assert.equal(providerStatusKind('PARTIAL_CANCELLED'), 'partial_cancelled');
 assert.equal(providerStatusKind('unexpected'), 'unknown');
-assert.equal(pendingCheckoutAbandonmentAction('READY', true), 'close_unsettled');
-for (const status of ['PENDING', 'PAY_PENDING', 'VIRTUAL_ACCOUNT_ISSUED', 'PAID']) {
+for (const status of ['READY', 'PENDING', 'PAY_PENDING']) {
+  assert.equal(pendingCheckoutAbandonmentAction(status, true), 'close_unsettled');
+}
+for (const status of ['VIRTUAL_ACCOUNT_ISSUED', 'PAID']) {
   assert.equal(pendingCheckoutAbandonmentAction(status, true), 'wait');
 }
 assert.equal(pendingCheckoutAbandonmentAction('READY', false), 'wait');

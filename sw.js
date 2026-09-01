@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v395-payment-window-recovery";
+const VERSION = "bellore-v396-unpaid-order-release";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -45,7 +45,7 @@ const SHELL_ASSETS = [
   './search.js?v=20260826-member-verification-live-v2',
   './ai-advisor.js?v=20260826-member-verification-live-v2',
   './ai-advisor-admin.js?v=20260826-member-verification-live-v2',
-  './app/bootstrap.js?v=20260901-mypage-final-v4',
+  './app/bootstrap.js?v=20260901-unpaid-release-v1',
   './app/pages/standalone-auth-gate.mjs?v=20260828-standalone-auth-v1',
   './app/pages/standalone-page.css?v=20260831-mypage-app-route-v1',
   './app/pages/standalone-page.js?v=20260831-mypage-pages-loop-v1',
@@ -91,7 +91,7 @@ const SHELL_ASSETS = [
   './app/services/payments/checkout-request-recovery.js?v=20260826-member-verification-live-v2',
   './app/services/payments/checkout-client.js?v=20260826-member-verification-live-v2',
   './app/services/payments/payment-network.js?v=20260826-member-verification-live-v2',
-  './app/services/payments/pending-payment-recovery.js?v=20260826-member-verification-live-v2',
+  './app/services/payments/pending-payment-recovery.js?v=20260901-unpaid-release-v1',
   './app/legacy/legacy-collection.js?v=20260826-member-verification-live-v2',
   './app/legacy/home-merchandising-grid.js',
   './app/legacy/home-layout-adapter.js?v=20260827-home-block-editor-v1',

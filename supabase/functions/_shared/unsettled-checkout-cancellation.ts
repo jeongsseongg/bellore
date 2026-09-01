@@ -7,7 +7,7 @@ import { pendingCheckoutAbandonmentAction, providerCancelledAmount, providerPaid
 
 type ProviderPayment = Record<string, unknown>;
 export type UnsettledCancellationOutcome = "canceled" | "refunded" | "review" | "pending";
-export type AbandonedReadyOutcome = "not_applicable" | "closed" | "pending";
+export type AbandonedPendingOutcome = "not_applicable" | "closed" | "pending";
 
 export async function cancelUnsettledCheckout(
   admin: SupabaseClient,
@@ -21,18 +21,18 @@ export async function cancelUnsettledCheckout(
   return !result.error && result.data === true;
 }
 
-export async function closeAbandonedReadyCheckout(input: {
+export async function closeAbandonedPendingCheckout(input: {
   admin: SupabaseClient;
   orderNo: string;
   providerStatus: unknown;
   checkoutAbandoned: boolean;
-}): Promise<AbandonedReadyOutcome> {
+}): Promise<AbandonedPendingOutcome> {
   if (pendingCheckoutAbandonmentAction(
     input.providerStatus, input.checkoutAbandoned,
   ) !== "close_unsettled") return "not_applicable";
   const result = await input.admin.rpc("fail_unsettled_order", {
     p_order_no: input.orderNo,
-    p_reason: "provider_ready_after_checkout_abandonment",
+    p_reason: "provider_unpaid_pending_after_checkout_abandonment",
   });
   return !result.error && result.data === true ? "closed" : "pending";
 }

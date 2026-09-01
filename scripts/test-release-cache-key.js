@@ -24,7 +24,12 @@ const paymentFlowImportUrl = bootstrap.match(/from '(\.\/features\/checkout\/pay
 const paymentFlowReleaseKey = paymentFlowImportUrl
   ? new URL(paymentFlowImportUrl, 'https://bellore.co.kr/app/bootstrap.js').searchParams.get('v')
   : null;
+const pendingRecoveryImportUrl = bootstrap.match(/from '(\.\/services\/payments\/pending-payment-recovery\.js\?v=[^']+)'/)?.[1];
+const pendingRecoveryReleaseKey = pendingRecoveryImportUrl
+  ? new URL(pendingRecoveryImportUrl, 'https://bellore.co.kr/app/bootstrap.js').searchParams.get('v')
+  : null;
 assert(paymentFlowReleaseKey, 'payment flow release URL is missing');
+assert(pendingRecoveryReleaseKey, 'pending-payment recovery release URL is missing');
 assert(loginIdentityUrl, 'login Supabase backend release URL is missing');
 
 const urls = {
@@ -101,7 +106,9 @@ for (const asset of [
 ]) {
   const assetKey = asset === 'app/features/home-rows/home-rows.js'
     ? '20260826-home-row-hotfix-v1'
-    : asset === 'app/features/checkout/payment-flow.js' ? paymentFlowReleaseKey : releaseKey;
+    : asset === 'app/features/checkout/payment-flow.js' ? paymentFlowReleaseKey
+    : asset === 'app/services/payments/pending-payment-recovery.js' ? pendingRecoveryReleaseKey
+    : releaseKey;
   assert(serviceWorker.includes(`'./${asset}?v=${assetKey}'`), `service worker must precache exact ESM release URL: ${asset}`);
 }
 for (const specifier of [
@@ -118,7 +125,9 @@ for (const specifier of [
 ]) {
   const specifierKey = specifier === './features/home-rows/home-rows.js'
     ? '20260826-home-row-hotfix-v1'
-    : specifier === './features/checkout/payment-flow.js' ? paymentFlowReleaseKey : releaseKey;
+    : specifier === './features/checkout/payment-flow.js' ? paymentFlowReleaseKey
+    : specifier === './services/payments/pending-payment-recovery.js' ? pendingRecoveryReleaseKey
+    : releaseKey;
   assert(bootstrap.includes(`${specifier}?v=${specifierKey}`), `bootstrap must import exact ESM release URL: ${specifier}`);
 }
 
