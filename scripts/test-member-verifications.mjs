@@ -209,12 +209,18 @@ const verifiedIdentity = {
 assert.deepEqual(providers.validatePortOneIdentity(verifiedIdentity, {
   storeId: 'store-live', channelKey: 'channel-live', allowTest: false,
 }), { verified: true, phone: '01012345678', channelType: 'LIVE' });
+assert.deepEqual(providers.validatePortOneIdentity({ ...verifiedIdentity, storeId: undefined }, {
+  storeId: 'store-live', channelKey: 'channel-live', allowTest: false,
+}), { verified: true, phone: '01012345678', channelType: 'LIVE' },
+'PortOne V2 identity lookup omits storeId; the verified live channel remains the tenant boundary');
 assert.throws(() => providers.validatePortOneIdentity(verifiedIdentity, {
   storeId: 'other-store', channelKey: 'channel-live', allowTest: false,
 }), /STORE_MISMATCH/);
 assert.throws(() => providers.validatePortOneIdentity({ ...verifiedIdentity, channel: { key: 'channel-test', type: 'TEST' } }, {
   storeId: 'store-live', channelKey: 'channel-test', allowTest: false,
 }), /CHANNEL_NOT_LIVE/);
+assert.match(signupPage, /handled\s*&&\s*verification\.state\.phone\.real\s*\?\s*3\s*:\s*2/,
+  'a successful mobile identity return must advance signup past the phone step');
 assert.deepEqual(providers.ntsBusinessResult({ data: [{ valid: '01' }] }), { valid: true });
 assert.deepEqual(providers.ntsBusinessResult({ data: [{ valid: '02' }] }), { valid: false });
 assert.equal(kftc.resolveKftcBankCode('국민은행'), '004');
