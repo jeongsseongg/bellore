@@ -32,7 +32,7 @@ import { createPaymentFlow } from './features/checkout/payment-flow.js?v=2026090
 import { installCustomerFeedback } from './legacy/customer-feedback.js?v=20260826-member-verification-live-v2';
 import { installLegacyCheckoutCoupon } from './legacy/checkout-coupon.js';
 import { createLegacyMypageSettingsAdapter } from './legacy/mypage-settings-adapter.js?v=20260831-mypage-admin-contract-v1';
-import { initMypageSettings } from './features/mypage-settings/mypage-settings.js?v=20260831-mypage-admin-contract-v1';
+import { initMypageSettings } from './features/mypage-settings/mypage-settings.js?v=20260901-mypage-final-v4';
 import { initSellServicePages } from './features/sell-method/sell-service-pages.js?v=20260826-sell-guest-access-v1';
 import { installSellRequestAccess } from './services/sell/sell-request-access.js?v=20260826-sell-guest-access-v1';
 import { installLegacyMemberVerificationUi } from './legacy/member-verification-ui.js?v=20260826-member-verification-live-v2';

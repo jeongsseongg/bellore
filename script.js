@@ -309,9 +309,8 @@
         $$('#ordersTabs .orders-tab').forEach(function (t) {
             t.classList.toggle('active', (t.dataset.ofilter || '') === ordersFilter);
         });
-        m.hidden = false; document.body.style.overflow = 'hidden';
+        navigate('orders');
         renderOrdersList();
-        refreshMyOrders(); // 열 때 최신 상태 재조회(취소/변동 즉시 반영)
     }
     function closeOrdersList() {
         if (document.body && document.body.dataset.belloreStandalonePage === 'orders') {
@@ -356,29 +355,37 @@
         set('#psPrep', cnt('preparing'));
         set('#psShip', cnt('shipping'));
         set('#psDone', cnt('delivered'));
+        set('#mpStatOrders', myOrdersCache.length + '건');
         var pq = $('#pqUnpaid'); if (pq) pq.textContent = wait + '건';
         if (typeof renderMpMenu === 'function') renderMpMenu(_lastAuthInfo); // 주문 건수 갱신
         renderMyOrderPreview();
-        var om = $('#ordersModal');
-        if (om && !om.hidden) renderOrdersList();   // 열려 있으면 즉시 갱신
+        var ordersPage = $('#orders');
+        if (ordersPage && ordersPage.classList.contains('active')) renderOrdersList();
     }
     function renderMyOrderPreview() {
-        var order = myOrdersCache && myOrdersCache.length ? myOrdersCache[0] : null;
+        var inactive = ['delivered', 'confirmed', 'canceled', 'cancelled', 'refunded', 'failed'];
+        var activeOrders = (myOrdersCache || []).filter(function (item) {
+            return inactive.indexOf(item.status || 'pending') === -1;
+        });
+        var order = activeOrders.length ? activeOrders[0] : null;
+        var box = $('#mpOrderPreview');
+        var activeBox = $('#mpOrderActive'), emptyBox = $('#mpOrderEmpty');
         var status = $('#mpOrderStatus'), img = $('#mpOrderImage');
         var name = $('#mpOrderName'), meta = $('#mpOrderMeta');
-        if (!status || !img || !name || !meta) return;
+        if (!box || !activeBox || !emptyBox || !status || !img || !name || !meta) return;
+        box.hidden = false;
         if (!order) {
-            status.textContent = '최근 주문';
-            img.src = 'assets/images.jpg';
-            name.textContent = '주문 내역을 확인해 보세요';
-            meta.textContent = '결제·검수·배송 상태를 한곳에서 확인할 수 있습니다.';
+            activeBox.hidden = true;
+            emptyBox.hidden = false;
             return;
         }
+        activeBox.hidden = false;
+        emptyBox.hidden = true;
         var st = order.status || 'pending';
         status.textContent = O_LABEL[st] || st;
         img.src = order.productImage || 'assets/images.jpg';
         name.textContent = order.productName || '주문 상품';
-        meta.textContent = [order.orderNo || '', order.courier || '', order.trackingNo || ''].filter(Boolean).join(' · ');
+        meta.textContent = [order.orderNo || '', order.courier || '', order.trackingNo || '', order.amount ? fmt(order.amount) + '원' : ''].filter(Boolean).join(' · ');
     }
     // realtime 미활성 환경 대비: 취소/확정/반품 후 즉시 목록 재조회(클라 폴백)
     function refreshMyOrders() {
@@ -1131,16 +1138,16 @@
             var myPage = $('#myPageModal');
             if (nameEl) nameEl.textContent = user ? ((user.displayName || '회원') + '님') : '마이페이지';
             if (emailEl) emailEl.textContent = user ? (user.email || '') : '';
-            var roleKey = (info && info.isAdmin) ? 'admin' : ((info && info.role) || 'customer');
-            var roleName = roleKey === 'admin' ? '관리자' : (roleKey === 'vendor' ? '업체' : (roleKey === 'partner' ? '공급업체' : '고객'));
+            var accountRole = (info && info.role) || 'customer';
+            var roleKey = (info && info.isAdmin) ? 'admin' : ((accountRole === 'vendor' || accountRole === 'partner') ? 'vendor' : 'customer');
+            var roleName = roleKey === 'admin' ? '관리자' : (roleKey === 'vendor' ? '업체' : '고객');
             if (roleEl) roleEl.textContent = roleName;
             if (myPage) myPage.dataset.accountRole = roleKey;
             var nextGrade = $('#mpNextGrade');
             if (nextGrade) {
-                nextGrade.textContent = roleKey === 'admin' ? '운영 계정으로 접속 중입니다.'
-                    : (roleKey === 'vendor' ? '새 비교견적과 입찰 현황을 확인하세요.'
-                    : (roleKey === 'partner' ? '공급상품과 정산 현황을 확인하세요.'
-                    : '다음 등급까지 구매 1회 남았어요'));
+                nextGrade.textContent = roleKey === 'admin' ? '운영과 개인 거래를 한곳에서 확인하세요.'
+                    : (roleKey === 'vendor' ? '판매와 주문, 비교견적을 한곳에서 확인하세요.'
+                    : '판매와 주문 진행 상태를 한눈에 확인하세요.');
             }
 
             // 프로필 아바타
@@ -1516,83 +1523,17 @@
     var _lastAuthInfo = null;
     function renderMpMenu(info) {
         var box = $('#mpMenuList'); if (!box) return;
-        if (!info || info.isAdmin) { box.innerHTML = ''; return; } // 관리자는 관리 메뉴 박스 사용
-        var role = info.role || 'customer';
-        var orderN = (typeof myOrdersCache !== 'undefined' && myOrdersCache) ? myOrdersCache.length : 0;
-        var rows = [];
-        rows.push({ cap: '거래' });
-        rows.push({ act: 'orders', label: '주문 내역', count: orderN });
-        if (role === 'customer') rows.push({ act: 'quotes', label: '내 비교견적' });
-        rows.push({ act: 'auction', label: '경매' });
-        if (role === 'vendor' || role === 'partner') rows.push({ act: 'bids', label: '비교견적 · 입찰 내역' });
-        if (role === 'partner') rows.push({ act: 'sales', label: '공급상품 · 정산 내역' });
-        rows.push({ act: 'cart', label: '장바구니' });
-        rows.push({ cap: '내 활동' });
-        rows.push({ act: 'interest', label: '내 관심' });
-        rows.push({ act: 'recent', label: '최근 본 상품' });
-        rows.push({ act: 'cs', label: '고객센터' });
-        rows.push({ act: 'profile', label: '회원정보 수정' });
-        box.innerHTML = rows.map(function (r) {
-            if (r.cap) return '<p class="mp-menu-cap">' + r.cap + '</p>';
-            // 경매는 auction.js 가 data-auction-open 으로 처리
-            var attr = (r.act === 'auction') ? 'data-auction-open' : (r.act === 'quotes' ? 'data-sell-service-open="compare"' : ('data-mpmenu="' + r.act + '"'));
-            return '<button type="button" class="mp-menu-row" ' + attr + '>' +
-                '<span class="mr-label">' + r.label + '</span>' +
-                (typeof r.count === 'number' ? '<span class="mr-count">' + r.count + '건</span>' : '') +
-                '<span class="mr-arrow">›</span></button>';
-        }).join('');
+        if (!info) { box.innerHTML = ''; box.hidden = true; return; }
+        var role = info.isAdmin ? 'admin' : ((info.role === 'vendor' || info.role === 'partner') ? 'vendor' : 'customer');
+        if (role === 'customer') { box.innerHTML = ''; box.hidden = true; return; }
+        var quoteRow = '<button type="button" class="mp-menu-row mp-role-entry" data-cqd-open data-cqd-screen="v-watches">' +
+            '<span class="mr-label">비교견적 매물 보기</span><span class="mr-sub">고객이 신청한 비교견적 확인</span><span class="mr-arrow">›</span></button>';
+        var adminRow = '<button type="button" class="mp-menu-row mp-role-entry" data-admin-page-open>' +
+            '<span class="mr-label">관리자 페이지</span><span class="mr-sub">상품·주문·회원·견적 통합 관리</span><span class="mr-arrow">›</span></button>';
+        box.innerHTML = role === 'admin' ? quoteRow + adminRow : quoteRow;
+        box.hidden = false;
     }
     window.BELLORE_renderMpMenu = renderMpMenu;
-
-    // ===== 마이페이지 광고 배너 (관리자 편집 · placement=mypage) =====
-    var _mpBn = [], _mpBnRaw = [], _mpBnIdx = 0, _mpBnTimer = null;
-    function mpBannerImg(b) { return (b && (b.image || b.imageWide || b.imagePc || b.image_url)) || ''; }
-    function mpBnStop() { if (_mpBnTimer) { clearInterval(_mpBnTimer); _mpBnTimer = null; } }
-    function mpBnGo(i) {
-        if (!_mpBn.length) return;
-        _mpBnIdx = (i + _mpBn.length) % _mpBn.length;
-        var track = $('#mpBannerTrack'); if (track) track.style.transform = 'translateX(-' + (_mpBnIdx * 100) + '%)';
-        $$('#mpBannerDots .mpb-dot').forEach(function (d, k) { d.classList.toggle('on', k === _mpBnIdx); });
-    }
-    function mpBnAuto() { mpBnStop(); if (_mpBn.length > 1) _mpBnTimer = setInterval(function () { mpBnGo(_mpBnIdx + 1); }, 5000); }
-    window.belloreSetMypageBanners = function (list) {
-        var box = $('#mpBanner'), track = $('#mpBannerTrack'), dots = $('#mpBannerDots');
-        if (!box || !track) return;
-        _mpBnRaw = list || [];
-        _mpBn = _mpBnRaw.filter(function (b) { return mpBannerImg(b); });
-        var isAdminPreview = !!window.BELLORE_isAdmin;
-        if (isAdminPreview && !_mpBn.length) {
-            _mpBn = [{
-                image: 'assets/products/watch-batch-20260821-2/085-dn8gn68cx9ky/front.webp',
-                title: '마이페이지 배너',
-                subtitle: '배너 수정에서 이미지와 문구를 등록하세요.',
-                adminFallback: true
-            }];
-        }
-        if (!_mpBn.length) {
-            // 등록된 배너가 없으면 바이버처럼 자리(테두리)만 유지
-            box.hidden = false; box.classList.add('is-empty');
-            track.innerHTML = ''; if (dots) dots.innerHTML = ''; mpBnStop(); return;
-        }
-        box.classList.remove('is-empty');
-        box.hidden = false;
-        track.innerHTML = _mpBn.map(function (b) {
-            var tag = b.link ? 'a' : 'div';
-            var href = b.link ? (' href="' + esc(b.link) + '"') : '';
-            var txt = b.title ? ('<span class="mpb-text"><span class="mpb-title">' + esc(b.title) + '</span>' +
-                (b.subtitle ? '<span class="mpb-sub">' + esc(b.subtitle) + '</span>' : '') + '</span>') : '';
-            return '<' + tag + ' class="mp-banner-slide' + (b.adminFallback ? ' mp-banner-fallback' : '') + '"' + href + ' style="background-image:url(\'' + esc(mpBannerImg(b)) + '\')">' + txt + '</' + tag + '>';
-        }).join('');
-        if (dots) dots.innerHTML = _mpBn.length > 1
-            ? _mpBn.map(function (_, k) { return '<button type="button" class="mpb-dot' + (k === 0 ? ' on' : '') + '" data-mpbdot="' + k + '"></button>'; }).join('')
-            : '';
-        _mpBnIdx = 0; mpBnGo(0); mpBnAuto();
-    };
-    // 배너 점 클릭
-    document.addEventListener('click', function (e) {
-        var d = e.target.closest('[data-mpbdot]'); if (!d) return;
-        mpBnGo(parseInt(d.getAttribute('data-mpbdot'), 10) || 0); mpBnAuto();
-    });
 
     function renderMyCoupons() {
         var sec = $('#myCouponSection');
@@ -2969,10 +2910,13 @@
     function initAdminDashboard() {
         // 클릭 바인딩은 백엔드 설정과 무관하게 항상 연결(메뉴 → 패널 열기)
         document.addEventListener('click', function (e) {
+            if (e.target.closest('[data-admin-page-open]')) {
+                window.location.href = 'prototypes/admin-console-v2/';
+                return;
+            }
             var row = e.target.closest('#adminMenuBox [data-apv]');
             if (row) { openAdminPanel(row.dataset.apv, row.dataset.ofilter); return; }
-            // 배너 관리 — bellore-features.js의 배너 모달 열기(마이페이지 배너 기본 선택)
-            if (e.target.closest('#adminBannerBtn') || e.target.closest('#mpBannerEdit')) {
+            if (e.target.closest('#adminBannerBtn')) {
                 if (window.belloreOpenBannerManager) window.belloreOpenBannerManager({ placement: 'mypage' });
                 else alert('배너 관리 기능을 불러오지 못했습니다.');
                 return;
@@ -2992,14 +2936,7 @@
         NWBackend.onAuthChange(function (user, info) {
             var isAdmin = !!(info && info.isAdmin);
             window.BELLORE_isAdmin = isAdmin;
-            if (window.belloreSetMypageBanners) window.belloreSetMypageBanners(_mpBnRaw);
-            ['adminDashBox', 'adminMenuBox'].forEach(function (id) { var el = $('#' + id); if (el) el.hidden = !isAdmin; });
-            // 관리자에겐 고객용 영역 숨김(원형 카테고리·역할 메뉴)
-            ['mpHubCats', 'mpMenuList', 'mpOrderPreview', 'mpReferenceBanner'].forEach(function (id) {
-                var el = $('#' + id); if (el) el.hidden = isAdmin;
-            });
-            // 마이페이지 배너는 관리자도 실제 노출 상태를 미리 보고 바로 수정할 수 있다.
-            if (window.belloreSetMypageBanners) window.belloreSetMypageBanners(_mpBnRaw);
+            ['adminDashBox', 'adminMenuBox', 'mpHubCats'].forEach(function (id) { var el = $('#' + id); if (el) el.hidden = true; });
             if (!isAdmin) { var p = $('#adminPanel'); if (p) p.hidden = true; }
             if (isAdmin) { renderAdminDash(); refreshAdminBadges(); startAdminOrderWatch(); }
             else { stopAdminOrderWatch(); }
@@ -4342,6 +4279,30 @@
         myListingsCache = rows || [];
         rows = myListingsCache;
 
+        var activeStatuses = ['pending', 'open', 'awarded', 'approved'];
+        var activeListing = rows.filter(function (item) {
+            return activeStatuses.indexOf(item.status || 'pending') !== -1;
+        })[0];
+        var saleBox = $('#mpSalePreview');
+        if (saleBox) {
+            var saleActive = $('#mpSaleActive'), saleEmpty = $('#mpSaleEmpty');
+            saleBox.hidden = false;
+            if (saleActive) saleActive.hidden = !activeListing;
+            if (saleEmpty) saleEmpty.hidden = !!activeListing;
+            if (activeListing) {
+                var saleImage = $('#mpSaleImage'), saleStatus = $('#mpSaleStatus');
+                var saleName = $('#mpSaleName'), saleMeta = $('#mpSaleMeta'), saleAmount = $('#mpSaleAmount');
+                var bidCount = (activeListing.bids || []).length;
+                if (saleImage) saleImage.src = listingImg(activeListing);
+                if (saleStatus) saleStatus.textContent = CQ_STATUS[activeListing.status] || '진행중';
+                if (saleName) saleName.textContent = [activeListing.brand || '시계', activeListing.model || ''].filter(Boolean).join(' ');
+                if (saleMeta) saleMeta.textContent = [activeListing.reference || activeListing.ref || '', '견적 ' + bidCount + '건'].filter(Boolean).join(' · ');
+                if (saleAmount) saleAmount.textContent = activeListing.bidAmount ? fmt(activeListing.bidAmount) + '원' : '견적 확인 중';
+                var progressIndex = activeListing.status === 'pending' ? 0 : (activeListing.status === 'open' ? 1 : 2);
+                $$('#mpSaleProgress li').forEach(function (step, index) { step.classList.toggle('is-active', index <= progressIndex); });
+            }
+        }
+
         // 이미지3: 들어온 견적의 최저~최고 범위
         function rangeLine(it) {
             var bids = it.bids || [];
@@ -5154,12 +5115,12 @@
     }
 
     /* ============ 1. 라우팅 ============ */
-    var VALID = ['home', 'collection', 'insight', 'brand', 'about', 'contact', 'buy', 'repair', 'cat-update', 'cat-sale', 'cat-new', 'cat-today', 'wishlist'];
+    var VALID = ['home', 'collection', 'insight', 'brand', 'about', 'contact', 'buy', 'repair', 'cat-update', 'cat-sale', 'cat-new', 'cat-today', 'wishlist', 'orders'];
 
     // 하단 탭/네비게이션으로 이동하면 마이페이지 계열 풀스크린 오버레이를 모두 닫는다.
     // (마이페이지가 모달처럼 위에 남아 화면 이동이 안 되던 문제 해결 — X 없이 자연 이탈)
     function closeMyOverlays() {
-        ['#myPageModal', '#settingsPage', '#profilePage', '#ordersModal'].forEach(function (sel) {
+        ['#myPageModal', '#settingsPage', '#profilePage'].forEach(function (sel) {
             var el = document.querySelector(sel);
             if (el && !el.hidden) el.hidden = true;
         });
@@ -5179,6 +5140,11 @@
             t.classList.toggle('active', t.dataset.nav === target);
         });
         document.body.setAttribute('data-page', target);  // 페이지별 CSS 훅(판매시계 헤더 숨김 등)
+
+        if (target === 'orders') {
+            renderOrdersList();
+            refreshMyOrders();
+        }
 
         var header = $('#header');
         if (header) {

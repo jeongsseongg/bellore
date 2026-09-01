@@ -42,7 +42,7 @@ const COMMON_CONTENT = Object.freeze({
   },
   footer: {
     description: '명품시계 거래 · 통신판매중개',
-    phone: '010-6293-6668',
+    phone: '010-8004-6665',
     hours: '평일 11:00 ~ 19:00 · 24시간 상담 접수'
   },
   labels: {

@@ -8845,25 +8845,6 @@ body.mypage-open .tabbar { z-index: 2550; }
   font-weight: 800; line-height: 17px; text-align: center; }
 .mp-cats .pl-badge[hidden] { display: none; }
 
-/* 광고 배너 (관리자 편집) */
-.mp-banner { position: relative; border-radius: 16px; overflow: hidden; margin: 0 0 18px; background: #ece9e1; }
-.mp-banner[hidden] { display: none; }
-.mp-banner-track { display: flex; transition: transform .4s cubic-bezier(.2,.8,.2,1); }
-.mp-banner-slide { flex: 0 0 100%; display: block; position: relative; aspect-ratio: 32 / 9; background: #ddd9cf;
-  background-size: cover; background-position: center; text-decoration: none; }
-.mp-banner-slide .mpb-text { position: absolute; left: 16px; bottom: 14px; right: 16px; color: #fff;
-  text-shadow: 0 1px 6px rgba(0,0,0,.45); }
-.mp-banner-slide .mpb-title { font-size: 15px; font-weight: 800; line-height: 1.3; }
-.mp-banner-slide .mpb-sub { font-size: 12px; font-weight: 600; opacity: .92; margin-top: 2px; }
-.mp-banner-dots { position: absolute; right: 10px; bottom: 8px; display: flex; gap: 5px; }
-.mp-banner-dots .mpb-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.55); }
-.mp-banner-dots .mpb-dot.on { background: #fff; width: 14px; border-radius: 4px; }
-/* 등록된 배너 없을 때: 바이버처럼 자리(테두리)만 유지 */
-.mp-banner.is-empty { background: transparent; border: 1.5px dashed var(--border); border-radius: 16px;
-  aspect-ratio: 32 / 9; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.mp-banner.is-empty::after { content: '이벤트·혜택 배너'; font-size: 12.5px; color: var(--text-3); font-weight: 600; }
-.mp-banner.is-empty .mp-banner-track, .mp-banner.is-empty .mp-banner-dots { display: none; }
-
 /* 역할별 하단 메뉴 (바이버 리스트형) */
 .mp-menu { display: block; margin: 0 0 8px; }
 .mp-menu:empty { display: none; }
@@ -9496,7 +9477,6 @@ body.login-open .tabbar { display: none; }
   #ordersModal .login-content.orders-content { padding-left: 22px; padding-right: 22px; }
   #myPageModal .mp-head,
   #myPageModal .mp-cats,
-  #myPageModal .mp-banner,
   #myPageModal .mp-menu,
   #myPageModal .mp-subsec { max-width: 600px; margin-left: auto; margin-right: auto; }
 }
@@ -9897,8 +9877,7 @@ body.login-open .tabbar { display: none; }
     color: #ffd6a3;
 }
 #myPageModal .mp-cats,
-#myPageModal .mp-menu,
-#myPageModal .mp-banner {
+#myPageModal .mp-menu {
     width: 100%;
     max-width: 600px;
     margin-left: auto;
@@ -10255,7 +10234,6 @@ body.login-open .tabbar { display: none; }
     font-size: 11px;
 }
 
-#myPageModal .mp-banner,
 #myPageModal .mp-menu,
 #myPageModal .mypage-section,
 #myPageModal .pocket {
@@ -10293,44 +10271,6 @@ body.login-open .tabbar { display: none; }
 }
 #myPageModal .admin-dash {
     border-radius: 14px;
-}
-
-.mp-reference-footer {
-    margin-top: 28px;
-    padding: 28px 24px 38px;
-    background: #fafafa;
-    color: #777;
-}
-.mp-reference-footer > strong {
-    display: block;
-    color: #111;
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 21px;
-    letter-spacing: .15em;
-}
-.mp-reference-footer p,
-.mp-reference-footer small {
-    display: block;
-    font-size: 11.5px;
-}
-.mp-reference-footer > a {
-    display: block;
-    margin-top: 14px;
-    color: #222;
-    font-size: 17px;
-    font-weight: 800;
-}
-.mp-reference-footer nav {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 7px 16px;
-    margin-top: 18px;
-}
-.mp-reference-footer nav button {
-    color: #777;
-    font-size: 11.5px;
-    text-decoration: underline;
-    text-underline-offset: 3px;
 }
 
 @media (max-width: 699px) {
