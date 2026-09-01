@@ -190,8 +190,7 @@ assert.equal(storefrontConfigs.customer, null);
 const mypageRuntime = await readFile(new URL('../app/features/mypage-settings/mypage-settings.js', import.meta.url), 'utf8');
 assert.match(mypageRuntime, /#mpNextGrade/);
 assert.match(mypageRuntime, /#mpMenuList/);
-assert.match(mypageRuntime, /#mpOrderPreview/);
-assert.doesNotMatch(mypageRuntime, /#myPageName|#mpStatPoint|#mpOrderName/,
-  '운영 화면 설정은 회원·포인트·주문의 실제 값을 덮어쓰면 안 됩니다.');
+assert.doesNotMatch(mypageRuntime, /#myPageName|#mpStatPoint|#mpOrderPreview|#mpOrderName/,
+  '운영 화면 설정은 회원·포인트·주문의 실제 값이나 노출 상태를 덮어쓰면 안 됩니다.');
 
 console.log(`admin live operations: requests=${requests.length} overviewSources=${overview.sources} pass`);
