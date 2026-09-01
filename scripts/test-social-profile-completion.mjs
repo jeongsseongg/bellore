@@ -69,6 +69,7 @@ const loginRuntime = await readFile(new URL('app/features/auth-login/auth-login.
 const completionRuntime = await readFile(new URL('app/features/auth-social-completion/auth-social-completion.js', root), 'utf8');
 const socialAuthService = await readFile(new URL('app/services/auth/social-auth-service.js', root), 'utf8');
 const verificationService = await readFile(new URL('app/services/auth/member-verification-service.js', root), 'utf8');
+const backendRuntime = await readFile(new URL('supabase.js', root), 'utf8');
 const providerRuntime = await readFile(new URL('app/features/profile-login-provider/profile-login-provider.js', root), 'utf8');
 const authGate = await readFile(new URL('app/pages/standalone-auth-gate.mjs', root), 'utf8');
 const serviceWorker = await readFile(new URL('sw.js', root), 'utf8');
@@ -95,6 +96,8 @@ assert.match(completionRuntime, /socialProgressiveStep/);
 assert.match(completionRuntime, /addEventListener\('input', updateFlow\)/);
 assert.match(socialAuthService, /verifyIdentity\(\{ forceRedirect: true \}\)/);
 assert.match(verificationService, /forceRedirect: options\?\.forceRedirect === true/);
+assert.match(backendRuntime, /displayName:\s*socialIdentityName\(\)\s*\|\|\s*\(profile && profile\.display_name\)/,
+  'social provider identity names must be displayed before stale profile labels');
 assert.match(providerRuntime, /로그인 방법/);
 assert.match(providerRuntime, /socialProviderLabels/);
 assert.match(authGate, /social-complete/);
