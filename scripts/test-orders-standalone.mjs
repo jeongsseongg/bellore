@@ -24,12 +24,16 @@ assert.match(legacy, /window\.location\.assign\('\/pages\/orders' \+ query\)/,
   'the existing orders entry point must deep-link to the standalone page');
 assert.match(page, /rel=["']canonical["'][^>]*href=["']https:\/\/bellore\.co\.kr\/pages\/orders["']/i,
   'the extensionless orders URL must be canonical');
+assert.doesNotMatch(page, /data-ofilter=["']pending["']/i,
+  'customer order history must not expose an unpaid checkout filter');
 assert.match(legacy, /belloreStandalonePage === 'orders'[\s\S]*history\.back\(\)/,
   'standalone close must preserve browser back navigation');
 assert.match(legacy, /new URLSearchParams\(location\.search\)[\s\S]*openOrdersList\(status\)/,
   'deep links must restore the requested order status filter');
-assert.match(legacy, /\['pending', 'paid', 'inspecting', 'preparing'\][\s\S]*data-ocancel/,
-  'pending and paid order details must retain the customer cancellation action');
+assert.match(legacy, /\['paid', 'inspecting', 'preparing'\][\s\S]*data-ocancel/,
+  'only paid fulfillment orders may expose the customer cancellation action');
+assert.doesNotMatch(legacy, /data-opay/,
+  'unpaid checkout attempts must not expose an order-level payment action');
 assert.match(legacy, /data-ocancel[\s\S]*NWBackend\.requestCancel\(_orderCache\.orderNo, reason\)/,
   'the cancellation action must remain connected to the server RPC');
 
