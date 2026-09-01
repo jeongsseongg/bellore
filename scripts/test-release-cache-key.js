@@ -27,6 +27,7 @@ assert(paymentFlowReleaseKey, 'payment flow release URL is missing');
 
 const urls = {
   styles: html.match(/<link rel="stylesheet" href="(styles\.css\?v=[^"]+)"/)?.[1],
+  redesign: html.match(/<link rel="stylesheet" href="(bellore-redesign\.css\?v=[^"]+)"/)?.[1],
   script: html.match(/<script src="(script\.js\?v=[^"]+)"/)?.[1],
   payments: html.match(/<script src="(payments\.js\?v=[^"]+)"/)?.[1],
   wishlist: html.match(/<script src="(wishlist\.js\?v=[^"]+)"/)?.[1],
@@ -46,9 +47,13 @@ for (const [name, url] of Object.entries(urls)) {
   assert(new URL(url, 'https://bellore.co.kr/').searchParams.get('v'),
     `${name} must carry a release key`);
 }
-for (const name of ['styles', 'script', 'payments', 'wishlist', 'search', 'dialog', 'features', 'quotes', 'auction', 'bootstrap', 'conditionGuide', 'pageRuntime']) {
+for (const name of ['styles', 'redesign', 'script', 'payments', 'wishlist', 'search', 'dialog', 'features', 'quotes', 'auction', 'bootstrap', 'conditionGuide', 'pageRuntime']) {
   assert(serviceWorker.includes(`'./${urls[name]}'`), `service worker must precache the exact ${name} URL`);
 }
+const mypageSettingsUrl = bootstrap.match(/from '(\.\/features\/mypage-settings\/mypage-settings\.js\?v=[^']+)'/)?.[1];
+assert(mypageSettingsUrl, 'mypage settings release URL is missing');
+assert(serviceWorker.includes(`'./app/${mypageSettingsUrl.slice(2)}'`),
+  'service worker must precache the exact mypage settings release URL');
 assert.match(serviceWorker, /const VERSION = "bellore-v\d+-[a-z0-9-]+";/, 'service-worker cache namespace must remain a versioned Bellore release');
 assert(serviceWorker.includes("'./login.html'"), 'service worker must precache the independent login page');
 assert(loginStyleUrl && serviceWorker.includes(`'./${loginStyleUrl}'`), 'service worker must precache the exact login page styles');

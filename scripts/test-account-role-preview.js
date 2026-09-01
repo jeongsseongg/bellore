@@ -55,20 +55,21 @@ assert(blockEditor.includes("movable ? ' draggable=\"true\"'") && directEdit.inc
   '마이페이지 블록 끌어서 순서 변경이 없습니다.');
 assert(directEdit.includes("addEventListener('dblclick'") && directEdit.includes("contentEditable = 'true'") && directEdit.includes("addEventListener('focusout'"),
   '실제 마이페이지 문구 두 번 눌러 수정 기능이 없습니다.');
-assert(runtimeSettings.includes('content.blockOrder') && runtimeSettings.includes('insertBefore'),
-  '저장된 블록 순서가 실제 마이페이지에 적용되지 않습니다.');
+assert(runtimeSettings.includes('customer: []'),
+  '고객 마이페이지에 역할 전용 메뉴가 노출되면 안 됩니다.');
 assert(blockEditor.includes('실제 회원 데이터') && blockEditor.includes('실제 주문 데이터'),
   '운영 데이터와 편집 문구의 경계가 표시되지 않습니다.');
-assert(runtimeSettings.includes("content.profile?.pageTitle") && runtimeSettings.includes("content.footer?.description"),
-  '블록 편집기의 화면 제목과 푸터 소개가 실제 마이페이지에 적용되지 않습니다.');
-assert(runtimeSettings.includes("content.labels?.tradeHeading") && runtimeSettings.includes("content.labels?.activityHeading"),
-  '블록 편집기의 메뉴 영역 제목이 실제 마이페이지에 적용되지 않습니다.');
-assert(runtimeSettings.includes("content.order?.primaryAction") && runtimeSettings.includes("content.order?.secondaryAction"),
-  '블록 편집기의 주문 버튼 문구가 실제 마이페이지에 적용되지 않습니다.');
-assert(runtimeSettings.includes("data-sell-service-open') === 'compare'") && runtimeSettings.includes("setAttribute('data-sell-service-open', 'compare')"),
-  '고객 비교견적 메뉴의 실제 동작 계약이 보존되지 않습니다.');
-assert(runtimeSettings.includes("if (role !== 'admin') renderMenu") && runtimeSettings.includes("if (role === 'admin')"),
-  '관리자 전용 메뉴를 일반 회원 메뉴 렌더러가 덮지 못하게 막아야 합니다.');
+assert(runtimeSettings.includes("vendor: [{ id: 'vendor_quotes'") &&
+  runtimeSettings.includes("label: '비교견적 매물 보기'"),
+  '업체 마이페이지에는 비교견적 메뉴 한 개가 있어야 합니다.');
+assert(runtimeSettings.includes("admin: [") && runtimeSettings.includes("{ id: 'admin_page', label: '관리자 페이지'"),
+  '관리자 마이페이지에는 비교견적과 관리자 페이지가 있어야 합니다.');
+assert(runtimeSettings.includes("button.className = 'mp-menu-row mp-role-entry'"),
+  '역할 전용 메뉴가 공통 하단 메뉴와 같은 행 구조로 렌더링되지 않습니다.');
+assert(runtimeSettings.includes('renderMenu(doc, modal, role);'),
+  '현재 역할이 바뀔 때 고정 역할 메뉴 계약이 적용되지 않습니다.');
+assert(!runtimeSettings.includes('content.blockOrder') && !runtimeSettings.includes('insertBefore'),
+  '운영 마이페이지 구조를 관리자 저장값으로 재배열하면 안 됩니다.');
 assert(view.includes('data-save-config') && view.includes('data-reset-config'),
   '브라우저 저장·운영 기준 복원 기능이 없습니다.');
 assert(view.includes('data-preview-size="660"') && view.includes('data-preview-size="390"'),
