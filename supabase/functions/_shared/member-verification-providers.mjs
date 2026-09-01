@@ -23,7 +23,16 @@ export function validatePortOneIdentity(verification, expected) {
   const phone = normalizePhone(customer?.phoneNumber ?? customer?.phone);
   if (!phone) throw new Error("VERIFIED_PHONE_MISSING");
   const name = safeText(customer?.name, 80);
-  return { verified: true, phone, channelType, ...(name ? { name } : {}) };
+  const birthDate = safeText(customer?.birthDate, 10);
+  const di = safeText(customer?.di, 512);
+  if (!name || !/^\d{4}-\d{2}-\d{2}$/.test(birthDate ?? "") || !di) {
+    throw new Error("VERIFIED_IDENTITY_INCOMPLETE");
+  }
+  const parsedBirthDate = new Date(`${birthDate}T00:00:00Z`);
+  if (Number.isNaN(parsedBirthDate.getTime()) || parsedBirthDate.toISOString().slice(0, 10) !== birthDate) {
+    throw new Error("VERIFIED_BIRTH_DATE_INVALID");
+  }
+  return { verified: true, phone, name, birthDate, di, channelType };
 }
 
 export function ntsBusinessResult(response) {

@@ -48,8 +48,12 @@ Deno.serve(async (req) => {
       .eq("provider_reference_hash", referenceHash).eq("status", "verified").maybeSingle() : { data: null };
     if (prior && user) {
       if (prior.user_id !== user.id) return observedFailure(req, traceId, "IDENTITY_ALREADY_USED", 409);
-      const { data: profile } = await admin.from("profiles").select("phone").eq("id", user.id).single();
-      return jsonResponse(req, { ok: true, alreadyVerified: true, phone: profile?.phone ?? null });
+      const { data: identity } = await admin.from("member_verified_identities")
+        .select("phone,verified_name").eq("user_id", user.id).maybeSingle();
+      if (identity) {
+        return jsonResponse(req, { ok: true, alreadyVerified: true,
+          phone: identity.phone ?? null, name: identity.verified_name ?? null });
+      }
     }
 
     const providerResponse = await fetch(`${PORTONE_API_BASE}/identity-verifications/${encodeURIComponent(identityVerificationId)}`, {
@@ -96,14 +100,24 @@ Deno.serve(async (req) => {
     }
     if (!("phone" in checked)) throw new Error("VERIFIED_PHONE_MISSING");
     const phone = checked.phone;
-    const name = checked.name ?? null;
+    const name = checked.name;
+    const birthDate = checked.birthDate;
+    const identityDiHash = await sha256Hex(`portone-identity-di-v1\0${checked.di}`);
     const verifiedAt = new Date().toISOString();
+    const { data: registeredIdentity, error: identityLookupError } = await admin
+      .from("member_verified_identities").select("user_id")
+      .eq("identity_di_hash", identityDiHash).maybeSingle();
+    if (identityLookupError) throw identityLookupError;
+    if (registeredIdentity && registeredIdentity.user_id !== user?.id) {
+      return observedFailure(req, traceId, "IDENTITY_ALREADY_REGISTERED", 409);
+    }
     if (!user) {
       const ticket = `${crypto.randomUUID().replaceAll("-", "")}${crypto.randomUUID().replaceAll("-", "")}`;
       const tokenHash = await sha256Hex(`signup-phone-ticket-v1\0${ticket}`);
       const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
       const { error: ticketError } = await admin.from("member_signup_phone_tickets").insert({
-        token_hash: tokenHash, phone, verified_name: name, provider: "portone_inicis_unified",
+        token_hash: tokenHash, phone, verified_name: name, birth_date: birthDate,
+        identity_di_hash: identityDiHash, provider: "portone_inicis_unified",
         provider_reference_hash: referenceHash, verified_at: verifiedAt, expires_at: expiresAt,
       });
       if (ticketError) {
@@ -116,9 +130,18 @@ Deno.serve(async (req) => {
     }
     const { error: finalizeError } = await admin.rpc("finalize_member_verification", {
       p_user_id: user.id, p_method: "phone", p_provider: "portone_inicis_unified",
-      p_provider_reference_hash: referenceHash, p_subject: { phone }, p_verified_at: verifiedAt,
+      p_provider_reference_hash: referenceHash,
+      p_subject: { phone, verified_name: name, birth_date: birthDate, identity_di_hash: identityDiHash },
+      p_verified_at: verifiedAt,
     });
-    if (finalizeError) throw finalizeError;
+    if (finalizeError) {
+      const code = safeText(finalizeError.message, 80) ?? "IDENTITY_FINALIZE_FAILED";
+      if (code.includes("IDENTITY_ALREADY_REGISTERED") || code.includes("ACCOUNT_IDENTITY_MISMATCH")) {
+        return observedFailure(req, traceId,
+          code.includes("ACCOUNT_IDENTITY_MISMATCH") ? "ACCOUNT_IDENTITY_MISMATCH" : "IDENTITY_ALREADY_REGISTERED", 409);
+      }
+      throw finalizeError;
+    }
     return jsonResponse(req, { ok: true, phone, name, verifiedAt });
   } catch (error) {
     const reason = safeText((error as Error)?.message, 80) ?? "ERROR";
