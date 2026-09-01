@@ -1,0 +1,186 @@
+#myPageModal .mp-shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: calc(100% - 56px);
+  max-width: 704px;
+  margin: 0 auto 16px;
+}
+
+#myPageModal .mp-shortcuts > button {
+  display: flex;
+  min-height: 72px;
+  padding: 14px 18px;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid #e5e5e1;
+  border-radius: 14px;
+  background: #fff;
+  color: #171817;
+  text-align: left;
+}
+
+#myPageModal .mp-shortcuts > button + button {
+  border-left: 1px solid #e5e5e1;
+}
+
+#myPageModal .mp-shortcuts strong {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+#myPageModal .mp-shortcuts > button > span:last-child {
+  color: #9da09d;
+  font-size: 20px;
+}
+
+#myPageModal .mp-menu {
+  width: calc(100% - 56px);
+  max-width: 704px;
+  margin: 0 auto 16px;
+  border: 0;
+}
+
+#myPageModal .mp-menu:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#myPageModal .mp-menu-row.mp-role-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 84px;
+  padding: 18px 20px;
+  border: 1px solid #dfe4e1;
+  border-radius: 14px;
+  background: #edf3f0;
+}
+
+#myPageModal .mp-role-entry .mr-label {
+  color: #153c32;
+  font-size: 16px;
+  font-weight: 850;
+}
+
+#myPageModal .mp-role-entry .mr-sub {
+  grid-column: 1;
+  margin-top: 4px;
+  color: #6d7772;
+  font-size: 12px;
+}
+
+#myPageModal .mp-role-entry .mr-arrow {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  color: #6e8179;
+  font-size: 24px;
+}
+
+#myPageModal .mp-support-list {
+  width: calc(100% - 56px);
+  max-width: 704px;
+  margin: 0 auto 28px;
+}
+
+#myPageModal .mp-support-list > a,
+#myPageModal .mp-support-list > button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 72px;
+  padding: 14px 18px;
+  border: 1px solid #e5e5e1;
+  border-radius: 14px;
+  background: #fff;
+  color: #171817;
+  text-align: left;
+  text-decoration: none;
+}
+
+#myPageModal .mp-head-ic {
+  width: 46px;
+  height: 46px;
+}
+
+#myPageModal .mp-head-ic svg {
+  width: 26px;
+  height: 26px;
+}
+
+#myPageModal .mp-support-list strong {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+#myPageModal .mp-support-list > a > span:last-child,
+#myPageModal .mp-support-list > button > span:last-child {
+  color: #929592;
+  font-size: 22px;
+}
+
+#myPageModal #adminDashBox,
+#myPageModal #adminMenuBox,
+#myPageModal #mpHubCats {
+  display: none;
+}
+
+#myPageModal[data-account-role] .mp-profile,
+#myPageModal[data-account-role] .mp-next-grade {
+  display: block;
+}
+
+#myPageModal .mp-current-card[hidden],
+#myPageModal .mp-menu[hidden] {
+  display: none;
+}
+
+@media (max-width: 699px) {
+  #myPageModal .login-content {
+    padding-bottom: 84px;
+  }
+
+  #myPageModal .mp-head {
+    padding: 20px 20px 22px;
+  }
+
+  #myPageModal .mp-head-bar {
+    margin-bottom: 22px;
+  }
+
+  #myPageModal .mp-account-summary,
+  #myPageModal .mp-current-card,
+  #myPageModal .mp-menu,
+  #myPageModal .mp-support-list,
+  #myPageModal .mp-shortcuts {
+    width: calc(100% - 40px);
+  }
+
+  #myPageModal .mp-current-card {
+    padding: 20px;
+  }
+
+  #myPageModal .mp-current-main,
+  #myPageModal .mp-order-main {
+    grid-template-columns: 64px minmax(0, 1fr) auto;
+    gap: 11px;
+  }
+
+  #myPageModal .mp-current-thumb,
+  #myPageModal .mp-order-thumb {
+    width: 64px;
+    height: 64px;
+  }
+
+  #myPageModal .mp-current-amount {
+    grid-column: 2;
+    margin-top: 4px;
+  }
+
+  #myPageModal .mp-current-arrow {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+}

@@ -1,0 +1,254 @@
+/* ============================================================
+   마이페이지 공통 간소화 — 프로필 · 핵심 상태 · 역할별 목록
+   ============================================================ */
+#myPageModal,
+#myPageModal .login-content {
+  background: #fff;
+}
+
+#myPageModal .mp-head {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 22px 24px 20px;
+  border-bottom: 1px solid #ececef;
+  background: #fff;
+  color: #111;
+}
+
+#myPageModal .mp-head-bar {
+  min-height: 40px;
+  margin: 0 0 18px;
+}
+
+#myPageModal .mp-head-bar > strong {
+  color: #111;
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: 800;
+}
+
+#myPageModal .mp-head-ic {
+  color: #333;
+}
+
+#myPageModal .mp-head-ic:hover,
+#myPageModal .mp-head-ic:active {
+  background: #f4f5f5;
+}
+
+#myPageModal .mp-member-kicker,
+#myPageModal .mp-next-grade {
+  display: none;
+}
+
+#myPageModal .mp-profile {
+  display: block;
+  margin: 0;
+  padding: 0;
+}
+
+#myPageModal .mp-name-row {
+  gap: 7px;
+}
+
+#myPageModal .mp-name-row .mpa-name {
+  color: #111;
+  font-size: 21px;
+  line-height: 1.3;
+  font-weight: 800;
+}
+
+#myPageModal .mp-role-chip {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #eef3f1;
+  color: #173c32;
+  font-size: 11px;
+  line-height: 1.35;
+  font-weight: 750;
+}
+
+#myPageModal .mp-name-pen {
+  color: #a3a6a5;
+}
+
+#myPageModal .mp-profile-meta .mpa-id {
+  margin-top: 4px;
+  color: #8a8d8c;
+  font-size: 12px;
+}
+
+#myPageModal .mp-member-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #ececef;
+}
+
+#myPageModal .mp-member-stats button {
+  min-width: 0;
+  padding: 0 14px;
+  border-right: 1px solid #ececef;
+  text-align: left;
+}
+
+#myPageModal .mp-member-stats button:first-child {
+  padding-left: 0;
+}
+
+#myPageModal .mp-member-stats button:last-child {
+  border-right: 0;
+}
+
+#myPageModal .mp-member-stats strong {
+  color: #111;
+  font-size: 17px;
+  line-height: 1.3;
+  font-weight: 800;
+}
+
+#myPageModal .mp-member-stats span {
+  margin-top: 2px;
+  color: #8a8d8c;
+  font-size: 11px;
+}
+
+#myPageModal[data-account-role="vendor"] .mp-member-stats,
+#myPageModal[data-account-role="partner"] .mp-member-stats,
+#myPageModal[data-account-role="admin"] .mp-member-stats {
+  display: none;
+}
+
+#myPageModal .mp-order-preview {
+  width: calc(100% - 48px);
+  max-width: 592px;
+  margin: 20px auto 8px;
+  padding: 18px 0;
+  border: 0;
+  border-bottom: 1px solid #ececef;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: none;
+}
+
+#myPageModal .mp-menu,
+#myPageModal .mypage-section,
+#myPageModal .pocket {
+  width: calc(100% - 48px);
+  max-width: 592px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+#myPageModal .mp-menu {
+  margin-bottom: 18px;
+}
+
+#myPageModal .mp-menu-cap,
+#myPageModal .admin-menu-cap {
+  margin: 24px 0 8px;
+  color: #969998;
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 700;
+}
+
+#myPageModal .mp-menu-row {
+  min-height: 54px;
+  padding: 0;
+  border-bottom: 1px solid #ececef;
+  background: #fff;
+}
+
+#myPageModal .mp-menu-row .mr-label {
+  color: #171918;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+#myPageModal .mp-menu-row .mr-count {
+  color: #8a8d8c;
+  font-size: 13px;
+}
+
+/* 고객 첫 화면은 배너와 내 시계·주문 두 진입점만 사용한다. */
+#myPageModal[data-account-role="customer"] .mp-head {
+  padding-bottom: 18px;
+  border-bottom: 0;
+  background: #f7f7f7;
+}
+
+#myPageModal[data-account-role="customer"] .mp-head-bar {
+  margin-bottom: 0;
+}
+
+#myPageModal[data-account-role="customer"] .mp-head-bar > strong {
+  font-size: 0;
+}
+
+#myPageModal[data-account-role="customer"] .mp-head-bar > strong::after {
+  content: '마이';
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+#myPageModal[data-account-role="customer"] .mp-profile,
+#myPageModal[data-account-role="customer"] .mp-member-stats,
+#myPageModal[data-account-role="customer"] .mp-order-preview,
+#myPageModal[data-account-role="customer"] .mp-cats,
+#myPageModal[data-account-role="customer"] .mp-subsec,
+#myPageModal[data-account-role="customer"] .pocket {
+  display: none;
+}
+
+#myPageModal[data-account-role="customer"] .mp-menu {
+  display: block;
+  margin-top: 0;
+  margin-bottom: 30px;
+  border-top: 1px solid #ececef;
+}
+
+#myPageModal[data-account-role="customer"] .mp-menu-cap {
+  display: none;
+}
+
+#myPageModal[data-account-role="customer"] .mp-menu-row {
+  min-height: 58px;
+  padding: 0 2px;
+  align-items: center;
+  border: 0;
+  border-bottom: 1px solid #ececef;
+  border-radius: 0;
+  background: #fff;
+}
+
+#myPageModal[data-account-role="customer"] .mp-menu-row .mr-label {
+  font-size: 16px;
+  font-weight: 750;
+}
+
+#myPageModal[data-account-role="customer"] .mp-menu-row .mr-arrow {
+  margin-left: auto;
+  color: #777b79;
+  font-size: 20px;
+}
+
+@media (max-width: 699px) {
+  #myPageModal .mp-head {
+    padding: 18px 20px 17px;
+  }
+
+  #myPageModal .mp-order-preview,
+  #myPageModal .mp-menu,
+  #myPageModal .mypage-section,
+  #myPageModal .pocket {
+    width: calc(100% - 40px);
+  }
+
+  #myPageModal[data-account-role="admin"] .admin-dash {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+

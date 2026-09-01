@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v389-payment-routes-paid-only";
+const VERSION = "bellore-v390-mypage-final";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -23,6 +23,9 @@ const SHELL_ASSETS = [
   './reference-layout.css?v=20260821-tabbar-safe-area-v1',
   './mypick.css?v=20260826-member-verification-live-v2',
   './bellore-redesign.css?v=20260901-mypage-final-v4',
+  './app/features/mypage-personal-shop/mypage-shell.css?v=20260901-mypage-final-v5',
+  './app/features/mypage-personal-shop/mypage-current-cards.css?v=20260901-mypage-final-v5',
+  './app/features/mypage-personal-shop/mypage-navigation.css?v=20260901-mypage-final-v5',
   './script.js?v=20260901-mypage-final-v4',
   './payments.js?v=20260901-payment-outcome-v2',
   './naverpay.js?v=20260826-naverpay-live-v1',
@@ -34,7 +37,7 @@ const SHELL_ASSETS = [
   './brands.js',
   './supabase.js?v=20260828-phone-auth-paths-v1',
   './bellore-features.js?v=20260831-identity-modal-toss-v1',
-  './cq-demo.js?v=20260831-public-contact-v1',
+  './cq-demo.js?v=20260901-phone-full-v1',
   './wishlist.js?v=20260826-member-verification-live-v2',
   './alerts.js?v=20260820-tabs-alerts-v1',
   './auction.js?v=20260826-member-verification-live-v2',

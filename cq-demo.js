@@ -6,7 +6,7 @@
   'use strict';
 
   var ADMIN_EMAIL = 'bellorekr@gmail.com';
-  var BELLORE_PHONE = '8004-6665';
+  var BELLORE_PHONE = '010-8004-6665';
   var B = window.NWBackend || null;
 
   function esc(s) {
@@ -774,7 +774,7 @@
         '<div class="cqo-next"><b>다음 단계</b>' +
           '<p>벨로르 담당자가 등록하신 연락처로 직접 연락드립니다.</p>' +
           '<ol><li>고객 확인 연락</li><li>선택 업체 일정 조율</li><li>실물 감정 및 안전 거래</li></ol>' +
-          '<a class="cqd-cta primary" href="tel:80046665">벨로르 고객센터 ' + BELLORE_PHONE + '</a>' +
+          '<a class="cqd-cta primary" href="tel:010-8004-6665">벨로르 고객센터 ' + BELLORE_PHONE + '</a>' +
         '</div>' +
         '<p class="cqo-locked">' + ICON_LOCK + ' 업체 전화번호와 주소는 공개되지 않습니다. 연락과 거래는 <b>벨로르가 중간에서 진행</b>합니다.</p>';
     } else if (isAwarded) {

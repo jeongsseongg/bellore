@@ -15,7 +15,7 @@ const pageDependencies = [
   '/analytics-client.js?v=20260826-ai-consent-v1',
   '/brands.js',
   '/bellore-features.js?v=20260828-phone-auth-paths-v1',
-  '/cq-demo.js?v=20260826-member-verification-live-v2',
+  '/cq-demo.js?v=20260901-phone-full-v1',
   '/script.js?v=20260828-final-integrated-v1',
   '/app/legacy/recommendation-engine.js?v=20260826-member-verification-live-v2',
   '/wishlist.js?v=20260826-member-verification-live-v2',
