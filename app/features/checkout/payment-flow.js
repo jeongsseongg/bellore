@@ -31,6 +31,13 @@ function effectivePrice(win, listing) {
 }
 
 export function createPaymentFlow({ window: win, notify = (message) => win.alert(message) }) {
+  function providerFailureKind(value) {
+    const code = diagnosticCode(value).toUpperCase();
+    if (/CANCEL|FAILURE_TYPE_USER|PAY_PROCESS_CANCEL/.test(code)) return 'user_canceled';
+    if (/CARD_DECLINED|CARD_DENIED|PAYMENT_DENIED/.test(code)) return 'payment_declined';
+    return 'payment_not_started';
+  }
+
   function customerMessage(value, context, provider) {
     const feedback = win.BELLORE_CUSTOMER_FEEDBACK;
     if (provider && feedback?.paymentProviderFeedback) return feedback.paymentProviderFeedback(value);
@@ -56,7 +63,7 @@ export function createPaymentFlow({ window: win, notify = (message) => win.alert
       presentation.message = `주문번호 ${paymentId}\n이전 결제 상태를 확인하고 있습니다. 다시 결제하지 말고 잠시 후 확인해 주세요.`;
     }
     if (differentCheckout && ['payment_canceled', 'payment_declined'].includes(presentation.kind)) {
-      presentation.title = '이전 미완료 결제가 종료되었습니다';
+      presentation.title = '이전 결제 시도가 종료되었습니다';
       presentation.message = '현재 상품은 결제되지 않았습니다. 결제하기를 다시 눌러 진행해 주세요.';
     }
     return presentation;
@@ -158,7 +165,7 @@ export function createPaymentFlow({ window: win, notify = (message) => win.alert
     });
   }
 
-  function confirmationPresentation(result, paymentId, checkoutAbandoned = false) {
+  function confirmationPresentation(result, paymentId, checkoutAbandoned = false, providerFailure = '') {
     const orderNo = String(paymentId || '');
     if (result?.ok || result?.alreadyPaid) {
       return {
@@ -168,6 +175,13 @@ export function createPaymentFlow({ window: win, notify = (message) => win.alert
       };
     }
     if (result?.pending === true || Number(result?.httpStatus) === 202) {
+      if (providerFailure === 'payment_not_started') {
+        return {
+          kind: 'payment_not_started', ok: false, refreshListings: true,
+          title: '결제를 시작하지 못했습니다',
+          message: `주문번호 ${orderNo}\n결제 설정 또는 결제사 연결을 확인하고 있습니다. 결제된 금액은 없습니다. 다른 결제 수단으로 다시 시도해 주세요.`,
+        };
+      }
       return {
         kind: 'pending', ok: false,
         title: checkoutAbandoned ? '결제 취소 확인 중' : '결제 확인 중',
@@ -178,6 +192,13 @@ export function createPaymentFlow({ window: win, notify = (message) => win.alert
     }
     const code = diagnosticCode(result?.error || result);
     log('confirmation_failed', result);
+    if (providerFailure === 'payment_not_started') {
+      return {
+        kind: 'payment_not_started', ok: false, clearPending: true, refreshListings: true,
+        title: '결제를 시작하지 못했습니다',
+        message: `주문번호 ${orderNo}\n결제 설정 또는 결제사 연결 문제로 결제가 시작되지 않았습니다. 결제된 금액은 없습니다. 다른 결제 수단으로 다시 시도해 주세요.`,
+      };
+    }
     if (['payment_automatically_refunded', 'payment_refund_in_progress', 'payment_refund_pending', 'payment_refunded'].includes(code)) {
       const completed = code === 'payment_automatically_refunded' || code === 'payment_refunded';
       return {
@@ -199,6 +220,6 @@ export function createPaymentFlow({ window: win, notify = (message) => win.alert
     };
   }
 
-  return Object.freeze({ canOpen, confirm, confirmationPresentation, customerMessage, guard, log,
+  return Object.freeze({ canOpen, confirm, confirmationPresentation, customerMessage, guard, log, providerFailureKind,
     preflight, readResponse, recoveredCheckoutPresentation, resetButton, startFailure, state });
 }

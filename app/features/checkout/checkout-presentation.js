@@ -1,6 +1,6 @@
 'use strict';
 
-  const ASSET_VERSION = '20260901-kg-hub-easypay-v1';
+  const ASSET_VERSION = '20260901-kg-payment-routes-v2';
 
   function ensureStyles(doc) {
     if (doc.querySelector('link[data-bellore-checkout-order]')) return;
@@ -97,6 +97,8 @@
     var visuals = {
       card: { src: 'assets/payment-methods/card.svg', alt: '', tone: 'card' },
       easy: { src: 'assets/payment-methods/easy-pay.svg', alt: '', tone: 'easy' },
+      tosspay: { src: 'assets/payment-methods/tosspay.png', alt: '', tone: 'tosspay' },
+      kakaopay: { src: 'assets/payment-methods/kakaopay.png', alt: '', tone: 'kakaopay' },
       virtual: { src: 'assets/payment-methods/virtual-account.svg', alt: '', tone: 'virtual' },
       'naver-order': { src: 'assets/payment-methods/naverpay-badge.svg', alt: '', tone: 'naver' }
     };

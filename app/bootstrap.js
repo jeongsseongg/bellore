@@ -28,7 +28,7 @@ import { createLegacyHomeLayoutAdapter } from './legacy/home-layout-adapter.js?v
 import { installLegacyPaymentAuth } from './legacy/payment-auth.js';
 import { installLegacyReveal } from './legacy/legacy-reveal.js';
 import { initCheckoutAddresses } from './features/checkout/checkout-addresses.mjs?v=20260826-shipping-address-popup-v2';
-import { createPaymentFlow } from './features/checkout/payment-flow.js?v=20260901-checkout-stale-order-v1';
+import { createPaymentFlow } from './features/checkout/payment-flow.js?v=20260901-payment-outcome-v2';
 import { installCustomerFeedback } from './legacy/customer-feedback.js?v=20260826-member-verification-live-v2';
 import { installLegacyCheckoutCoupon } from './legacy/checkout-coupon.js';
 import { createLegacyMypageSettingsAdapter } from './legacy/mypage-settings-adapter.js?v=20260831-mypage-admin-contract-v1';
