@@ -49,11 +49,13 @@ export function createPaymentFlow({ window: win, notify = (message) => win.alert
 
   function log(stage, value) {
     if (!win.console || typeof win.console.warn !== 'function') return;
-    win.console.warn(`[BELLORE_PAYMENT] ${JSON.stringify({
+    const diagnostic = JSON.stringify({
       stage: String(stage || 'unknown'),
       code: diagnosticCode(value),
       httpStatus: httpStatus(value),
-    })}`);
+    });
+    win.console.warn(`[BELLORE_PAYMENT] ${diagnostic}`);
+    win.document?.documentElement?.setAttribute?.('data-bellore-payment-diagnostic', diagnostic);
   }
 
   function recoveredCheckoutPresentation(value, paymentId, recoveryOnly, differentCheckout) {
