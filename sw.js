@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v407-mypage-empty-sale-banner-clean";
+const VERSION = "bellore-v408-mypage-empty-sale-carousel";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -32,8 +32,9 @@ const SHELL_ASSETS = [
   './app/features/mypage-personal-shop/mypage-shell.css?v=20260901-mypage-final-v5',
   './app/features/mypage-personal-shop/mypage-current-cards.css?v=20260901-mypage-final-v5',
   './app/features/mypage-personal-shop/mypage-navigation.css?v=20260901-mypage-final-v5',
-  './app/features/mypage-personal-shop/mypage-requested-polish.css?v=20260902-mypage-empty-banner-v2',
-  './app/features/mypage-personal-shop/mypage-requested-actions.js?v=20260902-mypage-followup-v1',
+  './app/features/mypage-personal-shop/mypage-requested-polish.css?v=20260902-mypage-empty-carousel-v1',
+  './app/features/mypage-personal-shop/mypage-empty-sale-carousel.css?v=20260902-mypage-empty-carousel-v1',
+  './app/features/mypage-personal-shop/mypage-requested-actions.js?v=20260902-mypage-empty-carousel-v1',
   './app/pages/mypage-subpages.css?v=20260901-mypage-requested-v1',
   './app/pages/support-page.js?v=20260902-mypage-followup-v1',
   './pages/storage/index.html',

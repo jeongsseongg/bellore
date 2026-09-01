@@ -33,7 +33,7 @@ import { installCustomerFeedback } from './legacy/customer-feedback.js?v=2026082
 import { installLegacyCheckoutCoupon } from './legacy/checkout-coupon.js';
 import { createLegacyMypageSettingsAdapter } from './legacy/mypage-settings-adapter.js?v=20260831-mypage-admin-contract-v1';
 import { initMypageSettings } from './features/mypage-settings/mypage-settings.js?v=20260901-mypage-final-v4';
-import { initMypageRequestedActions } from './features/mypage-personal-shop/mypage-requested-actions.js?v=20260902-mypage-followup-v1';
+import { initMypageRequestedActions } from './features/mypage-personal-shop/mypage-requested-actions.js?v=20260902-mypage-empty-carousel-v1';
 import { initProfileLoginProvider } from './features/profile-login-provider/profile-login-provider.js?v=20260902-social-profile-v1';
 import { createSocialAuthService } from './services/auth/social-auth-service.js?v=20260902-social-profile-v1';
 import { initSellServicePages } from './features/sell-method/sell-service-pages.js?v=20260826-sell-guest-access-v1';

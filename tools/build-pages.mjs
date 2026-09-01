@@ -65,6 +65,7 @@ export const APP_RUNTIME_FILES = Object.freeze([
   'app/features/mypage-personal-shop/mypage-navigation.css',
   'app/features/mypage-personal-shop/mypage-personal-shop.css',
   'app/features/mypage-personal-shop/mypage-requested-polish.css',
+  'app/features/mypage-personal-shop/mypage-empty-sale-carousel.css',
   'app/features/mypage-personal-shop/mypage-requested-actions.js',
   'app/pages/mypage-subpages.css',
   'app/pages/support-page.js',

@@ -75,48 +75,6 @@ body.mypage-open #myPageModal .mp-order-actions button,
   margin-top: 0;
 }
 
-#myPageModal .mp-sale-banner {
-  display: grid;
-  grid-template-columns: 112px minmax(0, 1fr);
-  min-height: 156px;
-  padding: 18px;
-  overflow: hidden;
-  gap: 20px;
-  border: 1px solid #dde2de;
-  border-radius: 18px;
-  background: linear-gradient(135deg, #f7f9f7 0%, #eef4f1 100%);
-  box-shadow: 0 12px 28px rgba(20, 48, 40, .08);
-}
-
-#myPageModal .mp-sale-banner__image {
-  width: 112px;
-  height: 120px;
-  border-radius: 14px;
-  object-fit: cover;
-  object-position: 34% center;
-}
-
-#myPageModal .mp-sale-banner > .mp-sale-banner__copy {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 6px;
-}
-
-#myPageModal .mp-sale-banner .mp-sale-banner__eyebrow {
-  color: #397565;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-#myPageModal .mp-sale-banner strong {
-  color: #17211e;
-  font-size: 19px;
-  line-height: 1.35;
-}
-
 #myPageModal .mp-add-quote[hidden] {
   display: none;
 }
@@ -342,22 +300,6 @@ body.mypage-open #myPageModal .mp-order-actions button,
 }
 
 @media (max-width: 699px) {
-  #myPageModal .mp-sale-banner {
-    grid-template-columns: 92px minmax(0, 1fr);
-    min-height: 142px;
-    padding: 14px;
-    gap: 14px;
-  }
-
-  #myPageModal .mp-sale-banner__image {
-    width: 92px;
-    height: 112px;
-  }
-
-  #myPageModal .mp-sale-banner strong {
-    font-size: 16px;
-  }
-
   .noti-page .pp-scroll,
   #settingsPage .pp-scroll,
   #profilePage .pp-scroll {

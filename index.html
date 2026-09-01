@@ -82,7 +82,8 @@
     <link rel="stylesheet" href="app/features/checkout/checkout-coupon.css?v=20260826-member-verification-live-v2">
     <link rel="stylesheet" href="app/features/checkout/checkout-order.css?v=20260828-checkout-methods-v1" data-bellore-checkout-order>
     <link rel="stylesheet" href="app/features/mypage-personal-shop/mypage-personal-shop.css?v=20260828-final-integrated-v1">
-    <link rel="stylesheet" href="app/features/mypage-personal-shop/mypage-requested-polish.css?v=20260902-mypage-empty-banner-v2">
+    <link rel="stylesheet" href="app/features/mypage-personal-shop/mypage-requested-polish.css?v=20260902-mypage-empty-carousel-v1">
+    <link rel="stylesheet" href="app/features/mypage-personal-shop/mypage-empty-sale-carousel.css?v=20260902-mypage-empty-carousel-v1">
     <link rel="stylesheet" href="app/features/sell-method/sell-method.css?v=20260826-sell-motion-v2">
     <link rel="stylesheet" href="app/features/sell-method/sell-service.css?v=20260828-complete-site-v1">
     <link rel="stylesheet" href="app/features/sell-method/sell-quotes.css?v=20260826-sell-guest-access-v1">
@@ -1945,13 +1946,30 @@
                         <button type="button" data-sell-service-open="compare">견적 상세</button>
                     </div>
                 </div>
-                <button type="button" class="mp-empty-action mp-sale-banner" id="mpSaleEmpty" data-sell-method-open>
-                    <img class="mp-sale-banner__image" src="assets/home-quicklinks/sell-watch.png" alt="" loading="lazy">
-                    <span class="mp-sale-banner__copy">
-                        <small class="mp-sale-banner__eyebrow">판매할 시계가 있으신가요?</small>
-                        <strong>내 시계, 지금 판매하면 얼마일까?</strong>
-                        <small>비교견적 · 위탁판매 · 즉시매입</small>
+                <button type="button" class="mp-empty-action mp-sale-banner" id="mpSaleEmpty" data-sell-method-open aria-label="시계 판매 신청 배너" aria-roledescription="carousel">
+                    <span class="mp-sale-banner__track">
+                        <span class="mp-sale-banner__slide mp-sale-banner__slide--mint" aria-hidden="false">
+                            <span class="mp-sale-banner__copy"><small>판매할 시계가 있으신가요?</small><strong>내 시계, 지금 판매하면 얼마일까?</strong><span>비교견적 · 위탁판매 · 즉시매입</span></span>
+                            <img src="assets/products/watch-batch-20260821-3/158-pdj96zas81tz/front.webp" alt="" loading="lazy">
+                        </span>
+                        <span class="mp-sale-banner__slide mp-sale-banner__slide--blue" aria-hidden="true">
+                            <span class="mp-sale-banner__copy"><small>실시간 비교견적</small><strong>여러 곳의 견적을 한눈에</strong><span>승인 후 72시간 동안 견적을 받아보세요</span></span>
+                            <img src="assets/products/watch-batch-20260821-3/155-bh9vshesow8t/front.webp" alt="" loading="lazy">
+                        </span>
+                        <span class="mp-sale-banner__slide mp-sale-banner__slide--sand" aria-hidden="true">
+                            <span class="mp-sale-banner__copy"><small>안심 위탁판매</small><strong>맡기면 판매까지 벨로르가</strong><span>촬영부터 판매·정산까지 함께합니다</span></span>
+                            <img src="assets/products/watch-batch-20260821-3/157-m9cebnon5vg5/front.webp" alt="" loading="lazy">
+                        </span>
+                        <span class="mp-sale-banner__slide mp-sale-banner__slide--charcoal" aria-hidden="true">
+                            <span class="mp-sale-banner__copy"><small>빠른 즉시매입</small><strong>확인하고 바로 판매하세요</strong><span>최종 금액 확인 후 거래 방법을 선택합니다</span></span>
+                            <img src="assets/products/watch-batch-20260821-3/156-9rp21nsxtxwu/front.webp" alt="" loading="lazy">
+                        </span>
+                        <span class="mp-sale-banner__slide mp-sale-banner__slide--rose" aria-hidden="true">
+                            <span class="mp-sale-banner__copy"><small>간편한 판매 신청</small><strong>사진 몇 장으로 시작하세요</strong><span>방문 · 택배 · 퀵 중 편한 방법으로</span></span>
+                            <img src="assets/products/watch-batch-20260821-3/154-3h3ewazsy8tv/front.webp" alt="" loading="lazy">
+                        </span>
                     </span>
+                    <span class="mp-sale-banner__dots" aria-hidden="true"><i class="is-active"></i><i></i><i></i><i></i><i></i></span>
                 </button>
                 <button type="button" class="mp-add-quote" id="mpAddQuote" data-sell-method-open hidden>시계 추가로 견적받기</button>
             </section>
