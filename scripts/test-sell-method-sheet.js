@@ -113,7 +113,11 @@ assert.equal((html.match(/mp-sale-banner__slide mp-sale-banner__slide--/g) || []
 assert.match(emptySaleCarouselCss, /:is\(#myPageModal, body\.mypage-open\) \.mp-sale-banner/, 'carousel styles cover modal and standalone My Page shells');
 assert.match(emptySaleCarouselCss, /\.mp-empty-action\s*>\s*span\.mp-sale-banner__track:first-child[\s\S]*?flex-direction:\s*row[\s\S]*?justify-content:\s*flex-start[\s\S]*?gap:\s*0[\s\S]*?transition:\s*transform/, 'the empty sale banner overrides the existing centered first-child stack with a horizontal track');
 assert.doesNotMatch(html, /mp-sale-banner__cta|견적 받아보기/, 'the empty sale banner has no nested CTA box');
-assert.match(requestedActionsJs, /setInterval\([\s\S]*?5000/, 'the empty sale banner rotates every five seconds');
+assert.doesNotMatch(html, /mp-sale-banner__dots/, 'the empty sale banner has no slide-count dots');
+assert.match(emptySaleCarouselCss, /\.mp-sale-preview:has\(#mpSaleEmpty:not\(\[hidden\]\)\)[\s\S]*?width:\s*100%[\s\S]*?max-width:\s*none[\s\S]*?margin-left:\s*0[\s\S]*?padding:\s*0[\s\S]*?border:\s*0[\s\S]*?border-radius:\s*0/, 'the empty sale wrapper reaches the My Page walls with no inset border or rounded corners');
+assert.match(emptySaleCarouselCss, /\.mp-sale-banner\s*\{[\s\S]*?border-radius:\s*0[\s\S]*?box-shadow:\s*none/, 'the banner itself is a square full-width rectangle');
+assert.doesNotMatch(html, /156-9rp21nsxtxwu\/front\.webp/, 'the opaque-background watch photo is not used by the empty sale banner');
+assert.match(requestedActionsJs, /setInterval\([\s\S]*?8000/, 'the empty sale banner rotates every eight seconds');
 assert.match(requestedActionsJs, /pointerdown[\s\S]*?pointerup[\s\S]*?Math\.abs\(distance\)\s*<\s*32/, 'the empty sale banner supports horizontal swipe');
 assert.match(quoteJs, /awardBid\(quoteId, bidId,[\s\S]*tradeMethod\)/, 'sale requests persist the selected quote and transaction method');
 assert.match(quoteJs, /seconds[\s\S]*초/, 'active quote countdown includes seconds');

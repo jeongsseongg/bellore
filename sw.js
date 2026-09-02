@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v412-mypage-empty-sale-carousel-cascade";
+const VERSION = "bellore-v414-mypage-empty-sale-banner-eight-seconds";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -33,8 +33,8 @@ const SHELL_ASSETS = [
   './app/features/mypage-personal-shop/mypage-current-cards.css?v=20260901-mypage-final-v5',
   './app/features/mypage-personal-shop/mypage-navigation.css?v=20260901-mypage-final-v5',
   './app/features/mypage-personal-shop/mypage-requested-polish.css?v=20260902-mypage-empty-carousel-v1',
-  './app/features/mypage-personal-shop/mypage-empty-sale-carousel.css?v=20260902-mypage-empty-carousel-v4',
-  './app/features/mypage-personal-shop/mypage-requested-actions.js?v=20260902-mypage-empty-carousel-v1',
+  './app/features/mypage-personal-shop/mypage-empty-sale-carousel.css?v=20260902-mypage-empty-carousel-v5',
+  './app/features/mypage-personal-shop/mypage-requested-actions.js?v=20260902-mypage-empty-carousel-v2',
   './app/pages/mypage-subpages.css?v=20260901-mypage-requested-v1',
   './app/pages/support-page.js?v=20260902-mypage-followup-v1',
   './pages/storage/index.html',
@@ -60,7 +60,7 @@ const SHELL_ASSETS = [
   './search.js?v=20260826-member-verification-live-v2',
   './ai-advisor.js?v=20260826-member-verification-live-v2',
   './ai-advisor-admin.js?v=20260826-member-verification-live-v2',
-  './app/bootstrap.js?v=20260902-mypage-empty-carousel-v1',
+  './app/bootstrap.js?v=20260902-mypage-empty-carousel-v2',
   './app/pages/standalone-auth-gate.mjs?v=20260828-standalone-auth-v1',
   './app/pages/standalone-page.css?v=20260831-mypage-app-route-v1',
   './app/pages/standalone-page.js?v=20260831-mypage-pages-loop-v1',

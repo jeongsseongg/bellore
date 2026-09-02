@@ -22,7 +22,7 @@ function initEmptySaleCarousel(document, window) {
     window.clearInterval(timer);
     timer = window.setInterval(() => {
       if (!banner.hidden && !document.hidden) show(index + 1);
-    }, 5000);
+    }, 8000);
   };
   banner.addEventListener('pointerdown', (event) => { startX = event.clientX; });
   banner.addEventListener('pointerup', (event) => {

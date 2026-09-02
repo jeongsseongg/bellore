@@ -73,7 +73,7 @@ assert.match(legacy, /if \(wasOpen && url\.searchParams\.get\(['"]view['"]\) ===
   'only closing a visible mypage clears its deep-link query');
 
 assert.match(css, /body\.mypage-open #myPageModal/);
-assert.match(index, /<strong>마이<\/strong>/, 'the mypage heading must render once');
+assert.match(index, /<strong>마이페이지<\/strong>/, 'the approved mypage heading must render once');
 assert.match(polish, /#myPageModal\[data-account-role\] \.mp-head-bar > strong::after\s*\{\s*content:\s*none;/s,
   'legacy generated heading text must stay disabled');
 assert.match(index, /id="mpQuoteCancel">견적취소<\/button>/);
