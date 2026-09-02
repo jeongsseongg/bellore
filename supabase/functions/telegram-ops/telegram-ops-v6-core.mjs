@@ -182,8 +182,8 @@ export function formatOutboxMessage(row) {
       `첨부사진: ${outboxMediaUrls(row).length}장`,
       `접수일시: ${new Date(String(p.createdAt)).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`,
       '',
-      `금액 안내: ${p.inputKey || '입력키'} 금액 500 → 500만원`,
-      p.method === 'instant' ? `검수 후 최종금액: ${p.inputKey || '입력키'} 최종 480` : '',
+      `금액 안내: /${p.inputKey || '입력키'} 금액 500 → 500만원`,
+      p.method === 'instant' ? `검수 후 최종금액: /${p.inputKey || '입력키'} 최종 480` : '',
     ].filter(Boolean).join('\n');
   }
   if (row.event_type === 'sell_handoff_requested') {
@@ -200,8 +200,8 @@ export function formatOutboxMessage(row) {
       `시계: ${[p.brand, p.model].filter(Boolean).join(' ') || '-'}`,
       `안내금액: ${formatChatAmount(p.amount)}`,
       `거래방법: ${method}`,
-      ...(p.tradeMethod === 'visit' ? [`희망지점: ${branch}`, `희망일시: ${requestedAt}`, '', `예약 확정: ${p.inputKey} 예약확정`] : ['', `연락 완료: ${p.inputKey} 판매연락완료`]),
-      `수령 완료: ${p.inputKey} 수령`,
+      ...(p.tradeMethod === 'visit' ? [`희망지점: ${branch}`, `희망일시: ${requestedAt}`, '', `예약 확정: /${p.inputKey} 예약확정`] : ['', `연락 완료: /${p.inputKey} 판매연락완료`]),
+      `수령 완료: /${p.inputKey} 수령`,
     ].join('\n');
   }
   if (row.event_type === 'cycle_followup_report') {

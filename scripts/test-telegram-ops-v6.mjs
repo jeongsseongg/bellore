@@ -192,8 +192,8 @@ test('거래방법 선택과 미완료 사이클을 운영자가 바로 처리�
     visitBranch: 'cheongdam', requestedVisitAt: '2026-09-03T05:00:00Z',
   } });
   assert.match(handoff, /벨로르 청담점/);
-  assert.match(handoff, /4821 예약확정/);
-  assert.match(handoff, /4821 수령/);
+  assert.match(handoff, /\/4821 예약확정/);
+  assert.match(handoff, /\/4821 수령/);
   const report = formatOutboxMessage({ event_type: 'cycle_followup_report', payload: {
     sellPending: 5, quotePending: 1, orderPending: 2,
   } });
