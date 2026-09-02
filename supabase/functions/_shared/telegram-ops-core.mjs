@@ -30,6 +30,11 @@ export function parseQuoteApprovalCommand(input) {
   return match ? { inputKey: match[1] } : null;
 }
 
+export function parseQuoteContactCommand(input) {
+  const match = String(input || '').trim().match(/^\/?(\d{4})\s+연락완료$/);
+  return match ? { inputKey: match[1] } : null;
+}
+
 export function parseOrderCommand(input) {
   const match = String(input || '').trim().match(/^\/?(\d{4})$/);
   return match ? { inputKey: match[1] } : null;
@@ -52,6 +57,10 @@ export function buildQuoteApprovalCallback(inputKey) {
   return `a:${inputKey}`;
 }
 
+export function buildQuoteContactCallback(inputKey) {
+  return `c:${inputKey}`;
+}
+
 export function buildOrderCallback(inputKey) {
   return `o:${inputKey}`;
 }
@@ -64,6 +73,8 @@ export function parseCallback(data) {
   if (match) return { kind: 'quote_approve', inputKey: match[1] };
   match = value.match(/^o:(\d{4})$/);
   if (match) return { kind: 'order', inputKey: match[1] };
+  match = value.match(/^c:(\d{4})$/);
+  if (match) return { kind: 'quote_contact', inputKey: match[1] };
   if (value === 'cancel') return { kind: 'cancel' };
   return null;
 }

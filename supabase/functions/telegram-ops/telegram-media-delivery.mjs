@@ -1,4 +1,4 @@
-import JSZip from 'jszip';
+import JSZip from 'npm:jszip@3.10.1';
 import { formatOutboxMessage, outboxMediaUrls } from './telegram-ops-v6-core.mjs';
 
 async function hmacHex(value, secret) {

@@ -30,6 +30,8 @@ export function friendlyActionError(error) {
     ['QUOTE_NOT_ACTIVE', '이미 종료되었거나 선택이 끝난 견적입니다.'],
     ['ORDER_KEY_NOT_FOUND', '해당 입력키의 승인 대기 주문을 찾지 못했습니다.'],
     ['ORDER_NOT_PAID', '결제가 확인되지 않아 주문을 승인할 수 없습니다.'],
+    ['SALE_REQUEST_NOT_FOUND', '해당 입력키의 판매 요청을 찾지 못했습니다.'],
+    ['SALE_REQUEST_NOT_AWARDED', '아직 판매 요청이 확정되지 않은 견적입니다.'],
     ['WRONG_CHAT', '이 작업은 지정된 관리방에서만 처리할 수 있습니다.'],
   ];
   return known.find(([code]) => value.includes(code))?.[1]
@@ -115,6 +117,24 @@ export function formatVendorBidNotice(payload) {
 
 export function formatOutboxMessage(row) {
   const p = row.payload;
+  if (row.event_type === 'support_new') {
+    const createdAt = p.createdAt
+      ? new Date(String(p.createdAt)).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) : '-';
+    return [
+      '💬 새로운 고객센터 문의가 접수되었습니다.',
+      '',
+      `고객: ${p.customerName || '-'}`,
+      `연락처: ${p.customerPhone || '-'}`,
+      `이메일: ${p.customerEmail || '-'}`,
+      `관련 견적: ${p.refQuote || '-'}`,
+      `문의일시: ${createdAt}`,
+      '',
+      '문의 내용',
+      String(p.body || '-'),
+      '',
+      '처리: 관리자 화면 > 고객센터에서 답변',
+    ].join('\n');
+  }
   if (row.event_type === 'photo_download_ready') {
     return '사진 전체 다운로드';
   }
@@ -138,6 +158,7 @@ export function formatOutboxMessage(row) {
       `요청일시: ${requestedAt}`,
       '',
       '관리자 화면에서 거래 진행 내용을 확인해주세요.',
+      `연락 완료 처리: ${p.inputKey || '입력키'} 연락완료`,
     ].join('\n');
   }
   if (row.event_type === 'sell_service_received') {

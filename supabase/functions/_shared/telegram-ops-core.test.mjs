@@ -3,11 +3,13 @@ import assert from 'node:assert/strict';
 import {
   buildOrderCallback,
   buildQuoteApprovalCallback,
+  buildQuoteContactCallback,
   buildQuoteCallback,
   isAllowedActor,
   parseCallback,
   parseOrderCommand,
   parseQuoteApprovalCommand,
+  parseQuoteContactCommand,
   parseQuoteCommand,
 } from './telegram-ops-core.mjs';
 
@@ -16,6 +18,15 @@ test('견적 금액은 기본적으로 만원 단위를 사용한다', () => {
   assert.deepEqual(parseQuoteCommand('/4821 500'), { inputKey: '4821', amount: 5_000_000 });
   assert.deepEqual(parseQuoteCommand('4821 500만'), { inputKey: '4821', amount: 5_000_000 });
   assert.deepEqual(parseQuoteCommand('4821 500만원'), { inputKey: '4821', amount: 5_000_000 });
+});
+
+test('판매 요청 연락완료 명령은 견적 금액 명령과 구분한다', () => {
+  assert.deepEqual(parseQuoteContactCommand('1547 연락완료'), { inputKey: '1547' });
+  assert.deepEqual(parseQuoteContactCommand('/1547 연락완료'), { inputKey: '1547' });
+  assert.equal(parseQuoteContactCommand('1547 500'), null);
+  assert.deepEqual(parseCallback(buildQuoteContactCallback('1547')), {
+    kind: 'quote_contact', inputKey: '1547',
+  });
 });
 
 test('큰 정수와 쉼표 표기는 원 단위로 해석한다', () => {

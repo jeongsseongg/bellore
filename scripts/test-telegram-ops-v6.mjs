@@ -16,6 +16,7 @@ import {
 import {
   parseOrderCommand,
   parseQuoteApprovalCommand,
+  parseQuoteContactCommand,
   parseQuoteCommand,
 } from '../supabase/functions/_shared/telegram-ops-core.mjs';
 
@@ -28,6 +29,12 @@ test('일반 숫자 견적·주문 명령 계약을 유지한다', () => {
   assert.deepEqual(parseOrderCommand('7471'), { inputKey: '7471' });
   assert.deepEqual(parseOrderCommand('/7471'), { inputKey: '7471' });
   assert.deepEqual(parseQuoteApprovalCommand('/1547 승인'), { inputKey: '1547' });
+});
+
+test('판매요청 연락완료 명령을 승인·가격 명령과 구분한다', () => {
+  assert.deepEqual(parseQuoteContactCommand('1547 연락완료'), { inputKey: '1547' });
+  assert.deepEqual(parseQuoteContactCommand('/1547 연락완료'), { inputKey: '1547' });
+  assert.equal(parseQuoteCommand('1547 연락완료'), null);
 });
 
 test('금액과 결제수단을 운영자가 읽기 쉽게 표시한다', () => {
@@ -161,6 +168,22 @@ test('고객의 견적 선택 후 판매 요청을 관리자 운영 정보와 �
   assert.match(message, /선택금액: 550만원/);
   assert.match(message, /선택견적: 굿타임/);
   assert.match(message, /거래방법: 방문거래/);
+  assert.match(message, /1547 연락완료/);
+});
+
+test('고객센터 문의는 전용 상담방에서 바로 처리할 정보로 표시한다', () => {
+  const message = formatOutboxMessage({
+    event_type: 'support_new',
+    payload: {
+      customerName: '홍길동', customerPhone: '010-1234-5678',
+      customerEmail: 'customer@example.com', refQuote: '1547',
+      body: '견적 진행상황을 알고 싶습니다.', createdAt: '2026-09-02T03:00:00Z',
+    },
+  });
+  assert.match(message, /새로운 고객센터 문의/);
+  assert.match(message, /연락처: 010-1234-5678/);
+  assert.match(message, /견적 진행상황을 알고 싶습니다/);
+  assert.match(message, /관리자 화면 > 고객센터에서 답변/);
 });
 
 test('판매 요청 트리거는 awarded 전환만 감지하고 견적별로 한 번만 적재한다', async () => {
@@ -196,6 +219,9 @@ test('Edge가 사진 전송 실패를 텍스트로 폴백하고 친화 오류를
   assert.match(media, /totalBytes > 50 \* 1024 \* 1024/);
   assert.match(edge, /if \(request\.method === 'GET'\) return await handlePhotoDownload\(request\)/);
   assert.match(edge, /telegram_ops_approve_quote/);
+  assert.match(edge, /telegram_ops_complete_quote_customer_contact/);
+  assert.match(edge, /row\.target === 'support_room'/);
+  assert.match(edge, /TELEGRAM_SUPPORT_BOT_TOKEN/);
   assert.match(edge, /비교견적이 승인되었습니다/);
 });
 

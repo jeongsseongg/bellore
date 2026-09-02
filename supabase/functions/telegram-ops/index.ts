@@ -1,15 +1,18 @@
 import {
   buildOrderCallback,
   buildQuoteApprovalCallback,
+  buildQuoteContactCallback,
   buildQuoteCallback,
   isAllowedActor,
   parseCallback,
   parseOrderCommand,
   parseQuoteApprovalCommand,
+  parseQuoteContactCommand,
   parseQuoteCommand,
 } from '../_shared/telegram-ops-core.mjs';
 import {
   formatChatAmount,
+  formatOutboxMessage,
   friendlyActionError,
 } from './telegram-ops-v6-core.mjs';
 import { createKakaoDelivery } from './kakao-delivery.mjs';
@@ -23,6 +26,8 @@ const WEBHOOK_SECRET = env('TELEGRAM_WEBHOOK_SECRET');
 const CRON_SECRET = env('TELEGRAM_CRON_SECRET');
 const ORDER_CHAT_ID = env('TELEGRAM_ORDER_CHAT_ID');
 const QUOTE_CHAT_ID = env('TELEGRAM_QUOTE_CHAT_ID');
+const SUPPORT_BOT_TOKEN = env('TELEGRAM_SUPPORT_BOT_TOKEN');
+const SUPPORT_CHAT_ID = env('TELEGRAM_SUPPORT_CHAT_ID');
 const ADMIN_IDS = env('TELEGRAM_ADMIN_USER_IDS');
 const BELLORE_PROFILE_ID = env('TELEGRAM_BELLORE_PROFILE_ID');
 
@@ -63,8 +68,8 @@ async function rpc(name: string, body: Json = {}) {
   return output;
 }
 
-async function telegram(method: string, body: Json) {
-  const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
+async function telegramWithToken(token: string, method: string, body: Json) {
+  const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
@@ -74,6 +79,10 @@ async function telegram(method: string, body: Json) {
     throw new Error(`TELEGRAM_${response.status}:${String(output?.description || 'unknown').slice(0, 200)}`);
   }
   return output.result;
+}
+
+async function telegram(method: string, body: Json) {
+  return await telegramWithToken(BOT_TOKEN, method, body);
 }
 
 async function sendText(chatId: string, text: string, replyMarkup?: Json) {
@@ -112,6 +121,13 @@ async function drainOutbox() {
       if (row.target === 'customer_kakao') {
         const result = await sendKakao(row.event_type, row.payload) as Json;
         providerId = String(result.groupId || result.messageId || 'solapi');
+      } else if (row.target === 'support_room') {
+        if (!SUPPORT_BOT_TOKEN || !SUPPORT_CHAT_ID) throw new Error('SUPPORT_TELEGRAM_NOT_CONFIGURED');
+        const result = await telegramWithToken(SUPPORT_BOT_TOKEN, 'sendMessage', {
+          chat_id: SUPPORT_CHAT_ID,
+          text: formatOutboxMessage(row).slice(0, 4096),
+        }) as Json;
+        providerId = String(result.message_id || 'telegram_support');
       } else {
         const chatId = row.target === 'order_room' ? ORDER_CHAT_ID : QUOTE_CHAT_ID;
         const result = await sendTelegramOutbox(chatId, row) as Json | Json[];
@@ -151,6 +167,17 @@ async function handleMessage(update: Json) {
   const chatId = String(chat.id);
   const text = String(message.text);
   if (chatId === QUOTE_CHAT_ID) {
+    const contact = parseQuoteContactCommand(text);
+    if (contact) {
+      await sendText(chatId, [
+        `📞 입력키 ${contact.inputKey} 고객 연락을 완료 처리할까요?`,
+        '완료하면 판매요청 후속 상태에 기록됩니다.',
+      ].join('\n'), { inline_keyboard: [[
+        { text: '네, 연락 완료', callback_data: buildQuoteContactCallback(contact.inputKey) },
+        { text: '아니요, 취소', callback_data: 'cancel' },
+      ]] });
+      return;
+    }
     const approval = parseQuoteApprovalCommand(text);
     if (approval) {
       await sendText(chatId, [
@@ -263,6 +290,18 @@ async function handleCallback(update: Json) {
         `이번 제안: ${result.round}차 견적`,
         `시계 입력키: ${parsed.inputKey}`,
         '고객 마이페이지 견적에 반영되었습니다.',
+      ].join('\n'));
+    } else if (parsed.kind === 'quote_contact') {
+      if (chatId !== QUOTE_CHAT_ID) throw new Error('WRONG_CHAT');
+      result = await rpc('telegram_ops_complete_quote_customer_contact', {
+        p_input_key: parsed.inputKey, p_actor_telegram_id: String(actor.id),
+        p_chat_id: chatId, p_dedupe_key: `telegram:${String(update.update_id)}`,
+      }) as Json;
+      await sendText(chatId, [
+        '✅ 고객 연락을 완료 처리했습니다.',
+        `견적 입력키: ${parsed.inputKey}`,
+        `고객: ${result.customerName || '고객'}`,
+        '판매요청 후속 상태에 기록되었습니다.',
       ].join('\n'));
     } else {
       if (chatId !== ORDER_CHAT_ID) throw new Error('WRONG_CHAT');
