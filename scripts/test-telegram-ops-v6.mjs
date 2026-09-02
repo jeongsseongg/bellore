@@ -171,19 +171,21 @@ test('고객의 견적 선택 후 판매 요청을 관리자 운영 정보와 �
   assert.match(message, /1547 연락완료/);
 });
 
-test('고객센터 문의는 전용 상담방에서 바로 처리할 정보로 표시한다', () => {
+test('고객센터 문의는 전용 상담방에 개인정보 없이 접수 사실만 표시한다', () => {
   const message = formatOutboxMessage({
     event_type: 'support_new',
     payload: {
-      customerName: '홍길동', customerPhone: '010-1234-5678',
-      customerEmail: 'customer@example.com', refQuote: '1547',
-      body: '견적 진행상황을 알고 싶습니다.', createdAt: '2026-09-02T03:00:00Z',
+      messageId: 'support-test', createdAt: '2026-09-02T03:00:00Z',
+      customerPhone: '010-1234-5678', body: '외부로 나가면 안 되는 문의 원문',
     },
   });
   assert.match(message, /새로운 고객센터 문의/);
-  assert.match(message, /연락처: 010-1234-5678/);
-  assert.match(message, /견적 진행상황을 알고 싶습니다/);
-  assert.match(message, /관리자 화면 > 고객센터에서 답변/);
+  assert.match(message, /개인정보 보호/);
+  assert.doesNotMatch(message, /고객:/);
+  assert.doesNotMatch(message, /연락처:/);
+  assert.doesNotMatch(message, /010-1234-5678/);
+  assert.doesNotMatch(message, /외부로 나가면 안 되는 문의 원문/);
+  assert.match(message, /관리자 화면 > 고객센터에서 확인 및 답변/);
 });
 
 test('판매 요청 트리거는 awarded 전환만 감지하고 견적별로 한 번만 적재한다', async () => {

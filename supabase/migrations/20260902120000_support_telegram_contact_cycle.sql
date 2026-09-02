@@ -10,19 +10,8 @@ language plpgsql
 security definer
 set search_path = pg_catalog, public
 as $$
-declare
-  customer_name text := '';
-  customer_phone text := '';
-  customer_email text := '';
 begin
   if new.sender_role = 'admin' then return new; end if;
-
-  select coalesce(nullif(p.display_name, ''), '고객'),
-         coalesce(nullif(p.phone, ''), ''),
-         coalesce(nullif(p.email, ''), '')
-    into customer_name, customer_phone, customer_email
-    from public.profiles p
-   where p.id = new.thread_user;
 
   insert into public.telegram_ops_outbox (dedupe_key, event_type, target, payload)
   values (
@@ -31,12 +20,6 @@ begin
     'support_room',
     jsonb_build_object(
       'messageId', new.id,
-      'threadUser', new.thread_user,
-      'customerName', coalesce(nullif(customer_name, ''), '고객'),
-      'customerPhone', coalesce(customer_phone, ''),
-      'customerEmail', coalesce(customer_email, ''),
-      'body', left(coalesce(new.body, ''), 3000),
-      'refQuote', coalesce(new.ref_quote::text, ''),
       'createdAt', coalesce(new.created_at, now())
     )
   ) on conflict (dedupe_key) do nothing;

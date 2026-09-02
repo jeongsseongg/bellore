@@ -123,16 +123,10 @@ export function formatOutboxMessage(row) {
     return [
       '💬 새로운 고객센터 문의가 접수되었습니다.',
       '',
-      `고객: ${p.customerName || '-'}`,
-      `연락처: ${p.customerPhone || '-'}`,
-      `이메일: ${p.customerEmail || '-'}`,
-      `관련 견적: ${p.refQuote || '-'}`,
       `문의일시: ${createdAt}`,
       '',
-      '문의 내용',
-      String(p.body || '-'),
-      '',
-      '처리: 관리자 화면 > 고객센터에서 답변',
+      '고객 정보와 문의 내용은 개인정보 보호를 위해 Telegram에 표시하지 않습니다.',
+      '처리: 관리자 화면 > 고객센터에서 확인 및 답변',
     ].join('\n');
   }
   if (row.event_type === 'photo_download_ready') {
