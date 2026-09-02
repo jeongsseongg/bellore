@@ -35,6 +35,29 @@ export function parseQuoteContactCommand(input) {
   return match ? { inputKey: match[1] } : null;
 }
 
+export function parseQuoteFollowupCommand(input) {
+  const match = String(input || '').trim().match(/^\/?(\d{4})\s+(업체연락완료|거래완료)$/);
+  if (!match) return null;
+  return { inputKey: match[1], step: match[2] === '업체연락완료' ? 'vendor_contacted' : 'trade_completed' };
+}
+
+export function parseSellOfferCommand(input) {
+  const match = String(input || '').trim().match(/^\/?(\d{4})\s+(금액|최종)\s+(.+)$/);
+  if (!match) return null;
+  const parsed = parseQuoteCommand(`${match[1]} ${match[3]}`);
+  return parsed ? { ...parsed, isFinal: match[2] === '최종' } : null;
+}
+
+export function parseSellAdvanceCommand(input) {
+  const match = String(input || '').trim().match(/^\/?(\d{4})\s+(판매연락완료|예약확정|수령|검수완료|판매개시|거래완료|정산완료)$/);
+  if (!match) return null;
+  const actions = {
+    판매연락완료: 'contact_complete', 예약확정: 'appointment_confirmed', 수령: 'received',
+    검수완료: 'inspected', 판매개시: 'listed', 거래완료: 'completed', 정산완료: 'settled',
+  };
+  return { inputKey: match[1], action: actions[match[2]], label: match[2] };
+}
+
 export function parseOrderCommand(input) {
   const match = String(input || '').trim().match(/^\/?(\d{4})$/);
   return match ? { inputKey: match[1] } : null;
@@ -61,6 +84,19 @@ export function buildQuoteContactCallback(inputKey) {
   return `c:${inputKey}`;
 }
 
+export function buildQuoteFollowupCallback(inputKey, step) {
+  return `${step === 'vendor_contacted' ? 'v' : 't'}:${inputKey}`;
+}
+
+export function buildSellOfferCallback(inputKey, amount, isFinal) {
+  return `s:${inputKey}:${amount}:${isFinal ? 1 : 0}`;
+}
+
+export function buildSellAdvanceCallback(inputKey, action) {
+  const codes = { contact_complete: 'c', appointment_confirmed: 'a', received: 'r', inspected: 'i', listed: 'l', completed: 'd', settled: 's' };
+  return `x:${inputKey}:${codes[action]}`;
+}
+
 export function buildOrderCallback(inputKey) {
   return `o:${inputKey}`;
 }
@@ -75,6 +111,17 @@ export function parseCallback(data) {
   if (match) return { kind: 'order', inputKey: match[1] };
   match = value.match(/^c:(\d{4})$/);
   if (match) return { kind: 'quote_contact', inputKey: match[1] };
+  match = value.match(/^v:(\d{4})$/);
+  if (match) return { kind: 'quote_followup', inputKey: match[1], step: 'vendor_contacted' };
+  match = value.match(/^t:(\d{4})$/);
+  if (match) return { kind: 'quote_followup', inputKey: match[1], step: 'trade_completed' };
+  match = value.match(/^s:(\d{4}):(\d+):([01])$/);
+  if (match) return { kind: 'sell_offer', inputKey: match[1], amount: Number(match[2]), isFinal: match[3] === '1' };
+  match = value.match(/^x:(\d{4}):([carilds])$/);
+  if (match) {
+    const actions = { c: 'contact_complete', a: 'appointment_confirmed', r: 'received', i: 'inspected', l: 'listed', d: 'completed', s: 'settled' };
+    return { kind: 'sell_advance', inputKey: match[1], action: actions[match[2]] };
+  }
   if (value === 'cancel') return { kind: 'cancel' };
   return null;
 }

@@ -128,6 +128,7 @@ export const APP_RUNTIME_FILES = Object.freeze([
   'app/features/sell-method/sell-reference-controller.js',
   'app/features/sell-method/sell-quote-controller.js',
   'app/features/sell-method/sell-service-pages.js',
+  'app/features/sell-method/sell-handoff-action.js',
   'app/features/sell-method/sell-guest-access.js',
   'app/services/sell/sell-request-access.js',
   'app/legacy/legacy-collection.js', 'app/legacy/payment-auth.js',

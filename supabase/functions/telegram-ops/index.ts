@@ -2,12 +2,14 @@ import {
   buildOrderCallback,
   buildQuoteApprovalCallback,
   buildQuoteContactCallback,
+  buildQuoteFollowupCallback,
   buildQuoteCallback,
   isAllowedActor,
   parseCallback,
   parseOrderCommand,
   parseQuoteApprovalCommand,
   parseQuoteContactCommand,
+  parseQuoteFollowupCommand,
   parseQuoteCommand,
 } from '../_shared/telegram-ops-core.mjs';
 import {
@@ -17,6 +19,9 @@ import {
 } from './telegram-ops-v6-core.mjs';
 import { createKakaoDelivery } from './kakao-delivery.mjs';
 import { createTelegramMediaDelivery } from './telegram-media-delivery.mjs';
+import { createTelegramSellCycle } from './telegram-sell-cycle.mjs';
+
+// telegram-sell-cycle owns telegram_ops_offer_sell_service and telegram_ops_advance_sell_service.
 
 const env = (name: string) => Deno.env.get(name) ?? '';
 const SUPABASE_URL = env('SUPABASE_URL').replace(/\/$/, '');
@@ -97,6 +102,7 @@ const { handlePhotoDownload, sendTelegramOutbox } = createTelegramMediaDelivery(
   supabaseUrl: SUPABASE_URL, serviceRole: SERVICE_ROLE, cronSecret: CRON_SECRET,
   telegram, sendText,
 });
+const sellCycle = createTelegramSellCycle({ rpc, sendText, formatChatAmount, quoteChatId: QUOTE_CHAT_ID });
 
 const sendKakao = createKakaoDelivery({
   apiKey: SOLAPI_API_KEY, apiSecret: SOLAPI_API_SECRET,
@@ -167,6 +173,16 @@ async function handleMessage(update: Json) {
   const chatId = String(chat.id);
   const text = String(message.text);
   if (chatId === QUOTE_CHAT_ID) {
+    if (await sellCycle.handleMessage(text, chatId)) return;
+    const followup = parseQuoteFollowupCommand(text);
+    if (followup) {
+      const label = followup.step === 'vendor_contacted' ? '업체 연락완료' : '거래완료';
+      await sendText(chatId, `📋 입력키 ${followup.inputKey} 비교견적을 「${label}」 처리할까요?`, { inline_keyboard: [[
+        { text: `네, ${label}`, callback_data: buildQuoteFollowupCallback(followup.inputKey, followup.step) },
+        { text: '아니요, 취소', callback_data: 'cancel' },
+      ]] });
+      return;
+    }
     const contact = parseQuoteContactCommand(text);
     if (contact) {
       await sendText(chatId, [
@@ -198,6 +214,9 @@ async function handleMessage(update: Json) {
         '',
         '견적을 제안하려면 「4자리 입력키 + 금액」을 보내주세요.',
         '예) 3751 500 → 500만원 견적',
+        '',
+        '위탁·즉시매입 금액: 「입력키 + 금액 + 액수」',
+        '예) 4821 금액 500',
       ].join('\n'));
       return;
     }
@@ -256,7 +275,12 @@ async function handleCallback(update: Json) {
 
   try {
     let result: Json;
-    if (parsed.kind === 'quote_approve') {
+    const sellResult = await sellCycle.handleCallback(parsed, {
+      chatId, actorId: String(actor.id), dedupeKey: `telegram:${String(update.update_id)}`,
+    });
+    if (sellResult.handled) {
+      result = sellResult.result as Json;
+    } else if (parsed.kind === 'quote_approve') {
       if (chatId !== QUOTE_CHAT_ID) throw new Error('WRONG_CHAT');
       result = await rpc('telegram_ops_approve_quote', {
         p_input_key: parsed.inputKey, p_actor_telegram_id: String(actor.id),
@@ -303,6 +327,16 @@ async function handleCallback(update: Json) {
         `고객: ${result.customerName || '고객'}`,
         '판매요청 후속 상태에 기록되었습니다.',
       ].join('\n'));
+    } else if (parsed.kind === 'quote_followup') {
+      if (chatId !== QUOTE_CHAT_ID) throw new Error('WRONG_CHAT');
+      result = await rpc('telegram_ops_complete_quote_followup', {
+        p_input_key: parsed.inputKey, p_step: parsed.step, p_actor_telegram_id: String(actor.id),
+        p_chat_id: chatId, p_dedupe_key: `telegram:${String(update.update_id)}`,
+      }) as Json;
+      await sendText(chatId, [
+        parsed.step === 'vendor_contacted' ? '✅ 업체 연락을 완료 처리했습니다.' : '✅ 비교견적 거래를 완료 처리했습니다.',
+        `견적 입력키: ${parsed.inputKey}`,
+      ].join('\n'));
     } else {
       if (chatId !== ORDER_CHAT_ID) throw new Error('WRONG_CHAT');
       result = await rpc('telegram_ops_approve_order', {
@@ -345,8 +379,9 @@ Deno.serve(async (request) => {
     if (cronSecret === CRON_SECRET) {
       const deliveryBeforeClose = await drainOutbox();
       const closed = await rpc('telegram_ops_close_expired_quotes') as number;
+      const followups = await rpc('telegram_ops_enqueue_cycle_followups') as number;
       const deliveryAfterClose = await drainOutbox();
-      return json({ ok: true, closed, deliveryBeforeClose, deliveryAfterClose });
+      return json({ ok: true, closed, followups, deliveryBeforeClose, deliveryAfterClose });
     }
     return json({ error: 'unauthorized' }, 401);
   } catch (error) {

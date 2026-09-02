@@ -17,7 +17,10 @@ import {
   parseOrderCommand,
   parseQuoteApprovalCommand,
   parseQuoteContactCommand,
+  parseQuoteFollowupCommand,
   parseQuoteCommand,
+  parseSellAdvanceCommand,
+  parseSellOfferCommand,
 } from '../supabase/functions/_shared/telegram-ops-core.mjs';
 
 const root = new URL('../', import.meta.url);
@@ -35,6 +38,15 @@ test('판매요청 연락완료 명령을 승인·가격 명령과 구분한다'
   assert.deepEqual(parseQuoteContactCommand('1547 연락완료'), { inputKey: '1547' });
   assert.deepEqual(parseQuoteContactCommand('/1547 연락완료'), { inputKey: '1547' });
   assert.equal(parseQuoteCommand('1547 연락완료'), null);
+});
+
+test('위탁·즉시매입 금액과 전체 후속 상태 명령을 구분한다', () => {
+  assert.deepEqual(parseSellOfferCommand('4821 금액 500'), { inputKey: '4821', amount: 5_000_000, isFinal: false });
+  assert.deepEqual(parseSellOfferCommand('/4821 최종 480'), { inputKey: '4821', amount: 4_800_000, isFinal: true });
+  assert.deepEqual(parseSellAdvanceCommand('4821 예약확정'), { inputKey: '4821', action: 'appointment_confirmed', label: '예약확정' });
+  assert.deepEqual(parseSellAdvanceCommand('4821 정산완료'), { inputKey: '4821', action: 'settled', label: '정산완료' });
+  assert.deepEqual(parseQuoteFollowupCommand('1547 업체연락완료'), { inputKey: '1547', step: 'vendor_contacted' });
+  assert.deepEqual(parseQuoteFollowupCommand('1547 거래완료'), { inputKey: '1547', step: 'trade_completed' });
 });
 
 test('금액과 결제수단을 운영자가 읽기 쉽게 표시한다', () => {
@@ -123,7 +135,7 @@ test('즉시매입·위탁 신청과 결제 문제를 연락처·사진과 함�
   const sell = {
     event_type: 'sell_service_received',
     payload: {
-      method: 'instant', receiptNo: 'SELL-001', customerName: '박설민',
+      method: 'instant', receiptNo: 'SELL-001', inputKey: '4821', customerName: '박설민',
       customerPhone: '010-4187-1107', brand: '브라이틀링', model: '네비타이머',
       ref: 'AB0123', year: '2020', parts: '보증서, 박스', memo: '오버홀 이력 없음',
       photos: ['https://cdn.example.com/sell-1.jpg'], createdAt: '2026-08-31T05:30:33Z',
@@ -133,6 +145,8 @@ test('즉시매입·위탁 신청과 결제 문제를 연락처·사진과 함�
   assert.match(sellMessage, /새로운 즉시매입 신청이 접수되었습니다/);
   assert.match(sellMessage, /연락처: 010-4187-1107/);
   assert.match(sellMessage, /첨부사진: 1장/);
+  assert.match(sellMessage, /판매 입력키: 4821/);
+  assert.match(sellMessage, /4821 금액 500/);
 
   const paymentMessage = formatOutboxMessage({
     event_type: 'payment_issue',
@@ -169,6 +183,22 @@ test('고객의 견적 선택 후 판매 요청을 관리자 운영 정보와 �
   assert.match(message, /선택견적: 굿타임/);
   assert.match(message, /거래방법: 방문거래/);
   assert.match(message, /1547 연락완료/);
+});
+
+test('거래방법 선택과 미완료 사이클을 운영자가 바로 처리할 문장으로 만든다', () => {
+  const handoff = formatOutboxMessage({ event_type: 'sell_handoff_requested', payload: {
+    inputKey: '4821', receiptNo: 'BLR-123', customerName: '홍길동', customerPhone: '010-1111-2222',
+    brand: '롤렉스', model: '서브마리너', amount: 5_000_000, tradeMethod: 'visit',
+    visitBranch: 'cheongdam', requestedVisitAt: '2026-09-03T05:00:00Z',
+  } });
+  assert.match(handoff, /벨로르 청담점/);
+  assert.match(handoff, /4821 예약확정/);
+  assert.match(handoff, /4821 수령/);
+  const report = formatOutboxMessage({ event_type: 'cycle_followup_report', payload: {
+    sellPending: 5, quotePending: 1, orderPending: 2,
+  } });
+  assert.match(report, /미완료 운영 사이클/);
+  assert.match(report, /판매요청: 5건/);
 });
 
 test('고객센터 문의는 전용 상담방에 개인정보 없이 접수 사실만 표시한다', () => {
@@ -222,6 +252,9 @@ test('Edge가 사진 전송 실패를 텍스트로 폴백하고 친화 오류를
   assert.match(edge, /if \(request\.method === 'GET'\) return await handlePhotoDownload\(request\)/);
   assert.match(edge, /telegram_ops_approve_quote/);
   assert.match(edge, /telegram_ops_complete_quote_customer_contact/);
+  assert.match(edge, /telegram_ops_offer_sell_service/);
+  assert.match(edge, /telegram_ops_advance_sell_service/);
+  assert.match(edge, /telegram_ops_enqueue_cycle_followups/);
   assert.match(edge, /row\.target === 'support_room'/);
   assert.match(edge, /TELEGRAM_SUPPORT_BOT_TOKEN/);
   assert.match(edge, /비교견적이 승인되었습니다/);

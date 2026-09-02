@@ -32,6 +32,15 @@ export function friendlyActionError(error) {
     ['ORDER_NOT_PAID', '결제가 확인되지 않아 주문을 승인할 수 없습니다.'],
     ['SALE_REQUEST_NOT_FOUND', '해당 입력키의 판매 요청을 찾지 못했습니다.'],
     ['SALE_REQUEST_NOT_AWARDED', '아직 판매 요청이 확정되지 않은 견적입니다.'],
+    ['SELL_KEY_NOT_FOUND', '해당 입력키의 위탁·즉시매입 신청을 찾지 못했습니다.'],
+    ['SELL_NOT_ACTIVE', '이미 종료된 판매 신청입니다.'],
+    ['SELL_HANDOFF_NOT_REQUESTED', '고객의 거래방법 선택이 아직 접수되지 않았습니다.'],
+    ['SELL_VISIT_NOT_REQUESTED', '방문 지점과 희망 시간이 먼저 필요합니다.'],
+    ['SELL_NOT_RECEIVED', '시계 수령 완료 후 검수완료 처리할 수 있습니다.'],
+    ['SELL_NOT_READY_TO_LIST', '위탁 시계 검수완료 후 판매개시 처리할 수 있습니다.'],
+    ['SELL_NOT_READY_TO_COMPLETE', '앞 단계가 끝나지 않아 거래완료 처리할 수 없습니다.'],
+    ['SELL_NOT_COMPLETED', '거래완료 후 정산완료 처리할 수 있습니다.'],
+    ['QUOTE_CONTACTS_INCOMPLETE', '고객 연락과 업체 연락을 모두 완료한 뒤 거래완료 처리해주세요.'],
     ['WRONG_CHAT', '이 작업은 지정된 관리방에서만 처리할 수 있습니다.'],
   ];
   return known.find(([code]) => value.includes(code))?.[1]
@@ -160,6 +169,7 @@ export function formatOutboxMessage(row) {
     return [
       `⌚ 새로운 ${methodLabel} 신청이 접수되었습니다.`,
       `접수번호: ${p.receiptNo || p.requestId || '-'}`,
+      `판매 입력키: ${p.inputKey || '-'}`,
       '',
       `신청자: ${p.customerName || '-'}`,
       `연락처: ${p.customerPhone || '-'}`,
@@ -171,6 +181,37 @@ export function formatOutboxMessage(row) {
       `특이사항: ${p.memo || '-'}`,
       `첨부사진: ${outboxMediaUrls(row).length}장`,
       `접수일시: ${new Date(String(p.createdAt)).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`,
+      '',
+      `금액 안내: ${p.inputKey || '입력키'} 금액 500 → 500만원`,
+      p.method === 'instant' ? `검수 후 최종금액: ${p.inputKey || '입력키'} 최종 480` : '',
+    ].filter(Boolean).join('\n');
+  }
+  if (row.event_type === 'sell_handoff_requested') {
+    const method = ({ visit: '방문거래', delivery: '택배거래', quick: '퀵거래' })[p.tradeMethod] || '확인 필요';
+    const branch = ({ jongno: '벨로르 종로점', cheongdam: '벨로르 청담점' })[p.visitBranch] || '-';
+    const requestedAt = p.requestedVisitAt ? new Date(String(p.requestedVisitAt)).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) : '-';
+    return [
+      '🚚 고객이 시계 전달 방법을 선택했습니다.',
+      `판매 입력키: ${p.inputKey || '-'}`,
+      `접수번호: ${p.receiptNo || '-'}`,
+      '',
+      `고객: ${p.customerName || '-'}`,
+      `연락처: ${p.customerPhone || '-'}`,
+      `시계: ${[p.brand, p.model].filter(Boolean).join(' ') || '-'}`,
+      `안내금액: ${formatChatAmount(p.amount)}`,
+      `거래방법: ${method}`,
+      ...(p.tradeMethod === 'visit' ? [`희망지점: ${branch}`, `희망일시: ${requestedAt}`, '', `예약 확정: ${p.inputKey} 예약확정`] : ['', `연락 완료: ${p.inputKey} 판매연락완료`]),
+      `수령 완료: ${p.inputKey} 수령`,
+    ].join('\n');
+  }
+  if (row.event_type === 'cycle_followup_report') {
+    return [
+      '🧭 미완료 운영 사이클 일일 점검',
+      `24시간 이상 미완료 판매요청: ${p.sellPending || 0}건`,
+      `4시간 이상 후속대기 확정견적: ${p.quotePending || 0}건`,
+      `24시간 이상 결제확인·검수대기 주문: ${p.orderPending || 0}건`,
+      '',
+      '관리자 화면에서 실제 처리 상태를 확인해주세요.',
     ].join('\n');
   }
   if (row.event_type === 'quote_received') {

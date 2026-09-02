@@ -1,6 +1,12 @@
 import { createSellGuestAccess } from './sell-guest-access.js?v=20260826-sell-guest-access-v1';
+import { createSellHandoffAction } from './sell-handoff-action.js?v=20260902-sell-cycle-v1';
 const STORAGE_KEY = 'bellore-sell-service-records-v1';
 const METHOD_LABEL = { compare: '비교견적', consignment: '위탁판매', instant: '즉시매입' };
+const TRADE_ASSETS = {
+  visit: 'assets/sell/trade/방문거래.png',
+  delivery: 'assets/sell/trade/택배거래.png',
+  quick: 'assets/sell/trade/퀵거래.png',
+};
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
@@ -23,11 +29,11 @@ function previewRecords(now) {
       ]
     },
     {
-      id: 'preview-consignment', method: 'consignment', status: 'offer', brand: 'CARTIER', model: '산토스 드 까르띠에', ref: 'WSSA0018', year: '2022년',
+      id: 'preview-consignment', method: 'consignment', status: 'offer_ready', brand: 'CARTIER', model: '산토스 드 까르띠에', ref: 'WSSA0018', year: '2022년',
       parts: '보증서 · 정품 박스 · 추가 링크', photo: 'assets/cq-guide/front.jpg', offerAmount: 20000000
     },
     {
-      id: 'preview-instant', method: 'instant', status: 'offer', brand: 'OMEGA', model: '씨마스터 다이버 300M', ref: '210.30.42.20.03.001', year: '2021년',
+      id: 'preview-instant', method: 'instant', status: 'final_offer', brand: 'OMEGA', model: '씨마스터 다이버 300M', ref: '210.30.42.20.03.001', year: '2021년',
       parts: '정품 박스 · 설명서', photo: 'assets/cq-guide/front.jpg', estimatedAmount: 15800000, finalAmount: 15000000,
       deductions: [
         { label: '케이스·브레이슬릿 사용감', amount: 500000 },
@@ -92,25 +98,27 @@ function consignmentPage(record) {
       <div class="sell-service__money-card"><div><span>안내 판매금액</span><strong>${money(offer)}</strong></div><dl><div><dt>판매 수수료</dt><dd>${hasOffer ? '- ' + money(fee) + ' (7%)' : '-'}</dd></div><div class="is-total"><dt>예상 정산금액</dt><dd>${money(proceeds)}</dd></div></dl></div>
       <p class="sell-service__notice">판매가 완료되면 안내 판매금액의 7%가 수수료로 정산됩니다. 실물 검수 결과가 등록 정보와 다르면 판매 조건을 다시 안내합니다.</p>
     </section>
-    ${progress(['판매금액 안내', '시계 전달', '실물 검수', '판매 개시', '판매 완료'], record.status === 'handoff' ? 1 : 0)}
-    ${hasOffer ? '<button type="button" class="sell-service__primary" data-sell-service-accept>금액 확인하고 위탁 진행</button>' : ''}
+    ${progress(['판매금액 안내', '시계 전달', '실물 검수', '판매 개시', '판매 완료'], ({ handoff_requested: 1, appointment_confirmed: 1, received: 1, inspected: 2, listed: 3, completed: 4, settled: 4 })[record.status] || 0)}
+    ${hasOffer && record.status === 'offer_ready' ? '<button type="button" class="sell-service__primary" data-sell-service-accept>금액 확인하고 위탁 진행</button>' : ''}
   </article>`;
 }
 
 function instantPage(record) {
   const estimate = Number(record.estimatedAmount || 0);
   const finalAmount = Number(record.finalAmount || 0);
+  const offeredAmount = Number(record.offerAmount || 0);
+  const shownAmount = finalAmount || offeredAmount;
   const deductions = Array.isArray(record.deductions) ? record.deductions : [];
   const deductionRows = deductions.length ? deductions.map((item) => `<div><dt>${escapeHtml(item.label)}</dt><dd>- ${money(item.amount)}</dd></div>`).join('') : '<div><dt>감가 사유</dt><dd>실물 검수 후 안내</dd></div>';
   return `<article class="sell-service-page" data-service-page="instant">
-    <header class="sell-service__status sell-service__status--blue"><span>즉시매입 현황</span><strong>${finalAmount ? '최종 매입금액을 확인해주세요' : '매입 가능금액을 검토하고 있어요'}</strong><small>${finalAmount ? '감가 사유까지 확인한 뒤 판매 여부를 선택할 수 있습니다.' : '사진과 등록 정보를 기준으로 가능금액을 확인 중입니다.'}</small></header>
+    <header class="sell-service__status sell-service__status--blue"><span>즉시매입 현황</span><strong>${shownAmount ? (finalAmount ? '최종 매입금액을 확인해주세요' : '매입 가능금액이 도착했어요') : '매입 가능금액을 검토하고 있어요'}</strong><small>${shownAmount ? '안내 금액을 확인한 뒤 시계를 전달할 방법을 선택해주세요.' : '사진과 등록 정보를 기준으로 가능금액을 확인 중입니다.'}</small></header>
     ${watchCard(record)}
     <section class="sell-service__section"><div class="sell-service__section-head"><h3>즉시매입 금액 안내</h3></div>
-      <div class="sell-service__money-card sell-service__money-card--instant"><div><span>사진·정보 기준 예상금액</span><strong>${money(estimate)}</strong></div><dl>${deductionRows}<div class="is-total"><dt>최종 매입금액</dt><dd>${money(finalAmount)}</dd></div></dl></div>
+      <div class="sell-service__money-card sell-service__money-card--instant"><div><span>사진·정보 기준 안내금액</span><strong>${money(shownAmount || estimate)}</strong></div><dl>${deductionRows}<div class="is-total"><dt>최종 매입금액</dt><dd>${finalAmount ? money(finalAmount) : '실물 검수 후 확정'}</dd></div></dl></div>
       <p class="sell-service__notice sell-service__notice--warn">실물 상태가 사진·작성 정보와 다르면 감가가 발생할 수 있습니다. 벨로르는 검수 결과와 감가 사유, 변경된 최종금액을 항목별로 다시 안내합니다.</p>
     </section>
-    ${progress(['정보·사진 접수', '가능금액 안내', '실물 검수', '감가 사유·최종금액', '매입 완료'], record.status === 'handoff' ? 2 : (finalAmount ? 3 : 1))}
-    ${finalAmount ? '<button type="button" class="sell-service__primary" data-sell-service-accept>최종금액 확인하고 판매</button>' : ''}
+    ${progress(['정보·사진 접수', '가능금액 안내', '시계 전달', '실물 검수', '매입·정산 완료'], ({ offer_ready: 1, final_offer: 3, handoff_requested: 2, appointment_confirmed: 2, received: 2, inspected: 3, completed: 4, settled: 4 })[record.status] || 0)}
+    ${shownAmount && ['offer_ready', 'final_offer'].includes(record.status) ? '<button type="button" class="sell-service__primary" data-sell-service-accept>안내금액 확인하고 판매</button>' : ''}
   </article>`;
 }
 
@@ -124,7 +132,6 @@ export function initSellServicePages({ document, window, backend }) {
   header.insertAdjacentHTML('afterend', '<aside class="sell-service-notice" id="sellServiceNoticePanel" hidden><strong>판매 알림</strong><div class="sell-service-notice__list" id="sellServiceNoticeList"></div></aside>');
   const leaveView = root.querySelector('[data-sell-view="leave"]');
   leaveView.insertAdjacentHTML('beforebegin', '<div class="sell-service-view" data-sell-view="service" hidden><div class="sell-method__form-toolbar"><button type="button" data-sell-service-back aria-label="판매방식 선택으로 돌아가기">←</button><span><strong id="sellServiceTitle">판매 현황</strong><small id="sellServiceSubtitle">신청 내용과 현재 진행상태</small></span></div><div class="sell-service" id="sellServiceContent" aria-live="polite"></div></div>');
-  root.insertAdjacentHTML('beforeend', '<div class="sell-service-action" id="sellServiceAction" hidden><section class="sell-service-action__panel" role="dialog" aria-modal="true" aria-labelledby="sellServiceActionTitle"><h2 id="sellServiceActionTitle" data-sell-action-title>거래 방법을 선택해주세요</h2><p class="sell-service-action__amount" data-sell-action-amount></p><div class="sell-service-action__methods"><button type="button" data-sell-trade="visit"><img src="assets/sell/trade/방문거래.png" alt=""><span>방문거래</span></button><button type="button" data-sell-trade="delivery"><img src="assets/sell/trade/택배거래.png" alt=""><span>택배거래</span></button><button type="button" data-sell-trade="quick"><img src="assets/sell/trade/퀵거래.png" alt=""><span>퀵거래</span></button></div><div class="sell-service-action__buttons"><button type="button" data-sell-action-close>취소</button><button type="button" data-sell-action-confirm disabled>이 방법으로 진행</button></div></section></div>');
   function showView(name) {
     root.querySelectorAll('[data-sell-view]').forEach((node) => { node.hidden = node.dataset.sellView !== name; });
     sheet.scrollTop = 0;
@@ -137,14 +144,12 @@ export function initSellServicePages({ document, window, backend }) {
   const title = document.getElementById('sellServiceTitle');
   const subtitle = document.getElementById('sellServiceSubtitle');
   const content = document.getElementById('sellServiceContent');
-  const action = document.getElementById('sellServiceAction');
   const myPageSection = document.getElementById('myItemsSection');
   const preview = /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname) && new URLSearchParams(window.location.search).get('preview') === 'sell-services-v2';
   let records = [];
   let activeMethod = 'compare';
   let activeId = '';
   let selectedBidId = '';
-  let selectedTrade = '';
   let unsubscribe = null;
   let myPageLinks = document.getElementById('sellServiceMyPageLinks');
   let guestAccess;
@@ -181,8 +186,8 @@ export function initSellServicePages({ document, window, backend }) {
       const highest = bids.reduce((max, bid) => Math.max(max, Number(bid.amount || 0)), 0);
       return { label: '비교견적 진행 중', strong: highest ? `최고 ${money(highest)} · ${bids.length}개 견적` : '견적을 기다리고 있어요', small: remaining(record) };
     }
-    if (record.method === 'consignment') return { label: '위탁판매', strong: record.offerAmount ? '판매금액 안내 도착' : '판매금액 검토 중', small: record.offerAmount ? money(record.offerAmount) + ' · 수수료 7%' : '벨로르가 판매금액을 확인하고 있습니다.' };
-    return { label: '즉시매입', strong: record.finalAmount ? '최종 매입금액 안내 도착' : '매입 가능금액 검토 중', small: record.finalAmount ? money(record.finalAmount) + ' · 감가 사유 확인' : '사진과 정보를 확인하고 있습니다.' };
+    if (record.method === 'consignment') return { label: '위탁판매', strong: record.status === 'handoff_requested' ? '시계 전달 요청 접수' : (record.offerAmount ? '판매금액 안내 도착' : '판매금액 검토 중'), small: record.offerAmount ? money(record.offerAmount) + ' · 수수료 7%' : '벨로르가 판매금액을 확인하고 있습니다.' };
+    return { label: '즉시매입', strong: record.status === 'handoff_requested' ? '시계 전달 요청 접수' : ((record.finalAmount || record.offerAmount) ? '매입금액 안내 도착' : '매입 가능금액 검토 중'), small: (record.finalAmount || record.offerAmount) ? money(record.finalAmount || record.offerAmount) : '사진과 정보를 확인하고 있습니다.' };
   }
 
   function renderNotice() {
@@ -229,22 +234,6 @@ export function initSellServicePages({ document, window, backend }) {
     window.requestAnimationFrame(() => { root.classList.add('is-open'); sheet.focus({ preventScroll: true }); });
   }
 
-  function openAction() {
-    const record = current();
-    if (!record) return;
-    selectedTrade = '';
-    const selectedBid = (record.bids || []).find((bid) => String(bid.id) === String(selectedBidId));
-    const amount = record.method === 'compare' ? selectedBid?.amount : (record.method === 'consignment' ? record.offerAmount : record.finalAmount);
-    action.querySelector('[data-sell-action-title]').textContent = record.method === 'compare' ? '판매 요청 방법을 선택해주세요' : '시계를 전달할 방법을 선택해주세요';
-    action.querySelector('[data-sell-action-amount]').textContent = money(amount);
-    action.querySelectorAll('[data-sell-trade]').forEach((button) => button.classList.remove('is-selected'));
-    action.querySelector('[data-sell-action-confirm]').disabled = true;
-    action.hidden = false;
-  }
-  function closeAction() {
-    action.hidden = true;
-    selectedTrade = '';
-  }
   function serverRecord(record, source) {
     return { ...record, source: source || 'backend', photo: record.photos?.[0] || record.photo || '',
       expiresAt: record.method === 'compare' ? Date.parse(record.createdAt || Date.now()) + 72 * 3600 * 1000 : null };
@@ -256,6 +245,20 @@ export function initSellServicePages({ document, window, backend }) {
     open(guestAccess?.toggle, mapped.method, mapped.id);
   }
   guestAccess = createSellGuestAccess({ document, window, backend, root, header, leaveView, showView, openRecord: openGuestRecord });
+  function awardSelectedBid(record, tradeMethod) {
+    const bid = (record.bids || []).find((item) => String(item.id) === String(selectedBidId));
+    return backend.awardBid(record.id, selectedBidId, bid?.vendor_id, tradeMethod);
+  }
+  const handoff = createSellHandoffAction({
+    document, window, root, backend, current, tradeAssets: TRADE_ASSETS,
+    selectedBid: () => (current()?.bids || []).find((bid) => String(bid.id) === String(selectedBidId)),
+    awardBid: awardSelectedBid,
+    amountText: (record, bid) => money(record.method === 'compare' ? bid?.amount : (record.finalAmount || record.offerAmount)),
+    onCompleted: (updated) => {
+      records = [serverRecord(updated, updated.source || 'backend'), ...records.filter((item) => String(item.id) !== String(updated.id))];
+      writeLocal(); renderNotice(); renderPage();
+    },
+  });
   async function connectBackend() {
     if (preview) {
       records = previewRecords(Date.now());
@@ -312,7 +315,7 @@ export function initSellServicePages({ document, window, backend }) {
       return true;
     }
     if (event.target.closest('[data-sell-service-back]')) {
-      closeAction();
+      handoff.close();
       showView('chooser');
       renderNotice();
       return true;
@@ -324,45 +327,10 @@ export function initSellServicePages({ document, window, backend }) {
       return true;
     }
     if (event.target.closest('[data-sell-service-accept]')) {
-      openAction();
+      handoff.open();
       return true;
     }
-    if (event.target.closest('[data-sell-action-close]')) {
-      closeAction();
-      return true;
-    }
-    const trade = event.target.closest('[data-sell-trade]');
-    if (trade) {
-      selectedTrade = trade.dataset.sellTrade;
-      action.querySelectorAll('[data-sell-trade]').forEach((button) => button.classList.toggle('is-selected', button === trade));
-      action.querySelector('[data-sell-action-confirm]').disabled = false;
-      return true;
-    }
-    if (event.target.closest('[data-sell-action-confirm]')) {
-      const record = current();
-      if (!record || !selectedTrade) return true;
-      const confirm = action.querySelector('[data-sell-action-confirm]');
-      if (record.method === 'compare' && backend?.awardBid && selectedBidId) {
-        const selectedBid = (record.bids || []).find((bid) => String(bid.id) === String(selectedBidId));
-        confirm.disabled = true;
-        confirm.textContent = '판매 요청 중…';
-        try {
-          await backend.awardBid(record.id, selectedBidId, selectedBid?.vendor_id, selectedTrade);
-        } catch (error) {
-          console.error('[Bellore] 비교견적 판매 요청 실패', error);
-          confirm.disabled = false;
-          confirm.textContent = '다시 진행하기';
-          window.alert('판매 요청을 완료하지 못했습니다. 잠시 후 다시 시도해주세요.');
-          return true;
-        }
-      }
-      record.tradeMethod = selectedTrade;
-      record.status = 'handoff';
-      writeLocal();
-      closeAction();
-      renderPage();
-      return true;
-    }
+    if (await handoff.handleClick(event)) return true;
     return false;
   }
 
@@ -371,7 +339,7 @@ export function initSellServicePages({ document, window, backend }) {
       new MutationObserver(renderNotice).observe(draftResume, { attributes: true, attributeFilter: ['hidden'] });
     }
     document.addEventListener('click', (event) => {
-      const control = event.target.closest('#sellServiceNoticeToggle, ' + guestAccess.selector + ', [data-sell-service-back], [data-sell-service-open], [data-sell-service-bid], [data-sell-service-accept], [data-sell-action-close], [data-sell-trade], [data-sell-action-confirm]');
+      const control = event.target.closest('#sellServiceNoticeToggle, ' + guestAccess.selector + ', [data-sell-service-back], [data-sell-service-open], [data-sell-service-bid], [data-sell-service-accept], ' + handoff.selector);
       if (control) {
         event.preventDefault();
         event.stopPropagation();

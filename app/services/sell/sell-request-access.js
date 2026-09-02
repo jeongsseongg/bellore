@@ -27,6 +27,15 @@ export function installSellRequestAccess({ backend, getClient, window }) {
     if (!sessionToken) return Promise.reject(new Error('GUEST_SESSION_REQUIRED'));
     return invoke({ action: 'status', sessionToken }).then((result) => result.record);
   };
+  backend.requestSellHandoff = (record, values) => {
+    const body = {
+      action: 'request-handoff', requestId: record?.id,
+      tradeMethod: values?.tradeMethod,
+      visitBranch: values?.visitBranch || '', requestedVisitAt: values?.requestedVisitAt || '',
+    };
+    if (!backend.currentUser()) body.sessionToken = window.localStorage.getItem(sessionKey(record?.receiptNo)) || '';
+    return invoke(body).then((result) => result.record);
+  };
   backend.verifyGuestSellRequest = (receiptNo) => {
     const payments = window.BELLORE_PAYMENTS || {};
     const verify = window.BELLORE_VERIFY?.phone || {};

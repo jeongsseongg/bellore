@@ -135,10 +135,17 @@ async function requestView(admin: AdminClient, requestId: string) {
   }
   return {
     id: row.id, receiptNo: row.receipt_no, method: row.method, status: row.status,
+    inputKey: row.input_key,
     brand: row.brand, model: row.model, ref: row.item_ref ?? "", year: row.item_year ?? "",
     parts: normalizeSellParts(row.item_parts).join(", "), memo: row.item_memo ?? "", photos: row.photo_urls ?? [],
     customerName: row.customer_name, customerPhone: maskPhone(row.customer_phone),
-    quoteRequestId: row.quote_request_id, bids, createdAt: row.created_at, updatedAt: row.updated_at,
+    quoteRequestId: row.quote_request_id, bids,
+    offerAmount: row.offer_amount, finalAmount: row.final_amount, deductions: row.deductions ?? [],
+    tradeMethod: row.trade_method, visitBranch: row.visit_branch, requestedVisitAt: row.requested_visit_at,
+    customerContacted: row.customer_contacted, appointmentConfirmedAt: row.appointment_confirmed_at,
+    receivedAt: row.received_at, inspectedAt: row.inspected_at, listedAt: row.listed_at,
+    completedAt: row.completed_at, settledAt: row.settled_at,
+    createdAt: row.created_at, updatedAt: row.updated_at,
   };
 }
 async function createRequest(admin: AdminClient, req: Request, body: Json) {
@@ -216,6 +223,61 @@ async function statusByToken(admin: AdminClient, req: Request, body: Json) {
   await admin.from("guest_sell_access_tokens").update({ last_used_at: new Date().toISOString() }).eq("token_hash", hashed);
   return jsonResponse(req, { ok: true, record: await requestView(admin, found.data.request_id) });
 }
+
+async function guestSessionRequestId(admin: AdminClient, raw: string) {
+  if (raw.length < 32) return null;
+  const hashed = await hashToken(raw);
+  const found = await admin.from("guest_sell_access_tokens").select("request_id,expires_at,token_kind")
+    .eq("token_hash", hashed).eq("token_kind", "session").maybeSingle();
+  if (found.error) throw found.error;
+  if (!found.data || new Date(found.data.expires_at).getTime() <= Date.now()) return null;
+  return String(found.data.request_id);
+}
+
+function kstAppointment(value: unknown) {
+  const raw = safeText(value, 40) ?? "";
+  const date = new Date(raw);
+  if (!raw || Number.isNaN(date.getTime()) || date.getTime() <= Date.now()) return null;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul", hour12: false, hour: "2-digit", minute: "2-digit",
+  }).formatToParts(date).reduce((out, part) => ({ ...out, [part.type]: part.value }), {} as Record<string, string>);
+  const hour = Number(parts.hour);
+  const minute = Number(parts.minute);
+  if (hour < 11 || hour >= 19 || ![0, 30].includes(minute)) return null;
+  return date.toISOString();
+}
+
+async function requestHandoff(admin: AdminClient, req: Request, body: Json) {
+  const requestId = safeText(body.requestId, 40) ?? "";
+  if (!/^[0-9a-f-]{36}$/i.test(requestId)) return jsonResponse(req, { ok: false, code: "INVALID_REQUEST" }, 400);
+  const found = await admin.from("sell_service_requests").select("*").eq("id", requestId).maybeSingle();
+  if (found.error) throw found.error;
+  if (!found.data) return jsonResponse(req, { ok: false, code: "NOT_FOUND" }, 404);
+  const user = await caller(admin, req);
+  const guestRequestId = user ? null : await guestSessionRequestId(admin, String(body.sessionToken ?? ""));
+  if ((user && found.data.owner_user_id !== user.id) || (!user && guestRequestId !== requestId)) {
+    return jsonResponse(req, { ok: false, code: "UNAUTHORIZED" }, 401);
+  }
+  if (!['instant', 'consignment'].includes(found.data.method)) return jsonResponse(req, { ok: false, code: "METHOD" }, 400);
+  const tradeMethod = String(body.tradeMethod ?? "");
+  if (!['visit', 'delivery', 'quick'].includes(tradeMethod)) return jsonResponse(req, { ok: false, code: "TRADE_METHOD" }, 400);
+  if (!['offer_ready', 'final_offer', 'handoff_requested'].includes(found.data.status)) {
+    return jsonResponse(req, { ok: false, code: "OFFER_REQUIRED" }, 409);
+  }
+  const visitBranch = tradeMethod === "visit" && ['jongno', 'cheongdam'].includes(String(body.visitBranch ?? ""))
+    ? String(body.visitBranch) : null;
+  const requestedVisitAt = tradeMethod === "visit" ? kstAppointment(body.requestedVisitAt) : null;
+  if (tradeMethod === "visit" && (!visitBranch || !requestedVisitAt)) {
+    return jsonResponse(req, { ok: false, code: "VISIT_SCHEDULE_REQUIRED" }, 400);
+  }
+  const patch = {
+    status: "handoff_requested", trade_method: tradeMethod, visit_branch: visitBranch,
+    requested_visit_at: requestedVisitAt, handoff_requested_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+  };
+  const updated = await admin.from("sell_service_requests").update(patch).eq("id", requestId).select("id").single();
+  if (updated.error) throw updated.error;
+  return jsonResponse(req, { ok: true, record: await requestView(admin, requestId) });
+}
 async function verifyGuestPhone(admin: AdminClient, req: Request, body: Json) {
   if (!PORTONE_API_SECRET || !PORTONE_STORE_ID || !PORTONE_IDENTITY_CHANNEL_KEY) return jsonResponse(req, { ok: false, code: "NOT_CONFIGURED" }, 503);
   const receiptNo = receipt(body.receiptNo);
@@ -251,6 +313,7 @@ Deno.serve(async (req) => {
     if (action === "exchange") return await exchangeLink(admin, req, body);
     if (action === "status") return await statusByToken(admin, req, body);
     if (action === "verify-phone") return await verifyGuestPhone(admin, req, body);
+    if (action === "request-handoff") return await requestHandoff(admin, req, body);
     return jsonResponse(req, { ok: false, code: "UNKNOWN_ACTION" }, 400);
   } catch (error) {
     const code = safeText((error as Error)?.message, 120) ?? "ERROR";
