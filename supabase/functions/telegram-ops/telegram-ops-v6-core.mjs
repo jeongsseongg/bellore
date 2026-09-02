@@ -30,6 +30,12 @@ export function friendlyActionError(error) {
     ['QUOTE_NOT_ACTIVE', '이미 종료되었거나 선택이 끝난 견적입니다.'],
     ['ORDER_KEY_NOT_FOUND', '해당 입력키의 승인 대기 주문을 찾지 못했습니다.'],
     ['ORDER_NOT_PAID', '결제가 확인되지 않아 주문을 승인할 수 없습니다.'],
+    ['ORDER_NOT_INSPECTING', '상품 검수 단계의 주문만 검수완료 처리할 수 있습니다.'],
+    ['ORDER_NOT_PREPARING', '상품 준비 단계의 주문만 배송·픽업 완료 처리할 수 있습니다.'],
+    ['ORDER_NOT_SHIPPING', '배송 중인 주문만 배송완료 처리할 수 있습니다.'],
+    ['ORDER_TRACKING_REQUIRED', '배송시작에는 택배사와 운송장번호가 모두 필요합니다.'],
+    ['ORDER_PICKUP_EXPECTED', '매장 픽업 주문입니다. 픽업완료 명령을 사용해주세요.'],
+    ['ORDER_DELIVERY_EXPECTED', '택배 배송 주문입니다. 배송시작 명령을 사용해주세요.'],
     ['SALE_REQUEST_NOT_FOUND', '해당 입력키의 판매 요청을 찾지 못했습니다.'],
     ['SALE_REQUEST_NOT_AWARDED', '아직 판매 요청이 확정되지 않은 견적입니다.'],
     ['SELL_KEY_NOT_FOUND', '해당 입력키의 위탁·즉시매입 신청을 찾지 못했습니다.'],
@@ -63,7 +69,7 @@ export function outboxMediaUrls(row) {
   if (row.event_type === 'quote_received') {
     return normalizeTelegramMediaUrls(row.payload.photos);
   }
-  if (row.event_type === 'order_paid' || row.event_type === 'payment_issue') {
+  if (['order_paid', 'payment_issue', 'order_cancel_requested'].includes(row.event_type)) {
     return normalizeTelegramMediaUrls(row.payload.productImage);
   }
   if (row.event_type === 'sell_service_received') {
@@ -275,6 +281,46 @@ export function formatOutboxMessage(row) {
       `사유: ${p.reason || '-'}`,
       `발생일시: ${new Date(String(p.createdAt)).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`,
     ].join('\n');
+  }
+  if (row.event_type === 'order_cancel_requested') {
+    return [
+      '🚨 주문취소 요청이 접수되었습니다.',
+      `주문번호: ${p.orderNo}`,
+      `상품: ${p.productName || '-'}`,
+      `결제금액: ${formatWon(p.amount)}`,
+      `요청 전 상태: ${p.previousStatusLabel || p.previousStatus || '-'}`,
+      `요청 사유: ${p.cancelReason || '-'}`,
+      '',
+      `주문자: ${p.buyerName || '-'}`,
+      `주문자 연락처: ${p.buyerPhone || '-'}`,
+      `택배사: ${p.courier || '-'}`,
+      `운송장번호: ${p.trackingNo || '-'}`,
+      '',
+      '관리자 페이지의 취소요청에서 확인해 주세요.',
+    ].join('\n');
+  }
+  if (row.event_type === 'order_status_changed') {
+    const next = {
+      inspecting: `다음 처리: /${p.inputKey} 검수완료`,
+      preparing: p.fulfillmentMethod === 'pickup'
+        ? `매장 전달 후: /${p.inputKey} 픽업완료`
+        : `발송 후: /${p.inputKey} 배송시작 택배사 운송장번호`,
+      shipping: `배송 확인 후: /${p.inputKey} 배송완료`,
+      delivered: '고객의 구매확정을 기다리는 단계입니다.',
+      confirmed: '주문 사이클이 정상 완료되었습니다.',
+      refund_pending: '결제사 환불 결과를 확인하는 단계입니다.',
+      refunded: '취소·환불 사이클이 완료되었습니다.',
+      canceled: '주문취소 사이클이 완료되었습니다.',
+    }[p.status] || '관리자 페이지에서 다음 단계를 확인해 주세요.';
+    return [
+      `📦 주문 상태가 「${p.statusLabel || p.status}」로 변경되었습니다.`,
+      `주문번호: ${p.orderNo}`,
+      `상품: ${p.productName || '-'}`,
+      `주문자: ${p.buyerName || '-'} / ${p.buyerPhone || '-'}`,
+      p.trackingNo ? `배송: ${p.courier || '-'} ${p.trackingNo}` : '',
+      `주문 입력키: ${p.inputKey || '-'}`,
+      '', next,
+    ].filter(Boolean).join('\n');
   }
   if (row.event_type === 'vendor_bid') return formatVendorBidNotice(p);
   if (row.event_type === 'quote_final_report') {

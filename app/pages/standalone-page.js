@@ -6,7 +6,7 @@ import {
 const authDependencies = [
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
   '/supabase-config.js?v=20260902-approved-kg-only-v1',
-  '/supabase.js?v=20260828-phone-auth-paths-v1',
+  '/supabase.js?v=20260902-order-cancel-inspection-v2',
 ];
 
 const pageDependencies = [
@@ -16,7 +16,7 @@ const pageDependencies = [
   '/brands.js',
   '/bellore-features.js?v=20260828-phone-auth-paths-v1',
   '/cq-demo.js?v=20260901-phone-full-v1',
-  '/script.js?v=20260828-final-integrated-v1',
+  '/script.js?v=20260902-order-cancel-inspection-v2',
   '/app/legacy/recommendation-engine.js?v=20260826-member-verification-live-v2',
   '/wishlist.js?v=20260826-member-verification-live-v2',
   '/alerts.js?v=20260820-tabs-alerts-v1',

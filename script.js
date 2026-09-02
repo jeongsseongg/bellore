@@ -279,6 +279,7 @@
     // 정상 진행 단계(타임라인)
     var O_FLOW = ['paid', 'inspecting', 'preparing', 'shipping', 'delivered', 'confirmed'];
     var O_FLOW_LABEL = { paid: '결제완료', inspecting: '정품검수', preparing: '상품준비', shipping: '배송중', delivered: '배송완료', confirmed: '구매확정' };
+    function orderStatusLabel(order) { var st = (order && order.status) || 'pending'; return st === 'cancel_req' ? (order.cancelInspectedAt ? '정밀검수 완료 · 취소처리 대기' : '취소요청 · 정밀검수 중') : (O_LABEL[st] || st); }
     // 택배사 배송조회 URL
     var COURIERS = {
         'CJ대한통운': 'https://trace.cjlogistics.com/next/tracking.html?wblNo=',
@@ -357,7 +358,7 @@
     }
     var myOrderPreviewOrder = null;
     function renderMyOrderPreview() {
-        var inactive = ['delivered', 'confirmed', 'canceled', 'cancelled', 'refunded', 'failed'];
+        var inactive = ['confirmed', 'canceled', 'cancelled', 'refunded', 'failed'];
         var activeOrders = (myOrdersCache || []).filter(function (item) {
             return inactive.indexOf(item.status || 'pending') === -1;
         });
@@ -379,14 +380,15 @@
         activeBox.hidden = false;
         emptyBox.hidden = true;
         var st = order.status || 'pending';
-        status.textContent = O_LABEL[st] || st;
+        status.textContent = orderStatusLabel(order);
         img.src = order.productImage || 'assets/images.jpg';
         name.textContent = order.productName || '주문 상품';
         meta.textContent = [order.orderNo || '', order.courier || '', order.trackingNo || '', order.amount ? fmt(order.amount) + '원' : ''].filter(Boolean).join(' · ');
         var cancelButton = $('#mpOrderCancel');
         if (cancelButton) {
-            cancelButton.hidden = ['pending', 'paid', 'inspecting', 'preparing'].indexOf(st) < 0;
+            cancelButton.hidden = ['pending', 'paid', 'inspecting', 'preparing', 'shipping', 'delivered'].indexOf(st) < 0;
             cancelButton.dataset.orderNo = order.orderNo || '';
+            cancelButton.dataset.orderStatus = st;
         }
     }
     // realtime 미활성 환경 대비: 취소/확정/반품 후 즉시 목록 재조회(클라 폴백)
@@ -397,6 +399,12 @@
         return Promise.resolve();
     }
     document.addEventListener('bellore:mypage-order-refresh', refreshMyOrders);
+    document.addEventListener('bellore:order-cancel-complete', function (event) {
+        var orderNo = event.detail && event.detail.orderNo;
+        if (!_orderCache || !orderNo || _orderCache.orderNo !== orderNo) return;
+        refreshMyOrders();
+        if (backendOn() && NWBackend.getOrder) NWBackend.getOrder(orderNo).then(renderOrderDetail).catch(function () {});
+    });
     // 구매내역에서 '삭제'한(숨긴) 주문번호 — 결제취소/환불건만 숨김 가능. 클라 보관(서버 데이터는 보존).
     var O_DELETABLE = ['canceled', 'cancelled', 'refunded'];
     function hiddenOrders() {
@@ -431,7 +439,7 @@
                     '<p class="order-meta">' + esc(o.orderNo || '') + (date ? ' · ' + date : '') + '</p>' +
                 '</div>' +
                 '<div class="order-side">' +
-                    '<span class="order-badge order-badge--' + st + '">' + (O_LABEL[st] || st) + '</span>' +
+                    '<span class="order-badge order-badge--' + st + '">' + esc(orderStatusLabel(o)) + '</span>' +
                     '<span class="order-amt">' + (o.amount ? fmt(o.amount) + '원' : '-') + '</span>' +
                     del +
                 '</div>' +
@@ -1872,7 +1880,7 @@
         var btns = [];
         if (o.status === 'delivered') btns.push('<button class="op-btn op-btn--main" data-oconfirm>구매확정</button>');
         if (['delivered', 'confirmed'].indexOf(o.status) >= 0) btns.push('<button class="op-btn" data-oreturn>교환 · 반품</button>');
-        if (['paid', 'inspecting', 'preparing'].indexOf(o.status) >= 0) btns.push('<button class="op-btn op-btn--danger" data-ocancel>주문취소</button>');
+        if (['paid', 'inspecting', 'preparing', 'shipping', 'delivered'].indexOf(o.status) >= 0) btns.push('<button class="op-btn op-btn--danger" data-ocancel data-order-no="' + esc(o.orderNo) + '" data-order-status="' + esc(o.status) + '">주문취소</button>');
         return btns.join('');
     }
 
@@ -1890,7 +1898,7 @@
                 '<div class="op-headinfo">' +
                     (o.productBrand ? '<p class="op-brand">' + esc(o.productBrand) + '</p>' : '') +
                     '<p class="op-name">' + esc(o.productName || '상품') + '</p>' +
-                    '<span class="order-badge order-badge--' + st + '">' + (O_LABEL[st] || st) + '</span>' +
+                    '<span class="order-badge order-badge--' + st + '">' + esc(orderStatusLabel(o)) + '</span>' +
                 '</div>' +
             '</div>' +
             orderTimelineHtml(o) +
@@ -1969,22 +1977,6 @@
                 });
                 return;
             }
-            // 주문취소
-            if (e.target.closest('[data-ocancel]')) {
-                if (!_orderCache) return;
-                bellPrompt('주문을 취소합니다. 사유를 입력해 주세요.', '단순 변심').then(function (reason) {
-                    if (reason === null) return;
-                    NWBackend.requestCancel(_orderCache.orderNo, reason).then(function (newSt) {
-                        alert(newSt === 'canceled' ? '주문이 취소되었습니다.' : '취소 요청이 접수되었습니다. 환불은 확인 후 진행됩니다.');
-                        refreshMyOrders();
-                        return NWBackend.getOrder(_orderCache.orderNo).then(renderOrderDetail);
-                    }).catch(function (err) {
-                        var m = (err && (err.message || err.code)) || '';
-                        alert(/BAD_STATE/.test(m) ? '현재 단계에서는 취소할 수 없습니다. 교환·반품을 이용해 주세요.' : '취소에 실패했습니다.');
-                    });
-                });
-                return;
-            }
             // 교환/반품 열기
             if (e.target.closest('[data-oreturn]')) {
                 if (_orderCache) openReturnPage(_orderCache);
@@ -2031,7 +2023,7 @@
     var _aOrdersUnsub = null, _aOrdersCache = [], _aOrderFilter = '';
     var _aReturnsUnsub = null, _aReturnsCache = [];
     var _aOrderEditing = null, _adminOrderBound = false;
-    var ADMIN_STATUSES = ['inspecting', 'preparing', 'shipping', 'delivered', 'confirmed', 'cancel_req'], ADMIN_FINANCIAL_LOCKED = ['pending', 'payment_review', 'failed', 'canceled', 'cancelled', 'refund_pending', 'refunded'];
+    var ADMIN_STATUSES = ['inspecting', 'preparing', 'shipping', 'delivered', 'confirmed', 'cancel_req'], ADMIN_FINANCIAL_LOCKED = ['pending', 'payment_review', 'failed', 'canceled', 'cancelled', 'cancel_req', 'refund_pending', 'refunded'];
     function isToday(ts) {
         var ms = (ts && ts.toMillis) ? ts.toMillis() : (ts && ts.seconds ? ts.seconds * 1000 : Date.parse(ts));
         if (!ms || isNaN(ms)) return false;
@@ -2051,7 +2043,7 @@
                 '<div class="aord-main"><b>' + esc(o.productName || '상품') + '</b>' +
                 '<span>' + esc(o.orderNo) + ' · ' + (fmtDate(o.createdAt) || '') + '</span>' +
                 '<span>' + esc(o.buyerName || '') + ' · ' + fmt(o.amount) + '원</span></div>' +
-                '<span class="order-badge order-badge--' + st + '">' + (O_LABEL[st] || st) + '</span>' +
+                '<span class="order-badge order-badge--' + st + '">' + esc(orderStatusLabel(o)) + '</span>' +
                 '</button>';
         }).join('');
     }
@@ -2080,7 +2072,8 @@
             '<div class="cp-field"><label>운송장번호 <em class="cp-hint">입력 시 자동으로 배송중 처리</em></label>' +
                 '<input type="text" id="aopTracking" value="' + esc(o.trackingNo || '') + '" placeholder="숫자만"></div>' +
             '<div class="cp-field"><label>관리자 메모</label><textarea id="aopMemo" rows="2">' + esc(o.adminMemo || '') + '</textarea></div>' +
-            '<button type="button" class="cp-del-btn" id="aopRefund">결제 취소 / 환불</button>';
+            (o.status === 'cancel_req' && !o.cancelInspectedAt ? '<div class="op-sec"><div class="op-row"><span>취소 처리</span><b>정밀검수 필수</b></div><p class="cp-hint">상품을 회수하고 정밀검수를 마친 뒤에만 취소·환불할 수 있습니다.</p></div><button type="button" class="co-pay-btn" id="aopCancelInspection" data-order-no="' + esc(o.orderNo) + '">정밀검수 완료</button>' : '') +
+            (o.status === 'cancel_req' && o.cancelInspectedAt ? '<div class="op-sec"><div class="op-row"><span>취소 처리</span><b>정밀검수 완료</b></div></div><button type="button" class="cp-del-btn" id="aopRefund">검수완료 · 결제 취소 / 환불</button>' : '');
         // 회원 주문이면 실제 회원 정보(이름/이메일/연락처)를 조회해 표시
         if (o.customerId && backendOn() && NWBackend.getProfileBrief) {
             NWBackend.getProfileBrief(o.customerId).then(function (p) {
@@ -2143,13 +2136,17 @@
             }
             if (e.target.closest('#aopRefund')) {
                 if (!_aOrderEditing) return;
-                bellConfirm('이 주문을 환불 처리할까요? 포트원에 실제 결제 취소를 요청합니다.').then(function (ok) {
+                if (_aOrderEditing.status !== 'cancel_req' || !_aOrderEditing.cancelInspectedAt) {
+                    alert('정밀검수를 완료한 취소요청 주문만 환불할 수 있습니다.');
+                    return;
+                }
+                bellConfirm('정밀검수가 완료된 주문입니다. 결제 취소와 환불을 진행할까요?').then(function (ok) {
                     if (!ok) return;
                     NWBackend.adminRefund(_aOrderEditing, '관리자 환불').then(function (res) {
                         if (res && res.pending) { alert('환불 요청이 접수되었습니다. PG 처리 완료 후 상태를 확인해 주세요.'); closeAdminOrderPage(); }
                         else if (res && res.refunded === false && (res.canceled || res.alreadyCanceled)) { alert('결제가 승인되지 않은 주문이라 결제 취소 없이 주문만 취소했습니다.'); closeAdminOrderPage(); }
                         else if (res && (res.ok || res.alreadyRefunded)) { alert('환불 처리되었습니다.'); closeAdminOrderPage(); }
-                        else { var refundMessage = { provider_payment_processing: '결제 상태를 확인 중입니다. 잠시 후 다시 시도해 주세요.', refund_requires_review: '결제 상태가 일치하지 않아 자동 환불하지 않았습니다. 주문은 안전하게 검토 상태로 보관했습니다.', provider_order_state_mismatch: '주문 상태와 결제 상태가 일치하지 않습니다. 결제 내역을 확인해 주세요.' }[(res && res.error) || ''] || '환불을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.'; alert(refundMessage); }
+                        else { var refundMessage = { cancel_inspection_required: '정밀검수를 완료한 뒤 환불할 수 있습니다.', provider_payment_processing: '결제 상태를 확인 중입니다. 잠시 후 다시 시도해 주세요.', refund_requires_review: '결제 상태가 일치하지 않아 자동 환불하지 않았습니다. 주문은 안전하게 검토 상태로 보관했습니다.', provider_order_state_mismatch: '주문 상태와 결제 상태가 일치하지 않습니다. 결제 내역을 확인해 주세요.' }[(res && res.error) || ''] || '환불을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.'; alert(refundMessage); }
                     }).catch(function () { alert('환불 처리 중 오류가 발생했습니다.'); });
                 });
                 return;
@@ -2167,6 +2164,10 @@
                 }
                 return;
             }
+        });
+        document.addEventListener('bellore:admin-order-cancel-inspected', function () {
+            if (!_aOrderEditing) return; _aOrderEditing.cancelInspectedAt = { seconds: Math.floor(Date.now() / 1000) };
+            renderAdminOrderEditor(_aOrderEditing);
         });
         // 저장(상태/운송장/메모)
         var save = $('#aopSave');

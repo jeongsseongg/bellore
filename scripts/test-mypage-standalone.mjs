@@ -79,6 +79,10 @@ assert.match(polish, /#myPageModal\[data-account-role\] \.mp-head-bar > strong::
 assert.match(index, /id="mpQuoteCancel">견적취소<\/button>/);
 assert.match(requestedActions, /cancelMyQuote\(quoteId\)/,
   'the quote cancel action must stop an active comparison quote');
+assert.match(legacy, /var inactive = \['confirmed', 'canceled', 'cancelled', 'refunded', 'failed'\]/,
+  'a delivered order must stay visible so the customer can request cancellation');
+assert.match(legacy, /\['pending', 'paid', 'inspecting', 'preparing', 'shipping', 'delivered'\]\.indexOf\(st\)/,
+  'the mypage order card must expose cancellation through delivery completion');
 assert.match(legacy, /\['pending', 'open'\]\.indexOf\(activeListing\.status/,
   'quote cancel must only be visible while future bids can still arrive');
 assert.match(backend, /expiresMs <= Date\.now\(\) && !q\.trade_completed\) \? 'closed'/,

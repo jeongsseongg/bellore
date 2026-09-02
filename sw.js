@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v415-sell-service-lifecycle";
+const VERSION = "bellore-v417-order-full-cycle";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -34,13 +34,13 @@ const SHELL_ASSETS = [
   './app/features/mypage-personal-shop/mypage-navigation.css?v=20260901-mypage-final-v5',
   './app/features/mypage-personal-shop/mypage-requested-polish.css?v=20260902-mypage-empty-carousel-v1',
   './app/features/mypage-personal-shop/mypage-empty-sale-carousel.css?v=20260902-mypage-empty-carousel-v5',
-  './app/features/mypage-personal-shop/mypage-requested-actions.js?v=20260902-mypage-empty-carousel-v2',
+  './app/features/mypage-personal-shop/mypage-requested-actions.js?v=20260902-order-cancel-request-v1',
   './app/pages/mypage-subpages.css?v=20260901-mypage-requested-v1',
   './app/pages/support-page.js?v=20260902-mypage-followup-v1',
   './pages/storage/index.html',
   './pages/recent/index.html',
   './pages/support/index.html',
-  './script.js?v=20260902-mypage-followup-v1',
+  './script.js?v=20260902-order-cancel-inspection-v2',
   './payments.js?v=20260902-approved-kg-only-v1',
   './naverpay.js?v=20260826-naverpay-live-v1',
   './naverpay.js?v=20260831-naverpay-account-test-v1',
@@ -50,7 +50,7 @@ const SHELL_ASSETS = [
   './analytics-client.js?v=20260826-ai-consent-v1',
   './brands.js',
   './supabase.js?v=20260902-profile-address-v1',
-  './supabase.js?v=20260902-mypage-followup-v2',
+  './supabase.js?v=20260902-order-cancel-inspection-v2',
   './supabase.js?v=20260901-social-login-v1',
   './bellore-features.js?v=20260831-identity-modal-toss-v1',
   './cq-demo.js?v=20260901-phone-full-v1',
@@ -60,7 +60,7 @@ const SHELL_ASSETS = [
   './search.js?v=20260826-member-verification-live-v2',
   './ai-advisor.js?v=20260826-member-verification-live-v2',
   './ai-advisor-admin.js?v=20260826-member-verification-live-v2',
-  './app/bootstrap.js?v=20260902-sell-cycle-v1',
+  './app/bootstrap.js?v=20260902-order-full-cycle-v1',
   './app/pages/standalone-auth-gate.mjs?v=20260828-standalone-auth-v1',
   './app/pages/standalone-page.css?v=20260831-mypage-app-route-v1',
   './app/pages/standalone-page.js?v=20260831-mypage-pages-loop-v1',

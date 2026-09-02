@@ -63,6 +63,21 @@ export function parseOrderCommand(input) {
   return match ? { inputKey: match[1] } : null;
 }
 
+export function parseOrderAdvanceCommand(input) {
+  const match = String(input || '').trim().match(/^\/?(\d{4})\s+(검수완료|배송시작|배송완료|픽업완료)(?:\s+(.+))?$/);
+  if (!match) return null;
+  const actions = { 검수완료: 'inspection_complete', 배송시작: 'shipping', 배송완료: 'delivered', 픽업완료: 'pickup_delivered' };
+  const result = { inputKey: match[1], action: actions[match[2]], label: match[2] };
+  const detail = String(match[3] || '').trim();
+  if (result.action !== 'shipping') return detail ? null : result;
+  const parts = detail.split(/\s+/).filter(Boolean);
+  if (parts.length < 2) return null;
+  const trackingNo = parts.pop();
+  const courier = parts.join(' ');
+  if (!courier || !/^[0-9A-Za-z가-힣-]{4,40}$/.test(trackingNo)) return null;
+  return { ...result, courier: courier.slice(0, 60), trackingNo };
+}
+
 export function formatWon(amount) {
   return `${Number(amount || 0).toLocaleString('ko-KR')}원`;
 }
@@ -101,6 +116,15 @@ export function buildOrderCallback(inputKey) {
   return `o:${inputKey}`;
 }
 
+export function buildOrderAdvanceCallback(inputKey, action, courier = '', trackingNo = '') {
+  const codes = { inspection_complete: 'i', shipping: 's', delivered: 'd', pickup_delivered: 'p' };
+  const base = `y:${inputKey}:${codes[action] || ''}`;
+  if (action !== 'shipping') return base;
+  const value = `${base}:${encodeURIComponent(courier)}:${encodeURIComponent(trackingNo)}`;
+  if (new TextEncoder().encode(value).length > 64) throw new Error('ORDER_CALLBACK_TOO_LONG');
+  return value;
+}
+
 export function parseCallback(data) {
   const value = String(data || '');
   let match = value.match(/^q:(\d{4}):(\d+)$/);
@@ -109,6 +133,11 @@ export function parseCallback(data) {
   if (match) return { kind: 'quote_approve', inputKey: match[1] };
   match = value.match(/^o:(\d{4})$/);
   if (match) return { kind: 'order', inputKey: match[1] };
+  match = value.match(/^y:(\d{4}):([isdp])(?::([^:]*):([^:]*))?$/);
+  if (match) {
+    const actions = { i: 'inspection_complete', s: 'shipping', d: 'delivered', p: 'pickup_delivered' };
+    return { kind: 'order_advance', inputKey: match[1], action: actions[match[2]], courier: decodeURIComponent(match[3] || ''), trackingNo: decodeURIComponent(match[4] || '') };
+  }
   match = value.match(/^c:(\d{4})$/);
   if (match) return { kind: 'quote_contact', inputKey: match[1] };
   match = value.match(/^v:(\d{4})$/);

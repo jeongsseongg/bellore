@@ -129,6 +129,19 @@ test('견적·주문 outbox를 사진 수와 전체 운영 상세가 있는 문�
   assert.match(order, /토스페이 간편결제 · 전액 결제/);
   assert.match(order, /수령인: 김수령/);
   assert.match(order, /배송주소: \(04524\) 서울시 중구 1층/);
+
+  const cancellation = formatOutboxMessage({
+    event_type: 'order_cancel_requested',
+    payload: {
+      orderNo: 'ORDER', productName: '롤렉스 서브마리너', amount: 5_000_000,
+      previousStatus: 'shipping', previousStatusLabel: '배송중',
+      cancelReason: '배송중 고객 주문취소 요청', buyerName: '홍길동', buyerPhone: '010-1111-2222',
+      courier: 'CJ대한통운', trackingNo: '1234567890', productImage: 'https://cdn.example.com/order.webp',
+    },
+  });
+  assert.match(cancellation, /주문취소 요청이 접수되었습니다/);
+  assert.match(cancellation, /요청 전 상태: 배송중/);
+  assert.match(cancellation, /관리자 페이지의 취소요청/);
 });
 
 test('즉시매입·위탁 신청과 결제 문제를 연락처·사진과 함께 안내한다', () => {

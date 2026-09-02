@@ -2012,7 +2012,7 @@
       shipRequest: o.ship_request || '',
       courier: o.courier || '',
       trackingNo: o.tracking_no || '',
-      cancelReason: o.cancel_reason || '',
+      cancelReason: o.cancel_reason || '', cancelInspectedAt: o.cancel_inspected_at ? tsObj(o.cancel_inspected_at) : null, cancelInspectedBy: o.cancel_inspected_by || null, cancelInspectionMemo: o.cancel_inspection_memo || '',
       adminMemo: o.admin_memo || '',
       memo: o.memo || '',
       discount: o.discount || 0,
@@ -2227,7 +2227,7 @@
     return sb.from('orders').update({ admin_memo: memo || null }).eq('id', orderId)
       .then(function (res) { if (res.error) throw res.error; return true; });
   };
-
+  Backend.adminMarkOrderCancelInspected = function (orderNo, memo) { return sb.rpc('admin_mark_order_cancel_inspected', { p_order_no: orderNo, p_memo: memo || null }).then(function (res) { if (res.error) throw res.error; return res.data === true; }); };
   // 환불 — Edge Function(cancel-payment)으로 포트원 취소와 DB 갱신.
   // 결제대행 취소 없이 DB 상태만 바꾸는 폴백은 금지한다.
   Backend.adminRefund = function (order, reason) {

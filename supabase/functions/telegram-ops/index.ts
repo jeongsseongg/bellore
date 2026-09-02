@@ -20,6 +20,7 @@ import {
 import { createKakaoDelivery } from './kakao-delivery.mjs';
 import { createTelegramMediaDelivery } from './telegram-media-delivery.mjs';
 import { createTelegramSellCycle } from './telegram-sell-cycle.mjs';
+import { createTelegramOrderCycle } from './telegram-order-cycle.mjs';
 
 // telegram-sell-cycle owns telegram_ops_offer_sell_service and telegram_ops_advance_sell_service.
 
@@ -102,7 +103,7 @@ const { handlePhotoDownload, sendTelegramOutbox } = createTelegramMediaDelivery(
   supabaseUrl: SUPABASE_URL, serviceRole: SERVICE_ROLE, cronSecret: CRON_SECRET,
   telegram, sendText,
 });
-const sellCycle = createTelegramSellCycle({ rpc, sendText, formatChatAmount, quoteChatId: QUOTE_CHAT_ID });
+const sellCycle = createTelegramSellCycle({ rpc, sendText, formatChatAmount, quoteChatId: QUOTE_CHAT_ID }); const orderCycle = createTelegramOrderCycle({ rpc, sendText, orderChatId: ORDER_CHAT_ID });
 
 const sendKakao = createKakaoDelivery({
   apiKey: SOLAPI_API_KEY, apiSecret: SOLAPI_API_SECRET,
@@ -230,12 +231,16 @@ async function handleMessage(update: Json) {
       { text: '아니요, 취소', callback_data: 'cancel' },
     ]] });
   } else if (chatId === ORDER_CHAT_ID) {
+    if (await orderCycle.handleMessage(text, chatId)) return;
     const command = parseOrderCommand(text);
     if (!command) {
       await sendText(chatId, [
         '입력을 이해하지 못했어요.',
         '주문을 승인하려면 4자리 입력키만 보내주세요.',
         '예) /7471',
+        '',
+        '검수완료: /7471 검수완료 · 배송시작: /7471 배송시작 CJ대한통운 1234567890',
+        '배송완료: /7471 배송완료 · 매장 픽업완료: /7471 픽업완료',
       ].join('\n'));
       return;
     }
@@ -278,8 +283,11 @@ async function handleCallback(update: Json) {
     const sellResult = await sellCycle.handleCallback(parsed, {
       chatId, actorId: String(actor.id), dedupeKey: `telegram:${String(update.update_id)}`,
     });
+    const orderResult = sellResult.handled ? { handled: false } : await orderCycle.handleCallback(parsed, { chatId, actorId: String(actor.id), dedupeKey: `telegram:${String(update.update_id)}` });
     if (sellResult.handled) {
       result = sellResult.result as Json;
+    } else if (orderResult.handled) {
+      result = orderResult.result as Json;
     } else if (parsed.kind === 'quote_approve') {
       if (chatId !== QUOTE_CHAT_ID) throw new Error('WRONG_CHAT');
       result = await rpc('telegram_ops_approve_quote', {

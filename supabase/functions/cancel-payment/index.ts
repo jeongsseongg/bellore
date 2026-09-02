@@ -122,12 +122,15 @@ Deno.serve(async (req) => {
 
     const { data: order, error: orderError } = await admin
       .from("orders")
-      .select("id,order_no,status,amount,payment_key,refund_amount")
+      .select("id,order_no,status,amount,payment_key,refund_amount,cancel_inspected_at")
       .eq("order_no", orderNo)
       .single();
     if (orderError || !order) return json(req, { error: "order_not_found" }, 404);
     if (order.status === "refunded") {
       return json(req, { ok: true, alreadyRefunded: true });
+    }
+    if (order.status !== "cancel_req" || !order.cancel_inspected_at) {
+      return json(req, { error: "cancel_inspection_required" }, 409);
     }
     if (!order.payment_key || !Number.isSafeInteger(Number(order.amount)) || !hasRefundablePaymentStatus(order.status)) {
       return json(req, { error: "paid_payment_not_found" }, 409);
