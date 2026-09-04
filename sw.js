@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v417-order-full-cycle";
+const VERSION = "bellore-v418-signup-notice";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -47,7 +47,8 @@ const SHELL_ASSETS = [
   './ui-dialog.js?v=20260826-member-verification-live-v2',
   './supabase-config.js?v=20260902-approved-kg-only-v1',
   './analytics-core.js?v=20260810-analytics-v3',
-  './analytics-client.js?v=20260826-ai-consent-v1',
+  './analytics-client.js?v=20260904-signup-notice-v1',
+  './app/services/auth/signup-notification-context.mjs?v=20260904-signup-notice-v1',
   './brands.js',
   './supabase.js?v=20260902-profile-address-v1',
   './supabase.js?v=20260902-order-cancel-inspection-v2',

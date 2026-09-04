@@ -12,15 +12,13 @@ import {
   parseQuoteFollowupCommand,
   parseQuoteCommand,
 } from '../_shared/telegram-ops-core.mjs';
-import {
-  formatChatAmount,
-  formatOutboxMessage,
-  friendlyActionError,
-} from './telegram-ops-v6-core.mjs';
+import { formatChatAmount, friendlyActionError } from './telegram-ops-v6-core.mjs';
 import { createKakaoDelivery } from './kakao-delivery.mjs';
 import { createTelegramMediaDelivery } from './telegram-media-delivery.mjs';
 import { createTelegramSellCycle } from './telegram-sell-cycle.mjs';
 import { createTelegramOrderCycle } from './telegram-order-cycle.mjs';
+import { createSignupNoticeDelivery } from './telegram-signup-notice.mjs';
+import { createSupportNoticeDelivery } from './telegram-support-notice.mjs';
 
 // telegram-sell-cycle owns telegram_ops_offer_sell_service and telegram_ops_advance_sell_service.
 
@@ -32,8 +30,10 @@ const WEBHOOK_SECRET = env('TELEGRAM_WEBHOOK_SECRET');
 const CRON_SECRET = env('TELEGRAM_CRON_SECRET');
 const ORDER_CHAT_ID = env('TELEGRAM_ORDER_CHAT_ID');
 const QUOTE_CHAT_ID = env('TELEGRAM_QUOTE_CHAT_ID');
-const SUPPORT_BOT_TOKEN = env('TELEGRAM_SUPPORT_BOT_TOKEN');
-const SUPPORT_CHAT_ID = env('TELEGRAM_SUPPORT_CHAT_ID');
+const sendSupportNotice = createSupportNoticeDelivery({ token: env('TELEGRAM_SUPPORT_BOT_TOKEN'),
+  chatId: env('TELEGRAM_SUPPORT_CHAT_ID'), telegramWithToken });
+const sendSignupNotice = createSignupNoticeDelivery({ token: env('TELEGRAM_SIGNUP_BOT_TOKEN'),
+  chatId: env('TELEGRAM_SIGNUP_CHAT_ID'), ownerId: env('TELEGRAM_SIGNUP_OWNER_ID'), telegramWithToken });
 const ADMIN_IDS = env('TELEGRAM_ADMIN_USER_IDS');
 const BELLORE_PROFILE_ID = env('TELEGRAM_BELLORE_PROFILE_ID');
 
@@ -128,12 +128,11 @@ async function drainOutbox() {
       if (row.target === 'customer_kakao') {
         const result = await sendKakao(row.event_type, row.payload) as Json;
         providerId = String(result.groupId || result.messageId || 'solapi');
+      } else if (row.target === 'signup_room') {
+        const result = await sendSignupNotice(row.payload) as Json;
+        providerId = String(result.message_id);
       } else if (row.target === 'support_room') {
-        if (!SUPPORT_BOT_TOKEN || !SUPPORT_CHAT_ID) throw new Error('SUPPORT_TELEGRAM_NOT_CONFIGURED');
-        const result = await telegramWithToken(SUPPORT_BOT_TOKEN, 'sendMessage', {
-          chat_id: SUPPORT_CHAT_ID,
-          text: formatOutboxMessage(row).slice(0, 4096),
-        }) as Json;
+        const result = await sendSupportNotice(row) as Json;
         providerId = String(result.message_id || 'telegram_support');
       } else {
         const chatId = row.target === 'order_room' ? ORDER_CHAT_ID : QUOTE_CHAT_ID;

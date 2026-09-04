@@ -211,6 +211,7 @@
       flush();
     }
     syncMarketing(); closeConsent();
+    document.dispatchEvent(new CustomEvent('bellore:analytics-consent'));
   }
   function closeConsent() { var el = document.getElementById('analyticsConsent'); if (el) el.remove(); }
   function showConsent(force) {
@@ -298,4 +299,7 @@
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
+  import('./app/services/auth/signup-notification-context.mjs?v=20260904-signup-notice-v1')
+    .then(function (module) { module.installSignupNotificationContext(window); })
+    .catch(function () { console.warn('signup_notice_context_unavailable'); });
 }());

@@ -144,6 +144,7 @@ export const APP_RUNTIME_FILES = Object.freeze([
   'app/legacy/recommendation-engine.js',
   'app/services/listings/listing-catalog-service.js',
   'app/services/auth/member-verification-service.js',
+  'app/services/auth/signup-notification-context.mjs',
   'app/services/payments/checkout-request-recovery.js', 'app/services/payments/payment-auth.js',
   'app/services/payments/checkout-client.js',
   'app/services/payments/payment-network.js', 'app/services/payments/pending-payment-recovery.js',
