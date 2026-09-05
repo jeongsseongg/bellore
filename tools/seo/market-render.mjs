@@ -54,7 +54,7 @@ function header() {
 function footer() {
   return `<footer class="site-footer"><div class="site-footer__inner">
   <strong>벨로르 BELLORE</strong><br>
-  명품시계 판매 · 매입 · 수리 전문<br>
+  쉽고 안전한 중고 명품시계 거래<br>
   <a href="${SITE_ORIGIN}/">bellore.co.kr</a>
 </div></footer>`;
 }
@@ -262,11 +262,11 @@ export function renderMarketIndex(products) {
     ${product.presentation.featureMovement ? `<p class="product-card__meta">${escapeHtml(product.presentation.featureMovement)}</p>` : ''}
     <p class="product-card__price">${money(product.currentPrice)}</p>
   </a>`).join('\n');
-  const title = '명품 중고시계 판매 | 벨로르 BELLORE';
-  const description = `벨로르가 판매하는 명품 중고시계 ${products.length}개를 브랜드, 모델, 레퍼런스, 상태와 가격 정보로 확인하세요.`;
+  const title = '벨로르 인증 중고 명품시계 | 쉽고 안전한 거래';
+  const description = `벨로르 인증 중고 명품시계, 30만원부터. 100% 벨로르 인증 정품 ${products.length}개를 브랜드·모델·상태·가격별로 살펴보세요.`;
   const body = `<main class="page">
     <p class="crumbs"><a href="${SITE_ORIGIN}/">홈</a> › 판매 시계</p>
-    <header class="market-head"><p class="eyebrow">BELLORE MARKET</p><h1>판매 시계</h1><p class="lead">검증된 상품 정보와 실물 이미지를 확인하세요. 현재 ${products.length}개 상품이 공개되어 있습니다.</p></header>
+    <header class="market-head"><p class="eyebrow">BELLORE MARKET</p><h1>벨로르 인증 중고 명품시계</h1><p class="lead">30만원부터 만나는 100% 벨로르 인증 정품. 상품 정보와 실물 이미지를 확인하고 쉽고 안전하게 거래하세요. 현재 ${products.length}개 상품이 공개되어 있습니다.</p></header>
     <section class="product-grid" aria-label="판매 시계 ${products.length}개">${cards}</section>
   </main>`;
   return documentShell({

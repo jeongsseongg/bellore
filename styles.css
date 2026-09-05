@@ -7198,12 +7198,12 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 .lp-brand-opt.on span { color: var(--dark-green); font-weight: 700; }
 
 /* ============================================================
-   앱 시작 스플래시 (대한민국 No.1 · 슬로건)
+   앱 시작 스플래시 (벨로르 · 슬로건)
    ============================================================ */
 .app-splash {
     position: fixed; inset: 0 auto 0 50%; z-index: 4000;
     width: min(100%, 660px); transform: translateX(-50%);
-    background: #111; color: #fff;
+    background: #fff; color: #000;
     display: flex; align-items: center; justify-content: center;
     opacity: 1; transition: opacity .55s ease;
 }
@@ -7211,15 +7211,15 @@ body.admin-mode .hcard-dynamic .hcard-actions { display: none; }
 .app-splash-inner { text-align: center; animation: splashFade .8s ease both; padding: 0 24px; }
 .app-splash-logo {
     width: 336px; max-width: 82vw; height: auto;
-    filter: brightness(0) invert(1); margin-bottom: 22px;
+    filter: brightness(0); margin-bottom: 22px;
 }
 .app-splash-no1 {
     font-size: 13px; letter-spacing: 3px; font-weight: 700;
-    color: #c9a96e; margin: 0 0 8px;
+    color: #000; margin: 0 0 8px;
 }
 .app-splash-tagline {
     font-size: 16px; font-weight: 600; letter-spacing: .5px;
-    color: #f2efe9; margin: 0;
+    color: #000; margin: 0;
 }
 @keyframes splashFade {
     from { opacity: 0; transform: translateY(10px); }

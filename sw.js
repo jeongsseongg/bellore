@@ -1,5 +1,5 @@
 /* 벨로르 PWA 서비스워커 */
-const VERSION = "bellore-v418-signup-notice";
+const VERSION = "bellore-v419-seo-slogan-white-splash";
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const OFFLINE_FALLBACK = './index.html';
@@ -23,7 +23,7 @@ const SHELL_ASSETS = [
   './index.html',
   './login.html',
   ...PAGE_ASSETS,
-  './styles.css?v=20260901-mypage-final-v4',
+  './styles.css?v=20260905-splash-white-v1',
   './wanted-theme.css?v=20260818-pretendard-v1',
   './vendor-reference.css?v=20260731-photo-viewer',
   './reference-layout.css?v=20260821-tabbar-safe-area-v1',

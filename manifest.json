@@ -1,8 +1,8 @@
 {
-  "name": "BELLORE | Luxury Watches",
+  "name": "벨로르 | 쉽고 안전한 중고 명품시계 거래소",
   "short_name": "BELLORE",
-  "description": "BELLORE — Luxury watch buying, selling and repair. Real-time comparison quotes, 24h consultation.",
-  "lang": "en",
+  "description": "첫 명품시계 구입부터 내 시계의 감정·판매까지, 벨로르에서 쉽고 안전하게. 30만원부터 만나는 중고 명품시계, 100% 벨로르 인증 정품으로 안심하고 선택하세요.",
+  "lang": "ko",
   "dir": "ltr",
   "start_url": ".",
   "scope": ".",
@@ -10,7 +10,7 @@
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
-  "background_color": "#111111",
+  "background_color": "#ffffff",
   "theme_color": "#000000",
   "categories": ["shopping", "lifestyle", "business"],
   "icons": [
